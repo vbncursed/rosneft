@@ -10,15 +10,19 @@ import "time"
 //
 // SourceBlobHash is the BlobStore key for the equirect image; the
 // frontend fetches it through /api/assets/{hash}.
+//
+// ThumbnailBlobHash is content-service's 256×128 JPEG of the source, or empty
+// until one has been made.
 type Panorama struct {
-	ID             int64
-	TerritorySlug  string
-	Slug           string
-	Title          string
-	SourceBlobHash string
-	Position       Vec3
-	YawOffset      float64
-	DefaultYaw     float64
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	ID                int64
+	TerritorySlug     string
+	Slug              string
+	Title             string
+	SourceBlobHash    string
+	Position          Vec3
+	YawOffset         float64
+	DefaultYaw        float64
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	ThumbnailBlobHash string
 }

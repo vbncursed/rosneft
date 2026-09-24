@@ -17,3 +17,9 @@ export const isCreating = (state: MutationState): boolean => state.kind === "cre
 
 export const isMutatingId = (state: MutationState, id: number): boolean =>
   state.kind === "mutating" && state.id === id;
+
+/**
+ * The placement whose row controls wait for a single write. Bulk writes keep
+ * their own pending ids (`useBulkWrites`); the editor joins the two.
+ */
+export const pendingIdsOf = (state: MutationState): number[] => (state.kind === "mutating" ? [state.id] : []);

@@ -15,14 +15,14 @@ Guidance for Claude Code when working in `backend/`.
 | --- | --- | --- | --- |
 | gateway | `services/gateway-service` | `gateway` | Public REST + Scalar UI on `:8080`; proxies `/api/assets/*` to asset; speaks gRPC to catalog, content, auth, twofa, passkey, mesh-api, and upload. Runs ETag + Brotli/gzip middleware on JSON, exposes a single-shot scene bundle and SSE job stream. Terminates the chunked-upload protocol on `/api/uploads`. |
 | catalog | `services/catalog-service` | `catalog` | Owns territories + models + their artifacts + placements + measurements (saved ruler chains, rescaled with placements) + territory admins. Postgres-backed. API-driven (no startup seeding). Keeps a read-only `ListPanoramaIDs` to validate placement visibility against content's panoramas table (shared DB). |
-| content | `services/content-service` | `content` | gRPC `:9007`. Owns **documents** (PDFs) + **panoramas** (equirect images) anchored to a territory — non-geometry media, no mesh pipeline. Shares the `andrey` DB isolated by `content_goose_db_version`; the `territories` FK cascade still cleans up its rows on territory delete. Extracted from catalog. |
+| content | `services/content-service` | `content` | gRPC `:9007`. Owns **documents** (PDFs) + **panoramas** (equirect images) anchored to a territory — non-geometry media, no mesh pipeline. Shares the `andrey` DB isolated by `content_goose_db_version`; the `territories` FK cascade still cleans up its rows on territory delete. Extracted from catalog. Mounts `blob-data` read-write to make panorama thumbnails (startup backfill + create time). |
 | auth | `services/auth-service` | `auth` | gRPC `:9004`. Owns users, roles, permissions, sessions. Postgres + Redis (auth cache, logical DB 1). Delegates 2FA login verification to twofa. |
 | twofa | `services/twofa-service` | `twofa` | gRPC `:9006`. Owns TOTP secrets, recovery codes, 2FA verify. Postgres + Redis (logical DB 2). AES-GCM-encrypts secrets at rest. |
 | passkey | `services/passkey-service` | `passkey` | gRPC `:9008`. Owns WebAuthn credentials + ceremonies. Postgres (`passkey_credentials`) + Redis (ceremony challenges, logical DB 3). Gateway calls the management RPCs; auth calls `BeginLogin`/`FinishLogin` — `FinishLogin` returns a **verified user id, never a session**. `PASSKEY_RP_ID`/`PASSKEY_RP_ORIGINS` must match the browser address bar exactly. |
 | mesh-api | `services/mesh-service` | `mesh-api` | gRPC façade for `SubmitConversion(kind, slug)` / `GetJob`. Writes Redis Streams. |
 | mesh-worker | `services/mesh-service` | `mesh-worker` | Consumes the stream, fetches the source ZIP from BlobStore by hash, extracts to a tmp dir, runs the OBJ→GLB converter, applies optional meshopt / KTX2 / LOD via `gltfpack`, writes each LOD GLB to BlobStore, registers each artifact in catalog (territory_artifacts vs model_artifacts based on Kind). Runs the reconciler that auto-queues entities whose LOD0 GLB is missing. |
 | asset | `services/asset-service` | `asset` | Internal HTTP serving content-addressed GLB blobs with immutable cache headers + ETag. |
-| audit | `services/audit-service` | `audit` | gRPC `:9009`. Owns the append-only `audit_log` plus the generic `audit_capture()` trigger attached to every audited table. Shares the `andrey` DB, isolated by `audit_goose_db_version`. Re-attaches its triggers idempotently on every boot via `ensure_audit_triggers()`, so it needs no ordering against the other services' migrations. Also seals periodic checkpoint digests and witnesses them to a volume outside the database (`audit verify`, `audit export`). |
+| audit | `services/audit-service` | `audit` | gRPC `:9009`. Owns the append-only `audit_log` plus the generic `audit_capture()` trigger attached to every audited table. Shares the `andrey` DB, isolated by `audit_goose_db_version`. Re-attaches its triggers idempotently on every boot via `ensure_audit_triggers()` — and **only** at boot, with no `depends_on` on catalog: after a migration adds an audited table, the audit image must carry the audit migration that registers it, so `docker compose up -d --build --force-recreate audit` once the service that ran the table migration is healthy (`restart` reuses the old image and never applies the new audit migration), then check `pg_trigger` for `audit_<table>`, or the table's writes go unjournaled silently. Also seals periodic checkpoint digests and witnesses them to a volume outside the database (`audit verify`, `audit export`). |
 | upload | `services/upload-service` | `upload` | Internal gRPC accepting resumable chunked uploads (`Initiate` / `WriteChunk(stream)` / `GetStatus` / `Finalize` / `Abort`). On Finalize the bytes are SHA-256 hashed and moved into BlobStore; the gateway forwards the resulting hash into `createTerritory` / `createModel`. |
 
 There is a request-path call cycle: `twofa.Setup → auth.GetMe → ValidateToken →
@@ -188,6 +188,11 @@ POST   /api/territories/{slug}/placements          → 201 Placement
 POST   /api/territories/{slug}/placements/batch    → 201 [Placement…]  (1–100, one transaction; optional Idempotency-Key → 409 on a size mismatch)
 PUT    /api/territories/{slug}/placements/{id}     → 200 Placement
 DELETE /api/territories/{slug}/placements/{id}     → 204
+PUT    /api/territories/{slug}/placements/hidden   → 200 {updated}    (1–1000 ids, all or none)
+PUT    /api/territories/{slug}/placements/group    → 200 {updated}    (groupId null = no group)
+POST   /api/territories/{slug}/placement-groups    → 201 PlacementGroup
+PATCH  /api/territories/{slug}/placement-groups/{id} → 200 PlacementGroup
+DELETE /api/territories/{slug}/placement-groups/{id} → 204            (placements stay, ungrouped)
 ```
 
 `Placement` carries `territorySlug`, `modelSlug`, `position` (Vec3), `rotation` (Euler XYZ in radians, Three.js convention), `scale` (per-axis Vec3), and an optional `label`. POST defaults: position/rotation zero, scale {1,1,1}. PUT replaces the transform in full — no partial-merge JSON Patch semantics.
@@ -196,6 +201,8 @@ Validation:
 - 400 `invalid_input` for empty IDs/slugs or non-positive scale
 - 404 `not_found` when the territory or model slug is missing
 - 404 `not_found` for unknown placement IDs
+
+**Hiding and groups are shared rows, not viewer state.** `placements.hidden` and `placements.group_id` (migration 00019) are journalled like any column, and `UpdatePlacement` and `SetPlacementVisibility` never write them. The composite FK `(territory_id, group_id) → placement_groups(territory_id, id)` makes a group of another territory unrepresentable, which surfaces as `ErrPlacementGroupNotFound`. `ON DELETE SET NULL (group_id)` returns a deleted group's placements to no group. A title is unique per territory on `lower(btrim(title))` (00021, `placement_groups_territory_title`), mapped to `ErrInvalidInput`. `ListPlacementGroups` does not check the territory exists: an unknown one lists `[]`, and the gateway's gate and the scene's own territory read answer the 404. The two bulk writes are one `UPDATE … id = ANY($2)` each, rolled back unless `RowsAffected` equals the number of distinct ids. Every placement write reads back through `placementWriteReturning` / `placementFromWrite` in `storage/queries.go`: a new column goes there and in `placementSelectCols`.
 
 **The batch is idempotent under `Idempotency-Key`, and the key lives in the
 catalog, not Redis.** Each row of a keyed batch carries `idempotency_key` and
@@ -331,8 +338,9 @@ The trigger logic is SQL, so it is covered by integration tests:
 `services/audit-service/internal/migrate/*_integration_test.go`, behind the
 `integration` build tag. They are not the only ones in the repo —
 `catalog-service/internal/storage/*_integration_test.go` (blob scoping, the
-placement territory scope, model delete, list counts, the measurement territory
-scope and points constraint, and the rescale CTE over placements,
+placement territory scope, model delete, list counts, placement hiding and
+groups (the all-or-nothing count, the composite group FK, SET NULL on group
+delete), the measurement territory scope and points constraint, and the rescale CTE over placements,
 measurements and panoramas),
 `content-service/internal/storage/territory_scope_integration_test.go` (panorama
 and document territory scope, including the allowlist scrub),
@@ -343,8 +351,8 @@ and document territory scope, including the allowlist scrub),
 (no system or tenant role changes the model library) and
 `catalog-service/internal/migrate/scrub_panorama_ids_integration_test.go` (00016
 keeps only a placement's own panorama ids) cover SQL logic the same way,
-in their own services; the audit suites include the `measurements` trigger and
-its rollback. Run them per module with
+in their own services; the audit suites include the `measurements` and
+`placement_groups` triggers and their rollbacks. Run them per module with
 `GOWORK=off go test -race -tags=integration ./internal/storage/...` (auth and
 catalog: add `./internal/migrate/...`, whose `export_test.go` provides `DownTo`
 because `Down` only undoes the newest migration; audit: `./...` from `services/audit-service`); needs
@@ -491,7 +499,7 @@ gets stolen.
 
 - Images are slim distroless (`distroless/static` for static-link Go services, `distroless/cc` for `mesh-worker` because it ships gltfpack alongside).
 - Volumes (all named, Docker-managed for nonroot ownership):
-  - `blob-data:/var/blob` — BlobStore root, shared between mesh-worker (rw), asset (ro), and upload (rw).
+  - `blob-data:/var/blob` — BlobStore root, shared between mesh-worker (rw), asset (ro), upload (rw), and content (rw, panorama thumbnails).
   - `upload-incoming:/var/upload/incoming` — partial-upload session state (per-session subdir, deleted on Finalize/Abort), **and** `uploaded/<hash>/<user>`, the H-1 markers of who finalized which hash. Do not clean `uploaded/` as leftover state: without it users can no longer attach their own earlier uploads that they cannot yet read through `ResolveBlobAccess`.
   - `postgres-data`, `redis-data` — datastore persistence.
 - All services log structured JSON via `log/slog`.

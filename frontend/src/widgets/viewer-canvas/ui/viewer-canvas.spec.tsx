@@ -27,6 +27,7 @@ const props = {
   activeChainId: null,
   unitRatio: 1,
   resetVersion: 0,
+  playing: false,
   retryVersion: 0,
   focusRequest: null,
   activePanorama: null,
@@ -54,6 +55,7 @@ const props = {
   onRemoveSegment: vi.fn(),
   onRemoveChain: vi.fn(),
   onLod: vi.fn(),
+  onPlayStop: vi.fn(),
 } as ViewerCanvasProps;
 
 const setTokens = (panel: string) => {
@@ -89,5 +91,16 @@ describe("ViewerCanvas", () => {
     act(() => elsewhere.result.current.toggle());
 
     expect(seen.colors.at(-1)!.background).toBe("#ffffff");
+  });
+
+  it("does not re-render the scene when the page re-renders with the same props", () => {
+    // The page re-renders on every panel fold and search keystroke; the scene
+    // below is three.js, and each render of it reconciles the whole graph.
+    const { rerender } = render(<ViewerCanvas {...props} />);
+    const renders = seen.colors.length;
+    rerender(<ViewerCanvas {...props} />);
+    expect(seen.colors).toHaveLength(renders);
+    rerender(<ViewerCanvas {...props} selectedId={4} />);
+    expect(seen.colors).toHaveLength(renders + 1);
   });
 });

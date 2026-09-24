@@ -61,6 +61,20 @@ type RepositoryMock struct {
 	beforeListPanoramasCounter uint64
 	ListPanoramasMock          mRepositoryMockListPanoramas
 
+	funcListPanoramasWithoutThumbnail          func(ctx context.Context) (pa1 []domain.Panorama, err error)
+	funcListPanoramasWithoutThumbnailOrigin    string
+	inspectFuncListPanoramasWithoutThumbnail   func(ctx context.Context)
+	afterListPanoramasWithoutThumbnailCounter  uint64
+	beforeListPanoramasWithoutThumbnailCounter uint64
+	ListPanoramasWithoutThumbnailMock          mRepositoryMockListPanoramasWithoutThumbnail
+
+	funcSetPanoramaThumbnail          func(ctx context.Context, id int64, hash string) (err error)
+	funcSetPanoramaThumbnailOrigin    string
+	inspectFuncSetPanoramaThumbnail   func(ctx context.Context, id int64, hash string)
+	afterSetPanoramaThumbnailCounter  uint64
+	beforeSetPanoramaThumbnailCounter uint64
+	SetPanoramaThumbnailMock          mRepositoryMockSetPanoramaThumbnail
+
 	funcUpdatePanorama          func(ctx context.Context, p domain.Panorama) (p1 domain.Panorama, err error)
 	funcUpdatePanoramaOrigin    string
 	inspectFuncUpdatePanorama   func(ctx context.Context, p domain.Panorama)
@@ -94,6 +108,12 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 
 	m.ListPanoramasMock = mRepositoryMockListPanoramas{mock: m}
 	m.ListPanoramasMock.callArgs = []*RepositoryMockListPanoramasParams{}
+
+	m.ListPanoramasWithoutThumbnailMock = mRepositoryMockListPanoramasWithoutThumbnail{mock: m}
+	m.ListPanoramasWithoutThumbnailMock.callArgs = []*RepositoryMockListPanoramasWithoutThumbnailParams{}
+
+	m.SetPanoramaThumbnailMock = mRepositoryMockSetPanoramaThumbnail{mock: m}
+	m.SetPanoramaThumbnailMock.callArgs = []*RepositoryMockSetPanoramaThumbnailParams{}
 
 	m.UpdatePanoramaMock = mRepositoryMockUpdatePanorama{mock: m}
 	m.UpdatePanoramaMock.callArgs = []*RepositoryMockUpdatePanoramaParams{}
@@ -2221,6 +2241,691 @@ func (m *RepositoryMock) MinimockListPanoramasInspect() {
 	}
 }
 
+type mRepositoryMockListPanoramasWithoutThumbnail struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockListPanoramasWithoutThumbnailExpectation
+	expectations       []*RepositoryMockListPanoramasWithoutThumbnailExpectation
+
+	callArgs []*RepositoryMockListPanoramasWithoutThumbnailParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockListPanoramasWithoutThumbnailExpectation specifies expectation struct of the Repository.ListPanoramasWithoutThumbnail
+type RepositoryMockListPanoramasWithoutThumbnailExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockListPanoramasWithoutThumbnailParams
+	paramPtrs          *RepositoryMockListPanoramasWithoutThumbnailParamPtrs
+	expectationOrigins RepositoryMockListPanoramasWithoutThumbnailExpectationOrigins
+	results            *RepositoryMockListPanoramasWithoutThumbnailResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockListPanoramasWithoutThumbnailParams contains parameters of the Repository.ListPanoramasWithoutThumbnail
+type RepositoryMockListPanoramasWithoutThumbnailParams struct {
+	ctx context.Context
+}
+
+// RepositoryMockListPanoramasWithoutThumbnailParamPtrs contains pointers to parameters of the Repository.ListPanoramasWithoutThumbnail
+type RepositoryMockListPanoramasWithoutThumbnailParamPtrs struct {
+	ctx *context.Context
+}
+
+// RepositoryMockListPanoramasWithoutThumbnailResults contains results of the Repository.ListPanoramasWithoutThumbnail
+type RepositoryMockListPanoramasWithoutThumbnailResults struct {
+	pa1 []domain.Panorama
+	err error
+}
+
+// RepositoryMockListPanoramasWithoutThumbnailOrigins contains origins of expectations of the Repository.ListPanoramasWithoutThumbnail
+type RepositoryMockListPanoramasWithoutThumbnailExpectationOrigins struct {
+	origin    string
+	originCtx string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmListPanoramasWithoutThumbnail *mRepositoryMockListPanoramasWithoutThumbnail) Optional() *mRepositoryMockListPanoramasWithoutThumbnail {
+	mmListPanoramasWithoutThumbnail.optional = true
+	return mmListPanoramasWithoutThumbnail
+}
+
+// Expect sets up expected params for Repository.ListPanoramasWithoutThumbnail
+func (mmListPanoramasWithoutThumbnail *mRepositoryMockListPanoramasWithoutThumbnail) Expect(ctx context.Context) *mRepositoryMockListPanoramasWithoutThumbnail {
+	if mmListPanoramasWithoutThumbnail.mock.funcListPanoramasWithoutThumbnail != nil {
+		mmListPanoramasWithoutThumbnail.mock.t.Fatalf("RepositoryMock.ListPanoramasWithoutThumbnail mock is already set by Set")
+	}
+
+	if mmListPanoramasWithoutThumbnail.defaultExpectation == nil {
+		mmListPanoramasWithoutThumbnail.defaultExpectation = &RepositoryMockListPanoramasWithoutThumbnailExpectation{}
+	}
+
+	if mmListPanoramasWithoutThumbnail.defaultExpectation.paramPtrs != nil {
+		mmListPanoramasWithoutThumbnail.mock.t.Fatalf("RepositoryMock.ListPanoramasWithoutThumbnail mock is already set by ExpectParams functions")
+	}
+
+	mmListPanoramasWithoutThumbnail.defaultExpectation.params = &RepositoryMockListPanoramasWithoutThumbnailParams{ctx}
+	mmListPanoramasWithoutThumbnail.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmListPanoramasWithoutThumbnail.expectations {
+		if minimock.Equal(e.params, mmListPanoramasWithoutThumbnail.defaultExpectation.params) {
+			mmListPanoramasWithoutThumbnail.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmListPanoramasWithoutThumbnail.defaultExpectation.params)
+		}
+	}
+
+	return mmListPanoramasWithoutThumbnail
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.ListPanoramasWithoutThumbnail
+func (mmListPanoramasWithoutThumbnail *mRepositoryMockListPanoramasWithoutThumbnail) ExpectCtxParam1(ctx context.Context) *mRepositoryMockListPanoramasWithoutThumbnail {
+	if mmListPanoramasWithoutThumbnail.mock.funcListPanoramasWithoutThumbnail != nil {
+		mmListPanoramasWithoutThumbnail.mock.t.Fatalf("RepositoryMock.ListPanoramasWithoutThumbnail mock is already set by Set")
+	}
+
+	if mmListPanoramasWithoutThumbnail.defaultExpectation == nil {
+		mmListPanoramasWithoutThumbnail.defaultExpectation = &RepositoryMockListPanoramasWithoutThumbnailExpectation{}
+	}
+
+	if mmListPanoramasWithoutThumbnail.defaultExpectation.params != nil {
+		mmListPanoramasWithoutThumbnail.mock.t.Fatalf("RepositoryMock.ListPanoramasWithoutThumbnail mock is already set by Expect")
+	}
+
+	if mmListPanoramasWithoutThumbnail.defaultExpectation.paramPtrs == nil {
+		mmListPanoramasWithoutThumbnail.defaultExpectation.paramPtrs = &RepositoryMockListPanoramasWithoutThumbnailParamPtrs{}
+	}
+	mmListPanoramasWithoutThumbnail.defaultExpectation.paramPtrs.ctx = &ctx
+	mmListPanoramasWithoutThumbnail.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmListPanoramasWithoutThumbnail
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.ListPanoramasWithoutThumbnail
+func (mmListPanoramasWithoutThumbnail *mRepositoryMockListPanoramasWithoutThumbnail) Inspect(f func(ctx context.Context)) *mRepositoryMockListPanoramasWithoutThumbnail {
+	if mmListPanoramasWithoutThumbnail.mock.inspectFuncListPanoramasWithoutThumbnail != nil {
+		mmListPanoramasWithoutThumbnail.mock.t.Fatalf("Inspect function is already set for RepositoryMock.ListPanoramasWithoutThumbnail")
+	}
+
+	mmListPanoramasWithoutThumbnail.mock.inspectFuncListPanoramasWithoutThumbnail = f
+
+	return mmListPanoramasWithoutThumbnail
+}
+
+// Return sets up results that will be returned by Repository.ListPanoramasWithoutThumbnail
+func (mmListPanoramasWithoutThumbnail *mRepositoryMockListPanoramasWithoutThumbnail) Return(pa1 []domain.Panorama, err error) *RepositoryMock {
+	if mmListPanoramasWithoutThumbnail.mock.funcListPanoramasWithoutThumbnail != nil {
+		mmListPanoramasWithoutThumbnail.mock.t.Fatalf("RepositoryMock.ListPanoramasWithoutThumbnail mock is already set by Set")
+	}
+
+	if mmListPanoramasWithoutThumbnail.defaultExpectation == nil {
+		mmListPanoramasWithoutThumbnail.defaultExpectation = &RepositoryMockListPanoramasWithoutThumbnailExpectation{mock: mmListPanoramasWithoutThumbnail.mock}
+	}
+	mmListPanoramasWithoutThumbnail.defaultExpectation.results = &RepositoryMockListPanoramasWithoutThumbnailResults{pa1, err}
+	mmListPanoramasWithoutThumbnail.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmListPanoramasWithoutThumbnail.mock
+}
+
+// Set uses given function f to mock the Repository.ListPanoramasWithoutThumbnail method
+func (mmListPanoramasWithoutThumbnail *mRepositoryMockListPanoramasWithoutThumbnail) Set(f func(ctx context.Context) (pa1 []domain.Panorama, err error)) *RepositoryMock {
+	if mmListPanoramasWithoutThumbnail.defaultExpectation != nil {
+		mmListPanoramasWithoutThumbnail.mock.t.Fatalf("Default expectation is already set for the Repository.ListPanoramasWithoutThumbnail method")
+	}
+
+	if len(mmListPanoramasWithoutThumbnail.expectations) > 0 {
+		mmListPanoramasWithoutThumbnail.mock.t.Fatalf("Some expectations are already set for the Repository.ListPanoramasWithoutThumbnail method")
+	}
+
+	mmListPanoramasWithoutThumbnail.mock.funcListPanoramasWithoutThumbnail = f
+	mmListPanoramasWithoutThumbnail.mock.funcListPanoramasWithoutThumbnailOrigin = minimock.CallerInfo(1)
+	return mmListPanoramasWithoutThumbnail.mock
+}
+
+// When sets expectation for the Repository.ListPanoramasWithoutThumbnail which will trigger the result defined by the following
+// Then helper
+func (mmListPanoramasWithoutThumbnail *mRepositoryMockListPanoramasWithoutThumbnail) When(ctx context.Context) *RepositoryMockListPanoramasWithoutThumbnailExpectation {
+	if mmListPanoramasWithoutThumbnail.mock.funcListPanoramasWithoutThumbnail != nil {
+		mmListPanoramasWithoutThumbnail.mock.t.Fatalf("RepositoryMock.ListPanoramasWithoutThumbnail mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockListPanoramasWithoutThumbnailExpectation{
+		mock:               mmListPanoramasWithoutThumbnail.mock,
+		params:             &RepositoryMockListPanoramasWithoutThumbnailParams{ctx},
+		expectationOrigins: RepositoryMockListPanoramasWithoutThumbnailExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmListPanoramasWithoutThumbnail.expectations = append(mmListPanoramasWithoutThumbnail.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.ListPanoramasWithoutThumbnail return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockListPanoramasWithoutThumbnailExpectation) Then(pa1 []domain.Panorama, err error) *RepositoryMock {
+	e.results = &RepositoryMockListPanoramasWithoutThumbnailResults{pa1, err}
+	return e.mock
+}
+
+// Times sets number of times Repository.ListPanoramasWithoutThumbnail should be invoked
+func (mmListPanoramasWithoutThumbnail *mRepositoryMockListPanoramasWithoutThumbnail) Times(n uint64) *mRepositoryMockListPanoramasWithoutThumbnail {
+	if n == 0 {
+		mmListPanoramasWithoutThumbnail.mock.t.Fatalf("Times of RepositoryMock.ListPanoramasWithoutThumbnail mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmListPanoramasWithoutThumbnail.expectedInvocations, n)
+	mmListPanoramasWithoutThumbnail.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmListPanoramasWithoutThumbnail
+}
+
+func (mmListPanoramasWithoutThumbnail *mRepositoryMockListPanoramasWithoutThumbnail) invocationsDone() bool {
+	if len(mmListPanoramasWithoutThumbnail.expectations) == 0 && mmListPanoramasWithoutThumbnail.defaultExpectation == nil && mmListPanoramasWithoutThumbnail.mock.funcListPanoramasWithoutThumbnail == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmListPanoramasWithoutThumbnail.mock.afterListPanoramasWithoutThumbnailCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmListPanoramasWithoutThumbnail.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ListPanoramasWithoutThumbnail implements mm_service.Repository
+func (mmListPanoramasWithoutThumbnail *RepositoryMock) ListPanoramasWithoutThumbnail(ctx context.Context) (pa1 []domain.Panorama, err error) {
+	mm_atomic.AddUint64(&mmListPanoramasWithoutThumbnail.beforeListPanoramasWithoutThumbnailCounter, 1)
+	defer mm_atomic.AddUint64(&mmListPanoramasWithoutThumbnail.afterListPanoramasWithoutThumbnailCounter, 1)
+
+	mmListPanoramasWithoutThumbnail.t.Helper()
+
+	if mmListPanoramasWithoutThumbnail.inspectFuncListPanoramasWithoutThumbnail != nil {
+		mmListPanoramasWithoutThumbnail.inspectFuncListPanoramasWithoutThumbnail(ctx)
+	}
+
+	mm_params := RepositoryMockListPanoramasWithoutThumbnailParams{ctx}
+
+	// Record call args
+	mmListPanoramasWithoutThumbnail.ListPanoramasWithoutThumbnailMock.mutex.Lock()
+	mmListPanoramasWithoutThumbnail.ListPanoramasWithoutThumbnailMock.callArgs = append(mmListPanoramasWithoutThumbnail.ListPanoramasWithoutThumbnailMock.callArgs, &mm_params)
+	mmListPanoramasWithoutThumbnail.ListPanoramasWithoutThumbnailMock.mutex.Unlock()
+
+	for _, e := range mmListPanoramasWithoutThumbnail.ListPanoramasWithoutThumbnailMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.pa1, e.results.err
+		}
+	}
+
+	if mmListPanoramasWithoutThumbnail.ListPanoramasWithoutThumbnailMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmListPanoramasWithoutThumbnail.ListPanoramasWithoutThumbnailMock.defaultExpectation.Counter, 1)
+		mm_want := mmListPanoramasWithoutThumbnail.ListPanoramasWithoutThumbnailMock.defaultExpectation.params
+		mm_want_ptrs := mmListPanoramasWithoutThumbnail.ListPanoramasWithoutThumbnailMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockListPanoramasWithoutThumbnailParams{ctx}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmListPanoramasWithoutThumbnail.t.Errorf("RepositoryMock.ListPanoramasWithoutThumbnail got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListPanoramasWithoutThumbnail.ListPanoramasWithoutThumbnailMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmListPanoramasWithoutThumbnail.t.Errorf("RepositoryMock.ListPanoramasWithoutThumbnail got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmListPanoramasWithoutThumbnail.ListPanoramasWithoutThumbnailMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmListPanoramasWithoutThumbnail.ListPanoramasWithoutThumbnailMock.defaultExpectation.results
+		if mm_results == nil {
+			mmListPanoramasWithoutThumbnail.t.Fatal("No results are set for the RepositoryMock.ListPanoramasWithoutThumbnail")
+		}
+		return (*mm_results).pa1, (*mm_results).err
+	}
+	if mmListPanoramasWithoutThumbnail.funcListPanoramasWithoutThumbnail != nil {
+		return mmListPanoramasWithoutThumbnail.funcListPanoramasWithoutThumbnail(ctx)
+	}
+	mmListPanoramasWithoutThumbnail.t.Fatalf("Unexpected call to RepositoryMock.ListPanoramasWithoutThumbnail. %v", ctx)
+	return
+}
+
+// ListPanoramasWithoutThumbnailAfterCounter returns a count of finished RepositoryMock.ListPanoramasWithoutThumbnail invocations
+func (mmListPanoramasWithoutThumbnail *RepositoryMock) ListPanoramasWithoutThumbnailAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListPanoramasWithoutThumbnail.afterListPanoramasWithoutThumbnailCounter)
+}
+
+// ListPanoramasWithoutThumbnailBeforeCounter returns a count of RepositoryMock.ListPanoramasWithoutThumbnail invocations
+func (mmListPanoramasWithoutThumbnail *RepositoryMock) ListPanoramasWithoutThumbnailBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListPanoramasWithoutThumbnail.beforeListPanoramasWithoutThumbnailCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.ListPanoramasWithoutThumbnail.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmListPanoramasWithoutThumbnail *mRepositoryMockListPanoramasWithoutThumbnail) Calls() []*RepositoryMockListPanoramasWithoutThumbnailParams {
+	mmListPanoramasWithoutThumbnail.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockListPanoramasWithoutThumbnailParams, len(mmListPanoramasWithoutThumbnail.callArgs))
+	copy(argCopy, mmListPanoramasWithoutThumbnail.callArgs)
+
+	mmListPanoramasWithoutThumbnail.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockListPanoramasWithoutThumbnailDone returns true if the count of the ListPanoramasWithoutThumbnail invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockListPanoramasWithoutThumbnailDone() bool {
+	if m.ListPanoramasWithoutThumbnailMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ListPanoramasWithoutThumbnailMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ListPanoramasWithoutThumbnailMock.invocationsDone()
+}
+
+// MinimockListPanoramasWithoutThumbnailInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockListPanoramasWithoutThumbnailInspect() {
+	for _, e := range m.ListPanoramasWithoutThumbnailMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.ListPanoramasWithoutThumbnail at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterListPanoramasWithoutThumbnailCounter := mm_atomic.LoadUint64(&m.afterListPanoramasWithoutThumbnailCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ListPanoramasWithoutThumbnailMock.defaultExpectation != nil && afterListPanoramasWithoutThumbnailCounter < 1 {
+		if m.ListPanoramasWithoutThumbnailMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.ListPanoramasWithoutThumbnail at\n%s", m.ListPanoramasWithoutThumbnailMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.ListPanoramasWithoutThumbnail at\n%s with params: %#v", m.ListPanoramasWithoutThumbnailMock.defaultExpectation.expectationOrigins.origin, *m.ListPanoramasWithoutThumbnailMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcListPanoramasWithoutThumbnail != nil && afterListPanoramasWithoutThumbnailCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.ListPanoramasWithoutThumbnail at\n%s", m.funcListPanoramasWithoutThumbnailOrigin)
+	}
+
+	if !m.ListPanoramasWithoutThumbnailMock.invocationsDone() && afterListPanoramasWithoutThumbnailCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.ListPanoramasWithoutThumbnail at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ListPanoramasWithoutThumbnailMock.expectedInvocations), m.ListPanoramasWithoutThumbnailMock.expectedInvocationsOrigin, afterListPanoramasWithoutThumbnailCounter)
+	}
+}
+
+type mRepositoryMockSetPanoramaThumbnail struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockSetPanoramaThumbnailExpectation
+	expectations       []*RepositoryMockSetPanoramaThumbnailExpectation
+
+	callArgs []*RepositoryMockSetPanoramaThumbnailParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockSetPanoramaThumbnailExpectation specifies expectation struct of the Repository.SetPanoramaThumbnail
+type RepositoryMockSetPanoramaThumbnailExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockSetPanoramaThumbnailParams
+	paramPtrs          *RepositoryMockSetPanoramaThumbnailParamPtrs
+	expectationOrigins RepositoryMockSetPanoramaThumbnailExpectationOrigins
+	results            *RepositoryMockSetPanoramaThumbnailResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockSetPanoramaThumbnailParams contains parameters of the Repository.SetPanoramaThumbnail
+type RepositoryMockSetPanoramaThumbnailParams struct {
+	ctx  context.Context
+	id   int64
+	hash string
+}
+
+// RepositoryMockSetPanoramaThumbnailParamPtrs contains pointers to parameters of the Repository.SetPanoramaThumbnail
+type RepositoryMockSetPanoramaThumbnailParamPtrs struct {
+	ctx  *context.Context
+	id   *int64
+	hash *string
+}
+
+// RepositoryMockSetPanoramaThumbnailResults contains results of the Repository.SetPanoramaThumbnail
+type RepositoryMockSetPanoramaThumbnailResults struct {
+	err error
+}
+
+// RepositoryMockSetPanoramaThumbnailOrigins contains origins of expectations of the Repository.SetPanoramaThumbnail
+type RepositoryMockSetPanoramaThumbnailExpectationOrigins struct {
+	origin     string
+	originCtx  string
+	originId   string
+	originHash string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmSetPanoramaThumbnail *mRepositoryMockSetPanoramaThumbnail) Optional() *mRepositoryMockSetPanoramaThumbnail {
+	mmSetPanoramaThumbnail.optional = true
+	return mmSetPanoramaThumbnail
+}
+
+// Expect sets up expected params for Repository.SetPanoramaThumbnail
+func (mmSetPanoramaThumbnail *mRepositoryMockSetPanoramaThumbnail) Expect(ctx context.Context, id int64, hash string) *mRepositoryMockSetPanoramaThumbnail {
+	if mmSetPanoramaThumbnail.mock.funcSetPanoramaThumbnail != nil {
+		mmSetPanoramaThumbnail.mock.t.Fatalf("RepositoryMock.SetPanoramaThumbnail mock is already set by Set")
+	}
+
+	if mmSetPanoramaThumbnail.defaultExpectation == nil {
+		mmSetPanoramaThumbnail.defaultExpectation = &RepositoryMockSetPanoramaThumbnailExpectation{}
+	}
+
+	if mmSetPanoramaThumbnail.defaultExpectation.paramPtrs != nil {
+		mmSetPanoramaThumbnail.mock.t.Fatalf("RepositoryMock.SetPanoramaThumbnail mock is already set by ExpectParams functions")
+	}
+
+	mmSetPanoramaThumbnail.defaultExpectation.params = &RepositoryMockSetPanoramaThumbnailParams{ctx, id, hash}
+	mmSetPanoramaThumbnail.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmSetPanoramaThumbnail.expectations {
+		if minimock.Equal(e.params, mmSetPanoramaThumbnail.defaultExpectation.params) {
+			mmSetPanoramaThumbnail.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSetPanoramaThumbnail.defaultExpectation.params)
+		}
+	}
+
+	return mmSetPanoramaThumbnail
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.SetPanoramaThumbnail
+func (mmSetPanoramaThumbnail *mRepositoryMockSetPanoramaThumbnail) ExpectCtxParam1(ctx context.Context) *mRepositoryMockSetPanoramaThumbnail {
+	if mmSetPanoramaThumbnail.mock.funcSetPanoramaThumbnail != nil {
+		mmSetPanoramaThumbnail.mock.t.Fatalf("RepositoryMock.SetPanoramaThumbnail mock is already set by Set")
+	}
+
+	if mmSetPanoramaThumbnail.defaultExpectation == nil {
+		mmSetPanoramaThumbnail.defaultExpectation = &RepositoryMockSetPanoramaThumbnailExpectation{}
+	}
+
+	if mmSetPanoramaThumbnail.defaultExpectation.params != nil {
+		mmSetPanoramaThumbnail.mock.t.Fatalf("RepositoryMock.SetPanoramaThumbnail mock is already set by Expect")
+	}
+
+	if mmSetPanoramaThumbnail.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramaThumbnail.defaultExpectation.paramPtrs = &RepositoryMockSetPanoramaThumbnailParamPtrs{}
+	}
+	mmSetPanoramaThumbnail.defaultExpectation.paramPtrs.ctx = &ctx
+	mmSetPanoramaThumbnail.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmSetPanoramaThumbnail
+}
+
+// ExpectIdParam2 sets up expected param id for Repository.SetPanoramaThumbnail
+func (mmSetPanoramaThumbnail *mRepositoryMockSetPanoramaThumbnail) ExpectIdParam2(id int64) *mRepositoryMockSetPanoramaThumbnail {
+	if mmSetPanoramaThumbnail.mock.funcSetPanoramaThumbnail != nil {
+		mmSetPanoramaThumbnail.mock.t.Fatalf("RepositoryMock.SetPanoramaThumbnail mock is already set by Set")
+	}
+
+	if mmSetPanoramaThumbnail.defaultExpectation == nil {
+		mmSetPanoramaThumbnail.defaultExpectation = &RepositoryMockSetPanoramaThumbnailExpectation{}
+	}
+
+	if mmSetPanoramaThumbnail.defaultExpectation.params != nil {
+		mmSetPanoramaThumbnail.mock.t.Fatalf("RepositoryMock.SetPanoramaThumbnail mock is already set by Expect")
+	}
+
+	if mmSetPanoramaThumbnail.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramaThumbnail.defaultExpectation.paramPtrs = &RepositoryMockSetPanoramaThumbnailParamPtrs{}
+	}
+	mmSetPanoramaThumbnail.defaultExpectation.paramPtrs.id = &id
+	mmSetPanoramaThumbnail.defaultExpectation.expectationOrigins.originId = minimock.CallerInfo(1)
+
+	return mmSetPanoramaThumbnail
+}
+
+// ExpectHashParam3 sets up expected param hash for Repository.SetPanoramaThumbnail
+func (mmSetPanoramaThumbnail *mRepositoryMockSetPanoramaThumbnail) ExpectHashParam3(hash string) *mRepositoryMockSetPanoramaThumbnail {
+	if mmSetPanoramaThumbnail.mock.funcSetPanoramaThumbnail != nil {
+		mmSetPanoramaThumbnail.mock.t.Fatalf("RepositoryMock.SetPanoramaThumbnail mock is already set by Set")
+	}
+
+	if mmSetPanoramaThumbnail.defaultExpectation == nil {
+		mmSetPanoramaThumbnail.defaultExpectation = &RepositoryMockSetPanoramaThumbnailExpectation{}
+	}
+
+	if mmSetPanoramaThumbnail.defaultExpectation.params != nil {
+		mmSetPanoramaThumbnail.mock.t.Fatalf("RepositoryMock.SetPanoramaThumbnail mock is already set by Expect")
+	}
+
+	if mmSetPanoramaThumbnail.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramaThumbnail.defaultExpectation.paramPtrs = &RepositoryMockSetPanoramaThumbnailParamPtrs{}
+	}
+	mmSetPanoramaThumbnail.defaultExpectation.paramPtrs.hash = &hash
+	mmSetPanoramaThumbnail.defaultExpectation.expectationOrigins.originHash = minimock.CallerInfo(1)
+
+	return mmSetPanoramaThumbnail
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.SetPanoramaThumbnail
+func (mmSetPanoramaThumbnail *mRepositoryMockSetPanoramaThumbnail) Inspect(f func(ctx context.Context, id int64, hash string)) *mRepositoryMockSetPanoramaThumbnail {
+	if mmSetPanoramaThumbnail.mock.inspectFuncSetPanoramaThumbnail != nil {
+		mmSetPanoramaThumbnail.mock.t.Fatalf("Inspect function is already set for RepositoryMock.SetPanoramaThumbnail")
+	}
+
+	mmSetPanoramaThumbnail.mock.inspectFuncSetPanoramaThumbnail = f
+
+	return mmSetPanoramaThumbnail
+}
+
+// Return sets up results that will be returned by Repository.SetPanoramaThumbnail
+func (mmSetPanoramaThumbnail *mRepositoryMockSetPanoramaThumbnail) Return(err error) *RepositoryMock {
+	if mmSetPanoramaThumbnail.mock.funcSetPanoramaThumbnail != nil {
+		mmSetPanoramaThumbnail.mock.t.Fatalf("RepositoryMock.SetPanoramaThumbnail mock is already set by Set")
+	}
+
+	if mmSetPanoramaThumbnail.defaultExpectation == nil {
+		mmSetPanoramaThumbnail.defaultExpectation = &RepositoryMockSetPanoramaThumbnailExpectation{mock: mmSetPanoramaThumbnail.mock}
+	}
+	mmSetPanoramaThumbnail.defaultExpectation.results = &RepositoryMockSetPanoramaThumbnailResults{err}
+	mmSetPanoramaThumbnail.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmSetPanoramaThumbnail.mock
+}
+
+// Set uses given function f to mock the Repository.SetPanoramaThumbnail method
+func (mmSetPanoramaThumbnail *mRepositoryMockSetPanoramaThumbnail) Set(f func(ctx context.Context, id int64, hash string) (err error)) *RepositoryMock {
+	if mmSetPanoramaThumbnail.defaultExpectation != nil {
+		mmSetPanoramaThumbnail.mock.t.Fatalf("Default expectation is already set for the Repository.SetPanoramaThumbnail method")
+	}
+
+	if len(mmSetPanoramaThumbnail.expectations) > 0 {
+		mmSetPanoramaThumbnail.mock.t.Fatalf("Some expectations are already set for the Repository.SetPanoramaThumbnail method")
+	}
+
+	mmSetPanoramaThumbnail.mock.funcSetPanoramaThumbnail = f
+	mmSetPanoramaThumbnail.mock.funcSetPanoramaThumbnailOrigin = minimock.CallerInfo(1)
+	return mmSetPanoramaThumbnail.mock
+}
+
+// When sets expectation for the Repository.SetPanoramaThumbnail which will trigger the result defined by the following
+// Then helper
+func (mmSetPanoramaThumbnail *mRepositoryMockSetPanoramaThumbnail) When(ctx context.Context, id int64, hash string) *RepositoryMockSetPanoramaThumbnailExpectation {
+	if mmSetPanoramaThumbnail.mock.funcSetPanoramaThumbnail != nil {
+		mmSetPanoramaThumbnail.mock.t.Fatalf("RepositoryMock.SetPanoramaThumbnail mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockSetPanoramaThumbnailExpectation{
+		mock:               mmSetPanoramaThumbnail.mock,
+		params:             &RepositoryMockSetPanoramaThumbnailParams{ctx, id, hash},
+		expectationOrigins: RepositoryMockSetPanoramaThumbnailExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmSetPanoramaThumbnail.expectations = append(mmSetPanoramaThumbnail.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.SetPanoramaThumbnail return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockSetPanoramaThumbnailExpectation) Then(err error) *RepositoryMock {
+	e.results = &RepositoryMockSetPanoramaThumbnailResults{err}
+	return e.mock
+}
+
+// Times sets number of times Repository.SetPanoramaThumbnail should be invoked
+func (mmSetPanoramaThumbnail *mRepositoryMockSetPanoramaThumbnail) Times(n uint64) *mRepositoryMockSetPanoramaThumbnail {
+	if n == 0 {
+		mmSetPanoramaThumbnail.mock.t.Fatalf("Times of RepositoryMock.SetPanoramaThumbnail mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmSetPanoramaThumbnail.expectedInvocations, n)
+	mmSetPanoramaThumbnail.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmSetPanoramaThumbnail
+}
+
+func (mmSetPanoramaThumbnail *mRepositoryMockSetPanoramaThumbnail) invocationsDone() bool {
+	if len(mmSetPanoramaThumbnail.expectations) == 0 && mmSetPanoramaThumbnail.defaultExpectation == nil && mmSetPanoramaThumbnail.mock.funcSetPanoramaThumbnail == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmSetPanoramaThumbnail.mock.afterSetPanoramaThumbnailCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmSetPanoramaThumbnail.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// SetPanoramaThumbnail implements mm_service.Repository
+func (mmSetPanoramaThumbnail *RepositoryMock) SetPanoramaThumbnail(ctx context.Context, id int64, hash string) (err error) {
+	mm_atomic.AddUint64(&mmSetPanoramaThumbnail.beforeSetPanoramaThumbnailCounter, 1)
+	defer mm_atomic.AddUint64(&mmSetPanoramaThumbnail.afterSetPanoramaThumbnailCounter, 1)
+
+	mmSetPanoramaThumbnail.t.Helper()
+
+	if mmSetPanoramaThumbnail.inspectFuncSetPanoramaThumbnail != nil {
+		mmSetPanoramaThumbnail.inspectFuncSetPanoramaThumbnail(ctx, id, hash)
+	}
+
+	mm_params := RepositoryMockSetPanoramaThumbnailParams{ctx, id, hash}
+
+	// Record call args
+	mmSetPanoramaThumbnail.SetPanoramaThumbnailMock.mutex.Lock()
+	mmSetPanoramaThumbnail.SetPanoramaThumbnailMock.callArgs = append(mmSetPanoramaThumbnail.SetPanoramaThumbnailMock.callArgs, &mm_params)
+	mmSetPanoramaThumbnail.SetPanoramaThumbnailMock.mutex.Unlock()
+
+	for _, e := range mmSetPanoramaThumbnail.SetPanoramaThumbnailMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmSetPanoramaThumbnail.SetPanoramaThumbnailMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmSetPanoramaThumbnail.SetPanoramaThumbnailMock.defaultExpectation.Counter, 1)
+		mm_want := mmSetPanoramaThumbnail.SetPanoramaThumbnailMock.defaultExpectation.params
+		mm_want_ptrs := mmSetPanoramaThumbnail.SetPanoramaThumbnailMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockSetPanoramaThumbnailParams{ctx, id, hash}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmSetPanoramaThumbnail.t.Errorf("RepositoryMock.SetPanoramaThumbnail got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramaThumbnail.SetPanoramaThumbnailMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
+				mmSetPanoramaThumbnail.t.Errorf("RepositoryMock.SetPanoramaThumbnail got unexpected parameter id, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramaThumbnail.SetPanoramaThumbnailMock.defaultExpectation.expectationOrigins.originId, *mm_want_ptrs.id, mm_got.id, minimock.Diff(*mm_want_ptrs.id, mm_got.id))
+			}
+
+			if mm_want_ptrs.hash != nil && !minimock.Equal(*mm_want_ptrs.hash, mm_got.hash) {
+				mmSetPanoramaThumbnail.t.Errorf("RepositoryMock.SetPanoramaThumbnail got unexpected parameter hash, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramaThumbnail.SetPanoramaThumbnailMock.defaultExpectation.expectationOrigins.originHash, *mm_want_ptrs.hash, mm_got.hash, minimock.Diff(*mm_want_ptrs.hash, mm_got.hash))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmSetPanoramaThumbnail.t.Errorf("RepositoryMock.SetPanoramaThumbnail got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmSetPanoramaThumbnail.SetPanoramaThumbnailMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmSetPanoramaThumbnail.SetPanoramaThumbnailMock.defaultExpectation.results
+		if mm_results == nil {
+			mmSetPanoramaThumbnail.t.Fatal("No results are set for the RepositoryMock.SetPanoramaThumbnail")
+		}
+		return (*mm_results).err
+	}
+	if mmSetPanoramaThumbnail.funcSetPanoramaThumbnail != nil {
+		return mmSetPanoramaThumbnail.funcSetPanoramaThumbnail(ctx, id, hash)
+	}
+	mmSetPanoramaThumbnail.t.Fatalf("Unexpected call to RepositoryMock.SetPanoramaThumbnail. %v %v %v", ctx, id, hash)
+	return
+}
+
+// SetPanoramaThumbnailAfterCounter returns a count of finished RepositoryMock.SetPanoramaThumbnail invocations
+func (mmSetPanoramaThumbnail *RepositoryMock) SetPanoramaThumbnailAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetPanoramaThumbnail.afterSetPanoramaThumbnailCounter)
+}
+
+// SetPanoramaThumbnailBeforeCounter returns a count of RepositoryMock.SetPanoramaThumbnail invocations
+func (mmSetPanoramaThumbnail *RepositoryMock) SetPanoramaThumbnailBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetPanoramaThumbnail.beforeSetPanoramaThumbnailCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.SetPanoramaThumbnail.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmSetPanoramaThumbnail *mRepositoryMockSetPanoramaThumbnail) Calls() []*RepositoryMockSetPanoramaThumbnailParams {
+	mmSetPanoramaThumbnail.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockSetPanoramaThumbnailParams, len(mmSetPanoramaThumbnail.callArgs))
+	copy(argCopy, mmSetPanoramaThumbnail.callArgs)
+
+	mmSetPanoramaThumbnail.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockSetPanoramaThumbnailDone returns true if the count of the SetPanoramaThumbnail invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockSetPanoramaThumbnailDone() bool {
+	if m.SetPanoramaThumbnailMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.SetPanoramaThumbnailMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.SetPanoramaThumbnailMock.invocationsDone()
+}
+
+// MinimockSetPanoramaThumbnailInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockSetPanoramaThumbnailInspect() {
+	for _, e := range m.SetPanoramaThumbnailMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.SetPanoramaThumbnail at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterSetPanoramaThumbnailCounter := mm_atomic.LoadUint64(&m.afterSetPanoramaThumbnailCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.SetPanoramaThumbnailMock.defaultExpectation != nil && afterSetPanoramaThumbnailCounter < 1 {
+		if m.SetPanoramaThumbnailMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.SetPanoramaThumbnail at\n%s", m.SetPanoramaThumbnailMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.SetPanoramaThumbnail at\n%s with params: %#v", m.SetPanoramaThumbnailMock.defaultExpectation.expectationOrigins.origin, *m.SetPanoramaThumbnailMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcSetPanoramaThumbnail != nil && afterSetPanoramaThumbnailCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.SetPanoramaThumbnail at\n%s", m.funcSetPanoramaThumbnailOrigin)
+	}
+
+	if !m.SetPanoramaThumbnailMock.invocationsDone() && afterSetPanoramaThumbnailCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.SetPanoramaThumbnail at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.SetPanoramaThumbnailMock.expectedInvocations), m.SetPanoramaThumbnailMock.expectedInvocationsOrigin, afterSetPanoramaThumbnailCounter)
+	}
+}
+
 type mRepositoryMockUpdatePanorama struct {
 	optional           bool
 	mock               *RepositoryMock
@@ -2580,6 +3285,10 @@ func (m *RepositoryMock) MinimockFinish() {
 
 			m.MinimockListPanoramasInspect()
 
+			m.MinimockListPanoramasWithoutThumbnailInspect()
+
+			m.MinimockSetPanoramaThumbnailInspect()
+
 			m.MinimockUpdatePanoramaInspect()
 		}
 	})
@@ -2610,5 +3319,7 @@ func (m *RepositoryMock) minimockDone() bool {
 		m.MinimockDeletePanoramaDone() &&
 		m.MinimockListDocumentsDone() &&
 		m.MinimockListPanoramasDone() &&
+		m.MinimockListPanoramasWithoutThumbnailDone() &&
+		m.MinimockSetPanoramaThumbnailDone() &&
 		m.MinimockUpdatePanoramaDone()
 }

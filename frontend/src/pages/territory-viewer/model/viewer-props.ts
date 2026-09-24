@@ -1,6 +1,6 @@
 import type { RefObject } from "react";
 import type { Chain, MeasurePoint } from "@/entities/measurement";
-import type { PlacementTransform, ResolvedPlacement } from "@/entities/placement";
+import type { PlacementGroup, PlacementTransform, ResolvedPlacement } from "@/entities/placement";
 import type { ModelOption, SceneViewModel } from "@/entities/scene";
 import type { ViewerError } from "@/features/lod";
 import type { Tour } from "@/features/onboarding";
@@ -63,6 +63,8 @@ export type MeasuringView = {
 export type ViewerOverlaysProps = {
   tools: RailToolState[];
   onReset: () => void;
+  /** The fly-around tile: takes off, or lands a flight in progress. */
+  onPlay: () => void;
   onMeasure: () => void;
   onAdd: () => void;
   /** The two overlay tiles: reveal that section of the View tab (Task 15's `revealSection`). */
@@ -125,6 +127,9 @@ export type PageHandlers = {
   onRemoveChain: (chainId: number) => void;
   onLod: (report: LodReport) => void;
   onReset: () => void;
+  onPlay: () => void;
+  /** The canvas ended the flight itself: the reader grabbed the view. */
+  onPlayStop: () => void;
   onMeasure: () => void;
   onAdd: () => void;
   onPanoramas: () => void;
@@ -153,6 +158,11 @@ export type PageHandlers = {
   onToggleMove: () => void;
   /** One checkbox of the selected placement's per-panorama allowlist. */
   onVisibility: (placementId: number, panoramaId: number, visible: boolean) => void;
+  /** Hides or shows many placements for everyone; a hidden selection is dropped (§1.7). */
+  onSetHidden: (ids: number[], hidden: boolean) => void;
+  onMoveToGroup: (ids: number[], groupId: number | null) => void;
+  /** Opens the picker aimed at one user group; the batch lands in it (G-4). */
+  onAddToGroup: (groupId: number) => void;
 };
 
 /** The page's own state, everything the hooks do not already own. */
@@ -161,6 +171,8 @@ export type PageViewState = {
   targetLod: number;
   retryVersion: number;
   resetVersion: number;
+  /** The camera is flying around the territory (Play). */
+  playing: boolean;
   focusRequest: number[] | null;
   pickerOpen: boolean;
   query: string;
@@ -192,6 +204,14 @@ export type PageParts = {
   placements: ResolvedPlacement[];
   pendingIds: number[];
   placing: { total: number } | null;
+  /** The territory's user groups and their writes (`usePlacementGroups`). */
+  placementGroups: {
+    list: PlacementGroup[];
+    busy: boolean;
+    create: (title: string) => Promise<boolean>;
+    rename: (id: number, title: string) => Promise<boolean>;
+    remove: (id: number) => void;
+  };
   form: PlacementFormView | null;
   tour: Tour;
   panoramaTour: Tour;

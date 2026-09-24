@@ -40,6 +40,15 @@ describe("controlClass", () => {
     expect(controlClass({ spaced: false })).not.toContain("mt-[7px]");
   });
 
+  // One padding utility per element: clsx does not merge, so a caller's py-1
+  // beside the base py-2.5 would be decided by stylesheet order.
+  it("trims the height to a small button's when compact", () => {
+    expect(controlClass().split(/\s+/)).toContain("py-2.5");
+    const cls = controlClass({ compact: true }).split(/\s+/);
+    expect(cls).toContain("py-1");
+    expect(cls).not.toContain("py-2.5");
+  });
+
   it("keeps a focus ring in every combination", () => {
     for (const opts of [{}, { mono: true }, { invalid: true }, { spaced: false }]) {
       expect(controlClass(opts)).toContain("focus:ring-[3px]");

@@ -34,6 +34,7 @@ func newRootCmd() *cobra.Command {
 	flags := cmd.PersistentFlags()
 	flags.String("grpc-addr", ":9007", "gRPC listen address")
 	flags.String("db-dsn", "", "PostgreSQL DSN (or set CONTENT_DB_DSN)")
+	flags.String("blob-dir", "/var/blob", "BlobStore root: panorama sources are read and thumbnails written here (or set CONTENT_BLOB_DIR)")
 	flags.String("log-level", "info", "log level: debug|info|warn|error")
 	flags.String("log-format", "json", "log format: json|text")
 	flags.Bool("auto-migrate", true, "run goose migrations on startup")

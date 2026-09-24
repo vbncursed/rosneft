@@ -81,8 +81,11 @@ export function OverlaysPanel({
         />
       ) : (
         // Tailwind v4 max-[N] is exclusive; the mock's 1280 check wants 300 at 1280.
+        // data-canvas-cover: the fly-around (viewer-canvas CameraRig) centres
+        // the territory in what this face leaves of the canvas.
         <aside
           aria-label="Overlays"
+          data-canvas-cover=""
           className={`${EDGES} ${ENTERING} flex w-[320px] max-[1281px]:w-[300px] flex-col overflow-hidden rounded-card border border-line bg-panel shadow-elevation`}
         >
           <div className="flex items-center justify-between gap-2.5 border-b border-line px-3.5 py-[13px]">

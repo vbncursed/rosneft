@@ -31,11 +31,11 @@ func (r *PG) UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.Pano
 			WHERE pa.id = $1 AND pa.territory_id = t.id AND t.slug = $8
 			RETURNING pa.id, pa.territory_id, pa.slug, pa.title, pa.source_blob_hash,
 				pa.position_x, pa.position_y, pa.position_z,
-				pa.yaw_offset, pa.default_yaw, pa.created_at, pa.updated_at
+				pa.yaw_offset, pa.default_yaw, pa.created_at, pa.updated_at, pa.thumbnail_blob_hash
 		)
 		SELECT u.id, t.slug, u.slug, u.title, u.source_blob_hash,
 			u.position_x, u.position_y, u.position_z,
-			u.yaw_offset, u.default_yaw, u.created_at, u.updated_at
+			u.yaw_offset, u.default_yaw, u.created_at, u.updated_at, u.thumbnail_blob_hash
 		FROM updated u
 		JOIN territories t ON t.id = u.territory_id`
 

@@ -11,6 +11,8 @@ const TANK: ResolvedPlacement = {
   label: "",
   updatedAt: "2026-09-09T14:00:00Z",
   visiblePanoramaIds: [],
+  hidden: false,
+  groupId: null,
   position: { x: 18.2, y: 0, z: -4.05 },
   rotation: { x: 0, y: 0.7853981634, z: 0 },
   scale: { x: 1, y: 1, z: 1 },

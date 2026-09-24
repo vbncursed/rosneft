@@ -115,6 +115,8 @@ const at = (id: number, modelSlug: string, x: number): ResolvedPlacement => ({
   label: "",
   updatedAt: "2026-09-09T14:00:00Z",
   visiblePanoramaIds: [],
+  hidden: false,
+  groupId: null,
   position: { x, y: 0, z: -8.25 },
   rotation: { x: 0, y: Math.PI / 2, z: 0 },
   scale: { x: 1, y: 1, z: 1 },
@@ -196,6 +198,7 @@ export const basePageParts = (): PageParts => ({
   placements: PLACEMENTS,
   pendingIds: [],
   placing: null,
+  placementGroups: { list: [], busy: false, create: async () => true, rename: async () => true, remove: noop },
   form: null,
   tour: IDLE_TOUR,
   panoramaTour: IDLE_TOUR,
@@ -212,6 +215,7 @@ export const basePageParts = (): PageParts => ({
     targetLod: 1,
     retryVersion: 0,
     resetVersion: 0,
+    playing: false,
     focusRequest: null,
     pickerOpen: false,
     query: "",
@@ -293,6 +297,15 @@ export default {
   })),
 
   "7 empty": page((p) => ({ ...p, placements: [], vm: { ...VM, placements: [] } })),
+
+  "7b groups, one hidden": page((p) => ({
+    ...p,
+    placements: p.placements.map((x) =>
+      x.id === 3 ? { ...x, hidden: true } : x.id === 4 ? { ...x, groupId: 1 } : x,
+    ),
+    placementGroups: { ...p.placementGroups, list: [{ id: 1, title: "Valve bank" }] },
+    view: { ...p.view, expandedModel: "storage-tank-500" },
+  })),
 
   "14 create form, saving": page((p) => {
     const q = selected(p);

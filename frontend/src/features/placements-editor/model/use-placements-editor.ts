@@ -5,6 +5,7 @@ import {
   idle,
   creating,
   mutating,
+  pendingIdsOf,
   realWorldScale,
   setPlacementVisibility,
   updatePlacement,
@@ -17,6 +18,7 @@ import {
 import type { ModelOption } from "@/entities/scene";
 import { HttpError, messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
+import { useBulkWrites } from "./use-bulk-writes";
 
 export type PlacementsEditorParams = {
   slug: string;
@@ -52,10 +54,10 @@ export function usePlacementsEditor({
   const [placing, setPlacing] = useState<Placing | null>(null);
   const [, startTransition] = useTransition();
   // The key of the last placing action that did not come back with rows. The
-  // same model × count placed again is that action retried, and must carry its
+  // same model × count × group placed again is that action retried, and must carry its
   // key: the batch may have landed with only the answer lost. Anything else, or
   // anything after a success, is a new action and gets a new key.
-  const unsettled = useRef<{ modelSlug: string; total: number; key: string } | null>(null);
+  const unsettled = useRef<{ modelSlug: string; total: number; groupId: number | null; key: string } | null>(null);
 
   const resolve = useCallback(
     (p: Placement): ResolvedPlacement => ({
@@ -68,13 +70,13 @@ export function usePlacementsEditor({
   );
 
   const create = useCallback(
-    async (modelSlug: string, count: number): Promise<number | null> => {
+    async (modelSlug: string, count: number, groupId: number | null = null): Promise<number | null> => {
       const total = Math.max(1, Math.floor(count));
       const retried = unsettled.current;
       const action =
-        retried?.modelSlug === modelSlug && retried.total === total
+        retried?.modelSlug === modelSlug && retried.total === total && retried.groupId === groupId
           ? retried
-          : { modelSlug, total, key: crypto.randomUUID() };
+          : { modelSlug, total, groupId, key: crypto.randomUUID() };
       unsettled.current = action;
       setMutation(creating);
       setPlacing({ total });
@@ -93,6 +95,8 @@ export function usePlacementsEditor({
           position: { x: i * step, y: 0, z: 0 },
           scale: { x: scale, y: scale, z: scale },
           visiblePanoramaIds: panoramaIds,
+          // A group's own Add (G-4); absent means No group.
+          ...(groupId === null ? {} : { groupId }),
         }));
         // One transaction on the gateway: the batch lands whole or not at all,
         // so a refusal leaves nothing to show and nothing to mark stale. The
@@ -199,10 +203,12 @@ export function usePlacementsEditor({
     [update],
   );
 
+  const { pendingIds: bulkPendingIds, ...bulkWrites } = useBulkWrites({ slug, setPlacements, onChanged });
+
   return {
     placements,
     mutation,
-    pendingIds: mutation.kind === "mutating" ? [mutation.id] : [],
+    pendingIds: [...pendingIdsOf(mutation), ...bulkPendingIds],
     placing,
     create,
     update,
@@ -210,5 +216,6 @@ export function usePlacementsEditor({
     remove,
     commitTransform,
     setVisibility,
+    ...bulkWrites,
   };
 }

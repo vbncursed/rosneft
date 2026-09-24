@@ -17,6 +17,13 @@ export const VISIBLE_IN = "Visible in";
 export const VISIBLE_IN_NOTE =
   "Hidden objects stay in the 3D scene; only the panorama markers are dropped.";
 
+export const NEW_GROUP = "New group";
+
+/** Spec §1.5's own words: the group goes, what was in it does not. */
+export const DELETE_GROUP = "Delete group (placements stay)";
+
+export const ADD_TO_GROUP = "Add";
+
 /**
  * The sentence under the list names what this reader cannot do — a viewer is
  * told the whole tab is read-only, an editor without the delete grant is told
