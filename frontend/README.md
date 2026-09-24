@@ -98,8 +98,12 @@ column, and its spec asserts as much.
   `app/pwa/register-service-worker.ts` registers it after `load` and ignores
   a refusal — the desktop shell answers `/sw.js` with 404 on purpose.
   Bump `CACHE` in `sw.js` whenever `offline.html` changes.
-- `manifest.webmanifest`, `icon.svg`, `apple-icon.png` — install metadata and
-  icons (`apple-icon.png` is also the source of the desktop icons).
+- `manifest.webmanifest`, `favicon.ico`, `favicon.svg`, `apple-touch-icon.png`,
+  `icon-192.png`, `icon-512.png`, `icon-maskable-512.png` — install metadata
+  and icons: icon 2e from `Site Icon.dc.html`. Every icon file here and in
+  `desktop/src-tauri/icons/` is generated from the three SVG sources in
+  `icons/` by `python3 frontend/icons/render.py`; edit a source and rerun it,
+  never an output.
 - `og-card.png` (rendered from `og-card.svg`) — the link-preview image. The
   Open Graph tags in `index.html` are static on purpose: no unfurler runs
   JavaScript, so they cannot vary per route.
