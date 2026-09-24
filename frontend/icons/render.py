@@ -1,7 +1,11 @@
 """Render icon 2e (Site Icon.dc.html) into every format the web app and the
-desktop bundle ship, and the link-preview card (OG Card.dc.html, 1a). Run from anywhere:  python3 frontend/icons/render.py
-Needs Python Playwright (Chromium), Pillow, and macOS iconutil for .icns."""
+desktop bundle ship, and the link-preview card (OG Card.dc.html, 1a).
+Run from anywhere:  python3 frontend/icons/render.py
+Needs Python 3.10+, Playwright with Chromium (python3 -m playwright install
+chromium), Pillow, macOS iconutil for .icns, and frontend/node_modules for
+the card's Archivo."""
 import math
+import shutil
 import subprocess
 import tempfile
 from io import BytesIO
@@ -15,6 +19,8 @@ PUBLIC = HERE.parent / "public"
 DESKTOP = HERE.parents[1] / "desktop" / "src-tauri" / "icons"
 SRC = {k: (HERE / f).read_text() for k, f in
        {"main": "icon.svg", "maskable": "icon-maskable.svg", "small": "icon-small.svg"}.items()}
+FAVICON_RX = 6                 # on the 32 grid: 3 px at 16, as the mock's tab
+WINDOWS_RX = 32 * 4 / 24       # 4 px at 24, as the mock's taskbar tile
 
 
 def rounded(svg: str, rx: float) -> str:
@@ -24,10 +30,8 @@ def rounded(svg: str, rx: float) -> str:
 
 def render(page, svg: str, px: int) -> Image.Image:
     page.set_viewport_size({"width": px, "height": px})
-    page.set_content(
-        f'<html><body style="margin:0;background:transparent">'
-        f'{svg.replace("<svg ", f"<svg width=\"{px}\" height=\"{px}\" ", 1)}</body></html>'
-    )
+    sized = svg.replace("<svg ", f'<svg width="{px}" height="{px}" ', 1)
+    page.set_content(f'<html><body style="margin:0;background:transparent">{sized}</body></html>')
     return Image.open(BytesIO(page.screenshot(omit_background=True))).convert("RGBA")
 
 
@@ -57,23 +61,28 @@ def og_card(page) -> None:
     page.set_viewport_size({"width": 1200, "height": 630})
     page.goto((HERE / "og-card.html").as_uri())
     page.evaluate("document.fonts.ready")
+    # fonts.ready resolves on a failed load too, and the fallback face would ship.
+    if not page.evaluate("[...document.fonts].some(f => f.family === 'Archivo' && f.status === 'loaded')"):
+        raise SystemExit("og-card.html: Archivo did not load; run `yarn` in frontend/ first")
     card = Image.open(BytesIO(page.screenshot())).convert("RGB")
     card.save(PUBLIC / "og-card.png", optimize=True)
 
 
 def main() -> None:
-    fav = 6                  # rx on the 32 grid: 3 px at 16, as the mock's tab
-    win = 32 * 4 / 24        # 4 px at 24, as the mock's taskbar tile
-    (PUBLIC / "favicon.svg").write_text(rounded(SRC["small"], fav))
+    if not shutil.which("iconutil"):
+        raise SystemExit("iconutil not found: icon.icns needs macOS")
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page(device_scale_factor=1)
+        og_card(page)  # first: a missing font stops the run before anything is written
+        (PUBLIC / "favicon.svg").write_text(rounded(SRC["small"], FAVICON_RX))
 
         def png(key: str, px: int, rx: float | None = None) -> Image.Image:
             return render(page, rounded(SRC[key], rx) if rx else SRC[key], px)
 
         # Web: favicon.ico (16 small, 32/48 main, rounded), PWA and iOS squares.
-        save_ico([png("small", 16, fav), png("main", 32, fav), png("main", 48, fav)], PUBLIC / "favicon.ico")
+        save_ico([png("small", 16, FAVICON_RX), png("main", 32, FAVICON_RX), png("main", 48, FAVICON_RX)],
+                 PUBLIC / "favicon.ico")
         png("main", 180).save(PUBLIC / "apple-touch-icon.png")
         png("main", 192).save(PUBLIC / "icon-192.png")
         png("main", 512).save(PUBLIC / "icon-512.png")
@@ -82,12 +91,11 @@ def main() -> None:
         # Desktop: square PNGs (Linux, window icon), rounded .ico (Windows).
         for name, px in [("32x32.png", 32), ("128x128.png", 128), ("128x128@2x.png", 256), ("icon.png", 512)]:
             png("main", px).save(DESKTOP / name)
-        save_ico([png("small" if s == 16 else "main", s, win) for s in (16, 24, 32, 48, 64, 128, 256)],
+        save_ico([png("small" if s == 16 else "main", s, WINDOWS_RX) for s in (16, 24, 32, 48, 64, 128, 256)],
                  DESKTOP / "icon.ico")
 
         # macOS: superellipse, 824 of artwork on a 1024 canvas (Apple grid).
         body = png("main", 824)
-        og_card(page)
         browser.close()
     body.putalpha(superellipse(824))
     master = Image.new("RGBA", (1024, 1024), (0, 0, 0, 0))

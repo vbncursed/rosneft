@@ -103,7 +103,9 @@ column, and its spec asserts as much.
   and icons: icon 2e from `Site Icon.dc.html`. Every icon file here and in
   `desktop/src-tauri/icons/` is generated from the three SVG sources in
   `icons/` by `python3 frontend/icons/render.py`; edit a source and rerun it,
-  never an output.
+  never an output. It needs Python 3.10+, Pillow, macOS `iconutil`,
+  `node_modules` (for the card's font) and, once,
+  `python3 -m playwright install chromium`.
 - `og-card.png` — the link-preview image, card 1a from `OG Card.dc.html`,
   rendered from `icons/og-card.html` by the same `render.py`. The
   Open Graph tags in `index.html` are static on purpose: no unfurler runs

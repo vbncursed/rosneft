@@ -189,7 +189,8 @@ The script renders the mock's SVG symbols (kept verbatim in `frontend/icons/`)
 through Chromium, so edit a source and rerun it; never edit an output:
 
 ```bash
-python3 frontend/icons/render.py   # Playwright (Chromium), Pillow, macOS iconutil
+python3 -m playwright install chromium   # once
+python3 frontend/icons/render.py   # Python 3.10+, Playwright, Pillow, macOS iconutil, frontend/node_modules
 ```
 
 The set is complete and load-bearing: `icon.ico` is **required** on
@@ -206,9 +207,10 @@ only surfaced on the Windows runner.
   sits visibly larger than every neighbour in the Dock.
 - **Windows** — `icon.ico` has rounded, transparent corners at the mock's
   taskbar ratio, 4px on a 24px tile. Windows draws the file as it is, and the
-  mock draws the taskbar tile rounded. Each size is its own frame: the 16 is
-  the mock's small cut (solid ground, no grid lines), which a downscale of the
-  256 would turn into mush.
+  mock draws the taskbar tile rounded — a deliberate reversal of the earlier
+  rule that the `.ico` stays square and unmasked. Each size is its own
+  frame: the 16 is the mock's small cut (solid ground, no grid lines),
+  which a downscale of the 256 would turn into mush.
 - **Linux** — `icon.png` and the sized PNGs stay full-bleed squares with
   opaque corners; they are also the window icon. Do not round them to match
   the other two.
