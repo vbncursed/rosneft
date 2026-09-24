@@ -1,6 +1,6 @@
 import { sceneReady, type SceneBundle } from "@/entities/scene";
 import type { ConsoleNavItem } from "@/widgets/console-nav";
-import { can, type Principal } from "@/shared/session";
+import { can, ENROLLMENT_PATH, mustEnroll, type Principal } from "@/shared/session";
 
 type RedirectTarget = { to: "/login"; search: { next: string } };
 
@@ -34,6 +34,44 @@ export const viewerRoute = (data: SceneBundle | undefined, jobId: string | undef
 export function redirectTarget(authed: boolean, href: string): RedirectTarget | null {
   if (authed) return null;
   return { to: "/login", search: { next: href } };
+}
+
+/** Where a principal that owes a second factor may stand: the gate, and the wizard. */
+const ENROLLMENT_OPEN = [ENROLLMENT_PATH, "/account/two-factor"] as const;
+
+/**
+ * The gateway answers everything else `403 twofa_enrollment_required` for this
+ * session, so a screen there is a dead end. Exact paths, like the gateway's
+ * own allow-list: a prefix would open whatever is added under them later.
+ */
+export function enrollmentRedirect(me: Principal, pathname: string): typeof ENROLLMENT_PATH | null {
+  if (!mustEnroll(me)) return null;
+  return (ENROLLMENT_OPEN as readonly string[]).includes(pathname) ? null : ENROLLMENT_PATH;
+}
+
+/** How long after the client's enrolment bounce the gate stays put. */
+const BOUNCE_WINDOW_MS = 10_000;
+
+/**
+ * The gate's own `beforeLoad`: null keeps the gate, "/" sends the session home.
+ *
+ * Required and not known to be enrolled stays: an unknown (`null`) sent home
+ * would 403 at the gateway and reload straight back. "done" is only for a
+ * session that has two-factor on. And a session `client.ts` bounced here in the
+ * last 10 s stays too: auth-service caches `totpRequired` for 5 s while `/me`
+ * reads it live, so a lifted requirement would otherwise loop gate → home →
+ * 403 → gate until that cache expires.
+ */
+export function gateExit(
+  me: Principal,
+  stage: "done" | undefined,
+  bouncedAt: number | null,
+  now: number,
+): "/" | null {
+  if (me.totpRequired && me.totpEnabled !== true) return null;
+  if (stage === "done") return me.totpEnabled === true ? null : "/";
+  const sinceBounce = bouncedAt === null ? -1 : now - bouncedAt;
+  return sinceBounce >= 0 && sinceBounce < BOUNCE_WINDOW_MS ? null : "/";
 }
 
 /** Every screen the console has, in the order the navigation lists them. */
@@ -113,7 +151,11 @@ export function consoleNav(me: Principal): ConsoleNavItem[] {
 export const activeSection = (pathname: string): string =>
   SCREENS.find((s) => pathname === s.path || pathname.startsWith(`${s.path}/`))?.key ?? "";
 
-/** The catalog shell's exact routes — no sidebar, unlike the console. */
+/**
+ * The catalog shell's exact routes — no sidebar, unlike the console — plus the
+ * enrolment gate, which sits outside every shell but is listed so the wizard's
+ * exit to it routes in-app rather than reloading the document.
+ */
 export const CATALOG_PATHS = [
   "/",
   "/territories",
@@ -122,6 +164,7 @@ export const CATALOG_PATHS = [
   "/models/new",
   "/account",
   "/account/two-factor",
+  ENROLLMENT_PATH,
 ] as const;
 
 const MODEL_PAGE = /^\/models\/[^/]+$/;

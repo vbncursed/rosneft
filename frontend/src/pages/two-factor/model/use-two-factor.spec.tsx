@@ -5,11 +5,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HttpError } from "@/shared/api";
 import { useTwoFactor } from "./use-two-factor";
 
-const { setup2FA, enable2FA, regenerateRecoveryCodes, navigate } = vi.hoisted(() => ({
+const { setup2FA, enable2FA, regenerateRecoveryCodes, navigate, getMe } = vi.hoisted(() => ({
   setup2FA: vi.fn(),
   enable2FA: vi.fn(),
   regenerateRecoveryCodes: vi.fn(),
   navigate: vi.fn(),
+  getMe: vi.fn(),
 }));
 
 vi.mock("@/entities/user", async (importOriginal) => ({
@@ -17,12 +18,17 @@ vi.mock("@/entities/user", async (importOriginal) => ({
   setup2FA,
   enable2FA,
   regenerateRecoveryCodes,
-  meQuery: { queryKey: ["me"], queryFn: async () => ({ username: "t.throwaway" }) },
+  meQuery: { queryKey: ["me"], queryFn: () => getMe() },
 }));
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
 
 const SECRET = { secret: "JBSWY3DPEHPK3PXP", otpauthUrl: "otpauth://totp/Andrey:t.throwaway?secret=JBSWY3DPEHPK3PXP" };
 const CODES = ["8k2fq-p1x7d", "m4wla-9zt3c"];
+const FREE = { username: "t.throwaway", totpRequired: false, totpEnabled: false };
+const GATED = { username: "t.throwaway", totpRequired: true, totpEnabled: false };
+const ENROLLED = { ...GATED, totpEnabled: true };
+const GATE_EXIT = { href: "/two-factor-required", short: "Overview", long: "Back to the overview" };
+const ACCOUNT_EXIT = { href: "/account", short: "Account", long: "Back to your account" };
 
 let client: QueryClient;
 
@@ -36,7 +42,18 @@ beforeEach(() => {
   enable2FA.mockReset().mockResolvedValue(CODES);
   regenerateRecoveryCodes.mockReset().mockResolvedValue(CODES);
   navigate.mockReset();
+  getMe.mockReset().mockResolvedValue(FREE);
 });
+
+/** Confirms a code in `flow` and waits for the codes stage. */
+async function confirmed(flow: "enable" | "regenerate") {
+  const hook = renderHook(() => useTwoFactor(flow), { wrapper });
+  await waitFor(() => expect(hook.result.current.username).toBe("t.throwaway"));
+  act(() => hook.result.current.onCode("123456"));
+  act(() => hook.result.current.onConfirm());
+  await waitFor(() => expect(hook.result.current.stage).toBe("codes"));
+  return hook.result;
+}
 
 describe("useTwoFactor", () => {
   it("provisions exactly one secret per entry, however many times it renders", async () => {
@@ -224,11 +241,112 @@ describe("useTwoFactor", () => {
     const { result } = renderHook(() => useTwoFactor("enable"), { wrapper });
     // Entry provisions a secret; let it land or it lands after the test.
     await waitFor(() => expect(result.current.secret).toBe(SECRET.secret));
+    await waitFor(() => expect(result.current.exit).toEqual(ACCOUNT_EXIT));
     act(() => result.current.onDone());
-    expect(navigate).toHaveBeenCalledWith({ to: "/account" });
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: "/account" }));
 
     navigate.mockClear();
     act(() => result.current.onCancel());
     expect(navigate).toHaveBeenCalledWith({ to: "/account" });
+  });
+
+  // /account is a page a gated session cannot open; the gate is where it came from.
+  it("points a gated account's exits back at the gate", async () => {
+    getMe.mockResolvedValue(GATED);
+    const { result } = renderHook(() => useTwoFactor("enable"), { wrapper });
+    await waitFor(() => expect(result.current.exit).toEqual(GATE_EXIT));
+
+    act(() => result.current.onCancel());
+    expect(navigate).toHaveBeenCalledWith({ to: "/two-factor-required" });
+  });
+
+  it("finishes an enrolment the account was required to make on the gate's done card", async () => {
+    getMe.mockResolvedValue(GATED);
+    const result = await confirmed("enable");
+    getMe.mockResolvedValue(ENROLLED);
+
+    act(() => result.current.onDone());
+
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith({ to: "/two-factor-required", search: { stage: "done" } }),
+    );
+  });
+
+  // Confirm only invalidates `me`; the gate route reads the cached principal,
+  // so leaving before it is fresh shows the gate again instead of "done".
+  it("waits for a fresh principal before it leaves", async () => {
+    getMe.mockResolvedValue(GATED);
+    const result = await confirmed("enable");
+    let release: (me: typeof ENROLLED) => void = () => {};
+    getMe.mockReturnValue(new Promise((resolve) => (release = resolve)));
+
+    act(() => result.current.onDone());
+    await act(async () => {});
+    expect(navigate).not.toHaveBeenCalled();
+
+    await act(async () => release(ENROLLED));
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith({ to: "/two-factor-required", search: { stage: "done" } }),
+    );
+  });
+
+  // The gate route's own beforeLoad deals with whatever it finds.
+  it("still leaves when the fresh principal cannot be fetched", async () => {
+    getMe.mockResolvedValue(GATED);
+    const result = await confirmed("enable");
+    getMe.mockRejectedValue(new HttpError(500, null, "down"));
+
+    act(() => result.current.onDone());
+
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith({ to: "/two-factor-required", search: { stage: "done" } }),
+    );
+  });
+
+  // Every /me after the enable fails, so the fallback is the cached principal:
+  // it must already say enrolled, or the gate offers "Set up" to someone who
+  // just did.
+  it("marks the cached principal enrolled, so a failed refetch cannot bring back the gate", async () => {
+    getMe.mockResolvedValue(GATED);
+    const { result } = renderHook(() => useTwoFactor("enable"), { wrapper });
+    await waitFor(() => expect(result.current.username).toBe("t.throwaway"));
+    getMe.mockRejectedValue(new HttpError(500, null, "down"));
+
+    act(() => result.current.onCode("123456"));
+    act(() => result.current.onConfirm());
+    await waitFor(() => expect(result.current.stage).toBe("codes"));
+    act(() => result.current.onDone());
+
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith({ to: "/two-factor-required", search: { stage: "done" } }),
+    );
+    expect(client.getQueryData(["me"])).toEqual(ENROLLED);
+  });
+
+  it("leaves the cached principal alone when regenerating", async () => {
+    getMe.mockResolvedValue(GATED);
+    const { result } = renderHook(() => useTwoFactor("regenerate"), { wrapper });
+    await waitFor(() => expect(result.current.username).toBe("t.throwaway"));
+    getMe.mockRejectedValue(new HttpError(500, null, "down"));
+
+    act(() => result.current.onCode("123456"));
+    act(() => result.current.onConfirm());
+    await waitFor(() => expect(result.current.stage).toBe("codes"));
+
+    expect(client.getQueryData(["me"])).toEqual(GATED);
+  });
+
+  it("sends a free account's enrolment back to its account", async () => {
+    const result = await confirmed("enable");
+    act(() => result.current.onDone());
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: "/account" }));
+  });
+
+  // Regenerating is not enrolling: there is no gate to finish on.
+  it("returns a required account to /account after regenerating", async () => {
+    getMe.mockResolvedValue(ENROLLED);
+    const result = await confirmed("regenerate");
+    act(() => result.current.onDone());
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: "/account" }));
   });
 });

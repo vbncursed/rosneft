@@ -1,4 +1,5 @@
-import { createRouter } from "@tanstack/react-router";
+import type { QueryClient } from "@tanstack/react-query";
+import { createRouter, type RouterHistory } from "@tanstack/react-router";
 import { queryClient } from "@/app/query/query-client";
 import {
   accountRoute,
@@ -25,10 +26,12 @@ import {
   consoleUsersRoute,
   loginRoute,
   rootRoute,
+  twoFactorRequiredRoute,
 } from "./routes";
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
+  twoFactorRequiredRoute,
   consoleRoute.addChildren([
     consoleIndexRoute,
     consoleUsersRoute,
@@ -52,12 +55,20 @@ const routeTree = rootRoute.addChildren([
   ]),
 ]);
 
-export const router = createRouter({
-  routeTree,
-  context: { queryClient },
-  defaultNotFoundComponent: NotFound,
-  defaultErrorComponent: RouteError,
-});
+// A factory so the spec can drive the real tree through a memory history.
+export function createAppRouter(history?: RouterHistory, client: QueryClient = queryClient) {
+  return createRouter({
+    routeTree,
+    history,
+    context: { queryClient: client },
+    // "root": the 404 draws its own chrome, so it must never land in a shell's <main>.
+    notFoundMode: "root",
+    defaultNotFoundComponent: NotFound,
+    defaultErrorComponent: RouteError,
+  });
+}
+
+export const router = createAppRouter();
 
 declare module "@tanstack/react-router" {
   interface Register {

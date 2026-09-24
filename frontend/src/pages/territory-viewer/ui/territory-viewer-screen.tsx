@@ -2,7 +2,7 @@ import { useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { EditDetailsDialog } from "@/features/edit-entity";
 import { Callout } from "@/shared/ui/callout";
-import { EmptyState } from "@/shared/ui/card";
+import { NotFoundView } from "@/widgets/not-found";
 import { ViewerSkeleton } from "@/widgets/viewer-skeleton";
 import { useSceneSeeded } from "../model/use-scene-seeded";
 import { useTerritoryViewer } from "../model/use-territory-viewer";
@@ -28,18 +28,8 @@ function ViewerBody({ slug }: { slug: string }) {
 
   if (state.status === "missing") {
     return (
-      <div className={CENTRED}>
-        <EmptyState
-          title="Territory not found"
-          action={
-            <a
-              href="/territories"
-              className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted no-underline hover:text-fg"
-            >
-              ← Territory catalog
-            </a>
-          }
-        />
+      <div className="flex min-h-0 flex-1 overflow-auto px-4 pb-[72px] pt-8 sm:px-9">
+        <NotFoundView kind="territory" />
       </div>
     );
   }

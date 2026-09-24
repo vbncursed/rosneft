@@ -3,8 +3,8 @@ import { useState } from "react";
 import { EditDetailsDialog } from "@/features/edit-entity";
 import { Callout } from "@/shared/ui/callout";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
-import { EmptyState } from "@/shared/ui/card";
 import { Skeleton } from "@/shared/ui/skeleton";
+import { NotFoundView } from "@/widgets/not-found";
 import { useModelDetail } from "../model/use-model-detail";
 import { ModelDetailPage } from "./model-detail-page";
 
@@ -23,18 +23,7 @@ export function ModelDetailScreen() {
     );
   }
 
-  if (s.phase === "missing") {
-    return (
-      <EmptyState
-        title="Model not found"
-        action={
-          <a href="/models" className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted no-underline hover:text-fg">
-            ← Model library
-          </a>
-        }
-      />
-    );
-  }
+  if (s.phase === "missing") return <NotFoundView kind="model" />;
 
   if (s.phase === "unavailable") {
     return <Callout tone="bad">Model unavailable: {s.error}</Callout>;

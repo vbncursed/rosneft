@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { can, grantableSlugs, viewerOf, type Principal } from "./principal";
+import { can, grantableSlugs, mustEnroll, viewerOf, type Principal } from "./principal";
 
 const p = (over: Partial<Principal> = {}): Principal => ({
   id: "u-1",
@@ -66,5 +66,23 @@ describe("viewerOf", () => {
 
   it("carries the username through", () => {
     expect(viewerOf(p({ username: "a.ivanova" })).username).toBe("a.ivanova");
+  });
+});
+
+describe("mustEnroll", () => {
+  it.each<[string, boolean, boolean | null, boolean]>([
+    ["required, not enrolled", true, false, true],
+    ["required, enrolled", true, true, false],
+    ["not required", false, false, false],
+    // twofa unreachable: unknown is not "off" — the gateway still enforces,
+    // and the client's 403 branch catches what this lets through.
+    ["required, enrolment unknown", true, null, false],
+  ])("%s", (_label, totpRequired, totpEnabled, want) => {
+    expect(mustEnroll(p({ totpRequired, totpEnabled }))).toBe(want);
+  });
+
+  it("is false with no principal", () => {
+    expect(mustEnroll(null)).toBe(false);
+    expect(mustEnroll(undefined)).toBe(false);
   });
 });

@@ -34,6 +34,18 @@ export type Principal = {
 export const can = (p: Principal | null, permission: string): boolean =>
   !!p && (p.isOwner || p.permissions.includes(permission));
 
+/** The gate's route: the one place its path is spelled. */
+export const ENROLLMENT_PATH = "/two-factor-required";
+
+/**
+ * An administrator requires a second factor and none is enrolled — the rule
+ * auth-service's ValidateToken applies (only TOTP counts; a passkey does not).
+ * `totpEnabled === null` is unknown, not "off", so it does not gate: the
+ * gateway still enforces, and client.ts sends its 403 here.
+ */
+export const mustEnroll = (me: Principal | null | undefined): boolean =>
+  !!me && me.totpRequired && me.totpEnabled === false;
+
 /**
  * Which permissions this principal may hand out. Mirrors the backend's
  * no-escalation rule so the matrix never offers a grant the gateway would
