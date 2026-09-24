@@ -212,6 +212,27 @@ code does not sign anyone out — that is a 400, and it never reached the
 bounce in the first place. Before putting the flag on a new call, curl the
 route with a wrong credential and read the status.
 
+**A session that owes a second factor is confined to `/two-factor-required`
+and the wizard, and four places have to agree on it.** The rule is
+`mustEnroll` (`shared/session`): `totpRequired && totpEnabled === false`,
+the same test auth-service applies — `null` is unknown, not "off", and does
+not gate. When the gateway disagrees, or an administrator turns the
+requirement on mid-session, `client.ts` catches `403
+twofa_enrollment_required` and does a full load of the gate, like the 401
+bounce, dropping the stale cached principal; never from the gate itself, or
+it reloads onto itself. The router's confinement is `enrollmentRedirect`,
+called in the `beforeLoad` of `catalogRoute` and `consoleRoute` and nowhere
+else — a new root-level route has to call it too, or it is a page that 403s
+on every request. `beforeLoad`, not `loader`, because children's loaders run
+beside the parent's and a loader-based redirect would race theirs. The gate
+route itself keeps a required session whose enrolment is unknown, because
+sending it home would 403 and reload it straight back — a loop. Finally,
+`ENROLLMENT_OPEN` in `guard.ts`, and every call the wizard makes, must stay
+inside the gateway's allow-list
+(`backend/services/gateway-service/internal/transport/authhttp/enrollment.go`:
+`me`, `logout`, `2fa/setup`, `2fa/enable`, `2fa/recovery/regenerate`); a
+route or call outside it bounces a gated user to the gate mid-wizard.
+
 **A page fixture must wrap in the shell its route provides, or Cosmos
 misrepresents the page.** `CatalogShell`'s `<main>` carries every bit of the
 page padding (`px-9 pb-[72px] pt-8`), so a bare fixture sits flush against

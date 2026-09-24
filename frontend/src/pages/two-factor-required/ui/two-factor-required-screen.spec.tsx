@@ -9,7 +9,7 @@ import { TwoFactorRequiredScreen } from "./two-factor-required-screen";
 const { signOut } = vi.hoisted(() => ({ signOut: vi.fn() }));
 vi.mock("@/features/sign-out", () => ({ useSignOut: () => ({ signOut, pending: false }) }));
 
-const principal = (totpEnabled: boolean) =>
+const principal = (totpEnabled: boolean | null) =>
   ({ username: "enroll1", totpRequired: true, totpEnabled }) as Principal;
 
 // The screen reads the principal the route's beforeLoad already put in the cache.
@@ -32,6 +32,13 @@ describe("TwoFactorRequiredScreen", () => {
       screen.getByRole("heading", { level: 1, name: "Set up two-factor to continue" }),
     ).toBeInTheDocument();
     expect(screen.getByText("enroll1")).toBeInTheDocument();
+  });
+
+  it("shows the gate while enrolment is unknown", () => {
+    renderWith(principal(null));
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Set up two-factor to continue" }),
+    ).toBeInTheDocument();
   });
 
   it("shows the done card once two-factor is on", () => {

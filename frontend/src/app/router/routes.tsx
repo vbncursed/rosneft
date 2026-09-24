@@ -14,7 +14,7 @@ import { RolesScreen } from "@/pages/roles";
 import { TerritoryAccessScreen } from "@/pages/territory-access";
 import { TwoFactorRequiredScreen } from "@/pages/two-factor-required";
 import { UsersScreen } from "@/pages/users";
-import { ENROLLMENT_PATH, isAuthed, mustEnroll } from "@/shared/session";
+import { ENROLLMENT_PATH, isAuthed } from "@/shared/session";
 import { ConsoleShell } from "./console-shell";
 import { LoginRouteComponent } from "./login-route";
 import { NoConsoleAccess } from "./fallbacks";
@@ -56,8 +56,12 @@ export const twoFactorRequiredRoute = createRoute({
     const target = redirectTarget(isAuthed(), location.href);
     if (target) throw redirect(target);
     const me = await context.queryClient.ensureQueryData(meQuery);
-    // Enrolled: "done" is the one reason to be here; anything else goes home.
-    if (!mustEnroll(me) && search.stage !== "done") throw redirect({ to: "/" });
+    // Required and not known to be enrolled stays: an unknown (`null`) sent
+    // home would 403 at the gateway and reload straight back here. "done" is
+    // only for a session that has two-factor on; everyone else goes home.
+    if (me.totpRequired && me.totpEnabled !== true) return;
+    if (search.stage === "done" && me.totpEnabled === true) return;
+    throw redirect({ to: "/" });
   },
   component: TwoFactorRequiredScreen,
 });
@@ -76,10 +80,10 @@ export const consoleRoute = createRoute({
     const to = enrollmentRedirect(await context.queryClient.ensureQueryData(meQuery), location.pathname);
     if (to) throw redirect({ to });
   },
-  // Entering the console fetches the principal. It feeds the landing redirect
-  // below, and it is what makes the guard real rather than apparent: the
-  // marker is a flag, not proof, so a revoked session gets past `beforeLoad`
-  // and is only caught when something actually calls the gateway.
+  // Returns the principal `beforeLoad` already fetched — a cache hit. That
+  // fetch is what makes the guard real rather than apparent: the marker is a
+  // flag, not proof, and a revoked session is only caught when something
+  // actually calls the gateway.
   loader: ({ context }) => context.queryClient.ensureQueryData(meQuery),
   component: ConsoleShell,
 });
