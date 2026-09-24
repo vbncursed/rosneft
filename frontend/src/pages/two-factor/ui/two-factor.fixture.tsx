@@ -18,6 +18,7 @@ const base: TwoFactorState = {
   setupError: null,
   busy: false,
   username: "a.ivanova",
+  exit: { href: "/account", short: "Account", long: "Back to your account" },
   onCode: () => {},
   onConfirm: () => {},
   onRetry: () => {},
