@@ -52,6 +52,7 @@ const OLD_BUNDLE: SceneBundle = {
   documents: [],
   measurements: [],
   placementGroups: [],
+  phaseHidden: { prior: false, current: false, post: false },
 };
 
 const PRINCIPAL = {

@@ -145,6 +145,7 @@ const BUNDLE: SceneBundle = {
     },
   ],
   placementGroups: [],
+  phaseHidden: { prior: false, current: false, post: false },
 };
 
 const principal = (over: Partial<Principal> = {}): Principal => ({

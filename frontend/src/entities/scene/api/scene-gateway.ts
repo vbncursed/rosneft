@@ -2,7 +2,7 @@ import { httpGet } from "@/shared/api";
 import type { components } from "@/shared/api/dto";
 import { toPlacement, toPlacementGroup, type Placement, type PlacementGroup, type Vec3 } from "@/entities/placement";
 import { toTerritory, type Territory } from "@/entities/territory";
-import { toPanorama, type Panorama } from "@/entities/panorama";
+import { toPanorama, toPhaseHidden, type Panorama, type PhaseHidden } from "@/entities/panorama";
 import { toDocument, type Document } from "@/entities/document";
 import { toStoredChain, type StoredChain } from "@/entities/measurement";
 import type { LodArtifact } from "../model/lod";
@@ -43,6 +43,8 @@ export type SceneBundle = {
   measurements: StoredChain[];
   /** The territory's user groups (G-2), `[]` when none; the scene is their only reader. */
   placementGroups: PlacementGroup[];
+  /** Each job phase's shared flag (D5). */
+  phaseHidden: PhaseHidden;
 };
 
 const ZERO: Vec3 = { x: 0, y: 0, z: 0 };
@@ -82,5 +84,6 @@ export async function getSceneBundle(slug: string): Promise<SceneBundle> {
     documents: (d.documents ?? []).map(toDocument),
     measurements: d.measurements.map(toStoredChain),
     placementGroups: (d.placementGroups ?? []).map(toPlacementGroup),
+    phaseHidden: toPhaseHidden(d.panoramaPhases),
   };
 }

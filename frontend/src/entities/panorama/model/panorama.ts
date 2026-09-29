@@ -30,3 +30,20 @@ export type PanoramaUpdate = { title: string; position: Vec3; yawOffset: number;
 /** The mock's "not calibrated yet": nothing has moved the anchor off the origin. */
 export const isCalibrated = (p: Panorama): boolean =>
   p.position.x !== 0 || p.position.y !== 0 || p.position.z !== 0 || p.yawOffset !== 0;
+
+/** Whether each phase is hidden for everyone — the phase's own flag (D5). */
+export type PhaseHidden = Record<PanoramaPhase, boolean>;
+
+/** The three phases in list order, with the words the View tab prints (D2). */
+export const PANORAMA_PHASES: readonly { phase: PanoramaPhase; label: string }[] = [
+  { phase: "prior", label: "Prior job" },
+  { phase: "current", label: "Current job" },
+  { phase: "post", label: "Post job" },
+];
+
+/** No phase hidden: a territory nobody has touched. Copy, never mutate. */
+export const ALL_PHASES_SHOWN: PhaseHidden = { prior: false, current: false, post: false };
+
+/** On the map only when neither it nor its phase is hidden (D5). */
+export const isPanoramaShown = (p: Pick<Panorama, "hidden" | "phase">, phaseHidden: PhaseHidden): boolean =>
+  !p.hidden && !phaseHidden[p.phase];

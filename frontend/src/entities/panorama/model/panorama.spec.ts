@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isCalibrated, type Panorama } from "./panorama";
+import { ALL_PHASES_SHOWN, isCalibrated, isPanoramaShown, PANORAMA_PHASES, type Panorama } from "./panorama";
 
 const panorama = (overrides: Partial<Panorama> = {}): Panorama => ({
   id: 1,
@@ -30,5 +30,31 @@ describe("isCalibrated", () => {
 
   it("is true when the yaw offset has moved", () => {
     expect(isCalibrated(panorama({ yawOffset: 0.5 }))).toBe(true);
+  });
+});
+
+describe("PANORAMA_PHASES", () => {
+  it("lists the three job phases in list order, with the words the list prints", () => {
+    expect(PANORAMA_PHASES).toEqual([
+      { phase: "prior", label: "Prior job" },
+      { phase: "current", label: "Current job" },
+      { phase: "post", label: "Post job" },
+    ]);
+  });
+});
+
+describe("isPanoramaShown", () => {
+  // D5: shown only when neither the capture nor its phase is hidden.
+  it.each([
+    [false, false, true],
+    [true, false, false],
+    [false, true, false],
+    [true, true, false],
+  ])("capture hidden %s, its phase hidden %s → shown %s", (hidden, phaseOff, shown) => {
+    expect(isPanoramaShown(panorama({ hidden, phase: "current" }), { ...ALL_PHASES_SHOWN, current: phaseOff })).toBe(shown);
+  });
+
+  it("reads only its own phase's flag", () => {
+    expect(isPanoramaShown(panorama({ phase: "prior" }), { prior: false, current: true, post: true })).toBe(true);
   });
 });

@@ -61,6 +61,11 @@ const dto = {
     },
   ],
   placementGroups: [{ id: 2, title: "Tank farm", hidden: true, createdAt: "c", updatedAt: "u" }],
+  panoramaPhases: [
+    { phase: "prior", hidden: false },
+    { phase: "current", hidden: true },
+    { phase: "post", hidden: false },
+  ],
 };
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -82,6 +87,10 @@ describe("getSceneBundle", () => {
     expect(bundle.documents).toEqual([{ ...dto.documents[0], createdAt: "" }]);
     expect(bundle.measurements).toEqual([{ serverId: 5, points: dto.measurements[0].points, closed: false }]);
     expect(bundle.placementGroups).toEqual([{ id: 2, title: "Tank farm", hidden: true }]);
+  });
+
+  it("maps the three phase flags into a lookup", async () => {
+    expect((await getSceneBundle("t")).phaseHidden).toEqual({ prior: false, current: true, post: false });
   });
 
   it("defaults panoramas and documents to [] when the DTO omits them", async () => {
