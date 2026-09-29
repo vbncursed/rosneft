@@ -137,7 +137,7 @@ for m in pkg proto services/*; do (cd $m && GOWORK=off go list -m -u \
 
 | Module | Version | Used by | Role |
 | --- | --- | --- | --- |
-| `google.golang.org/grpc` | v1.83.2 | all | Service-to-service transport |
+| `google.golang.org/grpc` | v1.83.2 — **held**, see below | all | Service-to-service transport |
 | `google.golang.org/protobuf` | v1.36.12 | proto, auth, catalog, content, mesh | Generated message runtime |
 | `github.com/spf13/cobra` | v1.10.2 | all services | CLI root command |
 | `github.com/spf13/viper` | v1.21.0 | all services | Layered config (flag > env > default) |
@@ -155,15 +155,44 @@ for m in pkg proto services/*; do (cd $m && GOWORK=off go list -m -u \
 | --- | --- |
 | `pkg` | — (grpc + prometheus + test libs only) |
 | `proto` | — (grpc + protobuf only) |
-| `gateway-service` | `andybalholm/brotli` v1.2.4 · `getkin/kin-openapi` v0.149.0 · `go-chi/chi/v5` v5.3.2 · `go-chi/cors` v1.2.2 · `oapi-codegen/runtime` v1.7.0 · `samber/slog-chi` v1.19.1 · `golang.org/x/sync` v0.23.0 |
+| `gateway-service` | `andybalholm/brotli` v1.2.5 · `getkin/kin-openapi` v0.149.0 · `go-chi/chi/v5` v5.3.2 · `go-chi/cors` v1.2.2 · `oapi-codegen/runtime` v1.7.0 · `samber/slog-chi` v1.19.1 · `golang.org/x/sync` v0.23.0 |
 | `catalog-service` | — |
 | `content-service` | — |
 | `auth-service` | `golang.org/x/crypto` v0.57.0 (argon2id) |
 | `twofa-service` | `pquerna/otp` v1.5.0 (TOTP) |
-| `passkey-service` | `go-webauthn/webauthn` v0.18.1 |
+| `passkey-service` | `go-webauthn/webauthn` v0.18.2 |
 | `mesh-service` | `qmuntal/gltf` v0.29.0 (GLB writer) |
 | `upload-service` | — |
 | `asset-service` | — (does not import `proto`; HTTP-only) |
+
+### 2026-09-29 refresh (still Go 1.27.1 — the latest release)
+
+| Dependency / tool | From → To | Note |
+| --- | --- | --- |
+| `google.golang.org/grpc` | v1.83.2 → **held** | v1.84.0 is the newest release and is **affected by GO-2026-6443** (server panic on a missing `:authority`/`Host`); 1.83.2 carries the fix, 1.84.x does not yet. govulncheck flags it as reachable through `grpc.Server.Serve`, so `make check` fails on 1.84.0. Move once a release outside the advisory's ranges ships |
+| `andybalholm/brotli` | 1.2.4 → **1.2.5** | |
+| `go-webauthn/webauthn` | 0.18.1 → **0.18.2** | |
+| indirect | | `prometheus/common` 0.72.0, `klauspost/compress` 1.20.1, `go.uber.org/atomic` 1.12.0, genproto, `purego`, `go-ansiterm` |
+| golangci-lint (CI pin) | 2.13.2 → **2.14.0** | 0 issues in all 12 modules, no new findings |
+| compose images | | `redis` 8.10.1 → 8.10.2, `prom/prometheus` v3.14.0 → v3.15.0, `prom/alertmanager` v0.33.1 → v0.34.1; `postgres` 18.6 already latest |
+
+Every other direct dependency was already current. **`go get -u ./...` now
+fails with `SECURITY ERROR … checksum mismatch` on `github.com/vbncursed/rosneft@v1.0.0`**:
+`-u` asks the proxy for the newest version of the `replace`d `backend/pkg`/`backend/proto`,
+which resolves through the repository root, and its `v1.0.0` tag no longer
+matches what sum.golang.org recorded. Do not switch verification off; upgrade the
+direct requires by name instead, which never queries the local modules:
+
+```bash
+for m in services/*; do (cd $m && GOWORK=off go mod edit -json \
+  | python3 -c 'import json,sys;print("\n".join(r["Path"] for r in json.load(sys.stdin)["Require"] if not r.get("Indirect") and "vbncursed/rosneft" not in r["Path"]))' \
+  | GOWORK=off xargs go get -u && GOWORK=off go mod tidy); done
+```
+
+Not moved, on purpose — each is a migration, not a bump: `gltfpack` is built from
+meshoptimizer **v0.22** against basis_universal 1.16.4 (latest is v1.3, and the
+basisu pairing is load-bearing, see `Dockerfile.worker`); build and runtime bases
+stay on Debian 12 (`debian:12-slim`, `distroless/*-debian12`).
 
 ### Notable version moves in the 1.27.1 refresh
 

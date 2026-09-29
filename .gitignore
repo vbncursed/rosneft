@@ -91,3 +91,7 @@ docker-compose.override.*.yml
 .agents/
 skills-lock.json
 .claude/skills/tauri*
+
+# ── Local-only (not tracked) ────────────────────────────────────────────────
+/.claude/
+/docs/
