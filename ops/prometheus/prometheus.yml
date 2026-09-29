@@ -28,13 +28,13 @@ scrape_configs:
           - upload:9101
           - audit:9101
         labels: { stack: andrey }
-    # mesh-worker alone runs multiple replicas (docker-compose.yml: replicas:
-    # 2). A single static `mesh-worker:9101` entry resolves through Compose's
+    # mesh-worker alone may run multiple replicas (docker-compose.yml:
+    # replicas, 1 on the 8 GB host). A single static `mesh-worker:9101` entry resolves through Compose's
     # round-robin DNS to whichever replica IP the scraper happens to get —
     # deterministically one target, nondeterministically which, so the other
     # replica is invisible and TargetDown cannot see it die. DNS SD with type
-    # A instead discovers one target per IP behind the name, so both
-    # replicas get scraped as their own target.
+    # A instead discovers one target per IP behind the name, so every
+    # replica gets scraped as its own target.
     dns_sd_configs:
       - names: ["mesh-worker"]
         type: A
