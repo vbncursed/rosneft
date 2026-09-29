@@ -2,7 +2,7 @@ import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { createElement } from "react";
 import type { Mesh } from "three";
 import { describe, expect, it, vi } from "vitest";
-import type { Panorama } from "@/entities/panorama";
+import { ALL_PHASES_SHOWN, type Panorama } from "@/entities/panorama";
 import PanoramaScene from "./panorama-scene";
 
 // The rig, the drag controller and the overlay render nothing findable under
@@ -83,6 +83,7 @@ const scene = (over: Partial<Props> = {}) => (
     progress={null}
     opacity={1}
     panoramas={[PANO]}
+    phaseHidden={ALL_PHASES_SHOWN}
     showMarkers
     pointMode={false}
     calibrating={false}
@@ -255,5 +256,24 @@ describe("PanoramaScene", () => {
   it("keeps the drag controller mounted so a release always lands", async () => {
     const r = await mount(ready);
     expect(named(r, "PanoramaDragController")[0].instance.userData.dragging).toBe(false);
+  });
+
+  it("draws no anchor for a hidden capture, nor for one in a hidden phase", async () => {
+    const r = await mount({
+      panoramas: [PANO, { ...PANO, id: 8, hidden: true }, { ...PANO, id: 9, phase: "post" }],
+      phaseHidden: { ...ALL_PHASES_SHOWN, post: true },
+    });
+    expect(named(r, "PanoramaMarkersLayer")[0].instance.userData.ids).toEqual([7]);
+  });
+
+  // The ring being aligned is the alignment's own control, not a marker: a
+  // hidden phase must not leave the operator nothing to drag.
+  it("still hands over the anchor being aligned when its phase is hidden", async () => {
+    const r = await mount({
+      calibrating: true,
+      calibrationGhost: { ...DRAFT, phase: "post" },
+      phaseHidden: { ...ALL_PHASES_SHOWN, post: true },
+    });
+    expect(named(r, "PanoramaMarkersLayer")[0].instance.userData.ids).toEqual([7]);
   });
 });

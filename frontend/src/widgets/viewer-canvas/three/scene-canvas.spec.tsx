@@ -125,6 +125,7 @@ const props = (over: Partial<ViewerCanvasProps> = {}): ViewerCanvasProps => ({
   panoramaOpacity: 1,
   calibrating: false,
   panoramas: [PANO],
+  panoramaPhaseHidden: { prior: false, current: false, post: false },
   showMarkers: true,
   showMeasurements: true,
   markerLabels: {},

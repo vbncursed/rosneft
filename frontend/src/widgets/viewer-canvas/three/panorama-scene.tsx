@@ -1,6 +1,6 @@
 import { useState, type RefObject } from "react";
 import type { Object3D } from "three";
-import type { Panorama } from "@/entities/panorama";
+import { isPanoramaShown, type Panorama, type PhaseHidden } from "@/entities/panorama";
 import type { Vec3 } from "@/entities/placement";
 import type { ViewerCanvasProps } from "../ui/props";
 import PanoramaDragController from "./panorama-drag-controller";
@@ -18,6 +18,8 @@ export interface PanoramaSceneProps {
   progress: number | null;
   opacity: number;
   panoramas: Panorama[];
+  /** Each phase's flag: only `isPanoramaShown` anchors are drawn. */
+  phaseHidden: PhaseHidden;
   showMarkers: boolean;
   /** True whenever the canvas is picking points rather than editing. */
   pointMode: boolean;
@@ -48,6 +50,7 @@ export default function PanoramaScene({
   progress,
   opacity,
   panoramas,
+  phaseHidden,
   showMarkers,
   pointMode,
   calibrating,
@@ -107,7 +110,7 @@ export default function PanoramaScene({
           to drag and no explanation. */}
       {!activePanorama && (calibrating || (!pointMode && showMarkers)) ? (
         <PanoramaMarkersLayer
-          panoramas={calibrationGhost ? [calibrationGhost] : panoramas}
+          panoramas={calibrationGhost ? [calibrationGhost] : panoramas.filter((p) => isPanoramaShown(p, phaseHidden))}
           onActivate={onActivate}
           moveMode={move.active || calibrating}
           editingId={calibrating ? (calibrationGhost?.id ?? null) : null}

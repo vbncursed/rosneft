@@ -138,6 +138,7 @@ export function panoramaCanvasProps(p: PageParts, groups: ModelGroup[]) {
     panoramaOpacity: pan.calibration.active ? pan.calibration.opacity : 1,
     calibrating: pan.calibration.active,
     panoramas: pan.list,
+    panoramaPhaseHidden: pan.visibility.phaseHidden,
     showMarkers: pan.showMarkers,
     markerLabels: labelsOf(groups),
     move: moveOf(p.mode.move, pan.drag.draggingId, pan.drag.livePos),

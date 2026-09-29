@@ -1,6 +1,6 @@
 import type { RefObject } from "react";
 import type { Chain, MeasurePoint } from "@/entities/measurement";
-import type { Panorama } from "@/entities/panorama";
+import type { Panorama, PhaseHidden } from "@/entities/panorama";
 import type { PlacementTransform, ResolvedPlacement, Vec3 } from "@/entities/placement";
 import type { LodArtifact } from "@/entities/scene";
 import type { LodFailure } from "@/features/lod";
@@ -67,6 +67,8 @@ export type ViewerCanvasProps = {
    */
   calibrating: boolean;
   panoramas: Panorama[];
+  /** Each job phase's shared flag: a hidden capture, or one of a hidden phase, gets no anchor (D5). */
+  panoramaPhaseHidden: PhaseHidden;
   showMarkers: boolean;
   /** The View tab's ruler switch; measure mode draws the ruler regardless. */
   showMeasurements: boolean;

@@ -38,6 +38,7 @@ const props = {
   panoramaOpacity: 1,
   calibrating: false,
   panoramas: [],
+  panoramaPhaseHidden: { prior: false, current: false, post: false },
   showMarkers: true,
   showMeasurements: true,
   markerLabels: {},

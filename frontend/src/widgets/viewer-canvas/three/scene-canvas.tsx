@@ -62,6 +62,7 @@ export default function SceneCanvas({
   panoramaOpacity,
   calibrating,
   panoramas,
+  panoramaPhaseHidden,
   showMarkers,
   showMeasurements,
   markerLabels,
@@ -238,6 +239,7 @@ export default function SceneCanvas({
         progress={panoramaProgress}
         opacity={panoramaOpacity}
         panoramas={panoramas}
+        phaseHidden={panoramaPhaseHidden}
         showMarkers={showMarkers}
         pointMode={pointMode}
         calibrating={calibrating}

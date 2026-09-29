@@ -378,6 +378,11 @@ describe("panoramaCanvasProps", () => {
     expect(props.move).toEqual({ active: true, draggingId: 1, livePos: { x: 1, y: 2, z: 3 } });
     expect(props.panoramaStatus).toBe("idle");
   });
+
+  it("hands the canvas each phase's flag, so the map draws only what is shown", () => {
+    const p = withPanoramas([panorama(1)]);
+    expect(panoramaCanvasProps(p, []).panoramaPhaseHidden).toBe(p.panoramas.visibility.phaseHidden);
+  });
 });
 
 describe("documentProps", () => {

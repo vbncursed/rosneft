@@ -52,6 +52,7 @@ const Canvas = ({ chains = [], showMeasurements = true, measuring = false }: Can
         panoramaOpacity={1}
         calibrating={false}
         panoramas={[]}
+        panoramaPhaseHidden={{ prior: false, current: false, post: false }}
         showMarkers
         showMeasurements={showMeasurements}
         markerLabels={{}}
