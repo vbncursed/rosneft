@@ -181,3 +181,18 @@ func (s *AuditLabelsSuite) TestPlacementGroupNamesItsTerritory() {
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), out[0].TerritorySlug, "tenant-a-scene")
 }
+
+// A phase flag belongs to a territory and has no id of its own (its key is
+// territory + phase): its journal entry names the territory from territory_id.
+func (s *AuditLabelsSuite) TestPanoramaPhaseNamesItsTerritory() {
+	s.page[0].Entity = "panorama_phase"
+	s.page[0].Action = "panorama_phase.insert"
+	s.page[0].NewRow = `{"territory_id":5,"phase":"post","hidden":true}`
+	s.aut.ResolveUserLoginsMock.Return(map[string]string{}, nil)
+	s.cat.ResolveTerritorySlugsMock.Return(map[int64]string{5: "tenant-a-scene"}, nil)
+
+	out, err := s.list()
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), out[0].TerritorySlug, "tenant-a-scene")
+}
