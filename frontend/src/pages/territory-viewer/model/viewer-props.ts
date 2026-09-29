@@ -160,6 +160,8 @@ export type PageHandlers = {
   onVisibility: (placementId: number, panoramaId: number, visible: boolean) => void;
   /** Hides or shows many placements for everyone; a hidden selection is dropped (§1.7). */
   onSetHidden: (ids: number[], hidden: boolean) => void;
+  /** The group's own flag (D6); a selection that leaves with it is dropped (§1.7). */
+  onSetGroupHidden: (id: number, hidden: boolean) => void;
   onMoveToGroup: (ids: number[], groupId: number | null) => void;
   /** Opens the picker aimed at one user group; the batch lands in it (G-4). */
   onAddToGroup: (groupId: number) => void;
@@ -211,6 +213,7 @@ export type PageParts = {
     create: (title: string) => Promise<boolean>;
     rename: (id: number, title: string) => Promise<boolean>;
     remove: (id: number) => void;
+    setHidden: (id: number, hidden: boolean) => Promise<boolean>;
   };
   form: PlacementFormView | null;
   tour: Tour;

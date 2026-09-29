@@ -31,6 +31,7 @@ const Canvas = ({ chains = [], showMeasurements = true, measuring = false }: Can
         parentLods={[]}
         targetLod={0}
         placements={[]}
+        placementGroups={[]}
         mode={measuring ? "measure" : "orbit"}
         selectedId={null}
         gizmo="translate"

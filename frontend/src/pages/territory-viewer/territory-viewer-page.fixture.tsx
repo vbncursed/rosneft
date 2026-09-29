@@ -207,7 +207,7 @@ export const basePageParts = (): PageParts => ({
   placements: PLACEMENTS,
   pendingIds: [],
   placing: null,
-  placementGroups: { list: [], busy: false, create: async () => true, rename: async () => true, remove: noop },
+  placementGroups: { list: [], busy: false, create: async () => true, rename: async () => true, remove: noop, setHidden: async () => true },
   form: null,
   tour: IDLE_TOUR,
   panoramaTour: IDLE_TOUR,

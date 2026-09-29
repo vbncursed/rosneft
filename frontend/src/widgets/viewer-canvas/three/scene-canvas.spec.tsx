@@ -104,6 +104,7 @@ const props = (over: Partial<ViewerCanvasProps> = {}): ViewerCanvasProps => ({
   parentLods: [],
   targetLod: 0,
   placements: [],
+  placementGroups: [],
   mode: "orbit",
   selectedId: null,
   gizmo: "translate",

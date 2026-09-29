@@ -18,6 +18,7 @@ const actions = (over: Partial<GroupActions> = {}): GroupActions => ({
   onCreate: vi.fn(async () => true),
   onRename: vi.fn(async () => true),
   onDelete: vi.fn(),
+  onSetHidden: vi.fn(),
   ...over,
 });
 
@@ -35,28 +36,47 @@ describe("UserGroupItem", () => {
     expect(screen.getByRole("button", { name: "storage-tank-500 #3 · hidden" })).toHaveTextContent(/^storage-tank-500 #3$/);
   });
 
-  it("shows every member again from an all-hidden eye", async () => {
+  // D6: the eye is the group's own flag, not the aggregate of its members.
+  it("reads the group's own flag and sets it — never the members' flags", async () => {
+    const a = actions();
     const c = ctx({ expanded: "group:4" });
-    mount({ c });
+    mount({ a, c, section: { ...SECTION, group: { ...SECTION.group, hidden: true } } });
     const eye = screen.getByRole("button", { name: "Hide group East yard" });
     expect(eye).toHaveAttribute("aria-pressed", "true");
     await userEvent.click(eye);
-    expect(c.onSetHidden).toHaveBeenCalledWith([1, 3], false);
+    expect(a.onSetHidden).toHaveBeenCalledWith(4, false);
+    expect(c.onSetHidden).not.toHaveBeenCalled();
   });
 
-  it("disables the eye on an empty group — there is nothing to hide", () => {
-    mount({ section: { ...SECTION, members: [] } });
+  it("reads shown while its members are hidden on their own", () => {
+    mount();
+    expect(screen.getByRole("button", { name: "Hide group East yard" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  // D5: whatever moves into a hidden group arrives hidden, so an empty one can be hidden too.
+  it("hides an empty group", async () => {
+    const a = actions();
+    mount({ a, section: { ...SECTION, members: [] } });
     const eye = screen.getByRole("button", { name: "Hide group East yard" });
-    expect(eye).toHaveAttribute("aria-disabled", "true");
-    expect(eye).toHaveAttribute("data-dim", "true");
+    expect(eye).not.toHaveAttribute("aria-disabled");
+    await userEvent.click(eye);
+    expect(a.onSetHidden).toHaveBeenCalledWith(4, true);
   });
 
-  // E3: a write in flight waits without dimming — busy is not unavailable.
-  it("waits the eye, undimmed, while a member is being written", () => {
-    mount({ c: ctx({ expanded: "group:4", pendingIds: [3] }) });
+  it("waits the eye, undimmed, while a group write is in flight", () => {
+    mount({ a: actions({ busy: true }) });
     const eye = screen.getByRole("button", { name: "Hide group East yard" });
     expect(eye).toHaveAttribute("aria-busy", "true");
     expect(eye).not.toHaveAttribute("data-dim");
+  });
+
+  it("dims its members while it is hidden, whatever their own flag", () => {
+    const section: UserGroupSection = {
+      group: { id: 4, title: "East yard", hidden: true },
+      members: [{ model: TANK, instance: { id: 1, index: 1, label: "", hidden: false, groupId: 4 } }],
+    };
+    mount({ section });
+    expect(screen.getByRole("button", { name: "storage-tank-500 #1 · hidden" })).toHaveClass("opacity-55");
   });
 
   it("places into itself from its own Add", async () => {

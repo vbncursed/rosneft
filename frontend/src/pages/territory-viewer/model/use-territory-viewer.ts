@@ -209,6 +209,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     mode,
     measure,
     editor,
+    setGroupHidden: groups.setHidden,
     form,
     panel,
     tour,

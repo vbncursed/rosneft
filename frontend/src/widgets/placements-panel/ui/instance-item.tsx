@@ -34,12 +34,15 @@ export function InstanceItem({
   instance,
   ctx,
   showModel = false,
+  groupHidden = false,
 }: {
   model: ModelGroup;
   instance: PlacementInstance;
   ctx: RowContext;
   /** A user group's rows print their model, since a group mixes models. */
   showModel?: boolean;
+  /** Its group is hidden: the row dims and cannot be framed. */
+  groupHidden?: boolean;
 }) {
   const selected = instance.id === ctx.selectedId;
   const pending = ctx.pendingIds.includes(instance.id);
@@ -60,6 +63,7 @@ export function InstanceItem({
         onHide={(id, hidden) => ctx.onSetHidden([id], hidden)}
         onMove={(id, groupId) => ctx.onMoveToGroup([id], groupId)}
         showModel={showModel}
+        groupHidden={groupHidden}
       />
       {ctx.visibility && selected ? (
         <VisibleIn

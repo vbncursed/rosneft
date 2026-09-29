@@ -26,6 +26,7 @@ export {
   createPlacementGroup,
   deletePlacementGroup,
   renamePlacementGroup,
+  setPlacementGroupHidden,
   toPlacementGroup,
 } from "./api/placement-groups-gateway";
 export {

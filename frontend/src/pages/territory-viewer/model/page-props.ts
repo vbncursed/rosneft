@@ -88,6 +88,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       parentLods: vm.parentLods,
       targetLod,
       placements: p.placements,
+      placementGroups: p.placementGroups.list,
       mode: mode.mode,
       selectedId: mode.selectedId,
       gizmo: mode.gizmo,

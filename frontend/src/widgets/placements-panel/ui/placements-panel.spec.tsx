@@ -36,7 +36,7 @@ const base: PlacementsPanelProps = {
   onSetHidden: vi.fn(),
   onMoveToGroup: vi.fn(),
   onAddToGroup: vi.fn(),
-  groupActions: { busy: false, onCreate: vi.fn(), onRename: vi.fn(), onDelete: vi.fn() },
+  groupActions: { busy: false, onCreate: vi.fn(), onRename: vi.fn(), onDelete: vi.fn(), onSetHidden: vi.fn() },
 };
 
 const SELECTED = {

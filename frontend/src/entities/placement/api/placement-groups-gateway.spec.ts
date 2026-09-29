@@ -4,6 +4,7 @@ import {
   createPlacementGroup,
   deletePlacementGroup,
   renamePlacementGroup,
+  setPlacementGroupHidden,
   toPlacementGroup,
 } from "./placement-groups-gateway";
 
@@ -66,6 +67,16 @@ describe("placement groups gateway", () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
     await expect(deletePlacementGroup("north", 3)).resolves.toBeUndefined();
     expect(request()).toMatchObject({ url: "/api/territories/north/placement-groups/3", method: "DELETE" });
+  });
+
+  it("PUTs a group's own flag to its hidden route and maps the answer", async () => {
+    fetchMock.mockResolvedValueOnce(json({ ...DTO, hidden: true }));
+    await expect(setPlacementGroupHidden("north", 3, true)).resolves.toEqual({ id: 3, title: "Tank farm", hidden: true });
+    expect(request()).toEqual({
+      url: "/api/territories/north/placement-groups/3/hidden",
+      method: "PUT",
+      body: { hidden: true },
+    });
   });
 
   it("percent-encodes the territory slug", async () => {

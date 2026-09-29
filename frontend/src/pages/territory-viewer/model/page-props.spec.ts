@@ -3,7 +3,7 @@ import type { Chain } from "@/entities/measurement";
 import type { ResolvedPlacement } from "@/entities/placement";
 import type { ModelOption, SceneViewModel } from "@/entities/scene";
 import type { Tour } from "@/features/onboarding";
-import { IDLE_DOCUMENTS, IDLE_PANORAMAS } from "../territory-viewer-page.fixture";
+import { basePageParts, IDLE_DOCUMENTS, IDLE_PANORAMAS } from "../territory-viewer-page.fixture";
 import { pageProps, type PageHandlers, type PageParts } from "./page-props";
 import type { Grants } from "./viewer-view";
 
@@ -98,6 +98,7 @@ const HANDLERS: PageHandlers = {
   onClosePicker: noop,
   onVisibility: noop,
   onSetHidden: vi.fn(),
+  onSetGroupHidden: vi.fn(),
   onMoveToGroup: vi.fn(),
   onAddToGroup: vi.fn(),
   onToggleMove: noop,
@@ -128,7 +129,7 @@ const parts = (over: Partial<PageParts> = {}): PageParts => ({
   placements: [TANK],
   pendingIds: [],
   placing: null,
-  placementGroups: { list: [], busy: false, create: vi.fn(), rename: vi.fn(), remove: vi.fn() },
+  placementGroups: { list: [], busy: false, create: vi.fn(), rename: vi.fn(), remove: vi.fn(), setHidden: vi.fn() },
   form: null,
   tour: TOUR,
   panoramaTour: TOUR,
@@ -598,5 +599,12 @@ describe("pageProps · the LOD switcher goes where the level cannot be chosen", 
 
   it("draws it in the 3D scene with nothing over it", () => {
     expect(pageProps(parts()).overlays.switcher).not.toBeNull();
+  });
+});
+
+describe("pageProps · placement groups", () => {
+  it("hands the canvas the territory's groups — a hidden one's members are not drawn", () => {
+    const p = basePageParts();
+    expect(pageProps(p).canvas.placementGroups).toBe(p.placementGroups.list);
   });
 });

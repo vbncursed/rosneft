@@ -66,7 +66,7 @@ export function viewTabProps(p: PageParts): ViewTabProps {
         ? LOADING_FOOTER
         : inside === null
           ? null
-          : insideFooter(p.placements.filter((x) => isShownIn(x, inside)).length),
+          : insideFooter(p.placements.filter((x) => isShownIn(x, inside, p.placementGroups.list)).length),
   };
 }
 

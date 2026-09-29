@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { eyeState, userGroupKey, userGroupLine, type UserGroupSection } from "@/entities/placement";
+import { userGroupKey, userGroupLine, type UserGroupSection } from "@/entities/placement";
 import { EyeButton, GroupRow } from "@/shared/ui/group-controls";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
@@ -18,6 +18,8 @@ export type GroupActions = {
   onCreate: (title: string) => Promise<boolean>;
   onRename: (id: number, title: string) => Promise<boolean>;
   onDelete: (id: number) => void;
+  /** The group's own flag (D6); its members keep theirs. */
+  onSetHidden: (id: number, hidden: boolean) => void;
 };
 
 export type UserGroupItemProps = {
@@ -95,11 +97,12 @@ export function UserGroupItem({ section, ctx, onAdd, actions }: UserGroupItemPro
         ctx.grants.write ? (
           <>
             <EyeButton
-              state={eyeState(members.map((m) => m.instance))}
+              // The group's own flag (D5, D6), not the aggregate of its members:
+              // an empty group can be hidden too, and whatever moves in arrives hidden.
+              state={group.hidden ? "hidden" : "visible"}
               subject={`group ${group.title}`}
-              disabled={ids.length === 0}
-              busy={ids.some((id) => ctx.pendingIds.includes(id))}
-              onToggle={(hidden) => ctx.onSetHidden(ids, hidden)}
+              busy={actions.busy}
+              onToggle={(hidden) => actions.onSetHidden(group.id, hidden)}
             />
             <Menu
               triggerLabel={`Actions for group ${group.title}`}
@@ -132,7 +135,7 @@ export function UserGroupItem({ section, ctx, onAdd, actions }: UserGroupItemPro
       {open ? (
         <ul role="list" className="m-0 mt-1.5 flex list-none flex-col gap-1.5 p-0">
           {members.map(({ model, instance }) => (
-            <InstanceItem key={instance.id} model={model} instance={instance} ctx={ctx} showModel />
+            <InstanceItem key={instance.id} model={model} instance={instance} ctx={ctx} showModel groupHidden={group.hidden} />
           ))}
           {onAdd ? (
             <li className="ml-3">

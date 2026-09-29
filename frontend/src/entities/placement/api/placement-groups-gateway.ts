@@ -1,4 +1,4 @@
-import { httpDelete, httpPatch, httpPost } from "@/shared/api";
+import { httpDelete, httpPatch, httpPost, httpPut } from "@/shared/api";
 import type { components } from "@/shared/api/dto";
 import type { PlacementGroup } from "../model/placement";
 
@@ -28,4 +28,13 @@ export async function renamePlacementGroup(
 /** The group goes; its placements stay and drop back to No group (ON DELETE SET NULL). */
 export function deletePlacementGroup(territorySlug: string, id: number): Promise<void> {
   return httpDelete(`${base(territorySlug)}/${id}`);
+}
+
+/** The group's own flag (D6); its placements keep theirs. The answer is the whole group. */
+export async function setPlacementGroupHidden(
+  territorySlug: string,
+  id: number,
+  hidden: boolean,
+): Promise<PlacementGroup> {
+  return toPlacementGroup(await httpPut<PlacementGroupDto>(`${base(territorySlug)}/${id}/hidden`, { hidden }));
 }

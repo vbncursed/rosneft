@@ -43,9 +43,17 @@ export function isVisibleIn(placement: Placement, panoramaId: number | null): bo
   return placement.visiblePanoramaIds.includes(panoramaId);
 }
 
-/** Whether the scene draws it at all: never when hidden (G-1), otherwise per the panorama allowlist. */
-export const isShownIn = (placement: Placement, panoramaId: number | null): boolean =>
-  !placement.hidden && isVisibleIn(placement, panoramaId);
+/**
+ * Whether the scene draws it at all: never when it or its group is hidden
+ * (G-1, D5, D6), otherwise per the panorama allowlist. `groups` is the
+ * territory's list; a `groupId` it does not know counts as no group.
+ */
+// ponytail: scans the groups per placement, O(placements × groups) a render;
+// index them in a Map if a territory ever holds hundreds of groups.
+export const isShownIn = (placement: Placement, panoramaId: number | null, groups: readonly PlacementGroup[]): boolean =>
+  !placement.hidden &&
+  !groups.some((g) => g.hidden && g.id === placement.groupId) &&
+  isVisibleIn(placement, panoramaId);
 
 const DEGREES = 180 / Math.PI;
 

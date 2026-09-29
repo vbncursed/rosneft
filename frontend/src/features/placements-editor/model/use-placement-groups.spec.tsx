@@ -4,6 +4,7 @@ import {
   createPlacementGroup,
   deletePlacementGroup,
   renamePlacementGroup,
+  setPlacementGroupHidden,
 } from "@/entities/placement";
 import { HttpError } from "@/shared/api";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
@@ -14,6 +15,7 @@ vi.mock("@/entities/placement", async (importOriginal) => ({
   createPlacementGroup: vi.fn(),
   renamePlacementGroup: vi.fn(),
   deletePlacementGroup: vi.fn(),
+  setPlacementGroupHidden: vi.fn(),
 }));
 
 let onChanged: ReturnType<typeof vi.fn<() => void>>;
@@ -28,6 +30,7 @@ beforeEach(() => {
   vi.mocked(createPlacementGroup).mockReset();
   vi.mocked(renamePlacementGroup).mockReset();
   vi.mocked(deletePlacementGroup).mockReset();
+  vi.mocked(setPlacementGroupHidden).mockReset();
   onChanged = vi.fn();
   onRemoved = vi.fn();
   clearNotices();
@@ -108,5 +111,26 @@ describe("usePlacementGroups", () => {
     expect(result.current.notices[0]?.message).toBe("You don't have permission to do this");
     expect(onChanged).toHaveBeenCalledOnce();
     expect(result.current.s.busy).toBe(false);
+  });
+
+  it("sets a group's own flag from the server's answer, and marks the bundle stale", async () => {
+    vi.mocked(setPlacementGroupHidden).mockResolvedValue({ id: 1, title: "East yard", hidden: true });
+    const { result } = mount();
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = await result.current.s.setHidden(1, true);
+    });
+    expect(ok).toBe(true);
+    expect(setPlacementGroupHidden).toHaveBeenCalledWith("t", 1, true);
+    expect(result.current.s.list).toEqual([{ id: 1, title: "East yard", hidden: true }]);
+    expect(onChanged).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the flag on a refusal and says why", async () => {
+    vi.mocked(setPlacementGroupHidden).mockRejectedValue(new HttpError(404, null, "placement group not found"));
+    const { result } = mount();
+    await act(() => result.current.s.setHidden(1, true));
+    expect(result.current.s.list).toEqual([{ id: 1, title: "East yard", hidden: false }]);
+    expect(result.current.notices[0]?.message).toBe("placement group not found");
   });
 });

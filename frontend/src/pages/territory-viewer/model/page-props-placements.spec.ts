@@ -29,6 +29,7 @@ describe("placementsPanelProps", () => {
       onCreate: p.placementGroups.create,
       onRename: p.placementGroups.rename,
       onDelete: p.placementGroups.remove,
+      onSetHidden: p.on.onSetGroupHidden,
     });
     expect(props.onSetHidden).toBe(p.on.onSetHidden);
     expect(props.onMoveToGroup).toBe(p.on.onMoveToGroup);

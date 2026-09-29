@@ -183,4 +183,20 @@ describe("InstanceRow · hiding and groups", () => {
     );
     expect(screen.queryByRole("button", { name: /^Move/ })).toBeNull();
   });
+
+  // D5: a member of a hidden group is not drawn. It dims and says so, while its
+  // own eye keeps its own flag — showing the group must not have to guess it.
+  it("dims a member of a hidden group and says so, its own eye still reading its own flag", () => {
+    render(
+      <InstanceRow group={group} instance={instance} selected={false} pending={false} canWrite canDelete={false}
+        {...handlers()} onHide={vi.fn()} groupHidden />,
+    );
+    expect(screen.getByRole("button", { name: "storage-tank-500 #2 · Tank 2 · hidden" })).toHaveClass("opacity-55");
+    expect(screen.getByRole("button", { name: "Hide storage-tank-500 #2" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("will not frame a member of a hidden group for a reader", () => {
+    render(<InstanceRow group={group} instance={instance} selected={false} pending={false} canWrite={false} canDelete={false} {...handlers()} groupHidden />);
+    expect(screen.getByRole("button", { name: "Focus storage-tank-500 #2 (hidden)" })).toBeDisabled();
+  });
 });

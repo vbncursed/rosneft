@@ -16,6 +16,8 @@ export type HandlerDeps = {
   mode: ReturnType<typeof useViewerMode>;
   measure: ReturnType<typeof useMeasurementTool>;
   editor: ReturnType<typeof usePlacementsEditor>;
+  /** The group's own flag (D6); resolves true once the server stored it. */
+  setGroupHidden: (id: number, hidden: boolean) => Promise<boolean>;
   form: ReturnType<typeof usePlacementForm>;
   panel: ReturnType<typeof useOverlaysPanel>;
   tour: Tour;
@@ -64,8 +66,18 @@ const NO_LOD: LodState = { report: NO_REPORT, failedAt: null };
  * fresh identity re-runs the effects that attach to the scene.
  */
 export function usePageHandlers(d: HandlerDeps): PageInteraction {
-  const { mode, measure, editor, form, panel, tour, documents, openSection, canDeleteMeasurements } =
-    d;
+  const {
+    mode,
+    measure,
+    editor,
+    setGroupHidden,
+    form,
+    panel,
+    tour,
+    documents,
+    openSection,
+    canDeleteMeasurements,
+  } = d;
   const [targetLod, setTargetLod] = useState(0);
   const [retryVersion, setRetryVersion] = useState(0);
   const [resetVersion, setResetVersion] = useState(0);
@@ -118,9 +130,10 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
     mode.exitPlace();
     setPickerOpen(false);
   }, [mode]);
-  const { placeGroupId, onAdd, onAddToGroup, onSetHidden } = usePlacementHandlers({
+  const { placeGroupId, onAdd, onAddToGroup, onSetHidden, onSetGroupHidden } = usePlacementHandlers({
     mode,
     editor,
+    setGroupHidden,
     openPicker,
   });
   const onPlace = useCallback(
@@ -226,6 +239,7 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
       onClosePicker: closePicker,
       onVisibility,
       onSetHidden,
+      onSetGroupHidden,
       onMoveToGroup: editor.moveToGroup,
       onAddToGroup,
       onToggleMove: mode.toggleMove,

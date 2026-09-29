@@ -254,6 +254,21 @@ describe("viewTabProps · documents and the footer", () => {
     ).toBe(insideFooter(1));
   });
 
+  it("does not count a member of a hidden group among those the panorama marks", () => {
+    const p = withPanoramas([panorama(1)]);
+    const seen: ResolvedPlacement[] = p.placements.map((x, i) =>
+      i < 2 ? { ...x, visiblePanoramaIds: [1], groupId: i === 0 ? 5 : null } : x,
+    );
+    expect(
+      viewTabProps({
+        ...p,
+        placements: seen,
+        placementGroups: { ...p.placementGroups, list: [{ id: 5, title: "East yard", hidden: true }] },
+        mode: { ...p.mode, view: { kind: "panorama", id: 1 } },
+      }).footer,
+    ).toBe(insideFooter(1));
+  });
+
   it("says nothing under the sections in the 3D view", () => {
     expect(viewTabProps(basePageParts()).footer).toBeNull();
   });

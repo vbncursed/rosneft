@@ -4,10 +4,17 @@ import { usePlacementHandlers, type PlacementHandlerDeps } from "./use-placement
 
 const mount = (selectedId: number | null = null, landed = true) => {
   const mode = { state: { selectedId: selectedId as number | null }, select: vi.fn() };
-  const editor = { setHidden: vi.fn(async () => landed) };
+  const editor = {
+    setHidden: vi.fn(async () => landed),
+    placements: [
+      { id: 4, groupId: 7 },
+      { id: 5, groupId: null },
+    ],
+  };
+  const setGroupHidden = vi.fn(async () => landed);
   const openPicker = vi.fn();
-  const d = { mode, editor, openPicker } as unknown as PlacementHandlerDeps;
-  return { spies: { mode, editor, openPicker }, ...renderHook(() => usePlacementHandlers(d)) };
+  const d = { mode, editor, setGroupHidden, openPicker } as unknown as PlacementHandlerDeps;
+  return { spies: { mode, editor, setGroupHidden, openPicker }, ...renderHook(() => usePlacementHandlers(d)) };
 };
 
 describe("usePlacementHandlers", () => {
@@ -75,5 +82,22 @@ describe("usePlacementHandlers", () => {
     act(() => result.current.onAdd());
     expect(result.current.placeGroupId).toBeNull();
     expect(spies.openPicker).toHaveBeenCalledTimes(2);
+  });
+
+  it("drops a selected member once its group's hide has landed", async () => {
+    const { result, spies } = mount(4);
+    await act(() => result.current.onSetGroupHidden(7, true));
+    expect(spies.setGroupHidden).toHaveBeenCalledWith(7, true);
+    expect(spies.mode.select).toHaveBeenCalledWith(null);
+  });
+
+  it("keeps the selection when another group hides, when showing, or when the hide fails", async () => {
+    const other = mount(5);
+    await act(() => other.result.current.onSetGroupHidden(7, true));
+    const showing = mount(4);
+    await act(() => showing.result.current.onSetGroupHidden(7, false));
+    const refused = mount(4, false);
+    await act(() => refused.result.current.onSetGroupHidden(7, true));
+    for (const m of [other, showing, refused]) expect(m.spies.mode.select).not.toHaveBeenCalled();
   });
 });
