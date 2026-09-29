@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { InstanceRow } from "./instance-row";
+import { InstanceRow, NO_GROUP } from "./instance-row";
 import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const group = { model: { slug: "tank", title: "storage-tank-500" }, instances: [{ id: 2, index: 2, label: "Tank 2", hidden: false, groupId: null }] };
@@ -161,5 +161,26 @@ describe("InstanceRow · hiding and groups", () => {
     expect(focus).toBeDisabled();
     expect(focus).not.toHaveAttribute("title");
     expect(hoverTip(focus.parentElement!)).toHaveTextContent("storage-tank-500 #2 is hidden");
+  });
+
+  it("moves out of its group with No group, and greys the group it sits in", async () => {
+    const onMove = vi.fn();
+    render(
+      <InstanceRow group={group} instance={{ ...instance, groupId: 4 }} selected={false} pending={false} canWrite canDelete {...handlers()}
+        groups={[{ id: 4, title: "East yard", hidden: false }]} onMove={onMove} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Move storage-tank-500 #2 to group" }));
+    expect(screen.getAllByRole("menuitem").map((i) => i.textContent)).toEqual(["East yard", NO_GROUP]);
+    expect(screen.getByRole("menuitem", { name: "East yard" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("menuitem", { name: NO_GROUP }));
+    expect(onMove).toHaveBeenCalledWith(2, null);
+  });
+
+  it("draws no move menu when the territory has no groups and it sits in none", () => {
+    render(
+      <InstanceRow group={group} instance={instance} selected={false} pending={false} canWrite canDelete {...handlers()}
+        groups={[]} onMove={vi.fn()} />,
+    );
+    expect(screen.queryByRole("button", { name: /^Move/ })).toBeNull();
   });
 });

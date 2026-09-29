@@ -1,12 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  EyeButton,
-  eyeState,
-  GroupRow,
-  userGroupKey,
-  userGroupLine,
-  type UserGroupSection,
-} from "@/entities/placement";
+import { eyeState, userGroupKey, userGroupLine, type UserGroupSection } from "@/entities/placement";
+import { EyeButton, GroupRow } from "@/shared/ui/group-controls";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 import { Menu } from "@/shared/ui/menu";

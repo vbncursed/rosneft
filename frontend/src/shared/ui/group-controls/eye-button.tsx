@@ -1,10 +1,12 @@
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
-import type { EyeState } from "../model/sections";
+
+/** What an eye shows for everything it covers. */
+export type EyeState = "visible" | "hidden" | "mixed";
 
 export type EyeButtonProps = {
   state: EyeState;
-  /** What the eye covers, as its name reads: `storage-tank-500 #2`, `every storage-tank-500`, `group East yard`. */
+  /** What the eye covers, as its name reads: `storage-tank-500 #2`, `group East yard`, `phase Prior job`. */
   subject: string;
   /** Nothing to toggle (an empty group): dims. */
   disabled?: boolean;
@@ -15,9 +17,10 @@ export type EyeButtonProps = {
 };
 
 /**
- * The one eye on an instance, a model row and a user group. A toggle, so the
- * name stays one verb and the state is read from `aria-pressed` — true when all
- * of it is hidden, "mixed" when some is — never guessed from the glyph.
+ * The one eye on anything hidden for everyone — a placement, a model row, a
+ * group, a panorama, a job phase. A toggle, so the name stays one verb and the
+ * state is read from `aria-pressed` — true when all of it is hidden, "mixed"
+ * when some is — never guessed from the glyph.
  */
 export function EyeButton({ state, subject, disabled = false, busy = false, onToggle }: EyeButtonProps) {
   const hidden = state === "hidden";

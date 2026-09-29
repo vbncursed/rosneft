@@ -1,10 +1,13 @@
 import { clsx as cx } from "clsx";
+import { EyeButton, MoveToGroupMenu } from "@/shared/ui/group-controls";
 import { Icon } from "@/shared/ui/icon";
 import { Tooltip } from "@/shared/ui/tooltip";
 import { instanceLine, instanceName, type ModelGroup, type PlacementInstance } from "../model/groups";
 import type { PlacementGroup } from "../model/placement";
-import { EyeButton } from "./eye-button";
-import { MoveToGroupMenu } from "./move-to-group-menu";
+
+export const NO_GROUP = "No group";
+// The move menu's key for No group; a group's key is its id, and no id is "none".
+const NONE = "none";
 
 export type InstanceRowProps = {
   group: ModelGroup;
@@ -91,11 +94,11 @@ export function InstanceRow({
       </button>
       {canWrite && onMove ? (
         <MoveToGroupMenu
-          name={name}
-          groups={groups}
-          current={instance.groupId}
+          triggerLabel={`Move ${name} to group`}
+          targets={[...groups.map((g) => ({ key: String(g.id), label: g.title })), { key: NONE, label: NO_GROUP }]}
+          current={instance.groupId === null ? NONE : String(instance.groupId)}
           disabled={pending}
-          onMove={(groupId) => onMove(instance.id, groupId)}
+          onMove={(key) => onMove(instance.id, key === NONE ? null : Number(key))}
         />
       ) : null}
       {canWrite ? (

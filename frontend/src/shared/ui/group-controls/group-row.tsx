@@ -9,7 +9,7 @@ export type GroupRowProps = {
   expanded: boolean;
   holdsSelection: boolean;
   onToggle: () => void;
-  /** Beside the disclosure, never inside it: the eye, a user group's menu. Absent without placement:write. */
+  /** Beside the disclosure, never inside it: the eye, a group's menu. Absent for a reader who cannot change them. */
   actions?: ReactNode;
 };
 
