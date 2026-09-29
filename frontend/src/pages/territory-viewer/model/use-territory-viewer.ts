@@ -95,8 +95,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
   // lands after the page has gone drops the bundle itself (`left`) — unless a
   // new visit is already reading it: that visit keeps it, marked stale, and
   // owes the drop on its own way out (`owed-scene-drop.ts`).
-  const changed = useRef(false);
-  const left = useRef(false);
+  const changed = useRef(false), left = useRef(false);
   const onChanged = useCallback(() => {
     changed.current = true;
     const keys = [["scene", slug], ["territory", slug], ["territories"], ["model"], ["models"]];
