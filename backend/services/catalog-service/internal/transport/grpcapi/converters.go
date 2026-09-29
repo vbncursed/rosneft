@@ -183,6 +183,7 @@ func placementGroupToProto(g domain.PlacementGroup) *catalogv1.PlacementGroup {
 		Id:            g.ID,
 		TerritorySlug: g.TerritorySlug,
 		Title:         g.Title,
+		Hidden:        g.Hidden,
 		CreatedAt:     timestamppb.New(g.CreatedAt),
 		UpdatedAt:     timestamppb.New(g.UpdatedAt),
 	}

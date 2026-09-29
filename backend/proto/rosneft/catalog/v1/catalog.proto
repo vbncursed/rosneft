@@ -88,6 +88,10 @@ service CatalogService {
   rpc CreatePlacementGroup(CreatePlacementGroupRequest) returns (CreatePlacementGroupResponse);
   rpc RenamePlacementGroup(RenamePlacementGroupRequest) returns (RenamePlacementGroupResponse);
   rpc DeletePlacementGroup(DeletePlacementGroupRequest) returns (DeletePlacementGroupResponse);
+  // A group's own shared hidden flag. Its placements keep theirs: a member is
+  // drawn only when neither it nor its group is hidden. A group of another
+  // territory is NOT_FOUND, same as an unknown one.
+  rpc SetPlacementGroupHidden(SetPlacementGroupHiddenRequest) returns (SetPlacementGroupHiddenResponse);
 }
 
 // Vec3 represents a point in 3D space (used for bounding-box corners
@@ -208,6 +212,9 @@ message PlacementGroup {
   string title = 3;
   google.protobuf.Timestamp created_at = 4;
   google.protobuf.Timestamp updated_at = 5;
+  // Shared by every reader; hides every member from the map without writing
+  // the members' own flag.
+  bool hidden = 6;
 }
 
 // ─── Territory RPCs ─────────────────────────────────────────────────────────
@@ -614,3 +621,12 @@ message DeletePlacementGroupRequest {
   int64 id = 2;
 }
 message DeletePlacementGroupResponse {}
+
+message SetPlacementGroupHiddenRequest {
+  string territory_slug = 1;
+  int64 id = 2;
+  bool hidden = 3;
+}
+message SetPlacementGroupHiddenResponse {
+  PlacementGroup group = 1;
+}
