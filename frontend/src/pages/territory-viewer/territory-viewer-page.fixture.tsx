@@ -303,7 +303,7 @@ export default {
     placements: p.placements.map((x) =>
       x.id === 3 ? { ...x, hidden: true } : x.id === 4 ? { ...x, groupId: 1 } : x,
     ),
-    placementGroups: { ...p.placementGroups, list: [{ id: 1, title: "Valve bank" }] },
+    placementGroups: { ...p.placementGroups, list: [{ id: 1, title: "Valve bank", hidden: false }] },
     view: { ...p.view, expandedModel: "storage-tank-500" },
   })),
 

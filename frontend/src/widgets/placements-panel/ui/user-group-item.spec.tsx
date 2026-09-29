@@ -7,7 +7,7 @@ import { UserGroupItem, type GroupActions } from "./user-group-item";
 
 const TANK = { model: { slug: "tank", title: "storage-tank-500" }, instances: [] };
 const SECTION: UserGroupSection = {
-  group: { id: 4, title: "East yard" },
+  group: { id: 4, title: "East yard", hidden: false },
   members: [
     { model: TANK, instance: { id: 1, index: 1, label: "", hidden: true, groupId: 4 } },
     { model: TANK, instance: { id: 3, index: 3, label: "", hidden: true, groupId: 4 } },
@@ -147,7 +147,7 @@ describe("UserGroupItem", () => {
   // E4: the <li> leaves once the delete lands; focus must not fall to <body>.
   it("hands focus to the next group's disclosure when it deletes itself", async () => {
     const a = actions();
-    const west: UserGroupSection = { group: { id: 5, title: "West yard" }, members: [] };
+    const west: UserGroupSection = { group: { id: 5, title: "West yard", hidden: false }, members: [] };
     render(
       <ul>
         <UserGroupItem section={SECTION} ctx={ctx()} onAdd={null} actions={a} />

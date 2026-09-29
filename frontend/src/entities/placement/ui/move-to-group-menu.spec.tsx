@@ -4,8 +4,8 @@ import { describe, expect, it, vi } from "vitest";
 import { MoveToGroupMenu, NO_GROUP } from "./move-to-group-menu";
 
 const GROUPS = [
-  { id: 1, title: "East yard" },
-  { id: 2, title: "West yard" },
+  { id: 1, title: "East yard", hidden: false },
+  { id: 2, title: "West yard", hidden: false },
 ];
 
 const trigger = () => screen.getByRole("button", { name: "Move storage-tank-500 #2 to group" });

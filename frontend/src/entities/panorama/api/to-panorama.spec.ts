@@ -12,6 +12,8 @@ const DTO = {
   defaultYaw: 1.2,
   thumbnailBlobHash: "t",
   updatedAt: "2026-09-14T10:00:00Z",
+  phase: "current" as const,
+  hidden: true,
 };
 
 describe("toPanorama", () => {

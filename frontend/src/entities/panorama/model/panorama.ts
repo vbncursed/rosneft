@@ -1,5 +1,8 @@
 import type { Vec3 } from "@/entities/placement";
 
+/** The job a capture was taken for (D2): three fixed phases, never renamed, never "none". */
+export type PanoramaPhase = "prior" | "current" | "post";
+
 /** An equirect photo anchored at `position` in scene units; `yawOffset` turns the sphere, `defaultYaw` is where a reader first looks. Both radians. */
 export type Panorama = {
   id: number;
@@ -12,6 +15,10 @@ export type Panorama = {
   defaultYaw: number;
   /** The 256×128 JPEG the server made from the equirect; null until it has, and the row draws the glyph. */
   thumbnailBlobHash: string | null;
+  /** The job phase it is listed under; `prior` until an editor moves it (D3). */
+  phase: PanoramaPhase;
+  /** Hidden on its own, for everyone (D1, D4); its phase has a flag of its own. */
+  hidden: boolean;
   updatedAt: string;
 };
 

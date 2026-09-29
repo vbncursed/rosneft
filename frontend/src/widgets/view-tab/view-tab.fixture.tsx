@@ -141,6 +141,8 @@ const PANORAMA: Panorama = {
   yawOffset: degToRad(137.5),
   defaultYaw: 0,
   thumbnailBlobHash: null,
+  phase: "prior",
+  hidden: false,
   updatedAt: "2026-09-04T09:12:00Z",
 };
 

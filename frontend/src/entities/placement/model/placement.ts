@@ -73,7 +73,12 @@ export type PlacementCreate = {
 export type PlacementUpdate = PlacementTransform & { label: string };
 
 /** A user-made group on one territory (spec §1). A placement sits in at most one. */
-export type PlacementGroup = { id: number; title: string };
+export type PlacementGroup = {
+  id: number;
+  title: string;
+  /** The group's own flag (D5, D6): its members are not drawn while it is set, whatever their own. */
+  hidden: boolean;
+};
 
 /** The gateway's bound on a group title; the field stops typing there. */
 export const GROUP_TITLE_MAX = 120;

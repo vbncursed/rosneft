@@ -46,6 +46,8 @@ const panorama = {
   yawOffset: 0,
   defaultYaw: 0,
   thumbnailBlobHash: null,
+  phase: "prior" as const,
+  hidden: false,
   updatedAt: "",
 };
 const document = { id: 8, territorySlug: "t", title: "Plot plan.pdf", sourceBlobHash: "d", createdAt: "" };

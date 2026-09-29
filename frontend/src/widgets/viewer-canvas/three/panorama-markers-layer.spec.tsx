@@ -19,6 +19,8 @@ const panorama = (id: number): Panorama => ({
   yawOffset: 0,
   defaultYaw: 0,
   thumbnailBlobHash: null,
+  phase: "prior",
+  hidden: false,
   updatedAt: "",
 });
 

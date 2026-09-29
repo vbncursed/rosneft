@@ -89,6 +89,8 @@ const PANO: Panorama = {
   yawOffset: 0,
   defaultYaw: 0,
   thumbnailBlobHash: null,
+  phase: "prior",
+  hidden: false,
   updatedAt: "",
 };
 

@@ -5,7 +5,7 @@ vi.mock("@/shared/api", () => http);
 
 const { listPanoramas, createPanorama, updatePanorama, deletePanorama } = await import("./panoramas-gateway");
 
-const DTO = { id: 7, territorySlug: "t", slug: "control-room", title: "Control room, north door", sourceBlobHash: "h", position: { x: 1, y: 2, z: 3 }, yawOffset: 0.5, defaultYaw: 1.2, updatedAt: "2026-09-14T10:00:00Z" };
+const DTO = { id: 7, territorySlug: "t", slug: "control-room", title: "Control room, north door", sourceBlobHash: "h", position: { x: 1, y: 2, z: 3 }, yawOffset: 0.5, defaultYaw: 1.2, updatedAt: "2026-09-14T10:00:00Z", phase: "prior" as const, hidden: false };
 
 describe("panoramas gateway", () => {
   beforeEach(() => Object.values(http).forEach((f) => f.mockReset()));

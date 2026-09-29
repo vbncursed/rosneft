@@ -6,8 +6,12 @@ type PlacementGroupDto = components["schemas"]["PlacementGroup"];
 
 const base = (slug: string) => `/api/territories/${encodeURIComponent(slug)}/placement-groups`;
 
-/** The panel draws the title alone; the timestamps are the journal's business. */
-export const toPlacementGroup = (d: PlacementGroupDto): PlacementGroup => ({ id: d.id, title: d.title });
+/** The panel draws the title and the flag; the timestamps are the journal's business. */
+export const toPlacementGroup = (d: PlacementGroupDto): PlacementGroup => ({
+  id: d.id,
+  title: d.title,
+  hidden: d.hidden,
+});
 
 export async function createPlacementGroup(territorySlug: string, title: string): Promise<PlacementGroup> {
   return toPlacementGroup(await httpPost<PlacementGroupDto>(base(territorySlug), { title }));

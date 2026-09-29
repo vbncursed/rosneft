@@ -7,7 +7,7 @@ import type { PageParts } from "./viewer-props";
 const withGroup = (p: PageParts): PageParts => ({
   ...p,
   placements: p.placements.map((x) => (x.id === 4 ? { ...x, groupId: 1 } : x)),
-  placementGroups: { ...p.placementGroups, list: [{ id: 1, title: "Valve bank" }] },
+  placementGroups: { ...p.placementGroups, list: [{ id: 1, title: "Valve bank", hidden: false }] },
 });
 
 const build = (p: PageParts) => placementsPanelProps(p, groupByModel(p.placements, p.options));

@@ -116,7 +116,7 @@ describe("InstanceRow · hiding and groups", () => {
     const onMove = vi.fn();
     render(
       <InstanceRow group={group} instance={instance} selected={false} pending={false} canWrite canDelete {...handlers()}
-        groups={[{ id: 4, title: "East yard" }]} onMove={onMove} />,
+        groups={[{ id: 4, title: "East yard", hidden: false }]} onMove={onMove} />,
     );
     await userEvent.click(screen.getByRole("button", { name: "Move storage-tank-500 #2 to group" }));
     await userEvent.click(screen.getByRole("menuitem", { name: "East yard" }));
@@ -128,7 +128,7 @@ describe("InstanceRow · hiding and groups", () => {
   it("keeps Move to group focusable while its write is in flight", async () => {
     render(
       <InstanceRow group={group} instance={instance} selected={false} pending canWrite canDelete {...handlers()}
-        groups={[{ id: 4, title: "East yard" }]} onMove={vi.fn()} />,
+        groups={[{ id: 4, title: "East yard", hidden: false }]} onMove={vi.fn()} />,
     );
     const move = screen.getByRole("button", { name: "Move storage-tank-500 #2 to group" });
     expect(move).toBeEnabled();
@@ -147,7 +147,7 @@ describe("InstanceRow · hiding and groups", () => {
   it("gives a reader without write no eye and no move, only the hidden mark", () => {
     const { container } = render(
       <InstanceRow group={group} instance={hidden} selected={false} pending={false} canWrite={false} canDelete={false}
-        {...handlers()} onHide={vi.fn()} groups={[{ id: 4, title: "East yard" }]} onMove={vi.fn()} />,
+        {...handlers()} onHide={vi.fn()} groups={[{ id: 4, title: "East yard", hidden: false }]} onMove={vi.fn()} />,
     );
     expect(screen.queryByRole("button", { name: /^Hide/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /^Move/ })).toBeNull();

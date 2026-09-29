@@ -20,7 +20,7 @@ let onChanged: ReturnType<typeof vi.fn<() => void>>;
 let onRemoved: ReturnType<typeof vi.fn<(id: number) => void>>;
 const mount = () =>
   renderHook(() => ({
-    s: usePlacementGroups({ slug: "t", initial: [{ id: 1, title: "East yard" }], onChanged, onRemoved }),
+    s: usePlacementGroups({ slug: "t", initial: [{ id: 1, title: "East yard", hidden: false }], onChanged, onRemoved }),
     notices: useNotices(),
   }));
 
@@ -35,13 +35,13 @@ beforeEach(() => {
 
 describe("usePlacementGroups", () => {
   it("seeds from the bundle's groups", () => {
-    expect(mount().result.current.s.list).toEqual([{ id: 1, title: "East yard" }]);
+    expect(mount().result.current.s.list).toEqual([{ id: 1, title: "East yard", hidden: false }]);
   });
 
   it("adds a created group as the server answered it, busy meanwhile", async () => {
     let release!: () => void;
     vi.mocked(createPlacementGroup).mockReturnValueOnce(
-      new Promise((res) => (release = () => res({ id: 2, title: "West yard" }))),
+      new Promise((res) => (release = () => res({ id: 2, title: "West yard", hidden: false }))),
     );
     const { result } = mount();
     let done!: Promise<boolean>;
@@ -62,7 +62,7 @@ describe("usePlacementGroups", () => {
   });
 
   it("renames in place", async () => {
-    vi.mocked(renamePlacementGroup).mockResolvedValue({ id: 1, title: "North yard" });
+    vi.mocked(renamePlacementGroup).mockResolvedValue({ id: 1, title: "North yard", hidden: false });
     const { result } = mount();
     let ok: boolean | undefined;
     await act(async () => {
@@ -70,7 +70,7 @@ describe("usePlacementGroups", () => {
     });
     expect(ok).toBe(true);
     expect(renamePlacementGroup).toHaveBeenCalledWith("t", 1, "North yard");
-    expect(result.current.s.list).toEqual([{ id: 1, title: "North yard" }]);
+    expect(result.current.s.list).toEqual([{ id: 1, title: "North yard", hidden: false }]);
   });
 
   // The title field stays open on a refusal; it reads this answer to decide.
@@ -86,7 +86,7 @@ describe("usePlacementGroups", () => {
       renamed = await result.current.s.rename(1, "East yard");
     });
     expect([created, renamed]).toEqual([false, false]);
-    expect(result.current.s.list).toEqual([{ id: 1, title: "East yard" }]);
+    expect(result.current.s.list).toEqual([{ id: 1, title: "East yard", hidden: false }]);
     expect(result.current.notices[0]?.message).toBe(duplicate.message);
   });
 

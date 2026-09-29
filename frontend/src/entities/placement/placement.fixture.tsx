@@ -24,7 +24,7 @@ const OPTIONS = [
   { slug: "pump", title: "Насос НМ-1250" },
 ];
 
-const GROUPS = [{ id: 1, title: "North yard" }];
+const GROUPS = [{ id: 1, title: "North yard", hidden: false }];
 
 const PLACEMENTS = [
   make(1, "tank"),
