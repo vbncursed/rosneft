@@ -19,13 +19,17 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ContentService_ListPanoramas_FullMethodName  = "/rosneft.content.v1.ContentService/ListPanoramas"
-	ContentService_CreatePanorama_FullMethodName = "/rosneft.content.v1.ContentService/CreatePanorama"
-	ContentService_UpdatePanorama_FullMethodName = "/rosneft.content.v1.ContentService/UpdatePanorama"
-	ContentService_DeletePanorama_FullMethodName = "/rosneft.content.v1.ContentService/DeletePanorama"
-	ContentService_ListDocuments_FullMethodName  = "/rosneft.content.v1.ContentService/ListDocuments"
-	ContentService_CreateDocument_FullMethodName = "/rosneft.content.v1.ContentService/CreateDocument"
-	ContentService_DeleteDocument_FullMethodName = "/rosneft.content.v1.ContentService/DeleteDocument"
+	ContentService_ListPanoramas_FullMethodName          = "/rosneft.content.v1.ContentService/ListPanoramas"
+	ContentService_CreatePanorama_FullMethodName         = "/rosneft.content.v1.ContentService/CreatePanorama"
+	ContentService_UpdatePanorama_FullMethodName         = "/rosneft.content.v1.ContentService/UpdatePanorama"
+	ContentService_DeletePanorama_FullMethodName         = "/rosneft.content.v1.ContentService/DeletePanorama"
+	ContentService_SetPanoramasHidden_FullMethodName     = "/rosneft.content.v1.ContentService/SetPanoramasHidden"
+	ContentService_SetPanoramasPhase_FullMethodName      = "/rosneft.content.v1.ContentService/SetPanoramasPhase"
+	ContentService_SetPanoramaPhaseHidden_FullMethodName = "/rosneft.content.v1.ContentService/SetPanoramaPhaseHidden"
+	ContentService_ListPanoramaPhases_FullMethodName     = "/rosneft.content.v1.ContentService/ListPanoramaPhases"
+	ContentService_ListDocuments_FullMethodName          = "/rosneft.content.v1.ContentService/ListDocuments"
+	ContentService_CreateDocument_FullMethodName         = "/rosneft.content.v1.ContentService/CreateDocument"
+	ContentService_DeleteDocument_FullMethodName         = "/rosneft.content.v1.ContentService/DeleteDocument"
 )
 
 // ContentServiceClient is the client API for ContentService service.
@@ -40,6 +44,16 @@ type ContentServiceClient interface {
 	CreatePanorama(ctx context.Context, in *CreatePanoramaRequest, opts ...grpc.CallOption) (*CreatePanoramaResponse, error)
 	UpdatePanorama(ctx context.Context, in *UpdatePanoramaRequest, opts ...grpc.CallOption) (*UpdatePanoramaResponse, error)
 	DeletePanorama(ctx context.Context, in *DeletePanoramaRequest, opts ...grpc.CallOption) (*DeletePanoramaResponse, error)
+	// Bulk panorama writes: one UPDATE over ids on territory_slug in one
+	// transaction. Every id must be on the territory or nothing changes and the
+	// answer is NOT_FOUND; a repeated id counts once; 1–1000 ids. A phase other
+	// than prior, current or post is INVALID_ARGUMENT.
+	SetPanoramasHidden(ctx context.Context, in *SetPanoramasHiddenRequest, opts ...grpc.CallOption) (*SetPanoramasHiddenResponse, error)
+	SetPanoramasPhase(ctx context.Context, in *SetPanoramasPhaseRequest, opts ...grpc.CallOption) (*SetPanoramasPhaseResponse, error)
+	// A phase's shared hidden flag on a territory. The list always answers the
+	// three phases in order prior, current, post; a phase never set is shown.
+	SetPanoramaPhaseHidden(ctx context.Context, in *SetPanoramaPhaseHiddenRequest, opts ...grpc.CallOption) (*SetPanoramaPhaseHiddenResponse, error)
+	ListPanoramaPhases(ctx context.Context, in *ListPanoramaPhasesRequest, opts ...grpc.CallOption) (*ListPanoramaPhasesResponse, error)
 	ListDocuments(ctx context.Context, in *ListDocumentsRequest, opts ...grpc.CallOption) (*ListDocumentsResponse, error)
 	CreateDocument(ctx context.Context, in *CreateDocumentRequest, opts ...grpc.CallOption) (*CreateDocumentResponse, error)
 	DeleteDocument(ctx context.Context, in *DeleteDocumentRequest, opts ...grpc.CallOption) (*DeleteDocumentResponse, error)
@@ -93,6 +107,46 @@ func (c *contentServiceClient) DeletePanorama(ctx context.Context, in *DeletePan
 	return out, nil
 }
 
+func (c *contentServiceClient) SetPanoramasHidden(ctx context.Context, in *SetPanoramasHiddenRequest, opts ...grpc.CallOption) (*SetPanoramasHiddenResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetPanoramasHiddenResponse)
+	err := c.cc.Invoke(ctx, ContentService_SetPanoramasHidden_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *contentServiceClient) SetPanoramasPhase(ctx context.Context, in *SetPanoramasPhaseRequest, opts ...grpc.CallOption) (*SetPanoramasPhaseResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetPanoramasPhaseResponse)
+	err := c.cc.Invoke(ctx, ContentService_SetPanoramasPhase_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *contentServiceClient) SetPanoramaPhaseHidden(ctx context.Context, in *SetPanoramaPhaseHiddenRequest, opts ...grpc.CallOption) (*SetPanoramaPhaseHiddenResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetPanoramaPhaseHiddenResponse)
+	err := c.cc.Invoke(ctx, ContentService_SetPanoramaPhaseHidden_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *contentServiceClient) ListPanoramaPhases(ctx context.Context, in *ListPanoramaPhasesRequest, opts ...grpc.CallOption) (*ListPanoramaPhasesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListPanoramaPhasesResponse)
+	err := c.cc.Invoke(ctx, ContentService_ListPanoramaPhases_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *contentServiceClient) ListDocuments(ctx context.Context, in *ListDocumentsRequest, opts ...grpc.CallOption) (*ListDocumentsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListDocumentsResponse)
@@ -135,6 +189,16 @@ type ContentServiceServer interface {
 	CreatePanorama(context.Context, *CreatePanoramaRequest) (*CreatePanoramaResponse, error)
 	UpdatePanorama(context.Context, *UpdatePanoramaRequest) (*UpdatePanoramaResponse, error)
 	DeletePanorama(context.Context, *DeletePanoramaRequest) (*DeletePanoramaResponse, error)
+	// Bulk panorama writes: one UPDATE over ids on territory_slug in one
+	// transaction. Every id must be on the territory or nothing changes and the
+	// answer is NOT_FOUND; a repeated id counts once; 1–1000 ids. A phase other
+	// than prior, current or post is INVALID_ARGUMENT.
+	SetPanoramasHidden(context.Context, *SetPanoramasHiddenRequest) (*SetPanoramasHiddenResponse, error)
+	SetPanoramasPhase(context.Context, *SetPanoramasPhaseRequest) (*SetPanoramasPhaseResponse, error)
+	// A phase's shared hidden flag on a territory. The list always answers the
+	// three phases in order prior, current, post; a phase never set is shown.
+	SetPanoramaPhaseHidden(context.Context, *SetPanoramaPhaseHiddenRequest) (*SetPanoramaPhaseHiddenResponse, error)
+	ListPanoramaPhases(context.Context, *ListPanoramaPhasesRequest) (*ListPanoramaPhasesResponse, error)
 	ListDocuments(context.Context, *ListDocumentsRequest) (*ListDocumentsResponse, error)
 	CreateDocument(context.Context, *CreateDocumentRequest) (*CreateDocumentResponse, error)
 	DeleteDocument(context.Context, *DeleteDocumentRequest) (*DeleteDocumentResponse, error)
@@ -159,6 +223,18 @@ func (UnimplementedContentServiceServer) UpdatePanorama(context.Context, *Update
 }
 func (UnimplementedContentServiceServer) DeletePanorama(context.Context, *DeletePanoramaRequest) (*DeletePanoramaResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeletePanorama not implemented")
+}
+func (UnimplementedContentServiceServer) SetPanoramasHidden(context.Context, *SetPanoramasHiddenRequest) (*SetPanoramasHiddenResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetPanoramasHidden not implemented")
+}
+func (UnimplementedContentServiceServer) SetPanoramasPhase(context.Context, *SetPanoramasPhaseRequest) (*SetPanoramasPhaseResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetPanoramasPhase not implemented")
+}
+func (UnimplementedContentServiceServer) SetPanoramaPhaseHidden(context.Context, *SetPanoramaPhaseHiddenRequest) (*SetPanoramaPhaseHiddenResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetPanoramaPhaseHidden not implemented")
+}
+func (UnimplementedContentServiceServer) ListPanoramaPhases(context.Context, *ListPanoramaPhasesRequest) (*ListPanoramaPhasesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListPanoramaPhases not implemented")
 }
 func (UnimplementedContentServiceServer) ListDocuments(context.Context, *ListDocumentsRequest) (*ListDocumentsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListDocuments not implemented")
@@ -262,6 +338,78 @@ func _ContentService_DeletePanorama_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ContentService_SetPanoramasHidden_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetPanoramasHiddenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ContentServiceServer).SetPanoramasHidden(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ContentService_SetPanoramasHidden_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ContentServiceServer).SetPanoramasHidden(ctx, req.(*SetPanoramasHiddenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ContentService_SetPanoramasPhase_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetPanoramasPhaseRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ContentServiceServer).SetPanoramasPhase(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ContentService_SetPanoramasPhase_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ContentServiceServer).SetPanoramasPhase(ctx, req.(*SetPanoramasPhaseRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ContentService_SetPanoramaPhaseHidden_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetPanoramaPhaseHiddenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ContentServiceServer).SetPanoramaPhaseHidden(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ContentService_SetPanoramaPhaseHidden_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ContentServiceServer).SetPanoramaPhaseHidden(ctx, req.(*SetPanoramaPhaseHiddenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ContentService_ListPanoramaPhases_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListPanoramaPhasesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ContentServiceServer).ListPanoramaPhases(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ContentService_ListPanoramaPhases_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ContentServiceServer).ListPanoramaPhases(ctx, req.(*ListPanoramaPhasesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ContentService_ListDocuments_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListDocumentsRequest)
 	if err := dec(in); err != nil {
@@ -338,6 +486,22 @@ var ContentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeletePanorama",
 			Handler:    _ContentService_DeletePanorama_Handler,
+		},
+		{
+			MethodName: "SetPanoramasHidden",
+			Handler:    _ContentService_SetPanoramasHidden_Handler,
+		},
+		{
+			MethodName: "SetPanoramasPhase",
+			Handler:    _ContentService_SetPanoramasPhase_Handler,
+		},
+		{
+			MethodName: "SetPanoramaPhaseHidden",
+			Handler:    _ContentService_SetPanoramaPhaseHidden_Handler,
+		},
+		{
+			MethodName: "ListPanoramaPhases",
+			Handler:    _ContentService_ListPanoramaPhases_Handler,
 		},
 		{
 			MethodName: "ListDocuments",
