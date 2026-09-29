@@ -26,6 +26,12 @@ func (g *Gateway) CreatePanorama(ctx context.Context, p domain.Panorama, scope d
 	if p.SourceBlobHash == "" {
 		return domain.Panorama{}, fmt.Errorf("%w: source_blob_hash is required", domain.ErrInvalidInput)
 	}
+	// No phase is prior, and content fills it in; a named one must be exact.
+	if p.Phase != "" {
+		if err := checkPhase(p.Phase); err != nil {
+			return domain.Panorama{}, err
+		}
+	}
 	if err := g.authorizeBlobs(ctx, scope, p.SourceBlobHash); err != nil {
 		return domain.Panorama{}, err
 	}
