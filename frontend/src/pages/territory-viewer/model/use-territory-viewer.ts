@@ -176,6 +176,8 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     onChanged,
     reveal: sections.reveal,
     decode: decodeImageBitmap,
+    canWrite: grants.panoramaWrite,
+    phaseHidden: bundle?.phaseHidden,
   });
   const documents = useViewerDocuments({
     slug,

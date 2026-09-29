@@ -1,13 +1,20 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Panorama } from "@/entities/panorama";
+import type { Panorama, PhaseHidden } from "@/entities/panorama";
 import type { PanoramaViewMode } from "@/features/panorama-view";
 import { useSectionFolds } from "@/widgets/view-tab";
 import { useViewerPanoramas } from "./use-viewer-panoramas";
 
 const { list, usePanoramaList, usePanoramaTexture, usePanoramaUpload, useTerritoryLink } =
   vi.hoisted(() => {
-    const list = { panoramas: [] as unknown[], pendingId: null, add: vi.fn(), update: vi.fn(), remove: vi.fn() };
+    const list = {
+      panoramas: [] as unknown[],
+      pendingId: null,
+      add: vi.fn(),
+      update: vi.fn(),
+      remove: vi.fn(),
+      setPanoramas: vi.fn(),
+    };
     return {
       list,
       // A fresh object each render, exactly as the real hook returns one: the
@@ -64,7 +71,11 @@ const modeStub = (over: Partial<PanoramaViewMode> = {}): PanoramaViewMode => ({
 const decode = vi.fn();
 const onChanged = vi.fn();
 
-const mount = (mode = modeStub(), moving = false) =>
+const mount = (
+  mode = modeStub(),
+  moving = false,
+  extra: { canWrite?: boolean; phaseHidden?: PhaseHidden } = {},
+) =>
   renderHook(
     (props: { mode: PanoramaViewMode; moving: boolean }) =>
       useViewerPanoramas({
@@ -77,6 +88,8 @@ const mount = (mode = modeStub(), moving = false) =>
         onChanged,
         decode,
         reveal: vi.fn(),
+        canWrite: extra.canWrite ?? true,
+        phaseHidden: extra.phaseHidden,
       }),
     { initialProps: { mode, moving } },
   );
@@ -273,6 +286,8 @@ describe("useViewerPanoramas", () => {
         onChanged,
         decode,
         reveal: folds.reveal,
+        canWrite: true,
+        phaseHidden: undefined,
       });
       return { folds, panoramas };
     });
@@ -307,5 +322,25 @@ describe("useViewerPanoramas", () => {
   it("hands the tour link the territory's own URL and the viewer's onChanged", () => {
     mount();
     expect(useTerritoryLink).toHaveBeenCalledWith("refinery-block-c", "https://tour.example", onChanged);
+  });
+
+  // A reader without panorama:write sees a hidden capture neither in the list
+  // nor on the map, so P must not step into one either.
+  it("steps a reader without panorama:write past hidden captures and hidden phases", () => {
+    list.panoramas = [panorama(1), panorama(2, { hidden: true }), panorama(3, { phase: "post" })];
+    const { result } = mount(modeStub(), false, { canWrite: false, phaseHidden: { prior: false, current: false, post: true } });
+    expect(result.current.index.total).toBe(1);
+  });
+
+  it("keeps every capture in an editor's reach, hidden or not", () => {
+    list.panoramas = [panorama(1), panorama(2, { hidden: true }), panorama(3, { phase: "post" })];
+    const { result } = mount(modeStub(), false, { canWrite: true, phaseHidden: { prior: false, current: false, post: true } });
+    expect(result.current.index.total).toBe(3);
+  });
+
+  it("seeds the phase flags from the bundle, every phase shown when it carries none", () => {
+    expect(mount().result.current.visibility.phaseHidden).toEqual({ prior: false, current: false, post: false });
+    const hidden = { prior: false, current: true, post: false };
+    expect(mount(modeStub(), false, { phaseHidden: hidden }).result.current.visibility.phaseHidden).toEqual(hidden);
   });
 });

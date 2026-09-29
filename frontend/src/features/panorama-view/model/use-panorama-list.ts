@@ -97,5 +97,5 @@ export function usePanoramaList({ slug, initial, onChanged }: PanoramaListParams
     [slug, onChanged],
   );
 
-  return { panoramas, pendingId, add, update, remove };
+  return { panoramas, pendingId, add, update, remove, setPanoramas };
 }

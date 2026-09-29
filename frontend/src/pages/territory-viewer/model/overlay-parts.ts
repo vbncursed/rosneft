@@ -1,6 +1,6 @@
 import type { RefObject } from "react";
 import type { Document } from "@/entities/document";
-import type { CalibrationDraft, Panorama, PanoramaUpdate } from "@/entities/panorama";
+import type { CalibrationDraft, Panorama, PanoramaPhase, PanoramaUpdate, PhaseHidden } from "@/entities/panorama";
 import type { Vec3 } from "@/entities/placement";
 import type { DocumentWindowMode } from "@/features/document-view";
 import type { useDocumentUpload } from "@/features/document-upload";
@@ -30,6 +30,18 @@ export type PanoramaParts = {
   /** The anchor card's target. Survives a switch back to the 3D view. */
   editing: Panorama | null;
   index: { current: number; total: number };
+  /**
+   * The shared hide/move writes (`usePanoramaVisibility`) and each phase's
+   * flag. Every callback is that hook's own `useCallback`.
+   */
+  visibility: {
+    phaseHidden: PhaseHidden;
+    pendingIds: number[];
+    pendingPhases: readonly PanoramaPhase[];
+    onSetHidden: (ids: number[], hidden: boolean) => void;
+    onMove: (ids: number[], phase: PanoramaPhase) => void;
+    onSetPhaseHidden: (phase: PanoramaPhase, hidden: boolean) => void;
+  };
   texture: PanoramaTextureState;
   showMarkers: boolean;
   onToggleMarkers: () => void;

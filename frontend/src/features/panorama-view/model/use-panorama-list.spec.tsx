@@ -164,4 +164,10 @@ describe("usePanoramaList", () => {
     });
     expect(result.current.s.pendingId).toBeNull();
   });
+
+  it("hands out its setter, so the visibility writes patch the list it holds", () => {
+    const { result } = list([panorama(1)]);
+    act(() => result.current.s.setPanoramas((prev) => prev.map((p) => ({ ...p, hidden: true }))));
+    expect(result.current.s.panoramas[0].hidden).toBe(true);
+  });
 });

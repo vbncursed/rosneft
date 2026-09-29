@@ -1,4 +1,5 @@
 import type { Chain } from "@/entities/measurement";
+import { ALL_PHASES_SHOWN } from "@/entities/panorama";
 import type { ResolvedPlacement } from "@/entities/placement";
 import type { ModelOption, SceneViewModel } from "@/entities/scene";
 import type { Tour } from "@/features/onboarding";
@@ -27,6 +28,14 @@ export const IDLE_PANORAMAS: PanoramaParts = {
   active: null,
   editing: null,
   index: { current: 0, total: 0 },
+  visibility: {
+    phaseHidden: ALL_PHASES_SHOWN,
+    pendingIds: [],
+    pendingPhases: [],
+    onSetHidden: noop,
+    onMove: noop,
+    onSetPhaseHidden: noop,
+  },
   texture: { bitmap: null, progress: null, status: "idle" },
   showMarkers: true,
   onToggleMarkers: noop,
