@@ -62,6 +62,7 @@ func (s *SceneBundleSuite) expectFanOut(terrArts []domain.Artifact, models []dom
 	s.cat.ListMeasurementsMock.Return(nil, nil)
 	s.cat.ListPlacementGroupsMock.Return(nil, nil)
 	s.con.ListPanoramasMock.Return(nil, nil)
+	s.con.ListPanoramaPhasesMock.Return(nil, nil)
 	s.con.ListDocumentsMock.Return(nil, nil)
 	// The bundle reads each model's chain, so it must ask for it.
 	s.cat.ListModelsMock.Expect(minimock.AnyContext, true).Return(models, nil)
@@ -79,6 +80,7 @@ func (s *SceneBundleSuite) TestPropagatesTerritoryNotFound() {
 	s.cat.ListMeasurementsMock.Return(nil, nil)
 	s.cat.ListPlacementGroupsMock.Return(nil, nil)
 	s.con.ListPanoramasMock.Return(nil, nil)
+	s.con.ListPanoramaPhasesMock.Return(nil, nil)
 	s.con.ListDocumentsMock.Return(nil, nil)
 	s.cat.ListModelsMock.Return(nil, nil)
 	_, err := s.svc.GetSceneBundle(s.ctx, "missing", "")

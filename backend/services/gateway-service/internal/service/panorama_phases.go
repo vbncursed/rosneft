@@ -48,3 +48,17 @@ func (g *Gateway) SetPanoramaPhaseHidden(ctx context.Context, territorySlug, pha
 	}
 	return g.content.SetPanoramaPhaseHidden(ctx, territorySlug, phase, hidden)
 }
+
+// panoramaPhasesOf is the bundle's phase list: always the three, in
+// domain.PanoramaPhases order, hidden where a stored row says so. A phase with
+// no row is shown; a row naming no known phase is dropped.
+func panoramaPhasesOf(stored []domain.PanoramaPhase) []domain.PanoramaPhase {
+	out := make([]domain.PanoramaPhase, len(domain.PanoramaPhases))
+	for i, name := range domain.PanoramaPhases {
+		out[i].Phase = name
+		if j := slices.IndexFunc(stored, func(p domain.PanoramaPhase) bool { return p.Phase == name }); j >= 0 {
+			out[i].Hidden = stored[j].Hidden
+		}
+	}
+	return out
+}

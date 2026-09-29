@@ -12,8 +12,8 @@ import (
 
 // GetSceneBundle is the single-shot composition for the viewer page. It
 // fans out its reads in parallel — territory, territory artifacts,
-// placements, placement groups, measurements, the model catalog, panoramas
-// and documents — and stitches the result together.
+// placements, placement groups, measurements, the model catalog, panoramas,
+// panorama phase flags and documents — and stitches the result together.
 //
 // A missing LOD0 territory artifact is not an error: SceneBundle.Artifact
 // is left nil so the frontend renders a "conversion pending" placeholder.
@@ -32,6 +32,7 @@ func (g *Gateway) GetSceneBundle(ctx context.Context, slug, scopeAdminID string)
 		documents  []domain.Document
 		measures   []domain.Measurement
 		groups     []domain.PlacementGroup
+		phases     []domain.PanoramaPhase
 	)
 
 	gr, gctx := errgroup.WithContext(ctx)
@@ -92,6 +93,14 @@ func (g *Gateway) GetSceneBundle(ctx context.Context, slug, scopeAdminID string)
 		return nil
 	})
 	gr.Go(func() error {
+		ph, err := g.content.ListPanoramaPhases(gctx, slug)
+		if err != nil && !errors.Is(err, domain.ErrTerritoryNotFound) {
+			return err
+		}
+		phases = ph
+		return nil
+	})
+	gr.Go(func() error {
 		d, err := g.content.ListDocuments(gctx, slug)
 		if err != nil && !errors.Is(err, domain.ErrTerritoryNotFound) {
 			return err
@@ -109,6 +118,7 @@ func (g *Gateway) GetSceneBundle(ctx context.Context, slug, scopeAdminID string)
 	bundle.Documents = nilToEmpty(documents)
 	bundle.Measurements = nilToEmpty(measures)
 	bundle.PlacementGroups = nilToEmpty(groups)
+	bundle.PanoramaPhases = panoramaPhasesOf(phases)
 	if a, ok := pickLOD0(artifacts); ok {
 		a.LODs = lodChain(artifacts)
 		bundle.Artifact = &a
