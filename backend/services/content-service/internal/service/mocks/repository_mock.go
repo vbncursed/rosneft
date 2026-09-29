@@ -54,6 +54,13 @@ type RepositoryMock struct {
 	beforeListDocumentsCounter uint64
 	ListDocumentsMock          mRepositoryMockListDocuments
 
+	funcListPanoramaPhases          func(ctx context.Context, territorySlug string) (pa1 []domain.PanoramaPhaseVisibility, err error)
+	funcListPanoramaPhasesOrigin    string
+	inspectFuncListPanoramaPhases   func(ctx context.Context, territorySlug string)
+	afterListPanoramaPhasesCounter  uint64
+	beforeListPanoramaPhasesCounter uint64
+	ListPanoramaPhasesMock          mRepositoryMockListPanoramaPhases
+
 	funcListPanoramas          func(ctx context.Context, territorySlug string) (pa1 []domain.Panorama, err error)
 	funcListPanoramasOrigin    string
 	inspectFuncListPanoramas   func(ctx context.Context, territorySlug string)
@@ -68,12 +75,33 @@ type RepositoryMock struct {
 	beforeListPanoramasWithoutThumbnailCounter uint64
 	ListPanoramasWithoutThumbnailMock          mRepositoryMockListPanoramasWithoutThumbnail
 
+	funcSetPanoramaPhaseHidden          func(ctx context.Context, territorySlug string, phase domain.PanoramaPhase, hidden bool) (p1 domain.PanoramaPhaseVisibility, err error)
+	funcSetPanoramaPhaseHiddenOrigin    string
+	inspectFuncSetPanoramaPhaseHidden   func(ctx context.Context, territorySlug string, phase domain.PanoramaPhase, hidden bool)
+	afterSetPanoramaPhaseHiddenCounter  uint64
+	beforeSetPanoramaPhaseHiddenCounter uint64
+	SetPanoramaPhaseHiddenMock          mRepositoryMockSetPanoramaPhaseHidden
+
 	funcSetPanoramaThumbnail          func(ctx context.Context, id int64, hash string) (err error)
 	funcSetPanoramaThumbnailOrigin    string
 	inspectFuncSetPanoramaThumbnail   func(ctx context.Context, id int64, hash string)
 	afterSetPanoramaThumbnailCounter  uint64
 	beforeSetPanoramaThumbnailCounter uint64
 	SetPanoramaThumbnailMock          mRepositoryMockSetPanoramaThumbnail
+
+	funcSetPanoramasHidden          func(ctx context.Context, territorySlug string, ids []int64, hidden bool) (i1 int, err error)
+	funcSetPanoramasHiddenOrigin    string
+	inspectFuncSetPanoramasHidden   func(ctx context.Context, territorySlug string, ids []int64, hidden bool)
+	afterSetPanoramasHiddenCounter  uint64
+	beforeSetPanoramasHiddenCounter uint64
+	SetPanoramasHiddenMock          mRepositoryMockSetPanoramasHidden
+
+	funcSetPanoramasPhase          func(ctx context.Context, territorySlug string, ids []int64, phase domain.PanoramaPhase) (i1 int, err error)
+	funcSetPanoramasPhaseOrigin    string
+	inspectFuncSetPanoramasPhase   func(ctx context.Context, territorySlug string, ids []int64, phase domain.PanoramaPhase)
+	afterSetPanoramasPhaseCounter  uint64
+	beforeSetPanoramasPhaseCounter uint64
+	SetPanoramasPhaseMock          mRepositoryMockSetPanoramasPhase
 
 	funcUpdatePanorama          func(ctx context.Context, p domain.Panorama) (p1 domain.Panorama, err error)
 	funcUpdatePanoramaOrigin    string
@@ -106,14 +134,26 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 	m.ListDocumentsMock = mRepositoryMockListDocuments{mock: m}
 	m.ListDocumentsMock.callArgs = []*RepositoryMockListDocumentsParams{}
 
+	m.ListPanoramaPhasesMock = mRepositoryMockListPanoramaPhases{mock: m}
+	m.ListPanoramaPhasesMock.callArgs = []*RepositoryMockListPanoramaPhasesParams{}
+
 	m.ListPanoramasMock = mRepositoryMockListPanoramas{mock: m}
 	m.ListPanoramasMock.callArgs = []*RepositoryMockListPanoramasParams{}
 
 	m.ListPanoramasWithoutThumbnailMock = mRepositoryMockListPanoramasWithoutThumbnail{mock: m}
 	m.ListPanoramasWithoutThumbnailMock.callArgs = []*RepositoryMockListPanoramasWithoutThumbnailParams{}
 
+	m.SetPanoramaPhaseHiddenMock = mRepositoryMockSetPanoramaPhaseHidden{mock: m}
+	m.SetPanoramaPhaseHiddenMock.callArgs = []*RepositoryMockSetPanoramaPhaseHiddenParams{}
+
 	m.SetPanoramaThumbnailMock = mRepositoryMockSetPanoramaThumbnail{mock: m}
 	m.SetPanoramaThumbnailMock.callArgs = []*RepositoryMockSetPanoramaThumbnailParams{}
+
+	m.SetPanoramasHiddenMock = mRepositoryMockSetPanoramasHidden{mock: m}
+	m.SetPanoramasHiddenMock.callArgs = []*RepositoryMockSetPanoramasHiddenParams{}
+
+	m.SetPanoramasPhaseMock = mRepositoryMockSetPanoramasPhase{mock: m}
+	m.SetPanoramasPhaseMock.callArgs = []*RepositoryMockSetPanoramasPhaseParams{}
 
 	m.UpdatePanoramaMock = mRepositoryMockUpdatePanorama{mock: m}
 	m.UpdatePanoramaMock.callArgs = []*RepositoryMockUpdatePanoramaParams{}
@@ -1898,6 +1938,349 @@ func (m *RepositoryMock) MinimockListDocumentsInspect() {
 	}
 }
 
+type mRepositoryMockListPanoramaPhases struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockListPanoramaPhasesExpectation
+	expectations       []*RepositoryMockListPanoramaPhasesExpectation
+
+	callArgs []*RepositoryMockListPanoramaPhasesParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockListPanoramaPhasesExpectation specifies expectation struct of the Repository.ListPanoramaPhases
+type RepositoryMockListPanoramaPhasesExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockListPanoramaPhasesParams
+	paramPtrs          *RepositoryMockListPanoramaPhasesParamPtrs
+	expectationOrigins RepositoryMockListPanoramaPhasesExpectationOrigins
+	results            *RepositoryMockListPanoramaPhasesResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockListPanoramaPhasesParams contains parameters of the Repository.ListPanoramaPhases
+type RepositoryMockListPanoramaPhasesParams struct {
+	ctx           context.Context
+	territorySlug string
+}
+
+// RepositoryMockListPanoramaPhasesParamPtrs contains pointers to parameters of the Repository.ListPanoramaPhases
+type RepositoryMockListPanoramaPhasesParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+}
+
+// RepositoryMockListPanoramaPhasesResults contains results of the Repository.ListPanoramaPhases
+type RepositoryMockListPanoramaPhasesResults struct {
+	pa1 []domain.PanoramaPhaseVisibility
+	err error
+}
+
+// RepositoryMockListPanoramaPhasesOrigins contains origins of expectations of the Repository.ListPanoramaPhases
+type RepositoryMockListPanoramaPhasesExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmListPanoramaPhases *mRepositoryMockListPanoramaPhases) Optional() *mRepositoryMockListPanoramaPhases {
+	mmListPanoramaPhases.optional = true
+	return mmListPanoramaPhases
+}
+
+// Expect sets up expected params for Repository.ListPanoramaPhases
+func (mmListPanoramaPhases *mRepositoryMockListPanoramaPhases) Expect(ctx context.Context, territorySlug string) *mRepositoryMockListPanoramaPhases {
+	if mmListPanoramaPhases.mock.funcListPanoramaPhases != nil {
+		mmListPanoramaPhases.mock.t.Fatalf("RepositoryMock.ListPanoramaPhases mock is already set by Set")
+	}
+
+	if mmListPanoramaPhases.defaultExpectation == nil {
+		mmListPanoramaPhases.defaultExpectation = &RepositoryMockListPanoramaPhasesExpectation{}
+	}
+
+	if mmListPanoramaPhases.defaultExpectation.paramPtrs != nil {
+		mmListPanoramaPhases.mock.t.Fatalf("RepositoryMock.ListPanoramaPhases mock is already set by ExpectParams functions")
+	}
+
+	mmListPanoramaPhases.defaultExpectation.params = &RepositoryMockListPanoramaPhasesParams{ctx, territorySlug}
+	mmListPanoramaPhases.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmListPanoramaPhases.expectations {
+		if minimock.Equal(e.params, mmListPanoramaPhases.defaultExpectation.params) {
+			mmListPanoramaPhases.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmListPanoramaPhases.defaultExpectation.params)
+		}
+	}
+
+	return mmListPanoramaPhases
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.ListPanoramaPhases
+func (mmListPanoramaPhases *mRepositoryMockListPanoramaPhases) ExpectCtxParam1(ctx context.Context) *mRepositoryMockListPanoramaPhases {
+	if mmListPanoramaPhases.mock.funcListPanoramaPhases != nil {
+		mmListPanoramaPhases.mock.t.Fatalf("RepositoryMock.ListPanoramaPhases mock is already set by Set")
+	}
+
+	if mmListPanoramaPhases.defaultExpectation == nil {
+		mmListPanoramaPhases.defaultExpectation = &RepositoryMockListPanoramaPhasesExpectation{}
+	}
+
+	if mmListPanoramaPhases.defaultExpectation.params != nil {
+		mmListPanoramaPhases.mock.t.Fatalf("RepositoryMock.ListPanoramaPhases mock is already set by Expect")
+	}
+
+	if mmListPanoramaPhases.defaultExpectation.paramPtrs == nil {
+		mmListPanoramaPhases.defaultExpectation.paramPtrs = &RepositoryMockListPanoramaPhasesParamPtrs{}
+	}
+	mmListPanoramaPhases.defaultExpectation.paramPtrs.ctx = &ctx
+	mmListPanoramaPhases.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmListPanoramaPhases
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Repository.ListPanoramaPhases
+func (mmListPanoramaPhases *mRepositoryMockListPanoramaPhases) ExpectTerritorySlugParam2(territorySlug string) *mRepositoryMockListPanoramaPhases {
+	if mmListPanoramaPhases.mock.funcListPanoramaPhases != nil {
+		mmListPanoramaPhases.mock.t.Fatalf("RepositoryMock.ListPanoramaPhases mock is already set by Set")
+	}
+
+	if mmListPanoramaPhases.defaultExpectation == nil {
+		mmListPanoramaPhases.defaultExpectation = &RepositoryMockListPanoramaPhasesExpectation{}
+	}
+
+	if mmListPanoramaPhases.defaultExpectation.params != nil {
+		mmListPanoramaPhases.mock.t.Fatalf("RepositoryMock.ListPanoramaPhases mock is already set by Expect")
+	}
+
+	if mmListPanoramaPhases.defaultExpectation.paramPtrs == nil {
+		mmListPanoramaPhases.defaultExpectation.paramPtrs = &RepositoryMockListPanoramaPhasesParamPtrs{}
+	}
+	mmListPanoramaPhases.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmListPanoramaPhases.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmListPanoramaPhases
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.ListPanoramaPhases
+func (mmListPanoramaPhases *mRepositoryMockListPanoramaPhases) Inspect(f func(ctx context.Context, territorySlug string)) *mRepositoryMockListPanoramaPhases {
+	if mmListPanoramaPhases.mock.inspectFuncListPanoramaPhases != nil {
+		mmListPanoramaPhases.mock.t.Fatalf("Inspect function is already set for RepositoryMock.ListPanoramaPhases")
+	}
+
+	mmListPanoramaPhases.mock.inspectFuncListPanoramaPhases = f
+
+	return mmListPanoramaPhases
+}
+
+// Return sets up results that will be returned by Repository.ListPanoramaPhases
+func (mmListPanoramaPhases *mRepositoryMockListPanoramaPhases) Return(pa1 []domain.PanoramaPhaseVisibility, err error) *RepositoryMock {
+	if mmListPanoramaPhases.mock.funcListPanoramaPhases != nil {
+		mmListPanoramaPhases.mock.t.Fatalf("RepositoryMock.ListPanoramaPhases mock is already set by Set")
+	}
+
+	if mmListPanoramaPhases.defaultExpectation == nil {
+		mmListPanoramaPhases.defaultExpectation = &RepositoryMockListPanoramaPhasesExpectation{mock: mmListPanoramaPhases.mock}
+	}
+	mmListPanoramaPhases.defaultExpectation.results = &RepositoryMockListPanoramaPhasesResults{pa1, err}
+	mmListPanoramaPhases.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmListPanoramaPhases.mock
+}
+
+// Set uses given function f to mock the Repository.ListPanoramaPhases method
+func (mmListPanoramaPhases *mRepositoryMockListPanoramaPhases) Set(f func(ctx context.Context, territorySlug string) (pa1 []domain.PanoramaPhaseVisibility, err error)) *RepositoryMock {
+	if mmListPanoramaPhases.defaultExpectation != nil {
+		mmListPanoramaPhases.mock.t.Fatalf("Default expectation is already set for the Repository.ListPanoramaPhases method")
+	}
+
+	if len(mmListPanoramaPhases.expectations) > 0 {
+		mmListPanoramaPhases.mock.t.Fatalf("Some expectations are already set for the Repository.ListPanoramaPhases method")
+	}
+
+	mmListPanoramaPhases.mock.funcListPanoramaPhases = f
+	mmListPanoramaPhases.mock.funcListPanoramaPhasesOrigin = minimock.CallerInfo(1)
+	return mmListPanoramaPhases.mock
+}
+
+// When sets expectation for the Repository.ListPanoramaPhases which will trigger the result defined by the following
+// Then helper
+func (mmListPanoramaPhases *mRepositoryMockListPanoramaPhases) When(ctx context.Context, territorySlug string) *RepositoryMockListPanoramaPhasesExpectation {
+	if mmListPanoramaPhases.mock.funcListPanoramaPhases != nil {
+		mmListPanoramaPhases.mock.t.Fatalf("RepositoryMock.ListPanoramaPhases mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockListPanoramaPhasesExpectation{
+		mock:               mmListPanoramaPhases.mock,
+		params:             &RepositoryMockListPanoramaPhasesParams{ctx, territorySlug},
+		expectationOrigins: RepositoryMockListPanoramaPhasesExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmListPanoramaPhases.expectations = append(mmListPanoramaPhases.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.ListPanoramaPhases return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockListPanoramaPhasesExpectation) Then(pa1 []domain.PanoramaPhaseVisibility, err error) *RepositoryMock {
+	e.results = &RepositoryMockListPanoramaPhasesResults{pa1, err}
+	return e.mock
+}
+
+// Times sets number of times Repository.ListPanoramaPhases should be invoked
+func (mmListPanoramaPhases *mRepositoryMockListPanoramaPhases) Times(n uint64) *mRepositoryMockListPanoramaPhases {
+	if n == 0 {
+		mmListPanoramaPhases.mock.t.Fatalf("Times of RepositoryMock.ListPanoramaPhases mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmListPanoramaPhases.expectedInvocations, n)
+	mmListPanoramaPhases.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmListPanoramaPhases
+}
+
+func (mmListPanoramaPhases *mRepositoryMockListPanoramaPhases) invocationsDone() bool {
+	if len(mmListPanoramaPhases.expectations) == 0 && mmListPanoramaPhases.defaultExpectation == nil && mmListPanoramaPhases.mock.funcListPanoramaPhases == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmListPanoramaPhases.mock.afterListPanoramaPhasesCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmListPanoramaPhases.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ListPanoramaPhases implements mm_service.Repository
+func (mmListPanoramaPhases *RepositoryMock) ListPanoramaPhases(ctx context.Context, territorySlug string) (pa1 []domain.PanoramaPhaseVisibility, err error) {
+	mm_atomic.AddUint64(&mmListPanoramaPhases.beforeListPanoramaPhasesCounter, 1)
+	defer mm_atomic.AddUint64(&mmListPanoramaPhases.afterListPanoramaPhasesCounter, 1)
+
+	mmListPanoramaPhases.t.Helper()
+
+	if mmListPanoramaPhases.inspectFuncListPanoramaPhases != nil {
+		mmListPanoramaPhases.inspectFuncListPanoramaPhases(ctx, territorySlug)
+	}
+
+	mm_params := RepositoryMockListPanoramaPhasesParams{ctx, territorySlug}
+
+	// Record call args
+	mmListPanoramaPhases.ListPanoramaPhasesMock.mutex.Lock()
+	mmListPanoramaPhases.ListPanoramaPhasesMock.callArgs = append(mmListPanoramaPhases.ListPanoramaPhasesMock.callArgs, &mm_params)
+	mmListPanoramaPhases.ListPanoramaPhasesMock.mutex.Unlock()
+
+	for _, e := range mmListPanoramaPhases.ListPanoramaPhasesMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.pa1, e.results.err
+		}
+	}
+
+	if mmListPanoramaPhases.ListPanoramaPhasesMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmListPanoramaPhases.ListPanoramaPhasesMock.defaultExpectation.Counter, 1)
+		mm_want := mmListPanoramaPhases.ListPanoramaPhasesMock.defaultExpectation.params
+		mm_want_ptrs := mmListPanoramaPhases.ListPanoramaPhasesMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockListPanoramaPhasesParams{ctx, territorySlug}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmListPanoramaPhases.t.Errorf("RepositoryMock.ListPanoramaPhases got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListPanoramaPhases.ListPanoramaPhasesMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmListPanoramaPhases.t.Errorf("RepositoryMock.ListPanoramaPhases got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListPanoramaPhases.ListPanoramaPhasesMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmListPanoramaPhases.t.Errorf("RepositoryMock.ListPanoramaPhases got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmListPanoramaPhases.ListPanoramaPhasesMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmListPanoramaPhases.ListPanoramaPhasesMock.defaultExpectation.results
+		if mm_results == nil {
+			mmListPanoramaPhases.t.Fatal("No results are set for the RepositoryMock.ListPanoramaPhases")
+		}
+		return (*mm_results).pa1, (*mm_results).err
+	}
+	if mmListPanoramaPhases.funcListPanoramaPhases != nil {
+		return mmListPanoramaPhases.funcListPanoramaPhases(ctx, territorySlug)
+	}
+	mmListPanoramaPhases.t.Fatalf("Unexpected call to RepositoryMock.ListPanoramaPhases. %v %v", ctx, territorySlug)
+	return
+}
+
+// ListPanoramaPhasesAfterCounter returns a count of finished RepositoryMock.ListPanoramaPhases invocations
+func (mmListPanoramaPhases *RepositoryMock) ListPanoramaPhasesAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListPanoramaPhases.afterListPanoramaPhasesCounter)
+}
+
+// ListPanoramaPhasesBeforeCounter returns a count of RepositoryMock.ListPanoramaPhases invocations
+func (mmListPanoramaPhases *RepositoryMock) ListPanoramaPhasesBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListPanoramaPhases.beforeListPanoramaPhasesCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.ListPanoramaPhases.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmListPanoramaPhases *mRepositoryMockListPanoramaPhases) Calls() []*RepositoryMockListPanoramaPhasesParams {
+	mmListPanoramaPhases.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockListPanoramaPhasesParams, len(mmListPanoramaPhases.callArgs))
+	copy(argCopy, mmListPanoramaPhases.callArgs)
+
+	mmListPanoramaPhases.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockListPanoramaPhasesDone returns true if the count of the ListPanoramaPhases invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockListPanoramaPhasesDone() bool {
+	if m.ListPanoramaPhasesMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ListPanoramaPhasesMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ListPanoramaPhasesMock.invocationsDone()
+}
+
+// MinimockListPanoramaPhasesInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockListPanoramaPhasesInspect() {
+	for _, e := range m.ListPanoramaPhasesMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.ListPanoramaPhases at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterListPanoramaPhasesCounter := mm_atomic.LoadUint64(&m.afterListPanoramaPhasesCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ListPanoramaPhasesMock.defaultExpectation != nil && afterListPanoramaPhasesCounter < 1 {
+		if m.ListPanoramaPhasesMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.ListPanoramaPhases at\n%s", m.ListPanoramaPhasesMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.ListPanoramaPhases at\n%s with params: %#v", m.ListPanoramaPhasesMock.defaultExpectation.expectationOrigins.origin, *m.ListPanoramaPhasesMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcListPanoramaPhases != nil && afterListPanoramaPhasesCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.ListPanoramaPhases at\n%s", m.funcListPanoramaPhasesOrigin)
+	}
+
+	if !m.ListPanoramaPhasesMock.invocationsDone() && afterListPanoramaPhasesCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.ListPanoramaPhases at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ListPanoramaPhasesMock.expectedInvocations), m.ListPanoramaPhasesMock.expectedInvocationsOrigin, afterListPanoramaPhasesCounter)
+	}
+}
+
 type mRepositoryMockListPanoramas struct {
 	optional           bool
 	mock               *RepositoryMock
@@ -2553,6 +2936,411 @@ func (m *RepositoryMock) MinimockListPanoramasWithoutThumbnailInspect() {
 	}
 }
 
+type mRepositoryMockSetPanoramaPhaseHidden struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockSetPanoramaPhaseHiddenExpectation
+	expectations       []*RepositoryMockSetPanoramaPhaseHiddenExpectation
+
+	callArgs []*RepositoryMockSetPanoramaPhaseHiddenParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockSetPanoramaPhaseHiddenExpectation specifies expectation struct of the Repository.SetPanoramaPhaseHidden
+type RepositoryMockSetPanoramaPhaseHiddenExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockSetPanoramaPhaseHiddenParams
+	paramPtrs          *RepositoryMockSetPanoramaPhaseHiddenParamPtrs
+	expectationOrigins RepositoryMockSetPanoramaPhaseHiddenExpectationOrigins
+	results            *RepositoryMockSetPanoramaPhaseHiddenResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockSetPanoramaPhaseHiddenParams contains parameters of the Repository.SetPanoramaPhaseHidden
+type RepositoryMockSetPanoramaPhaseHiddenParams struct {
+	ctx           context.Context
+	territorySlug string
+	phase         domain.PanoramaPhase
+	hidden        bool
+}
+
+// RepositoryMockSetPanoramaPhaseHiddenParamPtrs contains pointers to parameters of the Repository.SetPanoramaPhaseHidden
+type RepositoryMockSetPanoramaPhaseHiddenParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+	phase         *domain.PanoramaPhase
+	hidden        *bool
+}
+
+// RepositoryMockSetPanoramaPhaseHiddenResults contains results of the Repository.SetPanoramaPhaseHidden
+type RepositoryMockSetPanoramaPhaseHiddenResults struct {
+	p1  domain.PanoramaPhaseVisibility
+	err error
+}
+
+// RepositoryMockSetPanoramaPhaseHiddenOrigins contains origins of expectations of the Repository.SetPanoramaPhaseHidden
+type RepositoryMockSetPanoramaPhaseHiddenExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originPhase         string
+	originHidden        string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmSetPanoramaPhaseHidden *mRepositoryMockSetPanoramaPhaseHidden) Optional() *mRepositoryMockSetPanoramaPhaseHidden {
+	mmSetPanoramaPhaseHidden.optional = true
+	return mmSetPanoramaPhaseHidden
+}
+
+// Expect sets up expected params for Repository.SetPanoramaPhaseHidden
+func (mmSetPanoramaPhaseHidden *mRepositoryMockSetPanoramaPhaseHidden) Expect(ctx context.Context, territorySlug string, phase domain.PanoramaPhase, hidden bool) *mRepositoryMockSetPanoramaPhaseHidden {
+	if mmSetPanoramaPhaseHidden.mock.funcSetPanoramaPhaseHidden != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("RepositoryMock.SetPanoramaPhaseHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation == nil {
+		mmSetPanoramaPhaseHidden.defaultExpectation = &RepositoryMockSetPanoramaPhaseHiddenExpectation{}
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("RepositoryMock.SetPanoramaPhaseHidden mock is already set by ExpectParams functions")
+	}
+
+	mmSetPanoramaPhaseHidden.defaultExpectation.params = &RepositoryMockSetPanoramaPhaseHiddenParams{ctx, territorySlug, phase, hidden}
+	mmSetPanoramaPhaseHidden.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmSetPanoramaPhaseHidden.expectations {
+		if minimock.Equal(e.params, mmSetPanoramaPhaseHidden.defaultExpectation.params) {
+			mmSetPanoramaPhaseHidden.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSetPanoramaPhaseHidden.defaultExpectation.params)
+		}
+	}
+
+	return mmSetPanoramaPhaseHidden
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.SetPanoramaPhaseHidden
+func (mmSetPanoramaPhaseHidden *mRepositoryMockSetPanoramaPhaseHidden) ExpectCtxParam1(ctx context.Context) *mRepositoryMockSetPanoramaPhaseHidden {
+	if mmSetPanoramaPhaseHidden.mock.funcSetPanoramaPhaseHidden != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("RepositoryMock.SetPanoramaPhaseHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation == nil {
+		mmSetPanoramaPhaseHidden.defaultExpectation = &RepositoryMockSetPanoramaPhaseHiddenExpectation{}
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation.params != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("RepositoryMock.SetPanoramaPhaseHidden mock is already set by Expect")
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs = &RepositoryMockSetPanoramaPhaseHiddenParamPtrs{}
+	}
+	mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs.ctx = &ctx
+	mmSetPanoramaPhaseHidden.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmSetPanoramaPhaseHidden
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Repository.SetPanoramaPhaseHidden
+func (mmSetPanoramaPhaseHidden *mRepositoryMockSetPanoramaPhaseHidden) ExpectTerritorySlugParam2(territorySlug string) *mRepositoryMockSetPanoramaPhaseHidden {
+	if mmSetPanoramaPhaseHidden.mock.funcSetPanoramaPhaseHidden != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("RepositoryMock.SetPanoramaPhaseHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation == nil {
+		mmSetPanoramaPhaseHidden.defaultExpectation = &RepositoryMockSetPanoramaPhaseHiddenExpectation{}
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation.params != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("RepositoryMock.SetPanoramaPhaseHidden mock is already set by Expect")
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs = &RepositoryMockSetPanoramaPhaseHiddenParamPtrs{}
+	}
+	mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmSetPanoramaPhaseHidden.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmSetPanoramaPhaseHidden
+}
+
+// ExpectPhaseParam3 sets up expected param phase for Repository.SetPanoramaPhaseHidden
+func (mmSetPanoramaPhaseHidden *mRepositoryMockSetPanoramaPhaseHidden) ExpectPhaseParam3(phase domain.PanoramaPhase) *mRepositoryMockSetPanoramaPhaseHidden {
+	if mmSetPanoramaPhaseHidden.mock.funcSetPanoramaPhaseHidden != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("RepositoryMock.SetPanoramaPhaseHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation == nil {
+		mmSetPanoramaPhaseHidden.defaultExpectation = &RepositoryMockSetPanoramaPhaseHiddenExpectation{}
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation.params != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("RepositoryMock.SetPanoramaPhaseHidden mock is already set by Expect")
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs = &RepositoryMockSetPanoramaPhaseHiddenParamPtrs{}
+	}
+	mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs.phase = &phase
+	mmSetPanoramaPhaseHidden.defaultExpectation.expectationOrigins.originPhase = minimock.CallerInfo(1)
+
+	return mmSetPanoramaPhaseHidden
+}
+
+// ExpectHiddenParam4 sets up expected param hidden for Repository.SetPanoramaPhaseHidden
+func (mmSetPanoramaPhaseHidden *mRepositoryMockSetPanoramaPhaseHidden) ExpectHiddenParam4(hidden bool) *mRepositoryMockSetPanoramaPhaseHidden {
+	if mmSetPanoramaPhaseHidden.mock.funcSetPanoramaPhaseHidden != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("RepositoryMock.SetPanoramaPhaseHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation == nil {
+		mmSetPanoramaPhaseHidden.defaultExpectation = &RepositoryMockSetPanoramaPhaseHiddenExpectation{}
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation.params != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("RepositoryMock.SetPanoramaPhaseHidden mock is already set by Expect")
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs = &RepositoryMockSetPanoramaPhaseHiddenParamPtrs{}
+	}
+	mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs.hidden = &hidden
+	mmSetPanoramaPhaseHidden.defaultExpectation.expectationOrigins.originHidden = minimock.CallerInfo(1)
+
+	return mmSetPanoramaPhaseHidden
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.SetPanoramaPhaseHidden
+func (mmSetPanoramaPhaseHidden *mRepositoryMockSetPanoramaPhaseHidden) Inspect(f func(ctx context.Context, territorySlug string, phase domain.PanoramaPhase, hidden bool)) *mRepositoryMockSetPanoramaPhaseHidden {
+	if mmSetPanoramaPhaseHidden.mock.inspectFuncSetPanoramaPhaseHidden != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("Inspect function is already set for RepositoryMock.SetPanoramaPhaseHidden")
+	}
+
+	mmSetPanoramaPhaseHidden.mock.inspectFuncSetPanoramaPhaseHidden = f
+
+	return mmSetPanoramaPhaseHidden
+}
+
+// Return sets up results that will be returned by Repository.SetPanoramaPhaseHidden
+func (mmSetPanoramaPhaseHidden *mRepositoryMockSetPanoramaPhaseHidden) Return(p1 domain.PanoramaPhaseVisibility, err error) *RepositoryMock {
+	if mmSetPanoramaPhaseHidden.mock.funcSetPanoramaPhaseHidden != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("RepositoryMock.SetPanoramaPhaseHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation == nil {
+		mmSetPanoramaPhaseHidden.defaultExpectation = &RepositoryMockSetPanoramaPhaseHiddenExpectation{mock: mmSetPanoramaPhaseHidden.mock}
+	}
+	mmSetPanoramaPhaseHidden.defaultExpectation.results = &RepositoryMockSetPanoramaPhaseHiddenResults{p1, err}
+	mmSetPanoramaPhaseHidden.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmSetPanoramaPhaseHidden.mock
+}
+
+// Set uses given function f to mock the Repository.SetPanoramaPhaseHidden method
+func (mmSetPanoramaPhaseHidden *mRepositoryMockSetPanoramaPhaseHidden) Set(f func(ctx context.Context, territorySlug string, phase domain.PanoramaPhase, hidden bool) (p1 domain.PanoramaPhaseVisibility, err error)) *RepositoryMock {
+	if mmSetPanoramaPhaseHidden.defaultExpectation != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("Default expectation is already set for the Repository.SetPanoramaPhaseHidden method")
+	}
+
+	if len(mmSetPanoramaPhaseHidden.expectations) > 0 {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("Some expectations are already set for the Repository.SetPanoramaPhaseHidden method")
+	}
+
+	mmSetPanoramaPhaseHidden.mock.funcSetPanoramaPhaseHidden = f
+	mmSetPanoramaPhaseHidden.mock.funcSetPanoramaPhaseHiddenOrigin = minimock.CallerInfo(1)
+	return mmSetPanoramaPhaseHidden.mock
+}
+
+// When sets expectation for the Repository.SetPanoramaPhaseHidden which will trigger the result defined by the following
+// Then helper
+func (mmSetPanoramaPhaseHidden *mRepositoryMockSetPanoramaPhaseHidden) When(ctx context.Context, territorySlug string, phase domain.PanoramaPhase, hidden bool) *RepositoryMockSetPanoramaPhaseHiddenExpectation {
+	if mmSetPanoramaPhaseHidden.mock.funcSetPanoramaPhaseHidden != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("RepositoryMock.SetPanoramaPhaseHidden mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockSetPanoramaPhaseHiddenExpectation{
+		mock:               mmSetPanoramaPhaseHidden.mock,
+		params:             &RepositoryMockSetPanoramaPhaseHiddenParams{ctx, territorySlug, phase, hidden},
+		expectationOrigins: RepositoryMockSetPanoramaPhaseHiddenExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmSetPanoramaPhaseHidden.expectations = append(mmSetPanoramaPhaseHidden.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.SetPanoramaPhaseHidden return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockSetPanoramaPhaseHiddenExpectation) Then(p1 domain.PanoramaPhaseVisibility, err error) *RepositoryMock {
+	e.results = &RepositoryMockSetPanoramaPhaseHiddenResults{p1, err}
+	return e.mock
+}
+
+// Times sets number of times Repository.SetPanoramaPhaseHidden should be invoked
+func (mmSetPanoramaPhaseHidden *mRepositoryMockSetPanoramaPhaseHidden) Times(n uint64) *mRepositoryMockSetPanoramaPhaseHidden {
+	if n == 0 {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("Times of RepositoryMock.SetPanoramaPhaseHidden mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmSetPanoramaPhaseHidden.expectedInvocations, n)
+	mmSetPanoramaPhaseHidden.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmSetPanoramaPhaseHidden
+}
+
+func (mmSetPanoramaPhaseHidden *mRepositoryMockSetPanoramaPhaseHidden) invocationsDone() bool {
+	if len(mmSetPanoramaPhaseHidden.expectations) == 0 && mmSetPanoramaPhaseHidden.defaultExpectation == nil && mmSetPanoramaPhaseHidden.mock.funcSetPanoramaPhaseHidden == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmSetPanoramaPhaseHidden.mock.afterSetPanoramaPhaseHiddenCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmSetPanoramaPhaseHidden.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// SetPanoramaPhaseHidden implements mm_service.Repository
+func (mmSetPanoramaPhaseHidden *RepositoryMock) SetPanoramaPhaseHidden(ctx context.Context, territorySlug string, phase domain.PanoramaPhase, hidden bool) (p1 domain.PanoramaPhaseVisibility, err error) {
+	mm_atomic.AddUint64(&mmSetPanoramaPhaseHidden.beforeSetPanoramaPhaseHiddenCounter, 1)
+	defer mm_atomic.AddUint64(&mmSetPanoramaPhaseHidden.afterSetPanoramaPhaseHiddenCounter, 1)
+
+	mmSetPanoramaPhaseHidden.t.Helper()
+
+	if mmSetPanoramaPhaseHidden.inspectFuncSetPanoramaPhaseHidden != nil {
+		mmSetPanoramaPhaseHidden.inspectFuncSetPanoramaPhaseHidden(ctx, territorySlug, phase, hidden)
+	}
+
+	mm_params := RepositoryMockSetPanoramaPhaseHiddenParams{ctx, territorySlug, phase, hidden}
+
+	// Record call args
+	mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.mutex.Lock()
+	mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.callArgs = append(mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.callArgs, &mm_params)
+	mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.mutex.Unlock()
+
+	for _, e := range mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.p1, e.results.err
+		}
+	}
+
+	if mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.defaultExpectation.Counter, 1)
+		mm_want := mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.defaultExpectation.params
+		mm_want_ptrs := mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockSetPanoramaPhaseHiddenParams{ctx, territorySlug, phase, hidden}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmSetPanoramaPhaseHidden.t.Errorf("RepositoryMock.SetPanoramaPhaseHidden got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmSetPanoramaPhaseHidden.t.Errorf("RepositoryMock.SetPanoramaPhaseHidden got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+			if mm_want_ptrs.phase != nil && !minimock.Equal(*mm_want_ptrs.phase, mm_got.phase) {
+				mmSetPanoramaPhaseHidden.t.Errorf("RepositoryMock.SetPanoramaPhaseHidden got unexpected parameter phase, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.defaultExpectation.expectationOrigins.originPhase, *mm_want_ptrs.phase, mm_got.phase, minimock.Diff(*mm_want_ptrs.phase, mm_got.phase))
+			}
+
+			if mm_want_ptrs.hidden != nil && !minimock.Equal(*mm_want_ptrs.hidden, mm_got.hidden) {
+				mmSetPanoramaPhaseHidden.t.Errorf("RepositoryMock.SetPanoramaPhaseHidden got unexpected parameter hidden, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.defaultExpectation.expectationOrigins.originHidden, *mm_want_ptrs.hidden, mm_got.hidden, minimock.Diff(*mm_want_ptrs.hidden, mm_got.hidden))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmSetPanoramaPhaseHidden.t.Errorf("RepositoryMock.SetPanoramaPhaseHidden got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.defaultExpectation.results
+		if mm_results == nil {
+			mmSetPanoramaPhaseHidden.t.Fatal("No results are set for the RepositoryMock.SetPanoramaPhaseHidden")
+		}
+		return (*mm_results).p1, (*mm_results).err
+	}
+	if mmSetPanoramaPhaseHidden.funcSetPanoramaPhaseHidden != nil {
+		return mmSetPanoramaPhaseHidden.funcSetPanoramaPhaseHidden(ctx, territorySlug, phase, hidden)
+	}
+	mmSetPanoramaPhaseHidden.t.Fatalf("Unexpected call to RepositoryMock.SetPanoramaPhaseHidden. %v %v %v %v", ctx, territorySlug, phase, hidden)
+	return
+}
+
+// SetPanoramaPhaseHiddenAfterCounter returns a count of finished RepositoryMock.SetPanoramaPhaseHidden invocations
+func (mmSetPanoramaPhaseHidden *RepositoryMock) SetPanoramaPhaseHiddenAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetPanoramaPhaseHidden.afterSetPanoramaPhaseHiddenCounter)
+}
+
+// SetPanoramaPhaseHiddenBeforeCounter returns a count of RepositoryMock.SetPanoramaPhaseHidden invocations
+func (mmSetPanoramaPhaseHidden *RepositoryMock) SetPanoramaPhaseHiddenBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetPanoramaPhaseHidden.beforeSetPanoramaPhaseHiddenCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.SetPanoramaPhaseHidden.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmSetPanoramaPhaseHidden *mRepositoryMockSetPanoramaPhaseHidden) Calls() []*RepositoryMockSetPanoramaPhaseHiddenParams {
+	mmSetPanoramaPhaseHidden.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockSetPanoramaPhaseHiddenParams, len(mmSetPanoramaPhaseHidden.callArgs))
+	copy(argCopy, mmSetPanoramaPhaseHidden.callArgs)
+
+	mmSetPanoramaPhaseHidden.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockSetPanoramaPhaseHiddenDone returns true if the count of the SetPanoramaPhaseHidden invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockSetPanoramaPhaseHiddenDone() bool {
+	if m.SetPanoramaPhaseHiddenMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.SetPanoramaPhaseHiddenMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.SetPanoramaPhaseHiddenMock.invocationsDone()
+}
+
+// MinimockSetPanoramaPhaseHiddenInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockSetPanoramaPhaseHiddenInspect() {
+	for _, e := range m.SetPanoramaPhaseHiddenMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.SetPanoramaPhaseHidden at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterSetPanoramaPhaseHiddenCounter := mm_atomic.LoadUint64(&m.afterSetPanoramaPhaseHiddenCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.SetPanoramaPhaseHiddenMock.defaultExpectation != nil && afterSetPanoramaPhaseHiddenCounter < 1 {
+		if m.SetPanoramaPhaseHiddenMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.SetPanoramaPhaseHidden at\n%s", m.SetPanoramaPhaseHiddenMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.SetPanoramaPhaseHidden at\n%s with params: %#v", m.SetPanoramaPhaseHiddenMock.defaultExpectation.expectationOrigins.origin, *m.SetPanoramaPhaseHiddenMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcSetPanoramaPhaseHidden != nil && afterSetPanoramaPhaseHiddenCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.SetPanoramaPhaseHidden at\n%s", m.funcSetPanoramaPhaseHiddenOrigin)
+	}
+
+	if !m.SetPanoramaPhaseHiddenMock.invocationsDone() && afterSetPanoramaPhaseHiddenCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.SetPanoramaPhaseHidden at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.SetPanoramaPhaseHiddenMock.expectedInvocations), m.SetPanoramaPhaseHiddenMock.expectedInvocationsOrigin, afterSetPanoramaPhaseHiddenCounter)
+	}
+}
+
 type mRepositoryMockSetPanoramaThumbnail struct {
 	optional           bool
 	mock               *RepositoryMock
@@ -2926,6 +3714,816 @@ func (m *RepositoryMock) MinimockSetPanoramaThumbnailInspect() {
 	}
 }
 
+type mRepositoryMockSetPanoramasHidden struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockSetPanoramasHiddenExpectation
+	expectations       []*RepositoryMockSetPanoramasHiddenExpectation
+
+	callArgs []*RepositoryMockSetPanoramasHiddenParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockSetPanoramasHiddenExpectation specifies expectation struct of the Repository.SetPanoramasHidden
+type RepositoryMockSetPanoramasHiddenExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockSetPanoramasHiddenParams
+	paramPtrs          *RepositoryMockSetPanoramasHiddenParamPtrs
+	expectationOrigins RepositoryMockSetPanoramasHiddenExpectationOrigins
+	results            *RepositoryMockSetPanoramasHiddenResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockSetPanoramasHiddenParams contains parameters of the Repository.SetPanoramasHidden
+type RepositoryMockSetPanoramasHiddenParams struct {
+	ctx           context.Context
+	territorySlug string
+	ids           []int64
+	hidden        bool
+}
+
+// RepositoryMockSetPanoramasHiddenParamPtrs contains pointers to parameters of the Repository.SetPanoramasHidden
+type RepositoryMockSetPanoramasHiddenParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+	ids           *[]int64
+	hidden        *bool
+}
+
+// RepositoryMockSetPanoramasHiddenResults contains results of the Repository.SetPanoramasHidden
+type RepositoryMockSetPanoramasHiddenResults struct {
+	i1  int
+	err error
+}
+
+// RepositoryMockSetPanoramasHiddenOrigins contains origins of expectations of the Repository.SetPanoramasHidden
+type RepositoryMockSetPanoramasHiddenExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originIds           string
+	originHidden        string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmSetPanoramasHidden *mRepositoryMockSetPanoramasHidden) Optional() *mRepositoryMockSetPanoramasHidden {
+	mmSetPanoramasHidden.optional = true
+	return mmSetPanoramasHidden
+}
+
+// Expect sets up expected params for Repository.SetPanoramasHidden
+func (mmSetPanoramasHidden *mRepositoryMockSetPanoramasHidden) Expect(ctx context.Context, territorySlug string, ids []int64, hidden bool) *mRepositoryMockSetPanoramasHidden {
+	if mmSetPanoramasHidden.mock.funcSetPanoramasHidden != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("RepositoryMock.SetPanoramasHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation == nil {
+		mmSetPanoramasHidden.defaultExpectation = &RepositoryMockSetPanoramasHiddenExpectation{}
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation.paramPtrs != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("RepositoryMock.SetPanoramasHidden mock is already set by ExpectParams functions")
+	}
+
+	mmSetPanoramasHidden.defaultExpectation.params = &RepositoryMockSetPanoramasHiddenParams{ctx, territorySlug, ids, hidden}
+	mmSetPanoramasHidden.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmSetPanoramasHidden.expectations {
+		if minimock.Equal(e.params, mmSetPanoramasHidden.defaultExpectation.params) {
+			mmSetPanoramasHidden.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSetPanoramasHidden.defaultExpectation.params)
+		}
+	}
+
+	return mmSetPanoramasHidden
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.SetPanoramasHidden
+func (mmSetPanoramasHidden *mRepositoryMockSetPanoramasHidden) ExpectCtxParam1(ctx context.Context) *mRepositoryMockSetPanoramasHidden {
+	if mmSetPanoramasHidden.mock.funcSetPanoramasHidden != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("RepositoryMock.SetPanoramasHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation == nil {
+		mmSetPanoramasHidden.defaultExpectation = &RepositoryMockSetPanoramasHiddenExpectation{}
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation.params != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("RepositoryMock.SetPanoramasHidden mock is already set by Expect")
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramasHidden.defaultExpectation.paramPtrs = &RepositoryMockSetPanoramasHiddenParamPtrs{}
+	}
+	mmSetPanoramasHidden.defaultExpectation.paramPtrs.ctx = &ctx
+	mmSetPanoramasHidden.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmSetPanoramasHidden
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Repository.SetPanoramasHidden
+func (mmSetPanoramasHidden *mRepositoryMockSetPanoramasHidden) ExpectTerritorySlugParam2(territorySlug string) *mRepositoryMockSetPanoramasHidden {
+	if mmSetPanoramasHidden.mock.funcSetPanoramasHidden != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("RepositoryMock.SetPanoramasHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation == nil {
+		mmSetPanoramasHidden.defaultExpectation = &RepositoryMockSetPanoramasHiddenExpectation{}
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation.params != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("RepositoryMock.SetPanoramasHidden mock is already set by Expect")
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramasHidden.defaultExpectation.paramPtrs = &RepositoryMockSetPanoramasHiddenParamPtrs{}
+	}
+	mmSetPanoramasHidden.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmSetPanoramasHidden.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmSetPanoramasHidden
+}
+
+// ExpectIdsParam3 sets up expected param ids for Repository.SetPanoramasHidden
+func (mmSetPanoramasHidden *mRepositoryMockSetPanoramasHidden) ExpectIdsParam3(ids []int64) *mRepositoryMockSetPanoramasHidden {
+	if mmSetPanoramasHidden.mock.funcSetPanoramasHidden != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("RepositoryMock.SetPanoramasHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation == nil {
+		mmSetPanoramasHidden.defaultExpectation = &RepositoryMockSetPanoramasHiddenExpectation{}
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation.params != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("RepositoryMock.SetPanoramasHidden mock is already set by Expect")
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramasHidden.defaultExpectation.paramPtrs = &RepositoryMockSetPanoramasHiddenParamPtrs{}
+	}
+	mmSetPanoramasHidden.defaultExpectation.paramPtrs.ids = &ids
+	mmSetPanoramasHidden.defaultExpectation.expectationOrigins.originIds = minimock.CallerInfo(1)
+
+	return mmSetPanoramasHidden
+}
+
+// ExpectHiddenParam4 sets up expected param hidden for Repository.SetPanoramasHidden
+func (mmSetPanoramasHidden *mRepositoryMockSetPanoramasHidden) ExpectHiddenParam4(hidden bool) *mRepositoryMockSetPanoramasHidden {
+	if mmSetPanoramasHidden.mock.funcSetPanoramasHidden != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("RepositoryMock.SetPanoramasHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation == nil {
+		mmSetPanoramasHidden.defaultExpectation = &RepositoryMockSetPanoramasHiddenExpectation{}
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation.params != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("RepositoryMock.SetPanoramasHidden mock is already set by Expect")
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramasHidden.defaultExpectation.paramPtrs = &RepositoryMockSetPanoramasHiddenParamPtrs{}
+	}
+	mmSetPanoramasHidden.defaultExpectation.paramPtrs.hidden = &hidden
+	mmSetPanoramasHidden.defaultExpectation.expectationOrigins.originHidden = minimock.CallerInfo(1)
+
+	return mmSetPanoramasHidden
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.SetPanoramasHidden
+func (mmSetPanoramasHidden *mRepositoryMockSetPanoramasHidden) Inspect(f func(ctx context.Context, territorySlug string, ids []int64, hidden bool)) *mRepositoryMockSetPanoramasHidden {
+	if mmSetPanoramasHidden.mock.inspectFuncSetPanoramasHidden != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("Inspect function is already set for RepositoryMock.SetPanoramasHidden")
+	}
+
+	mmSetPanoramasHidden.mock.inspectFuncSetPanoramasHidden = f
+
+	return mmSetPanoramasHidden
+}
+
+// Return sets up results that will be returned by Repository.SetPanoramasHidden
+func (mmSetPanoramasHidden *mRepositoryMockSetPanoramasHidden) Return(i1 int, err error) *RepositoryMock {
+	if mmSetPanoramasHidden.mock.funcSetPanoramasHidden != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("RepositoryMock.SetPanoramasHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation == nil {
+		mmSetPanoramasHidden.defaultExpectation = &RepositoryMockSetPanoramasHiddenExpectation{mock: mmSetPanoramasHidden.mock}
+	}
+	mmSetPanoramasHidden.defaultExpectation.results = &RepositoryMockSetPanoramasHiddenResults{i1, err}
+	mmSetPanoramasHidden.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmSetPanoramasHidden.mock
+}
+
+// Set uses given function f to mock the Repository.SetPanoramasHidden method
+func (mmSetPanoramasHidden *mRepositoryMockSetPanoramasHidden) Set(f func(ctx context.Context, territorySlug string, ids []int64, hidden bool) (i1 int, err error)) *RepositoryMock {
+	if mmSetPanoramasHidden.defaultExpectation != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("Default expectation is already set for the Repository.SetPanoramasHidden method")
+	}
+
+	if len(mmSetPanoramasHidden.expectations) > 0 {
+		mmSetPanoramasHidden.mock.t.Fatalf("Some expectations are already set for the Repository.SetPanoramasHidden method")
+	}
+
+	mmSetPanoramasHidden.mock.funcSetPanoramasHidden = f
+	mmSetPanoramasHidden.mock.funcSetPanoramasHiddenOrigin = minimock.CallerInfo(1)
+	return mmSetPanoramasHidden.mock
+}
+
+// When sets expectation for the Repository.SetPanoramasHidden which will trigger the result defined by the following
+// Then helper
+func (mmSetPanoramasHidden *mRepositoryMockSetPanoramasHidden) When(ctx context.Context, territorySlug string, ids []int64, hidden bool) *RepositoryMockSetPanoramasHiddenExpectation {
+	if mmSetPanoramasHidden.mock.funcSetPanoramasHidden != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("RepositoryMock.SetPanoramasHidden mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockSetPanoramasHiddenExpectation{
+		mock:               mmSetPanoramasHidden.mock,
+		params:             &RepositoryMockSetPanoramasHiddenParams{ctx, territorySlug, ids, hidden},
+		expectationOrigins: RepositoryMockSetPanoramasHiddenExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmSetPanoramasHidden.expectations = append(mmSetPanoramasHidden.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.SetPanoramasHidden return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockSetPanoramasHiddenExpectation) Then(i1 int, err error) *RepositoryMock {
+	e.results = &RepositoryMockSetPanoramasHiddenResults{i1, err}
+	return e.mock
+}
+
+// Times sets number of times Repository.SetPanoramasHidden should be invoked
+func (mmSetPanoramasHidden *mRepositoryMockSetPanoramasHidden) Times(n uint64) *mRepositoryMockSetPanoramasHidden {
+	if n == 0 {
+		mmSetPanoramasHidden.mock.t.Fatalf("Times of RepositoryMock.SetPanoramasHidden mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmSetPanoramasHidden.expectedInvocations, n)
+	mmSetPanoramasHidden.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmSetPanoramasHidden
+}
+
+func (mmSetPanoramasHidden *mRepositoryMockSetPanoramasHidden) invocationsDone() bool {
+	if len(mmSetPanoramasHidden.expectations) == 0 && mmSetPanoramasHidden.defaultExpectation == nil && mmSetPanoramasHidden.mock.funcSetPanoramasHidden == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmSetPanoramasHidden.mock.afterSetPanoramasHiddenCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmSetPanoramasHidden.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// SetPanoramasHidden implements mm_service.Repository
+func (mmSetPanoramasHidden *RepositoryMock) SetPanoramasHidden(ctx context.Context, territorySlug string, ids []int64, hidden bool) (i1 int, err error) {
+	mm_atomic.AddUint64(&mmSetPanoramasHidden.beforeSetPanoramasHiddenCounter, 1)
+	defer mm_atomic.AddUint64(&mmSetPanoramasHidden.afterSetPanoramasHiddenCounter, 1)
+
+	mmSetPanoramasHidden.t.Helper()
+
+	if mmSetPanoramasHidden.inspectFuncSetPanoramasHidden != nil {
+		mmSetPanoramasHidden.inspectFuncSetPanoramasHidden(ctx, territorySlug, ids, hidden)
+	}
+
+	mm_params := RepositoryMockSetPanoramasHiddenParams{ctx, territorySlug, ids, hidden}
+
+	// Record call args
+	mmSetPanoramasHidden.SetPanoramasHiddenMock.mutex.Lock()
+	mmSetPanoramasHidden.SetPanoramasHiddenMock.callArgs = append(mmSetPanoramasHidden.SetPanoramasHiddenMock.callArgs, &mm_params)
+	mmSetPanoramasHidden.SetPanoramasHiddenMock.mutex.Unlock()
+
+	for _, e := range mmSetPanoramasHidden.SetPanoramasHiddenMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.i1, e.results.err
+		}
+	}
+
+	if mmSetPanoramasHidden.SetPanoramasHiddenMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmSetPanoramasHidden.SetPanoramasHiddenMock.defaultExpectation.Counter, 1)
+		mm_want := mmSetPanoramasHidden.SetPanoramasHiddenMock.defaultExpectation.params
+		mm_want_ptrs := mmSetPanoramasHidden.SetPanoramasHiddenMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockSetPanoramasHiddenParams{ctx, territorySlug, ids, hidden}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmSetPanoramasHidden.t.Errorf("RepositoryMock.SetPanoramasHidden got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramasHidden.SetPanoramasHiddenMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmSetPanoramasHidden.t.Errorf("RepositoryMock.SetPanoramasHidden got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramasHidden.SetPanoramasHiddenMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+			if mm_want_ptrs.ids != nil && !minimock.Equal(*mm_want_ptrs.ids, mm_got.ids) {
+				mmSetPanoramasHidden.t.Errorf("RepositoryMock.SetPanoramasHidden got unexpected parameter ids, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramasHidden.SetPanoramasHiddenMock.defaultExpectation.expectationOrigins.originIds, *mm_want_ptrs.ids, mm_got.ids, minimock.Diff(*mm_want_ptrs.ids, mm_got.ids))
+			}
+
+			if mm_want_ptrs.hidden != nil && !minimock.Equal(*mm_want_ptrs.hidden, mm_got.hidden) {
+				mmSetPanoramasHidden.t.Errorf("RepositoryMock.SetPanoramasHidden got unexpected parameter hidden, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramasHidden.SetPanoramasHiddenMock.defaultExpectation.expectationOrigins.originHidden, *mm_want_ptrs.hidden, mm_got.hidden, minimock.Diff(*mm_want_ptrs.hidden, mm_got.hidden))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmSetPanoramasHidden.t.Errorf("RepositoryMock.SetPanoramasHidden got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmSetPanoramasHidden.SetPanoramasHiddenMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmSetPanoramasHidden.SetPanoramasHiddenMock.defaultExpectation.results
+		if mm_results == nil {
+			mmSetPanoramasHidden.t.Fatal("No results are set for the RepositoryMock.SetPanoramasHidden")
+		}
+		return (*mm_results).i1, (*mm_results).err
+	}
+	if mmSetPanoramasHidden.funcSetPanoramasHidden != nil {
+		return mmSetPanoramasHidden.funcSetPanoramasHidden(ctx, territorySlug, ids, hidden)
+	}
+	mmSetPanoramasHidden.t.Fatalf("Unexpected call to RepositoryMock.SetPanoramasHidden. %v %v %v %v", ctx, territorySlug, ids, hidden)
+	return
+}
+
+// SetPanoramasHiddenAfterCounter returns a count of finished RepositoryMock.SetPanoramasHidden invocations
+func (mmSetPanoramasHidden *RepositoryMock) SetPanoramasHiddenAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetPanoramasHidden.afterSetPanoramasHiddenCounter)
+}
+
+// SetPanoramasHiddenBeforeCounter returns a count of RepositoryMock.SetPanoramasHidden invocations
+func (mmSetPanoramasHidden *RepositoryMock) SetPanoramasHiddenBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetPanoramasHidden.beforeSetPanoramasHiddenCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.SetPanoramasHidden.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmSetPanoramasHidden *mRepositoryMockSetPanoramasHidden) Calls() []*RepositoryMockSetPanoramasHiddenParams {
+	mmSetPanoramasHidden.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockSetPanoramasHiddenParams, len(mmSetPanoramasHidden.callArgs))
+	copy(argCopy, mmSetPanoramasHidden.callArgs)
+
+	mmSetPanoramasHidden.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockSetPanoramasHiddenDone returns true if the count of the SetPanoramasHidden invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockSetPanoramasHiddenDone() bool {
+	if m.SetPanoramasHiddenMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.SetPanoramasHiddenMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.SetPanoramasHiddenMock.invocationsDone()
+}
+
+// MinimockSetPanoramasHiddenInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockSetPanoramasHiddenInspect() {
+	for _, e := range m.SetPanoramasHiddenMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.SetPanoramasHidden at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterSetPanoramasHiddenCounter := mm_atomic.LoadUint64(&m.afterSetPanoramasHiddenCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.SetPanoramasHiddenMock.defaultExpectation != nil && afterSetPanoramasHiddenCounter < 1 {
+		if m.SetPanoramasHiddenMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.SetPanoramasHidden at\n%s", m.SetPanoramasHiddenMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.SetPanoramasHidden at\n%s with params: %#v", m.SetPanoramasHiddenMock.defaultExpectation.expectationOrigins.origin, *m.SetPanoramasHiddenMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcSetPanoramasHidden != nil && afterSetPanoramasHiddenCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.SetPanoramasHidden at\n%s", m.funcSetPanoramasHiddenOrigin)
+	}
+
+	if !m.SetPanoramasHiddenMock.invocationsDone() && afterSetPanoramasHiddenCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.SetPanoramasHidden at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.SetPanoramasHiddenMock.expectedInvocations), m.SetPanoramasHiddenMock.expectedInvocationsOrigin, afterSetPanoramasHiddenCounter)
+	}
+}
+
+type mRepositoryMockSetPanoramasPhase struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockSetPanoramasPhaseExpectation
+	expectations       []*RepositoryMockSetPanoramasPhaseExpectation
+
+	callArgs []*RepositoryMockSetPanoramasPhaseParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockSetPanoramasPhaseExpectation specifies expectation struct of the Repository.SetPanoramasPhase
+type RepositoryMockSetPanoramasPhaseExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockSetPanoramasPhaseParams
+	paramPtrs          *RepositoryMockSetPanoramasPhaseParamPtrs
+	expectationOrigins RepositoryMockSetPanoramasPhaseExpectationOrigins
+	results            *RepositoryMockSetPanoramasPhaseResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockSetPanoramasPhaseParams contains parameters of the Repository.SetPanoramasPhase
+type RepositoryMockSetPanoramasPhaseParams struct {
+	ctx           context.Context
+	territorySlug string
+	ids           []int64
+	phase         domain.PanoramaPhase
+}
+
+// RepositoryMockSetPanoramasPhaseParamPtrs contains pointers to parameters of the Repository.SetPanoramasPhase
+type RepositoryMockSetPanoramasPhaseParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+	ids           *[]int64
+	phase         *domain.PanoramaPhase
+}
+
+// RepositoryMockSetPanoramasPhaseResults contains results of the Repository.SetPanoramasPhase
+type RepositoryMockSetPanoramasPhaseResults struct {
+	i1  int
+	err error
+}
+
+// RepositoryMockSetPanoramasPhaseOrigins contains origins of expectations of the Repository.SetPanoramasPhase
+type RepositoryMockSetPanoramasPhaseExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originIds           string
+	originPhase         string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmSetPanoramasPhase *mRepositoryMockSetPanoramasPhase) Optional() *mRepositoryMockSetPanoramasPhase {
+	mmSetPanoramasPhase.optional = true
+	return mmSetPanoramasPhase
+}
+
+// Expect sets up expected params for Repository.SetPanoramasPhase
+func (mmSetPanoramasPhase *mRepositoryMockSetPanoramasPhase) Expect(ctx context.Context, territorySlug string, ids []int64, phase domain.PanoramaPhase) *mRepositoryMockSetPanoramasPhase {
+	if mmSetPanoramasPhase.mock.funcSetPanoramasPhase != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("RepositoryMock.SetPanoramasPhase mock is already set by Set")
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation == nil {
+		mmSetPanoramasPhase.defaultExpectation = &RepositoryMockSetPanoramasPhaseExpectation{}
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation.paramPtrs != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("RepositoryMock.SetPanoramasPhase mock is already set by ExpectParams functions")
+	}
+
+	mmSetPanoramasPhase.defaultExpectation.params = &RepositoryMockSetPanoramasPhaseParams{ctx, territorySlug, ids, phase}
+	mmSetPanoramasPhase.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmSetPanoramasPhase.expectations {
+		if minimock.Equal(e.params, mmSetPanoramasPhase.defaultExpectation.params) {
+			mmSetPanoramasPhase.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSetPanoramasPhase.defaultExpectation.params)
+		}
+	}
+
+	return mmSetPanoramasPhase
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.SetPanoramasPhase
+func (mmSetPanoramasPhase *mRepositoryMockSetPanoramasPhase) ExpectCtxParam1(ctx context.Context) *mRepositoryMockSetPanoramasPhase {
+	if mmSetPanoramasPhase.mock.funcSetPanoramasPhase != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("RepositoryMock.SetPanoramasPhase mock is already set by Set")
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation == nil {
+		mmSetPanoramasPhase.defaultExpectation = &RepositoryMockSetPanoramasPhaseExpectation{}
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation.params != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("RepositoryMock.SetPanoramasPhase mock is already set by Expect")
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramasPhase.defaultExpectation.paramPtrs = &RepositoryMockSetPanoramasPhaseParamPtrs{}
+	}
+	mmSetPanoramasPhase.defaultExpectation.paramPtrs.ctx = &ctx
+	mmSetPanoramasPhase.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmSetPanoramasPhase
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Repository.SetPanoramasPhase
+func (mmSetPanoramasPhase *mRepositoryMockSetPanoramasPhase) ExpectTerritorySlugParam2(territorySlug string) *mRepositoryMockSetPanoramasPhase {
+	if mmSetPanoramasPhase.mock.funcSetPanoramasPhase != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("RepositoryMock.SetPanoramasPhase mock is already set by Set")
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation == nil {
+		mmSetPanoramasPhase.defaultExpectation = &RepositoryMockSetPanoramasPhaseExpectation{}
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation.params != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("RepositoryMock.SetPanoramasPhase mock is already set by Expect")
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramasPhase.defaultExpectation.paramPtrs = &RepositoryMockSetPanoramasPhaseParamPtrs{}
+	}
+	mmSetPanoramasPhase.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmSetPanoramasPhase.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmSetPanoramasPhase
+}
+
+// ExpectIdsParam3 sets up expected param ids for Repository.SetPanoramasPhase
+func (mmSetPanoramasPhase *mRepositoryMockSetPanoramasPhase) ExpectIdsParam3(ids []int64) *mRepositoryMockSetPanoramasPhase {
+	if mmSetPanoramasPhase.mock.funcSetPanoramasPhase != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("RepositoryMock.SetPanoramasPhase mock is already set by Set")
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation == nil {
+		mmSetPanoramasPhase.defaultExpectation = &RepositoryMockSetPanoramasPhaseExpectation{}
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation.params != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("RepositoryMock.SetPanoramasPhase mock is already set by Expect")
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramasPhase.defaultExpectation.paramPtrs = &RepositoryMockSetPanoramasPhaseParamPtrs{}
+	}
+	mmSetPanoramasPhase.defaultExpectation.paramPtrs.ids = &ids
+	mmSetPanoramasPhase.defaultExpectation.expectationOrigins.originIds = minimock.CallerInfo(1)
+
+	return mmSetPanoramasPhase
+}
+
+// ExpectPhaseParam4 sets up expected param phase for Repository.SetPanoramasPhase
+func (mmSetPanoramasPhase *mRepositoryMockSetPanoramasPhase) ExpectPhaseParam4(phase domain.PanoramaPhase) *mRepositoryMockSetPanoramasPhase {
+	if mmSetPanoramasPhase.mock.funcSetPanoramasPhase != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("RepositoryMock.SetPanoramasPhase mock is already set by Set")
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation == nil {
+		mmSetPanoramasPhase.defaultExpectation = &RepositoryMockSetPanoramasPhaseExpectation{}
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation.params != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("RepositoryMock.SetPanoramasPhase mock is already set by Expect")
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramasPhase.defaultExpectation.paramPtrs = &RepositoryMockSetPanoramasPhaseParamPtrs{}
+	}
+	mmSetPanoramasPhase.defaultExpectation.paramPtrs.phase = &phase
+	mmSetPanoramasPhase.defaultExpectation.expectationOrigins.originPhase = minimock.CallerInfo(1)
+
+	return mmSetPanoramasPhase
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.SetPanoramasPhase
+func (mmSetPanoramasPhase *mRepositoryMockSetPanoramasPhase) Inspect(f func(ctx context.Context, territorySlug string, ids []int64, phase domain.PanoramaPhase)) *mRepositoryMockSetPanoramasPhase {
+	if mmSetPanoramasPhase.mock.inspectFuncSetPanoramasPhase != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("Inspect function is already set for RepositoryMock.SetPanoramasPhase")
+	}
+
+	mmSetPanoramasPhase.mock.inspectFuncSetPanoramasPhase = f
+
+	return mmSetPanoramasPhase
+}
+
+// Return sets up results that will be returned by Repository.SetPanoramasPhase
+func (mmSetPanoramasPhase *mRepositoryMockSetPanoramasPhase) Return(i1 int, err error) *RepositoryMock {
+	if mmSetPanoramasPhase.mock.funcSetPanoramasPhase != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("RepositoryMock.SetPanoramasPhase mock is already set by Set")
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation == nil {
+		mmSetPanoramasPhase.defaultExpectation = &RepositoryMockSetPanoramasPhaseExpectation{mock: mmSetPanoramasPhase.mock}
+	}
+	mmSetPanoramasPhase.defaultExpectation.results = &RepositoryMockSetPanoramasPhaseResults{i1, err}
+	mmSetPanoramasPhase.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmSetPanoramasPhase.mock
+}
+
+// Set uses given function f to mock the Repository.SetPanoramasPhase method
+func (mmSetPanoramasPhase *mRepositoryMockSetPanoramasPhase) Set(f func(ctx context.Context, territorySlug string, ids []int64, phase domain.PanoramaPhase) (i1 int, err error)) *RepositoryMock {
+	if mmSetPanoramasPhase.defaultExpectation != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("Default expectation is already set for the Repository.SetPanoramasPhase method")
+	}
+
+	if len(mmSetPanoramasPhase.expectations) > 0 {
+		mmSetPanoramasPhase.mock.t.Fatalf("Some expectations are already set for the Repository.SetPanoramasPhase method")
+	}
+
+	mmSetPanoramasPhase.mock.funcSetPanoramasPhase = f
+	mmSetPanoramasPhase.mock.funcSetPanoramasPhaseOrigin = minimock.CallerInfo(1)
+	return mmSetPanoramasPhase.mock
+}
+
+// When sets expectation for the Repository.SetPanoramasPhase which will trigger the result defined by the following
+// Then helper
+func (mmSetPanoramasPhase *mRepositoryMockSetPanoramasPhase) When(ctx context.Context, territorySlug string, ids []int64, phase domain.PanoramaPhase) *RepositoryMockSetPanoramasPhaseExpectation {
+	if mmSetPanoramasPhase.mock.funcSetPanoramasPhase != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("RepositoryMock.SetPanoramasPhase mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockSetPanoramasPhaseExpectation{
+		mock:               mmSetPanoramasPhase.mock,
+		params:             &RepositoryMockSetPanoramasPhaseParams{ctx, territorySlug, ids, phase},
+		expectationOrigins: RepositoryMockSetPanoramasPhaseExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmSetPanoramasPhase.expectations = append(mmSetPanoramasPhase.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.SetPanoramasPhase return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockSetPanoramasPhaseExpectation) Then(i1 int, err error) *RepositoryMock {
+	e.results = &RepositoryMockSetPanoramasPhaseResults{i1, err}
+	return e.mock
+}
+
+// Times sets number of times Repository.SetPanoramasPhase should be invoked
+func (mmSetPanoramasPhase *mRepositoryMockSetPanoramasPhase) Times(n uint64) *mRepositoryMockSetPanoramasPhase {
+	if n == 0 {
+		mmSetPanoramasPhase.mock.t.Fatalf("Times of RepositoryMock.SetPanoramasPhase mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmSetPanoramasPhase.expectedInvocations, n)
+	mmSetPanoramasPhase.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmSetPanoramasPhase
+}
+
+func (mmSetPanoramasPhase *mRepositoryMockSetPanoramasPhase) invocationsDone() bool {
+	if len(mmSetPanoramasPhase.expectations) == 0 && mmSetPanoramasPhase.defaultExpectation == nil && mmSetPanoramasPhase.mock.funcSetPanoramasPhase == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmSetPanoramasPhase.mock.afterSetPanoramasPhaseCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmSetPanoramasPhase.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// SetPanoramasPhase implements mm_service.Repository
+func (mmSetPanoramasPhase *RepositoryMock) SetPanoramasPhase(ctx context.Context, territorySlug string, ids []int64, phase domain.PanoramaPhase) (i1 int, err error) {
+	mm_atomic.AddUint64(&mmSetPanoramasPhase.beforeSetPanoramasPhaseCounter, 1)
+	defer mm_atomic.AddUint64(&mmSetPanoramasPhase.afterSetPanoramasPhaseCounter, 1)
+
+	mmSetPanoramasPhase.t.Helper()
+
+	if mmSetPanoramasPhase.inspectFuncSetPanoramasPhase != nil {
+		mmSetPanoramasPhase.inspectFuncSetPanoramasPhase(ctx, territorySlug, ids, phase)
+	}
+
+	mm_params := RepositoryMockSetPanoramasPhaseParams{ctx, territorySlug, ids, phase}
+
+	// Record call args
+	mmSetPanoramasPhase.SetPanoramasPhaseMock.mutex.Lock()
+	mmSetPanoramasPhase.SetPanoramasPhaseMock.callArgs = append(mmSetPanoramasPhase.SetPanoramasPhaseMock.callArgs, &mm_params)
+	mmSetPanoramasPhase.SetPanoramasPhaseMock.mutex.Unlock()
+
+	for _, e := range mmSetPanoramasPhase.SetPanoramasPhaseMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.i1, e.results.err
+		}
+	}
+
+	if mmSetPanoramasPhase.SetPanoramasPhaseMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmSetPanoramasPhase.SetPanoramasPhaseMock.defaultExpectation.Counter, 1)
+		mm_want := mmSetPanoramasPhase.SetPanoramasPhaseMock.defaultExpectation.params
+		mm_want_ptrs := mmSetPanoramasPhase.SetPanoramasPhaseMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockSetPanoramasPhaseParams{ctx, territorySlug, ids, phase}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmSetPanoramasPhase.t.Errorf("RepositoryMock.SetPanoramasPhase got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramasPhase.SetPanoramasPhaseMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmSetPanoramasPhase.t.Errorf("RepositoryMock.SetPanoramasPhase got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramasPhase.SetPanoramasPhaseMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+			if mm_want_ptrs.ids != nil && !minimock.Equal(*mm_want_ptrs.ids, mm_got.ids) {
+				mmSetPanoramasPhase.t.Errorf("RepositoryMock.SetPanoramasPhase got unexpected parameter ids, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramasPhase.SetPanoramasPhaseMock.defaultExpectation.expectationOrigins.originIds, *mm_want_ptrs.ids, mm_got.ids, minimock.Diff(*mm_want_ptrs.ids, mm_got.ids))
+			}
+
+			if mm_want_ptrs.phase != nil && !minimock.Equal(*mm_want_ptrs.phase, mm_got.phase) {
+				mmSetPanoramasPhase.t.Errorf("RepositoryMock.SetPanoramasPhase got unexpected parameter phase, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramasPhase.SetPanoramasPhaseMock.defaultExpectation.expectationOrigins.originPhase, *mm_want_ptrs.phase, mm_got.phase, minimock.Diff(*mm_want_ptrs.phase, mm_got.phase))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmSetPanoramasPhase.t.Errorf("RepositoryMock.SetPanoramasPhase got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmSetPanoramasPhase.SetPanoramasPhaseMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmSetPanoramasPhase.SetPanoramasPhaseMock.defaultExpectation.results
+		if mm_results == nil {
+			mmSetPanoramasPhase.t.Fatal("No results are set for the RepositoryMock.SetPanoramasPhase")
+		}
+		return (*mm_results).i1, (*mm_results).err
+	}
+	if mmSetPanoramasPhase.funcSetPanoramasPhase != nil {
+		return mmSetPanoramasPhase.funcSetPanoramasPhase(ctx, territorySlug, ids, phase)
+	}
+	mmSetPanoramasPhase.t.Fatalf("Unexpected call to RepositoryMock.SetPanoramasPhase. %v %v %v %v", ctx, territorySlug, ids, phase)
+	return
+}
+
+// SetPanoramasPhaseAfterCounter returns a count of finished RepositoryMock.SetPanoramasPhase invocations
+func (mmSetPanoramasPhase *RepositoryMock) SetPanoramasPhaseAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetPanoramasPhase.afterSetPanoramasPhaseCounter)
+}
+
+// SetPanoramasPhaseBeforeCounter returns a count of RepositoryMock.SetPanoramasPhase invocations
+func (mmSetPanoramasPhase *RepositoryMock) SetPanoramasPhaseBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetPanoramasPhase.beforeSetPanoramasPhaseCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.SetPanoramasPhase.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmSetPanoramasPhase *mRepositoryMockSetPanoramasPhase) Calls() []*RepositoryMockSetPanoramasPhaseParams {
+	mmSetPanoramasPhase.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockSetPanoramasPhaseParams, len(mmSetPanoramasPhase.callArgs))
+	copy(argCopy, mmSetPanoramasPhase.callArgs)
+
+	mmSetPanoramasPhase.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockSetPanoramasPhaseDone returns true if the count of the SetPanoramasPhase invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockSetPanoramasPhaseDone() bool {
+	if m.SetPanoramasPhaseMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.SetPanoramasPhaseMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.SetPanoramasPhaseMock.invocationsDone()
+}
+
+// MinimockSetPanoramasPhaseInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockSetPanoramasPhaseInspect() {
+	for _, e := range m.SetPanoramasPhaseMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.SetPanoramasPhase at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterSetPanoramasPhaseCounter := mm_atomic.LoadUint64(&m.afterSetPanoramasPhaseCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.SetPanoramasPhaseMock.defaultExpectation != nil && afterSetPanoramasPhaseCounter < 1 {
+		if m.SetPanoramasPhaseMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.SetPanoramasPhase at\n%s", m.SetPanoramasPhaseMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.SetPanoramasPhase at\n%s with params: %#v", m.SetPanoramasPhaseMock.defaultExpectation.expectationOrigins.origin, *m.SetPanoramasPhaseMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcSetPanoramasPhase != nil && afterSetPanoramasPhaseCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.SetPanoramasPhase at\n%s", m.funcSetPanoramasPhaseOrigin)
+	}
+
+	if !m.SetPanoramasPhaseMock.invocationsDone() && afterSetPanoramasPhaseCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.SetPanoramasPhase at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.SetPanoramasPhaseMock.expectedInvocations), m.SetPanoramasPhaseMock.expectedInvocationsOrigin, afterSetPanoramasPhaseCounter)
+	}
+}
+
 type mRepositoryMockUpdatePanorama struct {
 	optional           bool
 	mock               *RepositoryMock
@@ -3283,11 +4881,19 @@ func (m *RepositoryMock) MinimockFinish() {
 
 			m.MinimockListDocumentsInspect()
 
+			m.MinimockListPanoramaPhasesInspect()
+
 			m.MinimockListPanoramasInspect()
 
 			m.MinimockListPanoramasWithoutThumbnailInspect()
 
+			m.MinimockSetPanoramaPhaseHiddenInspect()
+
 			m.MinimockSetPanoramaThumbnailInspect()
+
+			m.MinimockSetPanoramasHiddenInspect()
+
+			m.MinimockSetPanoramasPhaseInspect()
 
 			m.MinimockUpdatePanoramaInspect()
 		}
@@ -3318,8 +4924,12 @@ func (m *RepositoryMock) minimockDone() bool {
 		m.MinimockDeleteDocumentDone() &&
 		m.MinimockDeletePanoramaDone() &&
 		m.MinimockListDocumentsDone() &&
+		m.MinimockListPanoramaPhasesDone() &&
 		m.MinimockListPanoramasDone() &&
 		m.MinimockListPanoramasWithoutThumbnailDone() &&
+		m.MinimockSetPanoramaPhaseHiddenDone() &&
 		m.MinimockSetPanoramaThumbnailDone() &&
+		m.MinimockSetPanoramasHiddenDone() &&
+		m.MinimockSetPanoramasPhaseDone() &&
 		m.MinimockUpdatePanoramaDone()
 }
