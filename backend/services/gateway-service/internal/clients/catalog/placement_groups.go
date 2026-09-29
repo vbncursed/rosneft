@@ -76,6 +76,18 @@ func (c *Client) RenamePlacementGroup(ctx context.Context, territorySlug string,
 	return placementGroupFromProto(resp.GetGroup()), nil
 }
 
+// SetPlacementGroupHidden sets group id's own shared hidden flag on
+// territorySlug; its placements keep theirs.
+func (c *Client) SetPlacementGroupHidden(ctx context.Context, territorySlug string, id int64, hidden bool) (domain.PlacementGroup, error) {
+	resp, err := c.cc.SetPlacementGroupHidden(ctx, &catalogv1.SetPlacementGroupHiddenRequest{
+		TerritorySlug: territorySlug, Id: id, Hidden: hidden,
+	})
+	if err != nil {
+		return domain.PlacementGroup{}, editRefusal("catalog.SetPlacementGroupHidden", err)
+	}
+	return placementGroupFromProto(resp.GetGroup()), nil
+}
+
 // DeletePlacementGroup removes group id on territorySlug; its placements stay.
 func (c *Client) DeletePlacementGroup(ctx context.Context, territorySlug string, id int64) error {
 	_, err := c.cc.DeletePlacementGroup(ctx, &catalogv1.DeletePlacementGroupRequest{TerritorySlug: territorySlug, Id: id})
@@ -90,6 +102,7 @@ func placementGroupFromProto(g *catalogv1.PlacementGroup) domain.PlacementGroup 
 		ID:            g.GetId(),
 		TerritorySlug: g.GetTerritorySlug(),
 		Title:         g.GetTitle(),
+		Hidden:        g.GetHidden(),
 		CreatedAt:     g.GetCreatedAt().AsTime(),
 		UpdatedAt:     g.GetUpdatedAt().AsTime(),
 	}

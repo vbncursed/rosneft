@@ -25,6 +25,7 @@ type groupCC struct {
 	create *catalogv1.CreatePlacementGroupRequest
 	rename *catalogv1.RenamePlacementGroupRequest
 	del    *catalogv1.DeletePlacementGroupRequest
+	flag   *catalogv1.SetPlacementGroupHiddenRequest
 }
 
 var wireGroup = &catalogv1.PlacementGroup{Id: 4, TerritorySlug: "yard", Title: "North"}
@@ -62,6 +63,15 @@ func (g *groupCC) DeletePlacementGroup(
 ) (*catalogv1.DeletePlacementGroupResponse, error) {
 	g.del = in
 	return &catalogv1.DeletePlacementGroupResponse{}, g.err
+}
+
+func (g *groupCC) SetPlacementGroupHidden(
+	_ context.Context, in *catalogv1.SetPlacementGroupHiddenRequest, _ ...grpc.CallOption,
+) (*catalogv1.SetPlacementGroupHiddenResponse, error) {
+	g.flag = in
+	return &catalogv1.SetPlacementGroupHiddenResponse{
+		Group: &catalogv1.PlacementGroup{Id: in.GetId(), TerritorySlug: "yard", Title: "North", Hidden: in.GetHidden()},
+	}, g.err
 }
 
 func (g *groupCC) ListPlacementGroups(
@@ -175,4 +185,30 @@ func (s *PlacementGroupsSuite) TestAListingFailureOtherThanUnimplementedPassesTh
 	c := &Client{cc: &groupCC{err: status.Error(codes.Unavailable, "catalog down")}}
 	_, err := c.ListPlacementGroups(s.T().Context(), "yard")
 	assert.Equal(s.T(), status.Code(err), codes.Unavailable)
+}
+
+// The group's own flag travels under the territory and comes back on the
+// group; the listing carries it too, for the scene bundle.
+func (s *PlacementGroupsSuite) TestTheGroupFlagTravelsAndComesBack() {
+	cc := &groupCC{}
+	c := &Client{cc: cc}
+
+	g, err := c.SetPlacementGroupHidden(s.T().Context(), "yard", 4, true)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), cc.flag.GetTerritorySlug(), "yard")
+	assert.Equal(s.T(), cc.flag.GetId(), int64(4))
+	assert.Assert(s.T(), cc.flag.GetHidden())
+	assert.Assert(s.T(), g.Hidden)
+
+	assert.Assert(s.T(), placementGroupFromProto(&catalogv1.PlacementGroup{Id: 5, Hidden: true}).Hidden)
+	assert.Assert(s.T(), !placementGroupFromProto(&catalogv1.PlacementGroup{Id: 6}).Hidden)
+}
+
+// A group of another territory is the catalog's "placement group not found",
+// told in its words: the 404 the route promises.
+func (s *PlacementGroupsSuite) TestAForeignGroupFlagIsGroupNotFound() {
+	c := &Client{cc: &groupCC{err: status.Error(codes.NotFound, "placement group not found")}}
+	_, err := c.SetPlacementGroupHidden(s.T().Context(), "yard", 4, true)
+	assert.ErrorIs(s.T(), err, domain.ErrPlacementGroupNotFound)
+	assert.Equal(s.T(), err.Error(), "placement group not found")
 }
