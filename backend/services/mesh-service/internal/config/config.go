@@ -41,9 +41,11 @@ type Config struct {
 	KTX2Enabled bool `mapstructure:"ktx2-enabled"`
 	// TextureMaxSize caps the longer side of every KTX2-encoded texture, in
 	// pixels (gltfpack -tl). 0 = no cap. Basis encoder memory grows with
-	// the pixel count, so this bounds a single conversion's peak: 8192
-	// keeps today's archives untouched and turns a 16384² texture from an
-	// OOM into a downscale. Inert with KTX2Enabled=false.
+	// the pixel count, so this bounds the encode: 8192 keeps today's
+	// archives untouched and encodes a larger texture at 8192. It does not
+	// bound the decode — basisu reads the whole source before resampling,
+	// ~1 GB more for a 16384² texture, unmeasured against the worker's 5g
+	// limit. Inert with KTX2Enabled=false.
 	TextureMaxSize int `mapstructure:"texture-max-size"`
 	// GltfpackBin is the path/name of the gltfpack binary used by both the
 	// meshopt and KTX2 encoders. Empty falls back to "gltfpack" resolved on

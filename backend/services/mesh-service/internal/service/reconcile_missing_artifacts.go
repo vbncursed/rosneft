@@ -15,16 +15,17 @@ import (
 // message (no XAUTOCLAIM/XCLAIM anywhere in this service), so this TTL is the
 // sole path back to a queued retry.
 //
-// Measured against production Prometheus on 2026-08-03, 15-day window, from
-// the cumulative bucket counts of mesh_conversion_duration_seconds (count=60,
-// sum=1424.18s, mean≈23.7s): le=1 → 15, le=5 → 16, le=15 → 23, le=30 → 36,
-// le=60 → 60 (every observation). All 60 conversions therefore completed
-// within the le=60 bucket, with 36 of them under 30s; the slowest fell
-// somewhere in (30s, 60s] — a classic histogram can't say where inside a
-// bucket, only that 60s bounds it from above. 10 minutes is still a tenfold
-// margin over that 60s bound — comfortable headroom without leaving a dead
-// worker's target stuck for half an hour.
-const TargetLockTTL = 10 * time.Minute
+// The claim is taken at submit, so it has to outlive the queue wait as well
+// as the conversion. The 2026-08-03 production histogram of
+// mesh_conversion_duration_seconds bounded every conversion under 60s, and
+// 10 minutes was sized against that. Encoding textures one at a time
+// (gltfpack -tj 1, the fix for the OOM on 8192² textures) changed the scale:
+// LOD0 of MR1CAMPNEW (3 × 8192²) alone took 357s on 2026-09-29, before its two
+// LOD passes, and with one job per worker the next target waits behind it. A
+// claim that lapses mid-run lets the next reconciler tick queue a duplicate
+// ~4 GB conversion. An hour covers a few such conversions queued ahead; the
+// price is that a dead worker's target waits up to an hour for its retry.
+const TargetLockTTL = time.Hour
 
 // ReconcileMissingArtifacts queues a conversion for every catalog target
 // (territory or model) that does not already have a LOD0 artifact.
