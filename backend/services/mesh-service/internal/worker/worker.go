@@ -32,8 +32,8 @@ type Worker struct {
 	name         string
 	blockTimeout time.Duration
 	// sem is a counting semaphore that caps the number of in-flight
-	// conversions. Each one runs its own gltfpack, and a single 8192²
-	// texture peaks near 3.5 GB there, so the configured default is 1:
+	// conversions. Each one runs its own gltfpack, which peaked at 4.0 GB on
+	// three 8192² textures, so the configured default is 1:
 	// parallel jobs multiply memory, not throughput, on the 8 GB host this
 	// ships to.
 	sem chan struct{}

@@ -310,21 +310,24 @@ services:
     build:
       context: ./backend
       dockerfile: services/mesh-service/Dockerfile.worker
-    # One replica with a hard memory cap. gltfpack peaks near 4 GB on a
+    # One replica with a hard memory cap. gltfpack peaks at 4.0 GB on a
     # scene of 8192² textures (MESH_TEXTURE_MAX_SIZE), and the prod host is
     # 4 cores / 8 GB shared with everything else: two replicas converting at
     # once took the whole machine. The cap makes the kernel kill the
     # conversion — the job fails with a visible error — instead of starving
     # postgres and the gateway. 5g = that peak + the Go process. The code
     # still runs N replicas safely (in-flight latch, per-hostname consumer
-    # names) on a bigger host. No healthcheck: this binary listens on
-    # nothing; its liveness is read from the service_ready{service="mesh-worker"}
-    # gauge.
+    # names) on a bigger host. memswap_limit equal to the memory limit
+    # forbids swap: otherwise a host with swap lets the conversion thrash
+    # instead of being killed. No healthcheck: this binary listens on
+    # nothing; its liveness is read from the
+    # service_ready{service="mesh-worker"} gauge.
     deploy:
       replicas: 1
       resources:
         limits:
           memory: 5g
+    memswap_limit: 5g
     depends_on:
       redis: { condition: service_healthy }
       catalog: { condition: service_started }

@@ -41,8 +41,8 @@ func WithMeshopt() Option {
 // WithKTX2 enables KHR_texture_basisu (KTX2 / Basis Universal). The
 // frontend must register a KTX2Loader. maxTextureSize caps the longer
 // texture side in pixels (gltfpack -tl); 0 leaves it uncapped. Encoder
-// memory grows with the pixel count: one 8192² texture peaks near 3.5 GB,
-// a 16384² one four times that.
+// memory grows with the pixel count: three 8192² textures, encoded one at a
+// time, peaked at 4.0 GB; a 16384² texture has four times the pixels.
 func WithKTX2(maxTextureSize int) Option {
 	return func(o *Optimizer) {
 		o.ktx2 = true

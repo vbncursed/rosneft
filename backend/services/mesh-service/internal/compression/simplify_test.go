@@ -47,3 +47,25 @@ func (s *SimplifyArgsSuite) TestKeepsTheBaseFlags() {
 	assert.Equal(s.T(), argValue(args, "-i"), "in.glb")
 	assert.Equal(s.T(), argValue(args, "-o"), "out.glb")
 }
+
+// gltfpack applies -ts and then clamps to -tl, so an unscaled cap flattens
+// every LOD of an oversized source: 16384² at -ts 0.5 is 8192, which an
+// 8192 cap leaves alone — LOD1 would ship LOD0's textures.
+func (s *SimplifyArgsSuite) TestScalesTheTextureCapWithTheLOD() {
+	o := New("gltfpack", WithKTX2(8192))
+
+	assert.Equal(s.T(), argValue(o.simplifyArgs("in.glb", "out.glb", 0.5), "-tl"), "4096")
+	assert.Equal(s.T(), argValue(o.simplifyArgs("in.glb", "out.glb", 0.25), "-tl"), "2048")
+}
+
+func (s *SimplifyArgsSuite) TestPassesTheTextureCapOnce() {
+	args := New("gltfpack", WithKTX2(8192)).simplifyArgs("in.glb", "out.glb", 0.5)
+
+	count := 0
+	for _, a := range args {
+		if a == "-tl" {
+			count++
+		}
+	}
+	assert.Equal(s.T(), count, 1)
+}

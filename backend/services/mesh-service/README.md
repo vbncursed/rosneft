@@ -137,7 +137,7 @@ All env vars are prefixed `MESH_`. Defaults shown.
 | `MESH_BLOB_DIR` | *(required)* | BlobStore root (source ZIPs + output GLBs) | `mesh-worker` |
 | `MESH_WORKER_NAME` | `mesh-worker-1` | Consumer-group instance | `mesh-worker` |
 | `MESH_BLOCK_TIMEOUT` | `5s` | XREADGROUP block | `mesh-worker` |
-| `MESH_MAX_CONCURRENT_JOBS` | `1` | Parallel conversions per worker; `0` → `GOMAXPROCS`. Each runs its own gltfpack (~4 GB peak on 8192² textures), so raise it only with the memory to match | `mesh-worker` |
+| `MESH_MAX_CONCURRENT_JOBS` | `1` | Parallel conversions per worker; `0` → `GOMAXPROCS`. Each runs its own gltfpack (4.0 GB peak measured on three 8192² textures), so raise it only with the memory to match | `mesh-worker` |
 | `MESH_MESHOPT_ENABLED` | `true` | EXT_meshopt_compression (`MESH_DRACO_ENABLED` still read for one release, with a deprecation warning) | `mesh-worker` |
 | `MESH_KTX2_ENABLED` | `true` | KHR_texture_basisu (frontend KTX2Loader required) | `mesh-worker` |
 | `MESH_TEXTURE_MAX_SIZE` | `8192` | Longer-side cap for KTX2 textures, in pixels (`gltfpack -tl`); `0` = none. Encoder memory grows with the pixel count | `mesh-worker` |

@@ -113,8 +113,9 @@ func (s *ConfigSuite) TestValidateWorkerRejectsEmptyWorkerName() {
 	assert.ErrorContains(s.T(), err, "worker-name")
 }
 
-// Each conversion runs its own gltfpack, and one 8192² texture peaks near
-// 3.5 GB — a GOMAXPROCS-wide pool OOM-killed the worker on a 4-core, 8 GB host.
+// Each conversion runs its own gltfpack, which peaks at 4.0 GB on three 8192²
+// textures even encoding them one at a time — a GOMAXPROCS-wide pool OOMs the
+// 4-core, 8 GB host.
 func (s *ConfigSuite) TestLoadRunsOneConversionAtATimeByDefault() {
 	cfg, _ := loadWithCapturedLog(s.T())
 

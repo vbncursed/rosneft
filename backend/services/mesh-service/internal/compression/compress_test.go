@@ -16,28 +16,28 @@ func TestBuildArgsSuite(t *testing.T) {
 	suite.Run(t, new(BuildArgsSuite))
 }
 
-// Without -tj gltfpack encodes every texture at once on every core, and one
-// 8192² texture alone peaks near 3.5 GB — three of them OOM-killed the worker.
+// Without -tj gltfpack encodes every texture at once on every core: three
+// 8192² textures grew past 6.7 GB and were OOM-killed; with -tj 1, 4.0 GB.
 func (s *BuildArgsSuite) TestEncodesOneTextureAtATime() {
-	args := New("gltfpack", WithKTX2(0)).buildArgs("in.glb", "out.glb")
+	args := New("gltfpack", WithKTX2(0)).buildArgs("in.glb", "out.glb", 1)
 
 	assert.Equal(s.T(), argValue(args, "-tj"), "1")
 }
 
 func (s *BuildArgsSuite) TestCapsTheTextureSide() {
-	args := New("gltfpack", WithKTX2(8192)).buildArgs("in.glb", "out.glb")
+	args := New("gltfpack", WithKTX2(8192)).buildArgs("in.glb", "out.glb", 1)
 
 	assert.Equal(s.T(), argValue(args, "-tl"), "8192")
 }
 
 func (s *BuildArgsSuite) TestZeroLeavesTheTextureSideUncapped() {
-	args := New("gltfpack", WithKTX2(0)).buildArgs("in.glb", "out.glb")
+	args := New("gltfpack", WithKTX2(0)).buildArgs("in.glb", "out.glb", 1)
 
 	assert.Assert(s.T(), !slices.Contains(args, "-tl"))
 }
 
 func (s *BuildArgsSuite) TestNoTextureFlagsWithoutKTX2() {
-	args := New("gltfpack", WithMeshopt()).buildArgs("in.glb", "out.glb")
+	args := New("gltfpack", WithMeshopt()).buildArgs("in.glb", "out.glb", 1)
 
 	for _, flag := range []string{"-tc", "-tj", "-tl"} {
 		assert.Assert(s.T(), !slices.Contains(args, flag), "unexpected %s", flag)
