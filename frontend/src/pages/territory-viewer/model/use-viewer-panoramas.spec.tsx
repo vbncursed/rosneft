@@ -96,6 +96,7 @@ const mount = (
 
 describe("useViewerPanoramas", () => {
   beforeEach(() => {
+    localStorage.clear();
     list.panoramas = PANORAMAS;
     list.update.mockReset();
     list.add.mockReset();
@@ -342,5 +343,12 @@ describe("useViewerPanoramas", () => {
     expect(mount().result.current.visibility.phaseHidden).toEqual({ prior: false, current: false, post: false });
     const hidden = { prior: false, current: true, post: false };
     expect(mount(modeStub(), false, { phaseHidden: hidden }).result.current.visibility.phaseHidden).toEqual(hidden);
+  });
+
+  it("hands the stored marker choice and its setter through", () => {
+    const { result } = mount();
+    expect(result.current.markers).toBe("all");
+    act(() => result.current.onMarkers("points"));
+    expect(result.current.markers).toBe("points");
   });
 });

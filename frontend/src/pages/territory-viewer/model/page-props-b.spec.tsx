@@ -363,7 +363,7 @@ describe("panoramaCanvasProps", () => {
   });
 
   it("passes the texture, the markers and the live drag straight through", () => {
-    const p = withPanoramas([panorama(1)], { showMarkers: false });
+    const p = withPanoramas([panorama(1)], { markers: "off" });
     const moving = {
       ...p,
       mode: { ...p.mode, move: true },
@@ -374,9 +374,17 @@ describe("panoramaCanvasProps", () => {
     };
     const props = panoramaCanvasProps(moving, []);
     expect(props.showMarkers).toBe(false);
+    expect(props.markerNames).toBe(false);
     expect(props.panoramas).toBe(moving.panoramas.list);
     expect(props.move).toEqual({ active: true, draggingId: 1, livePos: { x: 1, y: 2, z: 3 } });
     expect(props.panoramaStatus).toBe("idle");
+  });
+
+  it("draws rings without titles in Points only, and both in Points & names", () => {
+    const points = panoramaCanvasProps(withPanoramas([panorama(1)], { markers: "points" }), []);
+    expect([points.showMarkers, points.markerNames]).toEqual([true, false]);
+    const all = panoramaCanvasProps(withPanoramas([panorama(1)], { markers: "all" }), []);
+    expect([all.showMarkers, all.markerNames]).toEqual([true, true]);
   });
 
   it("hands the canvas each phase's flag, so the map draws only what is shown", () => {

@@ -70,6 +70,8 @@ export type ViewerCanvasProps = {
   /** Each job phase's shared flag: a hidden capture, or one of a hidden phase, gets no anchor (D5). */
   panoramaPhaseHidden: PhaseHidden;
   showMarkers: boolean;
+  /** False in Points only: the panorama anchors draw without their titles. */
+  markerNames: boolean;
   /** The View tab's ruler switch; measure mode draws the ruler regardless. */
   showMeasurements: boolean;
   /** Labels for the viewport markers inside a panorama, by placement id (`storage-tank-500 #1`). */

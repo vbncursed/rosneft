@@ -139,7 +139,10 @@ export function panoramaCanvasProps(p: PageParts, groups: ModelGroup[]) {
     calibrating: pan.calibration.active,
     panoramas: pan.list,
     panoramaPhaseHidden: pan.visibility.phaseHidden,
-    showMarkers: pan.showMarkers,
+    // Off hides every marker, the objects' rings inside a photo included;
+    // Points only keeps the rings and drops the anchors' titles.
+    showMarkers: pan.markers !== "off",
+    markerNames: pan.markers === "all",
     markerLabels: labelsOf(groups),
     move: moveOf(p.mode.move, pan.drag.draggingId, pan.drag.livePos),
     cameraPositionRef: pan.cameraPositionRef,

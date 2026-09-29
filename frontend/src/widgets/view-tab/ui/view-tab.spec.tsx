@@ -6,6 +6,9 @@ import {
   CALIBRATION_LINE,
   DOCUMENTS_OVERLINE,
   EXIT_CALIBRATION,
+  MARKERS_ALL,
+  MARKERS_OFF,
+  MARKERS_POINTS,
   MARKERS_SWITCH,
   MEASUREMENTS_OVERLINE,
   MEASUREMENTS_SWITCH,
@@ -67,8 +70,8 @@ const base = (): ViewTabProps => ({
     onEnter: vi.fn(),
     onExit: vi.fn(),
     onEdit: vi.fn(),
-    showMarkers: true,
-    onToggleMarkers: vi.fn(),
+    markers: "all",
+    onMarkers: vi.fn(),
     onExitCalibration: vi.fn(),
     canMovePoints: false,
     moving: false,
@@ -123,13 +126,21 @@ describe("ViewTab", () => {
     expect(props.documents.onOpen).toHaveBeenCalledWith(3);
   });
 
-  it("switches the in-scene markers", async () => {
+  it("offers the in-scene points as three choices, Points & names first", async () => {
     const { props, container } = tab();
     expect(container.querySelector("[data-tour='toggle-markers']")).not.toBeNull();
-    const markers = screen.getByRole("switch", { name: MARKERS_SWITCH });
-    expect(markers).toBeChecked();
-    await userEvent.click(markers);
-    expect(props.panoramas.onToggleMarkers).toHaveBeenCalled();
+    const group = screen.getByRole("radiogroup", { name: MARKERS_SWITCH });
+    expect(within(group).getAllByRole("radio").map((r) => r.textContent)).toEqual([MARKERS_ALL, MARKERS_POINTS, MARKERS_OFF]);
+    expect(within(group).getByRole("radio", { name: MARKERS_ALL })).toBeChecked();
+    await userEvent.click(within(group).getByRole("radio", { name: MARKERS_POINTS }));
+    expect(props.panoramas.onMarkers).toHaveBeenCalledWith("points");
+  });
+
+  it("shows the stored choice as the checked one", () => {
+    tab((p) => {
+      p.panoramas.markers = "off";
+    });
+    expect(screen.getByRole("radio", { name: MARKERS_OFF })).toBeChecked();
   });
 
   it("heads the ruler's own section with how many chains are saved", () => {
@@ -144,7 +155,7 @@ describe("ViewTab", () => {
     expect(ruler).toBeChecked();
     await userEvent.click(ruler);
     expect(props.measurements.onToggle).toHaveBeenCalledTimes(1);
-    expect(props.panoramas.onToggleMarkers).not.toHaveBeenCalled();
+    expect(props.panoramas.onMarkers).not.toHaveBeenCalled();
   });
 
   it("draws the ruler switch off when the ruler is hidden", () => {
@@ -272,7 +283,7 @@ describe("ViewTab", () => {
       expect(head(PANORAMAS_OVERLINE)).toHaveAttribute("aria-expanded", "false");
       expect(head(DOCUMENTS_OVERLINE)).toHaveAttribute("aria-expanded", "false");
       // Section settings, not list items: they stay in reach.
-      expect(screen.getByRole("switch", { name: MARKERS_SWITCH })).toBeVisible();
+      expect(screen.getByRole("radiogroup", { name: MARKERS_SWITCH })).toBeVisible();
     });
 
     it("points each head at its own list and shows the list when open", () => {

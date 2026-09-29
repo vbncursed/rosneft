@@ -37,8 +37,8 @@ export const IDLE_PANORAMAS: PanoramaParts = {
     onSetPhaseHidden: noop,
   },
   texture: { bitmap: null, progress: null, status: "idle" },
-  showMarkers: true,
-  onToggleMarkers: noop,
+  markers: "all",
+  onMarkers: noop,
   drag: { draggingId: null, livePos: null, begin: noop, move: noop, end: noop },
   calibration: {
     active: false,

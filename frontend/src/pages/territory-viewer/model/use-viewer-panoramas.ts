@@ -194,8 +194,8 @@ export function useViewerPanoramas({
       onSetPhaseHidden: visibility.setPhaseHidden,
     },
     texture,
-    showMarkers: markers.showMarkers,
-    onToggleMarkers: markers.toggle,
+    markers: markers.mode,
+    onMarkers: markers.setMode,
     drag,
     calibration: {
       active: calibration.calibrating,

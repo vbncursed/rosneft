@@ -131,4 +131,16 @@ describe("PanoramaMarker", () => {
     mount({ moveMode: true, onGrab: vi.fn() });
     expect(screen.getByRole("button", { name: "Move panorama Control room" })).not.toHaveClass("active:scale-95");
   });
+
+  it("draws the ring without its title in Points only, and still opens by name", () => {
+    mount({ showTitle: false });
+    expect(screen.getByRole("button", { name: "Open panorama Control room" })).toBeInTheDocument();
+    expect(screen.queryByText("Control room")).toBeNull();
+  });
+
+  // The chip is the alignment's instruction, not the capture's name.
+  it("keeps the calibration chip in Points only", () => {
+    mount({ showTitle: false, calibrating: true });
+    expect(screen.getByText("anchor · drag to move")).toBeInTheDocument();
+  });
 });

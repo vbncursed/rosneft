@@ -40,6 +40,7 @@ const props = {
   panoramas: [],
   panoramaPhaseHidden: { prior: false, current: false, post: false },
   showMarkers: true,
+  markerNames: true,
   showMeasurements: true,
   markerLabels: {},
   move: { active: false, draggingId: null, livePos: null },

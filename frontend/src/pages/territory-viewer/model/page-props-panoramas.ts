@@ -44,8 +44,8 @@ export function panoramasTabProps(p: PageParts, editor: ReactNode): ViewTabProps
     onEnter: pan.onEnter,
     onExit: pan.onExit,
     onEdit: pan.onEdit,
-    showMarkers: pan.showMarkers,
-    onToggleMarkers: pan.onToggleMarkers,
+    markers: pan.markers,
+    onMarkers: pan.onMarkers,
     onExitCalibration: pan.calibration.onExit,
     // Scene only (B-5): the reducer refuses V from inside a capture, and a
     // button offering a sub-mode that cannot be entered is worse than none.

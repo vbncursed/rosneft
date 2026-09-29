@@ -21,6 +21,8 @@ export interface PanoramaSceneProps {
   /** Each phase's flag: only `isPanoramaShown` anchors are drawn. */
   phaseHidden: PhaseHidden;
   showMarkers: boolean;
+  /** False in Points only: the anchors draw without their titles. */
+  markerNames: boolean;
   /** True whenever the canvas is picking points rather than editing. */
   pointMode: boolean;
   /** The overlay alignment is open — see `ViewerCanvasProps`. */
@@ -52,6 +54,7 @@ export default function PanoramaScene({
   panoramas,
   phaseHidden,
   showMarkers,
+  markerNames,
   pointMode,
   calibrating,
   move,
@@ -117,6 +120,7 @@ export default function PanoramaScene({
           draggingId={move.draggingId}
           livePos={move.livePos}
           onGrab={onGrab}
+          showTitles={markerNames}
         />
       ) : null}
 

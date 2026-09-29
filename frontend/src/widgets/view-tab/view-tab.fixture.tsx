@@ -1,7 +1,7 @@
 import { useRef, useState, type ReactNode } from "react";
 import { ALL_PHASES_SHOWN, nudgePosition, type Panorama, type PhaseHidden } from "@/entities/panorama";
 import type { Vec3 } from "@/entities/placement";
-import { NUDGE_STEPS } from "@/features/panorama-view";
+import { NUDGE_STEPS, type MarkerMode } from "@/features/panorama-view";
 import type { Detail } from "@/shared/ui/detail-list";
 import { insideFooter, LOADING_FOOTER } from "./model/copy";
 import { degToRad } from "./model/degrees";
@@ -75,7 +75,7 @@ function Live({
   ruler?: boolean;
   phaseHidden?: PhaseHidden;
 }) {
-  const [showMarkers, setShowMarkers] = useState(true);
+  const [markers, setMarkers] = useState<MarkerMode>("all");
   const [moving, setMoving] = useState(false);
   const [showRuler, setShowRuler] = useState(ruler);
   const [link, setLink] = useState(url);
@@ -111,8 +111,8 @@ function Live({
           onEnter: () => {},
           onExit: () => {},
           onEdit: () => {},
-          showMarkers,
-          onToggleMarkers: () => setShowMarkers((on) => !on),
+          markers,
+          onMarkers: setMarkers,
           onExitCalibration: () => {},
           canMovePoints: canMove,
           moving,

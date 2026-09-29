@@ -4,7 +4,7 @@ import type { CalibrationDraft, Panorama, PanoramaPhase, PanoramaUpdate, PhaseHi
 import type { Vec3 } from "@/entities/placement";
 import type { DocumentWindowMode } from "@/features/document-view";
 import type { useDocumentUpload } from "@/features/document-upload";
-import type { PanoramaTextureState } from "@/features/panorama-view";
+import type { MarkerMode, PanoramaTextureState } from "@/features/panorama-view";
 import type { usePanoramaUpload } from "@/features/panorama-upload";
 import type { DocumentWindowProps } from "@/widgets/document-window";
 
@@ -44,8 +44,9 @@ export type PanoramaParts = {
     onSetPhaseHidden: (phase: PanoramaPhase, hidden: boolean) => void;
   };
   texture: PanoramaTextureState;
-  showMarkers: boolean;
-  onToggleMarkers: () => void;
+  /** The in-scene points (D7), remembered per browser. */
+  markers: MarkerMode;
+  onMarkers: (mode: MarkerMode) => void;
   /** The in-scene marker drag. The move sub-mode itself is the reducer's. */
   drag: {
     draggingId: number | null;

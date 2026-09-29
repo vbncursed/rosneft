@@ -15,6 +15,8 @@ interface PanoramaMarkerProps {
   dragging?: boolean;
   livePos?: Vec3 | null;
   onGrab?: (id: number) => void;
+  /** Points only: the ring without its title. The calibration chip is not a title and stays. */
+  showTitle?: boolean;
 }
 
 // PanoramaMarker is the anchor of one panorama in the 3D view: a 10 px accent
@@ -33,6 +35,7 @@ export default function PanoramaMarker({
   dragging = false,
   livePos = null,
   onGrab,
+  showTitle = true,
 }: PanoramaMarkerProps) {
   // Mid-drag the marker follows the live surface point; otherwise it sits at
   // its saved anchor. A grab that has not yet resolved a point stays put.
@@ -81,11 +84,11 @@ export default function PanoramaMarker({
           <span className="absolute -top-1.75 left-4 whitespace-nowrap rounded-control-sm border border-accent bg-panel px-[7px] py-[3px] font-mono text-[10px] text-accent shadow-elevation">
             {CALIBRATION_CHIP}
           </span>
-        ) : (
+        ) : showTitle ? (
           <span className="absolute -top-1.5 left-3.5 whitespace-nowrap font-mono text-[10px] text-accent">
             {panorama.title}
           </span>
-        )}
+        ) : null}
       </div>
     </Html>
   );

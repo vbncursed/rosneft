@@ -75,4 +75,10 @@ describe("PanoramaMarkersLayer", () => {
     expect(classes(1)).toContain("cursor-grab");
     expect(classes(3)).toContain("cursor-grab");
   });
+
+  it("hands Points only to every marker", () => {
+    mount({ showTitles: false });
+    expect(screen.getAllByRole("button")).toHaveLength(3);
+    expect(screen.queryByText("Panorama 2")).toBeNull();
+  });
 });

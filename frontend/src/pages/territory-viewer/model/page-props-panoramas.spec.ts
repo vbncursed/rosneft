@@ -65,4 +65,11 @@ describe("panoramasTabProps", () => {
     const card = createElement("div");
     expect(panoramasTabProps(parts(true), card).editor).toBe(card);
   });
+
+  it("hands the stored marker choice and its setter to the View tab", () => {
+    const p = parts(true);
+    const props = panoramasTabProps({ ...p, panoramas: { ...p.panoramas, markers: "points" } }, null);
+    expect(props.markers).toBe("points");
+    expect(props.onMarkers).toBe(p.panoramas.onMarkers);
+  });
 });
