@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 )
 
 // Compress runs gltfpack on the input GLB and returns the optimised result.
@@ -20,6 +21,11 @@ import (
 //     doesn't also need KHR_mesh_quantization handling
 //   - `-kn -km -ke` — preserve node, material and extras names so debugging
 //     and downstream texture lookups continue to work after compression
+//   - `-tj 1` — encode one texture at a time. gltfpack's default is a thread
+//     per core, each holding a whole decoded texture: three 8192² textures
+//     OOM-killed a 4-core/8 GB host. Serial is slower on multi-texture
+//     scenes and bounds peak memory to the largest texture.
+//   - `-tl N` — cap the longer texture side (WithKTX2's maxTextureSize)
 func (o *Optimizer) Compress(ctx context.Context, glb []byte) ([]byte, error) {
 	if len(glb) == 0 {
 		return nil, fmt.Errorf("compression: empty GLB input")
@@ -69,7 +75,10 @@ func (o *Optimizer) buildArgs(in, out string) []string {
 		args = append(args, "-cc")
 	}
 	if o.ktx2 {
-		args = append(args, "-tc")
+		args = append(args, "-tc", "-tj", "1")
+		if o.maxTextureSize > 0 {
+			args = append(args, "-tl", strconv.Itoa(o.maxTextureSize))
+		}
 	}
 	return args
 }

@@ -31,6 +31,7 @@ func InitCompressor(ctx context.Context, cfg config.Config, logger *slog.Logger)
 		slog.String("binary", cfg.GltfpackBin),
 		slog.Bool("meshopt", cfg.MeshoptEnabled),
 		slog.Bool("ktx2", cfg.KTX2Enabled),
+		slog.Int("texture_max_size", cfg.TextureMaxSize),
 	)
 	return o, nil
 }
@@ -44,7 +45,7 @@ func buildCompressorOptions(cfg config.Config) []compression.Option {
 		opts = append(opts, compression.WithMeshopt())
 	}
 	if cfg.KTX2Enabled {
-		opts = append(opts, compression.WithKTX2())
+		opts = append(opts, compression.WithKTX2(cfg.TextureMaxSize))
 	}
 	return opts
 }

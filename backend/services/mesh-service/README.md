@@ -79,7 +79,11 @@ internal/
    - Texture cache deduplicates images shared across materials.
    - Normalize (center, scale to maxDim=2). Emit GLB.
    - **Meshopt compression** + **KTX2** via `gltfpack -cc -tc` (when enabled;
-     always with `-noq -kn -km -ke`).
+     always with `-noq -kn -km -ke`). Textures are encoded one at a time
+     (`-tj 1`) and capped at `MESH_TEXTURE_MAX_SIZE` per side (`-tl`): the
+     Basis encoder holds a whole decoded texture per thread, and gltfpack's
+     default of a thread per core OOM-killed a 4-core/8 GB host on three
+     8192² textures.
    - **LOD fan-out** — for each ratio in `MESH_LOD_RATIOS`, run
      `gltfpack -si <ratio>` on the LOD0 GLB to produce LOD1, LOD2, …. A failed
      LOD pass is logged and skipped — LOD0 still ships.
@@ -133,9 +137,10 @@ All env vars are prefixed `MESH_`. Defaults shown.
 | `MESH_BLOB_DIR` | *(required)* | BlobStore root (source ZIPs + output GLBs) | `mesh-worker` |
 | `MESH_WORKER_NAME` | `mesh-worker-1` | Consumer-group instance | `mesh-worker` |
 | `MESH_BLOCK_TIMEOUT` | `5s` | XREADGROUP block | `mesh-worker` |
-| `MESH_MAX_CONCURRENT_JOBS` | `0` | `0` → `GOMAXPROCS` | `mesh-worker` |
+| `MESH_MAX_CONCURRENT_JOBS` | `1` | Parallel conversions per worker; `0` → `GOMAXPROCS`. Each runs its own gltfpack (~4 GB peak on 8192² textures), so raise it only with the memory to match | `mesh-worker` |
 | `MESH_MESHOPT_ENABLED` | `true` | EXT_meshopt_compression (`MESH_DRACO_ENABLED` still read for one release, with a deprecation warning) | `mesh-worker` |
 | `MESH_KTX2_ENABLED` | `true` | KHR_texture_basisu (frontend KTX2Loader required) | `mesh-worker` |
+| `MESH_TEXTURE_MAX_SIZE` | `8192` | Longer-side cap for KTX2 textures, in pixels (`gltfpack -tl`); `0` = none. Encoder memory grows with the pixel count | `mesh-worker` |
 | `MESH_GLTFPACK_BIN` | `gltfpack` | Path/name of gltfpack binary (`MESH_DRACO_BIN` still read for one release, with a deprecation warning) | `mesh-worker` |
 | `MESH_LOD_RATIOS` | `0.5,0.25` | Comma-separated ratios for extra LODs; each drives both `-si` (triangles) and `-ts` (texture side). LOD0 always = full quality. Requires `MESH_KTX2_ENABLED` for `-ts` to bite | `mesh-worker` |
 | `MESH_LOG_LEVEL` | `info` | `debug` / `info` / `warn` / `error` | both |

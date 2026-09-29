@@ -26,7 +26,7 @@ func argValue(args []string, flag string) string {
 }
 
 func (s *SimplifyArgsSuite) TestScalesTexturesByTheSameRatio() {
-	o := New("gltfpack", WithMeshopt(), WithKTX2())
+	o := New("gltfpack", WithMeshopt(), WithKTX2(0))
 
 	args := o.simplifyArgs("in.glb", "out.glb", 0.25)
 
@@ -35,7 +35,7 @@ func (s *SimplifyArgsSuite) TestScalesTexturesByTheSameRatio() {
 }
 
 func (s *SimplifyArgsSuite) TestKeepsTheBaseFlags() {
-	o := New("gltfpack", WithMeshopt(), WithKTX2())
+	o := New("gltfpack", WithMeshopt(), WithKTX2(0))
 
 	args := o.simplifyArgs("in.glb", "out.glb", 0.5)
 

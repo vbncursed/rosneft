@@ -112,3 +112,25 @@ func (s *ConfigSuite) TestValidateWorkerRejectsEmptyWorkerName() {
 	// task removes, so an unavailable hostname must be a hard error.
 	assert.ErrorContains(s.T(), err, "worker-name")
 }
+
+// Each conversion runs its own gltfpack, and one 8192² texture peaks near
+// 3.5 GB — a GOMAXPROCS-wide pool OOM-killed the worker on a 4-core, 8 GB host.
+func (s *ConfigSuite) TestLoadRunsOneConversionAtATimeByDefault() {
+	cfg, _ := loadWithCapturedLog(s.T())
+
+	assert.Equal(s.T(), cfg.MaxConcurrentJobs, 1)
+}
+
+func (s *ConfigSuite) TestLoadCapsTexturesAt8192ByDefault() {
+	cfg, _ := loadWithCapturedLog(s.T())
+
+	assert.Equal(s.T(), cfg.TextureMaxSize, 8192)
+}
+
+func (s *ConfigSuite) TestLoadReadsTextureMaxSizeFromEnv() {
+	s.T().Setenv("MESH_TEXTURE_MAX_SIZE", "4096")
+
+	cfg, _ := loadWithCapturedLog(s.T())
+
+	assert.Equal(s.T(), cfg.TextureMaxSize, 4096)
+}

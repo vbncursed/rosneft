@@ -37,7 +37,7 @@ func newRootCmd() *cobra.Command {
 	flags.String("blob-dir", "", "BlobStore root directory (or set MESH_BLOB_DIR)")
 	flags.String("worker-name", config.DefaultWorkerName(), "Consumer name within the group")
 	flags.Duration("block-timeout", 5*time.Second, "XREADGROUP block duration per poll")
-	flags.Int("max-concurrent-jobs", 0, "max parallel conversions (0 = GOMAXPROCS)")
+	flags.Int("max-concurrent-jobs", 1, "max parallel conversions (0 = GOMAXPROCS)")
 	flags.String("log-level", "info", "log level")
 	flags.String("log-format", "json", "log format: json|text")
 	flags.Duration("shutdown-timeout", 30*time.Second, "graceful shutdown timeout")
