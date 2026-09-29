@@ -73,6 +73,22 @@ func (s *Server) UpdatePlacementGroup(ctx context.Context, req UpdatePlacementGr
 	return UpdatePlacementGroup200JSONResponse(placementGroupToAPI(g)), nil
 }
 
+func (s *Server) SetPlacementGroupHidden(ctx context.Context, req SetPlacementGroupHiddenRequestObject) (SetPlacementGroupHiddenResponseObject, error) {
+	if req.Body == nil {
+		return SetPlacementGroupHidden400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
+	}
+	g, err := s.svc.SetPlacementGroupHidden(ctx, req.Slug, req.Id, req.Body.Hidden)
+	switch {
+	case isInvalid(err):
+		return SetPlacementGroupHidden400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
+	case isNotFound(err):
+		return SetPlacementGroupHidden404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
+	case err != nil:
+		return SetPlacementGroupHidden500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
+	}
+	return SetPlacementGroupHidden200JSONResponse(placementGroupToAPI(g)), nil
+}
+
 func (s *Server) DeletePlacementGroup(ctx context.Context, req DeletePlacementGroupRequestObject) (DeletePlacementGroupResponseObject, error) {
 	err := s.svc.DeletePlacementGroup(ctx, req.Slug, req.Id)
 	switch {

@@ -30,6 +30,7 @@ func isNotFound(err error) bool {
 		errors.Is(err, domain.ErrPlacementNotFound) ||
 		errors.Is(err, domain.ErrMeasurementNotFound) ||
 		errors.Is(err, domain.ErrPlacementGroupNotFound) ||
+		errors.Is(err, domain.ErrPanoramaNotFound) ||
 		errors.Is(err, domain.ErrUploadNotFound)
 }
 
