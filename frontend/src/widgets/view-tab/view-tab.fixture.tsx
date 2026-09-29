@@ -99,7 +99,10 @@ function Live({
             pendingIds: [],
             pendingPhases: [],
             onSetHidden: (ids, hidden) => setLive((prev) => prev.map((r) => (ids.includes(r.id) ? { ...r, hidden } : r))),
-            onMove: (ids, phase) => setLive((prev) => prev.map((r) => (ids.includes(r.id) ? { ...r, phase } : r))),
+            onMove: async (ids, phase) => {
+              setLive((prev) => prev.map((r) => (ids.includes(r.id) ? { ...r, phase } : r)));
+              return true;
+            },
             onSetPhaseHidden: (phase, hidden) => setHiddenPhases((prev) => ({ ...prev, [phase]: hidden })),
           },
           calibrating,

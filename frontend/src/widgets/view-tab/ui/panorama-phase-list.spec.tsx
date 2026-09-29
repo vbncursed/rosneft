@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ALL_PHASES_SHOWN } from "@/entities/panorama";
@@ -28,7 +28,7 @@ const props = (over: Partial<PanoramaPhaseListProps> = {}): PanoramaPhaseListPro
     pendingIds: [],
     pendingPhases: [],
     onSetHidden: vi.fn(),
-    onMove: vi.fn(),
+    onMove: vi.fn(async () => true),
     onSetPhaseHidden: vi.fn(),
   },
   onEnter: vi.fn(),
@@ -121,5 +121,28 @@ describe("PanoramaPhaseList", () => {
     const prior = phase("Prior job").closest("li")!;
     expect(within(prior).getByRole("button", { name: "Show in this panorama: Capture 1" })).toBeInTheDocument();
     expect(container.querySelectorAll("ul#list > li")).toHaveLength(3);
+  });
+
+  // The row leaves its phase's <ul> once the move lands, taking the Move
+  // trigger that held focus with it (Menu already returned focus there before
+  // calling onSelect). The destination's disclosure is the one control that
+  // never unmounts, so it is where focus goes next.
+  it("sends focus to the destination phase's disclosure once a move lands", async () => {
+    const onMove = vi.fn(async () => true);
+    const p = props();
+    render(<PanoramaPhaseList {...p} phases={{ ...p.phases, onMove }} />);
+    await userEvent.click(screen.getByRole("button", { name: "Move Capture 1 to another phase" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Current job" }));
+    await waitFor(() => expect(document.activeElement).toBe(phase("Current job")));
+  });
+
+  it("leaves focus on the trigger when a move is refused", async () => {
+    const onMove = vi.fn(async () => false);
+    const p = props();
+    render(<PanoramaPhaseList {...p} phases={{ ...p.phases, onMove }} />);
+    const trigger = screen.getByRole("button", { name: "Move Capture 1 to another phase" });
+    await userEvent.click(trigger);
+    await userEvent.click(screen.getByRole("menuitem", { name: "Current job" }));
+    await waitFor(() => expect(document.activeElement).toBe(trigger));
   });
 });

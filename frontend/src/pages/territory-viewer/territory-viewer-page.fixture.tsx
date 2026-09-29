@@ -33,7 +33,7 @@ export const IDLE_PANORAMAS: PanoramaParts = {
     pendingIds: [],
     pendingPhases: [],
     onSetHidden: noop,
-    onMove: noop,
+    onMove: async () => true,
     onSetPhaseHidden: noop,
   },
   texture: { bitmap: null, progress: null, status: "idle" },

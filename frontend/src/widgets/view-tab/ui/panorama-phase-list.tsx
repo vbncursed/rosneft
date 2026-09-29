@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { PanoramaPhase, PhaseHidden } from "@/entities/panorama";
 import { EyeButton, GroupRow } from "@/shared/ui/group-controls";
 import { phaseLine } from "../model/copy";
@@ -13,7 +13,8 @@ export type PanoramaPhasesView = {
   pendingIds: number[];
   pendingPhases: readonly PanoramaPhase[];
   onSetHidden: (ids: number[], hidden: boolean) => void;
-  onMove: (ids: number[], phase: PanoramaPhase) => void;
+  /** Resolves to whether it landed — a landed move sends focus to the destination (D5 fix). */
+  onMove: (ids: number[], phase: PanoramaPhase) => Promise<boolean>;
   onSetPhaseHidden: (phase: PanoramaPhase, hidden: boolean) => void;
 };
 
@@ -43,15 +44,30 @@ export function PanoramaPhaseList({ id, open, rows, phases, onEnter, onExit, onE
   const toggle = (phase: PanoramaPhase) =>
     setFolded((prev) => (prev.includes(phase) ? prev.filter((p) => p !== phase) : [...prev, phase]));
   const { canWrite } = phases;
+  const list = useRef<HTMLUListElement>(null);
+
+  // A landed move leaves the row's own phase, taking the Move trigger that
+  // held focus with it — Menu already returned focus there before calling
+  // onSelect (widgets/placements-panel's `focusNeighbour` precedent). The
+  // destination's disclosure is the one control that never unmounts (an
+  // editor always renders all three), folded or not, so focus goes there
+  // instead. A refused move changes nothing, so focus is left exactly where
+  // Menu put it.
+  const moveTo = (ids: number[], phase: PanoramaPhase) => {
+    void phases.onMove(ids, phase).then((moved) => {
+      if (!moved) return;
+      list.current?.querySelector<HTMLButtonElement>(`li[data-phase="${phase}"] button[aria-expanded]`)?.focus();
+    });
+  };
 
   return (
-    <ul id={id} hidden={!open} role="list" data-tour="panorama-picker" className={LIST}>
+    <ul id={id} ref={list} hidden={!open} role="list" data-tour="panorama-picker" className={LIST}>
       {open
         ? phaseSections(rows, phases.hidden, canWrite).map((section) => {
             const holdsSelection = section.rows.some((r) => r.active || r.editing);
             const expanded = holdsSelection || !folded.includes(section.phase);
             return (
-              <li key={section.phase}>
+              <li key={section.phase} data-phase={section.phase}>
                 <GroupRow
                   title={section.label}
                   line={phaseLine(section.rows.length, section.hidden)}
@@ -81,7 +97,7 @@ export function PanoramaPhaseList({ id, open, rows, phases, onEnter, onExit, onE
                           onExit={onExit}
                           onEdit={onEdit}
                           onHide={canWrite ? (rowId, hidden) => phases.onSetHidden([rowId], hidden) : undefined}
-                          onMove={canWrite ? (rowId, phase) => phases.onMove([rowId], phase) : undefined}
+                          onMove={canWrite ? (rowId, phase) => moveTo([rowId], phase) : undefined}
                         />
                       </li>
                     ))}

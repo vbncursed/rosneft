@@ -39,7 +39,8 @@ export type PanoramaParts = {
     pendingIds: number[];
     pendingPhases: readonly PanoramaPhase[];
     onSetHidden: (ids: number[], hidden: boolean) => void;
-    onMove: (ids: number[], phase: PanoramaPhase) => void;
+    /** Resolves to whether it landed — the View tab sends focus on a landed move. */
+    onMove: (ids: number[], phase: PanoramaPhase) => Promise<boolean>;
     onSetPhaseHidden: (phase: PanoramaPhase, hidden: boolean) => void;
   };
   texture: PanoramaTextureState;
