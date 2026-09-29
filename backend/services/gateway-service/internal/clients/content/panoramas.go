@@ -31,6 +31,7 @@ func (c *Client) CreatePanorama(ctx context.Context, p domain.Panorama) (domain.
 		SourceBlobHash: p.SourceBlobHash,
 		Position:       vec3ToProto(p.Position),
 		YawOffset:      p.YawOffset,
+		Phase:          p.Phase,
 	})
 	if err != nil {
 		return domain.Panorama{}, fmt.Errorf("content.CreatePanorama: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
