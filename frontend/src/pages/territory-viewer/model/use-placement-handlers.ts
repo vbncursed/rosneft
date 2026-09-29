@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { PlacementGroup } from "@/entities/placement";
 import type { usePlacementsEditor } from "@/features/placements-editor";
 import type { useViewerMode } from "@/features/viewer-mode";
 
@@ -7,6 +8,8 @@ export type PlacementHandlerDeps = {
   editor: ReturnType<typeof usePlacementsEditor>;
   /** The group's own flag (D6); resolves true once the server stored it. */
   setGroupHidden: (id: number, hidden: boolean) => Promise<boolean>;
+  /** So a landed move into a hidden group can be judged against it (§1.7). */
+  groups: readonly PlacementGroup[];
   /** `usePageHandlers`' own: enters place mode and opens the picker. */
   openPicker: () => void;
 };
@@ -16,7 +19,7 @@ export type PlacementHandlerDeps = {
  * `usePageHandlers` at the 200-line cap. `placeGroupId` is where the picker's
  * next batch lands: `onPlace` reads it.
  */
-export function usePlacementHandlers({ mode, editor, setGroupHidden, openPicker }: PlacementHandlerDeps) {
+export function usePlacementHandlers({ mode, editor, setGroupHidden, groups, openPicker }: PlacementHandlerDeps) {
   const [placeGroupId, setPlaceGroupId] = useState<number | null>(null);
 
   // Two ways into one picker: the rail/panel Add places in No group, a user
@@ -69,5 +72,23 @@ export function usePlacementHandlers({ mode, editor, setGroupHidden, openPicker 
     [setGroupHidden, select],
   );
 
-  return { placeGroupId, onAdd, onAddToGroup, onSetHidden, onSetGroupHidden };
+  // §1.7 for Move to...: landing in a hidden group takes the object off the
+  // scene exactly like a hide does, so a selection among the moved ids leaves
+  // too — a move to "no group", a shown group or a refused move draws no one
+  // off the scene, and the selection stays.
+  const groupsRef = useRef(groups);
+  useEffect(() => {
+    groupsRef.current = groups;
+  }, [groups]);
+  const onMoveToGroup = useCallback(
+    async (ids: number[], groupId: number | null) => {
+      const landed = await editor.moveToGroup(ids, groupId);
+      const current = selectedId.current;
+      if (!landed || groupId === null || current === null || !ids.includes(current)) return;
+      if (groupsRef.current.find((g) => g.id === groupId)?.hidden) select(null);
+    },
+    [editor, select],
+  );
+
+  return { placeGroupId, onAdd, onAddToGroup, onSetHidden, onSetGroupHidden, onMoveToGroup };
 }

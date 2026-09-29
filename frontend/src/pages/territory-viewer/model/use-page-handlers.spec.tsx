@@ -24,6 +24,8 @@ const deps = (
     chains?: Chain[];
     canDeleteMeasurements?: boolean;
     selectedId?: number | null;
+    groups?: { id: number; hidden: boolean }[];
+    moveLands?: boolean;
   } = {},
 ) => {
   const mode = {
@@ -43,7 +45,7 @@ const deps = (
     commitTransform: vi.fn(),
     setVisibility: vi.fn(),
     setHidden: vi.fn(async () => true),
-    moveToGroup: vi.fn(),
+    moveToGroup: vi.fn(async () => over.moveLands ?? true),
   };
   const panel = { setTab: vi.fn(), setCollapsed: vi.fn() };
   const form = { openNew: vi.fn(), openRename: vi.fn() };
@@ -63,6 +65,8 @@ const deps = (
       mode,
       measure,
       editor,
+      setGroupHidden: vi.fn(async () => true),
+      groups: over.groups ?? [],
       form,
       panel,
       tour: basePageParts().tour,
@@ -296,9 +300,24 @@ describe("usePageHandlers", () => {
       expect(spies.editor.create).toHaveBeenLastCalledWith("tank", 1, null);
     });
 
-    it("moves through the editor unchanged", () => {
-      const { result, spies } = mount();
-      expect(result.current.on.onMoveToGroup).toBe(spies.editor.moveToGroup);
+    // The Important finding this closes: Move to... a hidden group left the
+    // moved, selected placement selected — the object disappeared from the
+    // map but the edit form stayed open for it.
+    it("drops the selection once a move into a hidden group has landed", async () => {
+      const { result, spies } = mount({ selectedId: 4, groups: [{ id: 7, hidden: true }] });
+      await act(() => result.current.on.onMoveToGroup([4], 7));
+      expect(spies.editor.moveToGroup).toHaveBeenCalledWith([4], 7);
+      expect(spies.mode.select).toHaveBeenCalledWith(null);
+    });
+
+    it("keeps the selection on a move to a shown group, to no group, or one the gateway refused", async () => {
+      const shown = mount({ selectedId: 4, groups: [{ id: 7, hidden: false }] });
+      await act(() => shown.result.current.on.onMoveToGroup([4], 7));
+      const noGroup = mount({ selectedId: 4 });
+      await act(() => noGroup.result.current.on.onMoveToGroup([4], null));
+      const refused = mount({ selectedId: 4, groups: [{ id: 7, hidden: true }], moveLands: false });
+      await act(() => refused.result.current.on.onMoveToGroup([4], 7));
+      for (const m of [shown, noGroup, refused]) expect(m.spies.mode.select).not.toHaveBeenCalled();
     });
   });
 });

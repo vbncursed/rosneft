@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import type { PlacementGroup } from "@/entities/placement";
 import type { useMeasurementTool } from "@/features/measure";
 import type { Tour } from "@/features/onboarding";
 import type { usePlacementsEditor } from "@/features/placements-editor";
@@ -18,6 +19,8 @@ export type HandlerDeps = {
   editor: ReturnType<typeof usePlacementsEditor>;
   /** The group's own flag (D6); resolves true once the server stored it. */
   setGroupHidden: (id: number, hidden: boolean) => Promise<boolean>;
+  /** So `onMoveToGroup` can tell a hidden destination from a shown one (§1.7). */
+  groups: readonly PlacementGroup[];
   form: ReturnType<typeof usePlacementForm>;
   panel: ReturnType<typeof useOverlaysPanel>;
   tour: Tour;
@@ -71,6 +74,7 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
     measure,
     editor,
     setGroupHidden,
+    groups,
     form,
     panel,
     tour,
@@ -130,10 +134,11 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
     mode.exitPlace();
     setPickerOpen(false);
   }, [mode]);
-  const { placeGroupId, onAdd, onAddToGroup, onSetHidden, onSetGroupHidden } = usePlacementHandlers({
+  const { placeGroupId, onAdd, onAddToGroup, onSetHidden, onSetGroupHidden, onMoveToGroup } = usePlacementHandlers({
     mode,
     editor,
     setGroupHidden,
+    groups,
     openPicker,
   });
   const onPlace = useCallback(
@@ -240,7 +245,7 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
       onVisibility,
       onSetHidden,
       onSetGroupHidden,
-      onMoveToGroup: editor.moveToGroup,
+      onMoveToGroup,
       onAddToGroup,
       onToggleMove: mode.toggleMove,
     },
