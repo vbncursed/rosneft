@@ -60,7 +60,7 @@ func (s *EnsureTriggersSuite) TearDownSuite() {
 // Each test starts from "audit has migrated, nobody else has". Dropping the
 // table drops its trigger with it.
 func (s *EnsureTriggersSuite) SetupTest() {
-	_, err := s.pool.Exec(s.T().Context(), `DROP TABLE IF EXISTS territories, measurements, placement_groups`)
+	_, err := s.pool.Exec(s.T().Context(), `DROP TABLE IF EXISTS territories, measurements, placement_groups, panorama_phase_visibility`)
 	assert.NilError(s.T(), err)
 }
 
@@ -183,4 +183,35 @@ func (s *EnsureTriggersSuite) TestAttachesToPlacementGroupsWithTheTitleAsLabel()
 	assert.Equal(s.T(), action, "placement_group.insert")
 	assert.Equal(s.T(), entityID, id)
 	assert.Equal(s.T(), label, "North")
+}
+
+// panorama_phase_visibility has a composite key and no label, like
+// territory_assignments: the entry carries neither, and the row is in new_row.
+func (s *EnsureTriggersSuite) TestAttachesToPanoramaPhaseVisibilityWithNoIDOrLabel() {
+	ctx := s.T().Context()
+	_, err := s.pool.Exec(ctx, `
+		CREATE TABLE panorama_phase_visibility (
+			territory_id BIGINT NOT NULL,
+			phase TEXT NOT NULL,
+			hidden BOOLEAN NOT NULL,
+			PRIMARY KEY (territory_id, phase)
+		)`)
+	assert.NilError(s.T(), err)
+
+	var attached int
+	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT ensure_audit_triggers()`).Scan(&attached))
+	assert.Equal(s.T(), attached, 1)
+
+	_, err = s.pool.Exec(ctx, `INSERT INTO panorama_phase_visibility VALUES (7, 'post', TRUE)`)
+	assert.NilError(s.T(), err)
+
+	var action, phase string
+	var entityID, label *string
+	assert.NilError(s.T(), s.pool.QueryRow(ctx, `
+		SELECT action, entity_id, entity_label, new_row->>'phase'
+		FROM audit_log WHERE entity = 'panorama_phase'`).Scan(&action, &entityID, &label, &phase))
+	assert.Equal(s.T(), action, "panorama_phase.insert")
+	assert.Assert(s.T(), entityID == nil)
+	assert.Assert(s.T(), label == nil)
+	assert.Equal(s.T(), phase, "post")
 }
