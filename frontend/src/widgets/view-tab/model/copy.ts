@@ -76,3 +76,15 @@ export const nudgeLabel = (axis: "x" | "y" | "z", up: boolean) =>
 
 /** The ghosted photo's opacity, as the mock prints it. */
 export const opacityPercent = (o: number) => `${Math.round(o * 100)} %`;
+
+/** A job phase's count line; hidden is said in words too, never left to the eye's glyph. */
+export const phaseLine = (n: number, hidden: boolean) => {
+  const count = n === 0 ? "No panoramas" : n === 1 ? "1 panorama" : `${n} panoramas`;
+  return hidden ? `${count} · hidden` : count;
+};
+
+/** Read after a dimmed panorama's title: the dimming alone is colour. */
+export const HIDDEN_NOTE = "· hidden";
+
+/** The row's "Move to…" trigger, named after its panorama so no two rows share a name. */
+export const moveToPhaseLabel = (title: string) => `Move ${title} to another phase`;

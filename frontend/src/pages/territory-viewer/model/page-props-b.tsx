@@ -1,12 +1,11 @@
-import { assetUrl } from "@/entities/content";
 import { documentFileName } from "@/entities/document";
-import { isCalibrated } from "@/entities/panorama";
 import { isShownIn, type ModelGroup } from "@/entities/placement";
 import type { UploadModalProps } from "@/widgets/upload-modal";
 import { AnchorCard, insideFooter, LOADING_FOOTER, type ViewTabProps } from "@/widgets/view-tab";
 import type { DocumentWindowProps } from "@/widgets/document-window";
 import type { ViewerCanvasProps } from "@/widgets/viewer-canvas";
 import { labelsOf, moveOf } from "./canvas-memo";
+import { panoramasTabProps } from "./page-props-panoramas";
 import { detailsOf } from "./page-props-selected";
 import { DOC_EXPANDED_META, DOC_OPEN_META } from "./viewer-view";
 import type { PageParts, PageViewState } from "./viewer-props";
@@ -44,46 +43,12 @@ export function loadingLevel(view: PageViewState) {
  * many placements the photo marks.
  */
 export function viewTabProps(p: PageParts): ViewTabProps {
-  const { panoramas: pan, documents: docs, grants, mode, measure } = p;
+  const { documents: docs, mode, measure, grants } = p;
   const inside = mode.view.kind === "panorama" ? mode.view.id : null;
 
   return {
     details: detailsOf(p.slug, p.vm, inside !== null),
-    panoramas: {
-      rows: pan.list.map((panorama) => ({
-        id: panorama.id,
-        title: panorama.title,
-        thumbUrl: panorama.thumbnailBlobHash ? assetUrl(panorama.thumbnailBlobHash) : null,
-        active: panorama.id === inside,
-        calibrated: isCalibrated(panorama),
-        canEdit: grants.panoramaWrite,
-        editing: panorama.id === mode.editingPanoramaId,
-      })),
-      calibrating: pan.calibration.active && pan.editing ? { title: pan.editing.title } : null,
-      canUpload: grants.panoramaCreate,
-      onUpload: pan.upload.onOpen,
-      onEnter: pan.onEnter,
-      onExit: pan.onExit,
-      onEdit: pan.onEdit,
-      showMarkers: pan.showMarkers,
-      onToggleMarkers: pan.onToggleMarkers,
-      onExitCalibration: pan.calibration.onExit,
-      // Scene only (B-5): the reducer refuses V from inside a capture, and a
-      // button offering a sub-mode that cannot be entered is worse than none.
-      canMovePoints: grants.panoramaWrite && inside === null,
-      moving: mode.move,
-      onToggleMove: p.on.onToggleMove,
-      link: {
-        url: pan.link.url,
-        // The tour URL is a field on the territory, so it is the territory's
-        // own grant that opens it — not a panorama one.
-        canEdit: grants.replace,
-        saving: pan.link.saving,
-        onSave: pan.link.onSave,
-      },
-      editor: anchorCard(p),
-      fold: p.sections.panoramas,
-    },
+    panoramas: panoramasTabProps(p, anchorCard(p)),
     documents: {
       rows: docs.list.map((document) => ({ id: document.id, name: documentFileName(document) })),
       canUpload: grants.documentWrite,

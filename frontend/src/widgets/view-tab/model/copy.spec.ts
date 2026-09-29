@@ -6,8 +6,10 @@ import {
   documentsCount,
   insideFooter,
   measurementsCount,
+  moveToPhaseLabel,
   nudgeLabel,
   opacityPercent,
+  phaseLine,
 } from "./copy";
 import { degToRad } from "./degrees";
 
@@ -85,5 +87,19 @@ describe("opacityPercent", () => {
   it("prints the mock's spaced percent", () => {
     expect(opacityPercent(0.65)).toBe("65 %");
     expect(opacityPercent(1)).toBe("100 %");
+  });
+});
+
+describe("phaseLine", () => {
+  it("counts a phase's panoramas, and says hidden in words", () => {
+    expect(phaseLine(0, false)).toBe("No panoramas");
+    expect(phaseLine(1, false)).toBe("1 panorama");
+    expect(phaseLine(3, true)).toBe("3 panoramas · hidden");
+  });
+});
+
+describe("moveToPhaseLabel", () => {
+  it("names the move after its panorama, so two rows' menus differ", () => {
+    expect(moveToPhaseLabel("Control room")).toBe("Move Control room to another phase");
   });
 });

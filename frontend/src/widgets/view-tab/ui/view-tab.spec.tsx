@@ -1,6 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { ALL_PHASES_SHOWN } from "@/entities/panorama";
 import {
   CALIBRATION_LINE,
   DOCUMENTS_OVERLINE,
@@ -28,6 +29,8 @@ const ROWS: PanoramaRowView[] = [
     calibrated: true,
     canEdit: false,
     editing: false,
+    phase: "prior",
+    hidden: false,
   },
   {
     id: 8,
@@ -37,6 +40,8 @@ const ROWS: PanoramaRowView[] = [
     calibrated: false,
     canEdit: false,
     editing: false,
+    phase: "prior",
+    hidden: false,
   },
 ];
 
@@ -47,6 +52,15 @@ const base = (): ViewTabProps => ({
   ],
   panoramas: {
     rows: ROWS,
+    phases: {
+      hidden: ALL_PHASES_SHOWN,
+      canWrite: false,
+      pendingIds: [],
+      pendingPhases: [],
+      onSetHidden: vi.fn(),
+      onMove: vi.fn(),
+      onSetPhaseHidden: vi.fn(),
+    },
     calibrating: null,
     canUpload: false,
     onUpload: vi.fn(),
@@ -95,11 +109,11 @@ describe("ViewTab", () => {
     expect(screen.getByText(documentsCount(1))).toBeInTheDocument();
   });
 
-  it("lists the panoramas as the tour's picker", () => {
+  it("lists the panoramas under their job phase, as the tour's picker", () => {
     const { container } = tab();
-    const list = container.querySelector("ul[data-tour='panorama-picker']");
-    expect(list).not.toBeNull();
-    expect(list?.querySelectorAll("li")).toHaveLength(2);
+    const list = container.querySelector<HTMLElement>("ul[data-tour='panorama-picker']")!;
+    expect(within(list).getByRole("button", { name: "Prior job" })).toHaveTextContent("2 panoramas");
+    expect(within(list).getAllByRole("button", { name: /^Show in this panorama: / })).toHaveLength(2);
     expect(screen.getByText("Control room, north door")).toBeInTheDocument();
   });
 

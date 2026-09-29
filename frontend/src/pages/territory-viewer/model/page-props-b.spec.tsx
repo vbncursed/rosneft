@@ -72,6 +72,8 @@ describe("viewTabProps · panoramas", () => {
         calibrated: true,
         canEdit: true,
         editing: false,
+        phase: "prior",
+        hidden: false,
       },
       {
         id: 2,
@@ -82,6 +84,8 @@ describe("viewTabProps · panoramas", () => {
         calibrated: false,
         canEdit: true,
         editing: false,
+        phase: "prior",
+        hidden: false,
       },
     ]);
   });

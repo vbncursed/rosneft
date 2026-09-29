@@ -19,7 +19,8 @@ import {
 } from "../model/copy";
 import type { SectionFold } from "../model/use-section-folds";
 import { DocumentRow } from "./document-row";
-import { PanoramaRow, type PanoramaRowView } from "./panorama-row";
+import { PanoramaPhaseList, type PanoramaPhasesView } from "./panorama-phase-list";
+import type { PanoramaRowView } from "./panorama-row";
 import { SectionHead } from "./section-head";
 import { ExternalLink, type ExternalLinkProps } from "./external-link";
 
@@ -28,6 +29,8 @@ export type ViewTabProps = {
   details: Detail[];
   panoramas: {
     rows: PanoramaRowView[];
+    /** The job phases the rows fall into, and the shared hide/move writes. */
+    phases: PanoramaPhasesView;
     /** The panorama whose anchor is being dragged; null when none is. */
     calibrating: { title: string } | null;
     canUpload: boolean;
@@ -134,26 +137,15 @@ export function ViewTab({ details, panoramas, documents, measurements, footer }:
         ) : null}
 
         {panoramas.rows.length > 0 ? (
-          <ul
+          <PanoramaPhaseList
             id={panoramaListId}
-            hidden={!panoramas.fold.open}
-            role="list"
-            data-tour="panorama-picker"
-            className={LIST}
-          >
-            {panoramas.fold.open
-              ? panoramas.rows.map((row) => (
-                  <li key={row.id}>
-                    <PanoramaRow
-                      row={row}
-                      onEnter={panoramas.onEnter}
-                      onExit={panoramas.onExit}
-                      onEdit={panoramas.onEdit}
-                    />
-                  </li>
-                ))
-              : null}
-          </ul>
+            open={panoramas.fold.open}
+            rows={panoramas.rows}
+            phases={panoramas.phases}
+            onEnter={panoramas.onEnter}
+            onExit={panoramas.onExit}
+            onEdit={panoramas.onEdit}
+          />
         ) : null}
 
         <div data-tour="toggle-markers" className={SWITCH_ROW}>

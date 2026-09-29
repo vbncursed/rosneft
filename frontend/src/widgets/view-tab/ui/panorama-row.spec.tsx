@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { EXIT_PANORAMA, NOT_CALIBRATED, SHOW_IN } from "../model/copy";
+import { EXIT_PANORAMA, HIDDEN_NOTE, NOT_CALIBRATED, SHOW_IN } from "../model/copy";
 import { PanoramaRow, type PanoramaRowView } from "./panorama-row";
 import { hoverTip } from "@/shared/ui/tooltip/testing";
 
@@ -13,6 +13,8 @@ const ROW: PanoramaRowView = {
   calibrated: true,
   canEdit: false,
   editing: false,
+  phase: "prior",
+  hidden: false,
 };
 
 const row = (over: Partial<PanoramaRowView> = {}, handlers: Partial<Parameters<typeof PanoramaRow>[0]> = {}) =>
@@ -133,6 +135,57 @@ describe("PanoramaRow", () => {
     row({ canEdit: true });
     expect(screen.getByRole("button", { name: `Edit ${ROW.title}` })).toHaveClass("active:scale-95", "ease-out");
     for (const b of screen.getAllByRole("button")) expect(b.className).toMatch(/active:scale-/);
+  });
+
+  it("hides and shows itself with its own eye — an editor's only", async () => {
+    const onHide = vi.fn();
+    const { rerender } = row({ canEdit: true }, { onHide });
+    const eye = screen.getByRole("button", { name: "Hide panorama Control room, north door" });
+    expect(eye).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(eye);
+    expect(onHide).toHaveBeenCalledWith(7, true);
+    rerender(<PanoramaRow row={{ ...ROW, canEdit: false }} onEnter={vi.fn()} onExit={vi.fn()} onEdit={vi.fn()} onHide={onHide} />);
+    expect(screen.queryByRole("button", { name: /^Hide panorama/ })).toBeNull();
+  });
+
+  it("moves to one of the other two phases", async () => {
+    const onMove = vi.fn();
+    row({ canEdit: true }, { onMove });
+    await userEvent.click(screen.getByRole("button", { name: "Move Control room, north door to another phase" }));
+    expect(screen.getAllByRole("menuitem").map((i) => i.textContent)).toEqual(["Current job", "Post job"]);
+    await userEvent.click(screen.getByRole("menuitem", { name: "Post job" }));
+    expect(onMove).toHaveBeenCalledWith(7, "post");
+  });
+
+  it("offers no move to a reader who cannot write", () => {
+    row({ canEdit: false }, { onMove: vi.fn() });
+    expect(screen.queryByRole("button", { name: /^Move/ })).toBeNull();
+  });
+
+  // D5: a row in a hidden phase dims like a hidden one, but its own eye keeps
+  // its own flag — showing the phase again must not have to guess it.
+  it("dims and says hidden when it or its phase is hidden, the eye keeping its own flag", () => {
+    const { rerender } = row({ hidden: true });
+    expect(screen.getByText("Control room, north door")).toHaveClass("opacity-55");
+    expect(screen.getByText(HIDDEN_NOTE)).toHaveClass("sr-only");
+    rerender(
+      <PanoramaRow row={{ ...ROW, canEdit: true }} phaseHidden onEnter={vi.fn()} onExit={vi.fn()} onEdit={vi.fn()} onHide={vi.fn()} />,
+    );
+    expect(screen.getByText("Control room, north door")).toHaveClass("opacity-55");
+    expect(screen.getByRole("button", { name: /^Hide panorama/ })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("draws a shown row at full strength with no hidden note", () => {
+    row();
+    expect(screen.getByText("Control room, north door")).not.toHaveClass("opacity-55");
+    expect(screen.queryByText(HIDDEN_NOTE)).toBeNull();
+  });
+
+  it("waits its eye and its moves while a write on it is in flight", async () => {
+    row({ canEdit: true }, { pending: true, onHide: vi.fn(), onMove: vi.fn() });
+    expect(screen.getByRole("button", { name: /^Hide panorama/ })).toHaveAttribute("aria-busy", "true");
+    await userEvent.click(screen.getByRole("button", { name: /^Move/ }));
+    for (const item of screen.getAllByRole("menuitem")) expect(item).toBeDisabled();
   });
 });
 
