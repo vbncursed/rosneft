@@ -64,6 +64,16 @@ describe("useAutoLod", () => {
     await vi.waitFor(() => expect(lod()).toBe(0));
   });
 
+  it("fetches nothing for a close-up the camera only swept through", async () => {
+    const { lod, moveTo } = await mount();
+    await settled();
+    moveTo(0.5);
+    await new Promise((resolve) => setTimeout(resolve, SETTLE_MS / 2));
+    moveTo(1000);
+    await settled();
+    expect(lod()).toBe(2);
+  });
+
   it("never goes back to a coarser level — the bytes are already paid", async () => {
     const { lod, moveTo } = await mount();
     moveTo(0.5);
