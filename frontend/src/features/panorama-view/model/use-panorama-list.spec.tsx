@@ -227,4 +227,20 @@ describe("usePanoramaList", () => {
 
     expect(result.current.s.panoramas[0]).toMatchObject({ yawOffset: 0, hidden: true });
   });
+
+  // The optimistic write built its patch from `panoramasRef.current`, which
+  // only catches up in a useEffect after a render commits — so a hide queued
+  // in the very same tick as the save was invisible to it, and the optimistic
+  // write undid it before the request even left.
+  it("keeps a hide queued in the same tick as the save's own optimistic write", () => {
+    vi.mocked(updatePanorama).mockReturnValue(new Promise<Panorama>(() => {}));
+    const { result } = list([panorama(1)]);
+
+    act(() => {
+      result.current.s.setPanoramas((prev) => prev.map((p) => ({ ...p, hidden: true })));
+      void result.current.s.update(1, { title: "Renamed" });
+    });
+
+    expect(result.current.s.panoramas[0]).toMatchObject({ hidden: true, title: "Renamed" });
+  });
 });

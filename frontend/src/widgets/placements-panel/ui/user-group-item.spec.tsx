@@ -2,6 +2,7 @@ import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { UserGroupSection } from "@/entities/placement";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 import { ctx } from "./testing";
 import { UserGroupItem, type GroupActions } from "./user-group-item";
 
@@ -88,14 +89,20 @@ describe("UserGroupItem", () => {
 
   // A hidden group's Add stays focusable (aria-disabled, not native disabled)
   // and names why, but does nothing on click.
-  it("aria-disables Add on a hidden group, and calls onAdd for nothing", async () => {
+  it("aria-disables Add on a hidden group, names why in a tooltip, keeps focus and calls onAdd for nothing", async () => {
     const onAdd = vi.fn();
     mount({ onAdd, section: { ...SECTION, group: { ...SECTION.group, hidden: true } } });
     const add = screen.getByRole("button", { name: "Add objects to group East yard" });
     expect(add).toHaveAttribute("aria-disabled", "true");
     expect(add).not.toBeDisabled();
+
+    const tip = hoverTip(add);
+    expect(tip).toHaveTextContent("Show the group to add objects");
+    expect(add).toHaveAttribute("aria-describedby", tip!.id);
+
     await userEvent.click(add);
     expect(onAdd).not.toHaveBeenCalled();
+    expect(add).toHaveFocus();
   });
 
   it("draws no Add without the create grant or inside a panorama (onAdd null)", () => {

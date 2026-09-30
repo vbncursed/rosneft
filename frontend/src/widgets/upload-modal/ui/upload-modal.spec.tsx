@@ -238,9 +238,8 @@ describe("UploadModal", () => {
 });
 
 describe("UploadModal · job phase", () => {
-  it("offers the job phase for a panorama, disabled while busy", () => {
-    const onChange = vi.fn();
-    draw({ phase: { value: "current", onChange } });
+  it("offers the job phase for a panorama, with the chosen one checked", () => {
+    draw({ phase: { value: "current", onChange: vi.fn() } });
 
     const group = screen.getByRole("radiogroup", { name: "Job phase" });
     expect(group).toBeInTheDocument();

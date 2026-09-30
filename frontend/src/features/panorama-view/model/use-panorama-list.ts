@@ -50,7 +50,11 @@ export function usePanoramaList({ slug, initial, onChanged }: PanoramaListParams
       };
       setPendingId(id);
       startTransition(() => {
-        setPanoramas((prev) => prev.map((p) => (p.id === id ? { ...current, ...body } : p)));
+        // Functional, reading `prev` rather than the `current` snapshot:
+        // `panoramasRef` only catches up in an effect after a render commits,
+        // so a hide or move queued in the same tick as this call is invisible
+        // to `current` and would otherwise be undone by this very write.
+        setPanoramas((prev) => prev.map((p) => (p.id === id ? { ...p, ...body } : p)));
       });
       try {
         const saved = await updatePanorama(slug, id, body);
