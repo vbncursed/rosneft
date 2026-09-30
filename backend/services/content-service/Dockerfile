@@ -15,10 +15,6 @@ COPY services/asset-service/go.mod services/asset-service/go.su[m] ./services/as
 COPY services/upload-service/go.mod services/upload-service/go.su[m] ./services/upload-service/
 COPY services/audit-service/go.mod services/audit-service/go.su[m] ./services/audit-service/
 
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    cd services/content-service && go mod download
-
 COPY proto/ ./proto/
 COPY pkg/ ./pkg/
 COPY services/content-service/ ./services/content-service/

@@ -36,7 +36,7 @@ const base: PlacementsPanelProps = {
   onSetHidden: vi.fn(),
   onMoveToGroup: vi.fn(),
   onAddToGroup: vi.fn(),
-  groupActions: { busy: false, onCreate: vi.fn(), onRename: vi.fn(), onDelete: vi.fn() },
+  groupActions: { busy: false, onCreate: vi.fn(), onRename: vi.fn(), onDelete: vi.fn(), onSetHidden: vi.fn() },
 };
 
 const SELECTED = {
@@ -247,7 +247,10 @@ describe("PlacementsPanel", () => {
   describe("groups", () => {
     const grouped = groupPlacements(
       groupByModel([make(1, "storage-tank-500", "", { groupId: 5 }), make(2, "storage-tank-500"), make(7, "pipe-rack-12")], OPTIONS),
-      [{ id: 5, title: "West yard" }, { id: 6, title: "East yard" }],
+      [
+        { id: 5, title: "West yard", hidden: false },
+        { id: 6, title: "East yard", hidden: false },
+      ],
     );
 
     it("lists user groups alphabetically above the model rows, a rule between", () => {
@@ -265,7 +268,7 @@ describe("PlacementsPanel", () => {
     // search field rather than falling to <body> as the row leaves.
     it("hands focus to the search when the only group is deleted", async () => {
       const only = groupPlacements(groupByModel([make(1, "storage-tank-500", "", { groupId: 5 })], OPTIONS), [
-        { id: 5, title: "West yard" },
+        { id: 5, title: "West yard", hidden: false },
       ]);
       render(<PlacementsPanel {...base} sections={only} />);
       await userEvent.click(screen.getByRole("button", { name: "Actions for group West yard" }));

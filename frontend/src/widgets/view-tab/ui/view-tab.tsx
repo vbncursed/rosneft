@@ -1,13 +1,18 @@
 import { useId, type ReactNode } from "react";
 import { clsx as cx } from "clsx";
+import type { MarkerMode } from "@/features/panorama-view";
 import { Callout } from "@/shared/ui/callout";
 import { DetailList, type Detail } from "@/shared/ui/detail-list";
+import { Segmented, type SegmentedItem } from "@/shared/ui/segmented";
 import { Switch } from "@/shared/ui/switch";
 import {
   CALIBRATION_LINE,
   DOCUMENTS_OVERLINE,
   documentsCount,
   EXIT_CALIBRATION,
+  MARKERS_ALL,
+  MARKERS_OFF,
+  MARKERS_POINTS,
   MARKERS_SWITCH,
   MEASUREMENTS_OVERLINE,
   MEASUREMENTS_SWITCH,
@@ -19,7 +24,8 @@ import {
 } from "../model/copy";
 import type { SectionFold } from "../model/use-section-folds";
 import { DocumentRow } from "./document-row";
-import { PanoramaRow, type PanoramaRowView } from "./panorama-row";
+import { PanoramaPhaseList, type PanoramaPhasesView } from "./panorama-phase-list";
+import type { PanoramaRowView } from "./panorama-row";
 import { SectionHead } from "./section-head";
 import { ExternalLink, type ExternalLinkProps } from "./external-link";
 
@@ -28,6 +34,8 @@ export type ViewTabProps = {
   details: Detail[];
   panoramas: {
     rows: PanoramaRowView[];
+    /** The job phases the rows fall into, and the shared hide/move writes. */
+    phases: PanoramaPhasesView;
     /** The panorama whose anchor is being dragged; null when none is. */
     calibrating: { title: string } | null;
     canUpload: boolean;
@@ -35,8 +43,9 @@ export type ViewTabProps = {
     onEnter: (id: number) => void;
     onExit: () => void;
     onEdit: (id: number) => void;
-    showMarkers: boolean;
-    onToggleMarkers: () => void;
+    /** The in-scene points (D7): Points & names, Points only, or Off. */
+    markers: MarkerMode;
+    onMarkers: (mode: MarkerMode) => void;
     onExitCalibration: () => void;
     /** `panorama:write` — the grant behind Move points. */
     canMovePoints: boolean;
@@ -70,6 +79,12 @@ const SWITCH_LABEL = "font-mono text-[10px] text-fg";
 const LIST = "m-0 flex list-none flex-col gap-[9px] p-0";
 const KBD = "rounded-[4px] border border-accent-line px-[5px] py-px font-mono text-[10px]";
 
+const MARKER_ITEMS: SegmentedItem<MarkerMode>[] = [
+  { value: "all", label: MARKERS_ALL },
+  { value: "points", label: MARKERS_POINTS },
+  { value: "off", label: MARKERS_OFF },
+];
+
 /**
  * The Overlays panel's View tab: the scene's facts, its panoramas and the PDFs
  * laid over it. It scrolls in the panel body it is rendered into and adds no
@@ -85,7 +100,6 @@ const KBD = "rounded-[4px] border border-accent-line px-[5px] py-px font-mono te
  * because every row holds an `<img>` and each page render re-rendered them all.
  */
 export function ViewTab({ details, panoramas, documents, measurements, footer }: ViewTabProps) {
-  const markersId = useId();
   const rulerId = useId();
   const panoramaListId = useId();
   const documentListId = useId();
@@ -134,33 +148,20 @@ export function ViewTab({ details, panoramas, documents, measurements, footer }:
         ) : null}
 
         {panoramas.rows.length > 0 ? (
-          <ul
+          <PanoramaPhaseList
             id={panoramaListId}
-            hidden={!panoramas.fold.open}
-            role="list"
-            data-tour="panorama-picker"
-            className={LIST}
-          >
-            {panoramas.fold.open
-              ? panoramas.rows.map((row) => (
-                  <li key={row.id}>
-                    <PanoramaRow
-                      row={row}
-                      onEnter={panoramas.onEnter}
-                      onExit={panoramas.onExit}
-                      onEdit={panoramas.onEdit}
-                    />
-                  </li>
-                ))
-              : null}
-          </ul>
+            open={panoramas.fold.open}
+            rows={panoramas.rows}
+            phases={panoramas.phases}
+            onEnter={panoramas.onEnter}
+            onExit={panoramas.onExit}
+            onEdit={panoramas.onEdit}
+          />
         ) : null}
 
-        <div data-tour="toggle-markers" className={SWITCH_ROW}>
-          <span id={markersId} className={SWITCH_LABEL}>
-            {MARKERS_SWITCH}
-          </span>
-          <span className="flex items-center gap-2.5">
+        <div data-tour="toggle-markers" className="flex flex-col gap-[7px]">
+          <span className={SWITCH_ROW}>
+            <span className={SWITCH_LABEL}>{MARKERS_SWITCH}</span>
             {panoramas.canMovePoints ? (
               <button
                 type="button"
@@ -179,13 +180,16 @@ export function ViewTab({ details, panoramas, documents, measurements, footer }:
                 </kbd>
               </button>
             ) : null}
-            <Switch
-              checked={panoramas.showMarkers}
-              onChange={panoramas.onToggleMarkers}
-              label={MARKERS_SWITCH}
-              labelledBy={markersId}
-            />
           </span>
+          {/* A radiogroup named by the words above it; arrows walk it, as the gizmo toggle does. */}
+          <Segmented
+            ariaLabel={MARKERS_SWITCH}
+            size="xs"
+            tone="soft"
+            value={panoramas.markers}
+            onChange={panoramas.onMarkers}
+            items={MARKER_ITEMS}
+          />
         </div>
 
         <ExternalLink {...panoramas.link} />

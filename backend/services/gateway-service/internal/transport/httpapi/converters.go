@@ -136,6 +136,8 @@ func panoramaToAPI(p domain.Panorama) Panorama {
 		Position:       vec3ToAPI(p.Position),
 		YawOffset:      p.YawOffset,
 		DefaultYaw:     p.DefaultYaw,
+		Phase:          PanoramaPhaseName(p.Phase),
+		Hidden:         p.Hidden,
 	}
 	if !p.CreatedAt.IsZero() {
 		out.CreatedAt = &p.CreatedAt

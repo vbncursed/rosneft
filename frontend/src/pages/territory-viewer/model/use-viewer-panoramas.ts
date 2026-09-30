@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { Panorama, PanoramaUpdate, SourceBbox } from "@/entities/panorama";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ALL_PHASES_SHOWN, isPanoramaShown, type Panorama, type PanoramaUpdate, type PhaseHidden, type SourceBbox } from "@/entities/panorama";
 import type { Vec3 } from "@/entities/placement";
 import {
   NUDGE_STEPS,
@@ -9,6 +9,7 @@ import {
   usePanoramaList,
   usePanoramaTexture,
   usePanoramaView,
+  usePanoramaVisibility,
   type PanoramaViewMode,
   type TextureDecoder,
 } from "@/features/panorama-view";
@@ -34,6 +35,10 @@ export type ViewerPanoramasParams = {
   /** Opens a folded section — a finished upload must not land in a hidden list. */
   reveal: (section: Section) => void;
   decode: TextureDecoder;
+  /** `panorama:write`: an editor reaches hidden captures (dimmed in the list); anyone else never does. */
+  canWrite: boolean;
+  /** The bundle's phase flags; every phase shown when it carries none. */
+  phaseHidden: PhaseHidden | undefined;
 };
 
 /** Med: fine enough to settle a capture on a doorway, coarse enough to be felt. */
@@ -59,6 +64,8 @@ export function useViewerPanoramas({
   onChanged,
   reveal,
   decode,
+  canWrite,
+  phaseHidden,
 }: ViewerPanoramasParams): PanoramaParts {
   const list = usePanoramaList({ slug, initial, onChanged });
   // The list hook hands back a new object every render; every callback below
@@ -66,8 +73,20 @@ export function useViewerPanoramas({
   // dependency on the object itself would give the canvas a fresh
   // `onMarkerDrop` on every render the page does — one per keystroke in the
   // panel — and the drag controller re-binds its window listeners on each.
-  const { add, update, remove } = list;
-  const view = usePanoramaView(list.panoramas, mode);
+  const { add, update, remove, setPanoramas } = list;
+  const visibility = usePanoramaVisibility({
+    slug,
+    setPanoramas,
+    initialPhaseHidden: phaseHidden ?? ALL_PHASES_SHOWN,
+    onChanged,
+  });
+  // P and the "n of N" counter walk what the reader can see: a hidden capture
+  // is an editor's to reach, never anyone else's.
+  const reachable = useMemo(
+    () => (canWrite ? list.panoramas : list.panoramas.filter((p) => isPanoramaShown(p, visibility.phaseHidden))),
+    [canWrite, list.panoramas, visibility.phaseHidden],
+  );
+  const view = usePanoramaView(reachable, mode);
 
   const saveCalibration = useCallback(
     (id: number, patch: { position: Vec3; yawOffset: number }) => void update(id, patch),
@@ -120,6 +139,8 @@ export function useViewerPanoramas({
   const cameraPositionRef = useRef<Vec3 | null>(null);
   const cameraYawRef = useRef<number | null>(null);
 
+  const [justAddedId, setJustAddedId] = useState<number | null>(null);
+  const onJustAddedSeen = useCallback(() => setJustAddedId(null), []);
   const upload = usePanoramaUpload({
     slug,
     sourceBbox,
@@ -128,6 +149,7 @@ export function useViewerPanoramas({
         add(panorama);
         onChanged();
         reveal("panoramas");
+        setJustAddedId(panorama.id);
         setUploadOpen(false);
       },
       [add, onChanged, reveal],
@@ -162,13 +184,23 @@ export function useViewerPanoramas({
 
   return {
     list: list.panoramas,
+    justAddedId,
+    onJustAddedSeen,
     pendingId: list.pendingId,
     active: view.active,
     editing: view.editing,
     index: view.index,
+    visibility: {
+      phaseHidden: visibility.phaseHidden,
+      pendingIds: visibility.pendingIds,
+      pendingPhases: visibility.pendingPhases,
+      onSetHidden: visibility.setHidden,
+      onMove: visibility.moveToPhase,
+      onSetPhaseHidden: visibility.setPhaseHidden,
+    },
     texture,
-    showMarkers: markers.showMarkers,
-    onToggleMarkers: markers.toggle,
+    markers: markers.mode,
+    onMarkers: markers.setMode,
     drag,
     calibration: {
       active: calibration.calibrating,

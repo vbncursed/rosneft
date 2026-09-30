@@ -1,4 +1,5 @@
 import type { Chain } from "@/entities/measurement";
+import { ALL_PHASES_SHOWN } from "@/entities/panorama";
 import type { ResolvedPlacement } from "@/entities/placement";
 import type { ModelOption, SceneViewModel } from "@/entities/scene";
 import type { Tour } from "@/features/onboarding";
@@ -23,13 +24,23 @@ const IDLE_UPLOAD = { stage: "idle", file: null } as const;
  */
 export const IDLE_PANORAMAS: PanoramaParts = {
   list: [],
+  justAddedId: null,
+  onJustAddedSeen: noop,
   pendingId: null,
   active: null,
   editing: null,
   index: { current: 0, total: 0 },
+  visibility: {
+    phaseHidden: ALL_PHASES_SHOWN,
+    pendingIds: [],
+    pendingPhases: [],
+    onSetHidden: noop,
+    onMove: async () => true,
+    onSetPhaseHidden: noop,
+  },
   texture: { bitmap: null, progress: null, status: "idle" },
-  showMarkers: true,
-  onToggleMarkers: noop,
+  markers: "all",
+  onMarkers: noop,
   drag: { draggingId: null, livePos: null, begin: noop, move: noop, end: noop },
   calibration: {
     active: false,
@@ -64,6 +75,8 @@ export const IDLE_PANORAMAS: PanoramaParts = {
       setTitle: noop,
       useGps: true,
       setUseGps: noop,
+      phase: "prior",
+      setPhase: noop,
       pick: async () => {},
       clear: noop,
       cancel: noop,
@@ -198,7 +211,7 @@ export const basePageParts = (): PageParts => ({
   placements: PLACEMENTS,
   pendingIds: [],
   placing: null,
-  placementGroups: { list: [], busy: false, create: async () => true, rename: async () => true, remove: noop },
+  placementGroups: { list: [], busy: false, create: async () => true, rename: async () => true, remove: noop, setHidden: async () => true },
   form: null,
   tour: IDLE_TOUR,
   panoramaTour: IDLE_TOUR,
@@ -303,7 +316,7 @@ export default {
     placements: p.placements.map((x) =>
       x.id === 3 ? { ...x, hidden: true } : x.id === 4 ? { ...x, groupId: 1 } : x,
     ),
-    placementGroups: { ...p.placementGroups, list: [{ id: 1, title: "Valve bank" }] },
+    placementGroups: { ...p.placementGroups, list: [{ id: 1, title: "Valve bank", hidden: false }] },
     view: { ...p.view, expandedModel: "storage-tank-500" },
   })),
 

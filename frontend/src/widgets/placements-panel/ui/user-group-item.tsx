@@ -1,16 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  EyeButton,
-  eyeState,
-  GroupRow,
-  userGroupKey,
-  userGroupLine,
-  type UserGroupSection,
-} from "@/entities/placement";
+import { userGroupKey, userGroupLine, type UserGroupSection } from "@/entities/placement";
+import { EyeButton, GroupRow } from "@/shared/ui/group-controls";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 import { Menu } from "@/shared/ui/menu";
-import { ADD_TO_GROUP, DELETE_GROUP } from "../model/panel-copy";
+import { ADD_TO_GROUP, DELETE_GROUP, SHOW_GROUP_TO_ADD } from "../model/panel-copy";
 import { GroupTitleField } from "./group-title-field";
 import { InstanceItem, type RowContext } from "./instance-item";
 
@@ -24,6 +18,8 @@ export type GroupActions = {
   onCreate: (title: string) => Promise<boolean>;
   onRename: (id: number, title: string) => Promise<boolean>;
   onDelete: (id: number) => void;
+  /** The group's own flag (D6); its members keep theirs. */
+  onSetHidden: (id: number, hidden: boolean) => void;
 };
 
 export type UserGroupItemProps = {
@@ -101,11 +97,12 @@ export function UserGroupItem({ section, ctx, onAdd, actions }: UserGroupItemPro
         ctx.grants.write ? (
           <>
             <EyeButton
-              state={eyeState(members.map((m) => m.instance))}
+              // The group's own flag (D5, D6), not the aggregate of its members:
+              // an empty group can be hidden too, and whatever moves in arrives hidden.
+              state={group.hidden ? "hidden" : "visible"}
               subject={`group ${group.title}`}
-              disabled={ids.length === 0}
-              busy={ids.some((id) => ctx.pendingIds.includes(id))}
-              onToggle={(hidden) => ctx.onSetHidden(ids, hidden)}
+              busy={actions.busy}
+              onToggle={(hidden) => actions.onSetHidden(group.id, hidden)}
             />
             <Menu
               triggerLabel={`Actions for group ${group.title}`}
@@ -138,11 +135,25 @@ export function UserGroupItem({ section, ctx, onAdd, actions }: UserGroupItemPro
       {open ? (
         <ul role="list" className="m-0 mt-1.5 flex list-none flex-col gap-1.5 p-0">
           {members.map(({ model, instance }) => (
-            <InstanceItem key={instance.id} model={model} instance={instance} ctx={ctx} showModel />
+            <InstanceItem key={instance.id} model={model} instance={instance} ctx={ctx} showModel groupHidden={group.hidden} />
           ))}
           {onAdd ? (
             <li className="ml-3">
-              <Button variant="ghost" size="sm" aria-label={`Add objects to group ${group.title}`} onClick={() => onAdd(group.id)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label={`Add objects to group ${group.title}`}
+                // A hidden group's Add waits through aria-disabled, not
+                // `disabled`, the same as the group's own eye (D5): a
+                // natively disabled button drops focus to <body>, and this
+                // one sits right after the row that hides it.
+                aria-disabled={group.hidden || undefined}
+                tooltip={group.hidden ? { label: SHOW_GROUP_TO_ADD } : false}
+                className="aria-disabled:cursor-not-allowed aria-disabled:opacity-55"
+                onClick={() => {
+                  if (!group.hidden) onAdd(group.id);
+                }}
+              >
                 <Icon name="plus" size={12} />
                 {ADD_TO_GROUP}
               </Button>

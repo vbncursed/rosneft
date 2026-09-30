@@ -426,6 +426,29 @@ export interface paths {
         patch: operations["updatePlacementGroup"];
         trace?: never;
     };
+    "/api/territories/{slug}/placement-groups/{id}/hidden": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Hide or show a whole placement group
+         * @description Requires placement:write. Sets the group's shared flag; its placements' own hidden flags are not touched, so unhiding the group leaves a placement hidden on its own hidden. An id that belongs to another territory answers 404, the same as an unknown id.
+         */
+        put: operations["setPlacementGroupHidden"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/territories/{slug}/measurements": {
         parameters: {
             query?: never;
@@ -516,6 +539,73 @@ export interface paths {
         post?: never;
         /** Remove a panorama */
         delete: operations["deletePanorama"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/territories/{slug}/panoramas/hidden": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Hide or show panoramas, all or none
+         * @description Requires panorama:write. One content transaction over 1–1000 ids: an id that is unknown or on another territory answers 404 and nothing changes. Hiding is shared by everyone who opens the territory.
+         */
+        put: operations["setPanoramasHidden"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/territories/{slug}/panoramas/phase": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Move panoramas into a phase, all or none
+         * @description Requires panorama:write. One content transaction over 1–1000 ids: an id that is unknown or on another territory answers 404, an unknown phase 400, and nothing changes. A panorama moved into a hidden phase is hidden with it.
+         */
+        put: operations["setPanoramasPhase"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/territories/{slug}/panorama-phases/{phase}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                phase: components["schemas"]["PanoramaPhaseName"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Hide or show a whole panorama phase
+         * @description Requires panorama:write. Sets the phase's shared flag; the panoramas' own hidden flags are not touched. A phase other than prior, current or post answers 400.
+         */
+        put: operations["setPanoramaPhaseHidden"];
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2736,6 +2826,8 @@ export interface components {
             /** Format: int64 */
             id: number;
             title: string;
+            /** @description Shared: a placement is drawn only when neither it nor its group is hidden. Changed only through PUT …/placement-groups/{id}/hidden. */
+            hidden: boolean;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -2809,6 +2901,9 @@ export interface components {
              *     0 = +Z) the viewer faces when the panorama opens.
              */
             defaultYaw: number;
+            phase: components["schemas"]["PanoramaPhaseName"];
+            /** @description Shared: a hidden panorama is not drawn for anyone who opens the territory, and neither is one whose phase is hidden. Changed only through PUT …/panoramas/hidden; PUT …/panoramas/{id} keeps it. */
+            hidden: boolean;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -2825,6 +2920,7 @@ export interface components {
             position?: components["schemas"]["Vec3"];
             /** Format: double */
             yawOffset?: number;
+            phase?: components["schemas"]["PanoramaPhaseName"];
         };
         PanoramaUpdate: {
             title?: string;
@@ -2833,6 +2929,34 @@ export interface components {
             yawOffset?: number;
             /** Format: double */
             defaultYaw?: number;
+        };
+        /**
+         * @description The job phase a panorama was taken in: prior ("Prior job"), current ("Current job") or post ("Post job"). Every panorama is in exactly one; a new panorama lands in prior unless it names another.
+         * @enum {string}
+         */
+        PanoramaPhaseName: "prior" | "current" | "post";
+        /** @description One phase's shared visibility. A panorama is drawn only when neither it nor its phase is hidden; unhiding a phase does not unhide the panoramas hidden on their own. */
+        PanoramaPhase: {
+            phase: components["schemas"]["PanoramaPhaseName"];
+            hidden: boolean;
+        };
+        /** @description Hide or show every listed panorama of the territory, all or none: an id that is unknown or on another territory answers 404 and nothing changes. A repeated id counts once. */
+        PanoramasHiddenUpdate: {
+            ids: number[];
+            hidden: boolean;
+        };
+        /** @description Move every listed panorama of the territory into phase, all or none: an id that is unknown or on another territory answers 404, a phase other than prior, current or post answers 400, and nothing changes. A repeated id counts once. */
+        PanoramasPhaseUpdate: {
+            ids: number[];
+            phase: components["schemas"]["PanoramaPhaseName"];
+        };
+        PanoramasUpdated: {
+            /** @description How many panoramas were written. */
+            updated: number;
+        };
+        /** @description Sets one shared hidden flag — a panorama phase's or a placement group's. */
+        HiddenUpdate: {
+            hidden: boolean;
         };
         /**
          * @description A PDF attached to a territory. Served as-is from BlobStore via
@@ -2965,6 +3089,8 @@ export interface components {
             measurements: components["schemas"]["Measurement"][];
             /** @description The territory's placement groups, by id; empty when none. */
             placementGroups: components["schemas"]["PlacementGroup"][];
+            /** @description Always the three phases, prior, current, post, in that order, each with its shared hidden flag (false for a phase never hidden). */
+            panoramaPhases: components["schemas"]["PanoramaPhase"][];
         };
         UploadInitiate: {
             /** Format: int64 */
@@ -4061,6 +4187,37 @@ export interface operations {
             500: components["responses"]["Internal"];
         };
     };
+    setPlacementGroupHidden: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HiddenUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementGroup"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
     listMeasurements: {
         parameters: {
             query?: never;
@@ -4299,6 +4456,97 @@ export interface operations {
                 };
                 content?: never;
             };
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    setPanoramasHidden: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PanoramasHiddenUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PanoramasUpdated"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    setPanoramasPhase: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PanoramasPhaseUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PanoramasUpdated"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    setPanoramaPhaseHidden: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                phase: components["schemas"]["PanoramaPhaseName"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HiddenUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PanoramaPhase"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             500: components["responses"]["Internal"];
         };

@@ -50,6 +50,7 @@ type Service interface {
 	CreatePlacementGroup(ctx context.Context, territorySlug, title string) (domain.PlacementGroup, error)
 	RenamePlacementGroup(ctx context.Context, territorySlug string, id int64, title string) (domain.PlacementGroup, error)
 	DeletePlacementGroup(ctx context.Context, territorySlug string, id int64) error
+	SetPlacementGroupHidden(ctx context.Context, territorySlug string, id int64, hidden bool) (domain.PlacementGroup, error)
 
 	ListMeasurements(ctx context.Context, territorySlug string) ([]domain.Measurement, error)
 	CreateMeasurement(ctx context.Context, m domain.Measurement) (domain.Measurement, error)
@@ -61,6 +62,9 @@ type Service interface {
 	CreatePanorama(ctx context.Context, p domain.Panorama, scope domain.BlobScope) (domain.Panorama, error)
 	UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error)
 	DeletePanorama(ctx context.Context, territorySlug string, id int64) error
+	SetPanoramasHidden(ctx context.Context, territorySlug string, ids []int64, hidden bool) (int, error)
+	SetPanoramasPhase(ctx context.Context, territorySlug string, ids []int64, phase string) (int, error)
+	SetPanoramaPhaseHidden(ctx context.Context, territorySlug, phase string, hidden bool) (domain.PanoramaPhase, error)
 
 	ListDocuments(ctx context.Context, territorySlug string) ([]domain.Document, error)
 	CreateDocument(ctx context.Context, d domain.Document, scope domain.BlobScope) (domain.Document, error)

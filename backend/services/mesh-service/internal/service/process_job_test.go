@@ -159,3 +159,23 @@ func (s *ProcessJobSuite) TestDoesNotReQueueATargetDeletedMidConversion() {
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), s.saved[len(s.saved)-1].Status, domain.JobStatusSucceeded)
 }
+
+// A failed job used to be saved from ProcessJob's copy, loaded before the
+// first progress report, so its Stage was always "" and the frontend said
+// "stopped before the first report" whatever step actually failed.
+func (s *ProcessJobSuite) TestFailureKeepsTheStageItReached() {
+	s.queue.GetJobMock.Return(domain.Job{ID: "job-1", Kind: domain.KindModel, Slug: "m1", Status: domain.JobStatusPending}, nil)
+	s.stubSourceHashes("h1")
+	s.blobs.GetMock.Set(func(context.Context, string) (io.ReadCloser, blobstore.Blob, error) {
+		return io.NopCloser(bytes.NewReader(objZip(s.T()))), blobstore.Blob{}, nil
+	})
+	s.converter.ConvertLODsMock.Return(nil, errors.New("gltfpack failed: signal: killed"))
+	s.queue.UnlockTargetMock.Return(nil)
+
+	err := s.svc.ProcessJob(s.ctx, "job-1")
+
+	assert.ErrorContains(s.T(), err, "signal: killed")
+	last := s.saved[len(s.saved)-1]
+	assert.Equal(s.T(), last.Status, domain.JobStatusFailed)
+	assert.Equal(s.T(), last.Stage, "parsing")
+}

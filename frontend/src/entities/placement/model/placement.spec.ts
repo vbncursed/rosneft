@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isShownIn, isVisibleIn, toDegrees, toRadians, type Placement } from "./placement";
+import { isShownIn, isVisibleIn, toDegrees, toRadians, type Placement, type PlacementGroup } from "./placement";
 
 const placement = (visiblePanoramaIds: number[] = []): Placement => ({
   id: 1,
@@ -54,14 +54,29 @@ describe("toDegrees / toRadians", () => {
 });
 
 describe("isShownIn", () => {
-  it("draws nothing hidden, in the 3D view or in any panorama", () => {
-    expect(isShownIn({ ...placement([4]), hidden: true }, null)).toBe(false);
-    expect(isShownIn({ ...placement([4]), hidden: true }, 4)).toBe(false);
+  const group = (hidden: boolean): PlacementGroup[] => [{ id: 4, title: "East yard", hidden }];
+
+  // D5/D6: an item is drawn only when neither it nor its group is hidden;
+  // showing the group again does not show an item hidden on its own.
+  it.each([
+    [false, false, true],
+    [true, false, false],
+    [false, true, false],
+    [true, true, false],
+  ])("item hidden %s × group hidden %s → drawn %s", (hidden, groupHidden, drawn) => {
+    const p = { ...placement([4]), hidden, groupId: 4 };
+    expect(isShownIn(p, null, group(groupHidden))).toBe(drawn);
+    expect(isShownIn(p, 4, group(groupHidden))).toBe(drawn);
+  });
+
+  it("ignores a hidden group it does not sit in, and a groupId naming no known group", () => {
+    expect(isShownIn({ ...placement([4]), groupId: 9 }, null, group(true))).toBe(true);
+    expect(isShownIn(placement([4]), null, group(true))).toBe(true);
   });
 
   it("otherwise follows the panorama allowlist", () => {
-    expect(isShownIn(placement([4]), null)).toBe(true);
-    expect(isShownIn(placement([4]), 4)).toBe(true);
-    expect(isShownIn(placement([4]), 9)).toBe(false);
+    expect(isShownIn(placement([4]), null, [])).toBe(true);
+    expect(isShownIn(placement([4]), 4, [])).toBe(true);
+    expect(isShownIn(placement([4]), 9, [])).toBe(false);
   });
 });

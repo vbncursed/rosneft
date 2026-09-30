@@ -20,6 +20,7 @@ func (s *TerritoryScopeSuite) thumbnailOf(id int64) (hash string, updatedAt time
 func (s *TerritoryScopeSuite) TestCreatePanoramaStoresItsThumbnail() {
 	out, err := s.pg.CreatePanorama(s.T().Context(), domain.Panorama{
 		TerritorySlug: "a", Slug: "south", Title: "south", SourceBlobHash: "src", ThumbnailBlobHash: "thumb",
+		Phase: domain.PhasePrior,
 	})
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), out.ThumbnailBlobHash, "thumb")

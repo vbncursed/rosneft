@@ -44,6 +44,7 @@ export default function SceneCanvas({
   resetVersion,
   playing,
   placements,
+  placementGroups,
   mode,
   selectedId,
   gizmo,
@@ -62,7 +63,9 @@ export default function SceneCanvas({
   panoramaOpacity,
   calibrating,
   panoramas,
+  panoramaPhaseHidden,
   showMarkers,
+  markerNames,
   showMeasurements,
   markerLabels,
   move,
@@ -153,7 +156,7 @@ export default function SceneCanvas({
       {/* Warm useGLTF's cache only after Ktx2Init has configured the
           loader — preloading from outside Canvas would race the KTX2
           setup and corrupt texture decoding. */}
-      <GlbPreloader parentLods={parentLods} placements={placements} />
+      <GlbPreloader parentLods={parentLods} placements={placements} groups={placementGroups} />
       <Lighting />
 
       {/* Always wire the click handler — handleSceneClick early-returns when
@@ -195,6 +198,7 @@ export default function SceneCanvas({
         <Suspense fallback={null}>
           <PlacementsLayer
             placements={placements}
+            placementGroups={placementGroups}
             selectedId={selectedId}
             mode={gizmo}
             measureMode={pointMode}
@@ -238,7 +242,9 @@ export default function SceneCanvas({
         progress={panoramaProgress}
         opacity={panoramaOpacity}
         panoramas={panoramas}
+        phaseHidden={panoramaPhaseHidden}
         showMarkers={showMarkers}
+        markerNames={markerNames}
         pointMode={pointMode}
         calibrating={calibrating}
         move={move}

@@ -161,10 +161,11 @@ func (s *RollbackSuite) TestUpAgainAfterRollback() {
 	assert.Equal(s.T(), n, 1)
 }
 
-// Three steps back undo 00007 (placement_groups), 00006 (it only widens
-// audit_capture's ignore list) and then 00005: its trigger comes off
-// measurements, and the previous ensure_audit_triggers() body no longer picks
-// the table up on boot. A migration added after 00007 needs one more Down here.
+// Four steps back undo 00008 (panorama_phase_visibility), 00007
+// (placement_groups), 00006 (it only widens audit_capture's ignore list) and
+// then 00005: its trigger comes off measurements, and the previous
+// ensure_audit_triggers() body no longer picks the table up on boot. A
+// migration added after 00008 needs one more Down here.
 func (s *RollbackSuite) TestBackingOut00005ForgetsMeasurements() {
 	ctx := s.T().Context()
 	_, err := s.pool.Exec(ctx, `CREATE TABLE measurements (id BIGSERIAL PRIMARY KEY)`)
@@ -175,6 +176,7 @@ func (s *RollbackSuite) TestBackingOut00005ForgetsMeasurements() {
 	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT ensure_audit_triggers()`).Scan(&attached))
 	assert.Equal(s.T(), attached, 1)
 
+	assert.NilError(s.T(), migrate.Down(ctx, s.dsn)) // 00008
 	assert.NilError(s.T(), migrate.Down(ctx, s.dsn)) // 00007
 	assert.NilError(s.T(), migrate.Down(ctx, s.dsn)) // 00006
 	assert.NilError(s.T(), migrate.Down(ctx, s.dsn)) // 00005
@@ -188,8 +190,9 @@ func (s *RollbackSuite) TestBackingOut00005ForgetsMeasurements() {
 	assert.Equal(s.T(), attached, 0)
 }
 
-// One step back is 00007 alone: its trigger comes off placement_groups, and
-// the restored ensure_audit_triggers() body no longer picks the table up.
+// Two steps back undo 00008 and then 00007: its trigger comes off
+// placement_groups, and the restored ensure_audit_triggers() body no longer
+// picks the table up.
 func (s *RollbackSuite) TestBackingOut00007ForgetsPlacementGroups() {
 	ctx := s.T().Context()
 	_, err := s.pool.Exec(ctx, `CREATE TABLE placement_groups (id BIGSERIAL PRIMARY KEY, title TEXT NOT NULL)`)
@@ -200,11 +203,38 @@ func (s *RollbackSuite) TestBackingOut00007ForgetsPlacementGroups() {
 	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT ensure_audit_triggers()`).Scan(&attached))
 	assert.Equal(s.T(), attached, 1)
 
+	assert.NilError(s.T(), migrate.Down(ctx, s.dsn)) // 00008
 	assert.NilError(s.T(), migrate.Down(ctx, s.dsn)) // 00007
 	var trgs int
 	assert.NilError(s.T(), s.pool.QueryRow(ctx,
 		`SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal
 		 AND tgrelid = 'public.placement_groups'::regclass`).Scan(&trgs))
+	assert.Equal(s.T(), trgs, 0)
+
+	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT ensure_audit_triggers()`).Scan(&attached))
+	assert.Equal(s.T(), attached, 0)
+}
+
+// One step back is 00008 alone: its trigger comes off
+// panorama_phase_visibility, and the restored ensure_audit_triggers() body no
+// longer picks the table up.
+func (s *RollbackSuite) TestBackingOut00008ForgetsPanoramaPhaseVisibility() {
+	ctx := s.T().Context()
+	_, err := s.pool.Exec(ctx, `CREATE TABLE panorama_phase_visibility (
+		territory_id BIGINT NOT NULL, phase TEXT NOT NULL, hidden BOOLEAN NOT NULL,
+		PRIMARY KEY (territory_id, phase))`)
+	assert.NilError(s.T(), err)
+
+	assert.NilError(s.T(), migrate.Up(ctx, s.dsn))
+	var attached int
+	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT ensure_audit_triggers()`).Scan(&attached))
+	assert.Equal(s.T(), attached, 1)
+
+	assert.NilError(s.T(), migrate.Down(ctx, s.dsn)) // 00008
+	var trgs int
+	assert.NilError(s.T(), s.pool.QueryRow(ctx,
+		`SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal
+		 AND tgrelid = 'public.panorama_phase_visibility'::regclass`).Scan(&trgs))
 	assert.Equal(s.T(), trgs, 0)
 
 	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT ensure_audit_triggers()`).Scan(&attached))

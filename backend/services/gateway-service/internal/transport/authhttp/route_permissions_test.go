@@ -211,6 +211,7 @@ func (s *RoutePermsSuite) TestHidingAndGroupingNeedPlacementWrite() {
 		{http.MethodPost, "/api/territories/{slug}/placement-groups", "/api/territories/yard/placement-groups"},
 		{http.MethodPatch, "/api/territories/{slug}/placement-groups/{id}", "/api/territories/yard/placement-groups/7"},
 		{http.MethodDelete, "/api/territories/{slug}/placement-groups/{id}", "/api/territories/yard/placement-groups/7"},
+		{http.MethodPut, "/api/territories/{slug}/placement-groups/{id}/hidden", "/api/territories/yard/placement-groups/7/hidden"},
 	}
 	ok := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Pattern", chi.RouteContext(r.Context()).RoutePattern())

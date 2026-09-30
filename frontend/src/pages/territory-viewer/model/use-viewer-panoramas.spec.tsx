@@ -1,13 +1,20 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Panorama } from "@/entities/panorama";
+import type { Panorama, PhaseHidden } from "@/entities/panorama";
 import type { PanoramaViewMode } from "@/features/panorama-view";
 import { useSectionFolds } from "@/widgets/view-tab";
 import { useViewerPanoramas } from "./use-viewer-panoramas";
 
 const { list, usePanoramaList, usePanoramaTexture, usePanoramaUpload, useTerritoryLink } =
   vi.hoisted(() => {
-    const list = { panoramas: [] as unknown[], pendingId: null, add: vi.fn(), update: vi.fn(), remove: vi.fn() };
+    const list = {
+      panoramas: [] as unknown[],
+      pendingId: null,
+      add: vi.fn(),
+      update: vi.fn(),
+      remove: vi.fn(),
+      setPanoramas: vi.fn(),
+    };
     return {
       list,
       // A fresh object each render, exactly as the real hook returns one: the
@@ -43,6 +50,8 @@ const panorama = (id: number, over: Partial<Panorama> = {}): Panorama => ({
   yawOffset: 0.1,
   defaultYaw: 0,
   thumbnailBlobHash: null,
+  phase: "prior",
+  hidden: false,
   updatedAt: "2026-09-14T10:00:00Z",
   ...over,
 });
@@ -62,7 +71,11 @@ const modeStub = (over: Partial<PanoramaViewMode> = {}): PanoramaViewMode => ({
 const decode = vi.fn();
 const onChanged = vi.fn();
 
-const mount = (mode = modeStub(), moving = false) =>
+const mount = (
+  mode = modeStub(),
+  moving = false,
+  extra: { canWrite?: boolean; phaseHidden?: PhaseHidden } = {},
+) =>
   renderHook(
     (props: { mode: PanoramaViewMode; moving: boolean }) =>
       useViewerPanoramas({
@@ -75,12 +88,15 @@ const mount = (mode = modeStub(), moving = false) =>
         onChanged,
         decode,
         reveal: vi.fn(),
+        canWrite: extra.canWrite ?? true,
+        phaseHidden: extra.phaseHidden,
       }),
     { initialProps: { mode, moving } },
   );
 
 describe("useViewerPanoramas", () => {
   beforeEach(() => {
+    localStorage.clear();
     list.panoramas = PANORAMAS;
     list.update.mockReset();
     list.add.mockReset();
@@ -257,6 +273,28 @@ describe("useViewerPanoramas", () => {
     expect(onChanged).toHaveBeenCalledTimes(1);
   });
 
+  // Follow-up 2: the phase list widget expands the row's phase off this id,
+  // once per upload — the widget itself decides how long that stays expanded.
+  it("reports the just-uploaded capture's id, so its phase list can open", () => {
+    const { result } = mount();
+    expect(result.current.justAddedId).toBeNull();
+    act(() => usePanoramaUpload.mock.calls.at(-1)![0].onCreated(panorama(9) as never));
+    expect(result.current.justAddedId).toBe(9);
+  });
+
+  // Important review fix: a PanoramaPhaseList remount (tab switch away and
+  // back) resets the widget's own memory of what it already opened, but not
+  // this hook's — so this hook, the actual source of truth, must clear
+  // justAddedId once the list acknowledges it, or the same id reopens a
+  // phase the reader already folded again.
+  it("clears the just-added id once its phase list acknowledges it", () => {
+    const { result } = mount();
+    act(() => usePanoramaUpload.mock.calls.at(-1)![0].onCreated(panorama(9) as never));
+    expect(result.current.justAddedId).toBe(9);
+    act(() => result.current.onJustAddedSeen());
+    expect(result.current.justAddedId).toBeNull();
+  });
+
   it("opens a folded Panoramas list on a finished upload, so the capture is not hidden", () => {
     localStorage.clear();
     const { result } = renderHook(() => {
@@ -271,6 +309,8 @@ describe("useViewerPanoramas", () => {
         onChanged,
         decode,
         reveal: folds.reveal,
+        canWrite: true,
+        phaseHidden: undefined,
       });
       return { folds, panoramas };
     });
@@ -305,5 +345,32 @@ describe("useViewerPanoramas", () => {
   it("hands the tour link the territory's own URL and the viewer's onChanged", () => {
     mount();
     expect(useTerritoryLink).toHaveBeenCalledWith("refinery-block-c", "https://tour.example", onChanged);
+  });
+
+  // A reader without panorama:write sees a hidden capture neither in the list
+  // nor on the map, so P must not step into one either.
+  it("steps a reader without panorama:write past hidden captures and hidden phases", () => {
+    list.panoramas = [panorama(1), panorama(2, { hidden: true }), panorama(3, { phase: "post" })];
+    const { result } = mount(modeStub(), false, { canWrite: false, phaseHidden: { prior: false, current: false, post: true } });
+    expect(result.current.index.total).toBe(1);
+  });
+
+  it("keeps every capture in an editor's reach, hidden or not", () => {
+    list.panoramas = [panorama(1), panorama(2, { hidden: true }), panorama(3, { phase: "post" })];
+    const { result } = mount(modeStub(), false, { canWrite: true, phaseHidden: { prior: false, current: false, post: true } });
+    expect(result.current.index.total).toBe(3);
+  });
+
+  it("seeds the phase flags from the bundle, every phase shown when it carries none", () => {
+    expect(mount().result.current.visibility.phaseHidden).toEqual({ prior: false, current: false, post: false });
+    const hidden = { prior: false, current: true, post: false };
+    expect(mount(modeStub(), false, { phaseHidden: hidden }).result.current.visibility.phaseHidden).toEqual(hidden);
+  });
+
+  it("hands the stored marker choice and its setter through", () => {
+    const { result } = mount();
+    expect(result.current.markers).toBe("all");
+    act(() => result.current.onMarkers("points"));
+    expect(result.current.markers).toBe("points");
   });
 });

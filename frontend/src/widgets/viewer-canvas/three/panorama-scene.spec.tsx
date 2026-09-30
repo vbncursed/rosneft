@@ -2,7 +2,7 @@ import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { createElement } from "react";
 import type { Mesh } from "three";
 import { describe, expect, it, vi } from "vitest";
-import type { Panorama } from "@/entities/panorama";
+import { ALL_PHASES_SHOWN, type Panorama } from "@/entities/panorama";
 import PanoramaScene from "./panorama-scene";
 
 // The rig, the drag controller and the overlay render nothing findable under
@@ -33,14 +33,16 @@ vi.mock("./panorama-markers-layer", () => ({
     panoramas,
     moveMode,
     editingId,
+    showTitles,
   }: {
     panoramas: Panorama[];
     moveMode: boolean;
     editingId: number | null;
+    showTitles: boolean;
   }) =>
     createElement("group", {
       name: "PanoramaMarkersLayer",
-      userData: { ids: panoramas.map((p) => p.id), moveMode, editingId },
+      userData: { ids: panoramas.map((p) => p.id), moveMode, editingId, showTitles },
     }),
 }));
 vi.mock("./panorama-drag-controller", () => ({
@@ -58,6 +60,8 @@ const PANO: Panorama = {
   yawOffset: 0,
   defaultYaw: 0,
   thumbnailBlobHash: null,
+  phase: "prior",
+  hidden: false,
   updatedAt: "",
 };
 
@@ -81,7 +85,9 @@ const scene = (over: Partial<Props> = {}) => (
     progress={null}
     opacity={1}
     panoramas={[PANO]}
+    phaseHidden={ALL_PHASES_SHOWN}
     showMarkers
+    markerNames
     pointMode={false}
     calibrating={false}
     move={STILL}
@@ -150,7 +156,7 @@ describe("PanoramaScene", () => {
   it("offers the anchors in the 3D view, and drags them in move mode", async () => {
     const r = await mount({ move: { active: true, draggingId: 7, livePos: null } });
     const markers = named(r, "PanoramaMarkersLayer")[0];
-    expect(markers.instance.userData).toEqual({ ids: [7], moveMode: true, editingId: null });
+    expect(markers.instance.userData).toEqual({ ids: [7], moveMode: true, editingId: null, showTitles: true });
     expect(named(r, "PanoramaDragController")[0].instance.userData.dragging).toBe(true);
   });
 
@@ -187,7 +193,7 @@ describe("PanoramaScene", () => {
     });
     const markers = named(r, "PanoramaMarkersLayer")[0];
     // The draft, not the saved row: the ring follows the nudge buttons too.
-    expect(markers.instance.userData).toEqual({ ids: [7], moveMode: true, editingId: 7 });
+    expect(markers.instance.userData).toEqual({ ids: [7], moveMode: true, editingId: 7, showTitles: true });
   });
 
   it("keeps V from reaching any other anchor while an alignment is open", async () => {
@@ -238,6 +244,7 @@ describe("PanoramaScene", () => {
       ids: [7],
       moveMode: true,
       editingId: 7,
+      showTitles: true,
     });
     const measuring = await mount({ ...calibrating, pointMode: true });
     expect(named(measuring, "PanoramaMarkersLayer")[0].instance.userData.ids).toEqual([7]);
@@ -253,5 +260,29 @@ describe("PanoramaScene", () => {
   it("keeps the drag controller mounted so a release always lands", async () => {
     const r = await mount(ready);
     expect(named(r, "PanoramaDragController")[0].instance.userData.dragging).toBe(false);
+  });
+
+  it("draws the anchors without titles in Points only", async () => {
+    expect(named(await mount({ markerNames: false }), "PanoramaMarkersLayer")[0].instance.userData.showTitles).toBe(false);
+    expect(named(await mount(), "PanoramaMarkersLayer")[0].instance.userData.showTitles).toBe(true);
+  });
+
+  it("draws no anchor for a hidden capture, nor for one in a hidden phase", async () => {
+    const r = await mount({
+      panoramas: [PANO, { ...PANO, id: 8, hidden: true }, { ...PANO, id: 9, phase: "post" }],
+      phaseHidden: { ...ALL_PHASES_SHOWN, post: true },
+    });
+    expect(named(r, "PanoramaMarkersLayer")[0].instance.userData.ids).toEqual([7]);
+  });
+
+  // The ring being aligned is the alignment's own control, not a marker: a
+  // hidden phase must not leave the operator nothing to drag.
+  it("still hands over the anchor being aligned when its phase is hidden", async () => {
+    const r = await mount({
+      calibrating: true,
+      calibrationGhost: { ...DRAFT, phase: "post" },
+      phaseHidden: { ...ALL_PHASES_SHOWN, post: true },
+    });
+    expect(named(r, "PanoramaMarkersLayer")[0].instance.userData.ids).toEqual([7]);
   });
 });

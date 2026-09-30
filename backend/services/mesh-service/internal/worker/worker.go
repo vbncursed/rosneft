@@ -32,9 +32,10 @@ type Worker struct {
 	name         string
 	blockTimeout time.Duration
 	// sem is a counting semaphore that caps the number of in-flight
-	// conversions. Conversions are CPU-heavy (OBJ parse + GLB write), so
-	// running more than GOMAXPROCS in parallel just causes context-switch
-	// thrashing without throughput gain.
+	// conversions. Each one runs its own gltfpack, which peaked at 4.0 GB on
+	// three 8192² textures, so the configured default is 1:
+	// parallel jobs multiply memory, not throughput, on the 8 GB host this
+	// ships to.
 	sem chan struct{}
 }
 

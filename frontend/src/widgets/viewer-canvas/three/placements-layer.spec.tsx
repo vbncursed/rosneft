@@ -34,6 +34,7 @@ vi.mock("./placement-markers", () => ({
 const layer = (over: Partial<Parameters<typeof PlacementsLayer>[0]> = {}) => (
   <PlacementsLayer
     placements={[fakePlacement(1), fakePlacement(2)]}
+    placementGroups={[]}
     selectedId={2}
     mode={"translate" as GizmoMode}
     measureMode={false}
@@ -208,5 +209,15 @@ describe("PlacementsLayer", () => {
     invalidate.mockClear();
     await r.update(layer({ placements: [fakePlacement(1), { ...fakePlacement(2), hidden: true }] }));
     expect(invalidate).not.toHaveBeenCalled();
+  });
+
+  it("draws no member of a hidden group, whatever its own flag says", async () => {
+    const r = await ReactThreeTestRenderer.create(
+      layer({
+        placements: [fakePlacement(1), { ...fakePlacement(2), groupId: 4 }],
+        placementGroups: [{ id: 4, title: "East yard", hidden: true }],
+      }),
+    );
+    expect(instances(r).map((g) => g.instance.userData.placementId)).toEqual([1]);
   });
 });

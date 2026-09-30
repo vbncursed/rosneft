@@ -25,6 +25,8 @@ const panorama = (id: number, over: Partial<Panorama> = {}): Panorama => ({
   yawOffset: 0,
   defaultYaw: 0,
   thumbnailBlobHash: `t${id}`,
+  phase: "prior",
+  hidden: false,
   updatedAt: "2026-09-14T10:00:00Z",
   ...over,
 });
@@ -70,6 +72,8 @@ describe("viewTabProps · panoramas", () => {
         calibrated: true,
         canEdit: true,
         editing: false,
+        phase: "prior",
+        hidden: false,
       },
       {
         id: 2,
@@ -80,6 +84,8 @@ describe("viewTabProps · panoramas", () => {
         calibrated: false,
         canEdit: true,
         editing: false,
+        phase: "prior",
+        hidden: false,
       },
     ]);
   });
@@ -248,6 +254,21 @@ describe("viewTabProps · documents and the footer", () => {
     ).toBe(insideFooter(1));
   });
 
+  it("does not count a member of a hidden group among those the panorama marks", () => {
+    const p = withPanoramas([panorama(1)]);
+    const seen: ResolvedPlacement[] = p.placements.map((x, i) =>
+      i < 2 ? { ...x, visiblePanoramaIds: [1], groupId: i === 0 ? 5 : null } : x,
+    );
+    expect(
+      viewTabProps({
+        ...p,
+        placements: seen,
+        placementGroups: { ...p.placementGroups, list: [{ id: 5, title: "East yard", hidden: true }] },
+        mode: { ...p.mode, view: { kind: "panorama", id: 1 } },
+      }).footer,
+    ).toBe(insideFooter(1));
+  });
+
   it("says nothing under the sections in the 3D view", () => {
     expect(viewTabProps(basePageParts()).footer).toBeNull();
   });
@@ -357,7 +378,7 @@ describe("panoramaCanvasProps", () => {
   });
 
   it("passes the texture, the markers and the live drag straight through", () => {
-    const p = withPanoramas([panorama(1)], { showMarkers: false });
+    const p = withPanoramas([panorama(1)], { markers: "off" });
     const moving = {
       ...p,
       mode: { ...p.mode, move: true },
@@ -368,9 +389,22 @@ describe("panoramaCanvasProps", () => {
     };
     const props = panoramaCanvasProps(moving, []);
     expect(props.showMarkers).toBe(false);
+    expect(props.markerNames).toBe(false);
     expect(props.panoramas).toBe(moving.panoramas.list);
     expect(props.move).toEqual({ active: true, draggingId: 1, livePos: { x: 1, y: 2, z: 3 } });
     expect(props.panoramaStatus).toBe("idle");
+  });
+
+  it("draws rings without titles in Points only, and both in Points & names", () => {
+    const points = panoramaCanvasProps(withPanoramas([panorama(1)], { markers: "points" }), []);
+    expect([points.showMarkers, points.markerNames]).toEqual([true, false]);
+    const all = panoramaCanvasProps(withPanoramas([panorama(1)], { markers: "all" }), []);
+    expect([all.showMarkers, all.markerNames]).toEqual([true, true]);
+  });
+
+  it("hands the canvas each phase's flag, so the map draws only what is shown", () => {
+    const p = withPanoramas([panorama(1)]);
+    expect(panoramaCanvasProps(p, []).panoramaPhaseHidden).toBe(p.panoramas.visibility.phaseHidden);
   });
 });
 

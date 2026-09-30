@@ -21,7 +21,10 @@ export const UPLOAD_DOCUMENT_TITLE = "Upload a document";
 export const LOADING_FOOTER =
   "Panoramas and documents stay clickable while the target LOD downloads — the coarse mesh is enough to aim the camera.";
 
-export const MARKERS_SWITCH = "Show panorama points";
+export const MARKERS_SWITCH = "Panorama points";
+export const MARKERS_ALL = "Points & names";
+export const MARKERS_POINTS = "Points only";
+export const MARKERS_OFF = "Off";
 export const MEASUREMENTS_SWITCH = "Show measurements";
 export const MOVE_POINTS = "Move points";
 export const TOUR_LINK = "Panorama tour";
@@ -76,3 +79,15 @@ export const nudgeLabel = (axis: "x" | "y" | "z", up: boolean) =>
 
 /** The ghosted photo's opacity, as the mock prints it. */
 export const opacityPercent = (o: number) => `${Math.round(o * 100)} %`;
+
+/** A job phase's count line; hidden is said in words too, never left to the eye's glyph. */
+export const phaseLine = (n: number, hidden: boolean) => {
+  const count = n === 0 ? "No panoramas" : n === 1 ? "1 panorama" : `${n} panoramas`;
+  return hidden ? `${count} · hidden` : count;
+};
+
+/** Read after a dimmed panorama's title: the dimming alone is colour. */
+export const HIDDEN_NOTE = "(hidden)";
+
+/** The row's "Move to…" trigger, named after its panorama so no two rows share a name. */
+export const moveToPhaseLabel = (title: string) => `Move ${title} to another phase`;

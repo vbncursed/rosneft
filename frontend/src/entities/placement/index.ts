@@ -26,6 +26,7 @@ export {
   createPlacementGroup,
   deletePlacementGroup,
   renamePlacementGroup,
+  setPlacementGroupHidden,
   toPlacementGroup,
 } from "./api/placement-groups-gateway";
 export {
@@ -48,7 +49,6 @@ export {
   type ModelGroup,
   type PlacementInstance,
 } from "./model/groups";
-export { GroupRow, type GroupRowProps } from "./ui/group-row";
 export { InstanceRow, type InstanceRowProps } from "./ui/instance-row";
 export {
   eyeState,
@@ -56,10 +56,7 @@ export {
   matchesUserGroup,
   userGroupKey,
   userGroupLine,
-  type EyeState,
   type ModelSection,
   type PlacementSections,
   type UserGroupSection,
 } from "./model/sections";
-export { EyeButton, type EyeButtonProps } from "./ui/eye-button";
-export { MoveToGroupMenu, NO_GROUP, type MoveToGroupMenuProps } from "./ui/move-to-group-menu";

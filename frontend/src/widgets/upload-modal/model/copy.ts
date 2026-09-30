@@ -42,6 +42,7 @@ export const COPY: Record<
 export const CHOOSE_FILE = "Choose file";
 export const TITLE_LABEL = "Title";
 export const GPS_LABEL = "Place from the photo's GPS when present";
+export const JOB_PHASE_LABEL = "Job phase";
 export const CANCEL = "Cancel";
 export const CANCEL_UPLOAD = "Cancel upload";
 export const UPLOADING = "Uploading…";

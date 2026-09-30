@@ -145,7 +145,8 @@ type AssetOption struct {
 // nil if the territory has no LOD0 yet (conversion pending). Panoramas is
 // the list of equirect captures anchored to this territory; the viewer
 // shows them as toggleable alternate camera modes that reuse the same
-// placement set.
+// placement set. PanoramaPhases is always the three phases, in
+// PanoramaPhases order, each with its shared hidden flag.
 type SceneBundle struct {
 	Territory       Territory
 	Artifact        *Artifact
@@ -155,6 +156,7 @@ type SceneBundle struct {
 	Documents       []Document
 	Measurements    []Measurement
 	PlacementGroups []PlacementGroup
+	PanoramaPhases  []PanoramaPhase
 }
 
 // Placement is the gateway view of a positioned model on a territory.

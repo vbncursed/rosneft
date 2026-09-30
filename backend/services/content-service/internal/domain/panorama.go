@@ -32,4 +32,8 @@ type Panorama struct {
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 	ThumbnailBlobHash string
+	// Phase is the stage of the job the panorama was taken at; Hidden is its
+	// own shared hidden flag. Either one hides it from the map for everyone.
+	Phase  PanoramaPhase
+	Hidden bool
 }

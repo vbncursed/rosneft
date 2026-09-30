@@ -237,6 +237,39 @@ describe("UploadModal", () => {
   });
 });
 
+describe("UploadModal · job phase", () => {
+  it("offers the job phase for a panorama, with the chosen one checked", () => {
+    draw({ phase: { value: "current", onChange: vi.fn() } });
+
+    const group = screen.getByRole("radiogroup", { name: "Job phase" });
+    expect(group).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Current job" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Prior job" })).not.toBeChecked();
+  });
+
+  it("reports the chosen phase", async () => {
+    const onChange = vi.fn();
+    draw({ phase: { value: "prior", onChange } });
+
+    await userEvent.click(screen.getByRole("radio", { name: "Post job" }));
+    expect(onChange).toHaveBeenCalledWith("post");
+  });
+
+  it("disables the phase control while the bytes travel", () => {
+    draw({
+      phase: { value: "prior", onChange: vi.fn() },
+      upload: { stage: "uploading", file: file(), percent: 38, label: "Reading EXIF · 38 %" },
+    });
+
+    expect(screen.getByRole("radio", { name: "Prior job" })).toBeDisabled();
+  });
+
+  it("draws no job phase for a document upload", () => {
+    draw({ kind: "document", gps: undefined, phase: { value: "prior", onChange: vi.fn() } });
+    expect(screen.queryByRole("radiogroup", { name: "Job phase" })).toBeNull();
+  });
+});
+
 describe("UploadModal · tooltip", () => {
   it("names its close button in a tooltip, not a native title", () => {
     draw();

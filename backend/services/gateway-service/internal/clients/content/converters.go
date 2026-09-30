@@ -1,6 +1,8 @@
 package content
 
 import (
+	"cmp"
+
 	contentv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/content/v1"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
@@ -32,6 +34,10 @@ func panoramaFromProto(p *contentv1.Panorama) domain.Panorama {
 		CreatedAt:         p.GetCreatedAt().AsTime(),
 		UpdatedAt:         p.GetUpdatedAt().AsTime(),
 		ThumbnailBlobHash: p.GetThumbnailBlobHash(),
+		// A content-service that predates phases sends none; spec D3 puts
+		// every panorama it knows in prior.
+		Phase:  cmp.Or(p.GetPhase(), domain.PhasePrior),
+		Hidden: p.GetHidden(),
 	}
 }
 

@@ -111,3 +111,16 @@ func TestCollectRefsNamesGroups(t *testing.T) {
 	assert.Assert(t, hasRef(got, "placement_group", "4"))
 	assert.Assert(t, hasRef(got, "territory", "12"))
 }
+
+func TestCollectRefsNamesAPanoramaPhasesTerritory(t *testing.T) {
+	// The phase flag's only reference is its territory; phase and hidden are
+	// plain values, shown as they are.
+	entries := []domain.AuditEntry{
+		{Entity: "panorama_phase", NewRow: `{"territory_id":12,"phase":"post","hidden":true}`},
+	}
+
+	got := collectRefs(entries)
+
+	assert.Equal(t, len(got), 1)
+	assert.Assert(t, hasRef(got, "territory", "12"))
+}

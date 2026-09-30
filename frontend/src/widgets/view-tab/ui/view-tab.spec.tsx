@@ -1,10 +1,14 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { ALL_PHASES_SHOWN } from "@/entities/panorama";
 import {
   CALIBRATION_LINE,
   DOCUMENTS_OVERLINE,
   EXIT_CALIBRATION,
+  MARKERS_ALL,
+  MARKERS_OFF,
+  MARKERS_POINTS,
   MARKERS_SWITCH,
   MEASUREMENTS_OVERLINE,
   MEASUREMENTS_SWITCH,
@@ -28,6 +32,8 @@ const ROWS: PanoramaRowView[] = [
     calibrated: true,
     canEdit: false,
     editing: false,
+    phase: "prior",
+    hidden: false,
   },
   {
     id: 8,
@@ -37,6 +43,8 @@ const ROWS: PanoramaRowView[] = [
     calibrated: false,
     canEdit: false,
     editing: false,
+    phase: "prior",
+    hidden: false,
   },
 ];
 
@@ -47,14 +55,25 @@ const base = (): ViewTabProps => ({
   ],
   panoramas: {
     rows: ROWS,
+    phases: {
+      hidden: ALL_PHASES_SHOWN,
+      canWrite: false,
+      pendingIds: [],
+      pendingPhases: [],
+      onSetHidden: vi.fn(),
+      onMove: vi.fn(),
+      onSetPhaseHidden: vi.fn(),
+      justAddedId: null,
+      onJustAddedSeen: vi.fn(),
+    },
     calibrating: null,
     canUpload: false,
     onUpload: vi.fn(),
     onEnter: vi.fn(),
     onExit: vi.fn(),
     onEdit: vi.fn(),
-    showMarkers: true,
-    onToggleMarkers: vi.fn(),
+    markers: "all",
+    onMarkers: vi.fn(),
     onExitCalibration: vi.fn(),
     canMovePoints: false,
     moving: false,
@@ -95,11 +114,13 @@ describe("ViewTab", () => {
     expect(screen.getByText(documentsCount(1))).toBeInTheDocument();
   });
 
-  it("lists the panoramas as the tour's picker", () => {
+  it("lists the panoramas under their job phase, as the tour's picker", async () => {
     const { container } = tab();
-    const list = container.querySelector("ul[data-tour='panorama-picker']");
-    expect(list).not.toBeNull();
-    expect(list?.querySelectorAll("li")).toHaveLength(2);
+    const list = container.querySelector<HTMLElement>("ul[data-tour='panorama-picker']")!;
+    const priorJob = within(list).getByRole("button", { name: "Prior job" });
+    expect(priorJob).toHaveTextContent("2 panoramas");
+    await userEvent.click(priorJob);
+    expect(within(list).getAllByRole("button", { name: /^Show in this panorama: / })).toHaveLength(2);
     expect(screen.getByText("Control room, north door")).toBeInTheDocument();
   });
 
@@ -109,13 +130,28 @@ describe("ViewTab", () => {
     expect(props.documents.onOpen).toHaveBeenCalledWith(3);
   });
 
-  it("switches the in-scene markers", async () => {
+  it("offers the in-scene points as three choices, Points & names first", async () => {
     const { props, container } = tab();
     expect(container.querySelector("[data-tour='toggle-markers']")).not.toBeNull();
-    const markers = screen.getByRole("switch", { name: MARKERS_SWITCH });
-    expect(markers).toBeChecked();
-    await userEvent.click(markers);
-    expect(props.panoramas.onToggleMarkers).toHaveBeenCalled();
+    const group = screen.getByRole("radiogroup", { name: MARKERS_SWITCH });
+    expect(within(group).getAllByRole("radio").map((r) => r.textContent)).toEqual([MARKERS_ALL, MARKERS_POINTS, MARKERS_OFF]);
+    expect(within(group).getByRole("radio", { name: MARKERS_ALL })).toBeChecked();
+    await userEvent.click(within(group).getByRole("radio", { name: MARKERS_POINTS }));
+    expect(props.panoramas.onMarkers).toHaveBeenCalledWith("points");
+  });
+
+  it("expands the phase a just-finished upload landed in", () => {
+    tab((p) => {
+      p.panoramas.phases.justAddedId = 7;
+    });
+    expect(screen.getByRole("button", { name: "Prior job" })).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("shows the stored choice as the checked one", () => {
+    tab((p) => {
+      p.panoramas.markers = "off";
+    });
+    expect(screen.getByRole("radio", { name: MARKERS_OFF })).toBeChecked();
   });
 
   it("heads the ruler's own section with how many chains are saved", () => {
@@ -130,7 +166,7 @@ describe("ViewTab", () => {
     expect(ruler).toBeChecked();
     await userEvent.click(ruler);
     expect(props.measurements.onToggle).toHaveBeenCalledTimes(1);
-    expect(props.panoramas.onToggleMarkers).not.toHaveBeenCalled();
+    expect(props.panoramas.onMarkers).not.toHaveBeenCalled();
   });
 
   it("draws the ruler switch off when the ruler is hidden", () => {
@@ -258,7 +294,7 @@ describe("ViewTab", () => {
       expect(head(PANORAMAS_OVERLINE)).toHaveAttribute("aria-expanded", "false");
       expect(head(DOCUMENTS_OVERLINE)).toHaveAttribute("aria-expanded", "false");
       // Section settings, not list items: they stay in reach.
-      expect(screen.getByRole("switch", { name: MARKERS_SWITCH })).toBeVisible();
+      expect(screen.getByRole("radiogroup", { name: MARKERS_SWITCH })).toBeVisible();
     });
 
     it("points each head at its own list and shows the list when open", () => {

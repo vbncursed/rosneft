@@ -1,5 +1,6 @@
 import { render, renderHook, act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ALL_PHASES_SHOWN } from "@/entities/panorama";
 import { useTheme } from "@/features/theme-toggle";
 import { ViewerCanvas } from "./viewer-canvas";
 import type { ViewerCanvasProps } from "./props";
@@ -17,6 +18,7 @@ const props = {
   parentLods: [],
   targetLod: 0,
   placements: [],
+  placementGroups: [],
   mode: "orbit",
   selectedId: null,
   gizmo: "translate",
@@ -38,7 +40,9 @@ const props = {
   panoramaOpacity: 1,
   calibrating: false,
   panoramas: [],
+  panoramaPhaseHidden: ALL_PHASES_SHOWN,
   showMarkers: true,
+  markerNames: true,
   showMeasurements: true,
   markerLabels: {},
   move: { active: false, draggingId: null, livePos: null },

@@ -31,7 +31,13 @@ func panoramaToProto(p domain.Panorama) *contentv1.Panorama {
 		CreatedAt:         timestamppb.New(p.CreatedAt),
 		UpdatedAt:         timestamppb.New(p.UpdatedAt),
 		ThumbnailBlobHash: p.ThumbnailBlobHash,
+		Phase:             string(p.Phase),
+		Hidden:            p.Hidden,
 	}
+}
+
+func panoramaPhaseToProto(v domain.PanoramaPhaseVisibility) *contentv1.PanoramaPhase {
+	return &contentv1.PanoramaPhase{Phase: string(v.Phase), Hidden: v.Hidden}
 }
 
 func documentToProto(d domain.Document) *contentv1.Document {

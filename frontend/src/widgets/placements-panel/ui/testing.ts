@@ -8,7 +8,7 @@ export const ctx = (over: Partial<RowContext> = {}): RowContext => ({
   selectedId: null,
   pendingIds: [],
   grants: { create: true, write: true, delete: true },
-  groups: [{ id: 4, title: "East yard" }],
+  groups: [{ id: 4, title: "East yard", hidden: false }],
   visibility: null,
   onSelect: vi.fn(),
   onRename: vi.fn(),

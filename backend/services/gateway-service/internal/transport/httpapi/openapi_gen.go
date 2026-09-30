@@ -119,6 +119,27 @@ func (e JobStatus) Valid() bool {
 	}
 }
 
+// Defines values for PanoramaPhaseName.
+const (
+	PanoramaPhaseCurrent PanoramaPhaseName = "current"
+	PanoramaPhasePost    PanoramaPhaseName = "post"
+	PanoramaPhasePrior   PanoramaPhaseName = "prior"
+)
+
+// Valid indicates whether the value is a known member of the PanoramaPhaseName enum.
+func (e PanoramaPhaseName) Valid() bool {
+	switch e {
+	case PanoramaPhaseCurrent:
+		return true
+	case PanoramaPhasePost:
+		return true
+	case PanoramaPhasePrior:
+		return true
+	default:
+		return false
+	}
+}
+
 // Artifact defines model for Artifact.
 type Artifact struct {
 	// Artifacts All available LODs for this owner, sorted by lod ascending.
@@ -380,6 +401,11 @@ type Health struct {
 // HealthStatus defines model for Health.Status.
 type HealthStatus string
 
+// HiddenUpdate Sets one shared hidden flag — a panorama phase's or a placement group's.
+type HiddenUpdate struct {
+	Hidden bool `json:"hidden"`
+}
+
 // Job defines model for Job.
 type Job struct {
 	ArtifactHash *string    `json:"artifactHash,omitempty"`
@@ -554,9 +580,15 @@ type Panorama struct {
 	// DefaultYaw Default horizontal camera yaw (radians, world-space atan2(dirX, dirZ);
 	// 0 = +Z) the viewer faces when the panorama opens.
 	DefaultYaw float64 `json:"defaultYaw"`
-	Id         int64   `json:"id"`
-	Position   Vec3    `json:"position"`
-	Slug       string  `json:"slug"`
+
+	// Hidden Shared: a hidden panorama is not drawn for anyone who opens the territory, and neither is one whose phase is hidden. Changed only through PUT …/panoramas/hidden; PUT …/panoramas/{id} keeps it.
+	Hidden bool  `json:"hidden"`
+	Id     int64 `json:"id"`
+
+	// Phase The job phase a panorama was taken in: prior ("Prior job"), current ("Current job") or post ("Post job"). Every panorama is in exactly one; a new panorama lands in prior unless it names another.
+	Phase    PanoramaPhaseName `json:"phase"`
+	Position Vec3              `json:"position"`
+	Slug     string            `json:"slug"`
 
 	// SourceBlobHash BlobStore hash for the equirect JPG/PNG; served via /api/assets/{hash}.
 	SourceBlobHash string `json:"sourceBlobHash"`
@@ -578,11 +610,24 @@ type Panorama struct {
 // from the title by the catalog and made unique within the territory —
 // it is not client-supplied.
 type PanoramaCreate struct {
-	Position       *Vec3    `json:"position,omitempty"`
-	SourceBlobHash string   `json:"sourceBlobHash"`
-	Title          string   `json:"title"`
-	YawOffset      *float64 `json:"yawOffset,omitempty"`
+	// Phase The job phase a panorama was taken in: prior ("Prior job"), current ("Current job") or post ("Post job"). Every panorama is in exactly one; a new panorama lands in prior unless it names another.
+	Phase          *PanoramaPhaseName `json:"phase,omitempty"`
+	Position       *Vec3              `json:"position,omitempty"`
+	SourceBlobHash string             `json:"sourceBlobHash"`
+	Title          string             `json:"title"`
+	YawOffset      *float64           `json:"yawOffset,omitempty"`
 }
+
+// PanoramaPhase One phase's shared visibility. A panorama is drawn only when neither it nor its phase is hidden; unhiding a phase does not unhide the panoramas hidden on their own.
+type PanoramaPhase struct {
+	Hidden bool `json:"hidden"`
+
+	// Phase The job phase a panorama was taken in: prior ("Prior job"), current ("Current job") or post ("Post job"). Every panorama is in exactly one; a new panorama lands in prior unless it names another.
+	Phase PanoramaPhaseName `json:"phase"`
+}
+
+// PanoramaPhaseName The job phase a panorama was taken in: prior ("Prior job"), current ("Current job") or post ("Post job"). Every panorama is in exactly one; a new panorama lands in prior unless it names another.
+type PanoramaPhaseName string
 
 // PanoramaUpdate defines model for PanoramaUpdate.
 type PanoramaUpdate struct {
@@ -590,6 +635,26 @@ type PanoramaUpdate struct {
 	Position   *Vec3    `json:"position,omitempty"`
 	Title      *string  `json:"title,omitempty"`
 	YawOffset  *float64 `json:"yawOffset,omitempty"`
+}
+
+// PanoramasHiddenUpdate Hide or show every listed panorama of the territory, all or none: an id that is unknown or on another territory answers 404 and nothing changes. A repeated id counts once.
+type PanoramasHiddenUpdate struct {
+	Hidden bool    `json:"hidden"`
+	Ids    []int64 `json:"ids"`
+}
+
+// PanoramasPhaseUpdate Move every listed panorama of the territory into phase, all or none: an id that is unknown or on another territory answers 404, a phase other than prior, current or post answers 400, and nothing changes. A repeated id counts once.
+type PanoramasPhaseUpdate struct {
+	Ids []int64 `json:"ids"`
+
+	// Phase The job phase a panorama was taken in: prior ("Prior job"), current ("Current job") or post ("Post job"). Every panorama is in exactly one; a new panorama lands in prior unless it names another.
+	Phase PanoramaPhaseName `json:"phase"`
+}
+
+// PanoramasUpdated defines model for PanoramasUpdated.
+type PanoramasUpdated struct {
+	// Updated How many panoramas were written.
+	Updated int `json:"updated"`
 }
 
 // PasskeyBeginResponse defines model for PasskeyBeginResponse.
@@ -681,6 +746,9 @@ type PlacementCreate struct {
 // PlacementGroup A user-made group of placements on a territory. A placement is in at most one; deleting a group returns its placements to no group.
 type PlacementGroup struct {
 	CreatedAt time.Time `json:"createdAt"`
+
+	// Hidden Shared: a placement is drawn only when neither it nor its group is hidden. Changed only through PUT …/placement-groups/{id}/hidden.
+	Hidden    bool      `json:"hidden"`
 	Id        int64     `json:"id"`
 	Title     string    `json:"title"`
 	UpdatedAt time.Time `json:"updatedAt"`
@@ -737,6 +805,9 @@ type SceneBundle struct {
 	// Measurements Saved measurement chains on this territory, by id; empty when none.
 	Measurements []Measurement `json:"measurements"`
 	ModelOptions []AssetOption `json:"modelOptions"`
+
+	// PanoramaPhases Always the three phases, prior, current, post, in that order, each with its shared hidden flag (false for a phase never hidden).
+	PanoramaPhases []PanoramaPhase `json:"panoramaPhases"`
 
 	// Panoramas Equirect panoramas anchored to this territory. The viewer
 	// renders them as toggleable alternate camera modes; placements
@@ -963,8 +1034,17 @@ type CreateMeasurementJSONRequestBody = MeasurementWrite
 // UpdateMeasurementJSONRequestBody defines body for UpdateMeasurement for application/json ContentType.
 type UpdateMeasurementJSONRequestBody = MeasurementWrite
 
+// SetPanoramaPhaseHiddenJSONRequestBody defines body for SetPanoramaPhaseHidden for application/json ContentType.
+type SetPanoramaPhaseHiddenJSONRequestBody = HiddenUpdate
+
 // CreatePanoramaJSONRequestBody defines body for CreatePanorama for application/json ContentType.
 type CreatePanoramaJSONRequestBody = PanoramaCreate
+
+// SetPanoramasHiddenJSONRequestBody defines body for SetPanoramasHidden for application/json ContentType.
+type SetPanoramasHiddenJSONRequestBody = PanoramasHiddenUpdate
+
+// SetPanoramasPhaseJSONRequestBody defines body for SetPanoramasPhase for application/json ContentType.
+type SetPanoramasPhaseJSONRequestBody = PanoramasPhaseUpdate
 
 // UpdatePanoramaJSONRequestBody defines body for UpdatePanorama for application/json ContentType.
 type UpdatePanoramaJSONRequestBody = PanoramaUpdate
@@ -974,6 +1054,9 @@ type CreatePlacementGroupJSONRequestBody = PlacementGroupWrite
 
 // UpdatePlacementGroupJSONRequestBody defines body for UpdatePlacementGroup for application/json ContentType.
 type UpdatePlacementGroupJSONRequestBody = PlacementGroupWrite
+
+// SetPlacementGroupHiddenJSONRequestBody defines body for SetPlacementGroupHidden for application/json ContentType.
+type SetPlacementGroupHiddenJSONRequestBody = HiddenUpdate
 
 // CreatePlacementJSONRequestBody defines body for CreatePlacement for application/json ContentType.
 type CreatePlacementJSONRequestBody = PlacementCreate
@@ -1082,12 +1165,21 @@ type ServerInterface interface {
 	// UpdateMeasurement Replace a measurement chain
 	// (PUT /api/territories/{slug}/measurements/{id})
 	UpdateMeasurement(w http.ResponseWriter, r *http.Request, slug string, id int64)
+	// SetPanoramaPhaseHidden Hide or show a whole panorama phase
+	// (PUT /api/territories/{slug}/panorama-phases/{phase})
+	SetPanoramaPhaseHidden(w http.ResponseWriter, r *http.Request, slug string, phase PanoramaPhaseName)
 	// ListPanoramas List panoramas anchored to a territory
 	// (GET /api/territories/{slug}/panoramas)
 	ListPanoramas(w http.ResponseWriter, r *http.Request, slug string)
 	// CreatePanorama Anchor a new equirect panorama in the territory
 	// (POST /api/territories/{slug}/panoramas)
 	CreatePanorama(w http.ResponseWriter, r *http.Request, slug string)
+	// SetPanoramasHidden Hide or show panoramas, all or none
+	// (PUT /api/territories/{slug}/panoramas/hidden)
+	SetPanoramasHidden(w http.ResponseWriter, r *http.Request, slug string)
+	// SetPanoramasPhase Move panoramas into a phase, all or none
+	// (PUT /api/territories/{slug}/panoramas/phase)
+	SetPanoramasPhase(w http.ResponseWriter, r *http.Request, slug string)
 	// DeletePanorama Remove a panorama
 	// (DELETE /api/territories/{slug}/panoramas/{id})
 	DeletePanorama(w http.ResponseWriter, r *http.Request, slug string, id int64)
@@ -1103,6 +1195,9 @@ type ServerInterface interface {
 	// UpdatePlacementGroup Rename a placement group
 	// (PATCH /api/territories/{slug}/placement-groups/{id})
 	UpdatePlacementGroup(w http.ResponseWriter, r *http.Request, slug string, id int64)
+	// SetPlacementGroupHidden Hide or show a whole placement group
+	// (PUT /api/territories/{slug}/placement-groups/{id}/hidden)
+	SetPlacementGroupHidden(w http.ResponseWriter, r *http.Request, slug string, id int64)
 	// ListPlacements List placements on a territory
 	// (GET /api/territories/{slug}/placements)
 	ListPlacements(w http.ResponseWriter, r *http.Request, slug string)
@@ -1319,6 +1414,12 @@ func (_ Unimplemented) UpdateMeasurement(w http.ResponseWriter, r *http.Request,
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// SetPanoramaPhaseHidden Hide or show a whole panorama phase
+// (PUT /api/territories/{slug}/panorama-phases/{phase})
+func (_ Unimplemented) SetPanoramaPhaseHidden(w http.ResponseWriter, r *http.Request, slug string, phase PanoramaPhaseName) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListPanoramas List panoramas anchored to a territory
 // (GET /api/territories/{slug}/panoramas)
 func (_ Unimplemented) ListPanoramas(w http.ResponseWriter, r *http.Request, slug string) {
@@ -1328,6 +1429,18 @@ func (_ Unimplemented) ListPanoramas(w http.ResponseWriter, r *http.Request, slu
 // CreatePanorama Anchor a new equirect panorama in the territory
 // (POST /api/territories/{slug}/panoramas)
 func (_ Unimplemented) CreatePanorama(w http.ResponseWriter, r *http.Request, slug string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetPanoramasHidden Hide or show panoramas, all or none
+// (PUT /api/territories/{slug}/panoramas/hidden)
+func (_ Unimplemented) SetPanoramasHidden(w http.ResponseWriter, r *http.Request, slug string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetPanoramasPhase Move panoramas into a phase, all or none
+// (PUT /api/territories/{slug}/panoramas/phase)
+func (_ Unimplemented) SetPanoramasPhase(w http.ResponseWriter, r *http.Request, slug string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1358,6 +1471,12 @@ func (_ Unimplemented) DeletePlacementGroup(w http.ResponseWriter, r *http.Reque
 // UpdatePlacementGroup Rename a placement group
 // (PATCH /api/territories/{slug}/placement-groups/{id})
 func (_ Unimplemented) UpdatePlacementGroup(w http.ResponseWriter, r *http.Request, slug string, id int64) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetPlacementGroupHidden Hide or show a whole placement group
+// (PUT /api/territories/{slug}/placement-groups/{id}/hidden)
+func (_ Unimplemented) SetPlacementGroupHidden(w http.ResponseWriter, r *http.Request, slug string, id int64) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2310,6 +2429,41 @@ func (siw *ServerInterfaceWrapper) UpdateMeasurement(w http.ResponseWriter, r *h
 	handler.ServeHTTP(w, r)
 }
 
+// SetPanoramaPhaseHidden operation middleware
+func (siw *ServerInterfaceWrapper) SetPanoramaPhaseHidden(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "phase" -------------
+	var phase PanoramaPhaseName
+
+	err = runtime.BindStyledParameterWithOptions("simple", "phase", chi.URLParam(r, "phase"), &phase, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "phase", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetPanoramaPhaseHidden(w, r, slug, phase)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListPanoramas operation middleware
 func (siw *ServerInterfaceWrapper) ListPanoramas(w http.ResponseWriter, r *http.Request) {
 
@@ -2353,6 +2507,58 @@ func (siw *ServerInterfaceWrapper) CreatePanorama(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreatePanorama(w, r, slug)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetPanoramasHidden operation middleware
+func (siw *ServerInterfaceWrapper) SetPanoramasHidden(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetPanoramasHidden(w, r, slug)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetPanoramasPhase operation middleware
+func (siw *ServerInterfaceWrapper) SetPanoramasPhase(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetPanoramasPhase(w, r, slug)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2519,6 +2725,41 @@ func (siw *ServerInterfaceWrapper) UpdatePlacementGroup(w http.ResponseWriter, r
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdatePlacementGroup(w, r, slug, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetPlacementGroupHidden operation middleware
+func (siw *ServerInterfaceWrapper) SetPlacementGroupHidden(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetPlacementGroupHidden(w, r, slug, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3191,6 +3432,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Patch(options.BaseURL+"/api/territories/{slug}/placement-groups/{id}", wrapper.UpdatePlacementGroup)
 	})
 	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/territories/{slug}/placement-groups/{id}/hidden", wrapper.SetPlacementGroupHidden)
+	})
+	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/territories/{slug}/measurements", wrapper.DeleteMeasurements)
 	})
 	r.Group(func(r chi.Router) {
@@ -3216,6 +3460,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/territories/{slug}/panoramas/{id}", wrapper.UpdatePanorama)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/territories/{slug}/panoramas/hidden", wrapper.SetPanoramasHidden)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/territories/{slug}/panoramas/phase", wrapper.SetPanoramasPhase)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/territories/{slug}/panorama-phases/{phase}", wrapper.SetPanoramaPhaseHidden)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/territories/{slug}/documents", wrapper.ListDocuments)
@@ -4898,6 +5151,86 @@ func (response UpdateMeasurement500JSONResponse) VisitUpdateMeasurementResponse(
 	return err
 }
 
+type SetPanoramaPhaseHiddenRequestObject struct {
+	Slug  string            `json:"slug"`
+	Phase PanoramaPhaseName `json:"phase"`
+	Body  *SetPanoramaPhaseHiddenJSONRequestBody
+}
+
+type SetPanoramaPhaseHiddenResponseObject interface {
+	VisitSetPanoramaPhaseHiddenResponse(w http.ResponseWriter) error
+}
+
+type SetPanoramaPhaseHidden200JSONResponse PanoramaPhase
+
+func (response SetPanoramaPhaseHidden200JSONResponse) VisitSetPanoramaPhaseHiddenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPanoramaPhaseHidden400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response SetPanoramaPhaseHidden400JSONResponse) VisitSetPanoramaPhaseHiddenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPanoramaPhaseHidden403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response SetPanoramaPhaseHidden403JSONResponse) VisitSetPanoramaPhaseHiddenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPanoramaPhaseHidden404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response SetPanoramaPhaseHidden404JSONResponse) VisitSetPanoramaPhaseHiddenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPanoramaPhaseHidden500JSONResponse struct{ InternalJSONResponse }
+
+func (response SetPanoramaPhaseHidden500JSONResponse) VisitSetPanoramaPhaseHiddenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListPanoramasRequestObject struct {
 	Slug string `json:"slug"`
 }
@@ -5002,6 +5335,164 @@ func (response CreatePanorama404JSONResponse) VisitCreatePanoramaResponse(w http
 type CreatePanorama500JSONResponse struct{ InternalJSONResponse }
 
 func (response CreatePanorama500JSONResponse) VisitCreatePanoramaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPanoramasHiddenRequestObject struct {
+	Slug string `json:"slug"`
+	Body *SetPanoramasHiddenJSONRequestBody
+}
+
+type SetPanoramasHiddenResponseObject interface {
+	VisitSetPanoramasHiddenResponse(w http.ResponseWriter) error
+}
+
+type SetPanoramasHidden200JSONResponse PanoramasUpdated
+
+func (response SetPanoramasHidden200JSONResponse) VisitSetPanoramasHiddenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPanoramasHidden400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response SetPanoramasHidden400JSONResponse) VisitSetPanoramasHiddenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPanoramasHidden403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response SetPanoramasHidden403JSONResponse) VisitSetPanoramasHiddenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPanoramasHidden404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response SetPanoramasHidden404JSONResponse) VisitSetPanoramasHiddenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPanoramasHidden500JSONResponse struct{ InternalJSONResponse }
+
+func (response SetPanoramasHidden500JSONResponse) VisitSetPanoramasHiddenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPanoramasPhaseRequestObject struct {
+	Slug string `json:"slug"`
+	Body *SetPanoramasPhaseJSONRequestBody
+}
+
+type SetPanoramasPhaseResponseObject interface {
+	VisitSetPanoramasPhaseResponse(w http.ResponseWriter) error
+}
+
+type SetPanoramasPhase200JSONResponse PanoramasUpdated
+
+func (response SetPanoramasPhase200JSONResponse) VisitSetPanoramasPhaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPanoramasPhase400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response SetPanoramasPhase400JSONResponse) VisitSetPanoramasPhaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPanoramasPhase403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response SetPanoramasPhase403JSONResponse) VisitSetPanoramasPhaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPanoramasPhase404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response SetPanoramasPhase404JSONResponse) VisitSetPanoramasPhaseResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPanoramasPhase500JSONResponse struct{ InternalJSONResponse }
+
+func (response SetPanoramasPhase500JSONResponse) VisitSetPanoramasPhaseResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -5345,6 +5836,86 @@ func (response UpdatePlacementGroup404JSONResponse) VisitUpdatePlacementGroupRes
 type UpdatePlacementGroup500JSONResponse struct{ InternalJSONResponse }
 
 func (response UpdatePlacementGroup500JSONResponse) VisitUpdatePlacementGroupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPlacementGroupHiddenRequestObject struct {
+	Slug string `json:"slug"`
+	Id   int64  `json:"id"`
+	Body *SetPlacementGroupHiddenJSONRequestBody
+}
+
+type SetPlacementGroupHiddenResponseObject interface {
+	VisitSetPlacementGroupHiddenResponse(w http.ResponseWriter) error
+}
+
+type SetPlacementGroupHidden200JSONResponse PlacementGroup
+
+func (response SetPlacementGroupHidden200JSONResponse) VisitSetPlacementGroupHiddenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPlacementGroupHidden400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response SetPlacementGroupHidden400JSONResponse) VisitSetPlacementGroupHiddenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPlacementGroupHidden403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response SetPlacementGroupHidden403JSONResponse) VisitSetPlacementGroupHiddenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPlacementGroupHidden404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response SetPlacementGroupHidden404JSONResponse) VisitSetPlacementGroupHiddenResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPlacementGroupHidden500JSONResponse struct{ InternalJSONResponse }
+
+func (response SetPlacementGroupHidden500JSONResponse) VisitSetPlacementGroupHiddenResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -6443,12 +7014,21 @@ type StrictServerInterface interface {
 	// UpdateMeasurement Replace a measurement chain
 	// (PUT /api/territories/{slug}/measurements/{id})
 	UpdateMeasurement(ctx context.Context, request UpdateMeasurementRequestObject) (UpdateMeasurementResponseObject, error)
+	// SetPanoramaPhaseHidden Hide or show a whole panorama phase
+	// (PUT /api/territories/{slug}/panorama-phases/{phase})
+	SetPanoramaPhaseHidden(ctx context.Context, request SetPanoramaPhaseHiddenRequestObject) (SetPanoramaPhaseHiddenResponseObject, error)
 	// ListPanoramas List panoramas anchored to a territory
 	// (GET /api/territories/{slug}/panoramas)
 	ListPanoramas(ctx context.Context, request ListPanoramasRequestObject) (ListPanoramasResponseObject, error)
 	// CreatePanorama Anchor a new equirect panorama in the territory
 	// (POST /api/territories/{slug}/panoramas)
 	CreatePanorama(ctx context.Context, request CreatePanoramaRequestObject) (CreatePanoramaResponseObject, error)
+	// SetPanoramasHidden Hide or show panoramas, all or none
+	// (PUT /api/territories/{slug}/panoramas/hidden)
+	SetPanoramasHidden(ctx context.Context, request SetPanoramasHiddenRequestObject) (SetPanoramasHiddenResponseObject, error)
+	// SetPanoramasPhase Move panoramas into a phase, all or none
+	// (PUT /api/territories/{slug}/panoramas/phase)
+	SetPanoramasPhase(ctx context.Context, request SetPanoramasPhaseRequestObject) (SetPanoramasPhaseResponseObject, error)
 	// DeletePanorama Remove a panorama
 	// (DELETE /api/territories/{slug}/panoramas/{id})
 	DeletePanorama(ctx context.Context, request DeletePanoramaRequestObject) (DeletePanoramaResponseObject, error)
@@ -6464,6 +7044,9 @@ type StrictServerInterface interface {
 	// UpdatePlacementGroup Rename a placement group
 	// (PATCH /api/territories/{slug}/placement-groups/{id})
 	UpdatePlacementGroup(ctx context.Context, request UpdatePlacementGroupRequestObject) (UpdatePlacementGroupResponseObject, error)
+	// SetPlacementGroupHidden Hide or show a whole placement group
+	// (PUT /api/territories/{slug}/placement-groups/{id}/hidden)
+	SetPlacementGroupHidden(ctx context.Context, request SetPlacementGroupHiddenRequestObject) (SetPlacementGroupHiddenResponseObject, error)
 	// ListPlacements List placements on a territory
 	// (GET /api/territories/{slug}/placements)
 	ListPlacements(ctx context.Context, request ListPlacementsRequestObject) (ListPlacementsResponseObject, error)
@@ -7306,6 +7889,40 @@ func (sh *strictHandler) UpdateMeasurement(w http.ResponseWriter, r *http.Reques
 	}
 }
 
+// SetPanoramaPhaseHidden operation middleware
+func (sh *strictHandler) SetPanoramaPhaseHidden(w http.ResponseWriter, r *http.Request, slug string, phase PanoramaPhaseName) {
+	var request SetPanoramaPhaseHiddenRequestObject
+
+	request.Slug = slug
+	request.Phase = phase
+
+	var body SetPanoramaPhaseHiddenJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetPanoramaPhaseHidden(ctx, request.(SetPanoramaPhaseHiddenRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetPanoramaPhaseHidden")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetPanoramaPhaseHiddenResponseObject); ok {
+		if err := validResponse.VisitSetPanoramaPhaseHiddenResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListPanoramas operation middleware
 func (sh *strictHandler) ListPanoramas(w http.ResponseWriter, r *http.Request, slug string) {
 	var request ListPanoramasRequestObject
@@ -7358,6 +7975,72 @@ func (sh *strictHandler) CreatePanorama(w http.ResponseWriter, r *http.Request, 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CreatePanoramaResponseObject); ok {
 		if err := validResponse.VisitCreatePanoramaResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetPanoramasHidden operation middleware
+func (sh *strictHandler) SetPanoramasHidden(w http.ResponseWriter, r *http.Request, slug string) {
+	var request SetPanoramasHiddenRequestObject
+
+	request.Slug = slug
+
+	var body SetPanoramasHiddenJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetPanoramasHidden(ctx, request.(SetPanoramasHiddenRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetPanoramasHidden")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetPanoramasHiddenResponseObject); ok {
+		if err := validResponse.VisitSetPanoramasHiddenResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetPanoramasPhase operation middleware
+func (sh *strictHandler) SetPanoramasPhase(w http.ResponseWriter, r *http.Request, slug string) {
+	var request SetPanoramasPhaseRequestObject
+
+	request.Slug = slug
+
+	var body SetPanoramasPhaseJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetPanoramasPhase(ctx, request.(SetPanoramasPhaseRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetPanoramasPhase")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetPanoramasPhaseResponseObject); ok {
+		if err := validResponse.VisitSetPanoramasPhaseResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -7513,6 +8196,40 @@ func (sh *strictHandler) UpdatePlacementGroup(w http.ResponseWriter, r *http.Req
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(UpdatePlacementGroupResponseObject); ok {
 		if err := validResponse.VisitUpdatePlacementGroupResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetPlacementGroupHidden operation middleware
+func (sh *strictHandler) SetPlacementGroupHidden(w http.ResponseWriter, r *http.Request, slug string, id int64) {
+	var request SetPlacementGroupHiddenRequestObject
+
+	request.Slug = slug
+	request.Id = id
+
+	var body SetPlacementGroupHiddenJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetPlacementGroupHidden(ctx, request.(SetPlacementGroupHiddenRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetPlacementGroupHidden")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetPlacementGroupHiddenResponseObject); ok {
+		if err := validResponse.VisitSetPlacementGroupHiddenResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

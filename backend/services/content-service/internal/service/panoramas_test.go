@@ -109,3 +109,32 @@ func (s *PanoramasSuite) TestCreateMakesTheThumbnailOnceAcrossSlugRetries() {
 	assert.Equal(s.T(), got.Slug, "north-2")
 	assert.Equal(s.T(), len(s.thumbSrcs), 1)
 }
+
+// Spec D3: a panorama created without a phase is in prior.
+func (s *PanoramasSuite) TestCreateDefaultsThePhaseToPrior() {
+	s.created()
+	got, err := s.svc.CreatePanorama(s.ctx, north)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), got.Phase, domain.PhasePrior)
+}
+
+func (s *PanoramasSuite) TestCreateKeepsANamedPhase() {
+	s.created()
+	in := north
+	in.Phase = domain.PhasePost
+	got, err := s.svc.CreatePanorama(s.ctx, in)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), got.Phase, domain.PhasePost)
+}
+
+// Refused before the thumbnail is made or storage is asked: minimock fails the
+// test on any repo call. The match is exact, so "Prior" is not prior.
+func (s *PanoramasSuite) TestCreateRefusesAnUnknownPhase() {
+	for _, phase := range []domain.PanoramaPhase{"during", "Prior"} {
+		in := north
+		in.Phase = phase
+		_, err := s.svc.CreatePanorama(s.ctx, in)
+		assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
+	}
+	assert.Equal(s.T(), len(s.thumbSrcs), 0)
+}

@@ -98,7 +98,13 @@ func (m *Mesh) markFailed(ctx context.Context, j domain.Job, cause error) error 
 // It returns the source hash it converted; the target is read exactly once,
 // here, so ProcessJob re-checks it afterwards — see requeueIfSourceReplaced.
 func (m *Mesh) runConversion(ctx context.Context, j *domain.Job) (string, error) {
-	_ = m.UpdateProgress(ctx, j.ID, 0.05, "fetching")
+	// progress mirrors each report onto j, so markFailed saves the stage the
+	// job actually reached rather than the copy loaded before the first one.
+	progress := func(fraction float32, stage string) {
+		j.Progress, j.Stage = fraction, stage
+		_ = m.UpdateProgress(ctx, j.ID, fraction, stage)
+	}
+	progress(0.05, "fetching")
 
 	target, err := m.catalog.GetTarget(ctx, j.Kind, j.Slug)
 	if err != nil {
@@ -120,17 +126,16 @@ func (m *Mesh) runConversion(ctx context.Context, j *domain.Job) (string, error)
 	if err := m.fetchAndExtract(ctx, target.SourceBlobHash, workDir); err != nil {
 		return "", fmt.Errorf("fetch/extract source: %w", err)
 	}
-	_ = m.UpdateProgress(ctx, j.ID, 0.20, "extracting")
+	progress(0.20, "extracting")
 
 	objPath, err := findFirstOBJ(workDir)
 	if err != nil {
 		return "", fmt.Errorf("locate obj: %w", err)
 	}
-	_ = m.UpdateProgress(ctx, j.ID, 0.30, "parsing")
+	progress(0.30, "parsing")
 
-	jobID := j.ID
 	convCtx := converter.WithProgress(ctx, func(stage string, fraction float32) {
-		_ = m.UpdateProgress(ctx, jobID, fraction, stage)
+		progress(fraction, stage)
 	})
 	results, err := m.converter.ConvertLODs(convCtx, objPath)
 	if err != nil {
@@ -153,7 +158,7 @@ func (m *Mesh) runConversion(ctx context.Context, j *domain.Job) (string, error)
 		if err := m.persistLOD(ctx, j.Kind, j.Slug, uint32(i), r); err != nil {
 			return "", err
 		}
-		_ = m.UpdateProgress(ctx, j.ID, 0.70+span*float32(i+1), fmt.Sprintf("lod-%d", i))
+		progress(0.70+span*float32(i+1), fmt.Sprintf("lod-%d", i))
 	}
 	j.ArtifactHash = results[0].ArtifactHash
 	j.Progress = 1.0

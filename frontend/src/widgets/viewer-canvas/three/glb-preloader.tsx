@@ -2,12 +2,13 @@ import { useEffect } from "react";
 import { useGLTF } from "@react-three/drei";
 import { assetUrl } from "@/entities/content";
 import { pickCoarsest, type LodArtifact } from "@/entities/scene";
-import type { ResolvedPlacement } from "@/entities/placement";
+import { isShownIn, type PlacementGroup, type ResolvedPlacement } from "@/entities/placement";
 import { extendGltfLoader } from "./gltf-loader-setup";
 
 interface GlbPreloaderProps {
   parentLods: LodArtifact[];
   placements: ResolvedPlacement[];
+  groups: PlacementGroup[];
 }
 
 // GlbPreloader warms drei's useGLTF cache for the level that actually mounts
@@ -23,20 +24,20 @@ interface GlbPreloaderProps {
 // useEffect runs after the first render commit of Canvas's children, by
 // which time Ktx2Init's render-time detectSupport has already configured
 // the loader.
-export default function GlbPreloader({ parentLods, placements }: GlbPreloaderProps) {
+export default function GlbPreloader({ parentLods, placements, groups }: GlbPreloaderProps) {
   useEffect(() => {
     const first = pickCoarsest(parentLods);
     if (first) {
       useGLTF.preload(assetUrl(first.hash), true, true, extendGltfLoader);
     }
     for (const p of placements) {
-      // A hidden placement is not drawn, so its GLB is not worth the wire.
-      if (p.hidden) continue;
+      // Not drawn — hidden, or in a hidden group — so not worth the wire.
+      if (!isShownIn(p, null, groups)) continue;
       const pick = pickCoarsest(p.chain);
       if (pick) {
         useGLTF.preload(assetUrl(pick.hash), true, true, extendGltfLoader);
       }
     }
-  }, [parentLods, placements]);
+  }, [parentLods, placements, groups]);
   return null;
 }

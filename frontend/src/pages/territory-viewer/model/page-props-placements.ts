@@ -33,6 +33,7 @@ export function placementsPanelProps(p: PageParts, groups: ModelGroup[]): Placem
       onCreate: placementGroups.create,
       onRename: placementGroups.rename,
       onDelete: placementGroups.remove,
+      onSetHidden: on.onSetGroupHidden,
     },
     selected: selectedBlock(p, groups, selected),
     // B-5: inside a panorama nothing is placed.

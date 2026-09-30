@@ -96,8 +96,13 @@ type Panorama struct {
 	DefaultYaw     float64                `protobuf:"fixed64,10,opt,name=default_yaw,json=defaultYaw,proto3" json:"default_yaw,omitempty"`
 	// 256×128 JPEG content-service makes from the source; empty until it has.
 	ThumbnailBlobHash string `protobuf:"bytes,11,opt,name=thumbnail_blob_hash,json=thumbnailBlobHash,proto3" json:"thumbnail_blob_hash,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// prior, current or post: the stage of the job it was taken at.
+	Phase string `protobuf:"bytes,12,opt,name=phase,proto3" json:"phase,omitempty"`
+	// Shared by every reader. The map draws a panorama only when neither it nor
+	// its phase is hidden.
+	Hidden        bool `protobuf:"varint,13,opt,name=hidden,proto3" json:"hidden,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Panorama) Reset() {
@@ -207,6 +212,20 @@ func (x *Panorama) GetThumbnailBlobHash() string {
 	return ""
 }
 
+func (x *Panorama) GetPhase() string {
+	if x != nil {
+		return x.Phase
+	}
+	return ""
+}
+
+func (x *Panorama) GetHidden() bool {
+	if x != nil {
+		return x.Hidden
+	}
+	return false
+}
+
 type ListPanoramasRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TerritorySlug string                 `protobuf:"bytes,1,opt,name=territory_slug,json=territorySlug,proto3" json:"territory_slug,omitempty"`
@@ -303,8 +322,10 @@ type CreatePanoramaRequest struct {
 	SourceBlobHash string                 `protobuf:"bytes,4,opt,name=source_blob_hash,json=sourceBlobHash,proto3" json:"source_blob_hash,omitempty"`
 	Position       *Vec3                  `protobuf:"bytes,5,opt,name=position,proto3" json:"position,omitempty"`
 	YawOffset      float64                `protobuf:"fixed64,6,opt,name=yaw_offset,json=yawOffset,proto3" json:"yaw_offset,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// prior, current or post; empty means prior.
+	Phase         string `protobuf:"bytes,7,opt,name=phase,proto3" json:"phase,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreatePanoramaRequest) Reset() {
@@ -377,6 +398,13 @@ func (x *CreatePanoramaRequest) GetYawOffset() float64 {
 		return x.YawOffset
 	}
 	return 0
+}
+
+func (x *CreatePanoramaRequest) GetPhase() string {
+	if x != nil {
+		return x.Phase
+	}
+	return ""
 }
 
 type CreatePanoramaResponse struct {
@@ -641,6 +669,459 @@ func (*DeletePanoramaResponse) Descriptor() ([]byte, []int) {
 	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{9}
 }
 
+type SetPanoramasHiddenRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TerritorySlug string                 `protobuf:"bytes,1,opt,name=territory_slug,json=territorySlug,proto3" json:"territory_slug,omitempty"`
+	Ids           []int64                `protobuf:"varint,2,rep,packed,name=ids,proto3" json:"ids,omitempty"`
+	Hidden        bool                   `protobuf:"varint,3,opt,name=hidden,proto3" json:"hidden,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetPanoramasHiddenRequest) Reset() {
+	*x = SetPanoramasHiddenRequest{}
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetPanoramasHiddenRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetPanoramasHiddenRequest) ProtoMessage() {}
+
+func (x *SetPanoramasHiddenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetPanoramasHiddenRequest.ProtoReflect.Descriptor instead.
+func (*SetPanoramasHiddenRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *SetPanoramasHiddenRequest) GetTerritorySlug() string {
+	if x != nil {
+		return x.TerritorySlug
+	}
+	return ""
+}
+
+func (x *SetPanoramasHiddenRequest) GetIds() []int64 {
+	if x != nil {
+		return x.Ids
+	}
+	return nil
+}
+
+func (x *SetPanoramasHiddenRequest) GetHidden() bool {
+	if x != nil {
+		return x.Hidden
+	}
+	return false
+}
+
+type SetPanoramasHiddenResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Updated       int32                  `protobuf:"varint,1,opt,name=updated,proto3" json:"updated,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetPanoramasHiddenResponse) Reset() {
+	*x = SetPanoramasHiddenResponse{}
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetPanoramasHiddenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetPanoramasHiddenResponse) ProtoMessage() {}
+
+func (x *SetPanoramasHiddenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetPanoramasHiddenResponse.ProtoReflect.Descriptor instead.
+func (*SetPanoramasHiddenResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *SetPanoramasHiddenResponse) GetUpdated() int32 {
+	if x != nil {
+		return x.Updated
+	}
+	return 0
+}
+
+type SetPanoramasPhaseRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TerritorySlug string                 `protobuf:"bytes,1,opt,name=territory_slug,json=territorySlug,proto3" json:"territory_slug,omitempty"`
+	Ids           []int64                `protobuf:"varint,2,rep,packed,name=ids,proto3" json:"ids,omitempty"`
+	Phase         string                 `protobuf:"bytes,3,opt,name=phase,proto3" json:"phase,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetPanoramasPhaseRequest) Reset() {
+	*x = SetPanoramasPhaseRequest{}
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetPanoramasPhaseRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetPanoramasPhaseRequest) ProtoMessage() {}
+
+func (x *SetPanoramasPhaseRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetPanoramasPhaseRequest.ProtoReflect.Descriptor instead.
+func (*SetPanoramasPhaseRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *SetPanoramasPhaseRequest) GetTerritorySlug() string {
+	if x != nil {
+		return x.TerritorySlug
+	}
+	return ""
+}
+
+func (x *SetPanoramasPhaseRequest) GetIds() []int64 {
+	if x != nil {
+		return x.Ids
+	}
+	return nil
+}
+
+func (x *SetPanoramasPhaseRequest) GetPhase() string {
+	if x != nil {
+		return x.Phase
+	}
+	return ""
+}
+
+type SetPanoramasPhaseResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Updated       int32                  `protobuf:"varint,1,opt,name=updated,proto3" json:"updated,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetPanoramasPhaseResponse) Reset() {
+	*x = SetPanoramasPhaseResponse{}
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetPanoramasPhaseResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetPanoramasPhaseResponse) ProtoMessage() {}
+
+func (x *SetPanoramasPhaseResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetPanoramasPhaseResponse.ProtoReflect.Descriptor instead.
+func (*SetPanoramasPhaseResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *SetPanoramasPhaseResponse) GetUpdated() int32 {
+	if x != nil {
+		return x.Updated
+	}
+	return 0
+}
+
+// PanoramaPhase is one phase's shared hidden flag on a territory.
+type PanoramaPhase struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Phase         string                 `protobuf:"bytes,1,opt,name=phase,proto3" json:"phase,omitempty"`
+	Hidden        bool                   `protobuf:"varint,2,opt,name=hidden,proto3" json:"hidden,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PanoramaPhase) Reset() {
+	*x = PanoramaPhase{}
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PanoramaPhase) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PanoramaPhase) ProtoMessage() {}
+
+func (x *PanoramaPhase) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PanoramaPhase.ProtoReflect.Descriptor instead.
+func (*PanoramaPhase) Descriptor() ([]byte, []int) {
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *PanoramaPhase) GetPhase() string {
+	if x != nil {
+		return x.Phase
+	}
+	return ""
+}
+
+func (x *PanoramaPhase) GetHidden() bool {
+	if x != nil {
+		return x.Hidden
+	}
+	return false
+}
+
+type SetPanoramaPhaseHiddenRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TerritorySlug string                 `protobuf:"bytes,1,opt,name=territory_slug,json=territorySlug,proto3" json:"territory_slug,omitempty"`
+	Phase         string                 `protobuf:"bytes,2,opt,name=phase,proto3" json:"phase,omitempty"`
+	Hidden        bool                   `protobuf:"varint,3,opt,name=hidden,proto3" json:"hidden,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetPanoramaPhaseHiddenRequest) Reset() {
+	*x = SetPanoramaPhaseHiddenRequest{}
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetPanoramaPhaseHiddenRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetPanoramaPhaseHiddenRequest) ProtoMessage() {}
+
+func (x *SetPanoramaPhaseHiddenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetPanoramaPhaseHiddenRequest.ProtoReflect.Descriptor instead.
+func (*SetPanoramaPhaseHiddenRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *SetPanoramaPhaseHiddenRequest) GetTerritorySlug() string {
+	if x != nil {
+		return x.TerritorySlug
+	}
+	return ""
+}
+
+func (x *SetPanoramaPhaseHiddenRequest) GetPhase() string {
+	if x != nil {
+		return x.Phase
+	}
+	return ""
+}
+
+func (x *SetPanoramaPhaseHiddenRequest) GetHidden() bool {
+	if x != nil {
+		return x.Hidden
+	}
+	return false
+}
+
+type SetPanoramaPhaseHiddenResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Phase         *PanoramaPhase         `protobuf:"bytes,1,opt,name=phase,proto3" json:"phase,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetPanoramaPhaseHiddenResponse) Reset() {
+	*x = SetPanoramaPhaseHiddenResponse{}
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetPanoramaPhaseHiddenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetPanoramaPhaseHiddenResponse) ProtoMessage() {}
+
+func (x *SetPanoramaPhaseHiddenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetPanoramaPhaseHiddenResponse.ProtoReflect.Descriptor instead.
+func (*SetPanoramaPhaseHiddenResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *SetPanoramaPhaseHiddenResponse) GetPhase() *PanoramaPhase {
+	if x != nil {
+		return x.Phase
+	}
+	return nil
+}
+
+type ListPanoramaPhasesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TerritorySlug string                 `protobuf:"bytes,1,opt,name=territory_slug,json=territorySlug,proto3" json:"territory_slug,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPanoramaPhasesRequest) Reset() {
+	*x = ListPanoramaPhasesRequest{}
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPanoramaPhasesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPanoramaPhasesRequest) ProtoMessage() {}
+
+func (x *ListPanoramaPhasesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPanoramaPhasesRequest.ProtoReflect.Descriptor instead.
+func (*ListPanoramaPhasesRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ListPanoramaPhasesRequest) GetTerritorySlug() string {
+	if x != nil {
+		return x.TerritorySlug
+	}
+	return ""
+}
+
+type ListPanoramaPhasesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Phases        []*PanoramaPhase       `protobuf:"bytes,1,rep,name=phases,proto3" json:"phases,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPanoramaPhasesResponse) Reset() {
+	*x = ListPanoramaPhasesResponse{}
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPanoramaPhasesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPanoramaPhasesResponse) ProtoMessage() {}
+
+func (x *ListPanoramaPhasesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPanoramaPhasesResponse.ProtoReflect.Descriptor instead.
+func (*ListPanoramaPhasesResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *ListPanoramaPhasesResponse) GetPhases() []*PanoramaPhase {
+	if x != nil {
+		return x.Phases
+	}
+	return nil
+}
+
 // Document is a PDF attached to a territory. No scene position, no slug —
 // identified by id; bytes served from BlobStore via asset at /api/assets/{hash}.
 type Document struct {
@@ -656,7 +1137,7 @@ type Document struct {
 
 func (x *Document) Reset() {
 	*x = Document{}
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[10]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -668,7 +1149,7 @@ func (x *Document) String() string {
 func (*Document) ProtoMessage() {}
 
 func (x *Document) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[10]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -681,7 +1162,7 @@ func (x *Document) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Document.ProtoReflect.Descriptor instead.
 func (*Document) Descriptor() ([]byte, []int) {
-	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{10}
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *Document) GetId() int64 {
@@ -728,7 +1209,7 @@ type ListDocumentsRequest struct {
 
 func (x *ListDocumentsRequest) Reset() {
 	*x = ListDocumentsRequest{}
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[11]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -740,7 +1221,7 @@ func (x *ListDocumentsRequest) String() string {
 func (*ListDocumentsRequest) ProtoMessage() {}
 
 func (x *ListDocumentsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[11]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -753,7 +1234,7 @@ func (x *ListDocumentsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDocumentsRequest.ProtoReflect.Descriptor instead.
 func (*ListDocumentsRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{11}
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ListDocumentsRequest) GetTerritorySlug() string {
@@ -772,7 +1253,7 @@ type ListDocumentsResponse struct {
 
 func (x *ListDocumentsResponse) Reset() {
 	*x = ListDocumentsResponse{}
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[12]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -784,7 +1265,7 @@ func (x *ListDocumentsResponse) String() string {
 func (*ListDocumentsResponse) ProtoMessage() {}
 
 func (x *ListDocumentsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[12]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -797,7 +1278,7 @@ func (x *ListDocumentsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDocumentsResponse.ProtoReflect.Descriptor instead.
 func (*ListDocumentsResponse) Descriptor() ([]byte, []int) {
-	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{12}
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ListDocumentsResponse) GetDocuments() []*Document {
@@ -818,7 +1299,7 @@ type CreateDocumentRequest struct {
 
 func (x *CreateDocumentRequest) Reset() {
 	*x = CreateDocumentRequest{}
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[13]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -830,7 +1311,7 @@ func (x *CreateDocumentRequest) String() string {
 func (*CreateDocumentRequest) ProtoMessage() {}
 
 func (x *CreateDocumentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[13]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -843,7 +1324,7 @@ func (x *CreateDocumentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateDocumentRequest.ProtoReflect.Descriptor instead.
 func (*CreateDocumentRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{13}
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *CreateDocumentRequest) GetTerritorySlug() string {
@@ -876,7 +1357,7 @@ type CreateDocumentResponse struct {
 
 func (x *CreateDocumentResponse) Reset() {
 	*x = CreateDocumentResponse{}
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[14]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -888,7 +1369,7 @@ func (x *CreateDocumentResponse) String() string {
 func (*CreateDocumentResponse) ProtoMessage() {}
 
 func (x *CreateDocumentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[14]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -901,7 +1382,7 @@ func (x *CreateDocumentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateDocumentResponse.ProtoReflect.Descriptor instead.
 func (*CreateDocumentResponse) Descriptor() ([]byte, []int) {
-	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{14}
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *CreateDocumentResponse) GetDocument() *Document {
@@ -922,7 +1403,7 @@ type DeleteDocumentRequest struct {
 
 func (x *DeleteDocumentRequest) Reset() {
 	*x = DeleteDocumentRequest{}
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[15]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -934,7 +1415,7 @@ func (x *DeleteDocumentRequest) String() string {
 func (*DeleteDocumentRequest) ProtoMessage() {}
 
 func (x *DeleteDocumentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[15]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -947,7 +1428,7 @@ func (x *DeleteDocumentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteDocumentRequest.ProtoReflect.Descriptor instead.
 func (*DeleteDocumentRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{15}
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *DeleteDocumentRequest) GetId() int64 {
@@ -972,7 +1453,7 @@ type DeleteDocumentResponse struct {
 
 func (x *DeleteDocumentResponse) Reset() {
 	*x = DeleteDocumentResponse{}
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[16]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -984,7 +1465,7 @@ func (x *DeleteDocumentResponse) String() string {
 func (*DeleteDocumentResponse) ProtoMessage() {}
 
 func (x *DeleteDocumentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[16]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -997,7 +1478,7 @@ func (x *DeleteDocumentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteDocumentResponse.ProtoReflect.Descriptor instead.
 func (*DeleteDocumentResponse) Descriptor() ([]byte, []int) {
-	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{16}
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{25}
 }
 
 var File_rosneft_content_v1_content_proto protoreflect.FileDescriptor
@@ -1008,7 +1489,7 @@ const file_rosneft_content_v1_content_proto_rawDesc = "" +
 	"\x04Vec3\x12\f\n" +
 	"\x01x\x18\x01 \x01(\x01R\x01x\x12\f\n" +
 	"\x01y\x18\x02 \x01(\x01R\x01y\x12\f\n" +
-	"\x01z\x18\x03 \x01(\x01R\x01z\"\xb1\x03\n" +
+	"\x01z\x18\x03 \x01(\x01R\x01z\"\xdf\x03\n" +
 	"\bPanorama\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12%\n" +
 	"\x0eterritory_slug\x18\x02 \x01(\tR\rterritorySlug\x12\x12\n" +
@@ -1025,11 +1506,13 @@ const file_rosneft_content_v1_content_proto_rawDesc = "" +
 	"\vdefault_yaw\x18\n" +
 	" \x01(\x01R\n" +
 	"defaultYaw\x12.\n" +
-	"\x13thumbnail_blob_hash\x18\v \x01(\tR\x11thumbnailBlobHash\"=\n" +
+	"\x13thumbnail_blob_hash\x18\v \x01(\tR\x11thumbnailBlobHash\x12\x14\n" +
+	"\x05phase\x18\f \x01(\tR\x05phase\x12\x16\n" +
+	"\x06hidden\x18\r \x01(\bR\x06hidden\"=\n" +
 	"\x14ListPanoramasRequest\x12%\n" +
 	"\x0eterritory_slug\x18\x01 \x01(\tR\rterritorySlug\"S\n" +
 	"\x15ListPanoramasResponse\x12:\n" +
-	"\tpanoramas\x18\x01 \x03(\v2\x1c.rosneft.content.v1.PanoramaR\tpanoramas\"\xe7\x01\n" +
+	"\tpanoramas\x18\x01 \x03(\v2\x1c.rosneft.content.v1.PanoramaR\tpanoramas\"\xfd\x01\n" +
 	"\x15CreatePanoramaRequest\x12%\n" +
 	"\x0eterritory_slug\x18\x01 \x01(\tR\rterritorySlug\x12\x12\n" +
 	"\x04slug\x18\x02 \x01(\tR\x04slug\x12\x14\n" +
@@ -1037,7 +1520,8 @@ const file_rosneft_content_v1_content_proto_rawDesc = "" +
 	"\x10source_blob_hash\x18\x04 \x01(\tR\x0esourceBlobHash\x124\n" +
 	"\bposition\x18\x05 \x01(\v2\x18.rosneft.content.v1.Vec3R\bposition\x12\x1d\n" +
 	"\n" +
-	"yaw_offset\x18\x06 \x01(\x01R\tyawOffset\"R\n" +
+	"yaw_offset\x18\x06 \x01(\x01R\tyawOffset\x12\x14\n" +
+	"\x05phase\x18\a \x01(\tR\x05phase\"R\n" +
 	"\x16CreatePanoramaResponse\x128\n" +
 	"\bpanorama\x18\x01 \x01(\v2\x1c.rosneft.content.v1.PanoramaR\bpanorama\"\xda\x01\n" +
 	"\x15UpdatePanoramaRequest\x12\x0e\n" +
@@ -1054,7 +1538,32 @@ const file_rosneft_content_v1_content_proto_rawDesc = "" +
 	"\x15DeletePanoramaRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12%\n" +
 	"\x0eterritory_slug\x18\x02 \x01(\tR\rterritorySlug\"\x18\n" +
-	"\x16DeletePanoramaResponse\"\xbc\x01\n" +
+	"\x16DeletePanoramaResponse\"l\n" +
+	"\x19SetPanoramasHiddenRequest\x12%\n" +
+	"\x0eterritory_slug\x18\x01 \x01(\tR\rterritorySlug\x12\x10\n" +
+	"\x03ids\x18\x02 \x03(\x03R\x03ids\x12\x16\n" +
+	"\x06hidden\x18\x03 \x01(\bR\x06hidden\"6\n" +
+	"\x1aSetPanoramasHiddenResponse\x12\x18\n" +
+	"\aupdated\x18\x01 \x01(\x05R\aupdated\"i\n" +
+	"\x18SetPanoramasPhaseRequest\x12%\n" +
+	"\x0eterritory_slug\x18\x01 \x01(\tR\rterritorySlug\x12\x10\n" +
+	"\x03ids\x18\x02 \x03(\x03R\x03ids\x12\x14\n" +
+	"\x05phase\x18\x03 \x01(\tR\x05phase\"5\n" +
+	"\x19SetPanoramasPhaseResponse\x12\x18\n" +
+	"\aupdated\x18\x01 \x01(\x05R\aupdated\"=\n" +
+	"\rPanoramaPhase\x12\x14\n" +
+	"\x05phase\x18\x01 \x01(\tR\x05phase\x12\x16\n" +
+	"\x06hidden\x18\x02 \x01(\bR\x06hidden\"t\n" +
+	"\x1dSetPanoramaPhaseHiddenRequest\x12%\n" +
+	"\x0eterritory_slug\x18\x01 \x01(\tR\rterritorySlug\x12\x14\n" +
+	"\x05phase\x18\x02 \x01(\tR\x05phase\x12\x16\n" +
+	"\x06hidden\x18\x03 \x01(\bR\x06hidden\"Y\n" +
+	"\x1eSetPanoramaPhaseHiddenResponse\x127\n" +
+	"\x05phase\x18\x01 \x01(\v2!.rosneft.content.v1.PanoramaPhaseR\x05phase\"B\n" +
+	"\x19ListPanoramaPhasesRequest\x12%\n" +
+	"\x0eterritory_slug\x18\x01 \x01(\tR\rterritorySlug\"W\n" +
+	"\x1aListPanoramaPhasesResponse\x129\n" +
+	"\x06phases\x18\x01 \x03(\v2!.rosneft.content.v1.PanoramaPhaseR\x06phases\"\xbc\x01\n" +
 	"\bDocument\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12%\n" +
 	"\x0eterritory_slug\x18\x02 \x01(\tR\rterritorySlug\x12\x14\n" +
@@ -1075,12 +1584,16 @@ const file_rosneft_content_v1_content_proto_rawDesc = "" +
 	"\x15DeleteDocumentRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12%\n" +
 	"\x0eterritory_slug\x18\x02 \x01(\tR\rterritorySlug\"\x18\n" +
-	"\x16DeleteDocumentResponse2\xe9\x05\n" +
+	"\x16DeleteDocumentResponse2\xc6\t\n" +
 	"\x0eContentService\x12d\n" +
 	"\rListPanoramas\x12(.rosneft.content.v1.ListPanoramasRequest\x1a).rosneft.content.v1.ListPanoramasResponse\x12g\n" +
 	"\x0eCreatePanorama\x12).rosneft.content.v1.CreatePanoramaRequest\x1a*.rosneft.content.v1.CreatePanoramaResponse\x12g\n" +
 	"\x0eUpdatePanorama\x12).rosneft.content.v1.UpdatePanoramaRequest\x1a*.rosneft.content.v1.UpdatePanoramaResponse\x12g\n" +
-	"\x0eDeletePanorama\x12).rosneft.content.v1.DeletePanoramaRequest\x1a*.rosneft.content.v1.DeletePanoramaResponse\x12d\n" +
+	"\x0eDeletePanorama\x12).rosneft.content.v1.DeletePanoramaRequest\x1a*.rosneft.content.v1.DeletePanoramaResponse\x12s\n" +
+	"\x12SetPanoramasHidden\x12-.rosneft.content.v1.SetPanoramasHiddenRequest\x1a..rosneft.content.v1.SetPanoramasHiddenResponse\x12p\n" +
+	"\x11SetPanoramasPhase\x12,.rosneft.content.v1.SetPanoramasPhaseRequest\x1a-.rosneft.content.v1.SetPanoramasPhaseResponse\x12\x7f\n" +
+	"\x16SetPanoramaPhaseHidden\x121.rosneft.content.v1.SetPanoramaPhaseHiddenRequest\x1a2.rosneft.content.v1.SetPanoramaPhaseHiddenResponse\x12s\n" +
+	"\x12ListPanoramaPhases\x12-.rosneft.content.v1.ListPanoramaPhasesRequest\x1a..rosneft.content.v1.ListPanoramaPhasesResponse\x12d\n" +
 	"\rListDocuments\x12(.rosneft.content.v1.ListDocumentsRequest\x1a).rosneft.content.v1.ListDocumentsResponse\x12g\n" +
 	"\x0eCreateDocument\x12).rosneft.content.v1.CreateDocumentRequest\x1a*.rosneft.content.v1.CreateDocumentResponse\x12g\n" +
 	"\x0eDeleteDocument\x12).rosneft.content.v1.DeleteDocumentRequest\x1a*.rosneft.content.v1.DeleteDocumentResponseBPZNgithub.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/content/v1;contentv1b\x06proto3"
@@ -1097,58 +1610,77 @@ func file_rosneft_content_v1_content_proto_rawDescGZIP() []byte {
 	return file_rosneft_content_v1_content_proto_rawDescData
 }
 
-var file_rosneft_content_v1_content_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_rosneft_content_v1_content_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_rosneft_content_v1_content_proto_goTypes = []any{
-	(*Vec3)(nil),                   // 0: rosneft.content.v1.Vec3
-	(*Panorama)(nil),               // 1: rosneft.content.v1.Panorama
-	(*ListPanoramasRequest)(nil),   // 2: rosneft.content.v1.ListPanoramasRequest
-	(*ListPanoramasResponse)(nil),  // 3: rosneft.content.v1.ListPanoramasResponse
-	(*CreatePanoramaRequest)(nil),  // 4: rosneft.content.v1.CreatePanoramaRequest
-	(*CreatePanoramaResponse)(nil), // 5: rosneft.content.v1.CreatePanoramaResponse
-	(*UpdatePanoramaRequest)(nil),  // 6: rosneft.content.v1.UpdatePanoramaRequest
-	(*UpdatePanoramaResponse)(nil), // 7: rosneft.content.v1.UpdatePanoramaResponse
-	(*DeletePanoramaRequest)(nil),  // 8: rosneft.content.v1.DeletePanoramaRequest
-	(*DeletePanoramaResponse)(nil), // 9: rosneft.content.v1.DeletePanoramaResponse
-	(*Document)(nil),               // 10: rosneft.content.v1.Document
-	(*ListDocumentsRequest)(nil),   // 11: rosneft.content.v1.ListDocumentsRequest
-	(*ListDocumentsResponse)(nil),  // 12: rosneft.content.v1.ListDocumentsResponse
-	(*CreateDocumentRequest)(nil),  // 13: rosneft.content.v1.CreateDocumentRequest
-	(*CreateDocumentResponse)(nil), // 14: rosneft.content.v1.CreateDocumentResponse
-	(*DeleteDocumentRequest)(nil),  // 15: rosneft.content.v1.DeleteDocumentRequest
-	(*DeleteDocumentResponse)(nil), // 16: rosneft.content.v1.DeleteDocumentResponse
-	(*timestamppb.Timestamp)(nil),  // 17: google.protobuf.Timestamp
+	(*Vec3)(nil),                           // 0: rosneft.content.v1.Vec3
+	(*Panorama)(nil),                       // 1: rosneft.content.v1.Panorama
+	(*ListPanoramasRequest)(nil),           // 2: rosneft.content.v1.ListPanoramasRequest
+	(*ListPanoramasResponse)(nil),          // 3: rosneft.content.v1.ListPanoramasResponse
+	(*CreatePanoramaRequest)(nil),          // 4: rosneft.content.v1.CreatePanoramaRequest
+	(*CreatePanoramaResponse)(nil),         // 5: rosneft.content.v1.CreatePanoramaResponse
+	(*UpdatePanoramaRequest)(nil),          // 6: rosneft.content.v1.UpdatePanoramaRequest
+	(*UpdatePanoramaResponse)(nil),         // 7: rosneft.content.v1.UpdatePanoramaResponse
+	(*DeletePanoramaRequest)(nil),          // 8: rosneft.content.v1.DeletePanoramaRequest
+	(*DeletePanoramaResponse)(nil),         // 9: rosneft.content.v1.DeletePanoramaResponse
+	(*SetPanoramasHiddenRequest)(nil),      // 10: rosneft.content.v1.SetPanoramasHiddenRequest
+	(*SetPanoramasHiddenResponse)(nil),     // 11: rosneft.content.v1.SetPanoramasHiddenResponse
+	(*SetPanoramasPhaseRequest)(nil),       // 12: rosneft.content.v1.SetPanoramasPhaseRequest
+	(*SetPanoramasPhaseResponse)(nil),      // 13: rosneft.content.v1.SetPanoramasPhaseResponse
+	(*PanoramaPhase)(nil),                  // 14: rosneft.content.v1.PanoramaPhase
+	(*SetPanoramaPhaseHiddenRequest)(nil),  // 15: rosneft.content.v1.SetPanoramaPhaseHiddenRequest
+	(*SetPanoramaPhaseHiddenResponse)(nil), // 16: rosneft.content.v1.SetPanoramaPhaseHiddenResponse
+	(*ListPanoramaPhasesRequest)(nil),      // 17: rosneft.content.v1.ListPanoramaPhasesRequest
+	(*ListPanoramaPhasesResponse)(nil),     // 18: rosneft.content.v1.ListPanoramaPhasesResponse
+	(*Document)(nil),                       // 19: rosneft.content.v1.Document
+	(*ListDocumentsRequest)(nil),           // 20: rosneft.content.v1.ListDocumentsRequest
+	(*ListDocumentsResponse)(nil),          // 21: rosneft.content.v1.ListDocumentsResponse
+	(*CreateDocumentRequest)(nil),          // 22: rosneft.content.v1.CreateDocumentRequest
+	(*CreateDocumentResponse)(nil),         // 23: rosneft.content.v1.CreateDocumentResponse
+	(*DeleteDocumentRequest)(nil),          // 24: rosneft.content.v1.DeleteDocumentRequest
+	(*DeleteDocumentResponse)(nil),         // 25: rosneft.content.v1.DeleteDocumentResponse
+	(*timestamppb.Timestamp)(nil),          // 26: google.protobuf.Timestamp
 }
 var file_rosneft_content_v1_content_proto_depIdxs = []int32{
 	0,  // 0: rosneft.content.v1.Panorama.position:type_name -> rosneft.content.v1.Vec3
-	17, // 1: rosneft.content.v1.Panorama.created_at:type_name -> google.protobuf.Timestamp
-	17, // 2: rosneft.content.v1.Panorama.updated_at:type_name -> google.protobuf.Timestamp
+	26, // 1: rosneft.content.v1.Panorama.created_at:type_name -> google.protobuf.Timestamp
+	26, // 2: rosneft.content.v1.Panorama.updated_at:type_name -> google.protobuf.Timestamp
 	1,  // 3: rosneft.content.v1.ListPanoramasResponse.panoramas:type_name -> rosneft.content.v1.Panorama
 	0,  // 4: rosneft.content.v1.CreatePanoramaRequest.position:type_name -> rosneft.content.v1.Vec3
 	1,  // 5: rosneft.content.v1.CreatePanoramaResponse.panorama:type_name -> rosneft.content.v1.Panorama
 	0,  // 6: rosneft.content.v1.UpdatePanoramaRequest.position:type_name -> rosneft.content.v1.Vec3
 	1,  // 7: rosneft.content.v1.UpdatePanoramaResponse.panorama:type_name -> rosneft.content.v1.Panorama
-	17, // 8: rosneft.content.v1.Document.created_at:type_name -> google.protobuf.Timestamp
-	10, // 9: rosneft.content.v1.ListDocumentsResponse.documents:type_name -> rosneft.content.v1.Document
-	10, // 10: rosneft.content.v1.CreateDocumentResponse.document:type_name -> rosneft.content.v1.Document
-	2,  // 11: rosneft.content.v1.ContentService.ListPanoramas:input_type -> rosneft.content.v1.ListPanoramasRequest
-	4,  // 12: rosneft.content.v1.ContentService.CreatePanorama:input_type -> rosneft.content.v1.CreatePanoramaRequest
-	6,  // 13: rosneft.content.v1.ContentService.UpdatePanorama:input_type -> rosneft.content.v1.UpdatePanoramaRequest
-	8,  // 14: rosneft.content.v1.ContentService.DeletePanorama:input_type -> rosneft.content.v1.DeletePanoramaRequest
-	11, // 15: rosneft.content.v1.ContentService.ListDocuments:input_type -> rosneft.content.v1.ListDocumentsRequest
-	13, // 16: rosneft.content.v1.ContentService.CreateDocument:input_type -> rosneft.content.v1.CreateDocumentRequest
-	15, // 17: rosneft.content.v1.ContentService.DeleteDocument:input_type -> rosneft.content.v1.DeleteDocumentRequest
-	3,  // 18: rosneft.content.v1.ContentService.ListPanoramas:output_type -> rosneft.content.v1.ListPanoramasResponse
-	5,  // 19: rosneft.content.v1.ContentService.CreatePanorama:output_type -> rosneft.content.v1.CreatePanoramaResponse
-	7,  // 20: rosneft.content.v1.ContentService.UpdatePanorama:output_type -> rosneft.content.v1.UpdatePanoramaResponse
-	9,  // 21: rosneft.content.v1.ContentService.DeletePanorama:output_type -> rosneft.content.v1.DeletePanoramaResponse
-	12, // 22: rosneft.content.v1.ContentService.ListDocuments:output_type -> rosneft.content.v1.ListDocumentsResponse
-	14, // 23: rosneft.content.v1.ContentService.CreateDocument:output_type -> rosneft.content.v1.CreateDocumentResponse
-	16, // 24: rosneft.content.v1.ContentService.DeleteDocument:output_type -> rosneft.content.v1.DeleteDocumentResponse
-	18, // [18:25] is the sub-list for method output_type
-	11, // [11:18] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	14, // 8: rosneft.content.v1.SetPanoramaPhaseHiddenResponse.phase:type_name -> rosneft.content.v1.PanoramaPhase
+	14, // 9: rosneft.content.v1.ListPanoramaPhasesResponse.phases:type_name -> rosneft.content.v1.PanoramaPhase
+	26, // 10: rosneft.content.v1.Document.created_at:type_name -> google.protobuf.Timestamp
+	19, // 11: rosneft.content.v1.ListDocumentsResponse.documents:type_name -> rosneft.content.v1.Document
+	19, // 12: rosneft.content.v1.CreateDocumentResponse.document:type_name -> rosneft.content.v1.Document
+	2,  // 13: rosneft.content.v1.ContentService.ListPanoramas:input_type -> rosneft.content.v1.ListPanoramasRequest
+	4,  // 14: rosneft.content.v1.ContentService.CreatePanorama:input_type -> rosneft.content.v1.CreatePanoramaRequest
+	6,  // 15: rosneft.content.v1.ContentService.UpdatePanorama:input_type -> rosneft.content.v1.UpdatePanoramaRequest
+	8,  // 16: rosneft.content.v1.ContentService.DeletePanorama:input_type -> rosneft.content.v1.DeletePanoramaRequest
+	10, // 17: rosneft.content.v1.ContentService.SetPanoramasHidden:input_type -> rosneft.content.v1.SetPanoramasHiddenRequest
+	12, // 18: rosneft.content.v1.ContentService.SetPanoramasPhase:input_type -> rosneft.content.v1.SetPanoramasPhaseRequest
+	15, // 19: rosneft.content.v1.ContentService.SetPanoramaPhaseHidden:input_type -> rosneft.content.v1.SetPanoramaPhaseHiddenRequest
+	17, // 20: rosneft.content.v1.ContentService.ListPanoramaPhases:input_type -> rosneft.content.v1.ListPanoramaPhasesRequest
+	20, // 21: rosneft.content.v1.ContentService.ListDocuments:input_type -> rosneft.content.v1.ListDocumentsRequest
+	22, // 22: rosneft.content.v1.ContentService.CreateDocument:input_type -> rosneft.content.v1.CreateDocumentRequest
+	24, // 23: rosneft.content.v1.ContentService.DeleteDocument:input_type -> rosneft.content.v1.DeleteDocumentRequest
+	3,  // 24: rosneft.content.v1.ContentService.ListPanoramas:output_type -> rosneft.content.v1.ListPanoramasResponse
+	5,  // 25: rosneft.content.v1.ContentService.CreatePanorama:output_type -> rosneft.content.v1.CreatePanoramaResponse
+	7,  // 26: rosneft.content.v1.ContentService.UpdatePanorama:output_type -> rosneft.content.v1.UpdatePanoramaResponse
+	9,  // 27: rosneft.content.v1.ContentService.DeletePanorama:output_type -> rosneft.content.v1.DeletePanoramaResponse
+	11, // 28: rosneft.content.v1.ContentService.SetPanoramasHidden:output_type -> rosneft.content.v1.SetPanoramasHiddenResponse
+	13, // 29: rosneft.content.v1.ContentService.SetPanoramasPhase:output_type -> rosneft.content.v1.SetPanoramasPhaseResponse
+	16, // 30: rosneft.content.v1.ContentService.SetPanoramaPhaseHidden:output_type -> rosneft.content.v1.SetPanoramaPhaseHiddenResponse
+	18, // 31: rosneft.content.v1.ContentService.ListPanoramaPhases:output_type -> rosneft.content.v1.ListPanoramaPhasesResponse
+	21, // 32: rosneft.content.v1.ContentService.ListDocuments:output_type -> rosneft.content.v1.ListDocumentsResponse
+	23, // 33: rosneft.content.v1.ContentService.CreateDocument:output_type -> rosneft.content.v1.CreateDocumentResponse
+	25, // 34: rosneft.content.v1.ContentService.DeleteDocument:output_type -> rosneft.content.v1.DeleteDocumentResponse
+	24, // [24:35] is the sub-list for method output_type
+	13, // [13:24] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_rosneft_content_v1_content_proto_init() }
@@ -1162,7 +1694,7 @@ func file_rosneft_content_v1_content_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_rosneft_content_v1_content_proto_rawDesc), len(file_rosneft_content_v1_content_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   17,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

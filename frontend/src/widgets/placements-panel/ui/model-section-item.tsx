@@ -1,4 +1,5 @@
-import { EyeButton, eyeState, groupLine, GroupRow, type ModelSection } from "@/entities/placement";
+import { eyeState, groupLine, type ModelSection } from "@/entities/placement";
+import { EyeButton, GroupRow } from "@/shared/ui/group-controls";
 import { InstanceItem, type RowContext } from "./instance-item";
 
 /**

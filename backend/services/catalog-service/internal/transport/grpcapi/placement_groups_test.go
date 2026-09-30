@@ -118,3 +118,21 @@ func (s *PlacementGroupsSuite) TestACreateCarriesItsGroup() {
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), out.GetPlacement().GetGroupId(), int64(4))
 }
+
+func (s *PlacementGroupsSuite) TestHidingAGroupAnswersTheGroup() {
+	s.svc.SetPlacementGroupHiddenMock.Expect(s.ctx, "t1", int64(4), true).
+		Return(domain.PlacementGroup{ID: 4, TerritorySlug: "t1", Title: "North", Hidden: true}, nil)
+	out, err := s.srv.SetPlacementGroupHidden(s.ctx, &catalogv1.SetPlacementGroupHiddenRequest{
+		TerritorySlug: "t1", Id: 4, Hidden: true,
+	})
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), out.GetGroup().GetId(), int64(4))
+	assert.Assert(s.T(), out.GetGroup().GetHidden())
+}
+
+func (s *PlacementGroupsSuite) TestHidingAForeignGroupIsNotFound() {
+	s.svc.SetPlacementGroupHiddenMock.Return(domain.PlacementGroup{}, domain.ErrPlacementGroupNotFound)
+	_, err := s.srv.SetPlacementGroupHidden(s.ctx, &catalogv1.SetPlacementGroupHiddenRequest{TerritorySlug: "t2", Id: 4, Hidden: true})
+	assert.Equal(s.T(), status.Code(err), codes.NotFound)
+	assert.Equal(s.T(), status.Convert(err).Message(), "placement group not found")
+}

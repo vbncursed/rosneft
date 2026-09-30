@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/suite"
@@ -156,4 +157,16 @@ func (s *ReconcileSuite) TestQueuesTargetWhenLockIsFree() {
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), 1, n)
+}
+
+// The claim is taken at submit, so it must outlive the queue wait plus the
+// conversion. With one job per worker and textures encoded serially, LOD0 of
+// a 3 × 8192² territory alone took 357 s; a claim that lapses mid-run lets the
+// next reconciler tick queue a duplicate ~4 GB conversion of the same target.
+func (s *ReconcileSuite) TestTargetLockOutlivesASerialTextureConversion() {
+	const measuredLOD0 = 357 * time.Second
+	const queuedAhead = 3 // conversions a reconciler pass can queue before this one
+
+	assert.Assert(s.T(), service.TargetLockTTL >= (queuedAhead+1)*2*measuredLOD0,
+		"TargetLockTTL %v expires under a queued serial conversion", service.TargetLockTTL)
 }

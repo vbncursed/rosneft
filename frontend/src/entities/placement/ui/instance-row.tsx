@@ -1,10 +1,13 @@
 import { clsx as cx } from "clsx";
+import { EyeButton, MoveToGroupMenu } from "@/shared/ui/group-controls";
 import { Icon } from "@/shared/ui/icon";
 import { Tooltip } from "@/shared/ui/tooltip";
 import { instanceLine, instanceName, type ModelGroup, type PlacementInstance } from "../model/groups";
 import type { PlacementGroup } from "../model/placement";
-import { EyeButton } from "./eye-button";
-import { MoveToGroupMenu } from "./move-to-group-menu";
+
+export const NO_GROUP = "No group";
+// The move menu's key for No group; a group's key is its id, and no id is "none".
+const NONE = "none";
 
 export type InstanceRowProps = {
   group: ModelGroup;
@@ -26,6 +29,8 @@ export type InstanceRowProps = {
   onMove?: (id: number, groupId: number | null) => void;
   /** Prints the model title before `#N` — a user group mixes models, so the number alone names nothing. */
   showModel?: boolean;
+  /** Its group is hidden (D5): not drawn, so it dims and cannot be framed; its own eye keeps its own flag. */
+  groupHidden?: boolean;
 };
 
 const ICON_BUTTON =
@@ -47,6 +52,7 @@ export function InstanceRow({
   groups = [],
   onMove,
   showModel = false,
+  groupHidden = false,
 }: InstanceRowProps) {
   const name = instanceName(group, instance);
   // WCAG 2.5.3: the accessible name has to contain the visible text. The row
@@ -55,7 +61,8 @@ export function InstanceRow({
   // it. Only the select button prints a label; the icon actions name the
   // instance alone. A hidden row says so in words too: its dimming alone is colour.
   const labelled = instance.label ? `${name} · ${instance.label}` : name;
-  const selectName = instance.hidden ? `${labelled} · hidden` : labelled;
+  const unseen = instance.hidden || groupHidden;
+  const selectName = unseen ? `${labelled} · hidden` : labelled;
   const editor = canWrite || canDelete;
   return (
     <div
@@ -84,18 +91,18 @@ export function InstanceRow({
         className={cx(
           "min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent p-0 text-left font-mono text-[10px] transition-[scale] duration-150 ease-out active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent",
           selected ? "text-accent" : "text-fg",
-          instance.hidden && "opacity-55",
+          unseen && "opacity-55",
         )}
       >
         {showModel ? `${group.model.title} ${instanceLine(instance)}` : instanceLine(instance)}
       </button>
       {canWrite && onMove ? (
         <MoveToGroupMenu
-          name={name}
-          groups={groups}
-          current={instance.groupId}
+          triggerLabel={`Move ${name} to group`}
+          targets={[...groups.map((g) => ({ key: String(g.id), label: g.title })), { key: NONE, label: NO_GROUP }]}
+          current={instance.groupId === null ? NONE : String(instance.groupId)}
           disabled={pending}
-          onMove={(groupId) => onMove(instance.id, groupId)}
+          onMove={(key) => onMove(instance.id, key === NONE ? null : Number(key))}
         />
       ) : null}
       {canWrite ? (
@@ -129,12 +136,12 @@ export function InstanceRow({
       ) : null}
       {!editor ? (
         // Nothing is drawn to frame on a hidden placement (§1.7).
-        <Tooltip label={instance.hidden ? `${name} is hidden` : `Focus camera on ${name}`}>
+        <Tooltip label={unseen ? `${name} is hidden` : `Focus camera on ${name}`}>
           <button
             type="button"
             onClick={() => onFocus(instance.id)}
-            disabled={instance.hidden}
-            aria-label={instance.hidden ? `Focus ${name} (hidden)` : `Focus ${name}`}
+            disabled={unseen}
+            aria-label={unseen ? `Focus ${name} (hidden)` : `Focus ${name}`}
             className="shrink-0 cursor-pointer rounded-[7px] border border-line-2 bg-panel px-2.5 py-1 font-mono text-[10px] text-fg transition-[border-color,scale] duration-150 ease-out enabled:hover:border-accent-line enabled:active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
             Focus

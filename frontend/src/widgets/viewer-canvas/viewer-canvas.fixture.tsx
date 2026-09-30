@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import type { Chain } from "@/entities/measurement";
+import { ALL_PHASES_SHOWN } from "@/entities/panorama";
 import { ViewerCanvas } from "./index";
 
 const noop = () => undefined;
@@ -31,6 +32,7 @@ const Canvas = ({ chains = [], showMeasurements = true, measuring = false }: Can
         parentLods={[]}
         targetLod={0}
         placements={[]}
+        placementGroups={[]}
         mode={measuring ? "measure" : "orbit"}
         selectedId={null}
         gizmo="translate"
@@ -52,7 +54,9 @@ const Canvas = ({ chains = [], showMeasurements = true, measuring = false }: Can
         panoramaOpacity={1}
         calibrating={false}
         panoramas={[]}
+        panoramaPhaseHidden={ALL_PHASES_SHOWN}
         showMarkers
+        markerNames
         showMeasurements={showMeasurements}
         markerLabels={{}}
         move={{ active: false, draggingId: null, livePos: null }}

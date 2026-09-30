@@ -8,5 +8,6 @@ export {
   type PanoramaTextureStatus,
   type TextureDecoder,
 } from "./model/use-panorama-texture";
-export { useMarkerSwitch } from "./model/use-marker-switch";
+export { useMarkerSwitch, type MarkerMode } from "./model/use-marker-switch";
 export { NUDGE_STEPS, type NudgeStep } from "./model/nudge-steps";
+export { usePanoramaVisibility, type PanoramaVisibilityParams } from "./model/use-panorama-visibility";

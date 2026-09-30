@@ -1,7 +1,7 @@
 import type { RefObject } from "react";
 import type { Chain, MeasurePoint } from "@/entities/measurement";
-import type { Panorama } from "@/entities/panorama";
-import type { PlacementTransform, ResolvedPlacement, Vec3 } from "@/entities/placement";
+import type { Panorama, PhaseHidden } from "@/entities/panorama";
+import type { PlacementGroup, PlacementTransform, ResolvedPlacement, Vec3 } from "@/entities/placement";
 import type { LodArtifact } from "@/entities/scene";
 import type { LodFailure } from "@/features/lod";
 import type { GizmoMode, ViewerMode } from "@/features/viewer-mode";
@@ -20,6 +20,8 @@ export type ViewerCanvasProps = {
   parentLods: LodArtifact[];
   targetLod: number;
   placements: ResolvedPlacement[];
+  /** The territory's user groups: a hidden one's members are neither drawn nor preloaded (D6). */
+  placementGroups: PlacementGroup[];
   mode: ViewerMode;
   selectedId: number | null;
   gizmo: GizmoMode;
@@ -67,7 +69,11 @@ export type ViewerCanvasProps = {
    */
   calibrating: boolean;
   panoramas: Panorama[];
+  /** Each job phase's shared flag: a hidden capture, or one of a hidden phase, gets no anchor (D5). */
+  panoramaPhaseHidden: PhaseHidden;
   showMarkers: boolean;
+  /** False in Points only: the panorama anchors draw without their titles. */
+  markerNames: boolean;
   /** The View tab's ruler switch; measure mode draws the ruler regardless. */
   showMeasurements: boolean;
   /** Labels for the viewport markers inside a panorama, by placement id (`storage-tank-500 #1`). */

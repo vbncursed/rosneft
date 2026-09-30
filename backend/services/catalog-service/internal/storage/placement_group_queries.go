@@ -10,14 +10,14 @@ import (
 
 // placementGroupCols reads a group aliased g joined to its territory t. The
 // writes alias their RETURNING CTE as g, so one list serves all of them.
-const placementGroupCols = `g.id, t.slug, g.title, g.created_at, g.updated_at`
+const placementGroupCols = `g.id, t.slug, g.title, g.hidden, g.created_at, g.updated_at`
 
 // placementGroupReturning is the RETURNING list that feeds placementGroupCols.
-const placementGroupReturning = `g.id, g.territory_id, g.title, g.created_at, g.updated_at`
+const placementGroupReturning = `g.id, g.territory_id, g.title, g.hidden, g.created_at, g.updated_at`
 
 func scanPlacementGroup(r rowScanner) (domain.PlacementGroup, error) {
 	var g domain.PlacementGroup
-	err := r.Scan(&g.ID, &g.TerritorySlug, &g.Title, &g.CreatedAt, &g.UpdatedAt)
+	err := r.Scan(&g.ID, &g.TerritorySlug, &g.Title, &g.Hidden, &g.CreatedAt, &g.UpdatedAt)
 	return g, err
 }
 

@@ -13,6 +13,8 @@ const PANO = {
   yawOffset: 0.5,
   defaultYaw: 0,
   thumbnailBlobHash: null,
+  phase: "prior" as const,
+  hidden: false,
   updatedAt: "",
 };
 

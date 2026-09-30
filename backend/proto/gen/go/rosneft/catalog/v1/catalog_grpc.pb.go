@@ -61,6 +61,7 @@ const (
 	CatalogService_CreatePlacementGroup_FullMethodName        = "/rosneft.catalog.v1.CatalogService/CreatePlacementGroup"
 	CatalogService_RenamePlacementGroup_FullMethodName        = "/rosneft.catalog.v1.CatalogService/RenamePlacementGroup"
 	CatalogService_DeletePlacementGroup_FullMethodName        = "/rosneft.catalog.v1.CatalogService/DeletePlacementGroup"
+	CatalogService_SetPlacementGroupHidden_FullMethodName     = "/rosneft.catalog.v1.CatalogService/SetPlacementGroupHidden"
 )
 
 // CatalogServiceClient is the client API for CatalogService service.
@@ -144,6 +145,10 @@ type CatalogServiceClient interface {
 	CreatePlacementGroup(ctx context.Context, in *CreatePlacementGroupRequest, opts ...grpc.CallOption) (*CreatePlacementGroupResponse, error)
 	RenamePlacementGroup(ctx context.Context, in *RenamePlacementGroupRequest, opts ...grpc.CallOption) (*RenamePlacementGroupResponse, error)
 	DeletePlacementGroup(ctx context.Context, in *DeletePlacementGroupRequest, opts ...grpc.CallOption) (*DeletePlacementGroupResponse, error)
+	// A group's own shared hidden flag. Its placements keep theirs: a member is
+	// drawn only when neither it nor its group is hidden. A group of another
+	// territory is NOT_FOUND, same as an unknown one.
+	SetPlacementGroupHidden(ctx context.Context, in *SetPlacementGroupHiddenRequest, opts ...grpc.CallOption) (*SetPlacementGroupHiddenResponse, error)
 }
 
 type catalogServiceClient struct {
@@ -574,6 +579,16 @@ func (c *catalogServiceClient) DeletePlacementGroup(ctx context.Context, in *Del
 	return out, nil
 }
 
+func (c *catalogServiceClient) SetPlacementGroupHidden(ctx context.Context, in *SetPlacementGroupHiddenRequest, opts ...grpc.CallOption) (*SetPlacementGroupHiddenResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetPlacementGroupHiddenResponse)
+	err := c.cc.Invoke(ctx, CatalogService_SetPlacementGroupHidden_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CatalogServiceServer is the server API for CatalogService service.
 // All implementations must embed UnimplementedCatalogServiceServer
 // for forward compatibility.
@@ -655,6 +670,10 @@ type CatalogServiceServer interface {
 	CreatePlacementGroup(context.Context, *CreatePlacementGroupRequest) (*CreatePlacementGroupResponse, error)
 	RenamePlacementGroup(context.Context, *RenamePlacementGroupRequest) (*RenamePlacementGroupResponse, error)
 	DeletePlacementGroup(context.Context, *DeletePlacementGroupRequest) (*DeletePlacementGroupResponse, error)
+	// A group's own shared hidden flag. Its placements keep theirs: a member is
+	// drawn only when neither it nor its group is hidden. A group of another
+	// territory is NOT_FOUND, same as an unknown one.
+	SetPlacementGroupHidden(context.Context, *SetPlacementGroupHiddenRequest) (*SetPlacementGroupHiddenResponse, error)
 	mustEmbedUnimplementedCatalogServiceServer()
 }
 
@@ -790,6 +809,9 @@ func (UnimplementedCatalogServiceServer) RenamePlacementGroup(context.Context, *
 }
 func (UnimplementedCatalogServiceServer) DeletePlacementGroup(context.Context, *DeletePlacementGroupRequest) (*DeletePlacementGroupResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeletePlacementGroup not implemented")
+}
+func (UnimplementedCatalogServiceServer) SetPlacementGroupHidden(context.Context, *SetPlacementGroupHiddenRequest) (*SetPlacementGroupHiddenResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetPlacementGroupHidden not implemented")
 }
 func (UnimplementedCatalogServiceServer) mustEmbedUnimplementedCatalogServiceServer() {}
 func (UnimplementedCatalogServiceServer) testEmbeddedByValue()                        {}
@@ -1568,6 +1590,24 @@ func _CatalogService_DeletePlacementGroup_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CatalogService_SetPlacementGroupHidden_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetPlacementGroupHiddenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).SetPlacementGroupHidden(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_SetPlacementGroupHidden_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).SetPlacementGroupHidden(ctx, req.(*SetPlacementGroupHiddenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CatalogService_ServiceDesc is the grpc.ServiceDesc for CatalogService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1742,6 +1782,10 @@ var CatalogService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeletePlacementGroup",
 			Handler:    _CatalogService_DeletePlacementGroup_Handler,
+		},
+		{
+			MethodName: "SetPlacementGroupHidden",
+			Handler:    _CatalogService_SetPlacementGroupHidden_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -19,6 +19,8 @@ const panorama = (id: number): Panorama => ({
   yawOffset: 0,
   defaultYaw: 0,
   thumbnailBlobHash: null,
+  phase: "prior",
+  hidden: false,
   updatedAt: "",
 });
 
@@ -72,5 +74,11 @@ describe("PanoramaMarkersLayer", () => {
     expect(classes(2)).toContain("cursor-grabbing");
     expect(classes(1)).toContain("cursor-grab");
     expect(classes(3)).toContain("cursor-grab");
+  });
+
+  it("hands Points only to every marker", () => {
+    mount({ showTitles: false });
+    expect(screen.getAllByRole("button")).toHaveLength(3);
+    expect(screen.queryByText("Panorama 2")).toBeNull();
   });
 });

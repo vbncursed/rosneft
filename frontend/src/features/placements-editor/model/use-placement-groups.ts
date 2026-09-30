@@ -3,6 +3,7 @@ import {
   createPlacementGroup,
   deletePlacementGroup,
   renamePlacementGroup,
+  setPlacementGroupHidden,
   type PlacementGroup,
 } from "@/entities/placement";
 import { messageOf } from "@/shared/api";
@@ -76,5 +77,16 @@ export function usePlacementGroups({ slug, initial, onChanged, onRemoved }: Plac
     [run, slug, onRemoved],
   );
 
-  return { list, busy, create, rename, remove };
+  // The group's own flag (D5, D6): its members keep theirs, so the editor's
+  // list does not change — the scene reads the flag off this list.
+  const setHidden = useCallback(
+    (id: number, hidden: boolean) =>
+      run(async () => {
+        const group = await setPlacementGroupHidden(slug, id, hidden);
+        setList((prev) => prev.map((g) => (g.id === id ? group : g)));
+      }),
+    [run, slug],
+  );
+
+  return { list, busy, create, rename, remove, setHidden };
 }

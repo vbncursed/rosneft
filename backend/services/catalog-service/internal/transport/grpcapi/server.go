@@ -59,6 +59,7 @@ type Service interface {
 	CreatePlacementGroup(ctx context.Context, territorySlug, title string) (domain.PlacementGroup, error)
 	RenamePlacementGroup(ctx context.Context, territorySlug string, id int64, title string) (domain.PlacementGroup, error)
 	DeletePlacementGroup(ctx context.Context, territorySlug string, id int64) error
+	SetPlacementGroupHidden(ctx context.Context, territorySlug string, id int64, hidden bool) (domain.PlacementGroup, error)
 
 	ListMeasurements(ctx context.Context, territorySlug string) ([]domain.Measurement, error)
 	CreateMeasurement(ctx context.Context, m domain.Measurement) (domain.Measurement, error)

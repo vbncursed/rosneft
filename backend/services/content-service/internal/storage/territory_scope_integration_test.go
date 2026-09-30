@@ -86,7 +86,8 @@ func (s *TerritoryScopeSuite) TearDownSuite() {
 // for a row written before allowlists were checked against the territory.
 func (s *TerritoryScopeSuite) SetupTest() {
 	ctx := s.T().Context()
-	_, err := s.pool.Exec(ctx, `DELETE FROM placements; DELETE FROM panoramas; DELETE FROM territory_documents`)
+	_, err := s.pool.Exec(ctx, `DELETE FROM placements; DELETE FROM panoramas; DELETE FROM territory_documents;
+		DELETE FROM panorama_phase_visibility`)
 	assert.NilError(s.T(), err)
 
 	q := func(query string, args ...any) int64 {
