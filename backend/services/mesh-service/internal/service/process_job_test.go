@@ -204,14 +204,17 @@ func (s *ProcessJobSuite) TestHoldsTheTargetBeforeMarkingItRunning() {
 	assert.DeepEqual(s.T(), s.calls[:2], []string{"hold:" + domain.KindTerritory.String() + "/t1", "save:" + domain.JobStatusRunning.String()})
 }
 
-func (s *ProcessJobSuite) TestReturnsAHoldErrorWithoutMarkingTheJobRunning() {
+// A failed hold must not strand the job Pending, blocking its target for
+// MaxQueueWait: it is released and failed like a conversion error.
+func (s *ProcessJobSuite) TestFailsAndReleasesTheJobOnAHoldError() {
 	s.holdErr = errors.New("redis down")
-	s.queue.GetJobMock.Return(domain.Job{ID: "job-1", Kind: domain.KindTerritory, Slug: "t1"}, nil)
-	// SaveJob is Optional: it must not be reached, and the check below says so.
-	s.queue.SaveJobMock.Optional()
+	s.queue.GetJobMock.Return(domain.Job{ID: "job-1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusPending}, nil)
+	s.queue.UnlockTargetMock.Expect(s.ctx, domain.KindTerritory, "t1").Return(nil)
 
 	err := s.svc.ProcessJob(s.ctx, "job-1")
 
 	assert.Assert(s.T(), errors.Is(err, s.holdErr))
-	assert.Equal(s.T(), len(s.saved), 0)
+	assert.ErrorContains(s.T(), err, "service.ProcessJob: hold: ")
+	assert.DeepEqual(s.T(), s.calls, []string{"hold:" + domain.KindTerritory.String() + "/t1", "save:" + domain.JobStatusFailed.String()})
+	assert.Equal(s.T(), s.saved[0].ErrorMessage, err.Error())
 }

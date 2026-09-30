@@ -97,7 +97,7 @@ func (s *ReconcileSuite) TestSurfaceLOD0CheckErrorOnFirstFailure() {
 
 // A submit failure stops the tick with nothing counted, and releases the
 // claim: without the release a failed submit would block this target for the
-// full 10-minute TTL, and the reconciler's whole job is to retry.
+// whole TargetLockTTL, and the reconciler's whole job is to retry.
 func (s *ReconcileSuite) TestStopsOnSubmitFailureAndReleasesTheLock() {
 	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
 		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
