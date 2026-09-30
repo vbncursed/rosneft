@@ -9,7 +9,7 @@ export type LodDownload = {
   blobUrl: string | null;
   received: number;
   failed: { status: number | null } | null;
-  /** The level before this one, if its download finished: it may still be on screen. */
+  /** A finished level other than this one, kept past a level change: it may still be on screen. */
   held: HeldBlob | null;
 };
 

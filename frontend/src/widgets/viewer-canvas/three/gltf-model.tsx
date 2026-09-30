@@ -143,8 +143,8 @@ export default function GltfModel({
   // The download reads it too — once its own blob is drawn it lets `held` go.
   const [drawnUrl, setDrawnUrl] = useState<string | null>(null);
   const download = useLodDownload(fetched, drawnUrl);
-  // The held blob is the level before the wanted one — what stays on screen
-  // while a finer level downloads (use-progressive-lod). Mapped back to its
+  // The held blob is a finished level other than the wanted one — what stays
+  // on screen while a finer level downloads (use-progressive-lod). Mapped back to its
   // blob, not to its asset route, so its parsed scene is reused and not
   // fetched again.
   const heldUrl = download.held?.blobUrl ?? null;

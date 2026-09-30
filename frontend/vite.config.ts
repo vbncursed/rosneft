@@ -19,7 +19,9 @@ const ESM_BUILDS = {
   "@react-three/test-renderer": "dist/react-three-test-renderer.esm.js",
   maath: "dist/maath.esm.js",
   meshline: "dist/index.js",
-  // drei's own nested copy (0.8), which has no `exports` map either.
+  // drei's own nested copy (0.8), which has no `exports` map either. The app's
+  // own 0.9 import (gltf-loader-setup.ts) lands on the same src/index.js its
+  // `import` condition names, so redirecting it too is harmless.
   "three-mesh-bvh": "src/index.js",
   "troika-three-text": "dist/troika-three-text.esm.js",
   "troika-three-utils": "dist/troika-three-utils.esm.js",

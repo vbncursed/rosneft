@@ -92,8 +92,10 @@ export function useProgressiveLod(
     // ready, and the hold ends. Manual (1 → 0 → 1) or a refused finer level,
     // clearing here dropped to the coarsest and warmed it again — for good
     // after a refusal, whose level the territory never mints a blob for. The
-    // territory's download adopts the held blob on the way back, the same url
-    // with no fetch, so the mesh on screen does not even remount.
+    // way back is the same url with no fetch, so the mesh on screen does not
+    // even remount: a manual return adopts the held blob; after a refusal the
+    // download still names the refused level and gltf-model maps the held
+    // hash to its blob.
     setReadyHash(targetHash !== null && targetHash === heldHash ? targetHash : null);
   }
 
