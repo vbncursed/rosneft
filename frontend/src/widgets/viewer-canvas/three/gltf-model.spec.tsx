@@ -1,7 +1,9 @@
 import ReactThreeTestRenderer from "@react-three/test-renderer";
+import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { LodChoice } from "@/entities/scene";
 import type { LodReport } from "../ui/props";
+import { AutoLodClock } from "./auto-lod-clock";
 import GltfModel from "./gltf-model";
 import { eventually, waitInAct } from "./testing";
 import { SETTLE_MS } from "./use-auto-lod";
@@ -22,10 +24,12 @@ const settled = () => waitInAct(SETTLE_MS + 60);
 // Every renderer a test made, unmounted before the doubles are reset below: a
 // live one keeps downloading and reporting into whichever test runs next.
 const mounted: { unmount: () => Promise<void> }[] = [];
-const create = async (...args: Parameters<typeof ReactThreeTestRenderer.create>) => {
-  const r = await ReactThreeTestRenderer.create(...args);
+// Under the scene's one settle clock, as SceneCanvas mounts it — and so is
+// every update, or the model would remount without it.
+const create = async (...[element, options]: Parameters<typeof ReactThreeTestRenderer.create>) => {
+  const r = await ReactThreeTestRenderer.create(<AutoLodClock>{element}</AutoLodClock>, options);
   mounted.push(r);
-  return r;
+  return { ...r, update: (next: ReactNode) => r.update(<AutoLodClock>{next}</AutoLodClock>) };
 };
 
 // The stream stops between the two chunks and waits for the test to let the

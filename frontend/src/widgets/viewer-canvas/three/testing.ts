@@ -3,6 +3,7 @@ import { BoxGeometry, Group, Mesh, MeshStandardMaterial, Vector3, type Camera, t
 import { useThree } from "@react-three/fiber";
 import { vi } from "vitest";
 import { createElement, useEffect, type ReactNode } from "react";
+import { AutoLodClock } from "./auto-lod-clock";
 
 /** A parsed GLB stand-in: one box, enough for a clone and a raycast. */
 export const fakeScene = () => {
@@ -112,6 +113,8 @@ export const fakeControls = () => ({
  * Publishes `controls` on the R3F store the way CameraRig does, so a component
  * that reads `useThree((s) => s.controls)` finds them, and hands the spec the
  * live camera through `probe`. Public API only — no reaching into the store.
+ * The children sit under an AutoLodClock, as the scene's do in SceneCanvas;
+ * the clock finds these controls on the store the same way.
  */
 export function WithControls({
   controls,
@@ -132,7 +135,7 @@ export function WithControls({
     if (probe) probe.camera = camera;
     set({ controls: controls as EventDispatcher });
   }, [set, camera, controls, probe]);
-  return children;
+  return createElement(AutoLodClock, null, children);
 }
 
 const inPage = new Set<() => Promise<void>>();

@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { RootState } from "@react-three/fiber";
 import type { Placement } from "@/entities/placement";
 import type { GizmoMode } from "@/features/viewer-mode";
+import { AutoLodClock } from "./auto-lod-clock";
 import PlacementsLayer from "./placements-layer";
 import { eventually, fakePlacement } from "./testing";
 
@@ -31,25 +32,28 @@ vi.mock("./placement-markers", () => ({
     }),
 }));
 
+// Under the scene's one settle clock, as SceneCanvas mounts it.
 const layer = (over: Partial<Parameters<typeof PlacementsLayer>[0]> = {}) => (
-  <PlacementsLayer
-    placements={[fakePlacement(1), fakePlacement(2)]}
-    placementGroups={[]}
-    selectedId={2}
-    mode={"translate" as GizmoMode}
-    measureMode={false}
-    measuring={false}
-    canEdit
-    territoryRef={{ current: null }}
-    snapEnabled={false}
-    activePanoramaId={null}
-    markerLabels={{}}
-    showMarkers
-    calibrating={false}
-    onSelect={vi.fn()}
-    onCommit={vi.fn()}
-    {...over}
-  />
+  <AutoLodClock>
+    <PlacementsLayer
+      placements={[fakePlacement(1), fakePlacement(2)]}
+      placementGroups={[]}
+      selectedId={2}
+      mode={"translate" as GizmoMode}
+      measureMode={false}
+      measuring={false}
+      canEdit
+      territoryRef={{ current: null }}
+      snapEnabled={false}
+      activePanoramaId={null}
+      markerLabels={{}}
+      showMarkers
+      calibrating={false}
+      onSelect={vi.fn()}
+      onCommit={vi.fn()}
+      {...over}
+    />
+  </AutoLodClock>
 );
 
 const instances = (r: Awaited<ReturnType<typeof ReactThreeTestRenderer.create>>) =>

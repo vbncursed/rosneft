@@ -1,6 +1,7 @@
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { LodArtifact } from "@/entities/scene";
+import { AutoLodClock } from "./auto-lod-clock";
 import PlacementInstance from "./placement-instance";
 import { eventually, fakePlacement, waitInAct } from "./testing";
 
@@ -14,8 +15,9 @@ const withChain = (chain: LodArtifact[]) => ({
 // Every renderer a test made, unmounted after it: a live one keeps warming
 // its target and calling useGLTF into whichever test runs next.
 const mounted: { unmount: () => Promise<void> }[] = [];
-const create = async (...args: Parameters<typeof ReactThreeTestRenderer.create>) => {
-  const r = await ReactThreeTestRenderer.create(...args);
+// Under the scene's one settle clock, as SceneCanvas mounts it.
+const create = async (...[element, options]: Parameters<typeof ReactThreeTestRenderer.create>) => {
+  const r = await ReactThreeTestRenderer.create(<AutoLodClock>{element}</AutoLodClock>, options);
   mounted.push(r);
   return r;
 };
