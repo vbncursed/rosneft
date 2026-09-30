@@ -23,15 +23,19 @@ import (
 //
 // On any error it marks the job Failed and returns the error so the caller
 // can decide whether to ack or retry. Either way — success or failure — the
-// target claim SubmitConversion took is released before returning: see the
-// unlock call below for why a failure releases too, rather than waiting out
-// the TTL.
+// target claim markRunning re-took (HoldTarget) is released before returning:
+// see the unlock call below for why a failure releases too, rather than
+// waiting out the TTL.
 func (m *Mesh) ProcessJob(ctx context.Context, jobID string) error {
 	job, err := m.queue.GetJob(ctx, jobID)
 	if err != nil {
 		return fmt.Errorf("service.ProcessJob: load: %w", err)
 	}
 	if err := m.markRunning(ctx, &job); err != nil {
+		// Released and failed like a conversion error: left Pending, it would
+		// block its target for MaxQueueWait behind a job nothing runs.
+		m.unlockTarget(ctx, job)
+		_ = m.markFailed(ctx, job, err)
 		return err
 	}
 
@@ -50,7 +54,7 @@ func (m *Mesh) ProcessJob(ctx context.Context, jobID string) error {
 		return err
 	}
 
-	// Every job holds the claim now — SubmitConversion took it.
+	// Every running job holds the claim — markRunning re-took it.
 	m.unlockTarget(ctx, job)
 
 	if err := m.markSucceeded(ctx, job); err != nil {
@@ -61,7 +65,7 @@ func (m *Mesh) ProcessJob(ctx context.Context, jobID string) error {
 }
 
 // unlockTarget releases the claim on job's target. Logged
-// rather than returned in both callers: failing ProcessJob itself over an
+// rather than returned in every caller: failing ProcessJob itself over an
 // `UnlockTarget` that didn't land would be worse than the stale key, which
 // the TTL clears regardless — and either way ProcessJob's own outcome
 // (published artifacts, or a job already marked Failed) is already decided.
@@ -72,6 +76,11 @@ func (m *Mesh) unlockTarget(ctx context.Context, job domain.Job) {
 }
 
 func (m *Mesh) markRunning(ctx context.Context, j *domain.Job) error {
+	// The claim restarts with the run: TargetLockTTL bounds the conversion,
+	// never the time the job waited in the stream.
+	if err := m.queue.HoldTarget(ctx, j.Kind, j.Slug, TargetLockTTL); err != nil {
+		return fmt.Errorf("service.ProcessJob: hold: %w", err)
+	}
 	j.Status = domain.JobStatusRunning
 	j.ErrorMessage = ""
 	return m.queue.SaveJob(ctx, *j)

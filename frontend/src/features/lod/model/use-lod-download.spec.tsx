@@ -105,9 +105,9 @@ describe("useLodDownload", () => {
     expect(result.current.blobUrl).toBeNull();
   });
 
-  // 0 → 2 → 0: the coarse level is never streamed, so the finished LOD 0 blob
-  // is still held on the way back. Fetching it again kept two copies of the
-  // same level alive (blob, drei's parsed scene) and paid for the bytes twice.
+  // A return before anything else is drawn (`drawn` stays null here): the
+  // finished blob is still held. Fetching it again kept two copies of the same
+  // level alive (blob, drei's parsed scene) and paid for the bytes twice.
   it("adopts the held blob on a return to its level: no fetch, no revoke, nothing held", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf([new Uint8Array(5)]), { status: 200 })));
     const revoke = vi.fn();
@@ -250,6 +250,35 @@ describe("useLodDownload", () => {
     expect(result.current.held).toBeNull();
     expect(revoke).toHaveBeenCalledWith("blob:a");
     expect(revoke).not.toHaveBeenCalledWith("blob:b");
+  });
+
+  // LOD 0 → the coarsest: the coarsest is never streamed, so no blob of this
+  // level was ever drawn, and LOD 0's blob and parsed scene stayed for the
+  // rest of the visit.
+  it("releases the held blob once the coarsest level, drawn by its asset route, is on screen", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf([new Uint8Array(2)]), { status: 200 })));
+    const minted = ["blob:a", "blob:a2"];
+    const revoke = vi.fn();
+    vi.stubGlobal("URL", { createObjectURL: vi.fn(() => minted.shift()), revokeObjectURL: revoke });
+    const a = { lod: 0, hash: "a", size: 2 };
+    const { result, rerender } = renderHook(({ art, drawn }) => useLodDownload(art, drawn), {
+      initialProps: { art: a as typeof a | null, drawn: "blob:a" as string | null },
+    });
+    await waitFor(() => expect(result.current.blobUrl).toBe("blob:a"));
+    rerender({ art: null, drawn: "blob:a" });
+    expect(result.current.held).toEqual({ hash: "a", blobUrl: "blob:a" });
+    expect(revoke).not.toHaveBeenCalled();
+
+    rerender({ art: null, drawn: "/api/assets/coarse" });
+    expect(result.current.held).toBeNull();
+    expect(revoke).toHaveBeenCalledWith("blob:a");
+
+    // Released, so a return fetches the level again rather than adopting a
+    // revoked blob.
+    rerender({ art: a, drawn: "/api/assets/coarse" });
+    expect(result.current.blobUrl).toBeNull();
+    await waitFor(() => expect(result.current.blobUrl).toBe("blob:a2"));
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   // A refused LOD 0 leaves LOD 1 on screen off its held blob; a manual LOD 1

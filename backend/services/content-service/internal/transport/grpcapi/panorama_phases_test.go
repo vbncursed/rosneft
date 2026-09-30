@@ -2,6 +2,7 @@ package grpcapi_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/gojuno/minimock/v3"
@@ -65,6 +66,9 @@ func (s *PanoramaPhasesSuite) TestAnUnknownPhaseIsInvalidArgument() {
 		TerritorySlug: "t1", Ids: []int64{1}, Phase: "during",
 	})
 	assert.Equal(s.T(), status.Code(err), codes.InvalidArgument)
+	// The message starts at the sentinel: the service's own "service.X: "
+	// framing is not for the browser.
+	assert.Assert(s.T(), strings.HasPrefix(status.Convert(err).Message(), "invalid input"), status.Convert(err).Message())
 	_, err = s.srv.SetPanoramaPhaseHidden(s.ctx, &contentv1.SetPanoramaPhaseHiddenRequest{
 		TerritorySlug: "t1", Phase: "during", Hidden: true,
 	})

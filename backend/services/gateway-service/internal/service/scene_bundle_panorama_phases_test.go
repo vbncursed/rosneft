@@ -27,32 +27,28 @@ func (s *SceneBundleSuite) TestBundleCarriesThePanoramaPhaseFlags() {
 	})
 }
 
-// Spec: always three, prior → current → post, whatever content answered —
-// rows missing, out of order, unknown, or none at all.
-func (s *SceneBundleSuite) TestPanoramaPhasesAreAlwaysTheThreeInOrder() {
-	for _, tc := range []struct {
-		name   string
-		stored []domain.PanoramaPhase
-		want   []domain.PanoramaPhase
-	}{
-		{name: "none stored", stored: nil, want: allPhasesShown},
-		{
-			name:   "one hidden, out of order",
-			stored: []domain.PanoramaPhase{{Phase: "post", Hidden: true}, {Phase: "prior"}},
-			want:   []domain.PanoramaPhase{{Phase: "prior"}, {Phase: "current"}, {Phase: "post", Hidden: true}},
-		},
-		{name: "an unknown row is dropped", stored: []domain.PanoramaPhase{{Phase: "during", Hidden: true}}, want: allPhasesShown},
-	} {
-		s.Run(tc.name, func() {
-			s.expectFanOut(sbTerr3LOD, sbModelsM1, nil)
-			s.con.ListPanoramaPhasesMock.Return(tc.stored, nil)
+// Content answers the three phases in order (storage.ListPanoramaPhases); the
+// bundle carries them as they are.
+func (s *SceneBundleSuite) TestBundleCarriesContentsPhasesAsAnswered() {
+	answered := []domain.PanoramaPhase{{Phase: "prior"}, {Phase: "current", Hidden: true}, {Phase: "post"}}
+	s.expectFanOut(sbTerr3LOD, sbModelsM1, nil)
+	s.con.ListPanoramaPhasesMock.Return(answered, nil)
 
-			got, err := s.svc.GetSceneBundle(s.ctx, "t1", "")
+	got, err := s.svc.GetSceneBundle(s.ctx, "t1", "")
 
-			assert.NilError(s.T(), err)
-			assert.DeepEqual(s.T(), got.PanoramaPhases, tc.want)
-		})
-	}
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), got.PanoramaPhases, answered)
+}
+
+// A content-service without the RPC answers nothing: every phase is shown.
+func (s *SceneBundleSuite) TestNoPhaseAnswerShowsEveryPhase() {
+	s.expectFanOut(sbTerr3LOD, sbModelsM1, nil)
+	s.con.ListPanoramaPhasesMock.Return(nil, nil)
+
+	got, err := s.svc.GetSceneBundle(s.ctx, "t1", "")
+
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), got.PanoramaPhases, allPhasesShown)
 }
 
 // Same rule as placements: the territory read owns the not-found answer.

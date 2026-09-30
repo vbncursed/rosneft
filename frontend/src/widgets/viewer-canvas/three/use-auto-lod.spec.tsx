@@ -3,6 +3,7 @@ import { useRef } from "react";
 import { BoxGeometry, type Camera, type Group } from "three";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { LodArtifact, LodChoice } from "@/entities/scene";
+import { AutoLodBus, createSettleBus, type Measure } from "./settle-bus";
 import { fakeControls, WithControls } from "./testing";
 import { SETTLE_MS, useAutoLod } from "./use-auto-lod";
 
@@ -39,12 +40,41 @@ const FAR = [0, 0, 1000] as [number, number, number];
 // settle armed and its listener on for whichever test runs next.
 const mounted: { unmount: () => Promise<void> }[] = [];
 
-async function mount(props: ProbeProps = {}) {
+/**
+ * A real settle bus that counts its live watchers — the hook's one handle on
+ * the clock, so the count is what a camera stop costs. Handed to `mount`, it
+ * stands in for WithControls' clock, the controls wired to it the same way.
+ */
+function spyBus() {
+  const bus = createSettleBus();
+  const spy = {
+    ...bus,
+    watchers: 0,
+    watch(m: Measure) {
+      spy.watchers++;
+      const unwatch = bus.watch(m);
+      return () => {
+        spy.watchers--;
+        unwatch();
+      };
+    },
+  };
+  return spy;
+}
+
+async function mount(props: ProbeProps = {}, bus?: ReturnType<typeof spyBus>) {
   const controls = fakeControls();
+  if (bus) controls.addEventListener("change", bus.settle);
   const probe: { camera?: Camera } = {};
   const tree = (p: ProbeProps) => (
     <WithControls controls={controls} probe={probe}>
-      <Probe {...props} {...p} />
+      {bus ? (
+        <AutoLodBus value={bus}>
+          <Probe {...props} {...p} />
+        </AutoLodBus>
+      ) : (
+        <Probe {...props} {...p} />
+      )}
     </WithControls>
   );
   const r = await ReactThreeTestRenderer.create(tree({}), { camera: { position: FAR } });
@@ -57,7 +87,7 @@ async function mount(props: ProbeProps = {}) {
   // The test renderer draws no frame on its own; the app's demand loop would
   // draw one for the prop change or the mount that made the object measurable.
   const frame = () => ReactThreeTestRenderer.act(async () => r.advanceFrames(1, 0));
-  return { r, controls, lod, moveTo, frame, update: (p: ProbeProps) => r.update(tree(p)) };
+  return { r, lod, moveTo, frame, update: (p: ProbeProps) => r.update(tree(p)) };
 }
 
 describe("useAutoLod", () => {
@@ -200,29 +230,32 @@ describe("useAutoLod", () => {
 
   // Nothing finer exists, so every camera move would only arm a timer that
   // measures for nothing.
-  it("stops listening once the finest level is reached", async () => {
-    const { controls, lod, moveTo } = await mount();
-    expect(controls.listeners.get("change")?.size).toBe(1);
+  it("stops watching once the finest level is reached", async () => {
+    const bus = spyBus();
+    const { lod, moveTo } = await mount({}, bus);
+    expect(bus.watchers).toBe(1);
     moveTo(0.5);
     await settled();
     expect(lod()).toBe(0);
-    // The level lands at commit and the listener goes in the passive-effect
+    // The level lands at commit and the watch goes in the passive-effect
     // cleanup after it; act() flushes both before the settle returns.
-    expect(controls.listeners.get("change")?.size ?? 0).toBe(0);
+    expect(bus.watchers).toBe(0);
   });
 
-  it("does not listen in Auto when a manual pick already reached the finest level", async () => {
-    const { controls, update } = await mount({ requested: 0 });
+  it("does not watch in Auto when a manual pick already reached the finest level", async () => {
+    const bus = spyBus();
+    const { update } = await mount({ requested: 0 }, bus);
     await update({ requested: "auto" });
-    expect(controls.listeners.get("change")?.size ?? 0).toBe(0);
+    expect(bus.watchers).toBe(0);
   });
 
-  it("listens only while in Auto, and lets go on unmount", async () => {
-    const { r, controls, update } = await mount({ requested: 1 });
-    expect(controls.listeners.get("change")?.size ?? 0).toBe(0);
+  it("watches only while in Auto, and lets go on unmount", async () => {
+    const bus = spyBus();
+    const { r, update } = await mount({ requested: 1 }, bus);
+    expect(bus.watchers).toBe(0);
     await update({ requested: "auto" });
-    expect(controls.listeners.get("change")?.size).toBe(1);
+    expect(bus.watchers).toBe(1);
     await r.unmount();
-    expect(controls.listeners.get("change")?.size).toBe(0);
+    expect(bus.watchers).toBe(0);
   });
 });

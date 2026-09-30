@@ -27,15 +27,17 @@ type Tracked = Progress & { hash: string | null };
  * drei's loader exposes none. The blob URL is what useGLTF then parses (and
  * caches by), so the bytes travel once. On a level change a finished blob
  * becomes `held` rather than revoked — it is what stays on screen while a
- * finer level downloads. A return to the held level adopts that blob instead
- * of fetching the level again, so no level is ever alive twice; it reads as
- * adopted (the blob, the level's full size) from the first render of the
- * return, never as an idle 0 %. `held` is released once `drawn` (the url
- * whose mesh is on screen) is this level's own blob — nothing can show the
- * one before it any more — and revoked when the next finished level replaces
- * it or the caller unmounts. The one exception to "replaces": the blob that
- * is drawn is never revoked. Leaving a finished level while the held one is
- * drawn keeps the held one and revokes the level being left. The caller
+ * finer level downloads. A return to the held level while it is still held
+ * adopts that blob instead of fetching the level again, so no level is ever
+ * alive twice; it reads as adopted (the blob, the level's full size) from the
+ * first render of the return, never as an idle 0 %. `held` is kept only while
+ * it can still be on screen: it is released once `drawn` (the url whose mesh
+ * is on screen) is anything else — this level's own blob, or the coarsest
+ * level's asset route — and a later return downloads the level again. It is
+ * also revoked when the next finished level replaces it or the caller
+ * unmounts. The one exception to "replaces": the blob that is drawn is never
+ * revoked. Leaving a finished level while the held one is drawn keeps the
+ * held one and revokes the level being left. The caller
  * evicts drei's parsed copy of every blob that stops being current or held.
  *
  * ponytail: one setState per chunk — a few hundred renders on a 10 MB file,
@@ -140,14 +142,22 @@ export function useLodDownload(artifact: LodArtifact | null, drawn: string | nul
   const adopting = kept !== null && kept.hash === hash;
   const live: Progress =
     state.hash === hash ? state : adopting ? { blobUrl: kept.blobUrl, received: size, failed: null } : IDLE;
-  // This level's own blob is drawn: nothing can show the held one any more.
-  const onScreen = live.blobUrl !== null && drawn === live.blobUrl;
+  // `held` is kept only to stay on screen while a finer level downloads. Once
+  // something else is drawn — this level's own blob, or the coarsest level by
+  // its asset route, which is never streamed — nothing can show it again.
+  const heldOffScreen = held !== null && drawn !== null && drawn !== held.blobUrl;
   useEffect(() => {
-    if (!onScreen || !heldRef.current) return;
+    if (!heldOffScreen || !heldRef.current) return;
+    // `held` can trail `heldRef` by a commit: the cleanup's setHeld is a
+    // default-lane update, while `drawn` lands in the sync render the mesh's
+    // layout effect schedules. A level change that swaps in the level being
+    // left as drawn therefore reads the stale `held` as off screen while the
+    // ref already holds the drawn blob — never revoke that one.
+    if (drawnRef.current === heldRef.current.blobUrl) return;
     URL.revokeObjectURL(heldRef.current.blobUrl);
     heldRef.current = null;
     setHeld(null);
-  }, [onScreen]);
+  }, [heldOffScreen, held]);
 
   // Declared after the download so its cleanup runs after that one on
   // unmount, and so also revokes the blob that cleanup has just handed over.

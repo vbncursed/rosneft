@@ -93,6 +93,15 @@ describe("getSceneBundle", () => {
     expect((await getSceneBundle("t")).phaseHidden).toEqual({ prior: false, current: true, post: false });
   });
 
+  it("loads a snapshot saved before phases: every phase shown, panoramas under Prior", async () => {
+    const { panoramaPhases: _f, ...beforePhases } = dto;
+    const { phase: _p, hidden: _h, ...oldPanorama } = dto.panoramas[0];
+    fetchMock.mockResolvedValueOnce(json({ ...beforePhases, panoramas: [oldPanorama] }));
+    const bundle = await getSceneBundle("t");
+    expect(bundle.phaseHidden).toEqual({ prior: false, current: false, post: false });
+    expect(bundle.panoramas[0]).toMatchObject({ phase: "prior", hidden: false });
+  });
+
   it("defaults panoramas and documents to [] when the DTO omits them", async () => {
     const { panoramas: _p, documents: _d, ...withoutOverlays } = dto;
     fetchMock.mockResolvedValueOnce(json(withoutOverlays));

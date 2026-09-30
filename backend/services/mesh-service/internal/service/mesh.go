@@ -34,6 +34,11 @@ type Queue interface {
 	// interval would otherwise be queued again on every tick.
 	TryLockTarget(ctx context.Context, kind domain.Kind, slug string, ttl time.Duration) (bool, error)
 
+	// HoldTarget claims a target unconditionally, restarting its TTL. The
+	// worker calls it as a job starts, so the claim bounds the run alone and
+	// never the time the job waited in the stream.
+	HoldTarget(ctx context.Context, kind domain.Kind, slug string, ttl time.Duration) error
+
 	// UnlockTarget releases the claim. Failing to call it is not fatal — the
 	// TTL expires — but it delays the next legitimate reconcile.
 	UnlockTarget(ctx context.Context, kind domain.Kind, slug string) error
@@ -78,6 +83,8 @@ type Mesh struct {
 	blobs     BlobStore
 	// idGen returns a fresh job ID; injectable for deterministic tests.
 	idGen func() string
+	// now is the clock SubmitConversion ages a queued job by; injectable for tests.
+	now func() time.Time
 }
 
 // Config wires Mesh's dependencies.
@@ -87,15 +94,22 @@ type Config struct {
 	Converter Converter
 	Blobs     BlobStore
 	IDGen     func() string
+	// Now defaults to time.Now.
+	Now func() time.Time
 }
 
 // New constructs a Mesh service.
 func New(cfg Config) *Mesh {
+	now := cfg.Now
+	if now == nil {
+		now = time.Now
+	}
 	return &Mesh{
 		queue:     cfg.Queue,
 		catalog:   cfg.Catalog,
 		converter: cfg.Converter,
 		blobs:     cfg.Blobs,
 		idGen:     cfg.IDGen,
+		now:       now,
 	}
 }

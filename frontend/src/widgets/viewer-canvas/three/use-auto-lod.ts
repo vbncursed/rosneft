@@ -1,16 +1,11 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useThree } from "@react-three/fiber";
 import type { Object3D, PerspectiveCamera } from "three";
 import { autoLod, pickCoarsest, projectedArea, type LodArtifact, type LodChoice } from "@/entities/scene";
+import { useAutoLodBus } from "./settle-bus";
 import { boundsOf } from "./bounds";
 
-/** How long the camera holds still before Auto reads the view again. */
-export const SETTLE_MS = 250;
-
-type Listenable = {
-  addEventListener: (type: "change", listener: () => void) => void;
-  removeEventListener: (type: "change", listener: () => void) => void;
-};
+export { SETTLE_MS } from "./settle-bus";
 
 /** Drawn at all: three has no world-visibility flag, so walk the parents. */
 const isShown = (object: Object3D) => {
@@ -21,26 +16,24 @@ const isShown = (object: Object3D) => {
 /**
  * The level an object should load, from its size on screen.
  *
- * Re-read SETTLE_MS after the camera stops (controls "change"), never mid-
- * gesture, so a zoom that sweeps through a close-up fetches nothing. The
- * fly-around moves the camera in its own rAF without firing "change", so it
- * arms no re-read of its own — but an object still owed a measure when it
- * began (see below) is read on the first frame it can be, mid-flight, from
- * wherever the flight has the camera. The level only ever gets
- * finer — a coarser one saves no bytes that were not already spent, and
- * lowering useProgressiveLod's target would put the coarsest level back on
- * screen for a whole download. A numeric `requested` (a manual level, or the
- * page's LOD 0 while measuring) is returned as is and joins that ratchet, so
- * Auto keeps what measuring pulled in. A new chain starts over; the same
- * hashes in another order are the same chain.
+ * When the view is read is the scene's AutoLodClock's business (see
+ * createSettleBus): SETTLE_MS after the camera stops, never mid-gesture, and
+ * on the next rendered frame for an object that had nothing to measure yet.
+ * The fly-around moves the camera in its own rAF without firing "change", so
+ * it arms no re-read while it runs — an object still owed a measure when it
+ * began is read on the first frame it can be, mid-flight, from wherever the
+ * flight has the camera — but its landing calls controls.update(), and that
+ * "change" re-arms every measure where the camera ends up. A Focus needs no
+ * such nudge: drei's Bounds ends fit() with controls.update() (the
+ * `t.current >= 1` branch in drei 10.7.9), which fires "change" the same way. This hook watches only while there is something to
+ * gain: in Auto, below the finest level of its chain.
  *
- * An object with nothing to measure yet (its mesh still loading, or hidden
- * inside a panorama) is retried on the next rendered frame rather than on a
- * timer. Under frameloop="demand" R3F draws a frame for exactly the changes
- * that can make it measurable — a mesh mounting, a `visible` prop flipping —
- * so an idle scene runs nothing. The retry is dropped when it succeeds, when a
- * camera move re-arms the settle (never measure mid-gesture), and when Auto
- * stops: leaving it, reaching the finest level, unmounting.
+ * The level only ever gets finer — a coarser one saves no bytes that were not
+ * already spent, and lowering useProgressiveLod's target would put the
+ * coarsest level back on screen for a whole download. A numeric `requested`
+ * (a manual level, or the page's LOD 0 while measuring) is returned as is and
+ * joins that ratchet, so Auto keeps what measuring pulled in. A new chain
+ * starts over; the same hashes in another order are the same chain.
  */
 export function useAutoLod(object: RefObject<Object3D | null>, chain: LodArtifact[], requested: LodChoice): number {
   const key = chain.map((a) => a.hash).toSorted().join(" ");
@@ -52,39 +45,26 @@ export function useAutoLod(object: RefObject<Object3D | null>, chain: LodArtifac
   // effect would let one frame run on the stale level first.
   if (held.key !== key || held.best !== best) setHeld({ key, best });
 
+  const bus = useAutoLodBus();
   const camera = useThree((s) => s.camera);
-  // R3F types controls as a bare EventDispatcher whose event map has no
-  // "change"; OrbitControls (CameraRig) and the spec's fake both fire it.
-  const controls = useThree((s) => s.controls) as unknown as Listenable | null;
   const height = useThree((s) => s.size.height * s.viewport.dpr);
   const view = useRef({ chain, camera, height });
   useEffect(() => {
     view.current = { chain, camera, height };
   });
 
-  // The measure still owed; one null check per frame when there is none.
-  const retry = useRef<(() => void) | null>(null);
-  useFrame(() => retry.current?.());
-
   const auto = requested === "auto";
-  // At the finest level there is nothing left to upgrade to: stop listening.
+  // At the finest level there is nothing left to upgrade to: stop watching.
   const finest = Math.min(...chain.map((a) => a.lod));
   useEffect(() => {
     if (!auto || best === finest) return;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const settle = () => {
-      retry.current = null;
-      clearTimeout(timer);
-      timer = setTimeout(measure, SETTLE_MS);
-    };
-    const measure = () => {
+    return bus.watch(() => {
       const o = object.current;
       const sphere = o && isShown(o) ? boundsOf(o) : null;
-      retry.current = sphere ? null : measure;
-      if (!sphere) return;
+      if (!sphere) return false;
       const { chain, camera, height } = view.current;
       const cam = camera as PerspectiveCamera;
-      if (!cam.isPerspectiveCamera) return;
+      if (!cam.isPerspectiveCamera) return true;
       const area = projectedArea({
         radius: sphere.radius,
         distance: cam.position.distanceTo(sphere.center),
@@ -93,15 +73,9 @@ export function useAutoLod(object: RefObject<Object3D | null>, chain: LodArtifac
       });
       const lod = autoLod(chain, area);
       if (lod !== null) setHeld((h) => (h.key === key && lod < h.best ? { key, best: lod } : h));
-    };
-    settle();
-    controls?.addEventListener("change", settle);
-    return () => {
-      clearTimeout(timer);
-      retry.current = null;
-      controls?.removeEventListener("change", settle);
-    };
-  }, [auto, best, finest, controls, object, key]);
+      return true;
+    });
+  }, [auto, best, finest, bus, object, key]);
 
   return typeof requested === "number" ? requested : best;
 }

@@ -1,6 +1,7 @@
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { LodArtifact } from "@/entities/scene";
+import { AutoLodClock } from "./auto-lod-clock";
 import PlacementInstance from "./placement-instance";
 import { eventually, fakePlacement, waitInAct } from "./testing";
 
@@ -14,8 +15,9 @@ const withChain = (chain: LodArtifact[]) => ({
 // Every renderer a test made, unmounted after it: a live one keeps warming
 // its target and calling useGLTF into whichever test runs next.
 const mounted: { unmount: () => Promise<void> }[] = [];
-const create = async (...args: Parameters<typeof ReactThreeTestRenderer.create>) => {
-  const r = await ReactThreeTestRenderer.create(...args);
+// Under the scene's one settle clock, as SceneCanvas mounts it.
+const create = async (...[element, options]: Parameters<typeof ReactThreeTestRenderer.create>) => {
+  const r = await ReactThreeTestRenderer.create(<AutoLodClock>{element}</AutoLodClock>, options);
   mounted.push(r);
   return r;
 };
@@ -33,6 +35,7 @@ describe("PlacementInstance", () => {
       <PlacementInstance
         placement={placement}
         measureMode={false}
+        measuring={false}
         onSelect={vi.fn()}
       />,
     );
@@ -52,6 +55,7 @@ describe("PlacementInstance", () => {
           { lod: 2, hash: "coarse", size: 10 },
         ])}
         measureMode={false}
+        measuring={false}
         onSelect={vi.fn()}
       />,
     );
@@ -73,6 +77,7 @@ describe("PlacementInstance", () => {
           { lod: 2, hash: "coarse", size: 10, faces: 1_000_000 },
         ])}
         measureMode={false}
+        measuring={false}
         onSelect={vi.fn()}
       />,
     );
@@ -80,6 +85,27 @@ describe("PlacementInstance", () => {
     const urls = vi.mocked(drei.useGLTF).mock.calls.map((c) => String(c[0]));
     expect(urls).not.toContain("/api/assets/fine");
     expect(urls.every((u) => u.endsWith("coarse"))).toBe(true);
+  });
+
+  it("pulls LOD 0 while measuring, though it is small on screen", async () => {
+    // The same chain that stays coarse above: a ruler point lands on the mesh
+    // drawn, so measuring asks for the finest level Auto would not.
+    const drei = await import("@react-three/drei");
+    vi.mocked(drei.useGLTF).mockClear();
+    await create(
+      <PlacementInstance
+        placement={withChain([
+          { lod: 0, hash: "fine", size: 90, faces: 2_000_000 },
+          { lod: 2, hash: "coarse", size: 10, faces: 1_000_000 },
+        ])}
+        measureMode
+        measuring
+        onSelect={vi.fn()}
+      />,
+    );
+    await eventually(() =>
+      expect(vi.mocked(drei.useGLTF).mock.calls.map((c) => c[0])).toContain("/api/assets/fine"),
+    );
   });
 
   it("drops a level that throws and shows the next one, with no error card", async () => {
@@ -104,6 +130,7 @@ describe("PlacementInstance", () => {
           { lod: 2, hash: "coarse", size: 10 },
         ])}
         measureMode={false}
+        measuring={false}
         onSelect={vi.fn()}
       />,
     );
@@ -125,6 +152,7 @@ describe("PlacementInstance", () => {
       <PlacementInstance
         placement={withChain([])}
         measureMode={false}
+        measuring={false}
         onSelect={vi.fn()}
       />,
     );
@@ -134,7 +162,7 @@ describe("PlacementInstance", () => {
   it("shows a pointer over an object that a click would select, and not while measuring", async () => {
     const hover = async (measureMode: boolean) => {
       const r = await create(
-        <PlacementInstance placement={fakePlacement(5)} measureMode={measureMode} onSelect={vi.fn()} />,
+        <PlacementInstance placement={fakePlacement(5)} measureMode={measureMode} measuring={false} onSelect={vi.fn()} />,
       );
       const group = r.scene.findAll((n) => n.instance.userData?.placementId === 5)[0];
       await r.fireEvent(group, "onPointerOver", { stopPropagation: vi.fn() });

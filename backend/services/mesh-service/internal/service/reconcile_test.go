@@ -97,7 +97,7 @@ func (s *ReconcileSuite) TestSurfaceLOD0CheckErrorOnFirstFailure() {
 
 // A submit failure stops the tick with nothing counted, and releases the
 // claim: without the release a failed submit would block this target for the
-// full 10-minute TTL, and the reconciler's whole job is to retry.
+// whole TargetLockTTL, and the reconciler's whole job is to retry.
 func (s *ReconcileSuite) TestStopsOnSubmitFailureAndReleasesTheLock() {
 	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
 		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
@@ -105,6 +105,7 @@ func (s *ReconcileSuite) TestStopsOnSubmitFailureAndReleasesTheLock() {
 	}, nil)
 	s.catalog.HasLOD0Mock.Return(false, nil)
 	s.queue.TryLockTargetMock.Return(true, nil)
+	s.queue.ListTargetJobsMock.Return(nil, nil)
 	s.queue.SaveJobMock.Return(errors.New("redis down"))
 	s.queue.UnlockTargetMock.Expect(s.ctx, domain.KindTerritory, "t1").Return(nil)
 
@@ -159,14 +160,13 @@ func (s *ReconcileSuite) TestQueuesTargetWhenLockIsFree() {
 	assert.Equal(s.T(), 1, n)
 }
 
-// The claim is taken at submit, so it must outlive the queue wait plus the
-// conversion. With one job per worker and textures encoded serially, LOD0 of
-// a 3 × 8192² territory alone took 357 s; a claim that lapses mid-run lets the
-// next reconciler tick queue a duplicate ~4 GB conversion of the same target.
-func (s *ReconcileSuite) TestTargetLockOutlivesASerialTextureConversion() {
+// The claim is re-taken as a job starts (markRunning), so it bounds one run:
+// at most three passes, none larger than LOD0 of a 3 × 8192² territory
+// (357 s with textures encoded one at a time, 2026-09-29).
+func (s *ReconcileSuite) TestTargetLockOutlivesOneSerialTextureConversion() {
 	const measuredLOD0 = 357 * time.Second
-	const queuedAhead = 3 // conversions a reconciler pass can queue before this one
-
-	assert.Assert(s.T(), service.TargetLockTTL >= (queuedAhead+1)*2*measuredLOD0,
-		"TargetLockTTL %v expires under a queued serial conversion", service.TargetLockTTL)
+	assert.Assert(s.T(), service.TargetLockTTL >= 3*measuredLOD0,
+		"TargetLockTTL %v expires under one serial conversion", service.TargetLockTTL)
+	assert.Assert(s.T(), service.TargetLockTTL <= 30*time.Minute,
+		"TargetLockTTL %v keeps a dead worker's target waiting too long", service.TargetLockTTL)
 }

@@ -24,8 +24,12 @@ func (r *Redis) ConsumeJobs(ctx context.Context, consumer string, block time.Dur
 		Group:    ConsumerGroup,
 		Consumer: consumer,
 		Streams:  []string{JobsStream, ">"},
-		Count:    16,
-		Block:    block,
+		// One message per free slot (worker.Run acquires the slot first): a
+		// message read is started at once, so a job still waiting stays in the
+		// stream where any live worker can take it, never parked in the PEL of
+		// a worker that may be killed before reaching it.
+		Count: 1,
+		Block: block,
 	}).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {

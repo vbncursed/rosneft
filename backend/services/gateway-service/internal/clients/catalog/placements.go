@@ -3,7 +3,6 @@ package catalog
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -55,71 +54,28 @@ func (c *Client) CreatePlacements(ctx context.Context, territorySlug, key string
 	return out, nil
 }
 
-// refusal is a create the catalog refused, told in the catalog's own words
-// ("item 2: model not found"): the handler puts Error() in the 4xx body, so the
-// gRPC framing must not be in it. Unwrap names the sentinel for the status.
-type refusal struct {
-	msg      string
-	sentinel error
-}
-
-func (r refusal) Error() string { return r.msg }
-
-func (r refusal) Unwrap() error { return r.sentinel }
-
-// notFoundSentinels are the catalog NotFound answers told apart by the sentinel
+// catalogNotFound are the catalog NotFound answers told apart by the sentinel
 // text the message carries: at its start, or after "item N: " in a batch.
 // "placement group not found" does not contain "placement not found", so the
 // order does not matter.
-var notFoundSentinels = []error{
+var catalogNotFound = []error{
 	domain.ErrPlacementGroupNotFound, domain.ErrPlacementNotFound,
 	domain.ErrTerritoryNotFound, domain.ErrModelNotFound,
 }
 
-// notFoundSentinel names the sentinel a catalog NotFound message is about, or
-// fallback when it names none.
-func notFoundSentinel(msg string, fallback error) error {
-	for _, s := range notFoundSentinels {
-		if strings.Contains(msg, s.Error()) {
-			return s
-		}
-	}
-	return fallback
-}
-
-// createRefusal maps a failed placement create. NotFound is what the message
-// names, the model when it names nothing (the route's gate has already found
-// the territory); InvalidArgument is a refused item; AlreadyExists is an
-// idempotency key reused for another batch. Anything else is wrapped with op
-// as an internal error.
+// createRefusal maps a failed placement create: an idempotency key reused for
+// another batch is its own refusal; the rest as any write, the model when a
+// NotFound names nothing (the route's gate has already found the territory).
 func createRefusal(op string, err error) error {
-	st, ok := status.FromError(err)
-	switch {
-	case !ok:
-		return fmt.Errorf("%s: %w", op, err)
-	case st.Code() == codes.NotFound:
-		return refusal{st.Message(), notFoundSentinel(st.Message(), domain.ErrModelNotFound)}
-	case st.Code() == codes.InvalidArgument:
-		return refusal{st.Message(), domain.ErrInvalidInput}
-	case st.Code() == codes.AlreadyExists:
-		return refusal{st.Message(), domain.ErrIdempotencyConflict}
+	if st, ok := status.FromError(err); ok && st.Code() == codes.AlreadyExists {
+		return grpcerr.Refusal{Msg: st.Message(), Sentinel: domain.ErrIdempotencyConflict}
 	}
-	return fmt.Errorf("%s: %w", op, err)
+	return grpcerr.Refused(op, err, domain.ErrModelNotFound, catalogNotFound...)
 }
 
-// editRefusal maps a failed placement or group edit the way createRefusal maps
-// a create: the catalog's own words for NotFound (placement, group or
-// territory, whichever the message names) and InvalidArgument, and an
-// internal error, wrapped with op, for anything else.
+// editRefusal maps a failed placement or group edit.
 func editRefusal(op string, err error) error {
-	st, ok := status.FromError(err)
-	switch {
-	case ok && st.Code() == codes.NotFound:
-		return refusal{st.Message(), notFoundSentinel(st.Message(), domain.ErrPlacementNotFound)}
-	case ok && st.Code() == codes.InvalidArgument:
-		return refusal{st.Message(), domain.ErrInvalidInput}
-	}
-	return fmt.Errorf("%s: %w", op, err)
+	return grpcerr.Refused(op, err, domain.ErrPlacementNotFound, catalogNotFound...)
 }
 
 // createPlacementRequest maps a domain placement onto one create request.

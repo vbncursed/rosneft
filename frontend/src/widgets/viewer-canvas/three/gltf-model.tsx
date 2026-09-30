@@ -140,7 +140,8 @@ export default function GltfModel({
   const fetched = wanted && wanted.hash !== pickCoarsest(lods)?.hash ? wanted : null;
   // The level the report calls "shown" is the one whose mesh has mounted, not
   // the one selected: a coarse level still on the wire is nothing on screen.
-  // The download reads it too — once its own blob is drawn it lets `held` go.
+  // The download reads it too — once anything but the held blob is drawn (its
+  // own blob, or the coarsest by its asset route) it lets `held` go.
   const [drawnUrl, setDrawnUrl] = useState<string | null>(null);
   const download = useLodDownload(fetched, drawnUrl);
   // The held blob is a finished level other than the wanted one — what stays
@@ -199,13 +200,14 @@ export default function GltfModel({
 
   // drei caches the parsed GLTF by URL string. useLodDownload revokes a blob
   // URL once it is neither the current level's nor the held one (replaced, or
-  // released once the level it wanted is drawn), and all of them when we
-  // unmount — so without this the parsed scene would sit in that cache forever
-  // under a URL no one can ever request again. Nothing evicts it; the entry has
-  // to be dropped by hand. Only once it stops being live, though: the current
-  // level's blob becomes the held one on a level change, and the held one the
-  // current one again on a return to it (adopted, not re-fetched), and clearing
-  // either then would evict a scene that is still on screen.
+  // released once something else is drawn), and all of them when we unmount —
+  // so without this the parsed scene would sit in that cache forever under a
+  // URL no one can ever request again. Nothing evicts it; the entry has to be
+  // dropped by hand. Only once it stops being live, though: the current level's
+  // blob becomes the held one on a level change, and the held one the current
+  // one again on a return to it while it is still held (adopted, not
+  // re-fetched), and clearing either then would evict a scene that is still on
+  // screen. A return after it was released downloads the level again.
   const minted = useRef(new Set<string>());
   const blobUrl = download.blobUrl;
   useEffect(() => {
