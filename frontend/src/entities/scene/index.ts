@@ -6,11 +6,15 @@ export {
 } from "./api/scene-gateway";
 export { sceneQuery } from "./api/scene-query";
 export {
+  autoLod,
   orderByPreferred,
   pickCoarsest,
   pickLod,
+  projectedArea,
+  PX_PER_TRIANGLE,
   selectProgressive,
   type LodArtifact,
+  type LodChoice,
   type ProgressiveSelection,
 } from "./model/lod";
 export {
