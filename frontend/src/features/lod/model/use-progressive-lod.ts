@@ -39,7 +39,10 @@ export type ProgressiveLod = {
 // as the reader zooms in, and dropping to the coarsest for the whole LOD 0
 // download made a zoom-in go blurrier. The held level is parsed and drawn, so
 // it is the one level that is safe to keep; a move before the previous target
-// was ready has nothing parsed to keep and shows the coarsest as before.
+// was ready has nothing parsed to keep and shows the coarsest as before. A
+// move back to the held level (1 → 0 → 1 before LOD 0 is ready, or LOD 0
+// refused) is not a coarser move: that level never left the screen, so it
+// stays there, ready, and nothing warms it again.
 //
 // Failed levels are tracked by hash too and simply drop out of the chain,
 // which is what the placement's old fallback ladder did by index. The
@@ -85,15 +88,15 @@ export function useProgressiveLod(
     const finer = previous !== undefined && target !== null && target.lod < previous.lod;
     setHeldHash(finer && readyHash === seenTarget ? seenTarget : null);
     setSeenTarget(targetHash);
-    // A refused finer level re-targets the held one, which is parsed and on
-    // screen: it is ready. Nothing would warm it again — the territory warms
-    // only its blob download, which a refusal never mints — so clearing here
-    // left the coarsest up for good. Only on a drop: a manual 1 → 0 → 1 goes
-    // through the coarse level and the warmer like a first visit — the
-    // territory's download adopts the held LOD 1 blob rather than fetching it
-    // again, so the warmer gets a url drei has parsed and reports ready at once.
-    const refused = seenTarget !== null && broken.includes(seenTarget);
-    setReadyHash(refused && targetHash !== null && targetHash === heldHash ? targetHash : null);
+    // A new target that is the held level is parsed and on screen: it is
+    // ready, and the hold ends. Manual (1 → 0 → 1) or a refused finer level,
+    // clearing here dropped to the coarsest and warmed it again — for good
+    // after a refusal, whose level the territory never mints a blob for. The
+    // way back is the same url with no fetch, so the mesh on screen does not
+    // even remount: a manual return adopts the held blob; after a refusal the
+    // download still names the refused level and gltf-model maps the held
+    // hash to its blob.
+    setReadyHash(targetHash !== null && targetHash === heldHash ? targetHash : null);
   }
 
   const drop = (hash: string | undefined) => {
@@ -106,7 +109,13 @@ export function useProgressiveLod(
     shown: failure ? null : show,
     target,
     failure,
-    onWarmReady: () => setReadyHash(targetHash),
+    // The target is ready, so it is what shows: the hold is over. Kept, it
+    // called the held level ready on a return after it had left the screen
+    // (and, in the territory, after its blob was released and evicted).
+    onWarmReady: () => {
+      setReadyHash(targetHash);
+      setHeldHash(null);
+    },
     onWarmFailed: () => drop(warm?.hash),
     onShownFailed: (err) => {
       if (show) setFailure({ hash: show.hash, status: err.status ?? null });

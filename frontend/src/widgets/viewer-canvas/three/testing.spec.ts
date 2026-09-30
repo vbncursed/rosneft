@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boundsStub, fakeControls, fakePlacement, fakeScene, mockDrei } from "./testing";
+import { boundsStub, eventually, fakeControls, fakePlacement, fakeScene, mockDrei } from "./testing";
 
 describe("the drei test doubles", () => {
   it("builds a parsable scene and a one-level placement", () => {
@@ -28,5 +28,11 @@ describe("the drei test doubles", () => {
     controls.removeEventListener("change", listener);
     controls.fire("change");
     expect(fired).toBe(1);
+  });
+
+  it("retries a check until it passes, and gives up with its error", async () => {
+    const ready = Date.now() + 30;
+    await eventually(() => expect(Date.now()).toBeGreaterThan(ready));
+    await expect(eventually(() => expect(1).toBe(2), 30)).rejects.toThrow("expected 1 to be 2");
   });
 });

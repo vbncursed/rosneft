@@ -82,7 +82,8 @@ export function selectProgressive(
 export type LodChoice = number | "auto";
 
 /**
- * Screen pixels Auto allows per triangle, about a 2.8 px edge.
+ * Screen pixels Auto allows per triangle: a triangle of about 4 px², an edge
+ * of roughly 3 px.
  *
  * ponytail: one global density calibrated on dji-wp46-cut; the knob to turn if
  * Auto proves too eager or too lazy on real screens. A per-level geometric

@@ -1,3 +1,4 @@
+import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { BoxGeometry, Group, Mesh, MeshStandardMaterial, Vector3, type Camera, type EventDispatcher } from "three";
 import { useThree } from "@react-three/fiber";
 import { vi } from "vitest";
@@ -132,4 +133,25 @@ export function WithControls({
     set({ controls: controls as EventDispatcher });
   }, [set, camera, controls, probe]);
   return children;
+}
+
+/**
+ * Waits `ms` with an act() scope open, so whatever sets state meanwhile — a
+ * settle timer, a download's stream — lands inside it and is flushed at the
+ * end, as React expects, instead of warning that it was not wrapped in act.
+ */
+export const waitInAct = (ms: number) =>
+  ReactThreeTestRenderer.act(() => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+
+/** vi.waitFor's contract (check now, then retry until `timeout`), each wait a waitInAct. */
+export async function eventually(check: () => void, timeout = 1000) {
+  const deadline = Date.now() + timeout;
+  for (;;) {
+    try {
+      return check();
+    } catch (error) {
+      if (Date.now() > deadline) throw error;
+    }
+    await waitInAct(10);
+  }
 }

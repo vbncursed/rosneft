@@ -1,7 +1,7 @@
-import { StrictMode } from "react";
+import { StrictMode, useEffect } from "react";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { useLodDownload } from "./use-lod-download";
+import { useLodDownload, type LodDownload } from "./use-lod-download";
 
 const streamOf = (chunks: Uint8Array[]) =>
   new ReadableStream({
@@ -124,6 +124,56 @@ describe("useLodDownload", () => {
     expect(result.current).toEqual({ blobUrl: "blob:a", received: 5, failed: null, held: null });
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(revoke).not.toHaveBeenCalled();
+  });
+
+  // Until the adoption effect committed, the return read as idle for one
+  // render, and the page's chip showed "0 %" against a download never started.
+  it("reads a return to the held level as adopted from its very first render", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf([new Uint8Array(5)]), { status: 200 })));
+    vi.stubGlobal("URL", { ...URL, createObjectURL: vi.fn(() => "blob:a"), revokeObjectURL: vi.fn() });
+    const a = { lod: 0, hash: "a", size: 5 };
+    const seen: LodDownload[] = [];
+    const { result, rerender } = renderHook(
+      ({ art }) => {
+        const d = useLodDownload(art);
+        useEffect(() => {
+          seen.push(d);
+        });
+        return d;
+      },
+      { initialProps: { art: a as typeof a | null } },
+    );
+    await waitFor(() => expect(result.current.blobUrl).toBe("blob:a"));
+    rerender({ art: null });
+    const from = seen.length;
+    rerender({ art: a });
+    expect(seen.slice(from).length).toBeGreaterThan(0);
+    for (const d of seen.slice(from)) {
+      expect(d).toEqual({ blobUrl: "blob:a", received: 5, failed: null, held: null });
+    }
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  // LOD 1 held on screen, LOD 0 downloaded but not drawn yet, and the target
+  // goes back to 1: revoking the held blob there killed the drawn mesh.
+  it("leaving a finished level while the held one is drawn revokes the finished one and keeps the drawn one", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf([new Uint8Array(2)]), { status: 200 })));
+    const minted = ["blob:a", "blob:b"];
+    const revoke = vi.fn();
+    vi.stubGlobal("URL", { createObjectURL: vi.fn(() => minted.shift()), revokeObjectURL: revoke });
+    const lvl = (lod: number, hash: string) => ({ lod, hash, size: 2 });
+    const { result, rerender } = renderHook(({ art, drawn }) => useLodDownload(art, drawn), {
+      initialProps: { art: lvl(1, "a"), drawn: "blob:a" as string | null },
+    });
+    await waitFor(() => expect(result.current.blobUrl).toBe("blob:a"));
+    rerender({ art: lvl(0, "b"), drawn: "blob:a" });
+    await waitFor(() => expect(result.current.blobUrl).toBe("blob:b"));
+
+    rerender({ art: lvl(1, "a"), drawn: "blob:a" });
+    expect(revoke).toHaveBeenCalledWith("blob:b");
+    expect(revoke).not.toHaveBeenCalledWith("blob:a");
+    expect(result.current).toEqual({ blobUrl: "blob:a", received: 2, failed: null, held: null });
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   it("adopts under StrictMode's double effects too, and still revokes the blob on unmount", async () => {

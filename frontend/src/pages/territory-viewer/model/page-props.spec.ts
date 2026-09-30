@@ -630,7 +630,15 @@ describe("pageProps · Auto", () => {
   });
 
   it("keeps Auto checked in the switcher while measuring forces LOD 0", () => {
-    expect(withChoice("measure", "auto").overlays.switcher).toMatchObject({ choice: "auto", target: 1, shown: 1 });
+    // The report is what the canvas sends back once it was handed LOD 0.
+    const p = parts();
+    const { canvas, overlays } = pageProps({
+      ...p,
+      mode: { ...p.mode, mode: "measure" },
+      view: { ...p.view, targetLod: "auto", report: { ...p.view.report, target: 0 } },
+    });
+    expect(canvas.targetLod).toBe(0);
+    expect(overlays.switcher).toMatchObject({ choice: "auto", target: 0, shown: 1 });
   });
 
   it("hands Auto chosen in the switcher to the page, through the page's own setter", () => {
