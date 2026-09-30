@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ALL_PHASES_SHOWN } from "@/entities/panorama";
+import { HIDDEN_NOTE } from "../model/copy";
 import { PanoramaPhaseList, type PanoramaPhaseListProps } from "./panorama-phase-list";
 import type { PanoramaRowView } from "./panorama-row";
 
@@ -89,8 +90,8 @@ describe("PanoramaPhaseList", () => {
     expect(phase("Post job")).toHaveTextContent("1 panorama · hidden");
     await userEvent.click(phase("Prior job"));
     await userEvent.click(phase("Post job"));
-    expect(screen.getByText("Capture 2")).toHaveClass("opacity-55");
-    expect(screen.getByText("Capture 1")).not.toHaveClass("opacity-55");
+    expect(within(screen.getByText("Capture 2").closest("li")!).getByText(HIDDEN_NOTE)).toBeInTheDocument();
+    expect(within(screen.getByText("Capture 1").closest("li")!).queryByText(HIDDEN_NOTE)).toBeNull();
   });
 
   it("waits a phase's eye while its write is in flight", () => {

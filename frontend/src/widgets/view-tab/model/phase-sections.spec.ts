@@ -20,8 +20,10 @@ describe("phaseSections", () => {
     expect(sections.find((s) => s.phase === "post")).toMatchObject({ hidden: true, rows: [row(2, "post")] });
   });
 
-  it("gives anyone else only phases that are shown and hold something", () => {
-    const sections = phaseSections(ROWS, { ...ALL_PHASES_SHOWN, post: true }, false);
+  // A hidden phase's rows never reach here for a reader — panoramasTabProps
+  // already strips them — so this only has to prove an empty phase drops out.
+  it("gives anyone else only the phases that hold something", () => {
+    const sections = phaseSections([row(1, "prior")], ALL_PHASES_SHOWN, false);
     expect(sections.map((s) => s.phase)).toEqual(["prior"]);
   });
 });

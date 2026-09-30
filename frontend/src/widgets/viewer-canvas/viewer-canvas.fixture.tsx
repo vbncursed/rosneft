@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import type { Chain } from "@/entities/measurement";
+import { ALL_PHASES_SHOWN } from "@/entities/panorama";
 import { ViewerCanvas } from "./index";
 
 const noop = () => undefined;
@@ -53,7 +54,7 @@ const Canvas = ({ chains = [], showMeasurements = true, measuring = false }: Can
         panoramaOpacity={1}
         calibrating={false}
         panoramas={[]}
-        panoramaPhaseHidden={{ prior: false, current: false, post: false }}
+        panoramaPhaseHidden={ALL_PHASES_SHOWN}
         showMarkers
         markerNames
         showMeasurements={showMeasurements}

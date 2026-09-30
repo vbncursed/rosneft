@@ -2,7 +2,7 @@ import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { createElement, type ComponentType } from "react";
 import type { BufferGeometry, Color, Mesh, Scene } from "three";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Panorama } from "@/entities/panorama";
+import { ALL_PHASES_SHOWN, type Panorama } from "@/entities/panorama";
 import type { ViewerCanvasProps } from "../ui/props";
 import SceneCanvas from "./scene-canvas";
 import { boundsStub, fakePlacement, lineColors } from "./testing";
@@ -126,7 +126,7 @@ const props = (over: Partial<ViewerCanvasProps> = {}): ViewerCanvasProps => ({
   panoramaOpacity: 1,
   calibrating: false,
   panoramas: [PANO],
-  panoramaPhaseHidden: { prior: false, current: false, post: false },
+  panoramaPhaseHidden: ALL_PHASES_SHOWN,
   showMarkers: true,
   markerNames: true,
   showMeasurements: true,

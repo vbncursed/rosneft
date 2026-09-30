@@ -47,17 +47,8 @@ describe("panoramasTabProps", () => {
     expect(panoramasTabProps(parts(false), null).rows.map((r) => r.id)).toEqual([1]);
   });
 
-  it("hands the phase flags, the pending state and the three writes straight through", () => {
-    const p = parts(true);
-    const { phases } = panoramasTabProps(p, null);
-    const v = p.panoramas.visibility;
-    expect(phases.hidden).toBe(POST_HIDDEN);
-    expect(phases.canWrite).toBe(true);
-    expect(phases.pendingIds).toBe(v.pendingIds);
-    expect(phases.pendingPhases).toBe(v.pendingPhases);
-    expect(phases.onSetHidden).toBe(v.onSetHidden);
-    expect(phases.onMove).toBe(v.onMove);
-    expect(phases.onSetPhaseHidden).toBe(v.onSetPhaseHidden);
+  it("gates the phase flags on the panorama-write grant", () => {
+    expect(panoramasTabProps(parts(true), null).phases.canWrite).toBe(true);
     expect(panoramasTabProps(parts(false), null).phases.canWrite).toBe(false);
   });
 

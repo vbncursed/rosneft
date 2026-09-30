@@ -43,7 +43,10 @@ export type PanoramaParts = {
     pendingIds: number[];
     pendingPhases: readonly PanoramaPhase[];
     onSetHidden: (ids: number[], hidden: boolean) => void;
-    /** Resolves to whether it landed — the View tab sends focus on a landed move. */
+    /**
+     * Resolves to whether it landed — the View tab sends focus on a landed
+     * move. Never rejects: a failed write resolves `false`.
+     */
     onMove: (ids: number[], phase: PanoramaPhase) => Promise<boolean>;
     onSetPhaseHidden: (phase: PanoramaPhase, hidden: boolean) => void;
   };

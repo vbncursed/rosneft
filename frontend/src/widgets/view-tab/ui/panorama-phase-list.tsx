@@ -13,7 +13,10 @@ export type PanoramaPhasesView = {
   pendingIds: number[];
   pendingPhases: readonly PanoramaPhase[];
   onSetHidden: (ids: number[], hidden: boolean) => void;
-  /** Resolves to whether it landed — a landed move sends focus to the destination (D5 fix). */
+  /**
+   * Resolves to whether it landed — a landed move sends focus to the
+   * destination (D5 fix). Never rejects: a failed write resolves `false`.
+   */
   onMove: (ids: number[], phase: PanoramaPhase) => Promise<boolean>;
   onSetPhaseHidden: (phase: PanoramaPhase, hidden: boolean) => void;
   /** The id a just-finished upload landed as. Opens its phase once; a later manual fold still works (follow-up 2). */

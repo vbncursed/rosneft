@@ -18,5 +18,5 @@ export function phaseSections<R extends { phase: PanoramaPhase }>(
     label,
     hidden: hidden[phase],
     rows: rows.filter((r) => r.phase === phase),
-  })).filter((s) => canWrite || (!s.hidden && s.rows.length > 0));
+  })).filter((s) => canWrite || s.rows.length > 0);
 }

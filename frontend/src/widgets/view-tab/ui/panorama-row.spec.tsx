@@ -163,22 +163,28 @@ describe("PanoramaRow", () => {
   });
 
   // D5: a row in a hidden phase dims like a hidden one, but its own eye keeps
-  // its own flag — showing the phase again must not have to guess it.
+  // its own flag — showing the phase again must not have to guess it. The
+  // dimming itself is colour (not for a spec to assert); what a reader can
+  // observe is the note and the control it is wired to.
   it("dims and says hidden when it or its phase is hidden, the eye keeping its own flag", () => {
     const { rerender } = row({ hidden: true });
-    expect(screen.getByText("Control room, north door")).toHaveClass("opacity-55");
-    expect(screen.getByText(HIDDEN_NOTE)).toHaveClass("sr-only");
+    const note = screen.getByText(HIDDEN_NOTE);
+    expect(note).toHaveClass("sr-only");
+    expect(screen.getByRole("button", { name: `${SHOW_IN}: Control room, north door` }).getAttribute("aria-describedby")).toBe(note.id);
     rerender(
       <PanoramaRow row={{ ...ROW, canEdit: true }} phaseHidden onEnter={vi.fn()} onExit={vi.fn()} onEdit={vi.fn()} onHide={vi.fn()} />,
     );
-    expect(screen.getByText("Control room, north door")).toHaveClass("opacity-55");
+    const phaseNote = screen.getByText(HIDDEN_NOTE);
+    expect(screen.getByRole("button", { name: `${SHOW_IN}: Control room, north door` }).getAttribute("aria-describedby")).toBe(phaseNote.id);
     expect(screen.getByRole("button", { name: /^Hide panorama/ })).toHaveAttribute("aria-pressed", "false");
   });
 
   it("draws a shown row at full strength with no hidden note", () => {
     row();
-    expect(screen.getByText("Control room, north door")).not.toHaveClass("opacity-55");
     expect(screen.queryByText(HIDDEN_NOTE)).toBeNull();
+    expect(screen.getByRole("button", { name: `${SHOW_IN}: Control room, north door` })).not.toHaveAttribute(
+      "aria-describedby",
+    );
   });
 
   it("waits its eye and its moves while a write on it is in flight", async () => {

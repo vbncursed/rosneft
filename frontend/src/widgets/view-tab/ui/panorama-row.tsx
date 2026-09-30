@@ -77,9 +77,11 @@ export function PanoramaRow({ row, onEnter, onExit, onEdit, phaseHidden = false,
   // reader. The visible words stay first, so WCAG 2.5.3 still holds.
   const label = active ? EXIT_PANORAMA : SHOW_IN;
   const hintId = `panorama-${id}-uncalibrated`;
+  const hiddenNoteId = `panorama-${id}-hidden`;
   // An editor still lists what the map no longer draws; dimming says so, and
   // the note beside the title says it in words.
   const dimmed = hidden || phaseHidden;
+  const describedBy = [dimmed && hiddenNoteId, !calibrated && hintId].filter(Boolean).join(" ") || undefined;
 
   return (
     <div
@@ -103,8 +105,12 @@ export function PanoramaRow({ row, onEnter, onExit, onEdit, phaseHidden = false,
       </span>
 
       <span className="min-w-0 flex-1">
-        <span className={cx("block truncate text-xs text-fg", dimmed && "opacity-55")}>{title}</span>
-        {dimmed ? <span className="sr-only">{HIDDEN_NOTE}</span> : null}
+        <span className={cx("block truncate text-xs", dimmed ? "text-muted" : "text-fg")}>{title}</span>
+        {dimmed ? (
+          <span id={hiddenNoteId} className="sr-only">
+            {HIDDEN_NOTE}
+          </span>
+        ) : null}
         {/* The hint warns, it does not lock the door (user request,
             2026-09-16): an anchor at the origin is still a place to stand, and
             an alignment can only be judged from inside the photograph. */}
@@ -118,8 +124,10 @@ export function PanoramaRow({ row, onEnter, onExit, onEdit, phaseHidden = false,
           onClick={() => (active ? onExit() : onEnter(id))}
           aria-label={`${label}: ${title}`}
           // Sighted readers get the warning from proximity; a screen reader on
-          // the button hears only the label unless it points at the hint.
-          aria-describedby={calibrated ? undefined : hintId}
+          // the button hears only the label unless it points at the hint —
+          // hidden (its own flag or its phase's) and uncalibrated are two
+          // independent reasons, so both ids can be present at once.
+          aria-describedby={describedBy}
           className="mt-1 cursor-pointer border-none bg-transparent p-0 font-mono text-[10px] uppercase tracking-[0.1em] text-accent transition-[color,scale] duration-150 ease-out active:scale-[0.97] hover:underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
         >
           {label}

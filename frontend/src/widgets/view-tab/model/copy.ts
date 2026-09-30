@@ -87,7 +87,7 @@ export const phaseLine = (n: number, hidden: boolean) => {
 };
 
 /** Read after a dimmed panorama's title: the dimming alone is colour. */
-export const HIDDEN_NOTE = "· hidden";
+export const HIDDEN_NOTE = "(hidden)";
 
 /** The row's "Move to…" trigger, named after its panorama so no two rows share a name. */
 export const moveToPhaseLabel = (title: string) => `Move ${title} to another phase`;
