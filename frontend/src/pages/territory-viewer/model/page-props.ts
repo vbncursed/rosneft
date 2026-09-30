@@ -86,7 +86,9 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
     canvas: {
       slug,
       parentLods: vm.parentLods,
-      targetLod,
+      // Auto measures on full geometry: the raycast lands on the mesh drawn,
+      // and a coarse one moves every point by up to the simplifier's error.
+      targetLod: targetLod === "auto" && mode.mode === "measure" ? 0 : targetLod,
       placements: p.placements,
       placementGroups: p.placementGroups.list,
       mode: mode.mode,
@@ -162,12 +164,11 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
           : {
               levels,
               choice: targetLod,
-              target: report.target,
+              // A chosen level dots at once, before the canvas reports asking for it;
+              // Auto has no number of its own until the canvas picks one.
+              target: targetLod === "auto" ? report.target : targetLod,
               shown: report.shown,
-              // Bridge until Task 6 widens `onTargetLod` to `LodChoice`: Auto is a no-op here.
-              onChange: (choice) => {
-                if (choice !== "auto") on.onTargetLod(choice);
-              },
+              onChange: on.onTargetLod,
             },
       strip: stripItems({
         metadata: vm.metadata,

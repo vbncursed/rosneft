@@ -137,8 +137,8 @@ export type PageHandlers = {
   onPanoramas: () => void;
   onDocuments: () => void;
   onReplayTour: () => void;
-  /** The switcher and the error card's way out share one setter. */
-  onTargetLod: (lod: number) => void;
+  /** The switcher and the error card's way out share one setter; a level leaves Auto. */
+  onTargetLod: (choice: LodChoice) => void;
   onRetry: () => void;
   /** Asks first when saved chains would go (spec M-4); a reader's Clear keeps them. */
   onClearMeasurements: () => void;
@@ -172,7 +172,7 @@ export type PageHandlers = {
 /** The page's own state, everything the hooks do not already own. */
 export type PageViewState = {
   report: LodReport;
-  targetLod: number;
+  targetLod: LodChoice;
   retryVersion: number;
   resetVersion: number;
   /** The camera is flying around the territory (Play). */

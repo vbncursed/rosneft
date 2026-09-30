@@ -96,10 +96,10 @@ describe("usePageHandlers", () => {
     expect(spies.measure.clear).toHaveBeenCalledExactlyOnceWith(false);
   });
 
-  it("starts with LOD 0 asked for and nothing else pending", () => {
+  it("starts in Auto with nothing else pending", () => {
     const { result } = mount();
     expect(result.current.view).toMatchObject({
-      targetLod: 0,
+      targetLod: "auto",
       retryVersion: 0,
       resetVersion: 0,
       playing: false,

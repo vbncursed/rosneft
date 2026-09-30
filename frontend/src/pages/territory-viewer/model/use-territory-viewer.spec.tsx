@@ -297,9 +297,9 @@ describe("useTerritoryViewer", () => {
   });
 
   describe("the canvas", () => {
-    it("asks for LOD 0 and hands the mode and the empty selection down", async () => {
+    it("starts in Auto and hands the mode and the empty selection down", async () => {
       const { canvas } = await ready(mount());
-      expect(canvas.targetLod).toBe(0);
+      expect(canvas.targetLod).toBe("auto");
       expect(canvas.mode).toBe("orbit");
       expect(canvas.selectedId).toBeNull();
       expect(canvas.parentLods.map((a) => a.lod)).toEqual([0, 1, 2]);

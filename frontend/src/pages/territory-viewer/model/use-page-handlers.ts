@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import type { PlacementGroup } from "@/entities/placement";
+import type { LodChoice } from "@/entities/scene";
 import type { useMeasurementTool } from "@/features/measure";
 import type { Tour } from "@/features/onboarding";
 import type { usePlacementsEditor } from "@/features/placements-editor";
@@ -64,7 +65,7 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
     openSection,
     canDeleteMeasurements,
   } = d;
-  const [targetLod, setTargetLod] = useState(0);
+  const [targetLod, setTargetLod] = useState<LodChoice>("auto");
   const [focusRequest, setFocusRequest] = useState<number[] | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [query, setQuery] = useState("");

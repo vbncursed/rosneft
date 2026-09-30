@@ -243,7 +243,8 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
         error: viewerError(
           view.report.failure,
           vm.parentLods,
-          pickLod(vm.parentLods, view.targetLod),
+          // The level the canvas asked for, whatever chose it: Auto has no number of its own.
+          view.report.target === null ? null : pickLod(vm.parentLods, view.report.target),
           slug,
         ),
         now: failedAt ?? UNSTAMPED,
