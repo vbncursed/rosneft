@@ -135,6 +135,35 @@ export function WithControls({
   return children;
 }
 
+const inPage: (() => Promise<void>)[] = [];
+
+/**
+ * A test renderer whose canvas sits in the page, as a real <Canvas>'s does.
+ * drei's <Html> mounts its DOM beside the canvas, in a react-dom root of its
+ * own, so the real component works here: a label is readable through `screen`
+ * while the three.js elements around it render as three objects — under
+ * react-dom they were unknown HTML tags. `unmountInPage` in an afterEach takes
+ * every one down again, DOM and canvas included.
+ */
+export async function createInPage(element: ReactNode) {
+  let canvas: HTMLCanvasElement | undefined;
+  const renderer = await ReactThreeTestRenderer.create(element, {
+    beforeReturn: (c) => {
+      canvas = c;
+      document.body.append(c);
+    },
+  });
+  inPage.push(async () => {
+    await renderer.unmount();
+    canvas?.remove();
+  });
+  return renderer;
+}
+
+export async function unmountInPage() {
+  for (const unmount of inPage.splice(0)) await unmount();
+}
+
 /**
  * Waits `ms` with an act() scope open, so whatever sets state meanwhile — a
  * settle timer, a download's stream — lands inside it and is flushed at the
