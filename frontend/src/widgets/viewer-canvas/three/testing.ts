@@ -135,15 +135,16 @@ export function WithControls({
   return children;
 }
 
-const inPage: (() => Promise<void>)[] = [];
+const inPage = new Set<() => Promise<void>>();
 
 /**
  * A test renderer whose canvas sits in the page, as a real <Canvas>'s does.
  * drei's <Html> mounts its DOM beside the canvas, in a react-dom root of its
  * own, so the real component works here: a label is readable through `screen`
  * while the three.js elements around it render as three objects — under
- * react-dom they were unknown HTML tags. `unmountInPage` in an afterEach takes
- * every one down again, DOM and canvas included.
+ * react-dom they were unknown HTML tags. Its `unmount` takes the canvas out
+ * of the page too, and `unmountInPage` in an afterEach does the same for every
+ * renderer a test left up.
  */
 export async function createInPage(element: ReactNode) {
   let canvas: HTMLCanvasElement | undefined;
@@ -153,15 +154,20 @@ export async function createInPage(element: ReactNode) {
       document.body.append(c);
     },
   });
-  inPage.push(async () => {
-    await renderer.unmount();
-    canvas?.remove();
-  });
-  return renderer;
+  const unmount = async () => {
+    inPage.delete(unmount);
+    try {
+      await renderer.unmount();
+    } finally {
+      canvas?.remove();
+    }
+  };
+  inPage.add(unmount);
+  return { ...renderer, unmount };
 }
 
 export async function unmountInPage() {
-  for (const unmount of inPage.splice(0)) await unmount();
+  for (const unmount of [...inPage]) await unmount();
 }
 
 /**

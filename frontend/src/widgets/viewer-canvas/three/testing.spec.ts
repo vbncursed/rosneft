@@ -60,4 +60,16 @@ describe("the drei test doubles", () => {
     expect(screen.queryByText("label")).toBeNull();
     expect(document.querySelector("canvas")).toBeNull();
   });
+
+  it("takes its own canvas out of the page when unmounted, and leaves the others", async () => {
+    const first = await createInPage(createElement("group"));
+    await createInPage(createElement("group"));
+    expect(document.querySelectorAll("canvas")).toHaveLength(2);
+
+    await first.unmount();
+    expect(document.querySelectorAll("canvas")).toHaveLength(1);
+
+    await unmountInPage();
+    expect(document.querySelectorAll("canvas")).toHaveLength(0);
+  });
 });
