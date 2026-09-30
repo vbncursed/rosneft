@@ -202,6 +202,14 @@ const now = (r: ReturnType<typeof cold>): Ready => {
 };
 
 describe("useTerritoryViewer", () => {
+  // Stepping into a panorama starts its equirect download. Node's fetch rejects
+  // a relative URL, and the error state that set arrived a few microtasks after
+  // the entering act had closed. Here the bytes are simply still on the wire.
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(() => {})));
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
   beforeEach(() => {
     getSceneBundle.mockReset().mockResolvedValue(BUNDLE);
     getMe.mockReset().mockResolvedValue(principal({ isOwner: true }));

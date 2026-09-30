@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { LodSwitcher } from "./lod-switcher";
@@ -29,7 +29,9 @@ describe("LodSwitcher", () => {
   it("moves focus with the arrow keys and chooses only on Space or Enter", async () => {
     const onChange = vi.fn();
     render(<LodSwitcher levels={[0, 1, 2]} choice={1} target={1} shown={1} onChange={onChange} />);
-    screen.getByRole("radio", { name: "LOD 1" }).focus();
+    // A bare focus() is outside React's event system and outside act; the
+    // switcher's onFocus sets state.
+    act(() => screen.getByRole("radio", { name: "LOD 1" }).focus());
     await userEvent.keyboard("{ArrowRight}");
     expect(screen.getByRole("radio", { name: "LOD 2" })).toHaveFocus();
     expect(onChange).not.toHaveBeenCalled();

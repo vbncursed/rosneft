@@ -18,7 +18,9 @@ beforeEach(() => {
   });
 });
 afterEach(() => {
-  vi.runOnlyPendingTimers();
+  // This hook runs before the setup file's cleanup, so a timer it fires — a
+  // pointer's open delay — still opens a mounted tooltip.
+  act(() => vi.runOnlyPendingTimers());
   vi.useRealTimers();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();

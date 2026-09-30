@@ -42,6 +42,12 @@ if (!("ResizeObserver" in globalThis)) {
   } as unknown as typeof ResizeObserver;
 }
 
+// jsdom's window.scrollTo is a stub that reports "Not implemented" on every
+// call, and TanStack Router's scroll restoration calls it after each
+// navigation it resolves. jsdom lays nothing out, so there is nowhere to
+// scroll: a no-op is the whole of the behaviour it could have.
+window.scrollTo = () => {};
+
 // jsdom has no Popover API, yet its UA sheet already hides every `[popover]`
 // that is not `:popover-open` — which it can never be. A browser shows an open
 // one (`Tooltip`); the shim does the same with an inline `display`, the one

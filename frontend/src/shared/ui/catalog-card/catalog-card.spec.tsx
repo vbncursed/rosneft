@@ -157,7 +157,7 @@ describe("CatalogCard", () => {
 
   it("renders the title as a real link when href is given, so it can be opened in a new tab", () => {
     const onOpen = vi.fn();
-    render(
+    const { container } = render(
       <CatalogCard
         title="North Ridge Pad"
         slug="north-ridge-pad"
@@ -171,7 +171,21 @@ describe("CatalogCard", () => {
     expect(screen.getByRole("heading", { level: 3, name: "North Ridge Pad" })).toContainElement(link);
     // The anchor is the navigation; the article's onOpen must not fire as well.
     expect(screen.queryByRole("button", { name: "North Ridge Pad" })).not.toBeInTheDocument();
+    // jsdom cannot load another document, so the spec takes the navigation
+    // the browser would perform. It listens on React's root container, after
+    // React's own listener there: the link stops the click's propagation, so
+    // nothing above the root would hear it. By then any handler of the card's
+    // has run, and a default it cancelled would be no navigation at all.
+    const followed: { href: string | null; cancelled: boolean }[] = [];
+    container.addEventListener("click", (event) => {
+      followed.push({
+        href: (event.target as Element).closest("a")?.getAttribute("href") ?? null,
+        cancelled: event.defaultPrevented,
+      });
+      event.preventDefault();
+    });
     fireEvent.click(link);
+    expect(followed).toEqual([{ href: "/territories/north-ridge-pad", cancelled: false }]);
     expect(onOpen).not.toHaveBeenCalled();
   });
 

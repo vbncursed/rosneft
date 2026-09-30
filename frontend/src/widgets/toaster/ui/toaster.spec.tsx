@@ -221,9 +221,12 @@ describe("Toaster", () => {
     act(() => {
       notify.error("Not saved");
     });
-    screen.getByRole("button", { name: "Dismiss: Not saved" }).focus();
     const title = screen.getByRole("textbox", { name: "Title" });
-    title.focus();
+    // The dismiss button wears a Tooltip, whose onBlur sets state.
+    act(() => {
+      screen.getByRole("button", { name: "Dismiss: Not saved" }).focus();
+      title.focus();
+    });
     fireEvent.click(screen.getByRole("button", { name: "Dismiss: Not saved" }));
     expect(title).toHaveFocus();
   });
