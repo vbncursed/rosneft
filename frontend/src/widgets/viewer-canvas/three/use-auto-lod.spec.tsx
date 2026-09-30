@@ -130,7 +130,9 @@ describe("useAutoLod", () => {
     expect(controls.listeners.get("change")?.size).toBe(1);
     moveTo(0.5);
     await vi.waitFor(() => expect(lod()).toBe(0));
-    expect(controls.listeners.get("change")?.size ?? 0).toBe(0);
+    // The level lands at commit; the listener goes in a passive-effect
+    // cleanup React flushes after it, outside any act() here.
+    await vi.waitFor(() => expect(controls.listeners.get("change")?.size ?? 0).toBe(0));
   });
 
   it("does not listen in Auto when a manual pick already reached the finest level", async () => {
