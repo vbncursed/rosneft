@@ -29,6 +29,7 @@ export function panoramasTabProps(p: PageParts, editor: ReactNode): ViewTabProps
         phase: panorama.phase,
         hidden: panorama.hidden,
       })),
+    justAddedId: pan.justAddedId,
     phases: {
       hidden: vis.phaseHidden,
       canWrite,

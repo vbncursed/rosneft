@@ -273,6 +273,15 @@ describe("useViewerPanoramas", () => {
     expect(onChanged).toHaveBeenCalledTimes(1);
   });
 
+  // Follow-up 2: the phase list widget expands the row's phase off this id,
+  // once per upload — the widget itself decides how long that stays expanded.
+  it("reports the just-uploaded capture's id, so its phase list can open", () => {
+    const { result } = mount();
+    expect(result.current.justAddedId).toBeNull();
+    act(() => usePanoramaUpload.mock.calls.at(-1)![0].onCreated(panorama(9) as never));
+    expect(result.current.justAddedId).toBe(9);
+  });
+
   it("opens a folded Panoramas list on a finished upload, so the capture is not hidden", () => {
     localStorage.clear();
     const { result } = renderHook(() => {

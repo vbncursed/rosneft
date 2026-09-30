@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { Document } from "@/entities/document";
 import type { Panorama } from "@/entities/panorama";
@@ -126,13 +127,15 @@ describe("TerritoryViewerPage", () => {
     expect(screen.queryByText("Loading interface…")).not.toBeInTheDocument();
   });
 
-  it("draws the View tab's panorama and document sections", () => {
+  it("draws the View tab's panorama and document sections", async () => {
     page((p) => ({
       ...p,
       panel: { tab: "view", collapsed: false },
       panoramas: { ...p.panoramas, list: [PANORAMA] },
       documents: { ...p.documents, list: [DOCUMENT] },
     }));
+    // Its phase starts folded (follow-up 2); open it to see the row.
+    await userEvent.click(screen.getByRole("button", { name: "Prior job" }));
     expect(screen.getByText("Control room, north door")).toBeInTheDocument();
     expect(screen.getByText("plan-sheet-03.pdf")).toBeInTheDocument();
   });

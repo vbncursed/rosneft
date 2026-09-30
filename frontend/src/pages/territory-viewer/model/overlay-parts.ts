@@ -23,6 +23,8 @@ import type { DocumentWindowProps } from "@/widgets/document-window";
  */
 export type PanoramaParts = {
   list: Panorama[];
+  /** The id a just-finished upload landed as; null once nothing has just landed. */
+  justAddedId: number | null;
   /** A mutation is in flight on this panorama; the card's Save waits for it. */
   pendingId: number | null;
   /** The panorama the camera is inside; null in the 3D view. */

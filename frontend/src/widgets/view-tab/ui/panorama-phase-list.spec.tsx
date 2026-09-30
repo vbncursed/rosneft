@@ -22,6 +22,7 @@ const props = (over: Partial<PanoramaPhaseListProps> = {}): PanoramaPhaseListPro
   id: "list",
   open: true,
   rows: [row(1), row(2, { phase: "post" })],
+  justAddedId: null,
   phases: {
     hidden: ALL_PHASES_SHOWN,
     canWrite: true,
@@ -41,8 +42,9 @@ const phase = (name: string) => screen.getByRole("button", { name });
 
 describe("PanoramaPhaseList", () => {
   it("lists all three job phases for an editor, in order, the empty one too, with counts", () => {
-    render(<PanoramaPhaseList {...props()} />);
-    expect(screen.getAllByRole("button", { expanded: true }).map((b) => b.getAttribute("aria-label"))).toEqual([
+    const { container } = render(<PanoramaPhaseList {...props()} />);
+    const heads = container.querySelectorAll("li[data-phase] button[aria-expanded]");
+    expect(Array.from(heads).map((b) => b.getAttribute("aria-label"))).toEqual([
       "Prior job",
       "Current job",
       "Post job",
@@ -51,10 +53,25 @@ describe("PanoramaPhaseList", () => {
     expect(phase("Current job")).toHaveTextContent("No panoramas");
   });
 
+  it("starts every phase folded: nothing expanded, no rows mounted", () => {
+    render(<PanoramaPhaseList {...props()} />);
+    expect(phase("Prior job")).toHaveAttribute("aria-expanded", "false");
+    expect(phase("Current job")).toHaveAttribute("aria-expanded", "false");
+    expect(phase("Post job")).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Capture 1")).toBeNull();
+    expect(screen.queryByText("Capture 2")).toBeNull();
+  });
+
+  it("expands only the phase holding the capture the reader stands in or edits, on mount", () => {
+    render(<PanoramaPhaseList {...props({ rows: [row(1, { active: true }), row(2, { phase: "post" })] })} />);
+    expect(phase("Prior job")).toHaveAttribute("aria-expanded", "true");
+    expect(phase("Post job")).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("gives a reader only phases with something shown, and no eye or move anywhere", () => {
     const p = props({ rows: [row(1, { canEdit: false })] });
     render(<PanoramaPhaseList {...p} phases={{ ...p.phases, canWrite: false }} />);
-    expect(screen.getAllByRole("button", { expanded: true })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: /job$/ })).toHaveLength(1);
     expect(screen.queryByRole("button", { name: /^Hide/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /^Move/ })).toBeNull();
   });
@@ -66,11 +83,13 @@ describe("PanoramaPhaseList", () => {
     expect(p.phases.onSetPhaseHidden).toHaveBeenCalledWith("current", true);
   });
 
-  it("reads a hidden phase as pressed, says so in its line, and dims its rows", () => {
+  it("reads a hidden phase as pressed, says so in its line, and dims its rows", async () => {
     const p = props();
     render(<PanoramaPhaseList {...p} phases={{ ...p.phases, hidden: { ...ALL_PHASES_SHOWN, post: true } }} />);
     expect(screen.getByRole("button", { name: "Hide phase Post job" })).toHaveAttribute("aria-pressed", "true");
     expect(phase("Post job")).toHaveTextContent("1 panorama · hidden");
+    await userEvent.click(phase("Prior job"));
+    await userEvent.click(phase("Post job"));
     expect(screen.getByText("Capture 2")).toHaveClass("opacity-55");
     expect(screen.getByText("Capture 1")).not.toHaveClass("opacity-55");
   });
@@ -84,6 +103,7 @@ describe("PanoramaPhaseList", () => {
   it("hides one row from its own eye, and moves it to another phase", async () => {
     const p = props();
     render(<PanoramaPhaseList {...p} />);
+    await userEvent.click(phase("Prior job"));
     await userEvent.click(screen.getByRole("button", { name: "Hide panorama Capture 1" }));
     expect(p.phases.onSetHidden).toHaveBeenCalledWith([1], true);
     await userEvent.click(screen.getByRole("button", { name: "Move Capture 1 to another phase" }));
@@ -91,15 +111,19 @@ describe("PanoramaPhaseList", () => {
     expect(p.phases.onMove).toHaveBeenCalledWith([1], "current");
   });
 
-  it("waits a row's eye while a write on it is in flight", () => {
+  it("waits a row's eye while a write on it is in flight", async () => {
     const p = props();
     render(<PanoramaPhaseList {...p} phases={{ ...p.phases, pendingIds: [2] }} />);
+    await userEvent.click(phase("Prior job"));
+    await userEvent.click(phase("Post job"));
     expect(screen.getByRole("button", { name: "Hide panorama Capture 2" })).toHaveAttribute("aria-busy", "true");
     expect(screen.getByRole("button", { name: "Hide panorama Capture 1" })).not.toHaveAttribute("aria-busy");
   });
 
   it("folds a phase on its disclosure, but keeps open the one holding the capture the reader is in", async () => {
     const { rerender } = render(<PanoramaPhaseList {...props()} />);
+    await userEvent.click(phase("Prior job"));
+    expect(phase("Prior job")).toHaveAttribute("aria-expanded", "true");
     await userEvent.click(phase("Prior job"));
     expect(phase("Prior job")).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByText("Capture 1")).toBeNull();
@@ -116,8 +140,9 @@ describe("PanoramaPhaseList", () => {
     expect(list).toBeEmptyDOMElement();
   });
 
-  it("nests each phase's captures in a list of their own", () => {
+  it("nests each phase's captures in a list of their own", async () => {
     const { container } = render(<PanoramaPhaseList {...props()} />);
+    await userEvent.click(phase("Prior job"));
     const prior = phase("Prior job").closest("li")!;
     expect(within(prior).getByRole("button", { name: "Show in this panorama: Capture 1" })).toBeInTheDocument();
     expect(container.querySelectorAll("ul#list > li")).toHaveLength(3);
@@ -131,6 +156,7 @@ describe("PanoramaPhaseList", () => {
     const onMove = vi.fn(async () => true);
     const p = props();
     render(<PanoramaPhaseList {...p} phases={{ ...p.phases, onMove }} />);
+    await userEvent.click(phase("Prior job"));
     await userEvent.click(screen.getByRole("button", { name: "Move Capture 1 to another phase" }));
     await userEvent.click(screen.getByRole("menuitem", { name: "Current job" }));
     await waitFor(() => expect(document.activeElement).toBe(phase("Current job")));
@@ -140,9 +166,27 @@ describe("PanoramaPhaseList", () => {
     const onMove = vi.fn(async () => false);
     const p = props();
     render(<PanoramaPhaseList {...p} phases={{ ...p.phases, onMove }} />);
+    await userEvent.click(phase("Prior job"));
     const trigger = screen.getByRole("button", { name: "Move Capture 1 to another phase" });
     await userEvent.click(trigger);
     await userEvent.click(screen.getByRole("menuitem", { name: "Current job" }));
     await waitFor(() => expect(document.activeElement).toBe(trigger));
+  });
+
+  it("expands the phase a freshly uploaded capture landed in", () => {
+    const p = props();
+    const { rerender } = render(<PanoramaPhaseList {...p} />);
+    expect(phase("Post job")).toHaveAttribute("aria-expanded", "false");
+    rerender(<PanoramaPhaseList {...p} justAddedId={2} />);
+    expect(phase("Post job")).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Capture 2")).toBeInTheDocument();
+  });
+
+  it("still folds normally after an upload opened its phase", async () => {
+    const p = props();
+    render(<PanoramaPhaseList {...p} justAddedId={2} />);
+    expect(phase("Post job")).toHaveAttribute("aria-expanded", "true");
+    await userEvent.click(phase("Post job"));
+    expect(phase("Post job")).toHaveAttribute("aria-expanded", "false");
   });
 });

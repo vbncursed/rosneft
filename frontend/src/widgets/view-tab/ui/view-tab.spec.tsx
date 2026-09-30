@@ -55,6 +55,7 @@ const base = (): ViewTabProps => ({
   ],
   panoramas: {
     rows: ROWS,
+    justAddedId: null,
     phases: {
       hidden: ALL_PHASES_SHOWN,
       canWrite: false,
@@ -112,10 +113,12 @@ describe("ViewTab", () => {
     expect(screen.getByText(documentsCount(1))).toBeInTheDocument();
   });
 
-  it("lists the panoramas under their job phase, as the tour's picker", () => {
+  it("lists the panoramas under their job phase, as the tour's picker", async () => {
     const { container } = tab();
     const list = container.querySelector<HTMLElement>("ul[data-tour='panorama-picker']")!;
-    expect(within(list).getByRole("button", { name: "Prior job" })).toHaveTextContent("2 panoramas");
+    const priorJob = within(list).getByRole("button", { name: "Prior job" });
+    expect(priorJob).toHaveTextContent("2 panoramas");
+    await userEvent.click(priorJob);
     expect(within(list).getAllByRole("button", { name: /^Show in this panorama: / })).toHaveLength(2);
     expect(screen.getByText("Control room, north door")).toBeInTheDocument();
   });

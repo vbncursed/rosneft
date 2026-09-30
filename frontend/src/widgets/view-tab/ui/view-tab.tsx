@@ -34,6 +34,8 @@ export type ViewTabProps = {
   details: Detail[];
   panoramas: {
     rows: PanoramaRowView[];
+    /** The id a just-finished upload landed as — its phase opens once (follow-up 2). */
+    justAddedId: number | null;
     /** The job phases the rows fall into, and the shared hide/move writes. */
     phases: PanoramaPhasesView;
     /** The panorama whose anchor is being dragged; null when none is. */
@@ -152,6 +154,7 @@ export function ViewTab({ details, panoramas, documents, measurements, footer }:
             id={panoramaListId}
             open={panoramas.fold.open}
             rows={panoramas.rows}
+            justAddedId={panoramas.justAddedId}
             phases={panoramas.phases}
             onEnter={panoramas.onEnter}
             onExit={panoramas.onExit}

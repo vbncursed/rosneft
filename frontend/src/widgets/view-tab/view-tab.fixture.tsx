@@ -93,6 +93,7 @@ function Live({
         details={details}
         panoramas={{
           rows: live.map((row) => ({ ...row, canEdit: canWrite })),
+          justAddedId: null,
           phases: {
             hidden: hiddenPhases,
             canWrite,

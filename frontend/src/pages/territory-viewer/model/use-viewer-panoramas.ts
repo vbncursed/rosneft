@@ -139,6 +139,7 @@ export function useViewerPanoramas({
   const cameraPositionRef = useRef<Vec3 | null>(null);
   const cameraYawRef = useRef<number | null>(null);
 
+  const [justAddedId, setJustAddedId] = useState<number | null>(null);
   const upload = usePanoramaUpload({
     slug,
     sourceBbox,
@@ -147,6 +148,7 @@ export function useViewerPanoramas({
         add(panorama);
         onChanged();
         reveal("panoramas");
+        setJustAddedId(panorama.id);
         setUploadOpen(false);
       },
       [add, onChanged, reveal],
@@ -181,6 +183,7 @@ export function useViewerPanoramas({
 
   return {
     list: list.panoramas,
+    justAddedId,
     pendingId: list.pendingId,
     active: view.active,
     editing: view.editing,
