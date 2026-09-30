@@ -24,6 +24,9 @@ export const DELETE_GROUP = "Delete group (placements stay)";
 
 export const ADD_TO_GROUP = "Add";
 
+/** Why a hidden group's own Add does nothing (D5): the group's flag, not its members'. */
+export const SHOW_GROUP_TO_ADD = "Show the group to add objects";
+
 /**
  * The sentence under the list names what this reader cannot do — a viewer is
  * told the whole tab is read-only, an editor without the delete grant is told

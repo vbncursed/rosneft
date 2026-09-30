@@ -86,6 +86,18 @@ describe("UserGroupItem", () => {
     expect(onAdd).toHaveBeenCalledWith(4);
   });
 
+  // A hidden group's Add stays focusable (aria-disabled, not native disabled)
+  // and names why, but does nothing on click.
+  it("aria-disables Add on a hidden group, and calls onAdd for nothing", async () => {
+    const onAdd = vi.fn();
+    mount({ onAdd, section: { ...SECTION, group: { ...SECTION.group, hidden: true } } });
+    const add = screen.getByRole("button", { name: "Add objects to group East yard" });
+    expect(add).toHaveAttribute("aria-disabled", "true");
+    expect(add).not.toBeDisabled();
+    await userEvent.click(add);
+    expect(onAdd).not.toHaveBeenCalled();
+  });
+
   it("draws no Add without the create grant or inside a panorama (onAdd null)", () => {
     mount({ onAdd: null });
     expect(screen.queryByRole("button", { name: /Add objects to group/ })).toBeNull();

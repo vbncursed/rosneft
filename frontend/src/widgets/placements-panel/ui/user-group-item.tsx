@@ -4,7 +4,7 @@ import { EyeButton, GroupRow } from "@/shared/ui/group-controls";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 import { Menu } from "@/shared/ui/menu";
-import { ADD_TO_GROUP, DELETE_GROUP } from "../model/panel-copy";
+import { ADD_TO_GROUP, DELETE_GROUP, SHOW_GROUP_TO_ADD } from "../model/panel-copy";
 import { GroupTitleField } from "./group-title-field";
 import { InstanceItem, type RowContext } from "./instance-item";
 
@@ -139,7 +139,21 @@ export function UserGroupItem({ section, ctx, onAdd, actions }: UserGroupItemPro
           ))}
           {onAdd ? (
             <li className="ml-3">
-              <Button variant="ghost" size="sm" aria-label={`Add objects to group ${group.title}`} onClick={() => onAdd(group.id)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label={`Add objects to group ${group.title}`}
+                // A hidden group's Add waits through aria-disabled, not
+                // `disabled`, the same as the group's own eye (D5): a
+                // natively disabled button drops focus to <body>, and this
+                // one sits right after the row that hides it.
+                aria-disabled={group.hidden || undefined}
+                tooltip={group.hidden ? { label: SHOW_GROUP_TO_ADD } : false}
+                className="aria-disabled:cursor-not-allowed aria-disabled:opacity-55"
+                onClick={() => {
+                  if (!group.hidden) onAdd(group.id);
+                }}
+              >
                 <Icon name="plus" size={12} />
                 {ADD_TO_GROUP}
               </Button>
