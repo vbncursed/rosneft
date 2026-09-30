@@ -1,9 +1,11 @@
 import { clsx as cx } from "clsx";
-import { useRef, useState, type FocusEvent, type KeyboardEvent } from "react";
+import { useId, useRef, useState, type FocusEvent, type KeyboardEvent } from "react";
 import { nextEnabled } from "@/shared/lib/roving";
 
 /** A level, or Auto — the viewer picks the level from the object's size on screen. */
 type Choice = number | "auto";
+
+const AUTO_HINT = "Level follows zoom";
 
 export type LodSwitcherProps = {
   levels: number[];
@@ -47,6 +49,7 @@ export function LodSwitcher({
 }: LodSwitcherProps) {
   const options: Choice[] = ["auto", ...levels];
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
+  const hintId = useId();
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
   const tabStop = focusIndex ?? options.indexOf(choice);
   const onBlur = (event: FocusEvent<HTMLDivElement>) => {
@@ -68,8 +71,8 @@ export function LodSwitcher({
     >
       {options.map((option, index) => {
         const checked = option === choice;
-        const loading = option !== "auto" && option === target && shown !== target;
-        const onScreen = option !== "auto" && option === shown && !checked;
+        const loading = option === target && shown !== target;
+        const onScreen = option === shown && !checked;
         return (
           <button
             key={option}
@@ -80,6 +83,8 @@ export function LodSwitcher({
             role="radio"
             aria-checked={checked}
             aria-label={nameOf(option, loading, onScreen)}
+            title={option === "auto" ? AUTO_HINT : undefined}
+            aria-describedby={option === "auto" ? hintId : undefined}
             data-shown={onScreen || undefined}
             tabIndex={index === tabStop ? 0 : -1}
             onFocus={() => setFocusIndex(index)}
@@ -93,6 +98,11 @@ export function LodSwitcher({
             )}
           >
             {option === "auto" ? "Auto" : `LOD ${option}`}
+            {option === "auto" ? (
+              <span id={hintId} className="sr-only">
+                {AUTO_HINT}
+              </span>
+            ) : null}
             {/* Every tile reserves the dot's room on the right (21px = 6px gap +
                 5px dot + 10px padding), so no phase changes a tile's width. */}
             {loading ? (

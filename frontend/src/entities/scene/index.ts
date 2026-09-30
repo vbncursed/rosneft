@@ -11,7 +11,6 @@ export {
   pickCoarsest,
   pickLod,
   projectedArea,
-  PX_PER_TRIANGLE,
   selectProgressive,
   type LodArtifact,
   type LodChoice,

@@ -146,6 +146,15 @@ describe("LodSwitcher", () => {
       expect(onChange).toHaveBeenLastCalledWith("auto");
     });
 
+    // A bare "Auto" says nothing about what it follows.
+    it("describes what Auto does, to a pointer and to a screen reader, without changing its name", () => {
+      render(<LodSwitcher levels={[0, 1]} choice="auto" target={1} shown={1} onChange={vi.fn()} />);
+      const auto = screen.getByRole("radio", { name: "Auto" });
+      expect(auto).toHaveAttribute("title", "Level follows zoom");
+      expect(auto).toHaveAccessibleDescription("Level follows zoom");
+      expect(screen.getByRole("radio", { name: "LOD 1, on screen" })).not.toHaveAccessibleDescription();
+    });
+
     it("keeps the Auto tile's geometry like every other tile", () => {
       render(<LodSwitcher levels={[0, 1]} choice="auto" target={0} shown={1} onChange={vi.fn()} />);
       const cls = screen.getByRole("radio", { name: "Auto" }).className.split(/\s+/);

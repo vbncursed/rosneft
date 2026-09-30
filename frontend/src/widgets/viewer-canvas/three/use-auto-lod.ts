@@ -55,8 +55,10 @@ export function useAutoLod(object: RefObject<Object3D | null>, chain: LodArtifac
   });
 
   const auto = requested === "auto";
+  // At the finest level there is nothing left to upgrade to: stop listening.
+  const finest = Math.min(...chain.map((a) => a.lod));
   useEffect(() => {
-    if (!auto) return;
+    if (!auto || best === finest) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const settle = () => {
       clearTimeout(timer);
@@ -84,7 +86,7 @@ export function useAutoLod(object: RefObject<Object3D | null>, chain: LodArtifac
       clearTimeout(timer);
       controls?.removeEventListener("change", settle);
     };
-  }, [auto, controls, object, key]);
+  }, [auto, best, finest, controls, object, key]);
 
   return typeof requested === "number" ? requested : best;
 }

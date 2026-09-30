@@ -226,9 +226,9 @@ export default function GltfModel({
   }, []);
 
   // The percent describes the level `useLodDownload` is streaming by hand, and
-  // only that one: a refused download, or a fallback level drei fetches itself,
-  // has no bytes to count and `0 %` against it reads as progress that is not
-  // happening.
+  // only that one: a refused download, or the next level down after a refusal
+  // (which nothing streams), has no bytes to count and `0 %` against it reads
+  // as progress that is not happening.
   //
   // Never gate this on the blob url. `useLodDownload` mints the blob only after
   // its reader loop ends, so `warmUrl` is null for the whole download — that

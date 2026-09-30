@@ -123,6 +123,22 @@ describe("useAutoLod", () => {
     await vi.waitFor(() => expect(lod()).toBe(0));
   });
 
+  // Nothing finer exists, so every camera move would only arm a timer that
+  // measures for nothing.
+  it("stops listening once the finest level is reached", async () => {
+    const { controls, lod, moveTo } = await mount();
+    expect(controls.listeners.get("change")?.size).toBe(1);
+    moveTo(0.5);
+    await vi.waitFor(() => expect(lod()).toBe(0));
+    expect(controls.listeners.get("change")?.size ?? 0).toBe(0);
+  });
+
+  it("does not listen in Auto when a manual pick already reached the finest level", async () => {
+    const { controls, update } = await mount({ requested: 0 });
+    await update({ requested: "auto" });
+    expect(controls.listeners.get("change")?.size ?? 0).toBe(0);
+  });
+
   it("listens only while in Auto, and lets go on unmount", async () => {
     const { r, controls, update } = await mount({ requested: 1 });
     expect(controls.listeners.get("change")?.size ?? 0).toBe(0);

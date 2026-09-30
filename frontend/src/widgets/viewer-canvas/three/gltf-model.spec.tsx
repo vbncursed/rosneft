@@ -414,7 +414,7 @@ describe("GltfModel", () => {
     });
   });
 
-  it("counts nothing for a level drei is fetching itself", async () => {
+  it("counts nothing for the next level down after a refusal, which nothing streams", async () => {
     // Three levels, and the one the blob download wants is refused: the chain
     // drops it and targets the middle level, which nothing fetches — no blob,
     // so no warmer and no bytes. A percent there is progress that is not

@@ -88,7 +88,7 @@ export type LodChoice = number | "auto";
  * Auto proves too eager or too lazy on real screens. A per-level geometric
  * error from the converter is the upgrade path (gltfpack does not report one).
  */
-export const PX_PER_TRIANGLE = 4;
+const PX_PER_TRIANGLE = 4;
 
 /**
  * The screen area, in drawing-buffer px², of a bounding sphere seen from
