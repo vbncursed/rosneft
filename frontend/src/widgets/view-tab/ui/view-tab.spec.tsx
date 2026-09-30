@@ -139,6 +139,13 @@ describe("ViewTab", () => {
     expect(props.panoramas.onMarkers).toHaveBeenCalledWith("points");
   });
 
+  it("expands the phase a just-finished upload landed in", () => {
+    tab((p) => {
+      p.panoramas.justAddedId = 7;
+    });
+    expect(screen.getByRole("button", { name: "Prior job" })).toHaveAttribute("aria-expanded", "true");
+  });
+
   it("shows the stored choice as the checked one", () => {
     tab((p) => {
       p.panoramas.markers = "off";

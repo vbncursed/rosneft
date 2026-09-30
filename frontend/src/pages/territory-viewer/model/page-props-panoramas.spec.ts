@@ -66,6 +66,12 @@ describe("panoramasTabProps", () => {
     expect(panoramasTabProps(parts(true), card).editor).toBe(card);
   });
 
+  it("hands the just-added id straight through, so the phase list can open it", () => {
+    const p = parts(true);
+    expect(panoramasTabProps({ ...p, panoramas: { ...p.panoramas, justAddedId: 3 } }, null).justAddedId).toBe(3);
+    expect(panoramasTabProps({ ...p, panoramas: { ...p.panoramas, justAddedId: null } }, null).justAddedId).toBeNull();
+  });
+
   it("hands the stored marker choice and its setter to the View tab", () => {
     const p = parts(true);
     const props = panoramasTabProps({ ...p, panoramas: { ...p.panoramas, markers: "points" } }, null);
