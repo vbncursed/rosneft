@@ -5,10 +5,11 @@ import type { Tour } from "@/features/onboarding";
 import type { usePlacementsEditor } from "@/features/placements-editor";
 import type { useViewerMode } from "@/features/viewer-mode";
 import type { useOverlaysPanel } from "@/widgets/overlays-panel";
-import type { LodReport } from "@/widgets/viewer-canvas";
 import type { DocumentParts } from "./overlay-parts";
 import { revealSection, type Section } from "./reveal-section";
+import { useClearMeasurements } from "./use-clear-measurements";
 import { useFlyAround } from "./use-fly-around";
+import { useLodHandlers } from "./use-lod-handlers";
 import { usePlacementHandlers } from "./use-placement-handlers";
 import type { usePlacementForm } from "./use-placement-form";
 import type { PageHandlers, PageViewState } from "./viewer-props";
@@ -39,30 +40,11 @@ export type PageInteraction = {
   on: PageHandlers;
 };
 
-const NO_REPORT: LodReport = {
-  shown: null,
-  target: null,
-  percent: null,
-  progressText: null,
-  failure: null,
-};
-
-/**
- * The canvas's last report, with the moment its failure arrived.
- *
- * The error card's footer answers "when did this last try", so the clock is
- * stamped when the failure lands rather than read while the card is being
- * drawn — otherwise every re-render behind it (a reset, a panel fold, a
- * refetch) moved "last attempt" forward to now.
- */
-type LodState = { report: LodReport; failedAt: Date | null };
-
-const NO_LOD: LodState = { report: NO_REPORT, failedAt: null };
-
 /**
  * Everything the page does when something is pressed, and the little state
- * that belongs to no hook: the level asked for, the two version counters, the
- * search box, the open group, the picker.
+ * that belongs to no hook: the level asked for, the search box, the open
+ * group, the picker. The LOD switcher's own state and Clear's ask-first dance
+ * are `useLodHandlers`/`useClearMeasurements`, spread into the same shape.
  *
  * Split out of `useTerritoryViewer` at the 200-line cap. Every callback is
  * memoized because most of them are props on a tree that mounts WebGL, where a
@@ -83,37 +65,14 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
     canDeleteMeasurements,
   } = d;
   const [targetLod, setTargetLod] = useState(0);
-  const [retryVersion, setRetryVersion] = useState(0);
-  const [resetVersion, setResetVersion] = useState(0);
   const [focusRequest, setFocusRequest] = useState<number[] | null>(null);
-  const [lod, setLod] = useState<LodState>(NO_LOD);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [expandedModel, setExpandedModel] = useState<string | null>(null);
-  const [confirmClear, setConfirmClear] = useState(false);
 
-  const onLod = useCallback(
-    (next: LodReport) =>
-      setLod((prev) => ({
-        report: next,
-        // A second failure of the same level is the same attempt still being
-        // reported; a different hash is a new one and gets a new stamp.
-        failedAt: next.failure
-          ? prev.report.failure?.hash === next.failure.hash
-            ? prev.failedAt
-            : new Date()
-          : null,
-      })),
-    [],
-  );
   const fly = useFlyAround(mode.state.mode, mode.state.view.kind);
   const land = fly.stop;
-  // A reset lands the flight too, or the rig would fly on from the reset view.
-  const onReset = useCallback(() => {
-    land();
-    setResetVersion((v) => v + 1);
-  }, [land]);
-  const onRetry = useCallback(() => setRetryVersion((v) => v + 1), []);
+  const { report, failedAt, retryVersion, resetVersion, onLod, onReset, onRetry } = useLodHandlers({ land });
   // So does a focus: the next flight frame would overwrite it.
   const onFocus = useCallback(
     (id: number) => {
@@ -171,19 +130,11 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
     reveal("documents");
   }, [documents, reveal]);
 
-  // Saved chains are everyone's: they go only with the grant, and only after
-  // asking. Without it Clear takes the reader's own chains and asks nothing.
-  const clearMeasurements = measure.clear;
-  const hasSaved = measure.chains.some((c) => c.serverId != null);
-  const onClearMeasurements = useCallback(() => {
-    if (canDeleteMeasurements && hasSaved) setConfirmClear(true);
-    else clearMeasurements(!canDeleteMeasurements);
-  }, [canDeleteMeasurements, hasSaved, clearMeasurements]);
-  const onConfirmClear = useCallback(() => {
-    setConfirmClear(false);
-    clearMeasurements(false);
-  }, [clearMeasurements]);
-  const onCancelClear = useCallback(() => setConfirmClear(false), []);
+  const { confirmClear, onClearMeasurements, onConfirmClear, onCancelClear } = useClearMeasurements({
+    chains: measure.chains,
+    clear: measure.clear,
+    canDeleteMeasurements,
+  });
 
   const onVisibility = useCallback(
     (placementId: number, panoramaId: number, visible: boolean) => {
@@ -197,7 +148,7 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
 
   return {
     view: {
-      report: lod.report,
+      report,
       targetLod,
       retryVersion,
       resetVersion,
@@ -208,7 +159,7 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
       expandedModel,
       confirmClear,
     },
-    failedAt: lod.failedAt,
+    failedAt,
     on: {
       onPick: mode.select,
       onTransformCommit: editor.commitTransform,

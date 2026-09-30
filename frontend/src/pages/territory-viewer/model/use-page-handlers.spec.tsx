@@ -83,40 +83,17 @@ const mount = (over?: Parameters<typeof deps>[0]) => {
 };
 
 describe("usePageHandlers", () => {
-  describe("Clear", () => {
-    it("asks first when saved chains would go, and clears everything once confirmed", () => {
-      const { result, spies } = mount({ chains: [SAVED, LOCAL] });
-      act(() => result.current.on.onClearMeasurements());
-      expect(result.current.view.confirmClear).toBe(true);
-      expect(spies.measure.clear).not.toHaveBeenCalled();
-      act(() => result.current.on.onConfirmClear());
-      expect(result.current.view.confirmClear).toBe(false);
-      expect(spies.measure.clear).toHaveBeenCalledExactlyOnceWith(false);
-    });
-
-    it("clears nothing when the question is cancelled", () => {
-      const { result, spies } = mount({ chains: [SAVED] });
-      act(() => result.current.on.onClearMeasurements());
-      act(() => result.current.on.onCancelClear());
-      expect(result.current.view.confirmClear).toBe(false);
-      expect(spies.measure.clear).not.toHaveBeenCalled();
-    });
-
-    it("clears at once when nothing saved is on screen", () => {
-      const { result, spies } = mount({ chains: [LOCAL] });
-      act(() => result.current.on.onClearMeasurements());
-      expect(result.current.view.confirmClear).toBe(false);
-      expect(spies.measure.clear).toHaveBeenCalledExactlyOnceWith(false);
-    });
-
-    // Review r-2: without measurement:delete the saved chains must stay on
-    // screen, since nothing will delete them on the server.
-    it("keeps the saved chains for a reader who cannot delete them, and asks nothing", () => {
-      const { result, spies } = mount({ chains: [SAVED, LOCAL], canDeleteMeasurements: false });
-      act(() => result.current.on.onClearMeasurements());
-      expect(result.current.view.confirmClear).toBe(false);
-      expect(spies.measure.clear).toHaveBeenCalledExactlyOnceWith(true);
-    });
+  // The rest of Clear's ask-first dance is use-clear-measurements.spec.tsx;
+  // this is the one wiring check that the composed hook still threads it
+  // through correctly.
+  it("wires Clear through the confirm dialog: asks first when saved chains would go", () => {
+    const { result, spies } = mount({ chains: [SAVED, LOCAL] });
+    act(() => result.current.on.onClearMeasurements());
+    expect(result.current.view.confirmClear).toBe(true);
+    expect(spies.measure.clear).not.toHaveBeenCalled();
+    act(() => result.current.on.onConfirmClear());
+    expect(result.current.view.confirmClear).toBe(false);
+    expect(spies.measure.clear).toHaveBeenCalledExactlyOnceWith(false);
   });
 
   it("starts with LOD 0 asked for and nothing else pending", () => {
@@ -133,32 +110,6 @@ describe("usePageHandlers", () => {
       confirmClear: false,
     });
     expect(result.current.failedAt).toBeNull();
-  });
-
-  it("stamps the clock when a failure lands, and leaves it there while the same one is reported", () => {
-    const { result } = mount();
-    act(() =>
-      result.current.on.onLod({
-        shown: null,
-        target: 0,
-        percent: null,
-        progressText: null,
-        failure: { hash: "h1", status: 502 },
-      }),
-    );
-    const stamped = result.current.failedAt;
-    expect(stamped).not.toBeNull();
-
-    act(() =>
-      result.current.on.onLod({
-        shown: null,
-        target: 0,
-        percent: null,
-        progressText: null,
-        failure: { hash: "h1", status: 502 },
-      }),
-    );
-    expect(result.current.failedAt).toBe(stamped);
   });
 
   it("enters place mode with the picker, and leaves it when the picker goes", () => {
