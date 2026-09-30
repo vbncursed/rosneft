@@ -1,32 +1,49 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { assetUrl } from "@/entities/content";
 import type { LodArtifact } from "@/entities/scene";
+
+/** A finished level's blob, kept past the level change. */
+export type HeldBlob = { hash: string; blobUrl: string };
 
 export type LodDownload = {
   blobUrl: string | null;
   received: number;
   failed: { status: number | null } | null;
+  /** The level before this one, if its download finished: it may still be on screen. */
+  held: HeldBlob | null;
 };
 
-const IDLE: LodDownload = { blobUrl: null, received: 0, failed: null };
+type Progress = Omit<LodDownload, "held">;
+
+const IDLE: Progress = { blobUrl: null, received: 0, failed: null };
 
 // State carries the hash it describes so a level change reads as idle during
 // render. Resetting it from the effect instead would leave the previous
 // level's percent on screen for one render, and start a second one to clear it.
-type Tracked = LodDownload & { hash: string | null };
+type Tracked = Progress & { hash: string | null };
 
 /**
  * Fetches one level with a streamed body so the page can draw real progress —
  * drei's loader exposes none. The blob URL is what useGLTF then parses (and
- * caches by), so the bytes travel once. Revoked when the level changes or the
+ * caches by), so the bytes travel once. On a level change a finished blob
+ * becomes `held` rather than revoked — it is what stays on screen while a
+ * finer level downloads — and is revoked when the next one replaces it or the
  * caller unmounts; drei's parsed cache survives the revoke.
  *
  * ponytail: one setState per chunk — a few hundred renders on a 10 MB file,
  * and only the progress chip re-renders. Throttle to one update per 100 ms if
  * a profile ever says it matters.
+ *
+ * ponytail: at most two blobs alive — the current level and the one before
+ * it, so LOD 1 and LOD 0 of a big territory both sit in memory until the next
+ * level change. Revoke `held` once the finer level is on screen if that
+ * ever matters.
  */
 export function useLodDownload(artifact: LodArtifact | null): LodDownload {
   const [state, setState] = useState<Tracked>({ ...IDLE, hash: null });
+  const [held, setHeld] = useState<HeldBlob | null>(null);
+  // The same value as `held`, readable from a cleanup without a stale closure.
+  const heldRef = useRef<HeldBlob | null>(null);
   const hash = artifact?.hash ?? null;
 
   useEffect(() => {
@@ -73,13 +90,33 @@ export function useLodDownload(artifact: LodArtifact | null): LodDownload {
     })();
     return () => {
       controller.abort();
-      if (url) URL.revokeObjectURL(url);
-      // Leaving the level forgets it: a return starts from 0, not from a
-      // finished download whose blob was just revoked.
+      if (url) {
+        if (heldRef.current) URL.revokeObjectURL(heldRef.current.blobUrl);
+        heldRef.current = { hash, blobUrl: url };
+        setHeld(heldRef.current);
+      }
+      // Leaving the level forgets its progress: a return starts from 0 and a
+      // fresh download, never from the held blob.
       setState((st) => (st.hash === hash ? { ...IDLE, hash: null } : st));
     };
   }, [hash]);
 
+  // Declared after the download so its cleanup runs after that one on
+  // unmount, and so also revokes the blob that cleanup has just handed over.
+  useEffect(
+    () => () => {
+      if (heldRef.current) URL.revokeObjectURL(heldRef.current.blobUrl);
+      heldRef.current = null;
+    },
+    [],
+  );
+
   const live = state.hash === hash ? state : IDLE;
-  return { blobUrl: live.blobUrl, received: live.received, failed: live.failed };
+  // On the render a level changes, the cleanup that moves the finished blob
+  // into `held` has not run yet; read as `held` already, or the level on
+  // screen would lose its url for that render and remount off the asset route.
+  const leaving = state.hash !== hash && state.hash !== null && state.blobUrl
+    ? { hash: state.hash, blobUrl: state.blobUrl }
+    : null;
+  return { blobUrl: live.blobUrl, received: live.received, failed: live.failed, held: leaving ?? held };
 }

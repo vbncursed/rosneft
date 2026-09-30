@@ -56,14 +56,17 @@ export type ProgressiveSelection = {
 };
 
 /**
- * Decides both at once. Before the target has loaded, the coarsest entry is
- * shown and the target warms; afterwards the target is shown and nothing
- * warms. Keeping this pure is what makes the swap testable without WebGL.
+ * Decides both at once. Before the target has loaded, `held` — the level
+ * already on screen when a finer target was asked for — stays up while the
+ * target warms, or the coarsest entry when nothing is held (or the held level
+ * left the chain, or is the target itself); afterwards the target is shown and
+ * nothing warms. Keeping this pure is what makes the swap testable without WebGL.
  */
 export function selectProgressive(
   chain: LodArtifact[],
   targetLod: number,
   ready: boolean,
+  held: LodArtifact | null = null,
 ): ProgressiveSelection {
   const target = pickLod(chain, targetLod);
   if (target === null) return { show: null, warm: null };
@@ -71,7 +74,8 @@ export function selectProgressive(
   if (ready || coarsest === null || coarsest.lod === target.lod) {
     return { show: target, warm: null };
   }
-  return { show: coarsest, warm: target };
+  const keep = held && held.hash !== target.hash && chain.some((a) => a.hash === held.hash);
+  return { show: keep ? held : coarsest, warm: target };
 }
 
 /** What the reader chose: one level, or Auto — each object's level follows its size on screen. */

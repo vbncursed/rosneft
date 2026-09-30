@@ -29,6 +29,17 @@ describe("lod chain", () => {
     expect(selectProgressive(chain, 2, false)).toEqual({ show: chain[2], warm: null });
     expect(selectProgressive([chain[0]], 0, false)).toEqual({ show: chain[0], warm: null });
   });
+
+  it("keeps a held level on screen while the finer target warms, and shows the target once ready", () => {
+    expect(selectProgressive(chain, 0, false, chain[1])).toEqual({ show: chain[1], warm: chain[0] });
+    expect(selectProgressive(chain, 0, true, chain[1])).toEqual({ show: chain[0], warm: null });
+  });
+
+  it("falls back to the coarsest when nothing is held, the held level left the chain, or it is the target", () => {
+    expect(selectProgressive(chain, 0, false, null)).toEqual({ show: chain[2], warm: chain[0] });
+    expect(selectProgressive([chain[0], chain[2]], 0, false, chain[1])).toEqual({ show: chain[2], warm: chain[0] });
+    expect(selectProgressive(chain, 0, false, chain[0])).toEqual({ show: chain[2], warm: chain[0] });
+  });
 });
 
 describe("projectedArea", () => {

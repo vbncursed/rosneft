@@ -66,7 +66,7 @@ describe("useLodDownload", () => {
     rerender({ art: b });
     // The state still describes A on this render; the hash guard is what makes
     // it read as idle rather than as B at 3 bytes.
-    expect(result.current).toEqual({ blobUrl: null, received: 0, failed: null });
+    expect(result.current).toEqual({ blobUrl: null, received: 0, failed: null, held: null });
 
     await act(async () => {
       try {
@@ -117,14 +117,84 @@ describe("useLodDownload", () => {
     await waitFor(() => expect(result.current.blobUrl).toBe("blob:a"));
     rerender({ art: null });
     rerender({ art: a });
-    expect(result.current).toEqual({ blobUrl: null, received: 0, failed: null });
+    expect(result.current).toEqual({
+      blobUrl: null,
+      received: 0,
+      failed: null,
+      held: { hash: "a", blobUrl: "blob:a" },
+    });
+  });
+
+  // The level on screen while a finer one downloads is the one before it: its
+  // blob has to outlive the level change, or the page falls back to the
+  // coarsest for the whole download.
+  it("keeps the previous finished level's blob as held, and revokes it once replaced or unmounted", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf([new Uint8Array(2)]), { status: 200 })));
+    const minted = ["blob:a", "blob:b", "blob:c"];
+    const revoke = vi.fn();
+    vi.stubGlobal("URL", { createObjectURL: vi.fn(() => minted.shift()), revokeObjectURL: revoke });
+    const lvl = (lod: number, hash: string) => ({ lod, hash, size: 2 });
+    const { result, rerender, unmount } = renderHook(({ art }) => useLodDownload(art), {
+      initialProps: { art: lvl(2, "a") },
+    });
+    await waitFor(() => expect(result.current.blobUrl).toBe("blob:a"));
+
+    rerender({ art: lvl(1, "b") });
+    expect(result.current.held).toEqual({ hash: "a", blobUrl: "blob:a" });
+    await waitFor(() => expect(result.current.blobUrl).toBe("blob:b"));
+    expect(result.current.held).toEqual({ hash: "a", blobUrl: "blob:a" });
+    expect(revoke).not.toHaveBeenCalledWith("blob:a");
+
+    rerender({ art: lvl(0, "c") });
+    expect(result.current.held).toEqual({ hash: "b", blobUrl: "blob:b" });
+    expect(revoke).toHaveBeenCalledWith("blob:a");
+    expect(revoke).not.toHaveBeenCalledWith("blob:b");
+    await waitFor(() => expect(result.current.blobUrl).toBe("blob:c"));
+
+    unmount();
+    expect(revoke).toHaveBeenCalledWith("blob:b");
+    expect(revoke).toHaveBeenCalledWith("blob:c");
+  });
+
+  it("an unfinished level never becomes held, and leaves the one before it in place", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        url.endsWith("/b")
+          ? new Response(new ReadableStream<Uint8Array>({ start() {} }), { status: 200 })
+          : new Response(streamOf([new Uint8Array(2)]), { status: 200 }),
+      ),
+    );
+    const revoke = vi.fn();
+    vi.stubGlobal("URL", { createObjectURL: vi.fn(() => "blob:a"), revokeObjectURL: revoke });
+    const lvl = (lod: number, hash: string) => ({ lod, hash, size: 2 });
+    const { result, rerender } = renderHook(({ art }) => useLodDownload(art), {
+      initialProps: { art: lvl(2, "a") as ReturnType<typeof lvl> | null },
+    });
+    await waitFor(() => expect(result.current.blobUrl).toBe("blob:a"));
+    rerender({ art: lvl(1, "b") });
+    rerender({ art: null });
+    expect(result.current.held).toEqual({ hash: "a", blobUrl: "blob:a" });
+    expect(revoke).not.toHaveBeenCalled();
+  });
+
+  it("holds nothing when the level left had not finished", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(new ReadableStream<Uint8Array>({ start() {} }), { status: 200 })),
+    );
+    const { result, rerender } = renderHook(({ art }) => useLodDownload(art), {
+      initialProps: { art: { lod: 1, hash: "a", size: 2 } as { lod: number; hash: string; size: number } | null },
+    });
+    rerender({ art: null });
+    expect(result.current.held).toBeNull();
   });
 
   it("does nothing for null", () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
     const { result } = renderHook(() => useLodDownload(null));
-    expect(result.current).toEqual({ blobUrl: null, received: 0, failed: null });
+    expect(result.current).toEqual({ blobUrl: null, received: 0, failed: null, held: null });
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

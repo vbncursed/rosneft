@@ -136,8 +136,15 @@ export default function GltfModel({
   const wanted = pickLod(lods, level);
   const fetched = wanted && wanted.hash !== pickCoarsest(lods)?.hash ? wanted : null;
   const download = useLodDownload(fetched);
-  const urlOf = (a: LodArtifact) =>
-    a.hash === wanted?.hash && download.blobUrl ? download.blobUrl : lodUrl(a);
+  // The held blob is the level before the wanted one — what stays on screen
+  // while a finer level downloads (use-progressive-lod). Mapped back to its
+  // blob, not to its asset route, so its parsed scene is reused and not
+  // fetched again.
+  const heldUrl = download.held?.blobUrl ?? null;
+  const urlOf = (a: LodArtifact) => {
+    if (a.hash === wanted?.hash && download.blobUrl) return download.blobUrl;
+    return a.hash === download.held?.hash && heldUrl ? heldUrl : lodUrl(a);
+  };
   const lod = useProgressiveLod(lods, level, urlOf);
   // The level the report calls "shown" is the one whose mesh has mounted, not
   // the one selected: a coarse level still on the wire is nothing on screen.
@@ -153,7 +160,8 @@ export default function GltfModel({
   // its onReady, so each effect below keys on its trigger alone and fires once
   // per fact rather than once per render of whatever is above us.
   // Every url this component may have handed drei, so a retry can evict them.
-  const urls = [...lods.map(lodUrl), ...(download.blobUrl ? [download.blobUrl] : [])];
+  const blobs = [download.blobUrl, heldUrl].filter((u): u is string => u !== null);
+  const urls = [...lods.map(lodUrl), ...blobs];
   const latest = useRef({ lod, onReport, urls });
   useEffect(() => {
     latest.current = { lod, onReport, urls };
@@ -185,16 +193,31 @@ export default function GltfModel({
     latest.current.lod.retry();
   }, [retryVersion]);
 
-  // drei caches the parsed GLTF by URL string. useLodDownload revokes the blob
-  // URL when the level changes or we unmount — and its cleanup runs first,
-  // this hook being declared after it — so without this the parsed scene would
-  // sit in that cache forever under a URL no one can ever request again.
-  // Nothing evicts it; the entry has to be dropped by hand.
+  // drei caches the parsed GLTF by URL string. useLodDownload revokes a blob
+  // URL once it is neither the current level's nor the held one, and all of
+  // them when we unmount — so without this the parsed scene would sit in that
+  // cache forever under a URL no one can ever request again. Nothing evicts
+  // it; the entry has to be dropped by hand. Only once it stops being live,
+  // though: the current level's blob becomes the held one on a level change,
+  // and clearing it then would evict a scene that is still on screen.
+  const minted = useRef(new Set<string>());
+  const blobUrl = download.blobUrl;
   useEffect(() => {
-    const url = download.blobUrl;
-    if (!url) return;
-    return () => useGLTF.clear(url);
-  }, [download.blobUrl]);
+    const seen = minted.current;
+    for (const url of [blobUrl, heldUrl]) if (url) seen.add(url);
+    for (const url of seen) {
+      if (url === blobUrl || url === heldUrl) continue;
+      useGLTF.clear(url);
+      seen.delete(url);
+    }
+  }, [blobUrl, heldUrl]);
+  useEffect(() => {
+    const seen = minted.current;
+    return () => {
+      for (const url of seen) useGLTF.clear(url);
+      seen.clear();
+    };
+  }, []);
 
   // The percent describes the level `useLodDownload` is streaming by hand, and
   // only that one: a refused download, or a fallback level drei fetches itself,

@@ -150,6 +150,53 @@ describe("GltfModel", () => {
     expect(parsed.filter((u) => u.startsWith("/api/assets/")).every((u) => u.endsWith("coarse"))).toBe(true);
   });
 
+  it("keeps the level on screen while a finer one downloads (1 → 0), its blob alive and parsed", async () => {
+    // Auto climbs 2 → 1 → 0 as the reader zooms in. Falling back to LOD 2 for
+    // the whole LOD 0 download made the territory go blurrier on a zoom-in —
+    // and the LOD 1 blob, revoked and evicted on the level change, could not
+    // have stayed up even if asked.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(streamOf([new Uint8Array(4), new Uint8Array(6)]), { status: 200 })),
+    );
+    const minted = ["blob:mid", "blob:fine"];
+    vi.stubGlobal("URL", { ...URL, createObjectURL: vi.fn(() => minted.shift()), revokeObjectURL: vi.fn() });
+    const drei = await import("@react-three/drei");
+    vi.mocked(drei.useGLTF).mockClear();
+    vi.mocked(drei.useGLTF.clear).mockClear();
+    const lods = [
+      { lod: 0, hash: "fine", size: 10 },
+      { lod: 1, hash: "mid", size: 10 },
+      { lod: 2, hash: "coarse", size: 2 },
+    ];
+    const onReport = vi.fn();
+    const last = () => onReport.mock.lastCall![0] as LodReport;
+    const r = await ReactThreeTestRenderer.create(model({ onReport, targetLod: 1, lods }));
+    await vi.waitFor(() => expect(last().shown).toBe(1));
+
+    const from = onReport.mock.calls.length;
+    const parsedFrom = vi.mocked(drei.useGLTF).mock.calls.length;
+    await r.update(model({ onReport, targetLod: 0, lods }));
+    const reports = () => onReport.mock.calls.slice(from).map((c) => c[0] as LodReport);
+    expect(reports()[0]).toMatchObject({ shown: 1, target: 0 });
+    await vi.waitFor(() => expect(last().shown).toBe(0));
+    // The coarsest never comes back. (The swap itself reports one `shown: null`
+    // between unmounting LOD 1 and LOD 0's mesh reporting itself drawn, as every
+    // swap does — not a frame without a mesh.)
+    expect(reports().map((rep) => rep.shown)).not.toContain(2);
+    // Held, not re-fetched: nothing went back to the asset route for LOD 1.
+    const parsed = vi.mocked(drei.useGLTF).mock.calls.slice(parsedFrom).map((c) => String(c[0]));
+    expect(parsed).not.toContain("/api/assets/mid");
+    expect(parsed).not.toContain("/api/assets/coarse");
+    expect(URL.revokeObjectURL).not.toHaveBeenCalledWith("blob:mid");
+    expect(drei.useGLTF.clear).not.toHaveBeenCalledWith("blob:mid");
+
+    await r.unmount();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:mid");
+    expect(drei.useGLTF.clear).toHaveBeenCalledWith("blob:mid");
+    expect(drei.useGLTF.clear).toHaveBeenCalledWith("blob:fine");
+  });
+
   it("reports no level on screen until the coarse mesh has actually mounted", async () => {
     // The strip read "LOD 2 active" for the seconds the coarse level was still
     // on the wire, over an empty scene. On screen means mounted. The target's

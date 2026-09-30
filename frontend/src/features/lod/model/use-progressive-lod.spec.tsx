@@ -94,6 +94,58 @@ describe("useProgressiveLod", () => {
     expect(result.current.url).toContain("/api/assets/a");
   });
 
+  // Auto climbs in steps as the reader zooms. Dropping back to the coarsest
+  // for the whole download of the next step made zooming in go blurrier.
+  it("a finer target keeps the ready level on screen while it warms (2 → 1 → 0)", () => {
+    const { result, rerender } = renderHook(({ t }) => useProgressiveLod(chain, t), {
+      initialProps: { t: 1 },
+    });
+    expect(result.current.shown?.lod).toBe(2);
+    expect(result.current.warmUrl).toContain("/api/assets/b");
+    act(() => result.current.onWarmReady());
+    expect(result.current.shown?.lod).toBe(1);
+
+    rerender({ t: 0 });
+    expect(result.current.shown?.lod).toBe(1);
+    expect(result.current.url).toContain("/api/assets/b");
+    expect(result.current.warmUrl).toContain("/api/assets/a");
+    act(() => result.current.onWarmReady());
+    expect(result.current.shown?.lod).toBe(0);
+    expect(result.current.warmUrl).toBeNull();
+  });
+
+  it("a finer target before the previous one was ready still shows the coarsest", () => {
+    const { result, rerender } = renderHook(({ t }) => useProgressiveLod(chain, t), {
+      initialProps: { t: 1 },
+    });
+    rerender({ t: 0 });
+    expect(result.current.shown?.lod).toBe(2);
+    expect(result.current.warmUrl).toContain("/api/assets/a");
+  });
+
+  it("a held level that is dropped falls back to the coarsest", () => {
+    const { result, rerender } = renderHook(({ t }) => useProgressiveLod(chain, t), {
+      initialProps: { t: 1 },
+    });
+    act(() => result.current.onWarmReady());
+    rerender({ t: 0 });
+    expect(result.current.shown?.lod).toBe(1);
+    act(() => result.current.onShownDropped());
+    expect(result.current.shown?.lod).toBe(2);
+    expect(result.current.warmUrl).toContain("/api/assets/a");
+  });
+
+  it("retry clears the hold", () => {
+    const { result, rerender } = renderHook(({ t }) => useProgressiveLod(chain, t), {
+      initialProps: { t: 1 },
+    });
+    act(() => result.current.onWarmReady());
+    rerender({ t: 0 });
+    expect(result.current.shown?.lod).toBe(1);
+    act(() => result.current.retry());
+    expect(result.current.shown?.lod).toBe(2);
+  });
+
   it("resolves urls through urlOf", () => {
     const { result } = renderHook(() => useProgressiveLod(chain, 0, (a) => `blob:${a.hash}`));
     expect(result.current.url).toBe("blob:c");
