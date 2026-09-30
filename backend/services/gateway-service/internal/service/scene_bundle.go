@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"golang.org/x/sync/errgroup"
 
@@ -160,4 +161,18 @@ func nilToEmpty[T any](in []T) []T {
 		return []T{}
 	}
 	return in
+}
+
+// panoramaPhasesOf is the bundle's phase list: always the three, in
+// domain.PanoramaPhases order, hidden where a stored row says so. A phase with
+// no row is shown; a row naming no known phase is dropped.
+func panoramaPhasesOf(stored []domain.PanoramaPhase) []domain.PanoramaPhase {
+	out := make([]domain.PanoramaPhase, len(domain.PanoramaPhases))
+	for i, name := range domain.PanoramaPhases {
+		out[i].Phase = name
+		if j := slices.IndexFunc(stored, func(p domain.PanoramaPhase) bool { return p.Phase == name }); j >= 0 {
+			out[i].Hidden = stored[j].Hidden
+		}
+	}
+	return out
 }

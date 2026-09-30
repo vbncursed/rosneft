@@ -74,6 +74,11 @@ func (g *groupService) DeletePlacementGroup(_ context.Context, slug string, id i
 	return g.err
 }
 
+func (g *groupService) SetPlacementGroupHidden(_ context.Context, slug string, id int64, hidden bool) (domain.PlacementGroup, error) {
+	g.slug, g.id, g.hidden = slug, id, hidden
+	return domain.PlacementGroup{ID: id, TerritorySlug: slug, Title: "North", Hidden: hidden}, g.err
+}
+
 func (s *PlacementGroupsSuite) TestHideForwardsTheIDsAndTheFlag() {
 	resp, err := s.srv.SetPlacementsHidden(s.T().Context(), SetPlacementsHiddenRequestObject{
 		Slug: "yard", Body: &SetPlacementsHiddenJSONRequestBody{Ids: []int64{1, 2}, Hidden: true},
@@ -112,6 +117,20 @@ func (s *PlacementGroupsSuite) TestCreateAnswers201WithTheGroup() {
 	assert.Equal(s.T(), s.svc.slug, "yard")
 }
 
+// The group's own hidden flag answers back what it was set to; its
+// placements' own flags are a different call entirely.
+func (s *PlacementGroupsSuite) TestGroupHiddenAnswersWhatItFlagged() {
+	resp, err := s.srv.SetPlacementGroupHidden(s.T().Context(), SetPlacementGroupHiddenRequestObject{
+		Slug: "yard", Id: 7, Body: &SetPlacementGroupHiddenJSONRequestBody{Hidden: true},
+	})
+	assert.NilError(s.T(), err)
+	group, is := resp.(SetPlacementGroupHidden200JSONResponse)
+	assert.Assert(s.T(), is, "got %T", resp)
+	assert.Equal(s.T(), group.Id, int64(7))
+	assert.Assert(s.T(), group.Hidden)
+	assert.Equal(s.T(), s.svc.id, int64(7))
+}
+
 func (s *PlacementGroupsSuite) TestRenameAndDeleteTakeTheIDFromTheURL() {
 	ctx := s.T().Context()
 	resp, err := s.srv.UpdatePlacementGroup(ctx, UpdatePlacementGroupRequestObject{
@@ -144,6 +163,9 @@ func (s *PlacementGroupsSuite) TestAMissingBodyIsABadRequest() {
 		func() (any, error) {
 			return s.srv.UpdatePlacementGroup(ctx, UpdatePlacementGroupRequestObject{Slug: "yard", Id: 1})
 		},
+		func() (any, error) {
+			return s.srv.SetPlacementGroupHidden(ctx, SetPlacementGroupHiddenRequestObject{Slug: "yard", Id: 1})
+		},
 	} {
 		resp, err := call()
 		assert.NilError(s.T(), err)
@@ -155,7 +177,8 @@ func (s *PlacementGroupsSuite) TestAMissingBodyIsABadRequest() {
 func is400(resp any) bool {
 	switch resp.(type) {
 	case SetPlacementsHidden400JSONResponse, SetPlacementsGroup400JSONResponse,
-		CreatePlacementGroup400JSONResponse, UpdatePlacementGroup400JSONResponse:
+		CreatePlacementGroup400JSONResponse, UpdatePlacementGroup400JSONResponse,
+		SetPlacementGroupHidden400JSONResponse:
 		return true
 	}
 	return false
@@ -186,6 +209,11 @@ func (s *PlacementGroupsSuite) TestRefusalsKeepTheirStatus() {
 		},
 		"DeletePlacementGroup": func() (any, error) {
 			return s.srv.DeletePlacementGroup(ctx, DeletePlacementGroupRequestObject{Slug: "yard", Id: 1})
+		},
+		"SetPlacementGroupHidden": func() (any, error) {
+			return s.srv.SetPlacementGroupHidden(ctx, SetPlacementGroupHiddenRequestObject{
+				Slug: "yard", Id: 1, Body: &SetPlacementGroupHiddenJSONRequestBody{},
+			})
 		},
 	}
 	for _, tc := range []struct {

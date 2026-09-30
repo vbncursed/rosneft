@@ -38,6 +38,12 @@ func (s *SceneBundleSuite) SetupTest() {
 	s.ctx = s.T().Context()
 }
 
+// SetupSubTest gives each s.Run case inside a table-driven test its own fresh
+// mocks, the same way SetupTest does between top-level tests.
+func (s *SceneBundleSuite) SetupSubTest() {
+	s.SetupTest()
+}
+
 // A territory with a 3-LOD chain; a model m1 with 2 LODs.
 var (
 	sbTerr3LOD = []domain.Artifact{

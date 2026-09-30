@@ -188,18 +188,31 @@ func (s *PlacementGroupsSuite) TestAListingFailureOtherThanUnimplementedPassesTh
 }
 
 // The group's own flag travels under the territory and comes back on the
-// group; the listing carries it too, for the scene bundle.
-func (s *PlacementGroupsSuite) TestTheGroupFlagTravelsAndComesBack() {
-	cc := &groupCC{}
-	c := &Client{cc: cc}
+// group, whichever way it was set.
+func (s *PlacementGroupsSuite) TestTheGroupFlagRequestTravelsUnderTheTerritory() {
+	for _, tc := range []struct {
+		name   string
+		hidden bool
+	}{
+		{name: "hidden", hidden: true},
+		{name: "shown", hidden: false},
+	} {
+		s.Run(tc.name, func() {
+			cc := &groupCC{}
+			c := &Client{cc: cc}
 
-	g, err := c.SetPlacementGroupHidden(s.T().Context(), "yard", 4, true)
-	assert.NilError(s.T(), err)
-	assert.Equal(s.T(), cc.flag.GetTerritorySlug(), "yard")
-	assert.Equal(s.T(), cc.flag.GetId(), int64(4))
-	assert.Assert(s.T(), cc.flag.GetHidden())
-	assert.Assert(s.T(), g.Hidden)
+			g, err := c.SetPlacementGroupHidden(s.T().Context(), "yard", 4, tc.hidden)
+			assert.NilError(s.T(), err)
+			assert.Equal(s.T(), cc.flag.GetTerritorySlug(), "yard")
+			assert.Equal(s.T(), cc.flag.GetId(), int64(4))
+			assert.Equal(s.T(), cc.flag.GetHidden(), tc.hidden)
+			assert.Equal(s.T(), g.Hidden, tc.hidden)
+		})
+	}
+}
 
+// The listing carries the same flag too, for the scene bundle.
+func (s *PlacementGroupsSuite) TestPlacementGroupFromProtoMapsHidden() {
 	assert.Assert(s.T(), placementGroupFromProto(&catalogv1.PlacementGroup{Id: 5, Hidden: true}).Hidden)
 	assert.Assert(s.T(), !placementGroupFromProto(&catalogv1.PlacementGroup{Id: 6}).Hidden)
 }

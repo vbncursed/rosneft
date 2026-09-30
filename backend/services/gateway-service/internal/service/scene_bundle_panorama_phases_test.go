@@ -10,8 +10,8 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
-// allShown is the three phases in bundle order, none hidden.
-var allShown = []domain.PanoramaPhase{{Phase: "prior"}, {Phase: "current"}, {Phase: "post"}}
+// allPhasesShown is the three phases in bundle order, none hidden.
+var allPhasesShown = []domain.PanoramaPhase{{Phase: "prior"}, {Phase: "current"}, {Phase: "post"}}
 
 func (s *SceneBundleSuite) TestBundleCarriesThePanoramaPhaseFlags() {
 	s.expectFanOut(sbTerr3LOD, sbModelsM1, nil)
@@ -35,16 +35,15 @@ func (s *SceneBundleSuite) TestPanoramaPhasesAreAlwaysTheThreeInOrder() {
 		stored []domain.PanoramaPhase
 		want   []domain.PanoramaPhase
 	}{
-		{"none stored", nil, allShown},
+		{name: "none stored", stored: nil, want: allPhasesShown},
 		{
-			"one hidden, out of order",
-			[]domain.PanoramaPhase{{Phase: "post", Hidden: true}, {Phase: "prior"}},
-			[]domain.PanoramaPhase{{Phase: "prior"}, {Phase: "current"}, {Phase: "post", Hidden: true}},
+			name:   "one hidden, out of order",
+			stored: []domain.PanoramaPhase{{Phase: "post", Hidden: true}, {Phase: "prior"}},
+			want:   []domain.PanoramaPhase{{Phase: "prior"}, {Phase: "current"}, {Phase: "post", Hidden: true}},
 		},
-		{"an unknown row is dropped", []domain.PanoramaPhase{{Phase: "during", Hidden: true}}, allShown},
+		{name: "an unknown row is dropped", stored: []domain.PanoramaPhase{{Phase: "during", Hidden: true}}, want: allPhasesShown},
 	} {
 		s.Run(tc.name, func() {
-			s.SetupTest()
 			s.expectFanOut(sbTerr3LOD, sbModelsM1, nil)
 			s.con.ListPanoramaPhasesMock.Return(tc.stored, nil)
 
@@ -64,7 +63,7 @@ func (s *SceneBundleSuite) TestMissingTerritoryLeavesThePhasesShown() {
 	got, err := s.svc.GetSceneBundle(s.ctx, "t1", "")
 
 	assert.NilError(s.T(), err)
-	assert.DeepEqual(s.T(), got.PanoramaPhases, allShown)
+	assert.DeepEqual(s.T(), got.PanoramaPhases, allPhasesShown)
 }
 
 func (s *SceneBundleSuite) TestPanoramaPhaseListErrorAbortsFanOut() {
