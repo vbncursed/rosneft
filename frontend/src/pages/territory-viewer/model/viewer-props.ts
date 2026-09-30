@@ -1,7 +1,7 @@
 import type { RefObject } from "react";
 import type { Chain, MeasurePoint } from "@/entities/measurement";
 import type { PlacementGroup, PlacementTransform, ResolvedPlacement } from "@/entities/placement";
-import type { ModelOption, SceneViewModel } from "@/entities/scene";
+import type { LodChoice, ModelOption, SceneViewModel } from "@/entities/scene";
 import type { ViewerError } from "@/features/lod";
 import type { Tour } from "@/features/onboarding";
 import type { GizmoMode, ViewerModeState } from "@/features/viewer-mode";
@@ -47,9 +47,11 @@ export type ViewerErrorProps = {
 export type StripView = { items: string[]; tone: "neutral" | "bad"; accentLast: boolean };
 export type SwitcherView = {
   levels: number[];
-  target: number;
+  choice: LodChoice;
+  /** The level the canvas asked for — Auto's pick, or the choice. */
+  target: number | null;
   shown: number | null;
-  onChange: (lod: number) => void;
+  onChange: (choice: LodChoice) => void;
 };
 export type MeasuringView = {
   onClear: () => void;
@@ -135,8 +137,8 @@ export type PageHandlers = {
   onPanoramas: () => void;
   onDocuments: () => void;
   onReplayTour: () => void;
-  /** The switcher and the error card's way out share one setter. */
-  onTargetLod: (lod: number) => void;
+  /** The switcher and the error card's way out share one setter; a level leaves Auto. */
+  onTargetLod: (choice: LodChoice) => void;
   onRetry: () => void;
   /** Asks first when saved chains would go (spec M-4); a reader's Clear keeps them. */
   onClearMeasurements: () => void;
@@ -160,6 +162,8 @@ export type PageHandlers = {
   onVisibility: (placementId: number, panoramaId: number, visible: boolean) => void;
   /** Hides or shows many placements for everyone; a hidden selection is dropped (§1.7). */
   onSetHidden: (ids: number[], hidden: boolean) => void;
+  /** The group's own flag (D6); a selection that leaves with it is dropped (§1.7). */
+  onSetGroupHidden: (id: number, hidden: boolean) => void;
   onMoveToGroup: (ids: number[], groupId: number | null) => void;
   /** Opens the picker aimed at one user group; the batch lands in it (G-4). */
   onAddToGroup: (groupId: number) => void;
@@ -168,7 +172,7 @@ export type PageHandlers = {
 /** The page's own state, everything the hooks do not already own. */
 export type PageViewState = {
   report: LodReport;
-  targetLod: number;
+  targetLod: LodChoice;
   retryVersion: number;
   resetVersion: number;
   /** The camera is flying around the territory (Play). */
@@ -211,6 +215,7 @@ export type PageParts = {
     create: (title: string) => Promise<boolean>;
     rename: (id: number, title: string) => Promise<boolean>;
     remove: (id: number) => void;
+    setHidden: (id: number, hidden: boolean) => Promise<boolean>;
   };
   form: PlacementFormView | null;
   tour: Tour;

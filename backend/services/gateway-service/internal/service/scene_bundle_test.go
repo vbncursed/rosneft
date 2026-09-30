@@ -38,6 +38,12 @@ func (s *SceneBundleSuite) SetupTest() {
 	s.ctx = s.T().Context()
 }
 
+// SetupSubTest gives each s.Run case inside a table-driven test its own fresh
+// mocks, the same way SetupTest does between top-level tests.
+func (s *SceneBundleSuite) SetupSubTest() {
+	s.SetupTest()
+}
+
 // A territory with a 3-LOD chain; a model m1 with 2 LODs.
 var (
 	sbTerr3LOD = []domain.Artifact{
@@ -62,6 +68,7 @@ func (s *SceneBundleSuite) expectFanOut(terrArts []domain.Artifact, models []dom
 	s.cat.ListMeasurementsMock.Return(nil, nil)
 	s.cat.ListPlacementGroupsMock.Return(nil, nil)
 	s.con.ListPanoramasMock.Return(nil, nil)
+	s.con.ListPanoramaPhasesMock.Return(nil, nil)
 	s.con.ListDocumentsMock.Return(nil, nil)
 	// The bundle reads each model's chain, so it must ask for it.
 	s.cat.ListModelsMock.Expect(minimock.AnyContext, true).Return(models, nil)
@@ -79,6 +86,7 @@ func (s *SceneBundleSuite) TestPropagatesTerritoryNotFound() {
 	s.cat.ListMeasurementsMock.Return(nil, nil)
 	s.cat.ListPlacementGroupsMock.Return(nil, nil)
 	s.con.ListPanoramasMock.Return(nil, nil)
+	s.con.ListPanoramaPhasesMock.Return(nil, nil)
 	s.con.ListDocumentsMock.Return(nil, nil)
 	s.cat.ListModelsMock.Return(nil, nil)
 	_, err := s.svc.GetSceneBundle(s.ctx, "missing", "")

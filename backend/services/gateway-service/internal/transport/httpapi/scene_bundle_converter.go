@@ -11,6 +11,7 @@ func sceneBundleToAPI(b domain.SceneBundle) SceneBundle {
 		ModelOptions:    make([]AssetOption, len(b.ModelOptions)),
 		Measurements:    measurementsToAPI(b.Measurements),
 		PlacementGroups: placementGroupsToAPI(b.PlacementGroups),
+		PanoramaPhases:  panoramaPhasesToAPI(b.PanoramaPhases),
 	}
 	for i, p := range b.Placements {
 		out.Placements[i] = placementToAPI(p)

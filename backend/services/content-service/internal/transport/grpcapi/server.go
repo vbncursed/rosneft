@@ -22,6 +22,11 @@ type Service interface {
 	UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error)
 	DeletePanorama(ctx context.Context, territorySlug string, id int64) error
 
+	SetPanoramasHidden(ctx context.Context, territorySlug string, ids []int64, hidden bool) (int, error)
+	SetPanoramasPhase(ctx context.Context, territorySlug string, ids []int64, phase string) (int, error)
+	SetPanoramaPhaseHidden(ctx context.Context, territorySlug, phase string, hidden bool) (domain.PanoramaPhaseVisibility, error)
+	ListPanoramaPhases(ctx context.Context, territorySlug string) ([]domain.PanoramaPhaseVisibility, error)
+
 	ListDocuments(ctx context.Context, territorySlug string) ([]domain.Document, error)
 	CreateDocument(ctx context.Context, d domain.Document) (domain.Document, error)
 	DeleteDocument(ctx context.Context, territorySlug string, id int64) error
@@ -53,5 +58,6 @@ var statusByCode = map[codes.Code][]error{
 	},
 }
 
-// mapError translates service-layer errors to gRPC status codes.
-func mapError(err error) error { return apperr.ToStatus(err, statusByCode) }
+// mapError translates service-layer errors to gRPC status codes; a refusal's
+// message starts at its sentinel (see apperr.ToStatusAtSentinel).
+func mapError(err error) error { return apperr.ToStatusAtSentinel(err, statusByCode) }

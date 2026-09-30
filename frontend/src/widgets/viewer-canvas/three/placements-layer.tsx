@@ -4,7 +4,7 @@ import { useThree } from "@react-three/fiber";
 import { TransformControls } from "@react-three/drei";
 import type { TransformControls as TransformControlsImpl } from "three-stdlib";
 import type { GizmoMode } from "@/features/viewer-mode";
-import { isShownIn, type PlacementTransform, type ResolvedPlacement } from "@/entities/placement";
+import { isShownIn, type PlacementGroup, type PlacementTransform, type ResolvedPlacement } from "@/entities/placement";
 import PlacementInstance from "./placement-instance";
 import PlacementMarkers from "./placement-markers";
 import { useGizmoEvents } from "./use-gizmo-events";
@@ -17,6 +17,8 @@ interface PlacementsLayerProps {
   // True whenever the canvas is picking points rather than editing — the
   // caller computes it as `mode !== "orbit"`.
   measureMode: boolean;
+  // True in measure mode alone (not place): placements pull LOD 0 then.
+  measuring: boolean;
   // Gates the transform gizmo: a user without placement:write can still
   // select an object (to highlight it) but gets no gizmo to move it.
   canEdit: boolean;
@@ -30,6 +32,8 @@ interface PlacementsLayerProps {
   // dropped for one panorama must not leak into the others. The 3D view always
   // shows every placement, so the editor can never lose one that is not hidden.
   activePanoramaId: number | null;
+  /** The territory's groups: a hidden group's members are not drawn, whatever their own flag (D6). */
+  placementGroups: readonly PlacementGroup[];
   /** `storage-tank-500 #1` by id, for the labels inside a panorama. */
   markerLabels: Record<number, string>;
   showMarkers: boolean;
@@ -48,10 +52,12 @@ export default function PlacementsLayer({
   selectedId,
   mode,
   measureMode,
+  measuring,
   canEdit,
   territoryRef,
   snapEnabled,
   activePanoramaId,
+  placementGroups,
   markerLabels,
   showMarkers,
   calibrating,
@@ -75,7 +81,7 @@ export default function PlacementsLayer({
 
   // Hidden placements are not drawn anywhere (G-1); inside a panorama the
   // allowlist narrows the rest. The markers read this same list.
-  const visible = placements.filter((p) => isShownIn(p, activePanoramaId));
+  const visible = placements.filter((p) => isShownIn(p, activePanoramaId, placementGroups));
   const drawnKey = visible.map((p) => p.id).join(",");
 
   // frameloop="demand", and an R3F removal never requests a frame (removeChild
@@ -101,6 +107,7 @@ export default function PlacementsLayer({
           ref={p.id === selectedId ? setTarget : null}
           placement={p}
           measureMode={measureMode}
+          measuring={measuring}
           onSelect={onSelect}
         />
       ))}

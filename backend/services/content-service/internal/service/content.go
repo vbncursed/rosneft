@@ -21,6 +21,13 @@ type Repository interface {
 	ListPanoramasWithoutThumbnail(ctx context.Context) ([]domain.Panorama, error)
 	SetPanoramaThumbnail(ctx context.Context, id int64, hash string) error
 
+	// Bulk writes take distinct ids (the service de-duplicates) and are all or
+	// nothing: an id not on territorySlug is ErrPanoramaNotFound.
+	SetPanoramasHidden(ctx context.Context, territorySlug string, ids []int64, hidden bool) (int, error)
+	SetPanoramasPhase(ctx context.Context, territorySlug string, ids []int64, phase domain.PanoramaPhase) (int, error)
+	SetPanoramaPhaseHidden(ctx context.Context, territorySlug string, phase domain.PanoramaPhase, hidden bool) (domain.PanoramaPhaseVisibility, error)
+	ListPanoramaPhases(ctx context.Context, territorySlug string) ([]domain.PanoramaPhaseVisibility, error)
+
 	ListDocuments(ctx context.Context, territorySlug string) ([]domain.Document, error)
 	CreateDocument(ctx context.Context, d domain.Document) (domain.Document, error)
 	DeleteDocument(ctx context.Context, territorySlug string, id int64) error

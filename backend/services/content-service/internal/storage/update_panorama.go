@@ -13,9 +13,10 @@ import (
 
 // UpdatePanorama replaces title, position, and yaw_offset; the source
 // blob and slug are immutable after creation (a new equirect = a new
-// panorama). The update is scoped to p.TerritorySlug, so an id from another
-// territory yields ErrPanoramaNotFound exactly like an unknown id — the
-// gateway's territory gate checks only the slug in the URL.
+// panorama). Phase and hidden have their own bulk writes and are kept. The
+// update is scoped to p.TerritorySlug, so an id from another territory yields
+// ErrPanoramaNotFound exactly like an unknown id — the gateway's territory
+// gate checks only the slug in the URL.
 //
 // Wrapped in audittx.Run so the audit trigger can attribute the change.
 func (r *PG) UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error) {
@@ -31,11 +32,13 @@ func (r *PG) UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.Pano
 			WHERE pa.id = $1 AND pa.territory_id = t.id AND t.slug = $8
 			RETURNING pa.id, pa.territory_id, pa.slug, pa.title, pa.source_blob_hash,
 				pa.position_x, pa.position_y, pa.position_z,
-				pa.yaw_offset, pa.default_yaw, pa.created_at, pa.updated_at, pa.thumbnail_blob_hash
+				pa.yaw_offset, pa.default_yaw, pa.created_at, pa.updated_at, pa.thumbnail_blob_hash,
+				pa.phase, pa.hidden
 		)
 		SELECT u.id, t.slug, u.slug, u.title, u.source_blob_hash,
 			u.position_x, u.position_y, u.position_z,
-			u.yaw_offset, u.default_yaw, u.created_at, u.updated_at, u.thumbnail_blob_hash
+			u.yaw_offset, u.default_yaw, u.created_at, u.updated_at, u.thumbnail_blob_hash,
+			u.phase, u.hidden
 		FROM updated u
 		JOIN territories t ON t.id = u.territory_id`
 

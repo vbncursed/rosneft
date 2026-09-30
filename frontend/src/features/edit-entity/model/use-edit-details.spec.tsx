@@ -98,8 +98,12 @@ describe("useEditDetails", () => {
     updateTerritory.mockResolvedValue({ slug: "yard", title: "North yard" });
     const { result } = hook("territory", "yard");
     await act(() => result.current.save.mutateAsync({ title: "North yard" }));
-    answer([{ slug: "yard", title: "Yard" }]);
-    await new Promise((r) => setTimeout(r, 0));
+    // The mutation's observers are notified on a zero-delay timer, so the
+    // wait that lets the stale answer land also flushes them — inside act.
+    await act(async () => {
+      answer([{ slug: "yard", title: "Yard" }]);
+      await new Promise((r) => setTimeout(r, 0));
+    });
 
     expect(client.getQueryData<{ title: string }[]>(["territories"])?.[0]?.title).toBe("North yard");
     // Nobody is showing the list: the cancelled read is owed, not re-sent.

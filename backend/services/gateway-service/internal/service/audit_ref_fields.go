@@ -32,6 +32,8 @@ var refFields = map[string]map[string]string{
 	"placement_group": {"territory_id": "territory"},
 	"panorama":        {"territory_id": "territory"},
 	"document":        {"territory_id": "territory"},
+	// A phase flag has no id of its own; its key is territory_id + phase.
+	"panorama_phase": {"territory_id": "territory"},
 }
 
 // refKey is the dictionary key the client rebuilds from the field name and the

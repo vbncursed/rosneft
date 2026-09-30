@@ -15,5 +15,5 @@ func placementGroupsToAPI(in []domain.PlacementGroup) []PlacementGroup {
 }
 
 func placementGroupToAPI(g domain.PlacementGroup) PlacementGroup {
-	return PlacementGroup{Id: g.ID, Title: g.Title, CreatedAt: g.CreatedAt, UpdatedAt: g.UpdatedAt}
+	return PlacementGroup{Id: g.ID, Title: g.Title, Hidden: g.Hidden, CreatedAt: g.CreatedAt, UpdatedAt: g.UpdatedAt}
 }

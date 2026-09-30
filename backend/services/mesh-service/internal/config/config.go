@@ -39,6 +39,14 @@ type Config struct {
 	// as solid colour. Encoder-heavy (large textures take seconds), but
 	// dramatically reduces VRAM at runtime.
 	KTX2Enabled bool `mapstructure:"ktx2-enabled"`
+	// TextureMaxSize caps the longer side of every KTX2-encoded texture, in
+	// pixels (gltfpack -tl). 0 = no cap. Basis encoder memory grows with
+	// the pixel count, so this bounds the encode: 8192 keeps today's
+	// archives untouched and encodes a larger texture at 8192. It does not
+	// bound the decode — basisu reads the whole source before resampling,
+	// ~1 GB more for a 16384² texture, unmeasured against the worker's 5g
+	// limit. Inert with KTX2Enabled=false.
+	TextureMaxSize int `mapstructure:"texture-max-size"`
 	// GltfpackBin is the path/name of the gltfpack binary used by both the
 	// meshopt and KTX2 encoders. Empty falls back to "gltfpack" resolved on
 	// $PATH.
@@ -112,12 +120,13 @@ func Load(cmd *cobra.Command) (Config, error) {
 	v.SetDefault("catalog-grpc-addr", "catalog:9001")
 	v.SetDefault("worker-name", DefaultWorkerName())
 	v.SetDefault("block-timeout", 5*time.Second)
-	v.SetDefault("max-concurrent-jobs", 0) // 0 → runtime.GOMAXPROCS
+	v.SetDefault("max-concurrent-jobs", 1) // each job runs its own gltfpack; see worker.Worker.sem
 	v.SetDefault("log-level", "info")
 	v.SetDefault("log-format", "json")
 	v.SetDefault("shutdown-timeout", 30*time.Second)
 	v.SetDefault("meshopt-enabled", true)
 	v.SetDefault("ktx2-enabled", true)
+	v.SetDefault("texture-max-size", 8192)
 	v.SetDefault("gltfpack-bin", "gltfpack")
 	v.SetDefault("lod-ratios", []string{"0.5", "0.25"})
 

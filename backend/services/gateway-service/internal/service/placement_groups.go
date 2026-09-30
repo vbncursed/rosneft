@@ -7,14 +7,15 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
-// maxBulkPlacementIDs mirrors the catalog's ceiling so an oversized list is a
-// 400 before any round trip. The catalog still enforces it, and de-duplicates.
-const maxBulkPlacementIDs = 1000
+// maxBulkIDs mirrors the catalog's and content's ceiling so an oversized list
+// is a 400 before any round trip. Both still enforce it, and de-duplicate.
+const maxBulkIDs = 1000
 
-func checkBulkIDs(ids []int64) error {
-	if len(ids) == 0 || len(ids) > maxBulkPlacementIDs {
-		return fmt.Errorf("%w: a bulk update names 1 to %d placements, got %d",
-			domain.ErrInvalidInput, maxBulkPlacementIDs, len(ids))
+// checkBulkIDs bounds a bulk write's id list; what names the rows it counts.
+func checkBulkIDs(ids []int64, what string) error {
+	if len(ids) == 0 || len(ids) > maxBulkIDs {
+		return fmt.Errorf("%w: a bulk update names 1 to %d %s, got %d",
+			domain.ErrInvalidInput, maxBulkIDs, what, len(ids))
 	}
 	return nil
 }
@@ -22,7 +23,7 @@ func checkBulkIDs(ids []int64) error {
 // SetPlacementsHidden hides or shows every placement in ids on territorySlug,
 // all or none, and answers how many were written.
 func (g *Gateway) SetPlacementsHidden(ctx context.Context, territorySlug string, ids []int64, hidden bool) (int, error) {
-	if err := checkBulkIDs(ids); err != nil {
+	if err := checkBulkIDs(ids, "placements"); err != nil {
 		return 0, err
 	}
 	return g.catalog.SetPlacementsHidden(ctx, territorySlug, ids, hidden)
@@ -31,15 +32,15 @@ func (g *Gateway) SetPlacementsHidden(ctx context.Context, territorySlug string,
 // SetPlacementsGroup moves every placement in ids on territorySlug into
 // groupID, or out of any group when it is nil, all or none.
 func (g *Gateway) SetPlacementsGroup(ctx context.Context, territorySlug string, ids []int64, groupID *int64) (int, error) {
-	if err := checkBulkIDs(ids); err != nil {
+	if err := checkBulkIDs(ids, "placements"); err != nil {
 		return 0, err
 	}
 	return g.catalog.SetPlacementsGroup(ctx, territorySlug, ids, groupID)
 }
 
-// CreatePlacementGroup, RenamePlacementGroup and DeletePlacementGroup pass
-// through: the catalog trims and bounds the title and scopes the id by
-// territorySlug, the slug the route's gate checked.
+// CreatePlacementGroup, RenamePlacementGroup, DeletePlacementGroup and
+// SetPlacementGroupHidden pass through: the catalog trims and bounds the
+// title and scopes the id by territorySlug, the slug the route's gate checked.
 
 func (g *Gateway) CreatePlacementGroup(ctx context.Context, territorySlug, title string) (domain.PlacementGroup, error) {
 	return g.catalog.CreatePlacementGroup(ctx, territorySlug, title)
@@ -51,4 +52,8 @@ func (g *Gateway) RenamePlacementGroup(ctx context.Context, territorySlug string
 
 func (g *Gateway) DeletePlacementGroup(ctx context.Context, territorySlug string, id int64) error {
 	return g.catalog.DeletePlacementGroup(ctx, territorySlug, id)
+}
+
+func (g *Gateway) SetPlacementGroupHidden(ctx context.Context, territorySlug string, id int64, hidden bool) (domain.PlacementGroup, error) {
+	return g.catalog.SetPlacementGroupHidden(ctx, territorySlug, id, hidden)
 }

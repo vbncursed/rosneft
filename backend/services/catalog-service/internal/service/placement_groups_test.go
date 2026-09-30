@@ -113,3 +113,22 @@ func (s *PlacementGroupsSuite) TestListAndDeleteDelegate() {
 	s.repo.DeletePlacementGroupMock.Expect(s.ctx, "t1", int64(1)).Return(domain.ErrPlacementGroupNotFound)
 	assert.ErrorIs(s.T(), s.svc.DeletePlacementGroup(s.ctx, "t1", 1), domain.ErrPlacementGroupNotFound)
 }
+
+func (s *PlacementGroupsSuite) TestHidingAGroupForwardsTheFlag() {
+	s.repo.SetPlacementGroupHiddenMock.Expect(s.ctx, "t1", int64(4), true).
+		Return(domain.PlacementGroup{ID: 4, Hidden: true}, nil)
+	g, err := s.svc.SetPlacementGroupHidden(s.ctx, "t1", 4, true)
+	assert.NilError(s.T(), err)
+	assert.Assert(s.T(), g.Hidden)
+}
+
+// Refused before storage is asked: minimock fails the test on any repo call.
+func (s *PlacementGroupsSuite) TestHidingAGroupNeedsATerritoryAndAnID() {
+	for _, tc := range []struct {
+		slug string
+		id   int64
+	}{{"", 4}, {"t1", 0}} {
+		_, err := s.svc.SetPlacementGroupHidden(s.ctx, tc.slug, tc.id, true)
+		assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
+	}
+}

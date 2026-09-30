@@ -20,10 +20,9 @@ var (
 
 	metricQueueDepth = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "mesh_queue_depth",
-		// Jobs delivered on the last consume batch. ConsumeJobs caps a batch at
-		// 16, so a sustained value of 16 means the worker keeps pulling full
-		// batches — i.e. the stream has a backlog it cannot drain.
-		Help: "Jobs in the last consume batch (0-16; sustained 16 signals backlog).",
+		// The consumer group's lag, read every loop turn: the worker takes one
+		// message per slot, so what it delivered says nothing about the queue.
+		Help: "Conversion jobs queued and not yet delivered to a worker.",
 	})
 )
 

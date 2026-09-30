@@ -4,6 +4,7 @@ import { Bounds } from "@react-three/drei";
 import type { Group } from "three";
 import type { SceneColors } from "../model/scene-colors";
 import type { ViewerCanvasProps } from "../ui/props";
+import { AutoLodClock } from "./auto-lod-clock";
 import CameraRig from "./camera-rig";
 import CameraTracker from "./camera-tracker";
 import FocusOn from "./focus-on";
@@ -44,6 +45,7 @@ export default function SceneCanvas({
   resetVersion,
   playing,
   placements,
+  placementGroups,
   mode,
   selectedId,
   gizmo,
@@ -62,7 +64,9 @@ export default function SceneCanvas({
   panoramaOpacity,
   calibrating,
   panoramas,
+  panoramaPhaseHidden,
   showMarkers,
+  markerNames,
   showMeasurements,
   markerLabels,
   move,
@@ -153,65 +157,71 @@ export default function SceneCanvas({
       {/* Warm useGLTF's cache only after Ktx2Init has configured the
           loader — preloading from outside Canvas would race the KTX2
           setup and corrupt texture decoding. */}
-      <GlbPreloader parentLods={parentLods} placements={placements} />
+      <GlbPreloader parentLods={parentLods} placements={placements} groups={placementGroups} />
       <Lighting />
 
-      {/* Always wire the click handler — handleSceneClick early-returns when
-          the canvas is not picking points. Toggling between defined/undefined
-          would force the group to re-attach DOM listeners on every mode
-          change. */}
-      <group ref={wrapperRef} onClick={handleSceneClick}>
-        {/* `observe` would re-fit the camera every time an LOD swap changed
-            the bbox, which fights OrbitControls during a wheel zoom and reads
-            as a freeze. We fit once on mount via `fit`, route explicit resets
-            through CameraRig/resetVersion, and refit to a selection through
-            FocusOn. */}
-        <Bounds fit clip margin={1.2}>
-          {/* Inside a panorama the photograph IS the scene: the sphere encloses
-              the whole territory, so every hill and tank between the anchor and
-              the horizon would be drawn in front of it. Hidden, not unmounted —
-              Bounds fits at mount only, the drag projection still needs the
-              meshes, and calibration (opacity < 1) is the operator lining the
-              photo up against the model, which has to be on screen for that. */}
-          <group visible={!activePanorama || panoramaOpacity < 1}>
-            <GltfModel
-              lods={parentLods}
-              targetLod={targetLod}
-              retryVersion={retryVersion}
-              // A marker drag projects the cursor onto the territory, which
-              // needs the meshes hittable for the same reason point-picking does.
-              // Calibration drags the anchor ring straight from the 3D view,
-              // without entering the move sub-mode, through the same raycast.
-              raycastable={pointMode || move.active || calibrating}
-              groupRef={territoryRef}
-              onReport={onLod}
-            />
-          </group>
-          {/* A panorama pins the camera at its anchor; framing a placement
-              from there would fight the rig and land nowhere useful. */}
-          <FocusOn root={wrapperRef} request={activePanorama ? null : focusRequest} />
-        </Bounds>
+      {/* One settle timer and one controls listener for every Auto LOD
+          below — the territory and each placement — rather than one each. */}
+      <AutoLodClock>
+        {/* Always wire the click handler — handleSceneClick early-returns when
+            the canvas is not picking points. Toggling between defined/undefined
+            would force the group to re-attach DOM listeners on every mode
+            change. */}
+        <group ref={wrapperRef} onClick={handleSceneClick}>
+          {/* `observe` would re-fit the camera every time an LOD swap changed
+              the bbox, which fights OrbitControls during a wheel zoom and reads
+              as a freeze. We fit once on mount via `fit`, route explicit resets
+              through CameraRig/resetVersion, and refit to a selection through
+              FocusOn. */}
+          <Bounds fit clip margin={1.2}>
+            {/* Inside a panorama the photograph IS the scene: the sphere encloses
+                the whole territory, so every hill and tank between the anchor and
+                the horizon would be drawn in front of it. Hidden, not unmounted —
+                Bounds fits at mount only, the drag projection still needs the
+                meshes, and calibration (opacity < 1) is the operator lining the
+                photo up against the model, which has to be on screen for that. */}
+            <group visible={!activePanorama || panoramaOpacity < 1}>
+              <GltfModel
+                lods={parentLods}
+                targetLod={targetLod}
+                retryVersion={retryVersion}
+                // A marker drag projects the cursor onto the territory, which
+                // needs the meshes hittable for the same reason point-picking does.
+                // Calibration drags the anchor ring straight from the 3D view,
+                // without entering the move sub-mode, through the same raycast.
+                raycastable={pointMode || move.active || calibrating}
+                groupRef={territoryRef}
+                onReport={onLod}
+              />
+            </group>
+            {/* A panorama pins the camera at its anchor; framing a placement
+                from there would fight the rig and land nowhere useful. */}
+            <FocusOn root={wrapperRef} request={activePanorama ? null : focusRequest} />
+          </Bounds>
 
-        <Suspense fallback={null}>
-          <PlacementsLayer
-            placements={placements}
-            selectedId={selectedId}
-            mode={gizmo}
-            measureMode={pointMode}
-            canEdit={canWrite}
-            territoryRef={territoryRef}
-            // Nothing to snap to inside a panorama: the territory is behind
-            // the equirect and the reader cannot see where a drop landed.
-            snapEnabled={snap && activePanorama === null}
-            activePanoramaId={activePanorama?.id ?? null}
-            markerLabels={markerLabels}
-            showMarkers={showMarkers}
-            calibrating={calibrating}
-            onSelect={onPick}
-            onCommit={onTransformCommit}
-          />
-        </Suspense>
-      </group>
+          <Suspense fallback={null}>
+            <PlacementsLayer
+              placements={placements}
+              placementGroups={placementGroups}
+              selectedId={selectedId}
+              mode={gizmo}
+              measureMode={pointMode}
+              measuring={mode === "measure"}
+              canEdit={canWrite}
+              territoryRef={territoryRef}
+              // Nothing to snap to inside a panorama: the territory is behind
+              // the equirect and the reader cannot see where a drop landed.
+              snapEnabled={snap && activePanorama === null}
+              activePanoramaId={activePanorama?.id ?? null}
+              markerLabels={markerLabels}
+              showMarkers={showMarkers}
+              calibrating={calibrating}
+              onSelect={onPick}
+              onCommit={onTransformCommit}
+            />
+          </Suspense>
+        </group>
+      </AutoLodClock>
 
       <MeasurementLayer
         // Measure mode wins over the switch: nobody measures blind.
@@ -238,7 +248,9 @@ export default function SceneCanvas({
         progress={panoramaProgress}
         opacity={panoramaOpacity}
         panoramas={panoramas}
+        phaseHidden={panoramaPhaseHidden}
         showMarkers={showMarkers}
+        markerNames={markerNames}
         pointMode={pointMode}
         calibrating={calibrating}
         move={move}

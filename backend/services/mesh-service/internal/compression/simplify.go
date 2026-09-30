@@ -66,7 +66,11 @@ func (o *Optimizer) Simplify(ctx context.Context, glb []byte, ratio float64) ([]
 // `-tc`. With MESH_KTX2_ENABLED=false the flag is inert and LODs stay as
 // heavy as they were before this pass existed. That is acceptable: KTX2 is on
 // by default, and a build without it already ships deliberately larger files.
+//
+// gltfpack scales by `-ts` and then clamps to `-tl`, so the cap is scaled by
+// the same ratio: unscaled, a 16384² source at -ts 0.5 lands on 8192, the
+// cap leaves it there, and LOD1 ships LOD0's textures.
 func (o *Optimizer) simplifyArgs(in, out string, ratio float64) []string {
 	r := strconv.FormatFloat(ratio, 'f', -1, 64)
-	return append(o.buildArgs(in, out), "-si", r, "-ts", r)
+	return append(o.buildArgs(in, out, ratio), "-si", r, "-ts", r)
 }

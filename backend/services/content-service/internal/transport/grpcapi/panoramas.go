@@ -27,6 +27,7 @@ func (s *Server) CreatePanorama(ctx context.Context, req *contentv1.CreatePanora
 		SourceBlobHash: req.GetSourceBlobHash(),
 		Position:       vec3FromProto(req.GetPosition()),
 		YawOffset:      req.GetYawOffset(),
+		Phase:          domain.PanoramaPhase(req.GetPhase()),
 	})
 	if err != nil {
 		return nil, mapError(err)

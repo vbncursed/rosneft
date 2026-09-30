@@ -31,7 +31,7 @@ import { useViewSections } from "./use-view-sections";
 import { useViewerDocuments } from "./use-viewer-documents";
 import { useViewerPanoramas } from "./use-viewer-panoramas";
 import { useViewerPlacements } from "./use-viewer-placements";
-import { dropOrOweScene, takeSceneDrop } from "./owed-scene-drop";
+import { useSceneDrop } from "./use-scene-drop";
 
 export type TerritoryViewerState =
   | { status: "loading" }
@@ -85,32 +85,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
   const grants = useMemo(() => grantsOf(me.data ?? null), [me.data]);
 
   const compact = useMediaQuery(COMPACT);
-  // Marked stale, never refetched from here: every list on this page seeds
-  // once and is optimistic afterwards, so a refetch changes nothing on screen.
-  // The territory and model queries go stale too — a write here changes
-  // `placementCount` and `usageCount` on their lists and details. The bundle
-  // is dropped on the way out (below): the lists would seed from it on the
-  // next visit and never adopt the refetch. A ref, not the query's
-  // `isInvalidated`: a rename's setQueryData clears that flag. A write that
-  // lands after the page has gone drops the bundle itself (`left`) — unless a
-  // new visit is already reading it: that visit keeps it, marked stale, and
-  // owes the drop on its own way out (`owed-scene-drop.ts`).
-  const changed = useRef(false);
-  const left = useRef(false);
-  const onChanged = useCallback(() => {
-    changed.current = true;
-    const keys = [["scene", slug], ["territory", slug], ["territories"], ["model"], ["models"]];
-    for (const queryKey of keys) void client.invalidateQueries({ queryKey, refetchType: "none" });
-    if (left.current) dropOrOweScene(client, slug);
-  }, [client, slug]);
-  useEffect(() => {
-    left.current = changed.current = false;
-    return () => {
-      left.current = true;
-      // take first, so a debt is paid even when this visit changed something too.
-      if (takeSceneDrop(client, slug) || changed.current) client.removeQueries({ queryKey: ["scene", slug], exact: true });
-    };
-  }, [client, slug]);
+  const onChanged = useSceneDrop(client, slug);
 
   const ruler = useMeasurementSwitch();
   const measure = useMeasurementSync({
@@ -176,6 +151,8 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     onChanged,
     reveal: sections.reveal,
     decode: decodeImageBitmap,
+    canWrite: grants.panoramaWrite,
+    phaseHidden: bundle?.phaseHidden,
   });
   const documents = useViewerDocuments({
     slug,
@@ -207,6 +184,8 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     mode,
     measure,
     editor,
+    setGroupHidden: groups.setHidden,
+    groups: groups.list,
     form,
     panel,
     tour,
@@ -264,7 +243,8 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
         error: viewerError(
           view.report.failure,
           vm.parentLods,
-          pickLod(vm.parentLods, view.targetLod),
+          // The level the canvas asked for, whatever chose it: Auto has no number of its own.
+          view.report.target === null ? null : pickLod(vm.parentLods, view.report.target),
           slug,
         ),
         now: failedAt ?? UNSTAMPED,

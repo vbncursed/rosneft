@@ -1,7 +1,9 @@
+import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { BoxGeometry, Group, Mesh, MeshStandardMaterial, Vector3, type Camera, type EventDispatcher } from "three";
 import { useThree } from "@react-three/fiber";
 import { vi } from "vitest";
 import { createElement, useEffect, type ReactNode } from "react";
+import { AutoLodClock } from "./auto-lod-clock";
 
 /** A parsed GLB stand-in: one box, enough for a clone and a raycast. */
 export const fakeScene = () => {
@@ -111,6 +113,8 @@ export const fakeControls = () => ({
  * Publishes `controls` on the R3F store the way CameraRig does, so a component
  * that reads `useThree((s) => s.controls)` finds them, and hands the spec the
  * live camera through `probe`. Public API only — no reaching into the store.
+ * The children sit under an AutoLodClock, as the scene's do in SceneCanvas;
+ * the clock finds these controls on the store the same way.
  */
 export function WithControls({
   controls,
@@ -131,5 +135,61 @@ export function WithControls({
     if (probe) probe.camera = camera;
     set({ controls: controls as EventDispatcher });
   }, [set, camera, controls, probe]);
-  return children;
+  return createElement(AutoLodClock, null, children);
+}
+
+const inPage = new Set<() => Promise<void>>();
+
+/**
+ * A test renderer whose canvas sits in the page, as a real <Canvas>'s does.
+ * drei's <Html> mounts its DOM beside the canvas, in a react-dom root of its
+ * own, so the real component works here: a label is readable through `screen`
+ * while the three.js elements around it render as three objects — under
+ * react-dom they were unknown HTML tags. Its `unmount` takes the canvas out
+ * of the page too, and `unmountInPage` in an afterEach does the same for every
+ * renderer a test left up.
+ */
+export async function createInPage(element: ReactNode) {
+  let canvas: HTMLCanvasElement | undefined;
+  const renderer = await ReactThreeTestRenderer.create(element, {
+    beforeReturn: (c) => {
+      canvas = c;
+      document.body.append(c);
+    },
+  });
+  const unmount = async () => {
+    inPage.delete(unmount);
+    try {
+      await renderer.unmount();
+    } finally {
+      canvas?.remove();
+    }
+  };
+  inPage.add(unmount);
+  return { ...renderer, unmount };
+}
+
+export async function unmountInPage() {
+  for (const unmount of [...inPage]) await unmount();
+}
+
+/**
+ * Waits `ms` with an act() scope open, so whatever sets state meanwhile — a
+ * settle timer, a download's stream — lands inside it and is flushed at the
+ * end, as React expects, instead of warning that it was not wrapped in act.
+ */
+export const waitInAct = (ms: number) =>
+  ReactThreeTestRenderer.act(() => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+
+/** vi.waitFor's contract (check now, then retry until `timeout`), each wait a waitInAct. */
+export async function eventually(check: () => void, timeout = 1000) {
+  const deadline = Date.now() + timeout;
+  for (;;) {
+    try {
+      return check();
+    } catch (error) {
+      if (Date.now() > deadline) throw error;
+    }
+    await waitInAct(10);
+  }
 }

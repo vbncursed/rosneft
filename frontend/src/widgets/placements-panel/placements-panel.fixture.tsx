@@ -19,7 +19,10 @@ const SECTIONS = sectionsOf([make(11, "pipe-rack-12", "west run"), make(1, "stor
 const RU_SECTIONS = sectionsOf([make(4, "nasos-nm-1250"), make(5, "nasos-nm-1250")]);
 const GROUPED = sectionsOf(
   [make(11, "pipe-rack-12", "west run", { groupId: 1 }), make(1, "storage-tank-500", "", { groupId: 1, hidden: true }), make(2, "storage-tank-500", "north row"), make(3, "storage-tank-500", "", { hidden: true })],
-  [{ id: 1, title: "West yard" }, { id: 2, title: "Spare parts" }],
+  [
+    { id: 1, title: "West yard", hidden: false },
+    { id: 2, title: "Spare parts", hidden: false },
+  ],
 );
 
 const TRANSFORM: PlacementTransform = {
@@ -90,7 +93,7 @@ function Live({
         onSetHidden={() => {}}
         onMoveToGroup={() => {}}
         onAddToGroup={() => {}}
-        groupActions={{ busy: false, onCreate: async () => true, onRename: async () => true, onDelete: () => {} }}
+        groupActions={{ busy: false, onCreate: async () => true, onRename: async () => true, onDelete: () => {}, onSetHidden: () => {} }}
         selected={selected ? { ...selected, gizmo, onGizmo: setGizmo, snap, onSnap: setSnap } : null}
         visibility={
           visibility

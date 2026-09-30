@@ -23,9 +23,10 @@ type Compressor interface {
 // The set of optimisations applied is selected by functional options at
 // construction.
 type Optimizer struct {
-	binPath string
-	meshopt bool
-	ktx2    bool
+	binPath        string
+	meshopt        bool
+	ktx2           bool
+	maxTextureSize int
 }
 
 // Option mutates an Optimizer at construction.
@@ -38,10 +39,15 @@ func WithMeshopt() Option {
 }
 
 // WithKTX2 enables KHR_texture_basisu (KTX2 / Basis Universal). The
-// frontend must register a KTX2Loader. Slow on the encoder side — a single
-// large texture can take seconds — but worth it for VRAM-bound clients.
-func WithKTX2() Option {
-	return func(o *Optimizer) { o.ktx2 = true }
+// frontend must register a KTX2Loader. maxTextureSize caps the longer
+// texture side in pixels (gltfpack -tl); 0 leaves it uncapped. Encoder
+// memory grows with the pixel count: three 8192² textures, encoded one at a
+// time, peaked at 4.0 GB; a 16384² texture has four times the pixels.
+func WithKTX2(maxTextureSize int) Option {
+	return func(o *Optimizer) {
+		o.ktx2 = true
+		o.maxTextureSize = maxTextureSize
+	}
 }
 
 // New constructs an Optimizer.

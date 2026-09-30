@@ -1,8 +1,10 @@
+import { PANORAMA_PHASES, type PanoramaPhase } from "@/entities/panorama";
 import type { FileUploadState } from "@/entities/upload";
 import { Button } from "@/shared/ui/button";
 import { Checkbox } from "@/shared/ui/checkbox";
 import { DropZone } from "@/shared/ui/drop-zone";
 import { Icon } from "@/shared/ui/icon";
+import { Segmented } from "@/shared/ui/segmented";
 import { Tooltip } from "@/shared/ui/tooltip";
 import { Modal } from "@/shared/ui/modal";
 import { TextField } from "@/shared/ui/text-field";
@@ -12,6 +14,7 @@ import {
   CHOOSE_FILE,
   COPY,
   GPS_LABEL,
+  JOB_PHASE_LABEL,
   TITLE_LABEL,
   UPLOADING,
   closeTitle,
@@ -29,6 +32,8 @@ export type UploadModalProps = {
   onTitle: (title: string) => void;
   /** Panorama only — a document has no anchor to place. */
   gps?: { checked: boolean; onChange: (checked: boolean) => void };
+  /** Panorama only — which job the capture is listed under. */
+  phase?: { value: PanoramaPhase; onChange: (phase: PanoramaPhase) => void };
   canSubmit: boolean;
   onPick: (files: File[]) => void;
   onClear: () => void;
@@ -58,6 +63,7 @@ export function UploadModal({
   title,
   onTitle,
   gps,
+  phase,
   canSubmit,
   onPick,
   onClear,
@@ -168,6 +174,19 @@ export function UploadModal({
             disabled={busy}
             onChange={(event) => gps.onChange(event.target.checked)}
           />
+        ) : null}
+
+        {phase && kind === "panorama" ? (
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-muted">{JOB_PHASE_LABEL}</span>
+            <Segmented
+              ariaLabel={JOB_PHASE_LABEL}
+              size="sm"
+              value={phase.value}
+              onChange={phase.onChange}
+              items={PANORAMA_PHASES.map(({ phase: value, label }) => ({ value, label, disabled: busy }))}
+            />
+          </div>
         ) : null}
       </div>
     </Modal>

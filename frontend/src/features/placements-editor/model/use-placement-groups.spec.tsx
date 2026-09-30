@@ -4,6 +4,7 @@ import {
   createPlacementGroup,
   deletePlacementGroup,
   renamePlacementGroup,
+  setPlacementGroupHidden,
 } from "@/entities/placement";
 import { HttpError } from "@/shared/api";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
@@ -14,13 +15,14 @@ vi.mock("@/entities/placement", async (importOriginal) => ({
   createPlacementGroup: vi.fn(),
   renamePlacementGroup: vi.fn(),
   deletePlacementGroup: vi.fn(),
+  setPlacementGroupHidden: vi.fn(),
 }));
 
 let onChanged: ReturnType<typeof vi.fn<() => void>>;
 let onRemoved: ReturnType<typeof vi.fn<(id: number) => void>>;
 const mount = () =>
   renderHook(() => ({
-    s: usePlacementGroups({ slug: "t", initial: [{ id: 1, title: "East yard" }], onChanged, onRemoved }),
+    s: usePlacementGroups({ slug: "t", initial: [{ id: 1, title: "East yard", hidden: false }], onChanged, onRemoved }),
     notices: useNotices(),
   }));
 
@@ -28,6 +30,7 @@ beforeEach(() => {
   vi.mocked(createPlacementGroup).mockReset();
   vi.mocked(renamePlacementGroup).mockReset();
   vi.mocked(deletePlacementGroup).mockReset();
+  vi.mocked(setPlacementGroupHidden).mockReset();
   onChanged = vi.fn();
   onRemoved = vi.fn();
   clearNotices();
@@ -35,13 +38,13 @@ beforeEach(() => {
 
 describe("usePlacementGroups", () => {
   it("seeds from the bundle's groups", () => {
-    expect(mount().result.current.s.list).toEqual([{ id: 1, title: "East yard" }]);
+    expect(mount().result.current.s.list).toEqual([{ id: 1, title: "East yard", hidden: false }]);
   });
 
   it("adds a created group as the server answered it, busy meanwhile", async () => {
     let release!: () => void;
     vi.mocked(createPlacementGroup).mockReturnValueOnce(
-      new Promise((res) => (release = () => res({ id: 2, title: "West yard" }))),
+      new Promise((res) => (release = () => res({ id: 2, title: "West yard", hidden: false }))),
     );
     const { result } = mount();
     let done!: Promise<boolean>;
@@ -62,7 +65,7 @@ describe("usePlacementGroups", () => {
   });
 
   it("renames in place", async () => {
-    vi.mocked(renamePlacementGroup).mockResolvedValue({ id: 1, title: "North yard" });
+    vi.mocked(renamePlacementGroup).mockResolvedValue({ id: 1, title: "North yard", hidden: false });
     const { result } = mount();
     let ok: boolean | undefined;
     await act(async () => {
@@ -70,7 +73,7 @@ describe("usePlacementGroups", () => {
     });
     expect(ok).toBe(true);
     expect(renamePlacementGroup).toHaveBeenCalledWith("t", 1, "North yard");
-    expect(result.current.s.list).toEqual([{ id: 1, title: "North yard" }]);
+    expect(result.current.s.list).toEqual([{ id: 1, title: "North yard", hidden: false }]);
   });
 
   // The title field stays open on a refusal; it reads this answer to decide.
@@ -86,7 +89,7 @@ describe("usePlacementGroups", () => {
       renamed = await result.current.s.rename(1, "East yard");
     });
     expect([created, renamed]).toEqual([false, false]);
-    expect(result.current.s.list).toEqual([{ id: 1, title: "East yard" }]);
+    expect(result.current.s.list).toEqual([{ id: 1, title: "East yard", hidden: false }]);
     expect(result.current.notices[0]?.message).toBe(duplicate.message);
   });
 
@@ -108,5 +111,26 @@ describe("usePlacementGroups", () => {
     expect(result.current.notices[0]?.message).toBe("You don't have permission to do this");
     expect(onChanged).toHaveBeenCalledOnce();
     expect(result.current.s.busy).toBe(false);
+  });
+
+  it("sets a group's own flag from the server's answer, and marks the bundle stale", async () => {
+    vi.mocked(setPlacementGroupHidden).mockResolvedValue({ id: 1, title: "East yard", hidden: true });
+    const { result } = mount();
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = await result.current.s.setHidden(1, true);
+    });
+    expect(ok).toBe(true);
+    expect(setPlacementGroupHidden).toHaveBeenCalledWith("t", 1, true);
+    expect(result.current.s.list).toEqual([{ id: 1, title: "East yard", hidden: true }]);
+    expect(onChanged).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the flag on a refusal and says why", async () => {
+    vi.mocked(setPlacementGroupHidden).mockRejectedValue(new HttpError(404, null, "placement group not found"));
+    const { result } = mount();
+    await act(() => result.current.s.setHidden(1, true));
+    expect(result.current.s.list).toEqual([{ id: 1, title: "East yard", hidden: false }]);
+    expect(result.current.notices[0]?.message).toBe("placement group not found");
   });
 });

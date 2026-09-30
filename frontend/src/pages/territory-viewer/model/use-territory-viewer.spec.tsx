@@ -120,6 +120,8 @@ const BUNDLE: SceneBundle = {
       yawOffset: 0,
       defaultYaw: 0,
       thumbnailBlobHash: null,
+      phase: "prior",
+      hidden: false,
       updatedAt: "2026-09-14T10:00:00Z",
     },
   ],
@@ -143,6 +145,7 @@ const BUNDLE: SceneBundle = {
     },
   ],
   placementGroups: [],
+  phaseHidden: { prior: false, current: false, post: false },
 };
 
 const principal = (over: Partial<Principal> = {}): Principal => ({
@@ -199,6 +202,14 @@ const now = (r: ReturnType<typeof cold>): Ready => {
 };
 
 describe("useTerritoryViewer", () => {
+  // Stepping into a panorama starts its equirect download. Node's fetch rejects
+  // a relative URL, and the error state that set arrived a few microtasks after
+  // the entering act had closed. Here the bytes are simply still on the wire.
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(() => {})));
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
   beforeEach(() => {
     getSceneBundle.mockReset().mockResolvedValue(BUNDLE);
     getMe.mockReset().mockResolvedValue(principal({ isOwner: true }));
@@ -294,9 +305,9 @@ describe("useTerritoryViewer", () => {
   });
 
   describe("the canvas", () => {
-    it("asks for LOD 0 and hands the mode and the empty selection down", async () => {
+    it("starts in Auto and hands the mode and the empty selection down", async () => {
       const { canvas } = await ready(mount());
-      expect(canvas.targetLod).toBe(0);
+      expect(canvas.targetLod).toBe("auto");
       expect(canvas.mode).toBe("orbit");
       expect(canvas.selectedId).toBeNull();
       expect(canvas.parentLods.map((a) => a.lod)).toEqual([0, 1, 2]);
@@ -405,97 +416,17 @@ describe("useTerritoryViewer", () => {
       expect(now(r).overlays.chip?.text).not.toContain("not saved");
     });
 
-    // Review M6 I-2: the body seeds once from the cached bundle when the reader
-    // comes back in the SPA, so a bundle that predates a save must not be the
-    // one it seeds from. No GET while the page is open; the entry is dropped
-    // on the way out, and the next visit loads cold.
-    it("drops the cached bundle on unmount once a chain is saved, without refetching it on the page", async () => {
+    // The scene-drop wiring itself (mark stale vs. drop, per-visit debt) is
+    // `use-scene-drop.spec.ts`'s job; this page only needs to know a finished
+    // chain reaches `onChanged` and, unremarkably, does not trigger a refetch
+    // on this page.
+    it("does not refetch the bundle on the page once a chain is saved", async () => {
       const r = mount();
       await ready(r);
       const calls = getSceneBundle.mock.calls.length;
       measureAndFinish(r);
       await waitFor(() => expect(now(r).canvas.chains.at(-1)).toMatchObject({ serverId: 32 }));
       expect(getSceneBundle.mock.calls.length).toBe(calls);
-      r.unmount();
-      expect(client.getQueryData(["scene", SLUG])).toBeUndefined();
-    });
-
-    // A rename writes the scene with setQueryData, which clears TanStack's
-    // invalidated flag — the saved chain must still drop the bundle.
-    it("drops the cached bundle on unmount even when a rename rewrote it after the save", async () => {
-      const r = mount();
-      await ready(r);
-      measureAndFinish(r);
-      await waitFor(() => expect(now(r).canvas.chains.at(-1)).toMatchObject({ serverId: 32 }));
-      act(() => client.setQueryData<typeof BUNDLE>(["scene", SLUG], (old) => old && { ...old }));
-      r.unmount();
-      expect(client.getQueryData(["scene", SLUG])).toBeUndefined();
-    });
-
-    // The reader finishes a chain and leaves before the POST answers: the
-    // cleanup already ran, so the late write must drop the bundle itself.
-    it("drops the cached bundle when a save lands after the page has unmounted", async () => {
-      let land!: (m: unknown) => void;
-      createMeasurement.mockImplementation(() => new Promise((resolve) => (land = resolve)));
-      const r = mount();
-      await ready(r);
-      measureAndFinish(r);
-      r.unmount();
-      expect(client.getQueryData(["scene", SLUG])).toBe(BUNDLE);
-      await act(async () => land({ serverId: 32, points: [], closed: false }));
-      expect(client.getQueryData(["scene", SLUG])).toBeUndefined();
-    });
-
-    // The reader left and came straight back: the old page's late write must
-    // not pull the bundle out from under the new visit, only mark it stale.
-    it("marks the bundle stale, not dropped, when a late save lands while a new visit reads it", async () => {
-      let land!: (m: unknown) => void;
-      createMeasurement.mockImplementation(() => new Promise((resolve) => (land = resolve)));
-      const first = mount();
-      await ready(first);
-      measureAndFinish(first);
-      first.unmount();
-      // Same client: an SPA navigation back, not a page load.
-      const second = renderHook(() => useTerritoryViewer(SLUG), { wrapper });
-      await ready(second);
-      await act(async () => land({ serverId: 32, points: [], closed: false }));
-      expect(client.getQueryData(["scene", SLUG])).toBe(BUNDLE);
-      expect(client.getQueryState(["scene", SLUG])?.isInvalidated).toBe(true);
-      expect(now(second).canvas.chains).toMatchObject([{ serverId: 31 }]);
-    });
-
-    // Visit B kept the bundle A's late write marked, but B changed nothing
-    // itself: B leaving must still drop it, or visit C seeds from the
-    // pre-write bundle.
-    it("drops a bundle a late write marked once the visit that kept it leaves", async () => {
-      let land!: (m: unknown) => void;
-      createMeasurement.mockImplementation(() => new Promise((resolve) => (land = resolve)));
-      const first = mount();
-      await ready(first);
-      measureAndFinish(first);
-      first.unmount();
-      const second = renderHook(() => useTerritoryViewer(SLUG), { wrapper });
-      await ready(second);
-      await act(async () => land({ serverId: 32, points: [], closed: false }));
-      second.unmount();
-      expect(client.getQueryData(["scene", SLUG])).toBeUndefined();
-
-      const calls = getSceneBundle.mock.calls.length;
-      const third = renderHook(() => useTerritoryViewer(SLUG), { wrapper });
-      await waitFor(() => expect(getSceneBundle.mock.calls.length).toBe(calls + 1));
-      third.unmount();
-      // Consumed: a later visit that changes nothing keeps its bundle.
-      const fourth = renderHook(() => useTerritoryViewer(SLUG), { wrapper });
-      await ready(fourth);
-      fourth.unmount();
-      expect(client.getQueryData(["scene", SLUG])).toBeDefined();
-    });
-
-    it("keeps the cached bundle on unmount when nothing changed", async () => {
-      const r = mount();
-      await ready(r);
-      r.unmount();
-      expect(client.getQueryData(["scene", SLUG])).toBe(BUNDLE);
     });
 
     it("keeps a reader's chain local, says so on the chip, and hides the saved chains' remove buttons", async () => {

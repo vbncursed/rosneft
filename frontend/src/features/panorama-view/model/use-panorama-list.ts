@@ -50,17 +50,33 @@ export function usePanoramaList({ slug, initial, onChanged }: PanoramaListParams
       };
       setPendingId(id);
       startTransition(() => {
-        setPanoramas((prev) => prev.map((p) => (p.id === id ? { ...current, ...body } : p)));
+        // Functional, reading `prev` rather than the `current` snapshot:
+        // `panoramasRef` only catches up in an effect after a render commits,
+        // so a hide or move queued in the same tick as this call is invisible
+        // to `current` and would otherwise be undone by this very write.
+        setPanoramas((prev) => prev.map((p) => (p.id === id ? { ...p, ...body } : p)));
       });
       try {
         const saved = await updatePanorama(slug, id, body);
         startTransition(() => {
-          setPanoramas((prev) => prev.map((p) => (p.id === id ? saved : p)));
+          // The PUT never carries hidden/phase — separate routes own them
+          // (usePanoramaVisibility) — so a hide or a phase move that landed
+          // while this save was in flight must survive the server's echo.
+          setPanoramas((prev) => prev.map((p) => (p.id === id ? { ...saved, hidden: p.hidden, phase: p.phase } : p)));
         });
         onChanged();
       } catch (err) {
         startTransition(() => {
-          setPanoramas((prev) => prev.map((p) => (p.id === id ? current : p)));
+          // Roll back only the fields this PUT sent, read from the current
+          // row (not the pre-call snapshot) — resetting the whole row would
+          // also undo a hide or phase move that landed meanwhile.
+          setPanoramas((prev) =>
+            prev.map((p) =>
+              p.id === id
+                ? { ...p, title: current.title, position: current.position, yawOffset: current.yawOffset, defaultYaw: current.defaultYaw }
+                : p,
+            ),
+          );
         });
         notify.error(`Failed to update panorama: ${messageOf(err)}`);
       } finally {
@@ -97,5 +113,5 @@ export function usePanoramaList({ slug, initial, onChanged }: PanoramaListParams
     [slug, onChanged],
   );
 
-  return { panoramas, pendingId, add, update, remove };
+  return { panoramas, pendingId, add, update, remove, setPanoramas };
 }

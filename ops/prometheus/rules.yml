@@ -60,7 +60,7 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "Mesh worker pulling full batches for 10m (stream backlog)"
+          summary: "16 or more conversion jobs queued for 10m (stream backlog)"
 
       - alert: AuditJournalGrowth
         expr: audit_log_bytes > 5e9

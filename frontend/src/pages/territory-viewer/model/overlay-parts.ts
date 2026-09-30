@@ -1,10 +1,10 @@
 import type { RefObject } from "react";
 import type { Document } from "@/entities/document";
-import type { CalibrationDraft, Panorama, PanoramaUpdate } from "@/entities/panorama";
+import type { CalibrationDraft, Panorama, PanoramaPhase, PanoramaUpdate, PhaseHidden } from "@/entities/panorama";
 import type { Vec3 } from "@/entities/placement";
 import type { DocumentWindowMode } from "@/features/document-view";
 import type { useDocumentUpload } from "@/features/document-upload";
-import type { PanoramaTextureState } from "@/features/panorama-view";
+import type { MarkerMode, PanoramaTextureState } from "@/features/panorama-view";
 import type { usePanoramaUpload } from "@/features/panorama-upload";
 import type { DocumentWindowProps } from "@/widgets/document-window";
 
@@ -23,6 +23,10 @@ import type { DocumentWindowProps } from "@/widgets/document-window";
  */
 export type PanoramaParts = {
   list: Panorama[];
+  /** The id a just-finished upload landed as; null once nothing has just landed. */
+  justAddedId: number | null;
+  /** Clears `justAddedId` once the phase list has opened it (review fix: a list remount must not reopen an already-acknowledged upload). */
+  onJustAddedSeen: () => void;
   /** A mutation is in flight on this panorama; the card's Save waits for it. */
   pendingId: number | null;
   /** The panorama the camera is inside; null in the 3D view. */
@@ -30,9 +34,26 @@ export type PanoramaParts = {
   /** The anchor card's target. Survives a switch back to the 3D view. */
   editing: Panorama | null;
   index: { current: number; total: number };
+  /**
+   * The shared hide/move writes (`usePanoramaVisibility`) and each phase's
+   * flag. Every callback is that hook's own `useCallback`.
+   */
+  visibility: {
+    phaseHidden: PhaseHidden;
+    pendingIds: number[];
+    pendingPhases: readonly PanoramaPhase[];
+    onSetHidden: (ids: number[], hidden: boolean) => void;
+    /**
+     * Resolves to whether it landed — the View tab sends focus on a landed
+     * move. Never rejects: a failed write resolves `false`.
+     */
+    onMove: (ids: number[], phase: PanoramaPhase) => Promise<boolean>;
+    onSetPhaseHidden: (phase: PanoramaPhase, hidden: boolean) => void;
+  };
   texture: PanoramaTextureState;
-  showMarkers: boolean;
-  onToggleMarkers: () => void;
+  /** The in-scene points (D7), remembered per browser. */
+  markers: MarkerMode;
+  onMarkers: (mode: MarkerMode) => void;
   /** The in-scene marker drag. The move sub-mode itself is the reducer's. */
   drag: {
     draggingId: number | null;

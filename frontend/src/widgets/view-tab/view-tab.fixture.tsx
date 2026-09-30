@@ -1,8 +1,7 @@
 import { useRef, useState, type ReactNode } from "react";
-import type { Panorama } from "@/entities/panorama";
-import { nudgePosition } from "@/entities/panorama";
+import { ALL_PHASES_SHOWN, nudgePosition, type Panorama, type PhaseHidden } from "@/entities/panorama";
 import type { Vec3 } from "@/entities/placement";
-import { NUDGE_STEPS } from "@/features/panorama-view";
+import { NUDGE_STEPS, type MarkerMode } from "@/features/panorama-view";
 import type { Detail } from "@/shared/ui/detail-list";
 import { insideFooter, LOADING_FOOTER } from "./model/copy";
 import { degToRad } from "./model/degrees";
@@ -26,11 +25,11 @@ const PANORAMA_DETAILS: Detail[] = [
   FULL_DETAILS[4],
 ];
 
-const BLANK = { thumbUrl: null, active: false, canEdit: false, editing: false };
+const BLANK = { thumbUrl: null, active: false, canEdit: false, editing: false, phase: "prior" as const, hidden: false };
 
 const ROWS: PanoramaRowView[] = [
   { ...BLANK, id: 7, title: "Control room, north door", calibrated: true },
-  { ...BLANK, id: 8, title: "Pump house, south wall", calibrated: false },
+  { ...BLANK, id: 8, title: "Pump house, south wall", calibrated: false, phase: "current" as const },
 ];
 
 const DOCUMENTS = [
@@ -61,6 +60,7 @@ function Live({
   editor = null,
   width,
   ruler = true,
+  phaseHidden = ALL_PHASES_SHOWN,
 }: {
   details?: Detail[];
   rows?: PanoramaRowView[];
@@ -73,11 +73,14 @@ function Live({
   editor?: ReactNode;
   width?: number;
   ruler?: boolean;
+  phaseHidden?: PhaseHidden;
 }) {
-  const [showMarkers, setShowMarkers] = useState(true);
+  const [markers, setMarkers] = useState<MarkerMode>("all");
   const [moving, setMoving] = useState(false);
   const [showRuler, setShowRuler] = useState(ruler);
   const [link, setLink] = useState(url);
+  const [live, setLive] = useState(rows);
+  const [hiddenPhases, setHiddenPhases] = useState<PhaseHidden>(phaseHidden);
   // The page's rule: standing in or editing a capture holds the list open.
   const folds = useSectionFolds({
     panoramas: rows.some((row) => row.active || row.editing),
@@ -89,15 +92,29 @@ function Live({
       <ViewTab
         details={details}
         panoramas={{
-          rows: rows.map((row) => ({ ...row, canEdit: canWrite })),
+          rows: live.map((row) => ({ ...row, canEdit: canWrite })),
+          phases: {
+            hidden: hiddenPhases,
+            canWrite,
+            pendingIds: [],
+            pendingPhases: [],
+            onSetHidden: (ids, hidden) => setLive((prev) => prev.map((r) => (ids.includes(r.id) ? { ...r, hidden } : r))),
+            onMove: async (ids, phase) => {
+              setLive((prev) => prev.map((r) => (ids.includes(r.id) ? { ...r, phase } : r)));
+              return true;
+            },
+            onSetPhaseHidden: (phase, hidden) => setHiddenPhases((prev) => ({ ...prev, [phase]: hidden })),
+            justAddedId: null,
+            onJustAddedSeen: () => {},
+          },
           calibrating,
           canUpload: canWrite,
           onUpload: () => {},
           onEnter: () => {},
           onExit: () => {},
           onEdit: () => {},
-          showMarkers,
-          onToggleMarkers: () => setShowMarkers((on) => !on),
+          markers,
+          onMarkers: setMarkers,
           onExitCalibration: () => {},
           canMovePoints: canMove,
           moving,
@@ -141,6 +158,8 @@ const PANORAMA: Panorama = {
   yawOffset: degToRad(137.5),
   defaultYaw: 0,
   thumbnailBlobHash: null,
+  phase: "prior",
+  hidden: false,
   updatedAt: "2026-09-04T09:12:00Z",
 };
 
@@ -220,4 +239,10 @@ export default {
   guest: <Live canWrite={false} url="https://tour.example/refinery" />,
   empty: <Live rows={[]} documents={[]} footer={null} />,
   compact: <Live width={300} url="https://tour.example/refinery" />,
+  "phases-hidden": (
+    <Live
+      phaseHidden={{ ...ALL_PHASES_SHOWN, current: true }}
+      rows={[...ROWS, { ...BLANK, id: 9, title: "Flare stack, east", calibrated: true, phase: "post", hidden: true }]}
+    />
+  ),
 };

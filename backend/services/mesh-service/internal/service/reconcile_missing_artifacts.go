@@ -9,22 +9,27 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 )
 
-// TargetLockTTL bounds how long a claimed target stays claimed if the
-// worker dies between claiming it and finishing — it is also, therefore, the
-// recovery time for a dead worker: nothing else reclaims an orphaned stream
-// message (no XAUTOCLAIM/XCLAIM anywhere in this service), so this TTL is the
-// sole path back to a queued retry.
+// TargetLockTTL bounds how long a claimed target stays claimed if the worker
+// dies mid-run — and so it is also the recovery time for a dead worker:
+// nothing reclaims an orphaned stream message (no XAUTOCLAIM/XCLAIM here), so
+// a lapsed claim on a Running job is the only path back to a retry.
 //
-// Measured against production Prometheus on 2026-08-03, 15-day window, from
-// the cumulative bucket counts of mesh_conversion_duration_seconds (count=60,
-// sum=1424.18s, mean≈23.7s): le=1 → 15, le=5 → 16, le=15 → 23, le=30 → 36,
-// le=60 → 60 (every observation). All 60 conversions therefore completed
-// within the le=60 bucket, with 36 of them under 30s; the slowest fell
-// somewhere in (30s, 60s] — a classic histogram can't say where inside a
-// bucket, only that 60s bounds it from above. 10 minutes is still a tenfold
-// margin over that 60s bound — comfortable headroom without leaving a dead
-// worker's target stuck for half an hour.
-const TargetLockTTL = 10 * time.Minute
+// markRunning re-takes the claim as the job starts, so the TTL covers one
+// conversion and never the queue wait before it. LOD0 of MR1CAMPNEW
+// (3 × 8192², textures encoded one at a time) took 357 s on 2026-09-29; a job
+// is at most three passes of that size. Half an hour is margin over that
+// without leaving a killed worker's target stuck for long.
+const TargetLockTTL = 30 * time.Minute
+
+// MaxQueueWait is how long a Pending job counts as queued. The worker reads a
+// message only when it has a free slot and marks it Running straight away, so
+// a Pending job is one still in the stream, waiting its turn — unless Redis
+// failed between the delivery and that write, which leaves it Pending with
+// nobody on it. Past this age it is taken for that and the target is queued
+// again.
+// ponytail: an age cap, not a delivery check; compare the job's stream id with
+// the group's last-delivered-id if a queue ever legitimately waits this long.
+const MaxQueueWait = 6 * time.Hour
 
 // ReconcileMissingArtifacts queues a conversion for every catalog target
 // (territory or model) that does not already have a LOD0 artifact.

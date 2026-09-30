@@ -86,8 +86,11 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
     canvas: {
       slug,
       parentLods: vm.parentLods,
-      targetLod,
+      // Auto measures on full geometry: the raycast lands on the mesh drawn,
+      // and a coarse one moves every point by up to the simplifier's error.
+      targetLod: targetLod === "auto" && mode.mode === "measure" ? 0 : targetLod,
       placements: p.placements,
+      placementGroups: p.placementGroups.list,
       mode: mode.mode,
       selectedId: mode.selectedId,
       gizmo: mode.gizmo,
@@ -158,7 +161,15 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       switcher:
         failed || levels.length < 2 || inside || docs.window !== null
           ? null
-          : { levels, target: targetLod, shown: report.shown, onChange: on.onTargetLod },
+          : {
+              levels,
+              choice: targetLod,
+              // A chosen level dots at once, before the canvas reports asking for it;
+              // Auto has no number of its own until the canvas picks one.
+              target: targetLod === "auto" ? report.target : targetLod,
+              shown: report.shown,
+              onChange: on.onTargetLod,
+            },
       strip: stripItems({
         metadata: vm.metadata,
         shown: report.shown,

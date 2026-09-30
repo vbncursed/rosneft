@@ -4,8 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 import type { RootState } from "@react-three/fiber";
 import type { Placement } from "@/entities/placement";
 import type { GizmoMode } from "@/features/viewer-mode";
+import { AutoLodClock } from "./auto-lod-clock";
 import PlacementsLayer from "./placements-layer";
-import { fakePlacement } from "./testing";
+import { eventually, fakePlacement } from "./testing";
 
 vi.mock("@react-three/drei", async (orig) => (await import("./testing")).mockDrei(orig));
 
@@ -31,23 +32,28 @@ vi.mock("./placement-markers", () => ({
     }),
 }));
 
+// Under the scene's one settle clock, as SceneCanvas mounts it.
 const layer = (over: Partial<Parameters<typeof PlacementsLayer>[0]> = {}) => (
-  <PlacementsLayer
-    placements={[fakePlacement(1), fakePlacement(2)]}
-    selectedId={2}
-    mode={"translate" as GizmoMode}
-    measureMode={false}
-    canEdit
-    territoryRef={{ current: null }}
-    snapEnabled={false}
-    activePanoramaId={null}
-    markerLabels={{}}
-    showMarkers
-    calibrating={false}
-    onSelect={vi.fn()}
-    onCommit={vi.fn()}
-    {...over}
-  />
+  <AutoLodClock>
+    <PlacementsLayer
+      placements={[fakePlacement(1), fakePlacement(2)]}
+      placementGroups={[]}
+      selectedId={2}
+      mode={"translate" as GizmoMode}
+      measureMode={false}
+      measuring={false}
+      canEdit
+      territoryRef={{ current: null }}
+      snapEnabled={false}
+      activePanoramaId={null}
+      markerLabels={{}}
+      showMarkers
+      calibrating={false}
+      onSelect={vi.fn()}
+      onCommit={vi.fn()}
+      {...over}
+    />
+  </AutoLodClock>
 );
 
 const instances = (r: Awaited<ReturnType<typeof ReactThreeTestRenderer.create>>) =>
@@ -78,6 +84,27 @@ describe("PlacementsLayer", () => {
     const r = await ReactThreeTestRenderer.create(layer({ measureMode: true }));
     expect(instances(r)).toHaveLength(2);
     expect(gizmos(r)).toHaveLength(0);
+  });
+
+  it("hands measuring to every instance: LOD 0 is requested for each", async () => {
+    const drei = await import("@react-three/drei");
+    vi.mocked(drei.useGLTF).mockClear();
+    const chain = (id: number) => [
+      { lod: 0, hash: `fine${id}`, size: 90, faces: 2_000_000 },
+      { lod: 2, hash: `coarse${id}`, size: 10, faces: 1_000_000 },
+    ];
+    await ReactThreeTestRenderer.create(
+      layer({
+        placements: [1, 2].map((id) => ({ ...fakePlacement(id), chain: chain(id) })),
+        measureMode: true,
+        measuring: true,
+      }),
+    );
+    await eventually(() => {
+      const urls = vi.mocked(drei.useGLTF).mock.calls.map((c) => c[0]);
+      expect(urls).toContain("/api/assets/fine1");
+      expect(urls).toContain("/api/assets/fine2");
+    });
   });
 
   it("draws no gizmo without the write grant", async () => {
@@ -208,5 +235,15 @@ describe("PlacementsLayer", () => {
     invalidate.mockClear();
     await r.update(layer({ placements: [fakePlacement(1), { ...fakePlacement(2), hidden: true }] }));
     expect(invalidate).not.toHaveBeenCalled();
+  });
+
+  it("draws no member of a hidden group, whatever its own flag says", async () => {
+    const r = await ReactThreeTestRenderer.create(
+      layer({
+        placements: [fakePlacement(1), { ...fakePlacement(2), groupId: 4 }],
+        placementGroups: [{ id: 4, title: "East yard", hidden: true }],
+      }),
+    );
+    expect(instances(r).map((g) => g.instance.userData.placementId)).toEqual([1]);
   });
 });

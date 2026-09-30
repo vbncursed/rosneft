@@ -12,11 +12,18 @@ const DTO = {
   defaultYaw: 1.2,
   thumbnailBlobHash: "t",
   updatedAt: "2026-09-14T10:00:00Z",
+  phase: "current" as const,
+  hidden: true,
 };
 
 describe("toPanorama", () => {
   it("carries every field through untouched", () => {
     expect(toPanorama(DTO)).toEqual({ ...DTO });
+  });
+
+  it("files a panorama saved before phases under Prior, shown — where the migration put them", () => {
+    const { phase: _p, hidden: _h, ...old } = DTO;
+    expect(toPanorama(old)).toMatchObject({ phase: "prior", hidden: false });
   });
 
   it("maps a missing updatedAt to an empty string", () => {

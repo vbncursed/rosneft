@@ -16,6 +16,8 @@ interface PanoramaMarkersLayerProps {
   draggingId?: number | null;
   livePos?: Vec3 | null;
   onGrab?: (id: number) => void;
+  /** Points only: every ring without its title. */
+  showTitles?: boolean;
 }
 
 // PanoramaMarkersLayer draws an anchor marker for every panorama. The caller
@@ -29,6 +31,7 @@ export default function PanoramaMarkersLayer({
   draggingId = null,
   livePos = null,
   onGrab,
+  showTitles = true,
 }: PanoramaMarkersLayerProps) {
   return (
     <>
@@ -42,6 +45,7 @@ export default function PanoramaMarkersLayer({
           dragging={draggingId === p.id}
           livePos={livePos}
           onGrab={onGrab}
+          showTitle={showTitles}
         />
       ))}
     </>

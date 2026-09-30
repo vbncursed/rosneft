@@ -42,6 +42,8 @@ const dto = {
       position: { x: 0, y: 0, z: 0 },
       yawOffset: 0,
       defaultYaw: 0,
+      phase: "current",
+      hidden: true,
     },
   ],
   documents: [{ id: 8, territorySlug: "t", title: "Plot plan.pdf", sourceBlobHash: "d" }],
@@ -58,7 +60,12 @@ const dto = {
       updatedAt: "u",
     },
   ],
-  placementGroups: [{ id: 2, title: "Tank farm", createdAt: "c", updatedAt: "u" }],
+  placementGroups: [{ id: 2, title: "Tank farm", hidden: true, createdAt: "c", updatedAt: "u" }],
+  panoramaPhases: [
+    { phase: "prior", hidden: false },
+    { phase: "current", hidden: true },
+    { phase: "post", hidden: false },
+  ],
 };
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -79,7 +86,20 @@ describe("getSceneBundle", () => {
     expect(bundle.panoramas).toEqual([{ ...dto.panoramas[0], updatedAt: "", thumbnailBlobHash: null }]);
     expect(bundle.documents).toEqual([{ ...dto.documents[0], createdAt: "" }]);
     expect(bundle.measurements).toEqual([{ serverId: 5, points: dto.measurements[0].points, closed: false }]);
-    expect(bundle.placementGroups).toEqual([{ id: 2, title: "Tank farm" }]);
+    expect(bundle.placementGroups).toEqual([{ id: 2, title: "Tank farm", hidden: true }]);
+  });
+
+  it("maps the three phase flags into a lookup", async () => {
+    expect((await getSceneBundle("t")).phaseHidden).toEqual({ prior: false, current: true, post: false });
+  });
+
+  it("loads a snapshot saved before phases: every phase shown, panoramas under Prior", async () => {
+    const { panoramaPhases: _f, ...beforePhases } = dto;
+    const { phase: _p, hidden: _h, ...oldPanorama } = dto.panoramas[0];
+    fetchMock.mockResolvedValueOnce(json({ ...beforePhases, panoramas: [oldPanorama] }));
+    const bundle = await getSceneBundle("t");
+    expect(bundle.phaseHidden).toEqual({ prior: false, current: false, post: false });
+    expect(bundle.panoramas[0]).toMatchObject({ phase: "prior", hidden: false });
   });
 
   it("defaults panoramas and documents to [] when the DTO omits them", async () => {

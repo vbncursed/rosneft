@@ -1,8 +1,6 @@
+import type { EyeState } from "@/shared/ui/group-controls";
 import { instanceName, matchesObjects, type ModelGroup, type PlacementInstance } from "./groups";
 import type { PlacementGroup } from "./placement";
-
-/** What an eye shows for everything it covers. */
-export type EyeState = "visible" | "hidden" | "mixed";
 
 /** A user group and its placements, each with the model it is an instance of. */
 export type UserGroupSection = {

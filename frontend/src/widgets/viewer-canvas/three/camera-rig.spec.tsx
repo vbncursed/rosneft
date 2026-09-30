@@ -309,6 +309,21 @@ describe("CameraRig · fly-around", () => {
     },
   );
 
+  it("fires a change where the flight lands, so Auto LOD re-reads the view", async () => {
+    // The flight moves the camera without update(): nothing has fired "change"
+    // since it began, and every placement framed meanwhile would wait for the
+    // next gesture.
+    const frames = stubFrames();
+    const sceneRef = territory();
+    const r = await ReactThreeTestRenderer.create(rig(0, { playing: true, sceneRef }));
+    frames.to(1000);
+    frames.to(1600);
+    const change = vi.fn();
+    controls!.addEventListener("change", change);
+    await r.update(rig(0, { playing: false, sceneRef }));
+    expect(change).toHaveBeenCalled();
+  });
+
   it("lands on Reset: the camera goes back where it started and nothing moves it after", async () => {
     const frames = stubFrames();
     const sceneRef = territory();

@@ -66,6 +66,7 @@ type Repository interface {
 	CreatePlacementGroup(ctx context.Context, territorySlug, title string) (domain.PlacementGroup, error)
 	RenamePlacementGroup(ctx context.Context, territorySlug string, id int64, title string) (domain.PlacementGroup, error)
 	DeletePlacementGroup(ctx context.Context, territorySlug string, id int64) error
+	SetPlacementGroupHidden(ctx context.Context, territorySlug string, id int64, hidden bool) (domain.PlacementGroup, error)
 
 	// Every id-addressed measurement call is scoped by the territory slug: a
 	// row of another territory is ErrMeasurementNotFound.

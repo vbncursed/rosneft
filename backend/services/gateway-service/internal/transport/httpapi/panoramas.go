@@ -33,6 +33,10 @@ func (s *Server) CreatePanorama(ctx context.Context, req CreatePanoramaRequestOb
 	if body.YawOffset != nil {
 		yawOffset = *body.YawOffset
 	}
+	var phase string
+	if body.Phase != nil {
+		phase = string(*body.Phase)
+	}
 	p, err := s.svc.CreatePanorama(ctx, domain.Panorama{
 		TerritorySlug: req.Slug,
 		// Slug intentionally omitted — the catalog derives it from the title.
@@ -40,6 +44,7 @@ func (s *Server) CreatePanorama(ctx context.Context, req CreatePanoramaRequestOb
 		SourceBlobHash: body.SourceBlobHash,
 		Position:       vec3PtrFromAPI(body.Position),
 		YawOffset:      yawOffset,
+		Phase:          phase,
 	}, blobScope(ctx))
 	switch {
 	case isInvalid(err):

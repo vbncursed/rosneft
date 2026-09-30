@@ -26,8 +26,8 @@ const OPTIONS = [
   { slug: "pump", title: "pump-nm-1250" },
 ];
 const GROUPS = [
-  { id: 2, title: "West yard" },
-  { id: 1, title: "East yard" },
+  { id: 2, title: "West yard", hidden: false },
+  { id: 1, title: "East yard", hidden: false },
 ];
 
 describe("eyeState", () => {
@@ -76,8 +76,8 @@ describe("groupPlacements", () => {
   });
 
   it("keeps an empty group, so a new one can be filled", () => {
-    const empty = groupPlacements([], [{ id: 9, title: "New" }]);
-    expect(empty.userGroups).toEqual([{ group: { id: 9, title: "New" }, members: [] }]);
+    const empty = groupPlacements([], [{ id: 9, title: "New", hidden: false }]);
+    expect(empty.userGroups).toEqual([{ group: { id: 9, title: "New", hidden: false }, members: [] }]);
   });
 
   it("treats a group id it does not know as no group at all", () => {

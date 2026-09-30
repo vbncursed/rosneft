@@ -1,9 +1,10 @@
 import { useEffect, useRef, type RefObject } from "react";
 import { useThree } from "@react-three/fiber";
-import { Box3, Sphere, Vector3, type Object3D, type PerspectiveCamera } from "three";
+import { Vector3, type Object3D, type PerspectiveCamera } from "three";
 import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useMediaQuery } from "@/shared/lib/use-media-query";
 import { coveredShare, flightPose, landingPivot, planFlight, sideOffset } from "../model/flight-pose";
+import { boundsOf } from "./bounds";
 import { holdStill, stopCoast } from "./stop-coast";
 
 interface CameraRigProps {
@@ -17,13 +18,6 @@ interface CameraRigProps {
    * wrapper — a placement parked far outside the mesh must not widen the circle.
    */
   sceneRef: RefObject<Object3D | null>;
-}
-
-/** The territory's bounding sphere, or null when there is nothing with a size to circle. */
-function boundsOf(object: Object3D | null): Sphere | null {
-  if (!object) return null;
-  const sphere = new Box3().setFromObject(object).getBoundingSphere(new Sphere());
-  return sphere.radius > 0 && Number.isFinite(sphere.radius) ? sphere : null;
 }
 
 // CameraRig owns OrbitControls explicitly (not via drei's <OrbitControls>)
@@ -147,6 +141,11 @@ export default function CameraRig({ resetVersion, playing, onPlayStop, sceneRef 
       controls.removeEventListener("start", grab);
       const view = camera.getWorldDirection(new Vector3());
       controls.target.copy(landingPivot(camera.position, view, sphere));
+      // The flight moved the camera without update(), so nothing has fired
+      // "change" since it began. This one does: Auto LOD re-reads the view
+      // where the flight left it. The pivot is on the line of sight, so the
+      // look-at inside update() turns nothing.
+      controls.update();
     };
     const grab = () => {
       holdStill(controls, camera);

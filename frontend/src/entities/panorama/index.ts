@@ -1,6 +1,22 @@
-export { isCalibrated, type Panorama, type PanoramaCreate, type PanoramaUpdate } from "./model/panorama";
+export {
+  ALL_PHASES_SHOWN,
+  isCalibrated,
+  isPanoramaShown,
+  PANORAMA_PHASES,
+  type Panorama,
+  type PanoramaCreate,
+  type PanoramaPhase,
+  type PanoramaUpdate,
+  type PhaseHidden,
+} from "./model/panorama";
 export { toPanorama } from "./api/to-panorama";
 export { listPanoramas, createPanorama, updatePanorama, deletePanorama } from "./api/panoramas-gateway";
+export {
+  setPanoramaPhaseHidden,
+  setPanoramasHidden,
+  setPanoramasPhase,
+  toPhaseHidden,
+} from "./api/panorama-visibility-gateway";
 export { clampOpacity, nudgePosition, applyCalibration, type CalibrationDraft } from "./model/calibration";
 export { yawToTarget, dirToYaw } from "./model/look-yaw";
 export { IDLE, begin, move, dropTarget, type DragState } from "./model/marker-drag";

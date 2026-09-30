@@ -54,12 +54,40 @@ type ContentMock struct {
 	beforeListDocumentsCounter uint64
 	ListDocumentsMock          mContentMockListDocuments
 
+	funcListPanoramaPhases          func(ctx context.Context, territorySlug string) (pa1 []domain.PanoramaPhase, err error)
+	funcListPanoramaPhasesOrigin    string
+	inspectFuncListPanoramaPhases   func(ctx context.Context, territorySlug string)
+	afterListPanoramaPhasesCounter  uint64
+	beforeListPanoramaPhasesCounter uint64
+	ListPanoramaPhasesMock          mContentMockListPanoramaPhases
+
 	funcListPanoramas          func(ctx context.Context, territorySlug string) (pa1 []domain.Panorama, err error)
 	funcListPanoramasOrigin    string
 	inspectFuncListPanoramas   func(ctx context.Context, territorySlug string)
 	afterListPanoramasCounter  uint64
 	beforeListPanoramasCounter uint64
 	ListPanoramasMock          mContentMockListPanoramas
+
+	funcSetPanoramaPhaseHidden          func(ctx context.Context, territorySlug string, phase string, hidden bool) (p1 domain.PanoramaPhase, err error)
+	funcSetPanoramaPhaseHiddenOrigin    string
+	inspectFuncSetPanoramaPhaseHidden   func(ctx context.Context, territorySlug string, phase string, hidden bool)
+	afterSetPanoramaPhaseHiddenCounter  uint64
+	beforeSetPanoramaPhaseHiddenCounter uint64
+	SetPanoramaPhaseHiddenMock          mContentMockSetPanoramaPhaseHidden
+
+	funcSetPanoramasHidden          func(ctx context.Context, territorySlug string, ids []int64, hidden bool) (i1 int, err error)
+	funcSetPanoramasHiddenOrigin    string
+	inspectFuncSetPanoramasHidden   func(ctx context.Context, territorySlug string, ids []int64, hidden bool)
+	afterSetPanoramasHiddenCounter  uint64
+	beforeSetPanoramasHiddenCounter uint64
+	SetPanoramasHiddenMock          mContentMockSetPanoramasHidden
+
+	funcSetPanoramasPhase          func(ctx context.Context, territorySlug string, ids []int64, phase string) (i1 int, err error)
+	funcSetPanoramasPhaseOrigin    string
+	inspectFuncSetPanoramasPhase   func(ctx context.Context, territorySlug string, ids []int64, phase string)
+	afterSetPanoramasPhaseCounter  uint64
+	beforeSetPanoramasPhaseCounter uint64
+	SetPanoramasPhaseMock          mContentMockSetPanoramasPhase
 
 	funcUpdatePanorama          func(ctx context.Context, p domain.Panorama) (p1 domain.Panorama, err error)
 	funcUpdatePanoramaOrigin    string
@@ -92,8 +120,20 @@ func NewContentMock(t minimock.Tester) *ContentMock {
 	m.ListDocumentsMock = mContentMockListDocuments{mock: m}
 	m.ListDocumentsMock.callArgs = []*ContentMockListDocumentsParams{}
 
+	m.ListPanoramaPhasesMock = mContentMockListPanoramaPhases{mock: m}
+	m.ListPanoramaPhasesMock.callArgs = []*ContentMockListPanoramaPhasesParams{}
+
 	m.ListPanoramasMock = mContentMockListPanoramas{mock: m}
 	m.ListPanoramasMock.callArgs = []*ContentMockListPanoramasParams{}
+
+	m.SetPanoramaPhaseHiddenMock = mContentMockSetPanoramaPhaseHidden{mock: m}
+	m.SetPanoramaPhaseHiddenMock.callArgs = []*ContentMockSetPanoramaPhaseHiddenParams{}
+
+	m.SetPanoramasHiddenMock = mContentMockSetPanoramasHidden{mock: m}
+	m.SetPanoramasHiddenMock.callArgs = []*ContentMockSetPanoramasHiddenParams{}
+
+	m.SetPanoramasPhaseMock = mContentMockSetPanoramasPhase{mock: m}
+	m.SetPanoramasPhaseMock.callArgs = []*ContentMockSetPanoramasPhaseParams{}
 
 	m.UpdatePanoramaMock = mContentMockUpdatePanorama{mock: m}
 	m.UpdatePanoramaMock.callArgs = []*ContentMockUpdatePanoramaParams{}
@@ -1878,6 +1918,349 @@ func (m *ContentMock) MinimockListDocumentsInspect() {
 	}
 }
 
+type mContentMockListPanoramaPhases struct {
+	optional           bool
+	mock               *ContentMock
+	defaultExpectation *ContentMockListPanoramaPhasesExpectation
+	expectations       []*ContentMockListPanoramaPhasesExpectation
+
+	callArgs []*ContentMockListPanoramaPhasesParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// ContentMockListPanoramaPhasesExpectation specifies expectation struct of the Content.ListPanoramaPhases
+type ContentMockListPanoramaPhasesExpectation struct {
+	mock               *ContentMock
+	params             *ContentMockListPanoramaPhasesParams
+	paramPtrs          *ContentMockListPanoramaPhasesParamPtrs
+	expectationOrigins ContentMockListPanoramaPhasesExpectationOrigins
+	results            *ContentMockListPanoramaPhasesResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// ContentMockListPanoramaPhasesParams contains parameters of the Content.ListPanoramaPhases
+type ContentMockListPanoramaPhasesParams struct {
+	ctx           context.Context
+	territorySlug string
+}
+
+// ContentMockListPanoramaPhasesParamPtrs contains pointers to parameters of the Content.ListPanoramaPhases
+type ContentMockListPanoramaPhasesParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+}
+
+// ContentMockListPanoramaPhasesResults contains results of the Content.ListPanoramaPhases
+type ContentMockListPanoramaPhasesResults struct {
+	pa1 []domain.PanoramaPhase
+	err error
+}
+
+// ContentMockListPanoramaPhasesOrigins contains origins of expectations of the Content.ListPanoramaPhases
+type ContentMockListPanoramaPhasesExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmListPanoramaPhases *mContentMockListPanoramaPhases) Optional() *mContentMockListPanoramaPhases {
+	mmListPanoramaPhases.optional = true
+	return mmListPanoramaPhases
+}
+
+// Expect sets up expected params for Content.ListPanoramaPhases
+func (mmListPanoramaPhases *mContentMockListPanoramaPhases) Expect(ctx context.Context, territorySlug string) *mContentMockListPanoramaPhases {
+	if mmListPanoramaPhases.mock.funcListPanoramaPhases != nil {
+		mmListPanoramaPhases.mock.t.Fatalf("ContentMock.ListPanoramaPhases mock is already set by Set")
+	}
+
+	if mmListPanoramaPhases.defaultExpectation == nil {
+		mmListPanoramaPhases.defaultExpectation = &ContentMockListPanoramaPhasesExpectation{}
+	}
+
+	if mmListPanoramaPhases.defaultExpectation.paramPtrs != nil {
+		mmListPanoramaPhases.mock.t.Fatalf("ContentMock.ListPanoramaPhases mock is already set by ExpectParams functions")
+	}
+
+	mmListPanoramaPhases.defaultExpectation.params = &ContentMockListPanoramaPhasesParams{ctx, territorySlug}
+	mmListPanoramaPhases.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmListPanoramaPhases.expectations {
+		if minimock.Equal(e.params, mmListPanoramaPhases.defaultExpectation.params) {
+			mmListPanoramaPhases.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmListPanoramaPhases.defaultExpectation.params)
+		}
+	}
+
+	return mmListPanoramaPhases
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Content.ListPanoramaPhases
+func (mmListPanoramaPhases *mContentMockListPanoramaPhases) ExpectCtxParam1(ctx context.Context) *mContentMockListPanoramaPhases {
+	if mmListPanoramaPhases.mock.funcListPanoramaPhases != nil {
+		mmListPanoramaPhases.mock.t.Fatalf("ContentMock.ListPanoramaPhases mock is already set by Set")
+	}
+
+	if mmListPanoramaPhases.defaultExpectation == nil {
+		mmListPanoramaPhases.defaultExpectation = &ContentMockListPanoramaPhasesExpectation{}
+	}
+
+	if mmListPanoramaPhases.defaultExpectation.params != nil {
+		mmListPanoramaPhases.mock.t.Fatalf("ContentMock.ListPanoramaPhases mock is already set by Expect")
+	}
+
+	if mmListPanoramaPhases.defaultExpectation.paramPtrs == nil {
+		mmListPanoramaPhases.defaultExpectation.paramPtrs = &ContentMockListPanoramaPhasesParamPtrs{}
+	}
+	mmListPanoramaPhases.defaultExpectation.paramPtrs.ctx = &ctx
+	mmListPanoramaPhases.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmListPanoramaPhases
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Content.ListPanoramaPhases
+func (mmListPanoramaPhases *mContentMockListPanoramaPhases) ExpectTerritorySlugParam2(territorySlug string) *mContentMockListPanoramaPhases {
+	if mmListPanoramaPhases.mock.funcListPanoramaPhases != nil {
+		mmListPanoramaPhases.mock.t.Fatalf("ContentMock.ListPanoramaPhases mock is already set by Set")
+	}
+
+	if mmListPanoramaPhases.defaultExpectation == nil {
+		mmListPanoramaPhases.defaultExpectation = &ContentMockListPanoramaPhasesExpectation{}
+	}
+
+	if mmListPanoramaPhases.defaultExpectation.params != nil {
+		mmListPanoramaPhases.mock.t.Fatalf("ContentMock.ListPanoramaPhases mock is already set by Expect")
+	}
+
+	if mmListPanoramaPhases.defaultExpectation.paramPtrs == nil {
+		mmListPanoramaPhases.defaultExpectation.paramPtrs = &ContentMockListPanoramaPhasesParamPtrs{}
+	}
+	mmListPanoramaPhases.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmListPanoramaPhases.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmListPanoramaPhases
+}
+
+// Inspect accepts an inspector function that has same arguments as the Content.ListPanoramaPhases
+func (mmListPanoramaPhases *mContentMockListPanoramaPhases) Inspect(f func(ctx context.Context, territorySlug string)) *mContentMockListPanoramaPhases {
+	if mmListPanoramaPhases.mock.inspectFuncListPanoramaPhases != nil {
+		mmListPanoramaPhases.mock.t.Fatalf("Inspect function is already set for ContentMock.ListPanoramaPhases")
+	}
+
+	mmListPanoramaPhases.mock.inspectFuncListPanoramaPhases = f
+
+	return mmListPanoramaPhases
+}
+
+// Return sets up results that will be returned by Content.ListPanoramaPhases
+func (mmListPanoramaPhases *mContentMockListPanoramaPhases) Return(pa1 []domain.PanoramaPhase, err error) *ContentMock {
+	if mmListPanoramaPhases.mock.funcListPanoramaPhases != nil {
+		mmListPanoramaPhases.mock.t.Fatalf("ContentMock.ListPanoramaPhases mock is already set by Set")
+	}
+
+	if mmListPanoramaPhases.defaultExpectation == nil {
+		mmListPanoramaPhases.defaultExpectation = &ContentMockListPanoramaPhasesExpectation{mock: mmListPanoramaPhases.mock}
+	}
+	mmListPanoramaPhases.defaultExpectation.results = &ContentMockListPanoramaPhasesResults{pa1, err}
+	mmListPanoramaPhases.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmListPanoramaPhases.mock
+}
+
+// Set uses given function f to mock the Content.ListPanoramaPhases method
+func (mmListPanoramaPhases *mContentMockListPanoramaPhases) Set(f func(ctx context.Context, territorySlug string) (pa1 []domain.PanoramaPhase, err error)) *ContentMock {
+	if mmListPanoramaPhases.defaultExpectation != nil {
+		mmListPanoramaPhases.mock.t.Fatalf("Default expectation is already set for the Content.ListPanoramaPhases method")
+	}
+
+	if len(mmListPanoramaPhases.expectations) > 0 {
+		mmListPanoramaPhases.mock.t.Fatalf("Some expectations are already set for the Content.ListPanoramaPhases method")
+	}
+
+	mmListPanoramaPhases.mock.funcListPanoramaPhases = f
+	mmListPanoramaPhases.mock.funcListPanoramaPhasesOrigin = minimock.CallerInfo(1)
+	return mmListPanoramaPhases.mock
+}
+
+// When sets expectation for the Content.ListPanoramaPhases which will trigger the result defined by the following
+// Then helper
+func (mmListPanoramaPhases *mContentMockListPanoramaPhases) When(ctx context.Context, territorySlug string) *ContentMockListPanoramaPhasesExpectation {
+	if mmListPanoramaPhases.mock.funcListPanoramaPhases != nil {
+		mmListPanoramaPhases.mock.t.Fatalf("ContentMock.ListPanoramaPhases mock is already set by Set")
+	}
+
+	expectation := &ContentMockListPanoramaPhasesExpectation{
+		mock:               mmListPanoramaPhases.mock,
+		params:             &ContentMockListPanoramaPhasesParams{ctx, territorySlug},
+		expectationOrigins: ContentMockListPanoramaPhasesExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmListPanoramaPhases.expectations = append(mmListPanoramaPhases.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Content.ListPanoramaPhases return parameters for the expectation previously defined by the When method
+func (e *ContentMockListPanoramaPhasesExpectation) Then(pa1 []domain.PanoramaPhase, err error) *ContentMock {
+	e.results = &ContentMockListPanoramaPhasesResults{pa1, err}
+	return e.mock
+}
+
+// Times sets number of times Content.ListPanoramaPhases should be invoked
+func (mmListPanoramaPhases *mContentMockListPanoramaPhases) Times(n uint64) *mContentMockListPanoramaPhases {
+	if n == 0 {
+		mmListPanoramaPhases.mock.t.Fatalf("Times of ContentMock.ListPanoramaPhases mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmListPanoramaPhases.expectedInvocations, n)
+	mmListPanoramaPhases.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmListPanoramaPhases
+}
+
+func (mmListPanoramaPhases *mContentMockListPanoramaPhases) invocationsDone() bool {
+	if len(mmListPanoramaPhases.expectations) == 0 && mmListPanoramaPhases.defaultExpectation == nil && mmListPanoramaPhases.mock.funcListPanoramaPhases == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmListPanoramaPhases.mock.afterListPanoramaPhasesCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmListPanoramaPhases.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ListPanoramaPhases implements mm_service.Content
+func (mmListPanoramaPhases *ContentMock) ListPanoramaPhases(ctx context.Context, territorySlug string) (pa1 []domain.PanoramaPhase, err error) {
+	mm_atomic.AddUint64(&mmListPanoramaPhases.beforeListPanoramaPhasesCounter, 1)
+	defer mm_atomic.AddUint64(&mmListPanoramaPhases.afterListPanoramaPhasesCounter, 1)
+
+	mmListPanoramaPhases.t.Helper()
+
+	if mmListPanoramaPhases.inspectFuncListPanoramaPhases != nil {
+		mmListPanoramaPhases.inspectFuncListPanoramaPhases(ctx, territorySlug)
+	}
+
+	mm_params := ContentMockListPanoramaPhasesParams{ctx, territorySlug}
+
+	// Record call args
+	mmListPanoramaPhases.ListPanoramaPhasesMock.mutex.Lock()
+	mmListPanoramaPhases.ListPanoramaPhasesMock.callArgs = append(mmListPanoramaPhases.ListPanoramaPhasesMock.callArgs, &mm_params)
+	mmListPanoramaPhases.ListPanoramaPhasesMock.mutex.Unlock()
+
+	for _, e := range mmListPanoramaPhases.ListPanoramaPhasesMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.pa1, e.results.err
+		}
+	}
+
+	if mmListPanoramaPhases.ListPanoramaPhasesMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmListPanoramaPhases.ListPanoramaPhasesMock.defaultExpectation.Counter, 1)
+		mm_want := mmListPanoramaPhases.ListPanoramaPhasesMock.defaultExpectation.params
+		mm_want_ptrs := mmListPanoramaPhases.ListPanoramaPhasesMock.defaultExpectation.paramPtrs
+
+		mm_got := ContentMockListPanoramaPhasesParams{ctx, territorySlug}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmListPanoramaPhases.t.Errorf("ContentMock.ListPanoramaPhases got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListPanoramaPhases.ListPanoramaPhasesMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmListPanoramaPhases.t.Errorf("ContentMock.ListPanoramaPhases got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListPanoramaPhases.ListPanoramaPhasesMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmListPanoramaPhases.t.Errorf("ContentMock.ListPanoramaPhases got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmListPanoramaPhases.ListPanoramaPhasesMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmListPanoramaPhases.ListPanoramaPhasesMock.defaultExpectation.results
+		if mm_results == nil {
+			mmListPanoramaPhases.t.Fatal("No results are set for the ContentMock.ListPanoramaPhases")
+		}
+		return (*mm_results).pa1, (*mm_results).err
+	}
+	if mmListPanoramaPhases.funcListPanoramaPhases != nil {
+		return mmListPanoramaPhases.funcListPanoramaPhases(ctx, territorySlug)
+	}
+	mmListPanoramaPhases.t.Fatalf("Unexpected call to ContentMock.ListPanoramaPhases. %v %v", ctx, territorySlug)
+	return
+}
+
+// ListPanoramaPhasesAfterCounter returns a count of finished ContentMock.ListPanoramaPhases invocations
+func (mmListPanoramaPhases *ContentMock) ListPanoramaPhasesAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListPanoramaPhases.afterListPanoramaPhasesCounter)
+}
+
+// ListPanoramaPhasesBeforeCounter returns a count of ContentMock.ListPanoramaPhases invocations
+func (mmListPanoramaPhases *ContentMock) ListPanoramaPhasesBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListPanoramaPhases.beforeListPanoramaPhasesCounter)
+}
+
+// Calls returns a list of arguments used in each call to ContentMock.ListPanoramaPhases.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmListPanoramaPhases *mContentMockListPanoramaPhases) Calls() []*ContentMockListPanoramaPhasesParams {
+	mmListPanoramaPhases.mutex.RLock()
+
+	argCopy := make([]*ContentMockListPanoramaPhasesParams, len(mmListPanoramaPhases.callArgs))
+	copy(argCopy, mmListPanoramaPhases.callArgs)
+
+	mmListPanoramaPhases.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockListPanoramaPhasesDone returns true if the count of the ListPanoramaPhases invocations corresponds
+// the number of defined expectations
+func (m *ContentMock) MinimockListPanoramaPhasesDone() bool {
+	if m.ListPanoramaPhasesMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ListPanoramaPhasesMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ListPanoramaPhasesMock.invocationsDone()
+}
+
+// MinimockListPanoramaPhasesInspect logs each unmet expectation
+func (m *ContentMock) MinimockListPanoramaPhasesInspect() {
+	for _, e := range m.ListPanoramaPhasesMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to ContentMock.ListPanoramaPhases at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterListPanoramaPhasesCounter := mm_atomic.LoadUint64(&m.afterListPanoramaPhasesCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ListPanoramaPhasesMock.defaultExpectation != nil && afterListPanoramaPhasesCounter < 1 {
+		if m.ListPanoramaPhasesMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to ContentMock.ListPanoramaPhases at\n%s", m.ListPanoramaPhasesMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to ContentMock.ListPanoramaPhases at\n%s with params: %#v", m.ListPanoramaPhasesMock.defaultExpectation.expectationOrigins.origin, *m.ListPanoramaPhasesMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcListPanoramaPhases != nil && afterListPanoramaPhasesCounter < 1 {
+		m.t.Errorf("Expected call to ContentMock.ListPanoramaPhases at\n%s", m.funcListPanoramaPhasesOrigin)
+	}
+
+	if !m.ListPanoramaPhasesMock.invocationsDone() && afterListPanoramaPhasesCounter > 0 {
+		m.t.Errorf("Expected %d calls to ContentMock.ListPanoramaPhases at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ListPanoramaPhasesMock.expectedInvocations), m.ListPanoramaPhasesMock.expectedInvocationsOrigin, afterListPanoramaPhasesCounter)
+	}
+}
+
 type mContentMockListPanoramas struct {
 	optional           bool
 	mock               *ContentMock
@@ -2218,6 +2601,1221 @@ func (m *ContentMock) MinimockListPanoramasInspect() {
 	if !m.ListPanoramasMock.invocationsDone() && afterListPanoramasCounter > 0 {
 		m.t.Errorf("Expected %d calls to ContentMock.ListPanoramas at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.ListPanoramasMock.expectedInvocations), m.ListPanoramasMock.expectedInvocationsOrigin, afterListPanoramasCounter)
+	}
+}
+
+type mContentMockSetPanoramaPhaseHidden struct {
+	optional           bool
+	mock               *ContentMock
+	defaultExpectation *ContentMockSetPanoramaPhaseHiddenExpectation
+	expectations       []*ContentMockSetPanoramaPhaseHiddenExpectation
+
+	callArgs []*ContentMockSetPanoramaPhaseHiddenParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// ContentMockSetPanoramaPhaseHiddenExpectation specifies expectation struct of the Content.SetPanoramaPhaseHidden
+type ContentMockSetPanoramaPhaseHiddenExpectation struct {
+	mock               *ContentMock
+	params             *ContentMockSetPanoramaPhaseHiddenParams
+	paramPtrs          *ContentMockSetPanoramaPhaseHiddenParamPtrs
+	expectationOrigins ContentMockSetPanoramaPhaseHiddenExpectationOrigins
+	results            *ContentMockSetPanoramaPhaseHiddenResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// ContentMockSetPanoramaPhaseHiddenParams contains parameters of the Content.SetPanoramaPhaseHidden
+type ContentMockSetPanoramaPhaseHiddenParams struct {
+	ctx           context.Context
+	territorySlug string
+	phase         string
+	hidden        bool
+}
+
+// ContentMockSetPanoramaPhaseHiddenParamPtrs contains pointers to parameters of the Content.SetPanoramaPhaseHidden
+type ContentMockSetPanoramaPhaseHiddenParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+	phase         *string
+	hidden        *bool
+}
+
+// ContentMockSetPanoramaPhaseHiddenResults contains results of the Content.SetPanoramaPhaseHidden
+type ContentMockSetPanoramaPhaseHiddenResults struct {
+	p1  domain.PanoramaPhase
+	err error
+}
+
+// ContentMockSetPanoramaPhaseHiddenOrigins contains origins of expectations of the Content.SetPanoramaPhaseHidden
+type ContentMockSetPanoramaPhaseHiddenExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originPhase         string
+	originHidden        string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmSetPanoramaPhaseHidden *mContentMockSetPanoramaPhaseHidden) Optional() *mContentMockSetPanoramaPhaseHidden {
+	mmSetPanoramaPhaseHidden.optional = true
+	return mmSetPanoramaPhaseHidden
+}
+
+// Expect sets up expected params for Content.SetPanoramaPhaseHidden
+func (mmSetPanoramaPhaseHidden *mContentMockSetPanoramaPhaseHidden) Expect(ctx context.Context, territorySlug string, phase string, hidden bool) *mContentMockSetPanoramaPhaseHidden {
+	if mmSetPanoramaPhaseHidden.mock.funcSetPanoramaPhaseHidden != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("ContentMock.SetPanoramaPhaseHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation == nil {
+		mmSetPanoramaPhaseHidden.defaultExpectation = &ContentMockSetPanoramaPhaseHiddenExpectation{}
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("ContentMock.SetPanoramaPhaseHidden mock is already set by ExpectParams functions")
+	}
+
+	mmSetPanoramaPhaseHidden.defaultExpectation.params = &ContentMockSetPanoramaPhaseHiddenParams{ctx, territorySlug, phase, hidden}
+	mmSetPanoramaPhaseHidden.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmSetPanoramaPhaseHidden.expectations {
+		if minimock.Equal(e.params, mmSetPanoramaPhaseHidden.defaultExpectation.params) {
+			mmSetPanoramaPhaseHidden.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSetPanoramaPhaseHidden.defaultExpectation.params)
+		}
+	}
+
+	return mmSetPanoramaPhaseHidden
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Content.SetPanoramaPhaseHidden
+func (mmSetPanoramaPhaseHidden *mContentMockSetPanoramaPhaseHidden) ExpectCtxParam1(ctx context.Context) *mContentMockSetPanoramaPhaseHidden {
+	if mmSetPanoramaPhaseHidden.mock.funcSetPanoramaPhaseHidden != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("ContentMock.SetPanoramaPhaseHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation == nil {
+		mmSetPanoramaPhaseHidden.defaultExpectation = &ContentMockSetPanoramaPhaseHiddenExpectation{}
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation.params != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("ContentMock.SetPanoramaPhaseHidden mock is already set by Expect")
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs = &ContentMockSetPanoramaPhaseHiddenParamPtrs{}
+	}
+	mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs.ctx = &ctx
+	mmSetPanoramaPhaseHidden.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmSetPanoramaPhaseHidden
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Content.SetPanoramaPhaseHidden
+func (mmSetPanoramaPhaseHidden *mContentMockSetPanoramaPhaseHidden) ExpectTerritorySlugParam2(territorySlug string) *mContentMockSetPanoramaPhaseHidden {
+	if mmSetPanoramaPhaseHidden.mock.funcSetPanoramaPhaseHidden != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("ContentMock.SetPanoramaPhaseHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation == nil {
+		mmSetPanoramaPhaseHidden.defaultExpectation = &ContentMockSetPanoramaPhaseHiddenExpectation{}
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation.params != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("ContentMock.SetPanoramaPhaseHidden mock is already set by Expect")
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs = &ContentMockSetPanoramaPhaseHiddenParamPtrs{}
+	}
+	mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmSetPanoramaPhaseHidden.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmSetPanoramaPhaseHidden
+}
+
+// ExpectPhaseParam3 sets up expected param phase for Content.SetPanoramaPhaseHidden
+func (mmSetPanoramaPhaseHidden *mContentMockSetPanoramaPhaseHidden) ExpectPhaseParam3(phase string) *mContentMockSetPanoramaPhaseHidden {
+	if mmSetPanoramaPhaseHidden.mock.funcSetPanoramaPhaseHidden != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("ContentMock.SetPanoramaPhaseHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation == nil {
+		mmSetPanoramaPhaseHidden.defaultExpectation = &ContentMockSetPanoramaPhaseHiddenExpectation{}
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation.params != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("ContentMock.SetPanoramaPhaseHidden mock is already set by Expect")
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs = &ContentMockSetPanoramaPhaseHiddenParamPtrs{}
+	}
+	mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs.phase = &phase
+	mmSetPanoramaPhaseHidden.defaultExpectation.expectationOrigins.originPhase = minimock.CallerInfo(1)
+
+	return mmSetPanoramaPhaseHidden
+}
+
+// ExpectHiddenParam4 sets up expected param hidden for Content.SetPanoramaPhaseHidden
+func (mmSetPanoramaPhaseHidden *mContentMockSetPanoramaPhaseHidden) ExpectHiddenParam4(hidden bool) *mContentMockSetPanoramaPhaseHidden {
+	if mmSetPanoramaPhaseHidden.mock.funcSetPanoramaPhaseHidden != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("ContentMock.SetPanoramaPhaseHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation == nil {
+		mmSetPanoramaPhaseHidden.defaultExpectation = &ContentMockSetPanoramaPhaseHiddenExpectation{}
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation.params != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("ContentMock.SetPanoramaPhaseHidden mock is already set by Expect")
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs = &ContentMockSetPanoramaPhaseHiddenParamPtrs{}
+	}
+	mmSetPanoramaPhaseHidden.defaultExpectation.paramPtrs.hidden = &hidden
+	mmSetPanoramaPhaseHidden.defaultExpectation.expectationOrigins.originHidden = minimock.CallerInfo(1)
+
+	return mmSetPanoramaPhaseHidden
+}
+
+// Inspect accepts an inspector function that has same arguments as the Content.SetPanoramaPhaseHidden
+func (mmSetPanoramaPhaseHidden *mContentMockSetPanoramaPhaseHidden) Inspect(f func(ctx context.Context, territorySlug string, phase string, hidden bool)) *mContentMockSetPanoramaPhaseHidden {
+	if mmSetPanoramaPhaseHidden.mock.inspectFuncSetPanoramaPhaseHidden != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("Inspect function is already set for ContentMock.SetPanoramaPhaseHidden")
+	}
+
+	mmSetPanoramaPhaseHidden.mock.inspectFuncSetPanoramaPhaseHidden = f
+
+	return mmSetPanoramaPhaseHidden
+}
+
+// Return sets up results that will be returned by Content.SetPanoramaPhaseHidden
+func (mmSetPanoramaPhaseHidden *mContentMockSetPanoramaPhaseHidden) Return(p1 domain.PanoramaPhase, err error) *ContentMock {
+	if mmSetPanoramaPhaseHidden.mock.funcSetPanoramaPhaseHidden != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("ContentMock.SetPanoramaPhaseHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramaPhaseHidden.defaultExpectation == nil {
+		mmSetPanoramaPhaseHidden.defaultExpectation = &ContentMockSetPanoramaPhaseHiddenExpectation{mock: mmSetPanoramaPhaseHidden.mock}
+	}
+	mmSetPanoramaPhaseHidden.defaultExpectation.results = &ContentMockSetPanoramaPhaseHiddenResults{p1, err}
+	mmSetPanoramaPhaseHidden.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmSetPanoramaPhaseHidden.mock
+}
+
+// Set uses given function f to mock the Content.SetPanoramaPhaseHidden method
+func (mmSetPanoramaPhaseHidden *mContentMockSetPanoramaPhaseHidden) Set(f func(ctx context.Context, territorySlug string, phase string, hidden bool) (p1 domain.PanoramaPhase, err error)) *ContentMock {
+	if mmSetPanoramaPhaseHidden.defaultExpectation != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("Default expectation is already set for the Content.SetPanoramaPhaseHidden method")
+	}
+
+	if len(mmSetPanoramaPhaseHidden.expectations) > 0 {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("Some expectations are already set for the Content.SetPanoramaPhaseHidden method")
+	}
+
+	mmSetPanoramaPhaseHidden.mock.funcSetPanoramaPhaseHidden = f
+	mmSetPanoramaPhaseHidden.mock.funcSetPanoramaPhaseHiddenOrigin = minimock.CallerInfo(1)
+	return mmSetPanoramaPhaseHidden.mock
+}
+
+// When sets expectation for the Content.SetPanoramaPhaseHidden which will trigger the result defined by the following
+// Then helper
+func (mmSetPanoramaPhaseHidden *mContentMockSetPanoramaPhaseHidden) When(ctx context.Context, territorySlug string, phase string, hidden bool) *ContentMockSetPanoramaPhaseHiddenExpectation {
+	if mmSetPanoramaPhaseHidden.mock.funcSetPanoramaPhaseHidden != nil {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("ContentMock.SetPanoramaPhaseHidden mock is already set by Set")
+	}
+
+	expectation := &ContentMockSetPanoramaPhaseHiddenExpectation{
+		mock:               mmSetPanoramaPhaseHidden.mock,
+		params:             &ContentMockSetPanoramaPhaseHiddenParams{ctx, territorySlug, phase, hidden},
+		expectationOrigins: ContentMockSetPanoramaPhaseHiddenExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmSetPanoramaPhaseHidden.expectations = append(mmSetPanoramaPhaseHidden.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Content.SetPanoramaPhaseHidden return parameters for the expectation previously defined by the When method
+func (e *ContentMockSetPanoramaPhaseHiddenExpectation) Then(p1 domain.PanoramaPhase, err error) *ContentMock {
+	e.results = &ContentMockSetPanoramaPhaseHiddenResults{p1, err}
+	return e.mock
+}
+
+// Times sets number of times Content.SetPanoramaPhaseHidden should be invoked
+func (mmSetPanoramaPhaseHidden *mContentMockSetPanoramaPhaseHidden) Times(n uint64) *mContentMockSetPanoramaPhaseHidden {
+	if n == 0 {
+		mmSetPanoramaPhaseHidden.mock.t.Fatalf("Times of ContentMock.SetPanoramaPhaseHidden mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmSetPanoramaPhaseHidden.expectedInvocations, n)
+	mmSetPanoramaPhaseHidden.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmSetPanoramaPhaseHidden
+}
+
+func (mmSetPanoramaPhaseHidden *mContentMockSetPanoramaPhaseHidden) invocationsDone() bool {
+	if len(mmSetPanoramaPhaseHidden.expectations) == 0 && mmSetPanoramaPhaseHidden.defaultExpectation == nil && mmSetPanoramaPhaseHidden.mock.funcSetPanoramaPhaseHidden == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmSetPanoramaPhaseHidden.mock.afterSetPanoramaPhaseHiddenCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmSetPanoramaPhaseHidden.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// SetPanoramaPhaseHidden implements mm_service.Content
+func (mmSetPanoramaPhaseHidden *ContentMock) SetPanoramaPhaseHidden(ctx context.Context, territorySlug string, phase string, hidden bool) (p1 domain.PanoramaPhase, err error) {
+	mm_atomic.AddUint64(&mmSetPanoramaPhaseHidden.beforeSetPanoramaPhaseHiddenCounter, 1)
+	defer mm_atomic.AddUint64(&mmSetPanoramaPhaseHidden.afterSetPanoramaPhaseHiddenCounter, 1)
+
+	mmSetPanoramaPhaseHidden.t.Helper()
+
+	if mmSetPanoramaPhaseHidden.inspectFuncSetPanoramaPhaseHidden != nil {
+		mmSetPanoramaPhaseHidden.inspectFuncSetPanoramaPhaseHidden(ctx, territorySlug, phase, hidden)
+	}
+
+	mm_params := ContentMockSetPanoramaPhaseHiddenParams{ctx, territorySlug, phase, hidden}
+
+	// Record call args
+	mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.mutex.Lock()
+	mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.callArgs = append(mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.callArgs, &mm_params)
+	mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.mutex.Unlock()
+
+	for _, e := range mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.p1, e.results.err
+		}
+	}
+
+	if mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.defaultExpectation.Counter, 1)
+		mm_want := mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.defaultExpectation.params
+		mm_want_ptrs := mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.defaultExpectation.paramPtrs
+
+		mm_got := ContentMockSetPanoramaPhaseHiddenParams{ctx, territorySlug, phase, hidden}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmSetPanoramaPhaseHidden.t.Errorf("ContentMock.SetPanoramaPhaseHidden got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmSetPanoramaPhaseHidden.t.Errorf("ContentMock.SetPanoramaPhaseHidden got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+			if mm_want_ptrs.phase != nil && !minimock.Equal(*mm_want_ptrs.phase, mm_got.phase) {
+				mmSetPanoramaPhaseHidden.t.Errorf("ContentMock.SetPanoramaPhaseHidden got unexpected parameter phase, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.defaultExpectation.expectationOrigins.originPhase, *mm_want_ptrs.phase, mm_got.phase, minimock.Diff(*mm_want_ptrs.phase, mm_got.phase))
+			}
+
+			if mm_want_ptrs.hidden != nil && !minimock.Equal(*mm_want_ptrs.hidden, mm_got.hidden) {
+				mmSetPanoramaPhaseHidden.t.Errorf("ContentMock.SetPanoramaPhaseHidden got unexpected parameter hidden, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.defaultExpectation.expectationOrigins.originHidden, *mm_want_ptrs.hidden, mm_got.hidden, minimock.Diff(*mm_want_ptrs.hidden, mm_got.hidden))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmSetPanoramaPhaseHidden.t.Errorf("ContentMock.SetPanoramaPhaseHidden got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmSetPanoramaPhaseHidden.SetPanoramaPhaseHiddenMock.defaultExpectation.results
+		if mm_results == nil {
+			mmSetPanoramaPhaseHidden.t.Fatal("No results are set for the ContentMock.SetPanoramaPhaseHidden")
+		}
+		return (*mm_results).p1, (*mm_results).err
+	}
+	if mmSetPanoramaPhaseHidden.funcSetPanoramaPhaseHidden != nil {
+		return mmSetPanoramaPhaseHidden.funcSetPanoramaPhaseHidden(ctx, territorySlug, phase, hidden)
+	}
+	mmSetPanoramaPhaseHidden.t.Fatalf("Unexpected call to ContentMock.SetPanoramaPhaseHidden. %v %v %v %v", ctx, territorySlug, phase, hidden)
+	return
+}
+
+// SetPanoramaPhaseHiddenAfterCounter returns a count of finished ContentMock.SetPanoramaPhaseHidden invocations
+func (mmSetPanoramaPhaseHidden *ContentMock) SetPanoramaPhaseHiddenAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetPanoramaPhaseHidden.afterSetPanoramaPhaseHiddenCounter)
+}
+
+// SetPanoramaPhaseHiddenBeforeCounter returns a count of ContentMock.SetPanoramaPhaseHidden invocations
+func (mmSetPanoramaPhaseHidden *ContentMock) SetPanoramaPhaseHiddenBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetPanoramaPhaseHidden.beforeSetPanoramaPhaseHiddenCounter)
+}
+
+// Calls returns a list of arguments used in each call to ContentMock.SetPanoramaPhaseHidden.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmSetPanoramaPhaseHidden *mContentMockSetPanoramaPhaseHidden) Calls() []*ContentMockSetPanoramaPhaseHiddenParams {
+	mmSetPanoramaPhaseHidden.mutex.RLock()
+
+	argCopy := make([]*ContentMockSetPanoramaPhaseHiddenParams, len(mmSetPanoramaPhaseHidden.callArgs))
+	copy(argCopy, mmSetPanoramaPhaseHidden.callArgs)
+
+	mmSetPanoramaPhaseHidden.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockSetPanoramaPhaseHiddenDone returns true if the count of the SetPanoramaPhaseHidden invocations corresponds
+// the number of defined expectations
+func (m *ContentMock) MinimockSetPanoramaPhaseHiddenDone() bool {
+	if m.SetPanoramaPhaseHiddenMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.SetPanoramaPhaseHiddenMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.SetPanoramaPhaseHiddenMock.invocationsDone()
+}
+
+// MinimockSetPanoramaPhaseHiddenInspect logs each unmet expectation
+func (m *ContentMock) MinimockSetPanoramaPhaseHiddenInspect() {
+	for _, e := range m.SetPanoramaPhaseHiddenMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to ContentMock.SetPanoramaPhaseHidden at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterSetPanoramaPhaseHiddenCounter := mm_atomic.LoadUint64(&m.afterSetPanoramaPhaseHiddenCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.SetPanoramaPhaseHiddenMock.defaultExpectation != nil && afterSetPanoramaPhaseHiddenCounter < 1 {
+		if m.SetPanoramaPhaseHiddenMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to ContentMock.SetPanoramaPhaseHidden at\n%s", m.SetPanoramaPhaseHiddenMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to ContentMock.SetPanoramaPhaseHidden at\n%s with params: %#v", m.SetPanoramaPhaseHiddenMock.defaultExpectation.expectationOrigins.origin, *m.SetPanoramaPhaseHiddenMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcSetPanoramaPhaseHidden != nil && afterSetPanoramaPhaseHiddenCounter < 1 {
+		m.t.Errorf("Expected call to ContentMock.SetPanoramaPhaseHidden at\n%s", m.funcSetPanoramaPhaseHiddenOrigin)
+	}
+
+	if !m.SetPanoramaPhaseHiddenMock.invocationsDone() && afterSetPanoramaPhaseHiddenCounter > 0 {
+		m.t.Errorf("Expected %d calls to ContentMock.SetPanoramaPhaseHidden at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.SetPanoramaPhaseHiddenMock.expectedInvocations), m.SetPanoramaPhaseHiddenMock.expectedInvocationsOrigin, afterSetPanoramaPhaseHiddenCounter)
+	}
+}
+
+type mContentMockSetPanoramasHidden struct {
+	optional           bool
+	mock               *ContentMock
+	defaultExpectation *ContentMockSetPanoramasHiddenExpectation
+	expectations       []*ContentMockSetPanoramasHiddenExpectation
+
+	callArgs []*ContentMockSetPanoramasHiddenParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// ContentMockSetPanoramasHiddenExpectation specifies expectation struct of the Content.SetPanoramasHidden
+type ContentMockSetPanoramasHiddenExpectation struct {
+	mock               *ContentMock
+	params             *ContentMockSetPanoramasHiddenParams
+	paramPtrs          *ContentMockSetPanoramasHiddenParamPtrs
+	expectationOrigins ContentMockSetPanoramasHiddenExpectationOrigins
+	results            *ContentMockSetPanoramasHiddenResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// ContentMockSetPanoramasHiddenParams contains parameters of the Content.SetPanoramasHidden
+type ContentMockSetPanoramasHiddenParams struct {
+	ctx           context.Context
+	territorySlug string
+	ids           []int64
+	hidden        bool
+}
+
+// ContentMockSetPanoramasHiddenParamPtrs contains pointers to parameters of the Content.SetPanoramasHidden
+type ContentMockSetPanoramasHiddenParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+	ids           *[]int64
+	hidden        *bool
+}
+
+// ContentMockSetPanoramasHiddenResults contains results of the Content.SetPanoramasHidden
+type ContentMockSetPanoramasHiddenResults struct {
+	i1  int
+	err error
+}
+
+// ContentMockSetPanoramasHiddenOrigins contains origins of expectations of the Content.SetPanoramasHidden
+type ContentMockSetPanoramasHiddenExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originIds           string
+	originHidden        string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmSetPanoramasHidden *mContentMockSetPanoramasHidden) Optional() *mContentMockSetPanoramasHidden {
+	mmSetPanoramasHidden.optional = true
+	return mmSetPanoramasHidden
+}
+
+// Expect sets up expected params for Content.SetPanoramasHidden
+func (mmSetPanoramasHidden *mContentMockSetPanoramasHidden) Expect(ctx context.Context, territorySlug string, ids []int64, hidden bool) *mContentMockSetPanoramasHidden {
+	if mmSetPanoramasHidden.mock.funcSetPanoramasHidden != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("ContentMock.SetPanoramasHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation == nil {
+		mmSetPanoramasHidden.defaultExpectation = &ContentMockSetPanoramasHiddenExpectation{}
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation.paramPtrs != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("ContentMock.SetPanoramasHidden mock is already set by ExpectParams functions")
+	}
+
+	mmSetPanoramasHidden.defaultExpectation.params = &ContentMockSetPanoramasHiddenParams{ctx, territorySlug, ids, hidden}
+	mmSetPanoramasHidden.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmSetPanoramasHidden.expectations {
+		if minimock.Equal(e.params, mmSetPanoramasHidden.defaultExpectation.params) {
+			mmSetPanoramasHidden.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSetPanoramasHidden.defaultExpectation.params)
+		}
+	}
+
+	return mmSetPanoramasHidden
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Content.SetPanoramasHidden
+func (mmSetPanoramasHidden *mContentMockSetPanoramasHidden) ExpectCtxParam1(ctx context.Context) *mContentMockSetPanoramasHidden {
+	if mmSetPanoramasHidden.mock.funcSetPanoramasHidden != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("ContentMock.SetPanoramasHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation == nil {
+		mmSetPanoramasHidden.defaultExpectation = &ContentMockSetPanoramasHiddenExpectation{}
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation.params != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("ContentMock.SetPanoramasHidden mock is already set by Expect")
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramasHidden.defaultExpectation.paramPtrs = &ContentMockSetPanoramasHiddenParamPtrs{}
+	}
+	mmSetPanoramasHidden.defaultExpectation.paramPtrs.ctx = &ctx
+	mmSetPanoramasHidden.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmSetPanoramasHidden
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Content.SetPanoramasHidden
+func (mmSetPanoramasHidden *mContentMockSetPanoramasHidden) ExpectTerritorySlugParam2(territorySlug string) *mContentMockSetPanoramasHidden {
+	if mmSetPanoramasHidden.mock.funcSetPanoramasHidden != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("ContentMock.SetPanoramasHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation == nil {
+		mmSetPanoramasHidden.defaultExpectation = &ContentMockSetPanoramasHiddenExpectation{}
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation.params != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("ContentMock.SetPanoramasHidden mock is already set by Expect")
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramasHidden.defaultExpectation.paramPtrs = &ContentMockSetPanoramasHiddenParamPtrs{}
+	}
+	mmSetPanoramasHidden.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmSetPanoramasHidden.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmSetPanoramasHidden
+}
+
+// ExpectIdsParam3 sets up expected param ids for Content.SetPanoramasHidden
+func (mmSetPanoramasHidden *mContentMockSetPanoramasHidden) ExpectIdsParam3(ids []int64) *mContentMockSetPanoramasHidden {
+	if mmSetPanoramasHidden.mock.funcSetPanoramasHidden != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("ContentMock.SetPanoramasHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation == nil {
+		mmSetPanoramasHidden.defaultExpectation = &ContentMockSetPanoramasHiddenExpectation{}
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation.params != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("ContentMock.SetPanoramasHidden mock is already set by Expect")
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramasHidden.defaultExpectation.paramPtrs = &ContentMockSetPanoramasHiddenParamPtrs{}
+	}
+	mmSetPanoramasHidden.defaultExpectation.paramPtrs.ids = &ids
+	mmSetPanoramasHidden.defaultExpectation.expectationOrigins.originIds = minimock.CallerInfo(1)
+
+	return mmSetPanoramasHidden
+}
+
+// ExpectHiddenParam4 sets up expected param hidden for Content.SetPanoramasHidden
+func (mmSetPanoramasHidden *mContentMockSetPanoramasHidden) ExpectHiddenParam4(hidden bool) *mContentMockSetPanoramasHidden {
+	if mmSetPanoramasHidden.mock.funcSetPanoramasHidden != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("ContentMock.SetPanoramasHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation == nil {
+		mmSetPanoramasHidden.defaultExpectation = &ContentMockSetPanoramasHiddenExpectation{}
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation.params != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("ContentMock.SetPanoramasHidden mock is already set by Expect")
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramasHidden.defaultExpectation.paramPtrs = &ContentMockSetPanoramasHiddenParamPtrs{}
+	}
+	mmSetPanoramasHidden.defaultExpectation.paramPtrs.hidden = &hidden
+	mmSetPanoramasHidden.defaultExpectation.expectationOrigins.originHidden = minimock.CallerInfo(1)
+
+	return mmSetPanoramasHidden
+}
+
+// Inspect accepts an inspector function that has same arguments as the Content.SetPanoramasHidden
+func (mmSetPanoramasHidden *mContentMockSetPanoramasHidden) Inspect(f func(ctx context.Context, territorySlug string, ids []int64, hidden bool)) *mContentMockSetPanoramasHidden {
+	if mmSetPanoramasHidden.mock.inspectFuncSetPanoramasHidden != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("Inspect function is already set for ContentMock.SetPanoramasHidden")
+	}
+
+	mmSetPanoramasHidden.mock.inspectFuncSetPanoramasHidden = f
+
+	return mmSetPanoramasHidden
+}
+
+// Return sets up results that will be returned by Content.SetPanoramasHidden
+func (mmSetPanoramasHidden *mContentMockSetPanoramasHidden) Return(i1 int, err error) *ContentMock {
+	if mmSetPanoramasHidden.mock.funcSetPanoramasHidden != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("ContentMock.SetPanoramasHidden mock is already set by Set")
+	}
+
+	if mmSetPanoramasHidden.defaultExpectation == nil {
+		mmSetPanoramasHidden.defaultExpectation = &ContentMockSetPanoramasHiddenExpectation{mock: mmSetPanoramasHidden.mock}
+	}
+	mmSetPanoramasHidden.defaultExpectation.results = &ContentMockSetPanoramasHiddenResults{i1, err}
+	mmSetPanoramasHidden.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmSetPanoramasHidden.mock
+}
+
+// Set uses given function f to mock the Content.SetPanoramasHidden method
+func (mmSetPanoramasHidden *mContentMockSetPanoramasHidden) Set(f func(ctx context.Context, territorySlug string, ids []int64, hidden bool) (i1 int, err error)) *ContentMock {
+	if mmSetPanoramasHidden.defaultExpectation != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("Default expectation is already set for the Content.SetPanoramasHidden method")
+	}
+
+	if len(mmSetPanoramasHidden.expectations) > 0 {
+		mmSetPanoramasHidden.mock.t.Fatalf("Some expectations are already set for the Content.SetPanoramasHidden method")
+	}
+
+	mmSetPanoramasHidden.mock.funcSetPanoramasHidden = f
+	mmSetPanoramasHidden.mock.funcSetPanoramasHiddenOrigin = minimock.CallerInfo(1)
+	return mmSetPanoramasHidden.mock
+}
+
+// When sets expectation for the Content.SetPanoramasHidden which will trigger the result defined by the following
+// Then helper
+func (mmSetPanoramasHidden *mContentMockSetPanoramasHidden) When(ctx context.Context, territorySlug string, ids []int64, hidden bool) *ContentMockSetPanoramasHiddenExpectation {
+	if mmSetPanoramasHidden.mock.funcSetPanoramasHidden != nil {
+		mmSetPanoramasHidden.mock.t.Fatalf("ContentMock.SetPanoramasHidden mock is already set by Set")
+	}
+
+	expectation := &ContentMockSetPanoramasHiddenExpectation{
+		mock:               mmSetPanoramasHidden.mock,
+		params:             &ContentMockSetPanoramasHiddenParams{ctx, territorySlug, ids, hidden},
+		expectationOrigins: ContentMockSetPanoramasHiddenExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmSetPanoramasHidden.expectations = append(mmSetPanoramasHidden.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Content.SetPanoramasHidden return parameters for the expectation previously defined by the When method
+func (e *ContentMockSetPanoramasHiddenExpectation) Then(i1 int, err error) *ContentMock {
+	e.results = &ContentMockSetPanoramasHiddenResults{i1, err}
+	return e.mock
+}
+
+// Times sets number of times Content.SetPanoramasHidden should be invoked
+func (mmSetPanoramasHidden *mContentMockSetPanoramasHidden) Times(n uint64) *mContentMockSetPanoramasHidden {
+	if n == 0 {
+		mmSetPanoramasHidden.mock.t.Fatalf("Times of ContentMock.SetPanoramasHidden mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmSetPanoramasHidden.expectedInvocations, n)
+	mmSetPanoramasHidden.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmSetPanoramasHidden
+}
+
+func (mmSetPanoramasHidden *mContentMockSetPanoramasHidden) invocationsDone() bool {
+	if len(mmSetPanoramasHidden.expectations) == 0 && mmSetPanoramasHidden.defaultExpectation == nil && mmSetPanoramasHidden.mock.funcSetPanoramasHidden == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmSetPanoramasHidden.mock.afterSetPanoramasHiddenCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmSetPanoramasHidden.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// SetPanoramasHidden implements mm_service.Content
+func (mmSetPanoramasHidden *ContentMock) SetPanoramasHidden(ctx context.Context, territorySlug string, ids []int64, hidden bool) (i1 int, err error) {
+	mm_atomic.AddUint64(&mmSetPanoramasHidden.beforeSetPanoramasHiddenCounter, 1)
+	defer mm_atomic.AddUint64(&mmSetPanoramasHidden.afterSetPanoramasHiddenCounter, 1)
+
+	mmSetPanoramasHidden.t.Helper()
+
+	if mmSetPanoramasHidden.inspectFuncSetPanoramasHidden != nil {
+		mmSetPanoramasHidden.inspectFuncSetPanoramasHidden(ctx, territorySlug, ids, hidden)
+	}
+
+	mm_params := ContentMockSetPanoramasHiddenParams{ctx, territorySlug, ids, hidden}
+
+	// Record call args
+	mmSetPanoramasHidden.SetPanoramasHiddenMock.mutex.Lock()
+	mmSetPanoramasHidden.SetPanoramasHiddenMock.callArgs = append(mmSetPanoramasHidden.SetPanoramasHiddenMock.callArgs, &mm_params)
+	mmSetPanoramasHidden.SetPanoramasHiddenMock.mutex.Unlock()
+
+	for _, e := range mmSetPanoramasHidden.SetPanoramasHiddenMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.i1, e.results.err
+		}
+	}
+
+	if mmSetPanoramasHidden.SetPanoramasHiddenMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmSetPanoramasHidden.SetPanoramasHiddenMock.defaultExpectation.Counter, 1)
+		mm_want := mmSetPanoramasHidden.SetPanoramasHiddenMock.defaultExpectation.params
+		mm_want_ptrs := mmSetPanoramasHidden.SetPanoramasHiddenMock.defaultExpectation.paramPtrs
+
+		mm_got := ContentMockSetPanoramasHiddenParams{ctx, territorySlug, ids, hidden}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmSetPanoramasHidden.t.Errorf("ContentMock.SetPanoramasHidden got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramasHidden.SetPanoramasHiddenMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmSetPanoramasHidden.t.Errorf("ContentMock.SetPanoramasHidden got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramasHidden.SetPanoramasHiddenMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+			if mm_want_ptrs.ids != nil && !minimock.Equal(*mm_want_ptrs.ids, mm_got.ids) {
+				mmSetPanoramasHidden.t.Errorf("ContentMock.SetPanoramasHidden got unexpected parameter ids, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramasHidden.SetPanoramasHiddenMock.defaultExpectation.expectationOrigins.originIds, *mm_want_ptrs.ids, mm_got.ids, minimock.Diff(*mm_want_ptrs.ids, mm_got.ids))
+			}
+
+			if mm_want_ptrs.hidden != nil && !minimock.Equal(*mm_want_ptrs.hidden, mm_got.hidden) {
+				mmSetPanoramasHidden.t.Errorf("ContentMock.SetPanoramasHidden got unexpected parameter hidden, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramasHidden.SetPanoramasHiddenMock.defaultExpectation.expectationOrigins.originHidden, *mm_want_ptrs.hidden, mm_got.hidden, minimock.Diff(*mm_want_ptrs.hidden, mm_got.hidden))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmSetPanoramasHidden.t.Errorf("ContentMock.SetPanoramasHidden got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmSetPanoramasHidden.SetPanoramasHiddenMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmSetPanoramasHidden.SetPanoramasHiddenMock.defaultExpectation.results
+		if mm_results == nil {
+			mmSetPanoramasHidden.t.Fatal("No results are set for the ContentMock.SetPanoramasHidden")
+		}
+		return (*mm_results).i1, (*mm_results).err
+	}
+	if mmSetPanoramasHidden.funcSetPanoramasHidden != nil {
+		return mmSetPanoramasHidden.funcSetPanoramasHidden(ctx, territorySlug, ids, hidden)
+	}
+	mmSetPanoramasHidden.t.Fatalf("Unexpected call to ContentMock.SetPanoramasHidden. %v %v %v %v", ctx, territorySlug, ids, hidden)
+	return
+}
+
+// SetPanoramasHiddenAfterCounter returns a count of finished ContentMock.SetPanoramasHidden invocations
+func (mmSetPanoramasHidden *ContentMock) SetPanoramasHiddenAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetPanoramasHidden.afterSetPanoramasHiddenCounter)
+}
+
+// SetPanoramasHiddenBeforeCounter returns a count of ContentMock.SetPanoramasHidden invocations
+func (mmSetPanoramasHidden *ContentMock) SetPanoramasHiddenBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetPanoramasHidden.beforeSetPanoramasHiddenCounter)
+}
+
+// Calls returns a list of arguments used in each call to ContentMock.SetPanoramasHidden.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmSetPanoramasHidden *mContentMockSetPanoramasHidden) Calls() []*ContentMockSetPanoramasHiddenParams {
+	mmSetPanoramasHidden.mutex.RLock()
+
+	argCopy := make([]*ContentMockSetPanoramasHiddenParams, len(mmSetPanoramasHidden.callArgs))
+	copy(argCopy, mmSetPanoramasHidden.callArgs)
+
+	mmSetPanoramasHidden.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockSetPanoramasHiddenDone returns true if the count of the SetPanoramasHidden invocations corresponds
+// the number of defined expectations
+func (m *ContentMock) MinimockSetPanoramasHiddenDone() bool {
+	if m.SetPanoramasHiddenMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.SetPanoramasHiddenMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.SetPanoramasHiddenMock.invocationsDone()
+}
+
+// MinimockSetPanoramasHiddenInspect logs each unmet expectation
+func (m *ContentMock) MinimockSetPanoramasHiddenInspect() {
+	for _, e := range m.SetPanoramasHiddenMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to ContentMock.SetPanoramasHidden at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterSetPanoramasHiddenCounter := mm_atomic.LoadUint64(&m.afterSetPanoramasHiddenCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.SetPanoramasHiddenMock.defaultExpectation != nil && afterSetPanoramasHiddenCounter < 1 {
+		if m.SetPanoramasHiddenMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to ContentMock.SetPanoramasHidden at\n%s", m.SetPanoramasHiddenMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to ContentMock.SetPanoramasHidden at\n%s with params: %#v", m.SetPanoramasHiddenMock.defaultExpectation.expectationOrigins.origin, *m.SetPanoramasHiddenMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcSetPanoramasHidden != nil && afterSetPanoramasHiddenCounter < 1 {
+		m.t.Errorf("Expected call to ContentMock.SetPanoramasHidden at\n%s", m.funcSetPanoramasHiddenOrigin)
+	}
+
+	if !m.SetPanoramasHiddenMock.invocationsDone() && afterSetPanoramasHiddenCounter > 0 {
+		m.t.Errorf("Expected %d calls to ContentMock.SetPanoramasHidden at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.SetPanoramasHiddenMock.expectedInvocations), m.SetPanoramasHiddenMock.expectedInvocationsOrigin, afterSetPanoramasHiddenCounter)
+	}
+}
+
+type mContentMockSetPanoramasPhase struct {
+	optional           bool
+	mock               *ContentMock
+	defaultExpectation *ContentMockSetPanoramasPhaseExpectation
+	expectations       []*ContentMockSetPanoramasPhaseExpectation
+
+	callArgs []*ContentMockSetPanoramasPhaseParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// ContentMockSetPanoramasPhaseExpectation specifies expectation struct of the Content.SetPanoramasPhase
+type ContentMockSetPanoramasPhaseExpectation struct {
+	mock               *ContentMock
+	params             *ContentMockSetPanoramasPhaseParams
+	paramPtrs          *ContentMockSetPanoramasPhaseParamPtrs
+	expectationOrigins ContentMockSetPanoramasPhaseExpectationOrigins
+	results            *ContentMockSetPanoramasPhaseResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// ContentMockSetPanoramasPhaseParams contains parameters of the Content.SetPanoramasPhase
+type ContentMockSetPanoramasPhaseParams struct {
+	ctx           context.Context
+	territorySlug string
+	ids           []int64
+	phase         string
+}
+
+// ContentMockSetPanoramasPhaseParamPtrs contains pointers to parameters of the Content.SetPanoramasPhase
+type ContentMockSetPanoramasPhaseParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+	ids           *[]int64
+	phase         *string
+}
+
+// ContentMockSetPanoramasPhaseResults contains results of the Content.SetPanoramasPhase
+type ContentMockSetPanoramasPhaseResults struct {
+	i1  int
+	err error
+}
+
+// ContentMockSetPanoramasPhaseOrigins contains origins of expectations of the Content.SetPanoramasPhase
+type ContentMockSetPanoramasPhaseExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originIds           string
+	originPhase         string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmSetPanoramasPhase *mContentMockSetPanoramasPhase) Optional() *mContentMockSetPanoramasPhase {
+	mmSetPanoramasPhase.optional = true
+	return mmSetPanoramasPhase
+}
+
+// Expect sets up expected params for Content.SetPanoramasPhase
+func (mmSetPanoramasPhase *mContentMockSetPanoramasPhase) Expect(ctx context.Context, territorySlug string, ids []int64, phase string) *mContentMockSetPanoramasPhase {
+	if mmSetPanoramasPhase.mock.funcSetPanoramasPhase != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("ContentMock.SetPanoramasPhase mock is already set by Set")
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation == nil {
+		mmSetPanoramasPhase.defaultExpectation = &ContentMockSetPanoramasPhaseExpectation{}
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation.paramPtrs != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("ContentMock.SetPanoramasPhase mock is already set by ExpectParams functions")
+	}
+
+	mmSetPanoramasPhase.defaultExpectation.params = &ContentMockSetPanoramasPhaseParams{ctx, territorySlug, ids, phase}
+	mmSetPanoramasPhase.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmSetPanoramasPhase.expectations {
+		if minimock.Equal(e.params, mmSetPanoramasPhase.defaultExpectation.params) {
+			mmSetPanoramasPhase.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSetPanoramasPhase.defaultExpectation.params)
+		}
+	}
+
+	return mmSetPanoramasPhase
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Content.SetPanoramasPhase
+func (mmSetPanoramasPhase *mContentMockSetPanoramasPhase) ExpectCtxParam1(ctx context.Context) *mContentMockSetPanoramasPhase {
+	if mmSetPanoramasPhase.mock.funcSetPanoramasPhase != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("ContentMock.SetPanoramasPhase mock is already set by Set")
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation == nil {
+		mmSetPanoramasPhase.defaultExpectation = &ContentMockSetPanoramasPhaseExpectation{}
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation.params != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("ContentMock.SetPanoramasPhase mock is already set by Expect")
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramasPhase.defaultExpectation.paramPtrs = &ContentMockSetPanoramasPhaseParamPtrs{}
+	}
+	mmSetPanoramasPhase.defaultExpectation.paramPtrs.ctx = &ctx
+	mmSetPanoramasPhase.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmSetPanoramasPhase
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Content.SetPanoramasPhase
+func (mmSetPanoramasPhase *mContentMockSetPanoramasPhase) ExpectTerritorySlugParam2(territorySlug string) *mContentMockSetPanoramasPhase {
+	if mmSetPanoramasPhase.mock.funcSetPanoramasPhase != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("ContentMock.SetPanoramasPhase mock is already set by Set")
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation == nil {
+		mmSetPanoramasPhase.defaultExpectation = &ContentMockSetPanoramasPhaseExpectation{}
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation.params != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("ContentMock.SetPanoramasPhase mock is already set by Expect")
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramasPhase.defaultExpectation.paramPtrs = &ContentMockSetPanoramasPhaseParamPtrs{}
+	}
+	mmSetPanoramasPhase.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmSetPanoramasPhase.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmSetPanoramasPhase
+}
+
+// ExpectIdsParam3 sets up expected param ids for Content.SetPanoramasPhase
+func (mmSetPanoramasPhase *mContentMockSetPanoramasPhase) ExpectIdsParam3(ids []int64) *mContentMockSetPanoramasPhase {
+	if mmSetPanoramasPhase.mock.funcSetPanoramasPhase != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("ContentMock.SetPanoramasPhase mock is already set by Set")
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation == nil {
+		mmSetPanoramasPhase.defaultExpectation = &ContentMockSetPanoramasPhaseExpectation{}
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation.params != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("ContentMock.SetPanoramasPhase mock is already set by Expect")
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramasPhase.defaultExpectation.paramPtrs = &ContentMockSetPanoramasPhaseParamPtrs{}
+	}
+	mmSetPanoramasPhase.defaultExpectation.paramPtrs.ids = &ids
+	mmSetPanoramasPhase.defaultExpectation.expectationOrigins.originIds = minimock.CallerInfo(1)
+
+	return mmSetPanoramasPhase
+}
+
+// ExpectPhaseParam4 sets up expected param phase for Content.SetPanoramasPhase
+func (mmSetPanoramasPhase *mContentMockSetPanoramasPhase) ExpectPhaseParam4(phase string) *mContentMockSetPanoramasPhase {
+	if mmSetPanoramasPhase.mock.funcSetPanoramasPhase != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("ContentMock.SetPanoramasPhase mock is already set by Set")
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation == nil {
+		mmSetPanoramasPhase.defaultExpectation = &ContentMockSetPanoramasPhaseExpectation{}
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation.params != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("ContentMock.SetPanoramasPhase mock is already set by Expect")
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation.paramPtrs == nil {
+		mmSetPanoramasPhase.defaultExpectation.paramPtrs = &ContentMockSetPanoramasPhaseParamPtrs{}
+	}
+	mmSetPanoramasPhase.defaultExpectation.paramPtrs.phase = &phase
+	mmSetPanoramasPhase.defaultExpectation.expectationOrigins.originPhase = minimock.CallerInfo(1)
+
+	return mmSetPanoramasPhase
+}
+
+// Inspect accepts an inspector function that has same arguments as the Content.SetPanoramasPhase
+func (mmSetPanoramasPhase *mContentMockSetPanoramasPhase) Inspect(f func(ctx context.Context, territorySlug string, ids []int64, phase string)) *mContentMockSetPanoramasPhase {
+	if mmSetPanoramasPhase.mock.inspectFuncSetPanoramasPhase != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("Inspect function is already set for ContentMock.SetPanoramasPhase")
+	}
+
+	mmSetPanoramasPhase.mock.inspectFuncSetPanoramasPhase = f
+
+	return mmSetPanoramasPhase
+}
+
+// Return sets up results that will be returned by Content.SetPanoramasPhase
+func (mmSetPanoramasPhase *mContentMockSetPanoramasPhase) Return(i1 int, err error) *ContentMock {
+	if mmSetPanoramasPhase.mock.funcSetPanoramasPhase != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("ContentMock.SetPanoramasPhase mock is already set by Set")
+	}
+
+	if mmSetPanoramasPhase.defaultExpectation == nil {
+		mmSetPanoramasPhase.defaultExpectation = &ContentMockSetPanoramasPhaseExpectation{mock: mmSetPanoramasPhase.mock}
+	}
+	mmSetPanoramasPhase.defaultExpectation.results = &ContentMockSetPanoramasPhaseResults{i1, err}
+	mmSetPanoramasPhase.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmSetPanoramasPhase.mock
+}
+
+// Set uses given function f to mock the Content.SetPanoramasPhase method
+func (mmSetPanoramasPhase *mContentMockSetPanoramasPhase) Set(f func(ctx context.Context, territorySlug string, ids []int64, phase string) (i1 int, err error)) *ContentMock {
+	if mmSetPanoramasPhase.defaultExpectation != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("Default expectation is already set for the Content.SetPanoramasPhase method")
+	}
+
+	if len(mmSetPanoramasPhase.expectations) > 0 {
+		mmSetPanoramasPhase.mock.t.Fatalf("Some expectations are already set for the Content.SetPanoramasPhase method")
+	}
+
+	mmSetPanoramasPhase.mock.funcSetPanoramasPhase = f
+	mmSetPanoramasPhase.mock.funcSetPanoramasPhaseOrigin = minimock.CallerInfo(1)
+	return mmSetPanoramasPhase.mock
+}
+
+// When sets expectation for the Content.SetPanoramasPhase which will trigger the result defined by the following
+// Then helper
+func (mmSetPanoramasPhase *mContentMockSetPanoramasPhase) When(ctx context.Context, territorySlug string, ids []int64, phase string) *ContentMockSetPanoramasPhaseExpectation {
+	if mmSetPanoramasPhase.mock.funcSetPanoramasPhase != nil {
+		mmSetPanoramasPhase.mock.t.Fatalf("ContentMock.SetPanoramasPhase mock is already set by Set")
+	}
+
+	expectation := &ContentMockSetPanoramasPhaseExpectation{
+		mock:               mmSetPanoramasPhase.mock,
+		params:             &ContentMockSetPanoramasPhaseParams{ctx, territorySlug, ids, phase},
+		expectationOrigins: ContentMockSetPanoramasPhaseExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmSetPanoramasPhase.expectations = append(mmSetPanoramasPhase.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Content.SetPanoramasPhase return parameters for the expectation previously defined by the When method
+func (e *ContentMockSetPanoramasPhaseExpectation) Then(i1 int, err error) *ContentMock {
+	e.results = &ContentMockSetPanoramasPhaseResults{i1, err}
+	return e.mock
+}
+
+// Times sets number of times Content.SetPanoramasPhase should be invoked
+func (mmSetPanoramasPhase *mContentMockSetPanoramasPhase) Times(n uint64) *mContentMockSetPanoramasPhase {
+	if n == 0 {
+		mmSetPanoramasPhase.mock.t.Fatalf("Times of ContentMock.SetPanoramasPhase mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmSetPanoramasPhase.expectedInvocations, n)
+	mmSetPanoramasPhase.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmSetPanoramasPhase
+}
+
+func (mmSetPanoramasPhase *mContentMockSetPanoramasPhase) invocationsDone() bool {
+	if len(mmSetPanoramasPhase.expectations) == 0 && mmSetPanoramasPhase.defaultExpectation == nil && mmSetPanoramasPhase.mock.funcSetPanoramasPhase == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmSetPanoramasPhase.mock.afterSetPanoramasPhaseCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmSetPanoramasPhase.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// SetPanoramasPhase implements mm_service.Content
+func (mmSetPanoramasPhase *ContentMock) SetPanoramasPhase(ctx context.Context, territorySlug string, ids []int64, phase string) (i1 int, err error) {
+	mm_atomic.AddUint64(&mmSetPanoramasPhase.beforeSetPanoramasPhaseCounter, 1)
+	defer mm_atomic.AddUint64(&mmSetPanoramasPhase.afterSetPanoramasPhaseCounter, 1)
+
+	mmSetPanoramasPhase.t.Helper()
+
+	if mmSetPanoramasPhase.inspectFuncSetPanoramasPhase != nil {
+		mmSetPanoramasPhase.inspectFuncSetPanoramasPhase(ctx, territorySlug, ids, phase)
+	}
+
+	mm_params := ContentMockSetPanoramasPhaseParams{ctx, territorySlug, ids, phase}
+
+	// Record call args
+	mmSetPanoramasPhase.SetPanoramasPhaseMock.mutex.Lock()
+	mmSetPanoramasPhase.SetPanoramasPhaseMock.callArgs = append(mmSetPanoramasPhase.SetPanoramasPhaseMock.callArgs, &mm_params)
+	mmSetPanoramasPhase.SetPanoramasPhaseMock.mutex.Unlock()
+
+	for _, e := range mmSetPanoramasPhase.SetPanoramasPhaseMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.i1, e.results.err
+		}
+	}
+
+	if mmSetPanoramasPhase.SetPanoramasPhaseMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmSetPanoramasPhase.SetPanoramasPhaseMock.defaultExpectation.Counter, 1)
+		mm_want := mmSetPanoramasPhase.SetPanoramasPhaseMock.defaultExpectation.params
+		mm_want_ptrs := mmSetPanoramasPhase.SetPanoramasPhaseMock.defaultExpectation.paramPtrs
+
+		mm_got := ContentMockSetPanoramasPhaseParams{ctx, territorySlug, ids, phase}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmSetPanoramasPhase.t.Errorf("ContentMock.SetPanoramasPhase got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramasPhase.SetPanoramasPhaseMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmSetPanoramasPhase.t.Errorf("ContentMock.SetPanoramasPhase got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramasPhase.SetPanoramasPhaseMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+			if mm_want_ptrs.ids != nil && !minimock.Equal(*mm_want_ptrs.ids, mm_got.ids) {
+				mmSetPanoramasPhase.t.Errorf("ContentMock.SetPanoramasPhase got unexpected parameter ids, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramasPhase.SetPanoramasPhaseMock.defaultExpectation.expectationOrigins.originIds, *mm_want_ptrs.ids, mm_got.ids, minimock.Diff(*mm_want_ptrs.ids, mm_got.ids))
+			}
+
+			if mm_want_ptrs.phase != nil && !minimock.Equal(*mm_want_ptrs.phase, mm_got.phase) {
+				mmSetPanoramasPhase.t.Errorf("ContentMock.SetPanoramasPhase got unexpected parameter phase, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPanoramasPhase.SetPanoramasPhaseMock.defaultExpectation.expectationOrigins.originPhase, *mm_want_ptrs.phase, mm_got.phase, minimock.Diff(*mm_want_ptrs.phase, mm_got.phase))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmSetPanoramasPhase.t.Errorf("ContentMock.SetPanoramasPhase got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmSetPanoramasPhase.SetPanoramasPhaseMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmSetPanoramasPhase.SetPanoramasPhaseMock.defaultExpectation.results
+		if mm_results == nil {
+			mmSetPanoramasPhase.t.Fatal("No results are set for the ContentMock.SetPanoramasPhase")
+		}
+		return (*mm_results).i1, (*mm_results).err
+	}
+	if mmSetPanoramasPhase.funcSetPanoramasPhase != nil {
+		return mmSetPanoramasPhase.funcSetPanoramasPhase(ctx, territorySlug, ids, phase)
+	}
+	mmSetPanoramasPhase.t.Fatalf("Unexpected call to ContentMock.SetPanoramasPhase. %v %v %v %v", ctx, territorySlug, ids, phase)
+	return
+}
+
+// SetPanoramasPhaseAfterCounter returns a count of finished ContentMock.SetPanoramasPhase invocations
+func (mmSetPanoramasPhase *ContentMock) SetPanoramasPhaseAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetPanoramasPhase.afterSetPanoramasPhaseCounter)
+}
+
+// SetPanoramasPhaseBeforeCounter returns a count of ContentMock.SetPanoramasPhase invocations
+func (mmSetPanoramasPhase *ContentMock) SetPanoramasPhaseBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetPanoramasPhase.beforeSetPanoramasPhaseCounter)
+}
+
+// Calls returns a list of arguments used in each call to ContentMock.SetPanoramasPhase.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmSetPanoramasPhase *mContentMockSetPanoramasPhase) Calls() []*ContentMockSetPanoramasPhaseParams {
+	mmSetPanoramasPhase.mutex.RLock()
+
+	argCopy := make([]*ContentMockSetPanoramasPhaseParams, len(mmSetPanoramasPhase.callArgs))
+	copy(argCopy, mmSetPanoramasPhase.callArgs)
+
+	mmSetPanoramasPhase.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockSetPanoramasPhaseDone returns true if the count of the SetPanoramasPhase invocations corresponds
+// the number of defined expectations
+func (m *ContentMock) MinimockSetPanoramasPhaseDone() bool {
+	if m.SetPanoramasPhaseMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.SetPanoramasPhaseMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.SetPanoramasPhaseMock.invocationsDone()
+}
+
+// MinimockSetPanoramasPhaseInspect logs each unmet expectation
+func (m *ContentMock) MinimockSetPanoramasPhaseInspect() {
+	for _, e := range m.SetPanoramasPhaseMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to ContentMock.SetPanoramasPhase at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterSetPanoramasPhaseCounter := mm_atomic.LoadUint64(&m.afterSetPanoramasPhaseCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.SetPanoramasPhaseMock.defaultExpectation != nil && afterSetPanoramasPhaseCounter < 1 {
+		if m.SetPanoramasPhaseMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to ContentMock.SetPanoramasPhase at\n%s", m.SetPanoramasPhaseMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to ContentMock.SetPanoramasPhase at\n%s with params: %#v", m.SetPanoramasPhaseMock.defaultExpectation.expectationOrigins.origin, *m.SetPanoramasPhaseMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcSetPanoramasPhase != nil && afterSetPanoramasPhaseCounter < 1 {
+		m.t.Errorf("Expected call to ContentMock.SetPanoramasPhase at\n%s", m.funcSetPanoramasPhaseOrigin)
+	}
+
+	if !m.SetPanoramasPhaseMock.invocationsDone() && afterSetPanoramasPhaseCounter > 0 {
+		m.t.Errorf("Expected %d calls to ContentMock.SetPanoramasPhase at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.SetPanoramasPhaseMock.expectedInvocations), m.SetPanoramasPhaseMock.expectedInvocationsOrigin, afterSetPanoramasPhaseCounter)
 	}
 }
 
@@ -2578,7 +4176,15 @@ func (m *ContentMock) MinimockFinish() {
 
 			m.MinimockListDocumentsInspect()
 
+			m.MinimockListPanoramaPhasesInspect()
+
 			m.MinimockListPanoramasInspect()
+
+			m.MinimockSetPanoramaPhaseHiddenInspect()
+
+			m.MinimockSetPanoramasHiddenInspect()
+
+			m.MinimockSetPanoramasPhaseInspect()
 
 			m.MinimockUpdatePanoramaInspect()
 		}
@@ -2609,6 +4215,10 @@ func (m *ContentMock) minimockDone() bool {
 		m.MinimockDeleteDocumentDone() &&
 		m.MinimockDeletePanoramaDone() &&
 		m.MinimockListDocumentsDone() &&
+		m.MinimockListPanoramaPhasesDone() &&
 		m.MinimockListPanoramasDone() &&
+		m.MinimockSetPanoramaPhaseHiddenDone() &&
+		m.MinimockSetPanoramasHiddenDone() &&
+		m.MinimockSetPanoramasPhaseDone() &&
 		m.MinimockUpdatePanoramaDone()
 }

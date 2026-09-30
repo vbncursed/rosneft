@@ -24,6 +24,8 @@ const deps = (
     chains?: Chain[];
     canDeleteMeasurements?: boolean;
     selectedId?: number | null;
+    groups?: { id: number; hidden: boolean }[];
+    moveLands?: boolean;
   } = {},
 ) => {
   const mode = {
@@ -43,7 +45,7 @@ const deps = (
     commitTransform: vi.fn(),
     setVisibility: vi.fn(),
     setHidden: vi.fn(async () => true),
-    moveToGroup: vi.fn(),
+    moveToGroup: vi.fn(async () => over.moveLands ?? true),
   };
   const panel = { setTab: vi.fn(), setCollapsed: vi.fn() };
   const form = { openNew: vi.fn(), openRename: vi.fn() };
@@ -63,6 +65,8 @@ const deps = (
       mode,
       measure,
       editor,
+      setGroupHidden: vi.fn(async () => true),
+      groups: over.groups ?? [],
       form,
       panel,
       tour: basePageParts().tour,
@@ -79,46 +83,23 @@ const mount = (over?: Parameters<typeof deps>[0]) => {
 };
 
 describe("usePageHandlers", () => {
-  describe("Clear", () => {
-    it("asks first when saved chains would go, and clears everything once confirmed", () => {
-      const { result, spies } = mount({ chains: [SAVED, LOCAL] });
-      act(() => result.current.on.onClearMeasurements());
-      expect(result.current.view.confirmClear).toBe(true);
-      expect(spies.measure.clear).not.toHaveBeenCalled();
-      act(() => result.current.on.onConfirmClear());
-      expect(result.current.view.confirmClear).toBe(false);
-      expect(spies.measure.clear).toHaveBeenCalledExactlyOnceWith(false);
-    });
-
-    it("clears nothing when the question is cancelled", () => {
-      const { result, spies } = mount({ chains: [SAVED] });
-      act(() => result.current.on.onClearMeasurements());
-      act(() => result.current.on.onCancelClear());
-      expect(result.current.view.confirmClear).toBe(false);
-      expect(spies.measure.clear).not.toHaveBeenCalled();
-    });
-
-    it("clears at once when nothing saved is on screen", () => {
-      const { result, spies } = mount({ chains: [LOCAL] });
-      act(() => result.current.on.onClearMeasurements());
-      expect(result.current.view.confirmClear).toBe(false);
-      expect(spies.measure.clear).toHaveBeenCalledExactlyOnceWith(false);
-    });
-
-    // Review r-2: without measurement:delete the saved chains must stay on
-    // screen, since nothing will delete them on the server.
-    it("keeps the saved chains for a reader who cannot delete them, and asks nothing", () => {
-      const { result, spies } = mount({ chains: [SAVED, LOCAL], canDeleteMeasurements: false });
-      act(() => result.current.on.onClearMeasurements());
-      expect(result.current.view.confirmClear).toBe(false);
-      expect(spies.measure.clear).toHaveBeenCalledExactlyOnceWith(true);
-    });
+  // The rest of Clear's ask-first dance is use-clear-measurements.spec.tsx;
+  // this is the one wiring check that the composed hook still threads it
+  // through correctly.
+  it("wires Clear through the confirm dialog: asks first when saved chains would go", () => {
+    const { result, spies } = mount({ chains: [SAVED, LOCAL] });
+    act(() => result.current.on.onClearMeasurements());
+    expect(result.current.view.confirmClear).toBe(true);
+    expect(spies.measure.clear).not.toHaveBeenCalled();
+    act(() => result.current.on.onConfirmClear());
+    expect(result.current.view.confirmClear).toBe(false);
+    expect(spies.measure.clear).toHaveBeenCalledExactlyOnceWith(false);
   });
 
-  it("starts with LOD 0 asked for and nothing else pending", () => {
+  it("starts in Auto with nothing else pending", () => {
     const { result } = mount();
     expect(result.current.view).toMatchObject({
-      targetLod: 0,
+      targetLod: "auto",
       retryVersion: 0,
       resetVersion: 0,
       playing: false,
@@ -129,32 +110,6 @@ describe("usePageHandlers", () => {
       confirmClear: false,
     });
     expect(result.current.failedAt).toBeNull();
-  });
-
-  it("stamps the clock when a failure lands, and leaves it there while the same one is reported", () => {
-    const { result } = mount();
-    act(() =>
-      result.current.on.onLod({
-        shown: null,
-        target: 0,
-        percent: null,
-        progressText: null,
-        failure: { hash: "h1", status: 502 },
-      }),
-    );
-    const stamped = result.current.failedAt;
-    expect(stamped).not.toBeNull();
-
-    act(() =>
-      result.current.on.onLod({
-        shown: null,
-        target: 0,
-        percent: null,
-        progressText: null,
-        failure: { hash: "h1", status: 502 },
-      }),
-    );
-    expect(result.current.failedAt).toBe(stamped);
   });
 
   it("enters place mode with the picker, and leaves it when the picker goes", () => {
@@ -296,9 +251,24 @@ describe("usePageHandlers", () => {
       expect(spies.editor.create).toHaveBeenLastCalledWith("tank", 1, null);
     });
 
-    it("moves through the editor unchanged", () => {
-      const { result, spies } = mount();
-      expect(result.current.on.onMoveToGroup).toBe(spies.editor.moveToGroup);
+    // The Important finding this closes: Move to... a hidden group left the
+    // moved, selected placement selected — the object disappeared from the
+    // map but the edit form stayed open for it.
+    it("drops the selection once a move into a hidden group has landed", async () => {
+      const { result, spies } = mount({ selectedId: 4, groups: [{ id: 7, hidden: true }] });
+      await act(() => result.current.on.onMoveToGroup([4], 7));
+      expect(spies.editor.moveToGroup).toHaveBeenCalledWith([4], 7);
+      expect(spies.mode.select).toHaveBeenCalledWith(null);
+    });
+
+    it("keeps the selection on a move to a shown group, to no group, or one the gateway refused", async () => {
+      const shown = mount({ selectedId: 4, groups: [{ id: 7, hidden: false }] });
+      await act(() => shown.result.current.on.onMoveToGroup([4], 7));
+      const noGroup = mount({ selectedId: 4 });
+      await act(() => noGroup.result.current.on.onMoveToGroup([4], null));
+      const refused = mount({ selectedId: 4, groups: [{ id: 7, hidden: true }], moveLands: false });
+      await act(() => refused.result.current.on.onMoveToGroup([4], 7));
+      for (const m of [shown, noGroup, refused]) expect(m.spies.mode.select).not.toHaveBeenCalled();
     });
   });
 });

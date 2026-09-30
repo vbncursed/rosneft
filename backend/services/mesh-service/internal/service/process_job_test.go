@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/suite"
@@ -27,6 +28,9 @@ type ProcessJobSuite struct {
 	svc       *service.Mesh
 	ctx       context.Context
 	saved     []domain.Job
+	// calls records HoldTarget and SaveJob in the order they happen.
+	calls   []string
+	holdErr error
 }
 
 func TestProcessJobSuite(t *testing.T) { suite.Run(t, new(ProcessJobSuite)) }
@@ -45,9 +49,15 @@ func (s *ProcessJobSuite) SetupTest() {
 		IDGen:     func() string { return "id" },
 	})
 	s.ctx = s.T().Context()
-	s.saved = nil
+	s.saved, s.calls, s.holdErr = nil, nil, nil
+	s.queue.HoldTargetMock.Set(func(_ context.Context, kind domain.Kind, slug string, ttl time.Duration) error {
+		assert.Equal(s.T(), ttl, service.TargetLockTTL)
+		s.calls = append(s.calls, "hold:"+kind.String()+"/"+slug)
+		return s.holdErr
+	})
 	s.queue.SaveJobMock.Set(func(_ context.Context, j domain.Job) error {
 		s.saved = append(s.saved, j)
+		s.calls = append(s.calls, "save:"+j.Status.String())
 		return nil
 	})
 }
@@ -132,6 +142,7 @@ func (s *ProcessJobSuite) TestReQueuesWhenTheSourceWasReplacedMidConversion() {
 	s.stubConversion()
 	s.stubSourceHashes("h1", "h2")
 	s.queue.TryLockTargetMock.Return(true, nil)
+	s.queue.ListTargetJobsMock.Return(nil, nil)
 	s.queue.EnqueueJobMock.Expect(s.ctx, "id").Return(nil)
 
 	err := s.svc.ProcessJob(s.ctx, "job-1")
@@ -158,4 +169,52 @@ func (s *ProcessJobSuite) TestDoesNotReQueueATargetDeletedMidConversion() {
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), s.saved[len(s.saved)-1].Status, domain.JobStatusSucceeded)
+}
+
+// A failed job used to be saved from ProcessJob's copy, loaded before the
+// first progress report, so its Stage was always "" and the frontend said
+// "stopped before the first report" whatever step actually failed.
+func (s *ProcessJobSuite) TestFailureKeepsTheStageItReached() {
+	s.queue.GetJobMock.Return(domain.Job{ID: "job-1", Kind: domain.KindModel, Slug: "m1", Status: domain.JobStatusPending}, nil)
+	s.stubSourceHashes("h1")
+	s.blobs.GetMock.Set(func(context.Context, string) (io.ReadCloser, blobstore.Blob, error) {
+		return io.NopCloser(bytes.NewReader(objZip(s.T()))), blobstore.Blob{}, nil
+	})
+	s.converter.ConvertLODsMock.Return(nil, errors.New("gltfpack failed: signal: killed"))
+	s.queue.UnlockTargetMock.Return(nil)
+
+	err := s.svc.ProcessJob(s.ctx, "job-1")
+
+	assert.ErrorContains(s.T(), err, "signal: killed")
+	last := s.saved[len(s.saved)-1]
+	assert.Equal(s.T(), last.Status, domain.JobStatusFailed)
+	assert.Equal(s.T(), last.Stage, "parsing")
+}
+
+// The claim restarts as the job starts, before anything is written: a hold
+// that came after the Running write would leave a Running job with no claim.
+func (s *ProcessJobSuite) TestHoldsTheTargetBeforeMarkingItRunning() {
+	s.queue.GetJobMock.Return(domain.Job{ID: "job-1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusPending}, nil)
+	s.catalog.GetTargetMock.Return(domain.ConversionTarget{}, errors.New("catalog down"))
+	s.queue.UnlockTargetMock.Return(nil)
+
+	_ = s.svc.ProcessJob(s.ctx, "job-1")
+
+	assert.Assert(s.T(), len(s.calls) >= 2)
+	assert.DeepEqual(s.T(), s.calls[:2], []string{"hold:" + domain.KindTerritory.String() + "/t1", "save:" + domain.JobStatusRunning.String()})
+}
+
+// A failed hold must not strand the job Pending, blocking its target for
+// MaxQueueWait: it is released and failed like a conversion error.
+func (s *ProcessJobSuite) TestFailsAndReleasesTheJobOnAHoldError() {
+	s.holdErr = errors.New("redis down")
+	s.queue.GetJobMock.Return(domain.Job{ID: "job-1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusPending}, nil)
+	s.queue.UnlockTargetMock.Expect(s.ctx, domain.KindTerritory, "t1").Return(nil)
+
+	err := s.svc.ProcessJob(s.ctx, "job-1")
+
+	assert.Assert(s.T(), errors.Is(err, s.holdErr))
+	assert.ErrorContains(s.T(), err, "service.ProcessJob: hold: ")
+	assert.DeepEqual(s.T(), s.calls, []string{"hold:" + domain.KindTerritory.String() + "/t1", "save:" + domain.JobStatusFailed.String()})
+	assert.Equal(s.T(), s.saved[0].ErrorMessage, err.Error())
 }

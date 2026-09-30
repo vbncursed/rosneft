@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Chain } from "@/entities/measurement";
 import type { ResolvedPlacement } from "@/entities/placement";
-import type { ModelOption, SceneViewModel } from "@/entities/scene";
+import type { LodChoice, ModelOption, SceneViewModel } from "@/entities/scene";
 import type { Tour } from "@/features/onboarding";
-import { IDLE_DOCUMENTS, IDLE_PANORAMAS } from "../territory-viewer-page.fixture";
+import { basePageParts, IDLE_DOCUMENTS, IDLE_PANORAMAS } from "../territory-viewer-page.fixture";
 import { pageProps, type PageHandlers, type PageParts } from "./page-props";
 import type { Grants } from "./viewer-view";
 
@@ -98,6 +98,7 @@ const HANDLERS: PageHandlers = {
   onClosePicker: noop,
   onVisibility: noop,
   onSetHidden: vi.fn(),
+  onSetGroupHidden: vi.fn(),
   onMoveToGroup: vi.fn(),
   onAddToGroup: vi.fn(),
   onToggleMove: noop,
@@ -128,7 +129,7 @@ const parts = (over: Partial<PageParts> = {}): PageParts => ({
   placements: [TANK],
   pendingIds: [],
   placing: null,
-  placementGroups: { list: [], busy: false, create: vi.fn(), rename: vi.fn(), remove: vi.fn() },
+  placementGroups: { list: [], busy: false, create: vi.fn(), rename: vi.fn(), remove: vi.fn(), setHidden: vi.fn() },
   form: null,
   tour: TOUR,
   panoramaTour: TOUR,
@@ -280,11 +281,13 @@ describe("pageProps · overlays", () => {
   });
 
   it("offers every converted level in the switcher, coarsest last", () => {
-    expect(pageProps(parts()).overlays.switcher).toMatchObject({
-      levels: [0, 1, 2],
-      target: 1,
-      shown: 1,
-    });
+    expect(pageProps(parts()).overlays.switcher).toMatchObject({ levels: [0, 1, 2], choice: 1, target: 1, shown: 1 });
+  });
+
+  it("hands a level chosen in the switcher to the page", () => {
+    const onTargetLod = vi.fn();
+    pageProps({ ...parts(), on: { ...HANDLERS, onTargetLod } }).overlays.switcher?.onChange(2);
+    expect(onTargetLod).toHaveBeenCalledWith(2);
   });
 
   it("draws no switcher for a territory with a single level", () => {
@@ -598,5 +601,63 @@ describe("pageProps · the LOD switcher goes where the level cannot be chosen", 
 
   it("draws it in the 3D scene with nothing over it", () => {
     expect(pageProps(parts()).overlays.switcher).not.toBeNull();
+  });
+});
+
+describe("pageProps · placement groups", () => {
+  it("hands the canvas the territory's groups — a hidden one's members are not drawn", () => {
+    const p = basePageParts();
+    expect(pageProps(p).canvas.placementGroups).toBe(p.placementGroups.list);
+  });
+});
+
+describe("pageProps · Auto", () => {
+  const withChoice = (mode: "orbit" | "measure", targetLod: LodChoice) => {
+    const p = parts();
+    return pageProps({ ...p, mode: { ...p.mode, mode }, view: { ...p.view, targetLod } });
+  };
+
+  it("hands Auto to the canvas", () => {
+    expect(withChoice("orbit", "auto").canvas.targetLod).toBe("auto");
+  });
+
+  it("asks for LOD 0 while measuring in Auto — nobody measures on simplified geometry", () => {
+    expect(withChoice("measure", "auto").canvas.targetLod).toBe(0);
+  });
+
+  it("leaves a level the reader chose alone while measuring", () => {
+    expect(withChoice("measure", 2).canvas.targetLod).toBe(2);
+  });
+
+  it("keeps Auto checked in the switcher while measuring forces LOD 0", () => {
+    // The report is what the canvas sends back once it was handed LOD 0.
+    const p = parts();
+    const { canvas, overlays } = pageProps({
+      ...p,
+      mode: { ...p.mode, mode: "measure" },
+      view: { ...p.view, targetLod: "auto", report: { ...p.view.report, target: 0 } },
+    });
+    expect(canvas.targetLod).toBe(0);
+    expect(overlays.switcher).toMatchObject({ choice: "auto", target: 0, shown: 1 });
+  });
+
+  it("hands Auto chosen in the switcher to the page, through the page's own setter", () => {
+    const onTargetLod = vi.fn();
+    const { switcher } = pageProps({ ...parts(), on: { ...HANDLERS, onTargetLod } }).overlays;
+    switcher?.onChange("auto");
+    expect(onTargetLod).toHaveBeenCalledWith("auto");
+    expect(switcher?.onChange).toBe(onTargetLod);
+  });
+
+  it("dots a level the reader chose before the canvas has asked for it", () => {
+    const p = parts();
+    const view = { ...p.view, targetLod: 0, report: { ...p.view.report, target: null } };
+    expect(pageProps({ ...p, view }).overlays.switcher?.target).toBe(0);
+  });
+
+  it("dots the level the canvas asked for in Auto", () => {
+    const p = parts();
+    const view = { ...p.view, targetLod: "auto" as const, report: { ...p.view.report, target: 2 } };
+    expect(pageProps({ ...p, view }).overlays.switcher?.target).toBe(2);
   });
 });

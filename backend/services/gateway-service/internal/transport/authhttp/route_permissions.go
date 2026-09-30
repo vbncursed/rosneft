@@ -51,14 +51,22 @@ var routePerms = map[string][]string{
 	"POST /api/territories/{slug}/placement-groups":        {"placement:write"},
 	"PATCH /api/territories/{slug}/placement-groups/{id}":  {"placement:write"},
 	"DELETE /api/territories/{slug}/placement-groups/{id}": {"placement:write"},
-	"POST /api/territories/{slug}/panoramas":               {"panorama:create"},
-	"PUT /api/territories/{slug}/panoramas/{id}":           {"panorama:write"},
-	"DELETE /api/territories/{slug}/panoramas/{id}":        {"panorama:delete"},
-	"POST /api/territories/{slug}/documents":               {"document:write"},
-	"DELETE /api/territories/{slug}/documents/{id}":        {"document:delete"},
-	"POST /api/uploads":                                    {"upload:create"},
-	"PATCH /api/uploads/{id}":                              {"upload:create"},
-	"POST /api/uploads/{id}/finalize":                      {"upload:create"},
+	// A group's own hidden flag, like hiding its members one by one.
+	"PUT /api/territories/{slug}/placement-groups/{id}/hidden": {"placement:write"},
+	"POST /api/territories/{slug}/panoramas":                   {"panorama:create"},
+	"PUT /api/territories/{slug}/panoramas/{id}":               {"panorama:write"},
+	"DELETE /api/territories/{slug}/panoramas/{id}":            {"panorama:delete"},
+	// Hiding panoramas, moving them between phases and hiding a whole phase
+	// are shared by everyone who opens the territory: a panorama write, like
+	// the edit (no grants of their own).
+	"PUT /api/territories/{slug}/panoramas/hidden":        {"panorama:write"},
+	"PUT /api/territories/{slug}/panoramas/phase":         {"panorama:write"},
+	"PUT /api/territories/{slug}/panorama-phases/{phase}": {"panorama:write"},
+	"POST /api/territories/{slug}/documents":              {"document:write"},
+	"DELETE /api/territories/{slug}/documents/{id}":       {"document:delete"},
+	"POST /api/uploads":                                   {"upload:create"},
+	"PATCH /api/uploads/{id}":                             {"upload:create"},
+	"POST /api/uploads/{id}/finalize":                     {"upload:create"},
 	// Discarding a session is part of the upload flow; upload-service also
 	// refuses it to anyone but the session's author.
 	"DELETE /api/uploads/{id}": {"upload:create"},

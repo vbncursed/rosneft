@@ -2,12 +2,13 @@ import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { UserGroupSection } from "@/entities/placement";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 import { ctx } from "./testing";
 import { UserGroupItem, type GroupActions } from "./user-group-item";
 
 const TANK = { model: { slug: "tank", title: "storage-tank-500" }, instances: [] };
 const SECTION: UserGroupSection = {
-  group: { id: 4, title: "East yard" },
+  group: { id: 4, title: "East yard", hidden: false },
   members: [
     { model: TANK, instance: { id: 1, index: 1, label: "", hidden: true, groupId: 4 } },
     { model: TANK, instance: { id: 3, index: 3, label: "", hidden: true, groupId: 4 } },
@@ -18,6 +19,7 @@ const actions = (over: Partial<GroupActions> = {}): GroupActions => ({
   onCreate: vi.fn(async () => true),
   onRename: vi.fn(async () => true),
   onDelete: vi.fn(),
+  onSetHidden: vi.fn(),
   ...over,
 });
 
@@ -35,28 +37,47 @@ describe("UserGroupItem", () => {
     expect(screen.getByRole("button", { name: "storage-tank-500 #3 · hidden" })).toHaveTextContent(/^storage-tank-500 #3$/);
   });
 
-  it("shows every member again from an all-hidden eye", async () => {
+  // D6: the eye is the group's own flag, not the aggregate of its members.
+  it("reads the group's own flag and sets it — never the members' flags", async () => {
+    const a = actions();
     const c = ctx({ expanded: "group:4" });
-    mount({ c });
+    mount({ a, c, section: { ...SECTION, group: { ...SECTION.group, hidden: true } } });
     const eye = screen.getByRole("button", { name: "Hide group East yard" });
     expect(eye).toHaveAttribute("aria-pressed", "true");
     await userEvent.click(eye);
-    expect(c.onSetHidden).toHaveBeenCalledWith([1, 3], false);
+    expect(a.onSetHidden).toHaveBeenCalledWith(4, false);
+    expect(c.onSetHidden).not.toHaveBeenCalled();
   });
 
-  it("disables the eye on an empty group — there is nothing to hide", () => {
-    mount({ section: { ...SECTION, members: [] } });
+  it("reads shown while its members are hidden on their own", () => {
+    mount();
+    expect(screen.getByRole("button", { name: "Hide group East yard" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  // D5: whatever moves into a hidden group arrives hidden, so an empty one can be hidden too.
+  it("hides an empty group", async () => {
+    const a = actions();
+    mount({ a, section: { ...SECTION, members: [] } });
     const eye = screen.getByRole("button", { name: "Hide group East yard" });
-    expect(eye).toHaveAttribute("aria-disabled", "true");
-    expect(eye).toHaveAttribute("data-dim", "true");
+    expect(eye).not.toHaveAttribute("aria-disabled");
+    await userEvent.click(eye);
+    expect(a.onSetHidden).toHaveBeenCalledWith(4, true);
   });
 
-  // E3: a write in flight waits without dimming — busy is not unavailable.
-  it("waits the eye, undimmed, while a member is being written", () => {
-    mount({ c: ctx({ expanded: "group:4", pendingIds: [3] }) });
+  it("waits the eye, undimmed, while a group write is in flight", () => {
+    mount({ a: actions({ busy: true }) });
     const eye = screen.getByRole("button", { name: "Hide group East yard" });
     expect(eye).toHaveAttribute("aria-busy", "true");
     expect(eye).not.toHaveAttribute("data-dim");
+  });
+
+  it("dims its members while it is hidden, whatever their own flag", () => {
+    const section: UserGroupSection = {
+      group: { id: 4, title: "East yard", hidden: true },
+      members: [{ model: TANK, instance: { id: 1, index: 1, label: "", hidden: false, groupId: 4 } }],
+    };
+    mount({ section });
+    expect(screen.getByRole("button", { name: "storage-tank-500 #1 · hidden" })).toHaveClass("opacity-55");
   });
 
   it("places into itself from its own Add", async () => {
@@ -64,6 +85,24 @@ describe("UserGroupItem", () => {
     mount({ onAdd });
     await userEvent.click(screen.getByRole("button", { name: "Add objects to group East yard" }));
     expect(onAdd).toHaveBeenCalledWith(4);
+  });
+
+  // A hidden group's Add stays focusable (aria-disabled, not native disabled)
+  // and names why, but does nothing on click.
+  it("aria-disables Add on a hidden group, names why in a tooltip, keeps focus and calls onAdd for nothing", async () => {
+    const onAdd = vi.fn();
+    mount({ onAdd, section: { ...SECTION, group: { ...SECTION.group, hidden: true } } });
+    const add = screen.getByRole("button", { name: "Add objects to group East yard" });
+    expect(add).toHaveAttribute("aria-disabled", "true");
+    expect(add).not.toBeDisabled();
+
+    const tip = hoverTip(add);
+    expect(tip).toHaveTextContent("Show the group to add objects");
+    expect(add).toHaveAttribute("aria-describedby", tip!.id);
+
+    await userEvent.click(add);
+    expect(onAdd).not.toHaveBeenCalled();
+    expect(add).toHaveFocus();
   });
 
   it("draws no Add without the create grant or inside a panorama (onAdd null)", () => {
@@ -147,7 +186,7 @@ describe("UserGroupItem", () => {
   // E4: the <li> leaves once the delete lands; focus must not fall to <body>.
   it("hands focus to the next group's disclosure when it deletes itself", async () => {
     const a = actions();
-    const west: UserGroupSection = { group: { id: 5, title: "West yard" }, members: [] };
+    const west: UserGroupSection = { group: { id: 5, title: "West yard", hidden: false }, members: [] };
     render(
       <ul>
         <UserGroupItem section={SECTION} ctx={ctx()} onAdd={null} actions={a} />

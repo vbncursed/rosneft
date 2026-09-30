@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 )
 
 // Compress runs gltfpack on the input GLB and returns the optimised result.
@@ -20,6 +21,12 @@ import (
 //     doesn't also need KHR_mesh_quantization handling
 //   - `-kn -km -ke` — preserve node, material and extras names so debugging
 //     and downstream texture lookups continue to work after compression
+//   - `-tj 1` — encode one texture at a time. gltfpack's default is a thread
+//     per core, each holding a whole decoded texture: three 8192² textures
+//     OOM-killed a 4-core/8 GB host. Serial is slower on multi-texture
+//     scenes and bounds peak memory to the largest texture.
+//   - `-tl N` — cap the longer texture side (WithKTX2's maxTextureSize),
+//     scaled by textureScale so a LOD's cap shrinks with its `-ts`
 func (o *Optimizer) Compress(ctx context.Context, glb []byte) ([]byte, error) {
 	if len(glb) == 0 {
 		return nil, fmt.Errorf("compression: empty GLB input")
@@ -40,7 +47,7 @@ func (o *Optimizer) Compress(ctx context.Context, glb []byte) ([]byte, error) {
 		return nil, fmt.Errorf("compression: write input: %w", err)
 	}
 
-	args := o.buildArgs(in, out)
+	args := o.buildArgs(in, out, 1)
 	cmd := exec.CommandContext(ctx, o.binPath, args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -58,7 +65,8 @@ func (o *Optimizer) Compress(ctx context.Context, glb []byte) ([]byte, error) {
 }
 
 // buildArgs returns the gltfpack argv for this Optimizer's flags.
-func (o *Optimizer) buildArgs(in, out string) []string {
+// textureScale is 1 for LOD0 and the LOD ratio for simplify passes.
+func (o *Optimizer) buildArgs(in, out string, textureScale float64) []string {
 	args := []string{
 		"-i", in,
 		"-o", out,
@@ -69,7 +77,11 @@ func (o *Optimizer) buildArgs(in, out string) []string {
 		args = append(args, "-cc")
 	}
 	if o.ktx2 {
-		args = append(args, "-tc")
+		args = append(args, "-tc", "-tj", "1")
+		if o.maxTextureSize > 0 {
+			limit := max(1, int(float64(o.maxTextureSize)*textureScale))
+			args = append(args, "-tl", strconv.Itoa(limit))
+		}
 	}
 	return args
 }

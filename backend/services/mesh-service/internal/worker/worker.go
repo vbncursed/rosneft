@@ -12,10 +12,14 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/storage"
 )
 
+//go:generate minimock -i Queue,Mesh -o ./mocks -s _mock.go
+
 // Queue is the consumer surface the worker needs.
 type Queue interface {
 	ConsumeJobs(ctx context.Context, consumer string, block time.Duration) ([]storage.DeliveredJob, error)
 	AckJob(ctx context.Context, messageID string) error
+	// Backlog is the number of queued jobs no worker has been handed yet.
+	Backlog(ctx context.Context) (int64, error)
 }
 
 // Mesh is the business surface the worker drives.
@@ -32,9 +36,10 @@ type Worker struct {
 	name         string
 	blockTimeout time.Duration
 	// sem is a counting semaphore that caps the number of in-flight
-	// conversions. Conversions are CPU-heavy (OBJ parse + GLB write), so
-	// running more than GOMAXPROCS in parallel just causes context-switch
-	// thrashing without throughput gain.
+	// conversions. Each one runs its own gltfpack, which peaked at 4.0 GB on
+	// three 8192² textures, so the configured default is 1:
+	// parallel jobs multiply memory, not throughput, on the 8 GB host this
+	// ships to.
 	sem chan struct{}
 }
 

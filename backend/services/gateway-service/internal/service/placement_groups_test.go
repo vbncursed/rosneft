@@ -67,3 +67,19 @@ func (s *PlacementGroupsSuite) TestGroupWritesReachTheCatalog() {
 	assert.NilError(s.T(), err)
 	assert.ErrorIs(s.T(), s.svc.DeletePlacementGroup(s.ctx, "yard", 4), domain.ErrPlacementGroupNotFound)
 }
+
+// The group's flag is the catalog's to scope; the gateway passes it through.
+func (s *PlacementGroupsSuite) TestTheGroupFlagReachesTheCatalog() {
+	north := domain.PlacementGroup{ID: 4, TerritorySlug: "yard", Title: "North", Hidden: true}
+	s.cat.SetPlacementGroupHiddenMock.Expect(s.ctx, "yard", int64(4), true).Return(north, nil)
+	got, err := s.svc.SetPlacementGroupHidden(s.ctx, "yard", 4, true)
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), got, north)
+}
+
+// A group of another territory comes back as the catalog's 404, unchanged.
+func (s *PlacementGroupsSuite) TestAForeignGroupFlagIsGroupNotFound() {
+	s.cat.SetPlacementGroupHiddenMock.Return(domain.PlacementGroup{}, domain.ErrPlacementGroupNotFound)
+	_, err := s.svc.SetPlacementGroupHidden(s.ctx, "yard", 9, false)
+	assert.ErrorIs(s.T(), err, domain.ErrPlacementGroupNotFound)
+}

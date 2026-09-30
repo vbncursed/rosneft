@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { LodArtifact } from "@/entities/scene";
@@ -92,6 +93,118 @@ describe("useProgressiveLod", () => {
     expect(result.current.warmUrl).toContain("/api/assets/a");
     act(() => result.current.onWarmReady());
     expect(result.current.url).toContain("/api/assets/a");
+  });
+
+  // Auto climbs in steps as the reader zooms. Dropping back to the coarsest
+  // for the whole download of the next step made zooming in go blurrier.
+  it("a finer target keeps the ready level on screen while it warms (2 → 1 → 0)", () => {
+    const { result, rerender } = renderHook(({ t }) => useProgressiveLod(chain, t), {
+      initialProps: { t: 1 },
+    });
+    expect(result.current.shown?.lod).toBe(2);
+    expect(result.current.warmUrl).toContain("/api/assets/b");
+    act(() => result.current.onWarmReady());
+    expect(result.current.shown?.lod).toBe(1);
+
+    rerender({ t: 0 });
+    expect(result.current.shown?.lod).toBe(1);
+    expect(result.current.url).toContain("/api/assets/b");
+    expect(result.current.warmUrl).toContain("/api/assets/a");
+    act(() => result.current.onWarmReady());
+    expect(result.current.shown?.lod).toBe(0);
+    expect(result.current.warmUrl).toBeNull();
+  });
+
+  it("a finer target before the previous one was ready still shows the coarsest", () => {
+    const { result, rerender } = renderHook(({ t }) => useProgressiveLod(chain, t), {
+      initialProps: { t: 1 },
+    });
+    rerender({ t: 0 });
+    expect(result.current.shown?.lod).toBe(2);
+    expect(result.current.warmUrl).toContain("/api/assets/a");
+  });
+
+  it("a held level that is dropped falls back to the coarsest", () => {
+    const { result, rerender } = renderHook(({ t }) => useProgressiveLod(chain, t), {
+      initialProps: { t: 1 },
+    });
+    act(() => result.current.onWarmReady());
+    rerender({ t: 0 });
+    expect(result.current.shown?.lod).toBe(1);
+    act(() => result.current.onShownDropped());
+    expect(result.current.shown?.lod).toBe(2);
+    expect(result.current.warmUrl).toContain("/api/assets/a");
+  });
+
+  // Nothing would ever warm LOD 1 again (the territory warms only its blob
+  // download, which a refusal never mints), so the coarsest stayed for good.
+  it("a refused finer level keeps the held level on screen", () => {
+    const { result, rerender } = renderHook(({ t }) => useProgressiveLod(chain, t), {
+      initialProps: { t: 1 },
+    });
+    act(() => result.current.onWarmReady());
+    rerender({ t: 0 });
+    act(() => result.current.onWarmFailed());
+    expect(result.current.target?.lod).toBe(1);
+    expect(result.current.shown?.lod).toBe(1);
+    expect(result.current.url).toContain("/api/assets/b");
+    expect(result.current.warmUrl).toBeNull();
+  });
+
+  // A manual 1 → 0 → 1 before LOD 0 was ready read as a coarser move: LOD 2
+  // came back and LOD 1 warmed again, though it never left the screen.
+  it("a return to the held level keeps it on screen, ready (1 → 0 → 1)", () => {
+    const shows: (number | undefined)[] = [];
+    const { result, rerender } = renderHook(
+      ({ t }) => {
+        const lod = useProgressiveLod(chain, t);
+        // Committed renders only: a render adjusted by a setState in render
+        // is thrown away before it reaches the screen.
+        useEffect(() => {
+          shows.push(lod.shown?.lod);
+        });
+        return lod;
+      },
+      { initialProps: { t: 1 } },
+    );
+    act(() => result.current.onWarmReady());
+    const from = shows.length;
+    rerender({ t: 0 });
+    rerender({ t: 1 });
+    expect(shows.slice(from)).not.toContain(2);
+    expect(result.current.shown?.lod).toBe(1);
+    expect(result.current.url).toContain("/api/assets/b");
+    expect(result.current.warmUrl).toBeNull();
+    // Ready, not merely shown: a finer move holds it again.
+    rerender({ t: 0 });
+    expect(result.current.shown?.lod).toBe(1);
+  });
+
+  // Once LOD 0 is ready the hold is over: LOD 1 is off screen, and in the
+  // territory its blob is released. A stale hold called it ready on the way
+  // back, and the canvas suspended on a url nobody had parsed.
+  it("a return to a level whose hold ended with the finer one ready goes through the coarsest (1 → 0 → 1)", () => {
+    const { result, rerender } = renderHook(({ t }) => useProgressiveLod(chain, t), {
+      initialProps: { t: 1 },
+    });
+    act(() => result.current.onWarmReady());
+    rerender({ t: 0 });
+    act(() => result.current.onWarmReady());
+    expect(result.current.shown?.lod).toBe(0);
+    rerender({ t: 1 });
+    expect(result.current.shown?.lod).toBe(2);
+    expect(result.current.warmUrl).toContain("/api/assets/b");
+  });
+
+  it("retry clears the hold", () => {
+    const { result, rerender } = renderHook(({ t }) => useProgressiveLod(chain, t), {
+      initialProps: { t: 1 },
+    });
+    act(() => result.current.onWarmReady());
+    rerender({ t: 0 });
+    expect(result.current.shown?.lod).toBe(1);
+    act(() => result.current.retry());
+    expect(result.current.shown?.lod).toBe(2);
   });
 
   it("resolves urls through urlOf", () => {

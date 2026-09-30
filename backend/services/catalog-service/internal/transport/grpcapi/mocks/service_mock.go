@@ -236,6 +236,13 @@ type ServiceMock struct {
 	beforeResolveTerritorySlugsCounter uint64
 	ResolveTerritorySlugsMock          mServiceMockResolveTerritorySlugs
 
+	funcSetPlacementGroupHidden          func(ctx context.Context, territorySlug string, id int64, hidden bool) (p1 domain.PlacementGroup, err error)
+	funcSetPlacementGroupHiddenOrigin    string
+	inspectFuncSetPlacementGroupHidden   func(ctx context.Context, territorySlug string, id int64, hidden bool)
+	afterSetPlacementGroupHiddenCounter  uint64
+	beforeSetPlacementGroupHiddenCounter uint64
+	SetPlacementGroupHiddenMock          mServiceMockSetPlacementGroupHidden
+
 	funcSetPlacementVisibility          func(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (p1 domain.Placement, err error)
 	funcSetPlacementVisibilityOrigin    string
 	inspectFuncSetPlacementVisibility   func(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64)
@@ -414,6 +421,9 @@ func NewServiceMock(t minimock.Tester) *ServiceMock {
 
 	m.ResolveTerritorySlugsMock = mServiceMockResolveTerritorySlugs{mock: m}
 	m.ResolveTerritorySlugsMock.callArgs = []*ServiceMockResolveTerritorySlugsParams{}
+
+	m.SetPlacementGroupHiddenMock = mServiceMockSetPlacementGroupHidden{mock: m}
+	m.SetPlacementGroupHiddenMock.callArgs = []*ServiceMockSetPlacementGroupHiddenParams{}
 
 	m.SetPlacementVisibilityMock = mServiceMockSetPlacementVisibility{mock: m}
 	m.SetPlacementVisibilityMock.callArgs = []*ServiceMockSetPlacementVisibilityParams{}
@@ -11545,6 +11555,411 @@ func (m *ServiceMock) MinimockResolveTerritorySlugsInspect() {
 	}
 }
 
+type mServiceMockSetPlacementGroupHidden struct {
+	optional           bool
+	mock               *ServiceMock
+	defaultExpectation *ServiceMockSetPlacementGroupHiddenExpectation
+	expectations       []*ServiceMockSetPlacementGroupHiddenExpectation
+
+	callArgs []*ServiceMockSetPlacementGroupHiddenParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// ServiceMockSetPlacementGroupHiddenExpectation specifies expectation struct of the Service.SetPlacementGroupHidden
+type ServiceMockSetPlacementGroupHiddenExpectation struct {
+	mock               *ServiceMock
+	params             *ServiceMockSetPlacementGroupHiddenParams
+	paramPtrs          *ServiceMockSetPlacementGroupHiddenParamPtrs
+	expectationOrigins ServiceMockSetPlacementGroupHiddenExpectationOrigins
+	results            *ServiceMockSetPlacementGroupHiddenResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// ServiceMockSetPlacementGroupHiddenParams contains parameters of the Service.SetPlacementGroupHidden
+type ServiceMockSetPlacementGroupHiddenParams struct {
+	ctx           context.Context
+	territorySlug string
+	id            int64
+	hidden        bool
+}
+
+// ServiceMockSetPlacementGroupHiddenParamPtrs contains pointers to parameters of the Service.SetPlacementGroupHidden
+type ServiceMockSetPlacementGroupHiddenParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+	id            *int64
+	hidden        *bool
+}
+
+// ServiceMockSetPlacementGroupHiddenResults contains results of the Service.SetPlacementGroupHidden
+type ServiceMockSetPlacementGroupHiddenResults struct {
+	p1  domain.PlacementGroup
+	err error
+}
+
+// ServiceMockSetPlacementGroupHiddenOrigins contains origins of expectations of the Service.SetPlacementGroupHidden
+type ServiceMockSetPlacementGroupHiddenExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originId            string
+	originHidden        string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmSetPlacementGroupHidden *mServiceMockSetPlacementGroupHidden) Optional() *mServiceMockSetPlacementGroupHidden {
+	mmSetPlacementGroupHidden.optional = true
+	return mmSetPlacementGroupHidden
+}
+
+// Expect sets up expected params for Service.SetPlacementGroupHidden
+func (mmSetPlacementGroupHidden *mServiceMockSetPlacementGroupHidden) Expect(ctx context.Context, territorySlug string, id int64, hidden bool) *mServiceMockSetPlacementGroupHidden {
+	if mmSetPlacementGroupHidden.mock.funcSetPlacementGroupHidden != nil {
+		mmSetPlacementGroupHidden.mock.t.Fatalf("ServiceMock.SetPlacementGroupHidden mock is already set by Set")
+	}
+
+	if mmSetPlacementGroupHidden.defaultExpectation == nil {
+		mmSetPlacementGroupHidden.defaultExpectation = &ServiceMockSetPlacementGroupHiddenExpectation{}
+	}
+
+	if mmSetPlacementGroupHidden.defaultExpectation.paramPtrs != nil {
+		mmSetPlacementGroupHidden.mock.t.Fatalf("ServiceMock.SetPlacementGroupHidden mock is already set by ExpectParams functions")
+	}
+
+	mmSetPlacementGroupHidden.defaultExpectation.params = &ServiceMockSetPlacementGroupHiddenParams{ctx, territorySlug, id, hidden}
+	mmSetPlacementGroupHidden.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmSetPlacementGroupHidden.expectations {
+		if minimock.Equal(e.params, mmSetPlacementGroupHidden.defaultExpectation.params) {
+			mmSetPlacementGroupHidden.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSetPlacementGroupHidden.defaultExpectation.params)
+		}
+	}
+
+	return mmSetPlacementGroupHidden
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Service.SetPlacementGroupHidden
+func (mmSetPlacementGroupHidden *mServiceMockSetPlacementGroupHidden) ExpectCtxParam1(ctx context.Context) *mServiceMockSetPlacementGroupHidden {
+	if mmSetPlacementGroupHidden.mock.funcSetPlacementGroupHidden != nil {
+		mmSetPlacementGroupHidden.mock.t.Fatalf("ServiceMock.SetPlacementGroupHidden mock is already set by Set")
+	}
+
+	if mmSetPlacementGroupHidden.defaultExpectation == nil {
+		mmSetPlacementGroupHidden.defaultExpectation = &ServiceMockSetPlacementGroupHiddenExpectation{}
+	}
+
+	if mmSetPlacementGroupHidden.defaultExpectation.params != nil {
+		mmSetPlacementGroupHidden.mock.t.Fatalf("ServiceMock.SetPlacementGroupHidden mock is already set by Expect")
+	}
+
+	if mmSetPlacementGroupHidden.defaultExpectation.paramPtrs == nil {
+		mmSetPlacementGroupHidden.defaultExpectation.paramPtrs = &ServiceMockSetPlacementGroupHiddenParamPtrs{}
+	}
+	mmSetPlacementGroupHidden.defaultExpectation.paramPtrs.ctx = &ctx
+	mmSetPlacementGroupHidden.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmSetPlacementGroupHidden
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Service.SetPlacementGroupHidden
+func (mmSetPlacementGroupHidden *mServiceMockSetPlacementGroupHidden) ExpectTerritorySlugParam2(territorySlug string) *mServiceMockSetPlacementGroupHidden {
+	if mmSetPlacementGroupHidden.mock.funcSetPlacementGroupHidden != nil {
+		mmSetPlacementGroupHidden.mock.t.Fatalf("ServiceMock.SetPlacementGroupHidden mock is already set by Set")
+	}
+
+	if mmSetPlacementGroupHidden.defaultExpectation == nil {
+		mmSetPlacementGroupHidden.defaultExpectation = &ServiceMockSetPlacementGroupHiddenExpectation{}
+	}
+
+	if mmSetPlacementGroupHidden.defaultExpectation.params != nil {
+		mmSetPlacementGroupHidden.mock.t.Fatalf("ServiceMock.SetPlacementGroupHidden mock is already set by Expect")
+	}
+
+	if mmSetPlacementGroupHidden.defaultExpectation.paramPtrs == nil {
+		mmSetPlacementGroupHidden.defaultExpectation.paramPtrs = &ServiceMockSetPlacementGroupHiddenParamPtrs{}
+	}
+	mmSetPlacementGroupHidden.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmSetPlacementGroupHidden.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmSetPlacementGroupHidden
+}
+
+// ExpectIdParam3 sets up expected param id for Service.SetPlacementGroupHidden
+func (mmSetPlacementGroupHidden *mServiceMockSetPlacementGroupHidden) ExpectIdParam3(id int64) *mServiceMockSetPlacementGroupHidden {
+	if mmSetPlacementGroupHidden.mock.funcSetPlacementGroupHidden != nil {
+		mmSetPlacementGroupHidden.mock.t.Fatalf("ServiceMock.SetPlacementGroupHidden mock is already set by Set")
+	}
+
+	if mmSetPlacementGroupHidden.defaultExpectation == nil {
+		mmSetPlacementGroupHidden.defaultExpectation = &ServiceMockSetPlacementGroupHiddenExpectation{}
+	}
+
+	if mmSetPlacementGroupHidden.defaultExpectation.params != nil {
+		mmSetPlacementGroupHidden.mock.t.Fatalf("ServiceMock.SetPlacementGroupHidden mock is already set by Expect")
+	}
+
+	if mmSetPlacementGroupHidden.defaultExpectation.paramPtrs == nil {
+		mmSetPlacementGroupHidden.defaultExpectation.paramPtrs = &ServiceMockSetPlacementGroupHiddenParamPtrs{}
+	}
+	mmSetPlacementGroupHidden.defaultExpectation.paramPtrs.id = &id
+	mmSetPlacementGroupHidden.defaultExpectation.expectationOrigins.originId = minimock.CallerInfo(1)
+
+	return mmSetPlacementGroupHidden
+}
+
+// ExpectHiddenParam4 sets up expected param hidden for Service.SetPlacementGroupHidden
+func (mmSetPlacementGroupHidden *mServiceMockSetPlacementGroupHidden) ExpectHiddenParam4(hidden bool) *mServiceMockSetPlacementGroupHidden {
+	if mmSetPlacementGroupHidden.mock.funcSetPlacementGroupHidden != nil {
+		mmSetPlacementGroupHidden.mock.t.Fatalf("ServiceMock.SetPlacementGroupHidden mock is already set by Set")
+	}
+
+	if mmSetPlacementGroupHidden.defaultExpectation == nil {
+		mmSetPlacementGroupHidden.defaultExpectation = &ServiceMockSetPlacementGroupHiddenExpectation{}
+	}
+
+	if mmSetPlacementGroupHidden.defaultExpectation.params != nil {
+		mmSetPlacementGroupHidden.mock.t.Fatalf("ServiceMock.SetPlacementGroupHidden mock is already set by Expect")
+	}
+
+	if mmSetPlacementGroupHidden.defaultExpectation.paramPtrs == nil {
+		mmSetPlacementGroupHidden.defaultExpectation.paramPtrs = &ServiceMockSetPlacementGroupHiddenParamPtrs{}
+	}
+	mmSetPlacementGroupHidden.defaultExpectation.paramPtrs.hidden = &hidden
+	mmSetPlacementGroupHidden.defaultExpectation.expectationOrigins.originHidden = minimock.CallerInfo(1)
+
+	return mmSetPlacementGroupHidden
+}
+
+// Inspect accepts an inspector function that has same arguments as the Service.SetPlacementGroupHidden
+func (mmSetPlacementGroupHidden *mServiceMockSetPlacementGroupHidden) Inspect(f func(ctx context.Context, territorySlug string, id int64, hidden bool)) *mServiceMockSetPlacementGroupHidden {
+	if mmSetPlacementGroupHidden.mock.inspectFuncSetPlacementGroupHidden != nil {
+		mmSetPlacementGroupHidden.mock.t.Fatalf("Inspect function is already set for ServiceMock.SetPlacementGroupHidden")
+	}
+
+	mmSetPlacementGroupHidden.mock.inspectFuncSetPlacementGroupHidden = f
+
+	return mmSetPlacementGroupHidden
+}
+
+// Return sets up results that will be returned by Service.SetPlacementGroupHidden
+func (mmSetPlacementGroupHidden *mServiceMockSetPlacementGroupHidden) Return(p1 domain.PlacementGroup, err error) *ServiceMock {
+	if mmSetPlacementGroupHidden.mock.funcSetPlacementGroupHidden != nil {
+		mmSetPlacementGroupHidden.mock.t.Fatalf("ServiceMock.SetPlacementGroupHidden mock is already set by Set")
+	}
+
+	if mmSetPlacementGroupHidden.defaultExpectation == nil {
+		mmSetPlacementGroupHidden.defaultExpectation = &ServiceMockSetPlacementGroupHiddenExpectation{mock: mmSetPlacementGroupHidden.mock}
+	}
+	mmSetPlacementGroupHidden.defaultExpectation.results = &ServiceMockSetPlacementGroupHiddenResults{p1, err}
+	mmSetPlacementGroupHidden.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmSetPlacementGroupHidden.mock
+}
+
+// Set uses given function f to mock the Service.SetPlacementGroupHidden method
+func (mmSetPlacementGroupHidden *mServiceMockSetPlacementGroupHidden) Set(f func(ctx context.Context, territorySlug string, id int64, hidden bool) (p1 domain.PlacementGroup, err error)) *ServiceMock {
+	if mmSetPlacementGroupHidden.defaultExpectation != nil {
+		mmSetPlacementGroupHidden.mock.t.Fatalf("Default expectation is already set for the Service.SetPlacementGroupHidden method")
+	}
+
+	if len(mmSetPlacementGroupHidden.expectations) > 0 {
+		mmSetPlacementGroupHidden.mock.t.Fatalf("Some expectations are already set for the Service.SetPlacementGroupHidden method")
+	}
+
+	mmSetPlacementGroupHidden.mock.funcSetPlacementGroupHidden = f
+	mmSetPlacementGroupHidden.mock.funcSetPlacementGroupHiddenOrigin = minimock.CallerInfo(1)
+	return mmSetPlacementGroupHidden.mock
+}
+
+// When sets expectation for the Service.SetPlacementGroupHidden which will trigger the result defined by the following
+// Then helper
+func (mmSetPlacementGroupHidden *mServiceMockSetPlacementGroupHidden) When(ctx context.Context, territorySlug string, id int64, hidden bool) *ServiceMockSetPlacementGroupHiddenExpectation {
+	if mmSetPlacementGroupHidden.mock.funcSetPlacementGroupHidden != nil {
+		mmSetPlacementGroupHidden.mock.t.Fatalf("ServiceMock.SetPlacementGroupHidden mock is already set by Set")
+	}
+
+	expectation := &ServiceMockSetPlacementGroupHiddenExpectation{
+		mock:               mmSetPlacementGroupHidden.mock,
+		params:             &ServiceMockSetPlacementGroupHiddenParams{ctx, territorySlug, id, hidden},
+		expectationOrigins: ServiceMockSetPlacementGroupHiddenExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmSetPlacementGroupHidden.expectations = append(mmSetPlacementGroupHidden.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Service.SetPlacementGroupHidden return parameters for the expectation previously defined by the When method
+func (e *ServiceMockSetPlacementGroupHiddenExpectation) Then(p1 domain.PlacementGroup, err error) *ServiceMock {
+	e.results = &ServiceMockSetPlacementGroupHiddenResults{p1, err}
+	return e.mock
+}
+
+// Times sets number of times Service.SetPlacementGroupHidden should be invoked
+func (mmSetPlacementGroupHidden *mServiceMockSetPlacementGroupHidden) Times(n uint64) *mServiceMockSetPlacementGroupHidden {
+	if n == 0 {
+		mmSetPlacementGroupHidden.mock.t.Fatalf("Times of ServiceMock.SetPlacementGroupHidden mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmSetPlacementGroupHidden.expectedInvocations, n)
+	mmSetPlacementGroupHidden.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmSetPlacementGroupHidden
+}
+
+func (mmSetPlacementGroupHidden *mServiceMockSetPlacementGroupHidden) invocationsDone() bool {
+	if len(mmSetPlacementGroupHidden.expectations) == 0 && mmSetPlacementGroupHidden.defaultExpectation == nil && mmSetPlacementGroupHidden.mock.funcSetPlacementGroupHidden == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmSetPlacementGroupHidden.mock.afterSetPlacementGroupHiddenCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmSetPlacementGroupHidden.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// SetPlacementGroupHidden implements mm_grpcapi.Service
+func (mmSetPlacementGroupHidden *ServiceMock) SetPlacementGroupHidden(ctx context.Context, territorySlug string, id int64, hidden bool) (p1 domain.PlacementGroup, err error) {
+	mm_atomic.AddUint64(&mmSetPlacementGroupHidden.beforeSetPlacementGroupHiddenCounter, 1)
+	defer mm_atomic.AddUint64(&mmSetPlacementGroupHidden.afterSetPlacementGroupHiddenCounter, 1)
+
+	mmSetPlacementGroupHidden.t.Helper()
+
+	if mmSetPlacementGroupHidden.inspectFuncSetPlacementGroupHidden != nil {
+		mmSetPlacementGroupHidden.inspectFuncSetPlacementGroupHidden(ctx, territorySlug, id, hidden)
+	}
+
+	mm_params := ServiceMockSetPlacementGroupHiddenParams{ctx, territorySlug, id, hidden}
+
+	// Record call args
+	mmSetPlacementGroupHidden.SetPlacementGroupHiddenMock.mutex.Lock()
+	mmSetPlacementGroupHidden.SetPlacementGroupHiddenMock.callArgs = append(mmSetPlacementGroupHidden.SetPlacementGroupHiddenMock.callArgs, &mm_params)
+	mmSetPlacementGroupHidden.SetPlacementGroupHiddenMock.mutex.Unlock()
+
+	for _, e := range mmSetPlacementGroupHidden.SetPlacementGroupHiddenMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.p1, e.results.err
+		}
+	}
+
+	if mmSetPlacementGroupHidden.SetPlacementGroupHiddenMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmSetPlacementGroupHidden.SetPlacementGroupHiddenMock.defaultExpectation.Counter, 1)
+		mm_want := mmSetPlacementGroupHidden.SetPlacementGroupHiddenMock.defaultExpectation.params
+		mm_want_ptrs := mmSetPlacementGroupHidden.SetPlacementGroupHiddenMock.defaultExpectation.paramPtrs
+
+		mm_got := ServiceMockSetPlacementGroupHiddenParams{ctx, territorySlug, id, hidden}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmSetPlacementGroupHidden.t.Errorf("ServiceMock.SetPlacementGroupHidden got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPlacementGroupHidden.SetPlacementGroupHiddenMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmSetPlacementGroupHidden.t.Errorf("ServiceMock.SetPlacementGroupHidden got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPlacementGroupHidden.SetPlacementGroupHiddenMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
+				mmSetPlacementGroupHidden.t.Errorf("ServiceMock.SetPlacementGroupHidden got unexpected parameter id, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPlacementGroupHidden.SetPlacementGroupHiddenMock.defaultExpectation.expectationOrigins.originId, *mm_want_ptrs.id, mm_got.id, minimock.Diff(*mm_want_ptrs.id, mm_got.id))
+			}
+
+			if mm_want_ptrs.hidden != nil && !minimock.Equal(*mm_want_ptrs.hidden, mm_got.hidden) {
+				mmSetPlacementGroupHidden.t.Errorf("ServiceMock.SetPlacementGroupHidden got unexpected parameter hidden, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPlacementGroupHidden.SetPlacementGroupHiddenMock.defaultExpectation.expectationOrigins.originHidden, *mm_want_ptrs.hidden, mm_got.hidden, minimock.Diff(*mm_want_ptrs.hidden, mm_got.hidden))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmSetPlacementGroupHidden.t.Errorf("ServiceMock.SetPlacementGroupHidden got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmSetPlacementGroupHidden.SetPlacementGroupHiddenMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmSetPlacementGroupHidden.SetPlacementGroupHiddenMock.defaultExpectation.results
+		if mm_results == nil {
+			mmSetPlacementGroupHidden.t.Fatal("No results are set for the ServiceMock.SetPlacementGroupHidden")
+		}
+		return (*mm_results).p1, (*mm_results).err
+	}
+	if mmSetPlacementGroupHidden.funcSetPlacementGroupHidden != nil {
+		return mmSetPlacementGroupHidden.funcSetPlacementGroupHidden(ctx, territorySlug, id, hidden)
+	}
+	mmSetPlacementGroupHidden.t.Fatalf("Unexpected call to ServiceMock.SetPlacementGroupHidden. %v %v %v %v", ctx, territorySlug, id, hidden)
+	return
+}
+
+// SetPlacementGroupHiddenAfterCounter returns a count of finished ServiceMock.SetPlacementGroupHidden invocations
+func (mmSetPlacementGroupHidden *ServiceMock) SetPlacementGroupHiddenAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetPlacementGroupHidden.afterSetPlacementGroupHiddenCounter)
+}
+
+// SetPlacementGroupHiddenBeforeCounter returns a count of ServiceMock.SetPlacementGroupHidden invocations
+func (mmSetPlacementGroupHidden *ServiceMock) SetPlacementGroupHiddenBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetPlacementGroupHidden.beforeSetPlacementGroupHiddenCounter)
+}
+
+// Calls returns a list of arguments used in each call to ServiceMock.SetPlacementGroupHidden.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmSetPlacementGroupHidden *mServiceMockSetPlacementGroupHidden) Calls() []*ServiceMockSetPlacementGroupHiddenParams {
+	mmSetPlacementGroupHidden.mutex.RLock()
+
+	argCopy := make([]*ServiceMockSetPlacementGroupHiddenParams, len(mmSetPlacementGroupHidden.callArgs))
+	copy(argCopy, mmSetPlacementGroupHidden.callArgs)
+
+	mmSetPlacementGroupHidden.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockSetPlacementGroupHiddenDone returns true if the count of the SetPlacementGroupHidden invocations corresponds
+// the number of defined expectations
+func (m *ServiceMock) MinimockSetPlacementGroupHiddenDone() bool {
+	if m.SetPlacementGroupHiddenMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.SetPlacementGroupHiddenMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.SetPlacementGroupHiddenMock.invocationsDone()
+}
+
+// MinimockSetPlacementGroupHiddenInspect logs each unmet expectation
+func (m *ServiceMock) MinimockSetPlacementGroupHiddenInspect() {
+	for _, e := range m.SetPlacementGroupHiddenMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to ServiceMock.SetPlacementGroupHidden at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterSetPlacementGroupHiddenCounter := mm_atomic.LoadUint64(&m.afterSetPlacementGroupHiddenCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.SetPlacementGroupHiddenMock.defaultExpectation != nil && afterSetPlacementGroupHiddenCounter < 1 {
+		if m.SetPlacementGroupHiddenMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to ServiceMock.SetPlacementGroupHidden at\n%s", m.SetPlacementGroupHiddenMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to ServiceMock.SetPlacementGroupHidden at\n%s with params: %#v", m.SetPlacementGroupHiddenMock.defaultExpectation.expectationOrigins.origin, *m.SetPlacementGroupHiddenMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcSetPlacementGroupHidden != nil && afterSetPlacementGroupHiddenCounter < 1 {
+		m.t.Errorf("Expected call to ServiceMock.SetPlacementGroupHidden at\n%s", m.funcSetPlacementGroupHiddenOrigin)
+	}
+
+	if !m.SetPlacementGroupHiddenMock.invocationsDone() && afterSetPlacementGroupHiddenCounter > 0 {
+		m.t.Errorf("Expected %d calls to ServiceMock.SetPlacementGroupHidden at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.SetPlacementGroupHiddenMock.expectedInvocations), m.SetPlacementGroupHiddenMock.expectedInvocationsOrigin, afterSetPlacementGroupHiddenCounter)
+	}
+}
+
 type mServiceMockSetPlacementVisibility struct {
 	optional           bool
 	mock               *ServiceMock
@@ -15723,6 +16138,8 @@ func (m *ServiceMock) MinimockFinish() {
 
 			m.MinimockResolveTerritorySlugsInspect()
 
+			m.MinimockSetPlacementGroupHiddenInspect()
+
 			m.MinimockSetPlacementVisibilityInspect()
 
 			m.MinimockSetPlacementsGroupInspect()
@@ -15798,6 +16215,7 @@ func (m *ServiceMock) minimockDone() bool {
 		m.MinimockResolveBlobAccessDone() &&
 		m.MinimockResolveLabelsDone() &&
 		m.MinimockResolveTerritorySlugsDone() &&
+		m.MinimockSetPlacementGroupHiddenDone() &&
 		m.MinimockSetPlacementVisibilityDone() &&
 		m.MinimockSetPlacementsGroupDone() &&
 		m.MinimockSetPlacementsHiddenDone() &&

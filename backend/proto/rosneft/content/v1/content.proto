@@ -15,6 +15,18 @@ service ContentService {
   rpc UpdatePanorama(UpdatePanoramaRequest) returns (UpdatePanoramaResponse);
   rpc DeletePanorama(DeletePanoramaRequest) returns (DeletePanoramaResponse);
 
+  // Bulk panorama writes: one UPDATE over ids on territory_slug in one
+  // transaction. Every id must be on the territory or nothing changes and the
+  // answer is NOT_FOUND; a repeated id counts once; 1–1000 ids. A phase other
+  // than prior, current or post is INVALID_ARGUMENT.
+  rpc SetPanoramasHidden(SetPanoramasHiddenRequest) returns (SetPanoramasHiddenResponse);
+  rpc SetPanoramasPhase(SetPanoramasPhaseRequest) returns (SetPanoramasPhaseResponse);
+
+  // A phase's shared hidden flag on a territory. The list always answers the
+  // three phases in order prior, current, post; a phase never set is shown.
+  rpc SetPanoramaPhaseHidden(SetPanoramaPhaseHiddenRequest) returns (SetPanoramaPhaseHiddenResponse);
+  rpc ListPanoramaPhases(ListPanoramaPhasesRequest) returns (ListPanoramaPhasesResponse);
+
   rpc ListDocuments(ListDocumentsRequest) returns (ListDocumentsResponse);
   rpc CreateDocument(CreateDocumentRequest) returns (CreateDocumentResponse);
   rpc DeleteDocument(DeleteDocumentRequest) returns (DeleteDocumentResponse);
@@ -39,6 +51,11 @@ message Panorama {
   double default_yaw = 10;
   // 256×128 JPEG content-service makes from the source; empty until it has.
   string thumbnail_blob_hash = 11;
+  // prior, current or post: the stage of the job it was taken at.
+  string phase = 12;
+  // Shared by every reader. The map draws a panorama only when neither it nor
+  // its phase is hidden.
+  bool hidden = 13;
 }
 
 message ListPanoramasRequest {
@@ -55,6 +72,8 @@ message CreatePanoramaRequest {
   string source_blob_hash = 4;
   Vec3 position = 5;
   double yaw_offset = 6;
+  // prior, current or post; empty means prior.
+  string phase = 7;
 }
 message CreatePanoramaResponse {
   Panorama panorama = 1;
@@ -79,6 +98,46 @@ message DeletePanoramaRequest {
   string territory_slug = 2;
 }
 message DeletePanoramaResponse {}
+
+message SetPanoramasHiddenRequest {
+  string territory_slug = 1;
+  repeated int64 ids = 2;
+  bool hidden = 3;
+}
+message SetPanoramasHiddenResponse {
+  int32 updated = 1;
+}
+
+message SetPanoramasPhaseRequest {
+  string territory_slug = 1;
+  repeated int64 ids = 2;
+  string phase = 3;
+}
+message SetPanoramasPhaseResponse {
+  int32 updated = 1;
+}
+
+// PanoramaPhase is one phase's shared hidden flag on a territory.
+message PanoramaPhase {
+  string phase = 1;
+  bool hidden = 2;
+}
+
+message SetPanoramaPhaseHiddenRequest {
+  string territory_slug = 1;
+  string phase = 2;
+  bool hidden = 3;
+}
+message SetPanoramaPhaseHiddenResponse {
+  PanoramaPhase phase = 1;
+}
+
+message ListPanoramaPhasesRequest {
+  string territory_slug = 1;
+}
+message ListPanoramaPhasesResponse {
+  repeated PanoramaPhase phases = 1;
+}
 
 // Document is a PDF attached to a territory. No scene position, no slug —
 // identified by id; bytes served from BlobStore via asset at /api/assets/{hash}.

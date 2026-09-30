@@ -2,8 +2,7 @@ import { useState } from "react";
 import { groupByModel, groupLine, type ModelGroup } from "./model/groups";
 import { IDENTITY_TRANSFORM, type Placement } from "./model/placement";
 import { eyeState } from "./model/sections";
-import { EyeButton } from "./ui/eye-button";
-import { GroupRow } from "./ui/group-row";
+import { EyeButton, GroupRow } from "@/shared/ui/group-controls";
 import { InstanceRow } from "./ui/instance-row";
 
 const make = (id: number, modelSlug: string, label = "", over: Partial<Placement> = {}): Placement => ({
@@ -24,7 +23,7 @@ const OPTIONS = [
   { slug: "pump", title: "Насос НМ-1250" },
 ];
 
-const GROUPS = [{ id: 1, title: "North yard" }];
+const GROUPS = [{ id: 1, title: "North yard", hidden: false }];
 
 const PLACEMENTS = [
   make(1, "tank"),
