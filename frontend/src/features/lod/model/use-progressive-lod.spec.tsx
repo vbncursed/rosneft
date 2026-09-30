@@ -180,6 +180,22 @@ describe("useProgressiveLod", () => {
     expect(result.current.shown?.lod).toBe(1);
   });
 
+  // Once LOD 0 is ready the hold is over: LOD 1 is off screen, and in the
+  // territory its blob is released. A stale hold called it ready on the way
+  // back, and the canvas suspended on a url nobody had parsed.
+  it("a return to a level whose hold ended with the finer one ready goes through the coarsest (1 → 0 → 1)", () => {
+    const { result, rerender } = renderHook(({ t }) => useProgressiveLod(chain, t), {
+      initialProps: { t: 1 },
+    });
+    act(() => result.current.onWarmReady());
+    rerender({ t: 0 });
+    act(() => result.current.onWarmReady());
+    expect(result.current.shown?.lod).toBe(0);
+    rerender({ t: 1 });
+    expect(result.current.shown?.lod).toBe(2);
+    expect(result.current.warmUrl).toContain("/api/assets/b");
+  });
+
   it("retry clears the hold", () => {
     const { result, rerender } = renderHook(({ t }) => useProgressiveLod(chain, t), {
       initialProps: { t: 1 },

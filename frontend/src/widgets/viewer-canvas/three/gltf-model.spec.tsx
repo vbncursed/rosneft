@@ -309,6 +309,51 @@ describe("GltfModel", () => {
     await r.unmount();
   });
 
+  it("a return to a level released once the finer one was drawn goes through the coarsest (1 → 0 → 1)", async () => {
+    // LOD 0 drawn, so LOD 1's blob was released and evicted. A stale hold
+    // called LOD 1 ready on the way back: the canvas mounted its asset route,
+    // unparsed, and the territory blanked while the same bytes came twice.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(streamOf([new Uint8Array(4), new Uint8Array(6)]), { status: 200 })),
+    );
+    const minted = ["blob:mid", "blob:fine", "blob:mid2"];
+    vi.stubGlobal("URL", { ...URL, createObjectURL: vi.fn(() => minted.shift()), revokeObjectURL: vi.fn() });
+    const drei = await import("@react-three/drei");
+    const { fakeScene } = await import("./testing");
+    // Nothing has parsed LOD 1's asset route: mounting it suspends.
+    vi.mocked(drei.useGLTF).mockImplementation((url) => {
+      if (String(url) === "/api/assets/mid") throw new Promise(() => {});
+      return { scene: fakeScene() } as never;
+    });
+    const lods = [
+      { lod: 0, hash: "fine", size: 10 },
+      { lod: 1, hash: "mid", size: 10 },
+      { lod: 2, hash: "coarse", size: 2 },
+    ];
+    const onReport = vi.fn();
+    const last = () => onReport.mock.lastCall![0] as LodReport;
+    const r = await ReactThreeTestRenderer.create(model({ onReport, targetLod: 1, lods }));
+    await vi.waitFor(() => expect(last().shown).toBe(1));
+    const parsedFrom = vi.mocked(drei.useGLTF).mock.calls.length;
+    await r.update(model({ onReport, targetLod: 0, lods }));
+    await vi.waitFor(() => expect(last().shown).toBe(0));
+    await vi.waitFor(() => expect(drei.useGLTF.clear).toHaveBeenCalledWith("blob:mid"));
+
+    const from = onReport.mock.calls.length;
+    await r.update(model({ onReport, targetLod: 1, lods }));
+    await vi.waitFor(() => expect(last()).toMatchObject({ shown: 1, target: 1 }));
+    const parsed = vi.mocked(drei.useGLTF).mock.calls.slice(parsedFrom).map((c) => String(c[0]));
+    expect(parsed).not.toContain("/api/assets/mid");
+    const shown = onReport.mock.calls.slice(from).map((c) => (c[0] as LodReport).shown);
+    // The coarsest comes up (a stale hold never showed it: it suspended on the
+    // asset route instead), and nothing blanks while it is up. The swap from
+    // LOD 0 to it reports one `shown: null` before it, as every swap does.
+    expect(shown).toContain(2);
+    expect(shown.slice(shown.indexOf(2), shown.lastIndexOf(2) + 1)).not.toContain(null);
+    await r.unmount();
+  });
+
   it("a manual pick of the held level after a refusal keeps its blob: no second download, no remount", async () => {
     // LOD 0 refused, LOD 1 stays up off its held blob; the reader then picks
     // LOD 1 itself. A fresh download of it minted a second blob that later

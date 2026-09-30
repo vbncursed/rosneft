@@ -107,7 +107,13 @@ export function useProgressiveLod(
     shown: failure ? null : show,
     target,
     failure,
-    onWarmReady: () => setReadyHash(targetHash),
+    // The target is ready, so it is what shows: the hold is over. Kept, it
+    // called the held level ready on a return after it had left the screen
+    // (and, in the territory, after its blob was released and evicted).
+    onWarmReady: () => {
+      setReadyHash(targetHash);
+      setHeldHash(null);
+    },
     onWarmFailed: () => drop(warm?.hash),
     onShownFailed: (err) => {
       if (show) setFailure({ hash: show.hash, status: err.status ?? null });
