@@ -88,8 +88,10 @@ export function useProgressiveLod(
     // A refused finer level re-targets the held one, which is parsed and on
     // screen: it is ready. Nothing would warm it again — the territory warms
     // only its blob download, which a refusal never mints — so clearing here
-    // left the coarsest up for good. Only on a drop: a manual 1 → 0 → 1 starts
-    // a fresh LOD 1 download whose blob would later swap in unparsed.
+    // left the coarsest up for good. Only on a drop: a manual 1 → 0 → 1 goes
+    // through the coarse level and the warmer like a first visit — the
+    // territory's download adopts the held LOD 1 blob rather than fetching it
+    // again, so the warmer gets a url drei has parsed and reports ready at once.
     const refused = seenTarget !== null && broken.includes(seenTarget);
     setReadyHash(refused && targetHash !== null && targetHash === heldHash ? targetHash : null);
   }

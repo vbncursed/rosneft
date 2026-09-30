@@ -138,7 +138,11 @@ export default function GltfModel({
   // already drawn and parse the same bytes twice (the way back to LOD 2).
   const wanted = pickLod(lods, level);
   const fetched = wanted && wanted.hash !== pickCoarsest(lods)?.hash ? wanted : null;
-  const download = useLodDownload(fetched);
+  // The level the report calls "shown" is the one whose mesh has mounted, not
+  // the one selected: a coarse level still on the wire is nothing on screen.
+  // The download reads it too — once its own blob is drawn it lets `held` go.
+  const [drawnUrl, setDrawnUrl] = useState<string | null>(null);
+  const download = useLodDownload(fetched, drawnUrl);
   // The held blob is the level before the wanted one — what stays on screen
   // while a finer level downloads (use-progressive-lod). Mapped back to its
   // blob, not to its asset route, so its parsed scene is reused and not
@@ -146,12 +150,9 @@ export default function GltfModel({
   const heldUrl = download.held?.blobUrl ?? null;
   const urlOf = (a: LodArtifact) => {
     if (a.hash === wanted?.hash && download.blobUrl) return download.blobUrl;
-    return a.hash === download.held?.hash && heldUrl ? heldUrl : lodUrl(a);
+    return a.hash === download.held?.hash ? download.held.blobUrl : lodUrl(a);
   };
   const lod = useProgressiveLod(lods, level, urlOf);
-  // The level the report calls "shown" is the one whose mesh has mounted, not
-  // the one selected: a coarse level still on the wire is nothing on screen.
-  const [drawnUrl, setDrawnUrl] = useState<string | null>(null);
   const shown = lod.url !== null && drawnUrl === lod.url ? lod.shown : null;
   // The warm level's download is what LodWarmer parses; until the blob exists
   // there is nothing to warm.
@@ -197,12 +198,14 @@ export default function GltfModel({
   }, [retryVersion]);
 
   // drei caches the parsed GLTF by URL string. useLodDownload revokes a blob
-  // URL once it is neither the current level's nor the held one, and all of
-  // them when we unmount — so without this the parsed scene would sit in that
-  // cache forever under a URL no one can ever request again. Nothing evicts
-  // it; the entry has to be dropped by hand. Only once it stops being live,
-  // though: the current level's blob becomes the held one on a level change,
-  // and clearing it then would evict a scene that is still on screen.
+  // URL once it is neither the current level's nor the held one (replaced, or
+  // released once the level it wanted is drawn), and all of them when we
+  // unmount — so without this the parsed scene would sit in that cache forever
+  // under a URL no one can ever request again. Nothing evicts it; the entry has
+  // to be dropped by hand. Only once it stops being live, though: the current
+  // level's blob becomes the held one on a level change, and the held one the
+  // current one again on a return to it (adopted, not re-fetched), and clearing
+  // either then would evict a scene that is still on screen.
   const minted = useRef(new Set<string>());
   const blobUrl = download.blobUrl;
   useEffect(() => {

@@ -1,3 +1,4 @@
+import { StrictMode } from "react";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useLodDownload } from "./use-lod-download";
@@ -104,12 +105,13 @@ describe("useLodDownload", () => {
     expect(result.current.blobUrl).toBeNull();
   });
 
-  // 0 → 2 → 0: the coarse level is never streamed, so nothing overwrote the
-  // finished download of LOD 0 — the return showed "100 %" for a frame and
-  // warmed a blob that had already been revoked.
-  it("forgets a finished level once it is left, so a return starts from nothing", async () => {
+  // 0 → 2 → 0: the coarse level is never streamed, so the finished LOD 0 blob
+  // is still held on the way back. Fetching it again kept two copies of the
+  // same level alive (blob, drei's parsed scene) and paid for the bytes twice.
+  it("adopts the held blob on a return to its level: no fetch, no revoke, nothing held", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf([new Uint8Array(5)]), { status: 200 })));
-    vi.stubGlobal("URL", { ...URL, createObjectURL: vi.fn(() => "blob:a"), revokeObjectURL: vi.fn() });
+    const revoke = vi.fn();
+    vi.stubGlobal("URL", { ...URL, createObjectURL: vi.fn(() => "blob:a"), revokeObjectURL: revoke });
     const a = { lod: 0, hash: "a", size: 5 };
     const { result, rerender } = renderHook(({ art }) => useLodDownload(art), {
       initialProps: { art: a as typeof a | null },
@@ -117,12 +119,114 @@ describe("useLodDownload", () => {
     await waitFor(() => expect(result.current.blobUrl).toBe("blob:a"));
     rerender({ art: null });
     rerender({ art: a });
+    await waitFor(() => expect(result.current.blobUrl).toBe("blob:a"));
+    // The level's own size, so the chip reads full rather than 0 %.
+    expect(result.current).toEqual({ blobUrl: "blob:a", received: 5, failed: null, held: null });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(revoke).not.toHaveBeenCalled();
+  });
+
+  it("adopts under StrictMode's double effects too, and still revokes the blob on unmount", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf([new Uint8Array(5)]), { status: 200 })));
+    const revoke = vi.fn();
+    // Distinct urls: StrictMode's first, aborted download mints and revokes a
+    // blob of its own, and that one must not be mistaken for the kept one.
+    let n = 0;
+    vi.stubGlobal("URL", { ...URL, createObjectURL: vi.fn(() => `blob:${++n}`), revokeObjectURL: revoke });
+    const a = { lod: 0, hash: "a", size: 5 };
+    const { result, rerender, unmount } = renderHook(({ art }) => useLodDownload(art), {
+      initialProps: { art: a as typeof a | null },
+      wrapper: StrictMode,
+    });
+    await waitFor(() => expect(result.current.blobUrl).not.toBeNull());
+    const kept = result.current.blobUrl;
+    const fetches = vi.mocked(fetch).mock.calls.length;
+    rerender({ art: null });
+    rerender({ art: a });
+    await waitFor(() => expect(result.current).toMatchObject({ blobUrl: kept, received: 5, held: null }));
+    expect(fetch).toHaveBeenCalledTimes(fetches);
+    expect(revoke).not.toHaveBeenCalledWith(kept);
+    unmount();
+    expect(revoke).toHaveBeenCalledWith(kept);
+  });
+
+  it("a return to a level that is neither current nor held starts from nothing", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf([new Uint8Array(2)]), { status: 200 })));
+    const minted = ["blob:a", "blob:b", "blob:c", "blob:a2"];
+    const revoke = vi.fn();
+    vi.stubGlobal("URL", { createObjectURL: vi.fn(() => minted.shift()), revokeObjectURL: revoke });
+    const lvl = (lod: number, hash: string) => ({ lod, hash, size: 2 });
+    const { result, rerender } = renderHook(({ art }) => useLodDownload(art), {
+      initialProps: { art: lvl(2, "a") },
+    });
+    await waitFor(() => expect(result.current.blobUrl).toBe("blob:a"));
+    rerender({ art: lvl(1, "b") });
+    await waitFor(() => expect(result.current.blobUrl).toBe("blob:b"));
+    rerender({ art: lvl(0, "c") });
+    await waitFor(() => expect(result.current.blobUrl).toBe("blob:c"));
+    expect(revoke).toHaveBeenCalledWith("blob:a");
+
+    // A's blob went when B's replaced it: the return counts from 0, never
+    // from the old 100 % against a revoked blob.
+    rerender({ art: lvl(2, "a") });
     expect(result.current).toEqual({
       blobUrl: null,
       received: 0,
       failed: null,
-      held: { hash: "a", blobUrl: "blob:a" },
+      held: { hash: "c", blobUrl: "blob:c" },
     });
+    await waitFor(() => expect(result.current.blobUrl).toBe("blob:a2"));
+    expect(fetch).toHaveBeenCalledTimes(4);
+  });
+
+  // LOD 1's blob and parsed scene sat in memory for the whole session once
+  // Auto had LOD 0 on screen, though nothing could draw LOD 1 again.
+  it("releases the held blob once the level it downloads is on screen", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf([new Uint8Array(2)]), { status: 200 })));
+    const minted = ["blob:a", "blob:b"];
+    const revoke = vi.fn();
+    vi.stubGlobal("URL", { createObjectURL: vi.fn(() => minted.shift()), revokeObjectURL: revoke });
+    const lvl = (lod: number, hash: string) => ({ lod, hash, size: 2 });
+    const { result, rerender } = renderHook(({ art, drawn }) => useLodDownload(art, drawn), {
+      initialProps: { art: lvl(1, "a"), drawn: "blob:a" as string | null },
+    });
+    await waitFor(() => expect(result.current.blobUrl).toBe("blob:a"));
+    rerender({ art: lvl(0, "b"), drawn: "blob:a" });
+    await waitFor(() => expect(result.current.blobUrl).toBe("blob:b"));
+    expect(result.current.held).toEqual({ hash: "a", blobUrl: "blob:a" });
+    expect(revoke).not.toHaveBeenCalled();
+
+    rerender({ art: lvl(0, "b"), drawn: "blob:b" });
+    expect(result.current.held).toBeNull();
+    expect(revoke).toHaveBeenCalledWith("blob:a");
+    expect(revoke).not.toHaveBeenCalledWith("blob:b");
+  });
+
+  // A refused LOD 0 leaves LOD 1 on screen off its held blob; a manual LOD 1
+  // then wants that very level, already drawn, in the same render.
+  it("never releases the blob it is adopting when that level is already on screen", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        url.endsWith("/b")
+          ? new Response(null, { status: 502 })
+          : new Response(streamOf([new Uint8Array(2)]), { status: 200 }),
+      ),
+    );
+    const revoke = vi.fn();
+    vi.stubGlobal("URL", { createObjectURL: vi.fn(() => "blob:a"), revokeObjectURL: revoke });
+    const lvl = (lod: number, hash: string) => ({ lod, hash, size: 2 });
+    const { result, rerender } = renderHook(({ art, drawn }) => useLodDownload(art, drawn), {
+      initialProps: { art: lvl(1, "a"), drawn: "blob:a" as string | null },
+    });
+    await waitFor(() => expect(result.current.blobUrl).toBe("blob:a"));
+    rerender({ art: lvl(0, "b"), drawn: "blob:a" });
+    await waitFor(() => expect(result.current.failed).toEqual({ status: 502 }));
+
+    rerender({ art: lvl(1, "a"), drawn: "blob:a" });
+    await waitFor(() => expect(result.current).toMatchObject({ blobUrl: "blob:a", held: null }));
+    expect(revoke).not.toHaveBeenCalled();
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   // The level on screen while a finer one downloads is the one before it: its
