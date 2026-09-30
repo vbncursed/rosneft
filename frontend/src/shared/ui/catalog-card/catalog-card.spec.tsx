@@ -171,7 +171,16 @@ describe("CatalogCard", () => {
     expect(screen.getByRole("heading", { level: 3, name: "North Ridge Pad" })).toContainElement(link);
     // The anchor is the navigation; the article's onOpen must not fire as well.
     expect(screen.queryByRole("button", { name: "North Ridge Pad" })).not.toBeInTheDocument();
+    // jsdom cannot load another document, so the spec takes the navigation
+    // the browser would perform here — the link's own default action — and
+    // records where it was going.
+    const followed: string[] = [];
+    link.addEventListener("click", (event) => {
+      followed.push(link.getAttribute("href")!);
+      event.preventDefault();
+    });
     fireEvent.click(link);
+    expect(followed).toEqual(["/territories/north-ridge-pad"]);
     expect(onOpen).not.toHaveBeenCalled();
   });
 
