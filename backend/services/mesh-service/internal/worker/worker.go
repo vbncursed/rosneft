@@ -16,6 +16,8 @@ import (
 type Queue interface {
 	ConsumeJobs(ctx context.Context, consumer string, block time.Duration) ([]storage.DeliveredJob, error)
 	AckJob(ctx context.Context, messageID string) error
+	// Backlog is the number of queued jobs no worker has been handed yet.
+	Backlog(ctx context.Context) (int64, error)
 }
 
 // Mesh is the business surface the worker drives.

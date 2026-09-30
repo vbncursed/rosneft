@@ -20,6 +20,7 @@ import (
 func (w *Worker) Run(ctx context.Context) {
 	var wg sync.WaitGroup
 	for {
+		w.observeBacklog(ctx)
 		// A slot first, then a message: nothing is read that cannot start now.
 		select {
 		case <-ctx.Done():
@@ -36,7 +37,6 @@ func (w *Worker) Run(ctx context.Context) {
 			}
 			continue
 		}
-		metricQueueDepth.Set(float64(len(jobs)))
 		for _, j := range jobs {
 			wg.Go(func() {
 				defer func() { <-w.sem }()
@@ -44,4 +44,18 @@ func (w *Worker) Run(ctx context.Context) {
 			})
 		}
 	}
+}
+
+// observeBacklog publishes the queue depth. A failed read is logged and leaves
+// the gauge where it was: a stale number beats a false zero, and the loop goes
+// on. Cancellation is not worth a warning.
+func (w *Worker) observeBacklog(ctx context.Context) {
+	n, err := w.queue.Backlog(ctx)
+	if err != nil {
+		if !errors.Is(err, context.Canceled) {
+			w.logger.Warn("worker: backlog read failed", "err", err)
+		}
+		return
+	}
+	metricQueueDepth.Set(float64(n))
 }
