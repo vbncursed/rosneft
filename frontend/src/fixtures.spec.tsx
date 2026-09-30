@@ -1,6 +1,7 @@
-import { render } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 import { createElement, isValidElement, type ReactNode } from "react";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
+import { preloadViewer } from "@/widgets/viewer-canvas";
 
 /**
  * Every fixture must at least render. Cosmos only loads a fixture when someone
@@ -38,6 +39,13 @@ function nodesOf(exported: unknown): [string, ReactNode][] {
 const paths = Object.keys(modules).sort();
 
 describe("every fixture renders", () => {
+  // The viewer is the app's one code-split chunk. Fetched by the first fixture
+  // that suspended on it, it arrived seconds later, long after that render's
+  // act had closed, and woke every root still waiting on it in the middle of
+  // some other test. Loaded up front, the lazy boundary resolves within a
+  // microtask — inside the act each fixture now awaits, canvas and all.
+  beforeAll(() => preloadViewer());
+
   it("finds the fixtures to check — a broken glob must not pass silently", () => {
     expect(paths.length).toBeGreaterThan(40);
   });
@@ -48,7 +56,12 @@ describe("every fixture renders", () => {
     expect(nodes.length, `${path} exports no renderable fixture`).toBeGreaterThan(0);
 
     for (const [name, node] of nodes) {
-      expect(() => render(<>{node}</>), `${path} › ${name} threw while rendering`).not.toThrow();
+      await expect(
+        act(async () => {
+          render(<>{node}</>);
+        }),
+        `${path} › ${name} threw while rendering`,
+      ).resolves.toBeUndefined();
     }
   });
 });
