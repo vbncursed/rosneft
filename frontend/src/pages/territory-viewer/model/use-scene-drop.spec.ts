@@ -70,6 +70,24 @@ describe("useSceneDrop", () => {
     stop();
   });
 
+  // A rename writes the scene with setQueryData, which clears TanStack's own
+  // `isInvalidated` flag — the drop on unmount has to come off the `changed`
+  // ref, not off that flag, or a rename after a change silently keeps a
+  // bundle that should have dropped.
+  it("drops the cached bundle on unmount even when a rename rewrote it after the change", () => {
+    const client = new QueryClient();
+    client.setQueryData(["scene", SLUG], {});
+    const { result, unmount } = renderHook(() => useSceneDrop(client, SLUG));
+
+    act(() => result.current());
+    act(() => client.setQueryData(["scene", SLUG], { renamed: true }));
+    expect(client.getQueryState(["scene", SLUG])?.isInvalidated).toBe(false);
+
+    unmount();
+
+    expect(client.getQueryData(["scene", SLUG])).toBeUndefined();
+  });
+
   it("drops a bundle a late change marked, once the visit that kept it leaves", () => {
     const client = new QueryClient();
     client.setQueryData(["scene", SLUG], {});

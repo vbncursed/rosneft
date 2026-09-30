@@ -179,6 +179,18 @@ describe("PanoramaRow", () => {
     expect(screen.getByRole("button", { name: /^Hide panorama/ })).toHaveAttribute("aria-pressed", "false");
   });
 
+  it("points at both the hidden note and the uncalibrated hint when both apply", () => {
+    row({ hidden: true, calibrated: false });
+    const describedBy = screen
+      .getByRole("button", { name: `${SHOW_IN}: Control room, north door` })
+      .getAttribute("aria-describedby")!
+      .split(" ");
+    expect(describedBy).toHaveLength(2);
+    expect(screen.getByText(HIDDEN_NOTE).id).toBe(describedBy[0]);
+    expect(screen.getByText(NOT_CALIBRATED).id).toBe(describedBy[1]);
+    for (const id of describedBy) expect(document.getElementById(id)).not.toBeNull();
+  });
+
   it("draws a shown row at full strength with no hidden note", () => {
     row();
     expect(screen.queryByText(HIDDEN_NOTE)).toBeNull();
