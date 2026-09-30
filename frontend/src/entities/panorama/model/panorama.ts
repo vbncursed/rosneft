@@ -22,7 +22,13 @@ export type Panorama = {
   updatedAt: string;
 };
 
-export type PanoramaCreate = { title: string; sourceBlobHash: string; position?: Vec3; yawOffset?: number };
+export type PanoramaCreate = {
+  title: string;
+  sourceBlobHash: string;
+  position?: Vec3;
+  yawOffset?: number;
+  phase?: PanoramaPhase;
+};
 
 /** Every field, every time: the gateway's PUT replaces the row and zeroes what is absent. */
 export type PanoramaUpdate = { title: string; position: Vec3; yawOffset: number; defaultYaw: number };

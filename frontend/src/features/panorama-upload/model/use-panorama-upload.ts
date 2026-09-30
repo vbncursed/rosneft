@@ -4,6 +4,7 @@ import {
   exifScenePosition,
   isEquirectImageSignature,
   type Panorama,
+  type PanoramaPhase,
   type ScenePositionResult,
   type SourceBbox,
 } from "@/entities/panorama";
@@ -42,6 +43,7 @@ export function usePanoramaUpload({ slug, sourceBbox, onCreated }: PanoramaUploa
   });
   const [title, setTitle] = useState("");
   const [useGps, setUseGps] = useState(true);
+  const [phase, setPhase] = useState<PanoramaPhase>("prior");
 
   const trimmed = title.trim();
   const canSubmit = trimmed !== "" && upload.state.stage === "picked";
@@ -57,6 +59,7 @@ export function usePanoramaUpload({ slug, sourceBbox, onCreated }: PanoramaUploa
         // is not the same as not sending it.
         ...(placed.position ? { position: placed.position } : {}),
         yawOffset: 0,
+        phase,
       });
       notify.success(placedNote(placed));
       // The form is emptied here, not on the dialog's close: this hook lives on
@@ -66,6 +69,7 @@ export function usePanoramaUpload({ slug, sourceBbox, onCreated }: PanoramaUploa
       // typed values, which is why the reset is inside the successful path.
       setTitle("");
       setUseGps(true);
+      setPhase("prior");
       onCreated(panorama);
     });
   };
@@ -76,6 +80,8 @@ export function usePanoramaUpload({ slug, sourceBbox, onCreated }: PanoramaUploa
     setTitle,
     useGps,
     setUseGps,
+    phase,
+    setPhase,
     // The modal's DropZone hands over a list; only the first file is a panorama.
     pick: (files: File[]) => (files[0] ? upload.pick(files[0]) : Promise.resolve()),
     clear: upload.clear,

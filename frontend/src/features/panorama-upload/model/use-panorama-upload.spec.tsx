@@ -87,10 +87,11 @@ beforeEach(() => {
 });
 
 describe("usePanoramaUpload", () => {
-  it("starts idle, with the GPS box ticked and nothing to submit", () => {
+  it("starts idle, with the GPS box ticked, the phase set to prior and nothing to submit", () => {
     const { result } = mount();
     expect(result.current.p.upload).toEqual({ stage: "idle", file: null });
     expect(result.current.p.useGps).toBe(true);
+    expect(result.current.p.phase).toBe("prior");
     expect(result.current.p.canSubmit).toBe(false);
   });
 
@@ -134,6 +135,7 @@ describe("usePanoramaUpload", () => {
       sourceBlobHash: "abc",
       position: POSITION,
       yawOffset: 0,
+      phase: "prior",
     });
     expect(result.current.notices[0]).toMatchObject({
       tone: "success",
@@ -141,6 +143,43 @@ describe("usePanoramaUpload", () => {
     });
     expect(onCreated).toHaveBeenCalledWith(CREATED);
     expect(result.current.p.upload).toEqual({ stage: "idle", file: null });
+  });
+
+  it("sends the phase chosen before submit, and defaults to prior", async () => {
+    const { result } = await ready();
+    act(() => result.current.p.setPhase("current"));
+
+    await act(async () => {
+      await result.current.p.submit();
+    });
+
+    expect(createPanorama).toHaveBeenCalledWith(
+      "refinery-block-c",
+      expect.objectContaining({ phase: "current" }),
+    );
+  });
+
+  it("resets the phase to prior once the create lands, so the next photo does not inherit it", async () => {
+    const { result } = await ready();
+    act(() => result.current.p.setPhase("post"));
+
+    await act(async () => {
+      await result.current.p.submit();
+    });
+
+    expect(result.current.p.phase).toBe("prior");
+  });
+
+  it("keeps the chosen phase when the create is refused", async () => {
+    createPanorama.mockRejectedValue(new HttpError(422, null, "Slug already taken."));
+    const { result } = await ready();
+    act(() => result.current.p.setPhase("post"));
+
+    await act(async () => {
+      await result.current.p.submit();
+    });
+
+    expect(result.current.p.phase).toBe("post");
   });
 
   it("says the photo's location misses this territory, and posts no position", async () => {
@@ -155,6 +194,7 @@ describe("usePanoramaUpload", () => {
       title: "Pump house, south wall",
       sourceBlobHash: "abc",
       yawOffset: 0,
+      phase: "prior",
     });
     expect(result.current.notices[0]).toMatchObject({
       tone: "success",
@@ -189,6 +229,7 @@ describe("usePanoramaUpload", () => {
       title: "Pump house, south wall",
       sourceBlobHash: "abc",
       yawOffset: 0,
+      phase: "prior",
     });
     expect(result.current.notices[0]).toMatchObject({
       message: "Panorama uploaded — set its position manually",

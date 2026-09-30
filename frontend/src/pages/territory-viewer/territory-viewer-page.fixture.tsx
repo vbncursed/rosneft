@@ -73,6 +73,8 @@ export const IDLE_PANORAMAS: PanoramaParts = {
       setTitle: noop,
       useGps: true,
       setUseGps: noop,
+      phase: "prior",
+      setPhase: noop,
       pick: async () => {},
       clear: noop,
       cancel: noop,

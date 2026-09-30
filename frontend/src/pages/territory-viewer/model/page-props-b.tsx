@@ -195,6 +195,7 @@ export function uploadProps(p: PageParts): UploadModalProps | null {
       ...common(p.title, form, pan.upload.onClose),
       kind: "panorama",
       gps: { checked: form.useGps, onChange: form.setUseGps },
+      phase: { value: form.phase, onChange: form.setPhase },
     };
   }
   if (!docs.upload.open) return null;
