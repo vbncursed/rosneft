@@ -12,6 +12,8 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/storage"
 )
 
+//go:generate minimock -i Queue,Mesh -o ./mocks -s _mock.go
+
 // Queue is the consumer surface the worker needs.
 type Queue interface {
 	ConsumeJobs(ctx context.Context, consumer string, block time.Duration) ([]storage.DeliveredJob, error)

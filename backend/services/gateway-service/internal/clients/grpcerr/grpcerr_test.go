@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gotest.tools/v3/assert"
@@ -13,11 +14,25 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
-func TestRefused(t *testing.T) {
+type RefusedSuite struct {
+	suite.Suite
+}
+
+func TestRefusedSuite(t *testing.T) { suite.Run(t, new(RefusedSuite)) }
+
+// assertRefusal checks that got is a Refusal carrying msg, matching sentinel.
+func (s *RefusedSuite) assertRefusal(got, sentinel error, msg string) {
+	_, ok := errors.AsType[grpcerr.Refusal](got)
+	assert.Assert(s.T(), ok, "not a Refusal: %v", got)
+	assert.Assert(s.T(), errors.Is(got, sentinel), "%v is not %v", got, sentinel)
+	assert.Equal(s.T(), got.Error(), msg)
+}
+
+func (s *RefusedSuite) TestRefusals() {
 	for _, tc := range []struct {
 		name     string
 		err      error
-		sentinel error // nil: not a Refusal
+		sentinel error
 		msg      string
 	}{
 		{
@@ -32,20 +47,40 @@ func TestRefused(t *testing.T) {
 			"invalid argument", status.Error(codes.InvalidArgument, "invalid input: phase \"x\""),
 			domain.ErrInvalidInput, "invalid input: phase \"x\"",
 		},
-		{"internal stays internal", status.Error(codes.Internal, "internal: boom"), nil, ""},
-		{"not a status", errors.New("dial"), nil, ""},
 	} {
-		t.Run(tc.name, func(t *testing.T) {
+		s.Run(tc.name, func() {
 			got := grpcerr.Refused("content.X", tc.err, domain.ErrPanoramaNotFound, domain.ErrTerritoryNotFound)
-			var r grpcerr.Refusal
-			if tc.sentinel == nil {
-				assert.Assert(t, !errors.As(got, &r))
-				assert.Assert(t, strings.HasPrefix(got.Error(), "content.X: "))
-				return
-			}
-			assert.Assert(t, errors.As(got, &r))
-			assert.Assert(t, errors.Is(got, tc.sentinel))
-			assert.Equal(t, got.Error(), tc.msg)
+			s.assertRefusal(got, tc.sentinel, tc.msg)
+		})
+	}
+}
+
+// A message naming two of the sentinels maps to the first of them in named's
+// order, not in the message's.
+func (s *RefusedSuite) TestFirstNamedSentinelWins() {
+	err := status.Error(codes.NotFound, "placement not found: model not found")
+
+	got := grpcerr.Refused("catalog.X", err, domain.ErrTerritoryNotFound, domain.ErrModelNotFound, domain.ErrPlacementNotFound)
+
+	s.assertRefusal(got, domain.ErrModelNotFound, "placement not found: model not found")
+	assert.Assert(s.T(), !errors.Is(got, domain.ErrPlacementNotFound))
+}
+
+func (s *RefusedSuite) TestOtherFailuresAreWrappedWithTheOp() {
+	for _, tc := range []struct {
+		name string
+		err  error
+	}{
+		{"internal stays internal", status.Error(codes.Internal, "internal: boom")},
+		{"not a status", errors.New("dial")},
+	} {
+		s.Run(tc.name, func() {
+			got := grpcerr.Refused("content.X", tc.err, domain.ErrPanoramaNotFound, domain.ErrTerritoryNotFound)
+
+			_, ok := errors.AsType[grpcerr.Refusal](got)
+			assert.Assert(s.T(), !ok)
+			assert.Assert(s.T(), errors.Is(got, tc.err))
+			assert.Assert(s.T(), strings.HasPrefix(got.Error(), "content.X: "))
 		})
 	}
 }

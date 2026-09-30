@@ -5,115 +5,127 @@ import (
 	"errors"
 	"io"
 	"log/slog"
-	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
+	"github.com/gojuno/minimock/v3"
 	"github.com/prometheus/client_golang/prometheus/testutil"
+	"github.com/stretchr/testify/suite"
 	"gotest.tools/v3/assert"
 
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/storage"
+	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/worker/mocks"
 )
 
-type fakeQueue struct {
-	consumed atomic.Int32
-	backlog  atomic.Int64
-	// backlogErr, when set, is what Backlog returns instead of the value.
-	backlogErr atomic.Pointer[error]
+// blockTimeout is how long an empty read blocks, on the bubble's fake clock.
+const blockTimeout = 5 * time.Second
+
+// Each test runs inside a synctest bubble: synctest.Wait returns once every
+// goroutine of the loop is blocked, so "the loop did not read" is an
+// observation, not a guess about how long to sleep. The worker and every
+// channel the mocks block on are made inside the bubble, or the loop's
+// blocking would not count as durable.
+type RunSuite struct {
+	suite.Suite
+	queue *mocks.QueueMock
+	mesh  *mocks.MeshMock
 }
 
-func (q *fakeQueue) Backlog(context.Context) (int64, error) {
-	if e := q.backlogErr.Load(); e != nil {
-		return 0, *e
-	}
-	return q.backlog.Load(), nil
+func TestRunSuite(t *testing.T) { suite.Run(t, new(RunSuite)) }
+
+func (s *RunSuite) SetupTest() {
+	mc := minimock.NewController(s.T())
+	s.queue = mocks.NewQueueMock(mc)
+	s.mesh = mocks.NewMeshMock(mc)
 }
 
-func (q *fakeQueue) ConsumeJobs(ctx context.Context, _ string, _ time.Duration) ([]storage.DeliveredJob, error) {
-	n := q.consumed.Add(1)
-	if n > 1 {
-		// Later reads behave like an idle stream, so a loop that reads without
-		// a free slot shows up as a count, not as a hang.
-		<-ctx.Done()
-		return nil, nil
-	}
-	return []storage.DeliveredJob{{MessageID: "m1", JobID: "j1"}}, nil
-}
+// start runs the loop with one slot, on the bubble's t. The first read delivers job j1, whose
+// conversion blocks until release is closed; every later read is idle for
+// blockTimeout, the way XREADGROUP BLOCK is on an empty stream. The returned
+// stop cancels the loop and waits for it to return.
+func (s *RunSuite) start(t *testing.T, release <-chan struct{}) (stop func()) {
+	s.queue.ConsumeJobsMock.Set(func(ctx context.Context, _ string, block time.Duration) ([]storage.DeliveredJob, error) {
+		if s.queue.ConsumeJobsBeforeCounter() == 1 {
+			return []storage.DeliveredJob{{MessageID: "m1", JobID: "j1"}}, nil
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(block):
+			return nil, nil
+		}
+	})
+	s.mesh.ProcessJobMock.Set(func(_ context.Context, jobID string) error {
+		assert.Check(s.T(), jobID == "j1", jobID)
+		<-release
+		return nil
+	})
+	s.queue.AckJobMock.Expect(minimock.AnyContext, "m1").Return(nil)
 
-func (q *fakeQueue) AckJob(context.Context, string) error { return nil }
-
-type blockingMesh struct {
-	started chan struct{}
-	release chan struct{}
-}
-
-func (m *blockingMesh) ProcessJob(context.Context, string) error {
-	close(m.started)
-	<-m.release
-	return nil
+	w := New(Config{
+		Queue: s.queue, Mesh: s.mesh, Name: "w", MaxConcurrent: 1, BlockTimeout: blockTimeout,
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+	})
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan struct{})
+	go func() { w.Run(ctx); close(done) }()
+	return func() { cancel(); <-done }
 }
 
 // A read is only made when a slot is free, so a job still waiting stays in the
 // stream instead of sitting in this worker's pending list, out of reach of any
 // other worker if this one is killed.
-func TestRunReadsNothingWhileEverySlotIsBusy(t *testing.T) {
-	q := &fakeQueue{}
-	m := &blockingMesh{started: make(chan struct{}), release: make(chan struct{})}
-	w := New(Config{
-		Queue: q, Mesh: m, Name: "w", MaxConcurrent: 1,
-		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+func (s *RunSuite) TestReadsNothingWhileEverySlotIsBusy() {
+	synctest.Test(s.T(), func(t *testing.T) {
+		s.queue.BacklogMock.Return(0, nil)
+		release := make(chan struct{})
+		stop := s.start(t, release)
+
+		synctest.Wait()
+		assert.Equal(t, s.queue.ConsumeJobsBeforeCounter(), uint64(1), "read while the only slot was busy")
+
+		close(release)
+		synctest.Wait()
+		assert.Equal(t, s.queue.ConsumeJobsBeforeCounter(), uint64(2), "no read after the slot freed")
+		stop()
 	})
-	ctx, cancel := context.WithCancel(t.Context())
-	done := make(chan struct{})
-	go func() { w.Run(ctx); close(done) }()
-
-	<-m.started
-	// Give a loop that ignores the slot time to read again.
-	time.Sleep(100 * time.Millisecond)
-	assert.Equal(t, q.consumed.Load(), int32(1))
-
-	close(m.release)
-	assert.Assert(t, waitFor(func() bool { return q.consumed.Load() == 2 }), "no read after the slot freed")
-	cancel()
-	<-done
-}
-
-func waitFor(cond func() bool) bool {
-	for range 200 {
-		if cond() {
-			return true
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-	return false
 }
 
 // The gauge is the queue's backlog, not the size of what one read returned:
 // it follows the value on every turn of the loop, empty reads included, and a
 // failed read leaves it where it was without stopping the loop.
-func TestRunPublishesTheBacklogEveryTurn(t *testing.T) {
-	q := &fakeQueue{}
-	q.backlog.Store(40)
-	m := &blockingMesh{started: make(chan struct{}), release: make(chan struct{})}
-	w := New(Config{
-		Queue: q, Mesh: m, Name: "w", MaxConcurrent: 1,
-		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+func (s *RunSuite) TestPublishesTheBacklogEveryTurn() {
+	synctest.Test(s.T(), func(t *testing.T) {
+		// One answer per turn: 40, then a failure, then 7.
+		turns := []error{nil, errors.New("redis down"), nil}
+		values := []int64{40, 0, 7}
+		s.queue.BacklogMock.Set(func(ctx context.Context) (int64, error) {
+			turn := s.queue.BacklogBeforeCounter() - 1
+			if ctx.Err() != nil || turn >= uint64(len(turns)) {
+				return 0, context.Canceled
+			}
+			return values[turn], turns[turn]
+		})
+		release := make(chan struct{})
+		stop := s.start(t, release)
+
+		// Turn 1 read 40 and delivered j1; turn 2's backlog read failed and
+		// the turn now waits for the slot.
+		synctest.Wait()
+		assert.Equal(t, s.queue.BacklogBeforeCounter(), uint64(2))
+		assert.Equal(t, testutil.ToFloat64(metricQueueDepth), float64(40), "a failed read replaced the gauge")
+
+		// The slot frees and the loop reads on past the failure.
+		close(release)
+		synctest.Wait()
+		assert.Equal(t, s.queue.ConsumeJobsBeforeCounter(), uint64(2), "loop stopped after a backlog error")
+
+		// That read comes back empty; turn 3 still publishes.
+		time.Sleep(blockTimeout)
+		synctest.Wait()
+		assert.Equal(t, s.queue.ConsumeJobsBeforeCounter(), uint64(3))
+		assert.Equal(t, testutil.ToFloat64(metricQueueDepth), float64(7), "an empty turn skipped the gauge")
+		stop()
 	})
-	ctx, cancel := context.WithCancel(t.Context())
-	done := make(chan struct{})
-	go func() { w.Run(ctx); close(done) }()
-
-	<-m.started
-	assert.Assert(t, waitFor(func() bool { return testutil.ToFloat64(metricQueueDepth) == 40 }), "gauge did not take the backlog")
-
-	// The next turn starts once the slot frees: a read error must keep 40, and
-	// the loop must go on to read again.
-	broken := errors.New("redis down")
-	q.backlogErr.Store(&broken)
-	q.backlog.Store(0)
-	close(m.release)
-	assert.Assert(t, waitFor(func() bool { return q.consumed.Load() == 2 }), "loop stopped after a backlog error")
-	assert.Equal(t, testutil.ToFloat64(metricQueueDepth), float64(40))
-	cancel()
-	<-done
 }
