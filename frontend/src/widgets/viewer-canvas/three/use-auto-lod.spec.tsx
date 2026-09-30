@@ -45,7 +45,10 @@ async function mount(props: ProbeProps = {}) {
     probe.camera!.position.set(0, 0, z);
     controls.fire("change");
   };
-  return { r, controls, lod, moveTo, update: (p: ProbeProps) => r.update(tree(p)) };
+  // The test renderer draws no frame on its own; the app's demand loop would
+  // draw one for the prop change or the mount that made the object measurable.
+  const frame = () => ReactThreeTestRenderer.act(async () => r.advanceFrames(1, 0));
+  return { r, controls, lod, moveTo, frame, update: (p: ProbeProps) => r.update(tree(p)) };
 }
 
 describe("useAutoLod", () => {
@@ -106,21 +109,71 @@ describe("useAutoLod", () => {
   });
 
   it("skips an invisible object, and catches up once it is shown", async () => {
-    const { lod, moveTo, update } = await mount({ visible: false });
+    const { lod, moveTo, update, frame } = await mount({ visible: false });
     moveTo(0.5);
     await settled();
     expect(lod()).toBe(2);
     await update({ visible: true });
+    await frame();
     await vi.waitFor(() => expect(lod()).toBe(0));
   });
 
   it("picks up an object whose mesh arrives after the camera settled", async () => {
-    const { lod, moveTo, update } = await mount({ empty: true });
+    const { lod, moveTo, update, frame } = await mount({ empty: true });
     moveTo(0.5);
     await settled();
     expect(lod()).toBe(2);
     await update({ empty: false });
+    await frame();
     await vi.waitFor(() => expect(lod()).toBe(0));
+  });
+
+  // An idle scene under frameloop="demand" draws nothing, so a poll would be
+  // the only thing awake in it.
+  it("runs no timer while the object cannot be measured", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const { moveTo } = await mount({ visible: false });
+      moveTo(0.5);
+      expect(vi.getTimerCount()).toBe(1); // the settle debounce
+      vi.advanceTimersByTime(SETTLE_MS);
+      expect(vi.getTimerCount()).toBe(0);
+      vi.advanceTimersByTime(SETTLE_MS * 10);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("a pending retry is dropped when leaving Auto", async () => {
+    const { lod, moveTo, update, frame } = await mount({ visible: false });
+    moveTo(0.5);
+    await settled();
+    await update({ visible: true, requested: 2 });
+    await frame();
+    // Back in Auto before the settle re-reads the view: a retry that outlived
+    // Auto would have ratcheted the level to 0 already.
+    await update({ visible: true, requested: "auto" });
+    expect(lod()).toBe(2);
+  });
+
+  it("a camera move takes over a pending retry: nothing is read mid-gesture", async () => {
+    const { lod, moveTo, update, frame } = await mount({ visible: false });
+    moveTo(0.5);
+    await settled();
+    await update({ visible: true });
+    moveTo(0.5);
+    await frame();
+    expect(lod()).toBe(2);
+    await vi.waitFor(() => expect(lod()).toBe(0));
+  });
+
+  it("keeps the ratchet when the same chain arrives in another order", async () => {
+    const { lod, moveTo, update } = await mount();
+    moveTo(0.5);
+    await vi.waitFor(() => expect(lod()).toBe(0));
+    await update({ chain: [CHAIN[1], CHAIN[0]] });
+    expect(lod()).toBe(0);
   });
 
   // Nothing finer exists, so every camera move would only arm a timer that

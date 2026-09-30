@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { useThree } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import type { Object3D, PerspectiveCamera } from "three";
 import { autoLod, pickCoarsest, projectedArea, type LodArtifact, type LodChoice } from "@/entities/scene";
 import { boundsOf } from "./bounds";
@@ -28,14 +28,19 @@ const isShown = (object: Object3D) => {
  * lowering useProgressiveLod's target would put the coarsest level back on
  * screen for a whole download. A numeric `requested` (a manual level, or the
  * page's LOD 0 while measuring) is returned as is and joins that ratchet, so
- * Auto keeps what measuring pulled in. A new chain starts over.
+ * Auto keeps what measuring pulled in. A new chain starts over; the same
+ * hashes in another order are the same chain.
  *
- * ponytail: an object with nothing to measure yet (its mesh still loading, or
- * hidden inside a panorama) is re-read once per SETTLE_MS until it has one;
- * an event from the loader instead, if a profile ever says it matters.
+ * An object with nothing to measure yet (its mesh still loading, or hidden
+ * inside a panorama) is retried on the next rendered frame rather than on a
+ * timer. Under frameloop="demand" R3F draws a frame for exactly the changes
+ * that can make it measurable — a mesh mounting, a `visible` prop flipping —
+ * so an idle scene runs nothing. The retry is dropped when it succeeds, when a
+ * camera move re-arms the settle (never measure mid-gesture), and when Auto
+ * stops: leaving it, reaching the finest level, unmounting.
  */
 export function useAutoLod(object: RefObject<Object3D | null>, chain: LodArtifact[], requested: LodChoice): number {
-  const key = chain.map((a) => a.hash).join(" ");
+  const key = chain.map((a) => a.hash).toSorted().join(" ");
   const coarsest = pickCoarsest(chain)?.lod ?? 0;
   const [held, setHeld] = useState({ key, best: coarsest });
   const base = held.key === key ? held.best : coarsest;
@@ -54,6 +59,10 @@ export function useAutoLod(object: RefObject<Object3D | null>, chain: LodArtifac
     view.current = { chain, camera, height };
   });
 
+  // The measure still owed; one null check per frame when there is none.
+  const retry = useRef<(() => void) | null>(null);
+  useFrame(() => retry.current?.());
+
   const auto = requested === "auto";
   // At the finest level there is nothing left to upgrade to: stop listening.
   const finest = Math.min(...chain.map((a) => a.lod));
@@ -61,13 +70,15 @@ export function useAutoLod(object: RefObject<Object3D | null>, chain: LodArtifac
     if (!auto || best === finest) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const settle = () => {
+      retry.current = null;
       clearTimeout(timer);
       timer = setTimeout(measure, SETTLE_MS);
     };
     const measure = () => {
       const o = object.current;
       const sphere = o && isShown(o) ? boundsOf(o) : null;
-      if (!sphere) return settle();
+      retry.current = sphere ? null : measure;
+      if (!sphere) return;
       const { chain, camera, height } = view.current;
       const cam = camera as PerspectiveCamera;
       if (!cam.isPerspectiveCamera) return;
@@ -84,6 +95,7 @@ export function useAutoLod(object: RefObject<Object3D | null>, chain: LodArtifac
     controls?.addEventListener("change", settle);
     return () => {
       clearTimeout(timer);
+      retry.current = null;
       controls?.removeEventListener("change", settle);
     };
   }, [auto, best, finest, controls, object, key]);
