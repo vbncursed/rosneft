@@ -58,5 +58,6 @@ var statusByCode = map[codes.Code][]error{
 	},
 }
 
-// mapError translates service-layer errors to gRPC status codes.
-func mapError(err error) error { return apperr.ToStatus(err, statusByCode) }
+// mapError translates service-layer errors to gRPC status codes; a refusal's
+// message starts at its sentinel (see apperr.ToStatusAtSentinel).
+func mapError(err error) error { return apperr.ToStatusAtSentinel(err, statusByCode) }

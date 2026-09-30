@@ -127,9 +127,9 @@ func (s *PanoramaPhasesSuite) TestAListingFailureOtherThanUnimplementedPassesThr
 	assert.Equal(s.T(), status.Code(err), codes.Unavailable)
 }
 
-// Content's mapError keeps its layers' "service.X: " prefixes in the status
-// message. The browser gets the refusal from its sentinel on, and the sentinel
-// is the one the message names.
+// Content answers from its sentinel on (apperr.ToStatusAtSentinel), so the
+// browser gets the status message as it is, and the sentinel is the one the
+// message names.
 func (s *PanoramaPhasesSuite) TestARefusalStartsAtItsSentinel() {
 	for _, tc := range []struct {
 		name string
@@ -138,20 +138,16 @@ func (s *PanoramaPhasesSuite) TestARefusalStartsAtItsSentinel() {
 		msg  string
 	}{
 		{
-			"an unknown panorama", status.Error(codes.NotFound, "service.SetPanoramasPhase: panorama not found"),
+			"an unknown panorama", status.Error(codes.NotFound, "panorama not found"),
 			domain.ErrPanoramaNotFound, "panorama not found",
 		},
 		{
-			"an unknown territory", status.Error(codes.NotFound, "service.SetPanoramaPhaseHidden: territory not found"),
+			"an unknown territory", status.Error(codes.NotFound, "territory not found"),
 			domain.ErrTerritoryNotFound, "territory not found",
 		},
 		{
-			"a bad phase", status.Error(codes.InvalidArgument, `service.SetPanoramasPhase: invalid input: phase "during"`),
+			"a bad phase", status.Error(codes.InvalidArgument, `invalid input: phase "during"`),
 			domain.ErrInvalidInput, `invalid input: phase "during"`,
-		},
-		{
-			"a message already at its sentinel", status.Error(codes.InvalidArgument, "invalid input: 0 ids"),
-			domain.ErrInvalidInput, "invalid input: 0 ids",
 		},
 	} {
 		s.Run(tc.name, func() {

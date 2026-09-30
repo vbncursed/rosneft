@@ -19,7 +19,7 @@ func (c *Client) SetPanoramasHidden(ctx context.Context, territorySlug string, i
 		TerritorySlug: territorySlug, Ids: ids, Hidden: hidden,
 	})
 	if err != nil {
-		return 0, editRefusal("content.SetPanoramasHidden", err)
+		return 0, grpcerr.Refused("content.SetPanoramasHidden", err, domain.ErrPanoramaNotFound, domain.ErrTerritoryNotFound)
 	}
 	return int(resp.GetUpdated()), nil
 }
@@ -31,7 +31,7 @@ func (c *Client) SetPanoramasPhase(ctx context.Context, territorySlug string, id
 		TerritorySlug: territorySlug, Ids: ids, Phase: phase,
 	})
 	if err != nil {
-		return 0, editRefusal("content.SetPanoramasPhase", err)
+		return 0, grpcerr.Refused("content.SetPanoramasPhase", err, domain.ErrPanoramaNotFound, domain.ErrTerritoryNotFound)
 	}
 	return int(resp.GetUpdated()), nil
 }
@@ -42,7 +42,7 @@ func (c *Client) SetPanoramaPhaseHidden(ctx context.Context, territorySlug, phas
 		TerritorySlug: territorySlug, Phase: phase, Hidden: hidden,
 	})
 	if err != nil {
-		return domain.PanoramaPhase{}, editRefusal("content.SetPanoramaPhaseHidden", err)
+		return domain.PanoramaPhase{}, grpcerr.Refused("content.SetPanoramaPhaseHidden", err, domain.ErrPanoramaNotFound, domain.ErrTerritoryNotFound)
 	}
 	return panoramaPhaseFromProto(resp.GetPhase()), nil
 }
