@@ -81,4 +81,10 @@ describe("toPhaseHidden", () => {
       ]),
     ).toEqual({ prior: false, current: true, post: false });
   });
+
+  it("reads a bundle saved before phases existed as every phase shown", () => {
+    // The desktop shell replays /scene snapshots; one saved before this field
+    // has no panoramaPhases at all.
+    expect(toPhaseHidden(undefined)).toEqual({ prior: false, current: false, post: false });
+  });
 });

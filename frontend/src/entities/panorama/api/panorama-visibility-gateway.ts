@@ -22,9 +22,13 @@ export async function setPanoramaPhaseHidden(slug: string, phase: PanoramaPhase,
   return (await httpPut<PhaseDto>(`${base(slug)}/panorama-phases/${phase}`, { hidden })).hidden;
 }
 
-/** The bundle's three rows (always all three, prior → current → post) as a lookup. */
-export function toPhaseHidden(rows: readonly PhaseDto[]): PhaseHidden {
+/**
+ * The bundle's three rows (prior → current → post) as a lookup. A bundle saved
+ * before phases existed — the desktop shell replays /scene offline — has none:
+ * every phase shown.
+ */
+export function toPhaseHidden(rows: readonly PhaseDto[] | undefined): PhaseHidden {
   const out = { ...ALL_PHASES_SHOWN };
-  for (const row of rows) out[row.phase] = row.hidden;
+  for (const row of rows ?? []) out[row.phase] = row.hidden;
   return out;
 }

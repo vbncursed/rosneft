@@ -21,6 +21,11 @@ describe("toPanorama", () => {
     expect(toPanorama(DTO)).toEqual({ ...DTO });
   });
 
+  it("files a panorama saved before phases under Prior, shown — where the migration put them", () => {
+    const { phase: _p, hidden: _h, ...old } = DTO;
+    expect(toPanorama(old)).toMatchObject({ phase: "prior", hidden: false });
+  });
+
   it("maps a missing updatedAt to an empty string", () => {
     expect(toPanorama({ ...DTO, updatedAt: undefined }).updatedAt).toBe("");
   });
