@@ -1,16 +1,18 @@
 import { Suspense, useEffect, useLayoutEffect, useRef, useState, type Ref } from "react";
 import { useGLTF } from "@react-three/drei";
 import type { Group, Mesh } from "three";
-import { pickCoarsest, pickLod, type LodArtifact } from "@/entities/scene";
+import { pickCoarsest, pickLod, type LodArtifact, type LodChoice } from "@/entities/scene";
 import { lodProgress, lodUrl, useLodDownload, useProgressiveLod } from "@/features/lod";
 import type { LodReport } from "../ui/props";
 import { extendGltfLoader } from "./gltf-loader-setup";
 import LodWarmer from "./lod-warmer";
 import LodErrorBoundary from "./lod-error-boundary";
+import { useAutoLod } from "./use-auto-lod";
 
 interface GltfModelProps {
   lods: LodArtifact[];
-  targetLod: number;
+  /** A level, or "auto": the level follows the territory's size on screen (use-auto-lod). */
+  targetLod: LodChoice;
   /** Bumped by the page's Retry: re-arms the boundary and clears the failure. */
   retryVersion: number;
   // Raycastable toggles whether ray-mesh intersection is enabled on this
@@ -95,10 +97,12 @@ function GltfPrimitive({
 // chain mounts first so there is something on screen while the target is
 // still on the wire, then the target replaces it.
 //
-// This is NOT drei's <Detailed>: the level on screen does not depend on camera
-// distance. A territory is usually framed whole, so distance-based switching
-// would leave it coarse forever, and the measure tool's raycast would land on
-// different geometry depending on zoom.
+// This is NOT drei's <Detailed>, which mounts — and so downloads — every level
+// at once and switches both ways by fixed distances. In Auto the target comes
+// from useAutoLod: the territory's size on screen, read once the camera
+// settles, and only ever finer. Framed whole, the coarsest level's triangles
+// are already sub-pixel, so nothing more is fetched until the reader zooms in;
+// the page forces LOD 0 while measuring, so the raycast hits full geometry.
 //
 // The target is fetched by hand (useLodDownload) rather than by drei, because
 // drei's loader reports no progress — the page's chip needs bytes. The blob
@@ -112,6 +116,9 @@ export default function GltfModel({
   groupRef,
   onReport,
 }: GltfModelProps) {
+  // The wrapper is what Auto measures: groupRef is the caller's, and optional.
+  const own = useRef<Group>(null);
+  const level = useAutoLod(own, lods, targetLod);
   // The raw target is what gets downloaded by hand; `lod.target` is the same
   // level until one drops out of the chain, and from then on it is the next
   // one down. The report reads `lod.target`, the download keys on the raw one.
@@ -126,12 +133,12 @@ export default function GltfModel({
   // The coarsest level is never streamed: it is what goes on screen first, by
   // its asset route, so a blob of it would only swap the url under a mesh
   // already drawn and parse the same bytes twice (the way back to LOD 2).
-  const wanted = pickLod(lods, targetLod);
+  const wanted = pickLod(lods, level);
   const fetched = wanted && wanted.hash !== pickCoarsest(lods)?.hash ? wanted : null;
   const download = useLodDownload(fetched);
   const urlOf = (a: LodArtifact) =>
     a.hash === wanted?.hash && download.blobUrl ? download.blobUrl : lodUrl(a);
-  const lod = useProgressiveLod(lods, targetLod, urlOf);
+  const lod = useProgressiveLod(lods, level, urlOf);
   // The level the report calls "shown" is the one whose mesh has mounted, not
   // the one selected: a coarse level still on the wire is nothing on screen.
   const [drawnUrl, setDrawnUrl] = useState<string | null>(null);
@@ -216,7 +223,7 @@ export default function GltfModel({
 
   if (!lod.url) return null;
   return (
-    <>
+    <group ref={own}>
       <LodErrorBoundary
         resetKey={`${lod.url}#${retryVersion}`}
         onError={(err) => lod.onShownFailed(statusOf(err))}
@@ -231,6 +238,6 @@ export default function GltfModel({
         </Suspense>
       </LodErrorBoundary>
       {warmUrl ? <LodWarmer url={warmUrl} onReady={lod.onWarmReady} /> : null}
-    </>
+    </group>
   );
 }

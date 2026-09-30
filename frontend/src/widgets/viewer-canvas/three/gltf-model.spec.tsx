@@ -1,7 +1,9 @@
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { LodChoice } from "@/entities/scene";
 import type { LodReport } from "../ui/props";
 import GltfModel from "./gltf-model";
+import { SETTLE_MS } from "./use-auto-lod";
 
 vi.mock("@react-three/drei", async (orig) => (await import("./testing")).mockDrei(orig));
 
@@ -9,6 +11,12 @@ const CHAIN = [
   { lod: 0, hash: "fine", size: 10 },
   { lod: 2, hash: "coarse", size: 2 },
 ];
+
+const FACED = [
+  { lod: 0, hash: "fine", size: 10, faces: 2_000_000 },
+  { lod: 2, hash: "coarse", size: 2, faces: 1_000_000 },
+];
+const settled = () => new Promise((resolve) => setTimeout(resolve, SETTLE_MS + 60));
 
 // The stream stops between the two chunks and waits for the test to let the
 // second one go. React batches every update that lands in the same tick, so a
@@ -43,10 +51,15 @@ const stubDownload = (status = 200, gate?: Promise<void>) => {
 };
 
 const model = (
-  over: { onReport?: (r: LodReport) => void; retryVersion?: number; targetLod?: number } = {},
+  over: {
+    onReport?: (r: LodReport) => void;
+    retryVersion?: number;
+    targetLod?: LodChoice;
+    lods?: typeof CHAIN;
+  } = {},
 ) => (
   <GltfModel
-    lods={CHAIN}
+    lods={over.lods ?? CHAIN}
     targetLod={over.targetLod ?? 0}
     retryVersion={over.retryVersion ?? 0}
     raycastable={false}
@@ -63,6 +76,23 @@ describe("GltfModel", () => {
     const drei = await import("@react-three/drei");
     vi.mocked(drei.useGLTF).mockReset();
     vi.mocked(drei.useGLTF.clear).mockReset();
+  });
+
+  it("in Auto, stays on the coarse level and downloads nothing while the territory is small on screen", async () => {
+    stubDownload();
+    const onReport = vi.fn();
+    await ReactThreeTestRenderer.create(model({ onReport, targetLod: "auto", lods: FACED }));
+    await settled();
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+    expect(onReport.mock.lastCall![0]).toMatchObject({ shown: 2, target: 2 });
+  });
+
+  it("in Auto, a chain without face counts goes on to LOD 0 as before", async () => {
+    stubDownload();
+    const onReport = vi.fn();
+    await ReactThreeTestRenderer.create(model({ onReport, targetLod: "auto" }));
+    await vi.waitFor(() => expect((onReport.mock.lastCall![0] as LodReport).shown).toBe(0));
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
   });
 
   it("puts the coarsest level on screen first, and downloads the target behind it", async () => {
