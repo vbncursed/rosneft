@@ -72,6 +72,11 @@ func (m *Mesh) unlockTarget(ctx context.Context, job domain.Job) {
 }
 
 func (m *Mesh) markRunning(ctx context.Context, j *domain.Job) error {
+	// The claim restarts with the run: TargetLockTTL bounds the conversion,
+	// never the time the job waited in the stream.
+	if err := m.queue.HoldTarget(ctx, j.Kind, j.Slug, TargetLockTTL); err != nil {
+		return fmt.Errorf("service.ProcessJob: hold: %w", err)
+	}
 	j.Status = domain.JobStatusRunning
 	j.ErrorMessage = ""
 	return m.queue.SaveJob(ctx, *j)

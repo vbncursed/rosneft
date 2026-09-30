@@ -9,23 +9,27 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 )
 
-// TargetLockTTL bounds how long a claimed target stays claimed if the
-// worker dies between claiming it and finishing — it is also, therefore, the
-// recovery time for a dead worker: nothing else reclaims an orphaned stream
-// message (no XAUTOCLAIM/XCLAIM anywhere in this service), so this TTL is the
-// sole path back to a queued retry.
+// TargetLockTTL bounds how long a claimed target stays claimed if the worker
+// dies mid-run — and so it is also the recovery time for a dead worker:
+// nothing reclaims an orphaned stream message (no XAUTOCLAIM/XCLAIM here), so
+// a lapsed claim on a Running job is the only path back to a retry.
 //
-// The claim is taken at submit, so it has to outlive the queue wait as well
-// as the conversion. The 2026-08-03 production histogram of
-// mesh_conversion_duration_seconds bounded every conversion under 60s, and
-// 10 minutes was sized against that. Encoding textures one at a time
-// (gltfpack -tj 1, the fix for the OOM on 8192² textures) changed the scale:
-// LOD0 of MR1CAMPNEW (3 × 8192²) alone took 357s on 2026-09-29, before its two
-// LOD passes, and with one job per worker the next target waits behind it. A
-// claim that lapses mid-run lets the next reconciler tick queue a duplicate
-// ~4 GB conversion. An hour covers a few such conversions queued ahead; the
-// price is that a dead worker's target waits up to an hour for its retry.
-const TargetLockTTL = time.Hour
+// markRunning re-takes the claim as the job starts, so the TTL covers one
+// conversion and never the queue wait before it. LOD0 of MR1CAMPNEW
+// (3 × 8192², textures encoded one at a time) took 357 s on 2026-09-29; a job
+// is at most three passes of that size. Half an hour is margin over that
+// without leaving a killed worker's target stuck for long.
+const TargetLockTTL = 30 * time.Minute
+
+// MaxQueueWait is how long a Pending job counts as queued. The worker reads a
+// message only when it has a free slot and marks it Running straight away, so
+// a Pending job is one still in the stream, waiting its turn — unless Redis
+// failed between the delivery and that write, which leaves it Pending with
+// nobody on it. Past this age it is taken for that and the target is queued
+// again.
+// ponytail: an age cap, not a delivery check; compare the job's stream id with
+// the group's last-delivered-id if a queue ever legitimately waits this long.
+const MaxQueueWait = 6 * time.Hour
 
 // ReconcileMissingArtifacts queues a conversion for every catalog target
 // (territory or model) that does not already have a LOD0 artifact.

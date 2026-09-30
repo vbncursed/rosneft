@@ -20,6 +20,12 @@ import (
 // claim with no live job behind it is a stale lock (a worker that died
 // between its terminal write and the unlock), so the submit goes ahead.
 //
+// The claim no longer has to outlive the queue: markRunning re-takes it as
+// the job starts. A queued (Pending, younger than MaxQueueWait) job is
+// therefore returned whether or not the claim was free; a Running job is
+// returned only while the claim is held, since a lapsed claim on one means
+// its worker is gone.
+//
 // The serialisation is not total: between one submitter's successful
 // TryLockTarget and its SaveJob, a concurrent submitter sees the lock held
 // and an empty index, treats it as stale and may queue a second job. The
@@ -36,14 +42,18 @@ func (m *Mesh) SubmitConversion(ctx context.Context, kind domain.Kind, slug stri
 	if err != nil {
 		return domain.Job{}, false, fmt.Errorf("service.SubmitConversion: lock: %w", err)
 	}
-	if !locked {
-		live, err := m.liveJob(ctx, kind, slug)
-		if err != nil {
-			return domain.Job{}, false, err
+	live, err := m.liveJob(ctx, kind, slug)
+	if err != nil {
+		if locked {
+			_ = m.queue.UnlockTarget(ctx, kind, slug)
 		}
-		if live != nil {
-			return *live, false, nil
-		}
+		return domain.Job{}, false, err
+	}
+	// A held claim means the live job is being looked after. A free one still
+	// leaves a queued job queued (the claim is re-taken when it starts), but a
+	// Running job without a claim outlived TargetLockTTL: its worker is gone.
+	if live != nil && (!locked || m.queued(*live)) {
+		return *live, false, nil
 	}
 
 	job := domain.Job{
@@ -95,4 +105,10 @@ func (m *Mesh) liveJob(ctx context.Context, kind domain.Kind, slug string) (*dom
 		return nil, nil
 	}
 	return nil, nil
+}
+
+// queued reports whether j is waiting in the stream, not abandoned: Pending,
+// and younger than MaxQueueWait.
+func (m *Mesh) queued(j domain.Job) bool {
+	return j.Status == domain.JobStatusPending && m.now().Sub(j.CreatedAt) < MaxQueueWait
 }

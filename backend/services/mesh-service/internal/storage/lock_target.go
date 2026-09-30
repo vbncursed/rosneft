@@ -31,3 +31,12 @@ func (r *Redis) UnlockTarget(ctx context.Context, kind domain.Kind, slug string)
 	}
 	return nil
 }
+
+// HoldTarget claims a target with a plain SET EX, whoever held it before:
+// the job starting now is the one the claim stands for from here on.
+func (r *Redis) HoldTarget(ctx context.Context, kind domain.Kind, slug string, ttl time.Duration) error {
+	if err := r.client.Set(ctx, lockKey(kind, slug), "1", ttl).Err(); err != nil {
+		return fmt.Errorf("storage.HoldTarget: set: %w", err)
+	}
+	return nil
+}
