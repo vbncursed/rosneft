@@ -1,10 +1,11 @@
 import { useEffect, useRef, type RefObject } from "react";
 import { useThree } from "@react-three/fiber";
-import { Box3, Sphere, Vector3, type Object3D, type PerspectiveCamera } from "three";
+import { Vector3, type Object3D, type PerspectiveCamera } from "three";
 import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useMediaQuery } from "@/shared/lib/use-media-query";
 import { coveredShare, flightPose, landingPivot, planFlight, sideOffset } from "../model/flight-pose";
 import { holdStill, stopCoast } from "./stop-coast";
+import { boundsOf } from "./bounds";
 
 interface CameraRigProps {
   resetVersion: number;
@@ -17,13 +18,6 @@ interface CameraRigProps {
    * wrapper — a placement parked far outside the mesh must not widen the circle.
    */
   sceneRef: RefObject<Object3D | null>;
-}
-
-/** The territory's bounding sphere, or null when there is nothing with a size to circle. */
-function boundsOf(object: Object3D | null): Sphere | null {
-  if (!object) return null;
-  const sphere = new Box3().setFromObject(object).getBoundingSphere(new Sphere());
-  return sphere.radius > 0 && Number.isFinite(sphere.radius) ? sphere : null;
 }
 
 // CameraRig owns OrbitControls explicitly (not via drei's <OrbitControls>)
