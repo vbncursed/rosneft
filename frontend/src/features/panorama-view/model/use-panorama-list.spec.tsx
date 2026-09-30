@@ -170,4 +170,61 @@ describe("usePanoramaList", () => {
     act(() => result.current.s.setPanoramas((prev) => prev.map((p) => ({ ...p, hidden: true }))));
     expect(result.current.s.panoramas[0].hidden).toBe(true);
   });
+
+  // §3: the PUT never carries hidden/phase — separate routes own them — so a
+  // hide or a phase move that lands while the save is still in flight must
+  // survive the server's echoed row.
+  it("keeps a hide and a phase move that land while a save is in flight, once it lands", async () => {
+    let resolveUpdate!: (p: Panorama) => void;
+    vi.mocked(updatePanorama).mockReturnValue(
+      new Promise<Panorama>((resolve) => {
+        resolveUpdate = resolve;
+      }),
+    );
+    const { result } = list([panorama(1)]);
+
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.s.update(1, { title: "Renamed" });
+    });
+    await waitFor(() => expect(result.current.s.pendingId).toBe(1));
+
+    act(() =>
+      result.current.s.setPanoramas((prev) => prev.map((p) => ({ ...p, hidden: true, phase: "post" }))),
+    );
+
+    await act(async () => {
+      resolveUpdate(panorama(1, { title: "Renamed", updatedAt: "t1" }));
+      await pending;
+    });
+
+    expect(result.current.s.panoramas[0]).toMatchObject({ title: "Renamed", hidden: true, phase: "post" });
+  });
+
+  it("keeps a hide that landed while a refused save rolls back only its own fields", async () => {
+    let rejectUpdate!: (err: unknown) => void;
+    vi.mocked(updatePanorama).mockReturnValue(
+      new Promise<Panorama>((_resolve, reject) => {
+        rejectUpdate = reject;
+      }),
+    );
+    const { result } = list([panorama(1)]);
+
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.s.update(1, { yawOffset: 9 });
+    });
+    await waitFor(() => expect(result.current.s.pendingId).toBe(1));
+
+    // The hide lands from the visibility route strictly before the refusal,
+    // so a rollback that reset the whole row would overwrite it.
+    act(() => result.current.s.setPanoramas((prev) => prev.map((p) => ({ ...p, hidden: true }))));
+
+    await act(async () => {
+      rejectUpdate(new HttpError(422, null, "Yaw out of range."));
+      await pending;
+    });
+
+    expect(result.current.s.panoramas[0]).toMatchObject({ yawOffset: 0, hidden: true });
+  });
 });
