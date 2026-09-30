@@ -1,7 +1,7 @@
 import type { RefObject } from "react";
 import type { Chain, MeasurePoint } from "@/entities/measurement";
 import type { PlacementGroup, PlacementTransform, ResolvedPlacement } from "@/entities/placement";
-import type { ModelOption, SceneViewModel } from "@/entities/scene";
+import type { LodChoice, ModelOption, SceneViewModel } from "@/entities/scene";
 import type { ViewerError } from "@/features/lod";
 import type { Tour } from "@/features/onboarding";
 import type { GizmoMode, ViewerModeState } from "@/features/viewer-mode";
@@ -47,9 +47,11 @@ export type ViewerErrorProps = {
 export type StripView = { items: string[]; tone: "neutral" | "bad"; accentLast: boolean };
 export type SwitcherView = {
   levels: number[];
-  target: number;
+  choice: LodChoice;
+  /** The level the canvas asked for — Auto's pick, or the choice. */
+  target: number | null;
   shown: number | null;
-  onChange: (lod: number) => void;
+  onChange: (choice: LodChoice) => void;
 };
 export type MeasuringView = {
   onClear: () => void;

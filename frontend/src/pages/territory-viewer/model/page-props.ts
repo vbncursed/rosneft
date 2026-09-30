@@ -159,7 +159,16 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       switcher:
         failed || levels.length < 2 || inside || docs.window !== null
           ? null
-          : { levels, target: targetLod, shown: report.shown, onChange: on.onTargetLod },
+          : {
+              levels,
+              choice: targetLod,
+              target: report.target,
+              shown: report.shown,
+              // Bridge until Task 6 widens `onTargetLod` to `LodChoice`: Auto is a no-op here.
+              onChange: (choice) => {
+                if (choice !== "auto") on.onTargetLod(choice);
+              },
+            },
       strip: stripItems({
         metadata: vm.metadata,
         shown: report.shown,

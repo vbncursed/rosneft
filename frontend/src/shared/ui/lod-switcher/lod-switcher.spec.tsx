@@ -5,21 +5,21 @@ import { LodSwitcher } from "./lod-switcher";
 
 describe("LodSwitcher", () => {
   it("is a radiogroup with the target checked", () => {
-    render(<LodSwitcher levels={[0, 1, 2]} target={1} shown={1} onChange={vi.fn()} />);
+    render(<LodSwitcher levels={[0, 1, 2]} choice={1} target={1} shown={1} onChange={vi.fn()} />);
     expect(screen.getByRole("radiogroup", { name: "Level of detail" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "LOD 1" })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByRole("radio", { name: "LOD 0" })).toHaveAttribute("aria-checked", "false");
   });
 
   it("says which level is on screen while the target loads", () => {
-    render(<LodSwitcher levels={[0, 1, 2]} target={0} shown={2} onChange={vi.fn()} />);
+    render(<LodSwitcher levels={[0, 1, 2]} choice={0} target={0} shown={2} onChange={vi.fn()} />);
     expect(screen.getByRole("radio", { name: "LOD 0, loading" })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByRole("radio", { name: "LOD 2, on screen" })).toHaveAttribute("data-shown", "true");
   });
 
   it("reports the chosen level", async () => {
     const onChange = vi.fn();
-    render(<LodSwitcher levels={[0, 1, 2]} target={0} shown={0} onChange={onChange} />);
+    render(<LodSwitcher levels={[0, 1, 2]} choice={0} target={0} shown={0} onChange={onChange} />);
     await userEvent.click(screen.getByRole("radio", { name: "LOD 2" }));
     expect(onChange).toHaveBeenCalledWith(2);
   });
@@ -28,25 +28,27 @@ describe("LodSwitcher", () => {
   // arrows only moves focus; Space or Enter is the choice.
   it("moves focus with the arrow keys and chooses only on Space or Enter", async () => {
     const onChange = vi.fn();
-    render(<LodSwitcher levels={[0, 1, 2]} target={1} shown={1} onChange={onChange} />);
+    render(<LodSwitcher levels={[0, 1, 2]} choice={1} target={1} shown={1} onChange={onChange} />);
     screen.getByRole("radio", { name: "LOD 1" }).focus();
     await userEvent.keyboard("{ArrowRight}");
     expect(screen.getByRole("radio", { name: "LOD 2" })).toHaveFocus();
     expect(onChange).not.toHaveBeenCalled();
 
     await userEvent.keyboard("{ArrowRight}");
+    expect(screen.getByRole("radio", { name: "Auto" })).toHaveFocus();
+    await userEvent.keyboard("{ArrowRight}");
     expect(screen.getByRole("radio", { name: "LOD 0" })).toHaveFocus();
     await userEvent.keyboard(" ");
     expect(onChange).toHaveBeenCalledWith(0);
 
-    await userEvent.keyboard("{ArrowLeft}{Enter}");
+    await userEvent.keyboard("{ArrowLeft}{ArrowLeft}{Enter}");
     expect(onChange).toHaveBeenLastCalledWith(2);
   });
 
   // The loading phase used to add a 1px border and an in-flow dot, so the
   // tiles grew and the group shifted on the switcher's most frequent action.
   it("keeps every tile's geometry through the loading phase", () => {
-    render(<LodSwitcher levels={[0, 1, 2]} target={0} shown={2} onChange={vi.fn()} />);
+    render(<LodSwitcher levels={[0, 1, 2]} choice={0} target={0} shown={2} onChange={vi.fn()} />);
     const tiles = screen.getAllByRole("radio");
     for (const tile of tiles) {
       const cls = tile.className.split(/\s+/);
@@ -62,7 +64,7 @@ describe("LodSwitcher", () => {
   });
 
   it("presses a tile, and focuses with the HUD's 2px offset", () => {
-    render(<LodSwitcher levels={[0, 1]} target={0} shown={0} onChange={vi.fn()} />);
+    render(<LodSwitcher levels={[0, 1]} choice={0} target={0} shown={0} onChange={vi.fn()} />);
     const cls = screen.getByRole("radio", { name: "LOD 1" }).className.split(/\s+/);
     expect(cls).toEqual(
       expect.arrayContaining([
@@ -81,7 +83,7 @@ describe("LodSwitcher", () => {
     render(
       <>
         <button type="button">before</button>
-        <LodSwitcher levels={[0, 1, 2]} target={1} shown={1} onChange={vi.fn()} />
+        <LodSwitcher levels={[0, 1, 2]} choice={1} target={1} shown={1} onChange={vi.fn()} />
         <button type="button">after</button>
       </>,
     );
@@ -109,7 +111,7 @@ describe("LodSwitcher", () => {
   // The mock leaves 6px between the label and the dot. Every tile carries the
   // same right-hand reserve, so no phase changes a tile's width.
   it("leaves 6px between the label and the dot, with the same reserve on every tile", () => {
-    render(<LodSwitcher levels={[0, 1, 2]} target={0} shown={2} onChange={vi.fn()} />);
+    render(<LodSwitcher levels={[0, 1, 2]} choice={0} target={0} shown={2} onChange={vi.fn()} />);
     for (const tile of screen.getAllByRole("radio")) {
       const cls = tile.className.split(/\s+/);
       expect(cls).toEqual(expect.arrayContaining(["pl-2.5", "pr-[21px]"]));
@@ -118,5 +120,36 @@ describe("LodSwitcher", () => {
     // 21px reserve − 10px outer padding − 5px dot = 6px gap after the label.
     const dot = screen.getByRole("radio", { name: "LOD 0, loading" }).querySelector("span[aria-hidden]")!;
     expect(dot.className.split(/\s+/)).toEqual(expect.arrayContaining(["right-2.5", "size-[5px]"]));
+  });
+
+  describe("Auto", () => {
+    it("is the first tile, and checked when chosen", () => {
+      render(<LodSwitcher levels={[0, 1, 2]} choice="auto" target={2} shown={2} onChange={vi.fn()} />);
+      const radios = screen.getAllByRole("radio");
+      expect(radios[0]).toHaveAccessibleName("Auto");
+      expect(radios[0]).toHaveAttribute("aria-checked", "true");
+      expect(screen.getByRole("radio", { name: "LOD 2, on screen" })).toHaveAttribute("aria-checked", "false");
+    });
+
+    it("rings the level Auto put on screen and dots the one it is loading", () => {
+      render(<LodSwitcher levels={[0, 1, 2]} choice="auto" target={0} shown={2} onChange={vi.fn()} />);
+      expect(screen.getByRole("radio", { name: "LOD 2, on screen" })).toHaveAttribute("data-shown", "true");
+      const loading = screen.getByRole("radio", { name: "LOD 0, loading" });
+      expect(loading).toHaveAttribute("aria-checked", "false");
+      expect(loading.querySelector("span[aria-hidden]")).not.toBeNull();
+    });
+
+    it("reports Auto when chosen, and a level when one is", async () => {
+      const onChange = vi.fn();
+      render(<LodSwitcher levels={[0, 1, 2]} choice={0} target={0} shown={0} onChange={onChange} />);
+      await userEvent.click(screen.getByRole("radio", { name: "Auto" }));
+      expect(onChange).toHaveBeenLastCalledWith("auto");
+    });
+
+    it("keeps the Auto tile's geometry like every other tile", () => {
+      render(<LodSwitcher levels={[0, 1]} choice="auto" target={0} shown={1} onChange={vi.fn()} />);
+      const cls = screen.getByRole("radio", { name: "Auto" }).className.split(/\s+/);
+      expect(cls).toEqual(expect.arrayContaining(["relative", "border-none", "pr-[21px]"]));
+    });
   });
 });

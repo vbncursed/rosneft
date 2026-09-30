@@ -281,11 +281,13 @@ describe("pageProps · overlays", () => {
   });
 
   it("offers every converted level in the switcher, coarsest last", () => {
-    expect(pageProps(parts()).overlays.switcher).toMatchObject({
-      levels: [0, 1, 2],
-      target: 1,
-      shown: 1,
-    });
+    expect(pageProps(parts()).overlays.switcher).toMatchObject({ levels: [0, 1, 2], choice: 1, target: 1, shown: 1 });
+  });
+
+  it("hands a level chosen in the switcher to the page", () => {
+    const onTargetLod = vi.fn();
+    pageProps({ ...parts(), on: { ...HANDLERS, onTargetLod } }).overlays.switcher?.onChange(2);
+    expect(onTargetLod).toHaveBeenCalledWith(2);
   });
 
   it("draws no switcher for a territory with a single level", () => {
