@@ -141,6 +141,11 @@ export default function CameraRig({ resetVersion, playing, onPlayStop, sceneRef 
       controls.removeEventListener("start", grab);
       const view = camera.getWorldDirection(new Vector3());
       controls.target.copy(landingPivot(camera.position, view, sphere));
+      // The flight moved the camera without update(), so nothing has fired
+      // "change" since it began. This one does: Auto LOD re-reads the view
+      // where the flight left it. The pivot is on the line of sight, so the
+      // look-at inside update() turns nothing.
+      controls.update();
     };
     const grab = () => {
       holdStill(controls, camera);

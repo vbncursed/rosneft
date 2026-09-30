@@ -20,9 +20,12 @@ const isShown = (object: Object3D) => {
  * createSettleBus): SETTLE_MS after the camera stops, never mid-gesture, and
  * on the next rendered frame for an object that had nothing to measure yet.
  * The fly-around moves the camera in its own rAF without firing "change", so
- * it arms no re-read of its own — but an object still owed a measure when it
+ * it arms no re-read while it runs — an object still owed a measure when it
  * began is read on the first frame it can be, mid-flight, from wherever the
- * flight has the camera. This hook watches only while there is something to
+ * flight has the camera — but its landing calls controls.update(), and that
+ * "change" re-arms every measure where the camera ends up. A Focus needs no
+ * such nudge: drei's Bounds ends fit() with controls.update() (the
+ * `t.current >= 1` branch in drei 10.7.9), which fires "change" the same way. This hook watches only while there is something to
  * gain: in Auto, below the finest level of its chain.
  *
  * The level only ever gets finer — a coarser one saves no bytes that were not
