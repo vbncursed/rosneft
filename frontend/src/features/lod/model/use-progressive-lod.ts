@@ -85,7 +85,13 @@ export function useProgressiveLod(
     const finer = previous !== undefined && target !== null && target.lod < previous.lod;
     setHeldHash(finer && readyHash === seenTarget ? seenTarget : null);
     setSeenTarget(targetHash);
-    setReadyHash(null);
+    // A refused finer level re-targets the held one, which is parsed and on
+    // screen: it is ready. Nothing would warm it again — the territory warms
+    // only its blob download, which a refusal never mints — so clearing here
+    // left the coarsest up for good. Only on a drop: a manual 1 → 0 → 1 starts
+    // a fresh LOD 1 download whose blob would later swap in unparsed.
+    const refused = seenTarget !== null && broken.includes(seenTarget);
+    setReadyHash(refused && targetHash !== null && targetHash === heldHash ? targetHash : null);
   }
 
   const drop = (hash: string | undefined) => {

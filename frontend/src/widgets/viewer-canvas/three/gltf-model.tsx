@@ -125,10 +125,13 @@ export default function GltfModel({
   //
   // ponytail: only the *wanted* level is ever downloaded through a blob. When
   // that one is refused, `useProgressiveLod` drops it and targets the next level
-  // down, which drei then fetches itself — no blob, so no warmer mounts and no
-  // bytes are counted. The chip therefore shows no percent at all rather than a
-  // stale or zero one (see the report below). Hand useLodDownload the level
-  // useProgressiveLod actually wants if a percent for that case matters.
+  // down. If that level is the one held on screen, it simply stays there. If
+  // not, the coarsest stays on screen and the next level down is NOT fetched:
+  // the warmer only parses the blob download, and there is none for it. No
+  // bytes, so the chip shows no percent rather than a stale or zero one (see
+  // the report below). The ceiling is a territory stuck one step coarser than
+  // it could be after a refusal; the upgrade path is to hand useLodDownload
+  // the level useProgressiveLod actually wants, which also gives it a percent.
   //
   // The coarsest level is never streamed: it is what goes on screen first, by
   // its asset route, so a blob of it would only swap the url under a mesh

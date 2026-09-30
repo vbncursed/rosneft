@@ -135,6 +135,32 @@ describe("useProgressiveLod", () => {
     expect(result.current.warmUrl).toContain("/api/assets/a");
   });
 
+  // Nothing would ever warm LOD 1 again (the territory warms only its blob
+  // download, which a refusal never mints), so the coarsest stayed for good.
+  it("a refused finer level keeps the held level on screen", () => {
+    const { result, rerender } = renderHook(({ t }) => useProgressiveLod(chain, t), {
+      initialProps: { t: 1 },
+    });
+    act(() => result.current.onWarmReady());
+    rerender({ t: 0 });
+    act(() => result.current.onWarmFailed());
+    expect(result.current.target?.lod).toBe(1);
+    expect(result.current.shown?.lod).toBe(1);
+    expect(result.current.url).toContain("/api/assets/b");
+    expect(result.current.warmUrl).toBeNull();
+  });
+
+  it("a manual return to the held level before the finer one was ready still shows the coarsest (1 → 0 → 1)", () => {
+    const { result, rerender } = renderHook(({ t }) => useProgressiveLod(chain, t), {
+      initialProps: { t: 1 },
+    });
+    act(() => result.current.onWarmReady());
+    rerender({ t: 0 });
+    rerender({ t: 1 });
+    expect(result.current.shown?.lod).toBe(2);
+    expect(result.current.warmUrl).toContain("/api/assets/b");
+  });
+
   it("retry clears the hold", () => {
     const { result, rerender } = renderHook(({ t }) => useProgressiveLod(chain, t), {
       initialProps: { t: 1 },

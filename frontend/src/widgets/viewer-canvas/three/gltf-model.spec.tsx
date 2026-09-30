@@ -17,6 +17,7 @@ const FACED = [
   { lod: 2, hash: "coarse", size: 2, faces: 1_000_000 },
 ];
 const settled = () => new Promise((resolve) => setTimeout(resolve, SETTLE_MS + 60));
+const settledFor = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // The stream stops between the two chunks and waits for the test to let the
 // second one go. React batches every update that lands in the same tick, so a
@@ -197,6 +198,42 @@ describe("GltfModel", () => {
     expect(drei.useGLTF.clear).toHaveBeenCalledWith("blob:fine");
   });
 
+  it("keeps the held level on screen when the finer level's download is refused", async () => {
+    // The refusal drops LOD 0 and re-targets LOD 1 — the level already on
+    // screen. Nothing warms it again (the warmer only parses the blob download,
+    // which a refusal never mints), so falling back to LOD 2 here was for good.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        url.endsWith("/fine")
+          ? new Response(null, { status: 502 })
+          : new Response(streamOf([new Uint8Array(4), new Uint8Array(6)]), { status: 200 }),
+      ),
+    );
+    vi.stubGlobal("URL", { ...URL, createObjectURL: vi.fn(() => "blob:mid"), revokeObjectURL: vi.fn() });
+    const drei = await import("@react-three/drei");
+    vi.mocked(drei.useGLTF.clear).mockClear();
+    const lods = [
+      { lod: 0, hash: "fine", size: 10 },
+      { lod: 1, hash: "mid", size: 10 },
+      { lod: 2, hash: "coarse", size: 2 },
+    ];
+    const onReport = vi.fn();
+    const last = () => onReport.mock.lastCall![0] as LodReport;
+    const r = await ReactThreeTestRenderer.create(model({ onReport, targetLod: 1, lods }));
+    await vi.waitFor(() => expect(last().shown).toBe(1));
+
+    const from = onReport.mock.calls.length;
+    await r.update(model({ onReport, targetLod: 0, lods }));
+    await vi.waitFor(() => expect(last()).toMatchObject({ shown: 1, target: 1, failure: null }));
+    await settledFor(SETTLE_MS);
+    const reports = onReport.mock.calls.slice(from).map((c) => c[0] as LodReport);
+    expect(reports.map((rep) => rep.shown)).not.toContain(2);
+    expect(last()).toMatchObject({ shown: 1, target: 1, percent: null });
+    expect(URL.revokeObjectURL).not.toHaveBeenCalledWith("blob:mid");
+    expect(drei.useGLTF.clear).not.toHaveBeenCalledWith("blob:mid");
+  });
+
   it("reports no level on screen until the coarse mesh has actually mounted", async () => {
     // The strip read "LOD 2 active" for the seconds the coarse level was still
     // on the wire, over an empty scene. On screen means mounted. The target's
@@ -297,8 +334,8 @@ describe("GltfModel", () => {
 
   it("counts nothing for a level drei is fetching itself", async () => {
     // Three levels, and the one the blob download wants is refused: the chain
-    // drops it and targets the middle level, which drei loads on its own — no
-    // blob, so no warmer and no bytes. A percent there is progress that is not
+    // drops it and targets the middle level, which nothing fetches — no blob,
+    // so no warmer and no bytes. A percent there is progress that is not
     // happening.
     stubDownload(502);
     const onReport = vi.fn();
