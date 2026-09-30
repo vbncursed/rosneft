@@ -24,6 +24,9 @@ interface PlacementInstanceProps {
   // measureMode disables this instance's click-to-select so the click bubbles
   // up to the canvas-level point handler.
   measureMode: boolean;
+  // Measure mode only (not place): the ruler lands on this mesh, so it pulls
+  // LOD 0 like the territory does.
+  measuring: boolean;
   onSelect: (id: number) => void;
   ref?: Ref<Object3D>;
 }
@@ -36,8 +39,8 @@ interface PlacementInstanceProps {
 // forwarded ref lets the parent attach <TransformControls> when this
 // placement is the selected one.
 //
-// The LOD follows the instance's size on screen (useAutoLod, always Auto — the
-// switcher is the territory's): a placement a few pixels wide stays on its
+// The LOD follows the instance's size on screen (useAutoLod, Auto — the
+// switcher is the territory's, and measuring pulls LOD 0): a placement a few pixels wide stays on its
 // coarsest level, one the reader zooms up to steps to LOD 0, and neither ever
 // steps back. Progressive as before: the coarsest level mounts first.
 //
@@ -48,11 +51,15 @@ interface PlacementInstanceProps {
 function PlacementInstanceImpl({
   placement,
   measureMode,
+  measuring,
   onSelect,
   ref,
 }: PlacementInstanceProps) {
   const body = useRef<Group>(null);
-  const target = useAutoLod(body, placement.chain, "auto");
+  // Measuring pulls LOD 0, as the page does for the territory: a ruler point
+  // lands on the mesh drawn, and a coarse one is off by the simplifier's
+  // error. The ratchet keeps it after measuring ends.
+  const target = useAutoLod(body, placement.chain, measuring ? 0 : "auto");
   const lod = useProgressiveLod(placement.chain, target);
   if (!lod.url) return null;
 

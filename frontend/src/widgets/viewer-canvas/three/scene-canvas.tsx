@@ -202,6 +202,7 @@ export default function SceneCanvas({
             selectedId={selectedId}
             mode={gizmo}
             measureMode={pointMode}
+            measuring={mode === "measure"}
             canEdit={canWrite}
             territoryRef={territoryRef}
             // Nothing to snap to inside a panorama: the territory is behind

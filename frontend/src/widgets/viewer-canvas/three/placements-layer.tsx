@@ -17,6 +17,8 @@ interface PlacementsLayerProps {
   // True whenever the canvas is picking points rather than editing — the
   // caller computes it as `mode !== "orbit"`.
   measureMode: boolean;
+  // True in measure mode alone (not place): placements pull LOD 0 then.
+  measuring: boolean;
   // Gates the transform gizmo: a user without placement:write can still
   // select an object (to highlight it) but gets no gizmo to move it.
   canEdit: boolean;
@@ -50,6 +52,7 @@ export default function PlacementsLayer({
   selectedId,
   mode,
   measureMode,
+  measuring,
   canEdit,
   territoryRef,
   snapEnabled,
@@ -104,6 +107,7 @@ export default function PlacementsLayer({
           ref={p.id === selectedId ? setTarget : null}
           placement={p}
           measureMode={measureMode}
+          measuring={measuring}
           onSelect={onSelect}
         />
       ))}
