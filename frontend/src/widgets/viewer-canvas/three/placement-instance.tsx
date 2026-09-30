@@ -17,6 +17,7 @@ import { useProgressiveLod } from "@/features/lod";
 import { extendGltfLoader } from "./gltf-loader-setup";
 import LodWarmer from "./lod-warmer";
 import LodErrorBoundary from "./lod-error-boundary";
+import { useAutoLod } from "./use-auto-lod";
 
 interface PlacementInstanceProps {
   placement: ResolvedPlacement;
@@ -35,11 +36,10 @@ interface PlacementInstanceProps {
 // forwarded ref lets the parent attach <TransformControls> when this
 // placement is the selected one.
 //
-// The LOD is progressive, same as the territory: the coarsest level mounts
-// first so a scene full of placements paints quickly, then each upgrades to
-// LOD0. Sitting on the coarsest level permanently used to be acceptable when
-// lower LODs kept full-resolution textures; they no longer do, so a placed
-// asset would stay visibly blurry up close.
+// The LOD follows the instance's size on screen (useAutoLod, always Auto — the
+// switcher is the territory's): a placement a few pixels wide stays on its
+// coarsest level, one the reader zooms up to steps to LOD 0, and neither ever
+// steps back. Progressive as before: the coarsest level mounts first.
 //
 // A level that throws here drops out of the chain and the next one takes its
 // place — the old ladder, and the right answer for a placement: one broken
@@ -51,11 +51,13 @@ function PlacementInstanceImpl({
   onSelect,
   ref,
 }: PlacementInstanceProps) {
-  const lod = useProgressiveLod(placement.chain, 0);
+  const body = useRef<Group>(null);
+  const target = useAutoLod(body, placement.chain, "auto");
+  const lod = useProgressiveLod(placement.chain, target);
   if (!lod.url) return null;
 
   return (
-    <>
+    <group ref={body}>
       <LodErrorBoundary resetKey={lod.url} onError={lod.onShownDropped}>
         <PlacementBody
           ref={ref}
@@ -66,7 +68,7 @@ function PlacementInstanceImpl({
         />
       </LodErrorBoundary>
       {lod.warmUrl ? <LodWarmer url={lod.warmUrl} onReady={lod.onWarmReady} /> : null}
-    </>
+    </group>
   );
 }
 

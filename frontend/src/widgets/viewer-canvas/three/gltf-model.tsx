@@ -1,16 +1,18 @@
 import { Suspense, useEffect, useLayoutEffect, useRef, useState, type Ref } from "react";
 import { useGLTF } from "@react-three/drei";
 import type { Group, Mesh } from "three";
-import { pickCoarsest, pickLod, type LodArtifact } from "@/entities/scene";
+import { pickCoarsest, pickLod, type LodArtifact, type LodChoice } from "@/entities/scene";
 import { lodProgress, lodUrl, useLodDownload, useProgressiveLod } from "@/features/lod";
 import type { LodReport } from "../ui/props";
 import { extendGltfLoader } from "./gltf-loader-setup";
 import LodWarmer from "./lod-warmer";
 import LodErrorBoundary from "./lod-error-boundary";
+import { useAutoLod } from "./use-auto-lod";
 
 interface GltfModelProps {
   lods: LodArtifact[];
-  targetLod: number;
+  /** A level, or "auto": the level follows the territory's size on screen (use-auto-lod). */
+  targetLod: LodChoice;
   /** Bumped by the page's Retry: re-arms the boundary and clears the failure. */
   retryVersion: number;
   // Raycastable toggles whether ray-mesh intersection is enabled on this
@@ -95,10 +97,12 @@ function GltfPrimitive({
 // chain mounts first so there is something on screen while the target is
 // still on the wire, then the target replaces it.
 //
-// This is NOT drei's <Detailed>: the level on screen does not depend on camera
-// distance. A territory is usually framed whole, so distance-based switching
-// would leave it coarse forever, and the measure tool's raycast would land on
-// different geometry depending on zoom.
+// This is NOT drei's <Detailed>, which mounts — and so downloads — every level
+// at once and switches both ways by fixed distances. In Auto the target comes
+// from useAutoLod: the territory's size on screen, read once the camera
+// settles, and only ever finer. Framed whole, the coarsest level's triangles
+// are already sub-pixel, so nothing more is fetched until the reader zooms in;
+// the page forces LOD 0 while measuring, so the raycast hits full geometry.
 //
 // The target is fetched by hand (useLodDownload) rather than by drei, because
 // drei's loader reports no progress — the page's chip needs bytes. The blob
@@ -112,29 +116,43 @@ export default function GltfModel({
   groupRef,
   onReport,
 }: GltfModelProps) {
+  // The wrapper is what Auto measures: groupRef is the caller's, and optional.
+  const own = useRef<Group>(null);
+  const level = useAutoLod(own, lods, targetLod);
   // The raw target is what gets downloaded by hand; `lod.target` is the same
   // level until one drops out of the chain, and from then on it is the next
   // one down. The report reads `lod.target`, the download keys on the raw one.
   //
   // ponytail: only the *wanted* level is ever downloaded through a blob. When
   // that one is refused, `useProgressiveLod` drops it and targets the next level
-  // down, which drei then fetches itself — no blob, so no warmer mounts and no
-  // bytes are counted. The chip therefore shows no percent at all rather than a
-  // stale or zero one (see the report below). Hand useLodDownload the level
-  // useProgressiveLod actually wants if a percent for that case matters.
+  // down. If that level is the one held on screen, it simply stays there. If
+  // not, the coarsest stays on screen and the next level down is NOT fetched:
+  // the warmer only parses the blob download, and there is none for it. No
+  // bytes, so the chip shows no percent rather than a stale or zero one (see
+  // the report below). The ceiling is a territory stuck one step coarser than
+  // it could be after a refusal; the upgrade path is to hand useLodDownload
+  // the level useProgressiveLod actually wants, which also gives it a percent.
   //
   // The coarsest level is never streamed: it is what goes on screen first, by
   // its asset route, so a blob of it would only swap the url under a mesh
   // already drawn and parse the same bytes twice (the way back to LOD 2).
-  const wanted = pickLod(lods, targetLod);
+  const wanted = pickLod(lods, level);
   const fetched = wanted && wanted.hash !== pickCoarsest(lods)?.hash ? wanted : null;
-  const download = useLodDownload(fetched);
-  const urlOf = (a: LodArtifact) =>
-    a.hash === wanted?.hash && download.blobUrl ? download.blobUrl : lodUrl(a);
-  const lod = useProgressiveLod(lods, targetLod, urlOf);
   // The level the report calls "shown" is the one whose mesh has mounted, not
   // the one selected: a coarse level still on the wire is nothing on screen.
+  // The download reads it too — once its own blob is drawn it lets `held` go.
   const [drawnUrl, setDrawnUrl] = useState<string | null>(null);
+  const download = useLodDownload(fetched, drawnUrl);
+  // The held blob is the level before the wanted one — what stays on screen
+  // while a finer level downloads (use-progressive-lod). Mapped back to its
+  // blob, not to its asset route, so its parsed scene is reused and not
+  // fetched again.
+  const heldUrl = download.held?.blobUrl ?? null;
+  const urlOf = (a: LodArtifact) => {
+    if (a.hash === wanted?.hash && download.blobUrl) return download.blobUrl;
+    return a.hash === download.held?.hash ? download.held.blobUrl : lodUrl(a);
+  };
+  const lod = useProgressiveLod(lods, level, urlOf);
   const shown = lod.url !== null && drawnUrl === lod.url ? lod.shown : null;
   // The warm level's download is what LodWarmer parses; until the blob exists
   // there is nothing to warm.
@@ -146,7 +164,8 @@ export default function GltfModel({
   // its onReady, so each effect below keys on its trigger alone and fires once
   // per fact rather than once per render of whatever is above us.
   // Every url this component may have handed drei, so a retry can evict them.
-  const urls = [...lods.map(lodUrl), ...(download.blobUrl ? [download.blobUrl] : [])];
+  const blobs = [download.blobUrl, heldUrl].filter((u): u is string => u !== null);
+  const urls = [...lods.map(lodUrl), ...blobs];
   const latest = useRef({ lod, onReport, urls });
   useEffect(() => {
     latest.current = { lod, onReport, urls };
@@ -178,21 +197,38 @@ export default function GltfModel({
     latest.current.lod.retry();
   }, [retryVersion]);
 
-  // drei caches the parsed GLTF by URL string. useLodDownload revokes the blob
-  // URL when the level changes or we unmount — and its cleanup runs first,
-  // this hook being declared after it — so without this the parsed scene would
-  // sit in that cache forever under a URL no one can ever request again.
-  // Nothing evicts it; the entry has to be dropped by hand.
+  // drei caches the parsed GLTF by URL string. useLodDownload revokes a blob
+  // URL once it is neither the current level's nor the held one (replaced, or
+  // released once the level it wanted is drawn), and all of them when we
+  // unmount — so without this the parsed scene would sit in that cache forever
+  // under a URL no one can ever request again. Nothing evicts it; the entry has
+  // to be dropped by hand. Only once it stops being live, though: the current
+  // level's blob becomes the held one on a level change, and the held one the
+  // current one again on a return to it (adopted, not re-fetched), and clearing
+  // either then would evict a scene that is still on screen.
+  const minted = useRef(new Set<string>());
+  const blobUrl = download.blobUrl;
   useEffect(() => {
-    const url = download.blobUrl;
-    if (!url) return;
-    return () => useGLTF.clear(url);
-  }, [download.blobUrl]);
+    const seen = minted.current;
+    for (const url of [blobUrl, heldUrl]) if (url) seen.add(url);
+    for (const url of seen) {
+      if (url === blobUrl || url === heldUrl) continue;
+      useGLTF.clear(url);
+      seen.delete(url);
+    }
+  }, [blobUrl, heldUrl]);
+  useEffect(() => {
+    const seen = minted.current;
+    return () => {
+      for (const url of seen) useGLTF.clear(url);
+      seen.clear();
+    };
+  }, []);
 
   // The percent describes the level `useLodDownload` is streaming by hand, and
-  // only that one: a refused download, or a fallback level drei fetches itself,
-  // has no bytes to count and `0 %` against it reads as progress that is not
-  // happening.
+  // only that one: a refused download, or the next level down after a refusal
+  // (which nothing streams), has no bytes to count and `0 %` against it reads
+  // as progress that is not happening.
   //
   // Never gate this on the blob url. `useLodDownload` mints the blob only after
   // its reader loop ends, so `warmUrl` is null for the whole download — that
@@ -216,7 +252,7 @@ export default function GltfModel({
 
   if (!lod.url) return null;
   return (
-    <>
+    <group ref={own}>
       <LodErrorBoundary
         resetKey={`${lod.url}#${retryVersion}`}
         onError={(err) => lod.onShownFailed(statusOf(err))}
@@ -231,6 +267,6 @@ export default function GltfModel({
         </Suspense>
       </LodErrorBoundary>
       {warmUrl ? <LodWarmer url={warmUrl} onReady={lod.onWarmReady} /> : null}
-    </>
+    </group>
   );
 }

@@ -2,7 +2,7 @@ import type { RefObject } from "react";
 import type { Chain, MeasurePoint } from "@/entities/measurement";
 import type { Panorama, PhaseHidden } from "@/entities/panorama";
 import type { PlacementGroup, PlacementTransform, ResolvedPlacement, Vec3 } from "@/entities/placement";
-import type { LodArtifact } from "@/entities/scene";
+import type { LodArtifact, LodChoice } from "@/entities/scene";
 import type { LodFailure } from "@/features/lod";
 import type { GizmoMode, ViewerMode } from "@/features/viewer-mode";
 
@@ -18,7 +18,7 @@ export type LodReport = {
 export type ViewerCanvasProps = {
   slug: string;
   parentLods: LodArtifact[];
-  targetLod: number;
+  targetLod: LodChoice;
   placements: ResolvedPlacement[];
   /** The territory's user groups: a hidden one's members are neither drawn nor preloaded (D6). */
   placementGroups: PlacementGroup[];

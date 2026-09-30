@@ -1,11 +1,12 @@
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { describe, expect, it, vi } from "vitest";
+import type { LodArtifact } from "@/entities/scene";
 import PlacementInstance from "./placement-instance";
 import { fakePlacement } from "./testing";
 
 vi.mock("@react-three/drei", async (orig) => (await import("./testing")).mockDrei(orig));
 
-const withChain = (chain: { lod: number; hash: string; size: number }[]) => ({
+const withChain = (chain: LodArtifact[]) => ({
   ...fakePlacement(7),
   chain,
 });
@@ -31,7 +32,7 @@ describe("PlacementInstance", () => {
   it("shows the coarsest level first and warms the target behind it", async () => {
     const drei = await import("@react-three/drei");
     vi.mocked(drei.useGLTF).mockClear();
-    await ReactThreeTestRenderer.create(
+    const r = await ReactThreeTestRenderer.create(
       <PlacementInstance
         placement={withChain([
           { lod: 0, hash: "fine", size: 90 },
@@ -41,9 +42,34 @@ describe("PlacementInstance", () => {
         onSelect={vi.fn()}
       />,
     );
-    const urls = vi.mocked(drei.useGLTF).mock.calls.map((c) => c[0]);
-    expect(urls[0]).toContain("coarse");
-    expect(urls).toContain("/api/assets/fine");
+    const urls = () => vi.mocked(drei.useGLTF).mock.calls.map((c) => c[0]);
+    expect(urls()[0]).toContain("coarse");
+    // A chain with no face counts: Auto answers LOD 0 after the settle, as the
+    // hard-coded target did.
+    await vi.waitFor(() => expect(urls()).toContain("/api/assets/fine"));
+    // The warmed level lands on screen after this returns, and that render's
+    // useGLTF("fine") would otherwise count against the next test.
+    await r.unmount();
+  });
+
+  it("stays on the coarse level while it is small on screen", async () => {
+    const drei = await import("@react-three/drei");
+    const { SETTLE_MS } = await import("./use-auto-lod");
+    vi.mocked(drei.useGLTF).mockClear();
+    await ReactThreeTestRenderer.create(
+      <PlacementInstance
+        placement={withChain([
+          { lod: 0, hash: "fine", size: 90, faces: 2_000_000 },
+          { lod: 2, hash: "coarse", size: 10, faces: 1_000_000 },
+        ])}
+        measureMode={false}
+        onSelect={vi.fn()}
+      />,
+    );
+    await new Promise((resolve) => setTimeout(resolve, SETTLE_MS + 60));
+    const urls = vi.mocked(drei.useGLTF).mock.calls.map((c) => String(c[0]));
+    expect(urls).not.toContain("/api/assets/fine");
+    expect(urls.every((u) => u.endsWith("coarse"))).toBe(true);
   });
 
   it("drops a level that throws and shows the next one, with no error card", async () => {

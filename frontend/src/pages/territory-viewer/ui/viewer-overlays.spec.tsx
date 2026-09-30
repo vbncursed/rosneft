@@ -58,7 +58,7 @@ const props = (over: Partial<ViewerOverlaysProps> = {}): ViewerOverlaysProps => 
   chip: { text: "orbit · drag to rotate" },
   loading: null,
   measuring: null,
-  switcher: { levels: [0, 1, 2], target: 1, shown: 1, onChange: vi.fn() },
+  switcher: { levels: [0, 1, 2], choice: 1, target: 1, shown: 1, onChange: vi.fn() },
   strip: STRIP,
   hints: false,
   error: null,
@@ -311,7 +311,9 @@ describe("ViewerOverlays · the strip, the switcher and the hints", () => {
   it("offers every converted level and marks the one asked for", () => {
     render(<ViewerOverlays {...props()} />);
     const group = screen.getByRole("radiogroup", { name: "Level of detail" });
-    expect(group.querySelectorAll("button")).toHaveLength(3);
+    // Auto, then the three levels.
+    expect(group.querySelectorAll("button")).toHaveLength(4);
+    expect(screen.getByRole("radio", { name: "Auto" })).toHaveAttribute("aria-checked", "false");
     expect(screen.getByRole("radio", { name: "LOD 1" })).toHaveAttribute("aria-checked", "true");
   });
 

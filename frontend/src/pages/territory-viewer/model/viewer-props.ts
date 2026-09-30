@@ -1,7 +1,7 @@
 import type { RefObject } from "react";
 import type { Chain, MeasurePoint } from "@/entities/measurement";
 import type { PlacementGroup, PlacementTransform, ResolvedPlacement } from "@/entities/placement";
-import type { ModelOption, SceneViewModel } from "@/entities/scene";
+import type { LodChoice, ModelOption, SceneViewModel } from "@/entities/scene";
 import type { ViewerError } from "@/features/lod";
 import type { Tour } from "@/features/onboarding";
 import type { GizmoMode, ViewerModeState } from "@/features/viewer-mode";
@@ -47,9 +47,11 @@ export type ViewerErrorProps = {
 export type StripView = { items: string[]; tone: "neutral" | "bad"; accentLast: boolean };
 export type SwitcherView = {
   levels: number[];
-  target: number;
+  choice: LodChoice;
+  /** The level the canvas asked for — Auto's pick, or the choice. */
+  target: number | null;
   shown: number | null;
-  onChange: (lod: number) => void;
+  onChange: (choice: LodChoice) => void;
 };
 export type MeasuringView = {
   onClear: () => void;
@@ -135,8 +137,8 @@ export type PageHandlers = {
   onPanoramas: () => void;
   onDocuments: () => void;
   onReplayTour: () => void;
-  /** The switcher and the error card's way out share one setter. */
-  onTargetLod: (lod: number) => void;
+  /** The switcher and the error card's way out share one setter; a level leaves Auto. */
+  onTargetLod: (choice: LodChoice) => void;
   onRetry: () => void;
   /** Asks first when saved chains would go (spec M-4); a reader's Clear keeps them. */
   onClearMeasurements: () => void;
@@ -170,7 +172,7 @@ export type PageHandlers = {
 /** The page's own state, everything the hooks do not already own. */
 export type PageViewState = {
   report: LodReport;
-  targetLod: number;
+  targetLod: LodChoice;
   retryVersion: number;
   resetVersion: number;
   /** The camera is flying around the territory (Play). */
