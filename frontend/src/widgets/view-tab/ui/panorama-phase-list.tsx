@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PANORAMA_PHASES, type PanoramaPhase, type PhaseHidden } from "@/entities/panorama";
 import { EyeButton, GroupRow } from "@/shared/ui/group-controls";
 import { phaseLine } from "../model/copy";
@@ -16,6 +16,10 @@ export type PanoramaPhasesView = {
   /** Resolves to whether it landed — a landed move sends focus to the destination (D5 fix). */
   onMove: (ids: number[], phase: PanoramaPhase) => Promise<boolean>;
   onSetPhaseHidden: (phase: PanoramaPhase, hidden: boolean) => void;
+  /** The id a just-finished upload landed as. Opens its phase once; a later manual fold still works (follow-up 2). */
+  justAddedId: number | null;
+  /** Acks a consumed justAddedId so the page can clear it — this list's own fold state does not survive a remount, but the page's `justAddedId` must not outlive its upload, or a later remount reopens a phase the reader already re-folded (review fix). */
+  onJustAddedSeen: () => void;
 };
 
 export type PanoramaPhaseListProps = {
@@ -24,8 +28,6 @@ export type PanoramaPhaseListProps = {
   /** The section fold. Folded, the `<ul>` stays, empty and hidden, and mounts no rows. */
   open: boolean;
   rows: PanoramaRowView[];
-  /** The id a just-finished upload landed as. Opens its phase once; a later manual fold still works (follow-up 2). */
-  justAddedId: number | null;
   phases: PanoramaPhasesView;
   onEnter: (id: number) => void;
   onExit: () => void;
@@ -44,17 +46,13 @@ const ALL_PHASES: readonly PanoramaPhase[] = PANORAMA_PHASES.map((p) => p.phase)
  * phase a capture was just uploaded into — once, not pinned: folding it after
  * still works. Each phase's fold is this list's own and is not remembered.
  */
-export function PanoramaPhaseList({ id, open, rows, justAddedId, phases, onEnter, onExit, onEdit }: PanoramaPhaseListProps) {
+export function PanoramaPhaseList({ id, open, rows, phases, onEnter, onExit, onEdit }: PanoramaPhaseListProps) {
+  const { canWrite, justAddedId, onJustAddedSeen } = phases;
   const [folded, setFolded] = useState<readonly PanoramaPhase[]>(ALL_PHASES);
   const toggle = (phase: PanoramaPhase) =>
     setFolded((prev) => (prev.includes(phase) ? prev.filter((p) => p !== phase) : [...prev, phase]));
 
-  // Unfolds the phase a finished upload landed in — once per upload, keyed on
-  // its id so two uploads into the same phase each open it again even if the
-  // reader folded it in between. Adjusted during render (React's own pattern
-  // for state derived from a prop) rather than an effect, so the phase opens
-  // in the same commit as the new row instead of a folded-then-open flash,
-  // and a manual fold afterward is never revisited by this check again.
+  // Adjust-during-render, not an effect: opens in the same commit as the new row.
   const [seenAddedId, setSeenAddedId] = useState<number | null>(null);
   if (justAddedId !== null && justAddedId !== seenAddedId) {
     setSeenAddedId(justAddedId);
@@ -62,7 +60,16 @@ export function PanoramaPhaseList({ id, open, rows, justAddedId, phases, onEnter
     if (landedPhase) setFolded((prev) => prev.filter((p) => p !== landedPhase));
   }
 
-  const { canWrite } = phases;
+  // Tells the page to clear justAddedId once this list has opened it. The
+  // page owns the source of truth — this list's own `folded`/`seenAddedId`
+  // are lost on a remount (switching to Placements and back), so without
+  // this the page's stale id would reopen a phase the reader had re-folded.
+  // An effect, not the render-time block above: it notifies a different
+  // component's state, which React only allows from an effect.
+  useEffect(() => {
+    if (justAddedId !== null) onJustAddedSeen();
+  }, [justAddedId, onJustAddedSeen]);
+
   const list = useRef<HTMLUListElement>(null);
 
   // A landed move leaves the row's own phase, taking the Move trigger that

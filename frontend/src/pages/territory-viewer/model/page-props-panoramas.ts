@@ -29,7 +29,6 @@ export function panoramasTabProps(p: PageParts, editor: ReactNode): ViewTabProps
         phase: panorama.phase,
         hidden: panorama.hidden,
       })),
-    justAddedId: pan.justAddedId,
     phases: {
       hidden: vis.phaseHidden,
       canWrite,
@@ -38,6 +37,8 @@ export function panoramasTabProps(p: PageParts, editor: ReactNode): ViewTabProps
       onSetHidden: vis.onSetHidden,
       onMove: vis.onMove,
       onSetPhaseHidden: vis.onSetPhaseHidden,
+      justAddedId: pan.justAddedId,
+      onJustAddedSeen: pan.onJustAddedSeen,
     },
     calibrating: pan.calibration.active && pan.editing ? { title: pan.editing.title } : null,
     canUpload: grants.panoramaCreate,

@@ -25,6 +25,7 @@ const IDLE_UPLOAD = { stage: "idle", file: null } as const;
 export const IDLE_PANORAMAS: PanoramaParts = {
   list: [],
   justAddedId: null,
+  onJustAddedSeen: noop,
   pendingId: null,
   active: null,
   editing: null,

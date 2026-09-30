@@ -282,6 +282,19 @@ describe("useViewerPanoramas", () => {
     expect(result.current.justAddedId).toBe(9);
   });
 
+  // Important review fix: a PanoramaPhaseList remount (tab switch away and
+  // back) resets the widget's own memory of what it already opened, but not
+  // this hook's — so this hook, the actual source of truth, must clear
+  // justAddedId once the list acknowledges it, or the same id reopens a
+  // phase the reader already folded again.
+  it("clears the just-added id once its phase list acknowledges it", () => {
+    const { result } = mount();
+    act(() => usePanoramaUpload.mock.calls.at(-1)![0].onCreated(panorama(9) as never));
+    expect(result.current.justAddedId).toBe(9);
+    act(() => result.current.onJustAddedSeen());
+    expect(result.current.justAddedId).toBeNull();
+  });
+
   it("opens a folded Panoramas list on a finished upload, so the capture is not hidden", () => {
     localStorage.clear();
     const { result } = renderHook(() => {

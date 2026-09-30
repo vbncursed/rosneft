@@ -25,6 +25,8 @@ export type PanoramaParts = {
   list: Panorama[];
   /** The id a just-finished upload landed as; null once nothing has just landed. */
   justAddedId: number | null;
+  /** Clears `justAddedId` once the phase list has opened it (review fix: a list remount must not reopen an already-acknowledged upload). */
+  onJustAddedSeen: () => void;
   /** A mutation is in flight on this panorama; the card's Save waits for it. */
   pendingId: number | null;
   /** The panorama the camera is inside; null in the 3D view. */

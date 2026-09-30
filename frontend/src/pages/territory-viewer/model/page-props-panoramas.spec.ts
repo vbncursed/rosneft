@@ -66,10 +66,14 @@ describe("panoramasTabProps", () => {
     expect(panoramasTabProps(parts(true), card).editor).toBe(card);
   });
 
-  it("hands the just-added id straight through, so the phase list can open it", () => {
+  it("hands the just-added id and its ack straight through, so the phase list can open and clear it", () => {
     const p = parts(true);
-    expect(panoramasTabProps({ ...p, panoramas: { ...p.panoramas, justAddedId: 3 } }, null).justAddedId).toBe(3);
-    expect(panoramasTabProps({ ...p, panoramas: { ...p.panoramas, justAddedId: null } }, null).justAddedId).toBeNull();
+    const withId = { ...p, panoramas: { ...p.panoramas, justAddedId: 3 } };
+    expect(panoramasTabProps(withId, null).phases.justAddedId).toBe(3);
+    expect(panoramasTabProps(withId, null).phases.onJustAddedSeen).toBe(p.panoramas.onJustAddedSeen);
+    expect(
+      panoramasTabProps({ ...p, panoramas: { ...p.panoramas, justAddedId: null } }, null).phases.justAddedId,
+    ).toBeNull();
   });
 
   it("hands the stored marker choice and its setter to the View tab", () => {

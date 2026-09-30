@@ -55,7 +55,6 @@ const base = (): ViewTabProps => ({
   ],
   panoramas: {
     rows: ROWS,
-    justAddedId: null,
     phases: {
       hidden: ALL_PHASES_SHOWN,
       canWrite: false,
@@ -64,6 +63,8 @@ const base = (): ViewTabProps => ({
       onSetHidden: vi.fn(),
       onMove: vi.fn(),
       onSetPhaseHidden: vi.fn(),
+      justAddedId: null,
+      onJustAddedSeen: vi.fn(),
     },
     calibrating: null,
     canUpload: false,
@@ -141,7 +142,7 @@ describe("ViewTab", () => {
 
   it("expands the phase a just-finished upload landed in", () => {
     tab((p) => {
-      p.panoramas.justAddedId = 7;
+      p.panoramas.phases.justAddedId = 7;
     });
     expect(screen.getByRole("button", { name: "Prior job" })).toHaveAttribute("aria-expanded", "true");
   });

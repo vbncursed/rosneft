@@ -140,6 +140,7 @@ export function useViewerPanoramas({
   const cameraYawRef = useRef<number | null>(null);
 
   const [justAddedId, setJustAddedId] = useState<number | null>(null);
+  const onJustAddedSeen = useCallback(() => setJustAddedId(null), []);
   const upload = usePanoramaUpload({
     slug,
     sourceBbox,
@@ -184,6 +185,7 @@ export function useViewerPanoramas({
   return {
     list: list.panoramas,
     justAddedId,
+    onJustAddedSeen,
     pendingId: list.pendingId,
     active: view.active,
     editing: view.editing,

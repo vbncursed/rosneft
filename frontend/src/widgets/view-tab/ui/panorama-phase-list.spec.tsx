@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -22,7 +23,6 @@ const props = (over: Partial<PanoramaPhaseListProps> = {}): PanoramaPhaseListPro
   id: "list",
   open: true,
   rows: [row(1), row(2, { phase: "post" })],
-  justAddedId: null,
   phases: {
     hidden: ALL_PHASES_SHOWN,
     canWrite: true,
@@ -31,6 +31,8 @@ const props = (over: Partial<PanoramaPhaseListProps> = {}): PanoramaPhaseListPro
     onSetHidden: vi.fn(),
     onMove: vi.fn(async () => true),
     onSetPhaseHidden: vi.fn(),
+    justAddedId: null,
+    onJustAddedSeen: vi.fn(),
   },
   onEnter: vi.fn(),
   onExit: vi.fn(),
@@ -42,13 +44,10 @@ const phase = (name: string) => screen.getByRole("button", { name });
 
 describe("PanoramaPhaseList", () => {
   it("lists all three job phases for an editor, in order, the empty one too, with counts", () => {
-    const { container } = render(<PanoramaPhaseList {...props()} />);
-    const heads = container.querySelectorAll("li[data-phase] button[aria-expanded]");
-    expect(Array.from(heads).map((b) => b.getAttribute("aria-label"))).toEqual([
-      "Prior job",
-      "Current job",
-      "Post job",
-    ]);
+    render(<PanoramaPhaseList {...props()} />);
+    expect(
+      screen.getAllByRole("button", { name: /^(Prior|Current|Post) job$/ }).map((b) => b.getAttribute("aria-label")),
+    ).toEqual(["Prior job", "Current job", "Post job"]);
     expect(phase("Prior job")).toHaveTextContent("1 panorama");
     expect(phase("Current job")).toHaveTextContent("No panoramas");
   });
@@ -177,16 +176,61 @@ describe("PanoramaPhaseList", () => {
     const p = props();
     const { rerender } = render(<PanoramaPhaseList {...p} />);
     expect(phase("Post job")).toHaveAttribute("aria-expanded", "false");
-    rerender(<PanoramaPhaseList {...p} justAddedId={2} />);
+    rerender(<PanoramaPhaseList {...p} phases={{ ...p.phases, justAddedId: 2 }} />);
     expect(phase("Post job")).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText("Capture 2")).toBeInTheDocument();
   });
 
   it("still folds normally after an upload opened its phase", async () => {
     const p = props();
-    render(<PanoramaPhaseList {...p} justAddedId={2} />);
+    render(<PanoramaPhaseList {...p} phases={{ ...p.phases, justAddedId: 2 }} />);
     expect(phase("Post job")).toHaveAttribute("aria-expanded", "true");
     await userEvent.click(phase("Post job"));
+    expect(phase("Post job")).toHaveAttribute("aria-expanded", "false");
+  });
+
+  // Important review fix: the widget must tell the page it has consumed a
+  // justAddedId, so the page's source of truth can go back to null — a
+  // PanoramaPhaseList remount (switching to Placements and back) resets this
+  // component's own state, but not the page's, so without an ack the same id
+  // reopens a phase the reader had just folded again.
+  it("acknowledges a just-added id once it has opened the phase", () => {
+    const onJustAddedSeen = vi.fn();
+    const p = props();
+    render(<PanoramaPhaseList {...p} phases={{ ...p.phases, justAddedId: 2, onJustAddedSeen }} />);
+    expect(onJustAddedSeen).toHaveBeenCalledTimes(1);
+  });
+
+  it("a remount that outlives the upload does not reopen a phase the reader folded, once the id was acknowledged", async () => {
+    // A small stand-in for the real page: it owns justAddedId exactly like
+    // useViewerPanoramas does, and clears it the moment the list acknowledges
+    // it. The list itself is unmounted and remounted, as `overlays-panel`
+    // does when the reader switches to Placements and back.
+    function Harness() {
+      const [justAddedId, setJustAddedId] = useState<number | null>(2);
+      const [mounted, setMounted] = useState(true);
+      const p = props();
+      return (
+        <>
+          <button type="button" onClick={() => setMounted((m) => !m)}>
+            toggle tab
+          </button>
+          {mounted ? (
+            <PanoramaPhaseList
+              {...p}
+              phases={{ ...p.phases, justAddedId, onJustAddedSeen: () => setJustAddedId(null) }}
+            />
+          ) : null}
+        </>
+      );
+    }
+    render(<Harness />);
+    expect(phase("Post job")).toHaveAttribute("aria-expanded", "true");
+    await userEvent.click(phase("Post job"));
+    expect(phase("Post job")).toHaveAttribute("aria-expanded", "false");
+
+    await userEvent.click(screen.getByRole("button", { name: "toggle tab" }));
+    await userEvent.click(screen.getByRole("button", { name: "toggle tab" }));
     expect(phase("Post job")).toHaveAttribute("aria-expanded", "false");
   });
 });
