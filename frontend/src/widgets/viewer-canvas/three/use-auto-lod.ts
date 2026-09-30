@@ -22,8 +22,11 @@ const isShown = (object: Object3D) => {
  * The level an object should load, from its size on screen.
  *
  * Re-read SETTLE_MS after the camera stops (controls "change"), never mid-
- * gesture, so a zoom that sweeps through a close-up fetches nothing; the
- * fly-around never settles and so never upgrades. The level only ever gets
+ * gesture, so a zoom that sweeps through a close-up fetches nothing. The
+ * fly-around moves the camera in its own rAF without firing "change", so it
+ * arms no re-read of its own — but an object still owed a measure when it
+ * began (see below) is read on the first frame it can be, mid-flight, from
+ * wherever the flight has the camera. The level only ever gets
  * finer — a coarser one saves no bytes that were not already spent, and
  * lowering useProgressiveLod's target would put the coarsest level back on
  * screen for a whole download. A numeric `requested` (a manual level, or the

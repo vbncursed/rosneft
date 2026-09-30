@@ -4,8 +4,8 @@ import { Vector3, type Object3D, type PerspectiveCamera } from "three";
 import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useMediaQuery } from "@/shared/lib/use-media-query";
 import { coveredShare, flightPose, landingPivot, planFlight, sideOffset } from "../model/flight-pose";
-import { holdStill, stopCoast } from "./stop-coast";
 import { boundsOf } from "./bounds";
+import { holdStill, stopCoast } from "./stop-coast";
 
 interface CameraRigProps {
   resetVersion: number;
