@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { LodArtifact } from "@/entities/scene";
@@ -150,15 +151,33 @@ describe("useProgressiveLod", () => {
     expect(result.current.warmUrl).toBeNull();
   });
 
-  it("a manual return to the held level before the finer one was ready still shows the coarsest (1 → 0 → 1)", () => {
-    const { result, rerender } = renderHook(({ t }) => useProgressiveLod(chain, t), {
-      initialProps: { t: 1 },
-    });
+  // A manual 1 → 0 → 1 before LOD 0 was ready read as a coarser move: LOD 2
+  // came back and LOD 1 warmed again, though it never left the screen.
+  it("a return to the held level keeps it on screen, ready (1 → 0 → 1)", () => {
+    const shows: (number | undefined)[] = [];
+    const { result, rerender } = renderHook(
+      ({ t }) => {
+        const lod = useProgressiveLod(chain, t);
+        // Committed renders only: a render adjusted by a setState in render
+        // is thrown away before it reaches the screen.
+        useEffect(() => {
+          shows.push(lod.shown?.lod);
+        });
+        return lod;
+      },
+      { initialProps: { t: 1 } },
+    );
     act(() => result.current.onWarmReady());
+    const from = shows.length;
     rerender({ t: 0 });
     rerender({ t: 1 });
-    expect(result.current.shown?.lod).toBe(2);
-    expect(result.current.warmUrl).toContain("/api/assets/b");
+    expect(shows.slice(from)).not.toContain(2);
+    expect(result.current.shown?.lod).toBe(1);
+    expect(result.current.url).toContain("/api/assets/b");
+    expect(result.current.warmUrl).toBeNull();
+    // Ready, not merely shown: a finer move holds it again.
+    rerender({ t: 0 });
+    expect(result.current.shown?.lod).toBe(1);
   });
 
   it("retry clears the hold", () => {

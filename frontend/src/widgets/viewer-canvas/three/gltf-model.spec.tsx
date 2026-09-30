@@ -142,10 +142,13 @@ describe("GltfModel", () => {
     await r.update(model({ onReport, targetLod: 0 }));
     const back = onReport.mock.calls.slice(from).map((c) => c[0] as LodReport);
     expect(back[0]).toMatchObject({ shown: 2, target: 0 });
-    // The first report of the return comes before the held blob is adopted,
-    // so it never claims bytes that are not yet this level's.
-    expect(back[0].percent).not.toBe(100);
     await vi.waitFor(() => expect(last().shown).toBe(0));
+    // The held blob is this level's whole file, adopted from the first render
+    // of the return: nothing downloads, so the chip reads full or nothing —
+    // never the "0 %" of a fetch that is not happening.
+    const percents = onReport.mock.calls.slice(from).map((c) => (c[0] as LodReport).percent);
+    expect(percents.every((p) => p === null || p === 100)).toBe(true);
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
     const parsed = vi.mocked(drei.useGLTF).mock.calls.map((c) => String(c[0]));
     expect(parsed).not.toContain("/api/assets/fine");
     expect(parsed.filter((u) => u.startsWith("/api/assets/")).every((u) => u.endsWith("coarse"))).toBe(true);
@@ -237,6 +240,73 @@ describe("GltfModel", () => {
     expect(vi.mocked(drei.useGLTF).mock.lastCall![0]).toBe("blob:fine");
     expect(URL.revokeObjectURL).not.toHaveBeenCalled();
     expect(drei.useGLTF.clear).not.toHaveBeenCalledWith("blob:fine");
+  });
+
+  it("Auto after a manual coarser pick adopts the held level: no 0 %, no fetch", async () => {
+    // Manual 2 after LOD 0, then Auto, which never goes coarser than what it
+    // has had: LOD 0 again, off the blob still held.
+    stubDownload();
+    const onReport = vi.fn();
+    const last = () => onReport.mock.lastCall![0] as LodReport;
+    const r = await ReactThreeTestRenderer.create(model({ onReport }));
+    await vi.waitFor(() => expect(last().shown).toBe(0));
+    await r.update(model({ onReport, targetLod: 2 }));
+    expect(last()).toMatchObject({ shown: 2, target: 2 });
+
+    const from = onReport.mock.calls.length;
+    await r.update(model({ onReport, targetLod: "auto" }));
+    await vi.waitFor(() => expect(last()).toMatchObject({ shown: 0, target: 0 }));
+    const percents = onReport.mock.calls.slice(from).map((c) => (c[0] as LodReport).percent);
+    expect(percents.every((p) => p === null || p === 100)).toBe(true);
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
+  });
+
+  it("a return to the held level before the finer one is ready keeps it on screen (1 → 0 → 1)", async () => {
+    // LOD 1 on screen, LOD 0 downloaded and still parsing in the warmer, and
+    // the reader picks LOD 1 again. It read as a coarser move: LOD 2 came back
+    // and LOD 1 warmed again — and the download, leaving LOD 0, revoked the
+    // blob of the mesh still drawn.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(streamOf([new Uint8Array(4), new Uint8Array(6)]), { status: 200 })),
+    );
+    const minted = ["blob:mid", "blob:fine"];
+    vi.stubGlobal("URL", { ...URL, createObjectURL: vi.fn(() => minted.shift()), revokeObjectURL: vi.fn() });
+    const drei = await import("@react-three/drei");
+    const { fakeScene } = await import("./testing");
+    // The warmer never finishes parsing LOD 0.
+    vi.mocked(drei.useGLTF).mockImplementation((url) => {
+      if (String(url) === "blob:fine") throw new Promise(() => {});
+      return { scene: fakeScene() } as never;
+    });
+    const lods = [
+      { lod: 0, hash: "fine", size: 10 },
+      { lod: 1, hash: "mid", size: 10 },
+      { lod: 2, hash: "coarse", size: 2 },
+    ];
+    const onReport = vi.fn();
+    const last = () => onReport.mock.lastCall![0] as LodReport;
+    const r = await ReactThreeTestRenderer.create(model({ onReport, targetLod: 1, lods }));
+    await vi.waitFor(() => expect(last().shown).toBe(1));
+    const from = onReport.mock.calls.length;
+
+    await r.update(model({ onReport, targetLod: 0, lods }));
+    await vi.waitFor(() =>
+      expect(vi.mocked(drei.useGLTF).mock.calls.map((c) => c[0])).toContain("blob:fine"),
+    );
+    await r.update(model({ onReport, targetLod: 1, lods }));
+    await vi.waitFor(() => expect(last()).toMatchObject({ shown: 1, target: 1, percent: null }));
+    await settledFor(SETTLE_MS);
+
+    const shownAfter = onReport.mock.calls.slice(from).map((c) => (c[0] as LodReport).shown);
+    expect(shownAfter).not.toContain(2);
+    expect(shownAfter).not.toContain(null);
+    expect(URL.revokeObjectURL).not.toHaveBeenCalledWith("blob:mid");
+    expect(drei.useGLTF.clear).not.toHaveBeenCalledWith("blob:mid");
+    expect(vi.mocked(fetch).mock.calls.filter((c) => String(c[0]).endsWith("/mid"))).toHaveLength(1);
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:fine");
+    expect(drei.useGLTF.clear).toHaveBeenCalledWith("blob:fine");
+    await r.unmount();
   });
 
   it("a manual pick of the held level after a refusal keeps its blob: no second download, no remount", async () => {
