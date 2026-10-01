@@ -69,5 +69,6 @@ describe("TerritoryCard", () => {
     render(<TerritoryCard card={card()} href="/territories/north-ridge-pad" unavailable="Unavailable offline" />);
     expect(screen.getByText("Unavailable offline")).toBeInTheDocument();
     expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.queryByText("Open →")).toBeNull();
   });
 });

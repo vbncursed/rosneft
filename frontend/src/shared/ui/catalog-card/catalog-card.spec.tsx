@@ -283,6 +283,7 @@ describe("CatalogCard", () => {
     );
     expect(screen.getByText("Unavailable offline")).toBeInTheDocument();
     expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.queryByText("Open →")).toBeNull();
     await userEvent.click(screen.getByText("North Ridge Pad"));
     expect(onOpen).not.toHaveBeenCalled();
   });

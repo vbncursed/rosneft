@@ -16,6 +16,15 @@ describe("offlineView", () => {
       label: "Couldn't save — not enough disk space",
     });
   });
+  it("says to reconnect instead of offering a save that would fail", () => {
+    expect(offlineView(undefined, undefined, false)).toEqual({ kind: "offline", label: "Reconnect to save" });
+    const failed = { slug: "a", state: "failed" as const, done: 0, total: 0, error: "network" as const };
+    expect(offlineView(undefined, failed, false).kind).toBe("offline");
+  });
+  it("leaves a saved territory and a running save alone while offline", () => {
+    expect(offlineView(saved, undefined, false).kind).toBe("saved");
+    expect(offlineView(undefined, { slug: "a", state: "saving", done: 1, total: 4 }, false).kind).toBe("saving");
+  });
   it("shows a resync of a saved territory as saving", () =>
     expect(offlineView(saved, { slug: "a", state: "saving", done: 1, total: 4 }).kind).toBe("saving"));
 });

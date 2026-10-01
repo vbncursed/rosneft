@@ -52,7 +52,7 @@ export function TerritoryCatalogScreen() {
         onEdit={(slug) => setEditing(filtered.find((c) => c.slug === slug) ?? null)}
         onDelete={s.ask}
         offlineControl={inShell ? (card) => <OfflineToggle compact slug={card.slug} title={card.title} /> : undefined}
-        unavailable={(slug) => !online && !offline.saved.has(slug)}
+        unavailable={(slug) => !online && offline.loaded && !offline.saved.has(slug)}
         {...(s.cards.length === 0
           ? { emptyHint: "No territories yet — upload one to get started." }
           : {})}

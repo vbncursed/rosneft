@@ -108,7 +108,6 @@ export function CatalogCard({
       onClick={open}
       onMouseEnter={preload}
       onFocus={preload}
-      aria-disabled={unavailable ? true : undefined}
       className={cx(
         "group overflow-hidden border bg-panel transition-[border-color,scale] duration-150 ease-out",
         TONE[tone],
@@ -217,15 +216,17 @@ export function CatalogCard({
           )}
         >
           {sm ? null : <span className="truncate font-mono text-[11px] text-muted">{slug}</span>}
-          <span
-            className={cx(
-              "whitespace-nowrap font-mono text-[10px]",
-              sm ? "tracking-[0.06em]" : "uppercase tracking-[0.16em]",
-              TRAILING[trailing.tone],
-            )}
-          >
-            {trailing.label}
-          </span>
+          {unavailable ? null : (
+            <span
+              className={cx(
+                "whitespace-nowrap font-mono text-[10px]",
+                sm ? "tracking-[0.06em]" : "uppercase tracking-[0.16em]",
+                TRAILING[trailing.tone],
+              )}
+            >
+              {trailing.label}
+            </span>
+          )}
           {sm && meta ? <span className="truncate font-mono text-[10px] text-muted">{meta}</span> : null}
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TerritoryCardModel } from "@/entities/territory";
@@ -158,7 +158,7 @@ describe("TerritoryCatalogScreen", () => {
     expect(screen.getByRole("dialog", { name: "Edit T 1" })).toBeInTheDocument();
   });
 
-  it("dims a territory that was never saved while the shell is offline, and offers saving on every card", async () => {
+  it("dims a territory that was never saved while the shell is offline, and says to reconnect on the unsaved one", async () => {
     const saved = { slug: "t-1", title: "T 1", bytes: 10, savedAt: "t", syncedAt: "t" };
     window.desktop = {
       passkeys: false,
@@ -168,14 +168,27 @@ describe("TerritoryCatalogScreen", () => {
     useTerritoryCatalog.mockReturnValue(state());
     render(<TerritoryCatalogScreen />);
     expect(await screen.findByRole("button", { name: "T 1 — Available offline · 10 B" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Save T 2 offline" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reconnect to save T 2" })).toBeInTheDocument();
     expect(screen.getAllByText("Unavailable offline")).toHaveLength(1);
-    expect(screen.getByRole("article", { name: "T 2" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.queryByText("Open →", { selector: "article[aria-label=\"T 2\"] *" })).toBeNull();
   });
 
   it("draws no offline control in a browser", () => {
     useTerritoryCatalog.mockReturnValue(state());
     render(<TerritoryCatalogScreen />);
     expect(screen.queryByRole("button", { name: /offline/ })).toBeNull();
+  });
+  it("does not call anything unavailable before the saved list has answered", async () => {
+    let answer: (v: unknown[]) => void = () => {};
+    window.desktop = {
+      passkeys: false,
+      offline: { list: () => new Promise((r) => (answer = r)), save: async () => {}, cancel: async () => {}, remove: async () => {}, onProgress: () => () => {} },
+    } as unknown as DesktopBridge;
+    online.value = false;
+    useTerritoryCatalog.mockReturnValue(state());
+    render(<TerritoryCatalogScreen />);
+    expect(screen.queryByText("Unavailable offline")).toBeNull();
+    await act(async () => answer([]));
+    expect(screen.getAllByText("Unavailable offline")).toHaveLength(2);
   });
 });

@@ -1,8 +1,13 @@
 import { useSyncExternalStore } from "react";
 import { desktopBridge, type OfflineProgress, type SavedTerritory } from "@/shared/lib/desktop";
 
-type State = { saved: ReadonlyMap<string, SavedTerritory>; progress: ReadonlyMap<string, OfflineProgress> };
-const EMPTY: State = { saved: new Map(), progress: new Map() };
+type State = {
+  saved: ReadonlyMap<string, SavedTerritory>;
+  progress: ReadonlyMap<string, OfflineProgress>;
+  /** False until the shell has answered `list()` once — an empty `saved` before that means "not known yet". */
+  loaded: boolean;
+};
+const EMPTY: State = { saved: new Map(), progress: new Map(), loaded: false };
 
 // Module-level: one subscription to the shell, shared by every card and section.
 let state: State = EMPTY;
@@ -15,7 +20,7 @@ const set = (next: State) => {
 
 async function reload(): Promise<void> {
   const list = await desktopBridge()?.offline.list();
-  if (list) set({ ...state, saved: new Map(list.map((t) => [t.slug, t])) });
+  if (list) set({ ...state, saved: new Map(list.map((t) => [t.slug, t])), loaded: true });
 }
 
 function wire(): void {
@@ -54,7 +59,7 @@ export const offlineActions = {
   cancel: (slug: string): void => void desktopBridge()?.offline.cancel(slug),
   remove: async (slug: string): Promise<void> => {
     await desktopBridge()?.offline.remove(slug);
-    await reload();
+    await reload().catch(() => undefined);
   },
 };
 

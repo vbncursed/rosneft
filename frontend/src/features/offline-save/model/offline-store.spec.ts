@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DesktopBridge, OfflineProgress } from "@/shared/lib/desktop";
-import { offlineActions, resetOfflineStore, useOfflineTerritory } from "./offline-store";
+import { offlineActions, resetOfflineStore, useOfflineState, useOfflineTerritory } from "./offline-store";
 
 const saved = { slug: "a", title: "A", bytes: 10, savedAt: "t", syncedAt: "t" };
 
@@ -52,5 +52,19 @@ describe("offline store", () => {
     expect(b.offline.save).toHaveBeenCalledWith("a");
     expect(b.offline.cancel).toHaveBeenCalledWith("a");
     expect(b.offline.remove).toHaveBeenCalledWith("a");
+  });
+  it("survives a list that fails after a removal", async () => {
+    const b = bridge();
+    b.offline.list.mockRejectedValue(new Error("down"));
+    await expect(offlineActions.remove("a")).resolves.toBeUndefined();
+    expect(b.offline.remove).toHaveBeenCalledWith("a");
+  });
+  it("is not loaded until the first list answers, and forgets that on reset", async () => {
+    bridge();
+    const { result } = renderHook(() => useOfflineState());
+    expect(result.current.loaded).toBe(false);
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    resetOfflineStore();
+    expect(renderHook(() => useOfflineState()).result.current.loaded).toBe(false);
   });
 });
