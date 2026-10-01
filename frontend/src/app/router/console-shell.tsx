@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import type { MouseEvent } from "react";
 import { meQuery } from "@/entities/user";
+import { useOfflineUser } from "@/features/offline-save";
 import { viewerOf } from "@/shared/session";
 import { ConsoleLayout } from "@/widgets/console-layout";
 import { OfflineBanner } from "@/widgets/offline-banner";
@@ -19,6 +20,7 @@ import { activeSection, consoleNav, routesInApp } from "./guard";
  */
 export function ConsoleShell() {
   const { data: me } = useQuery(meQuery);
+  useOfflineUser(me?.id);
   const { pathname } = useLocation();
   const navigate = useNavigate();
   if (!me) return null;

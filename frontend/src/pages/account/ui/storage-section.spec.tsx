@@ -27,7 +27,18 @@ describe("StorageSection", () => {
     expect(screen.getByText("Ust-Kut")).toBeInTheDocument();
     expect(screen.getByText("2 GB · saved 30 Sep 2026 · synced 1 Oct 2026")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Remove Ust-Kut from this device" }));
+    expect(props.onRemove).not.toHaveBeenCalled();
+    expect(screen.getByText("Remove Ust-Kut from this device?")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Remove" }));
     expect(props.onRemove).toHaveBeenCalledWith("ust-kut");
+  });
+
+  it("keeps the copy when removal is cancelled", async () => {
+    props.onRemove.mockClear();
+    render(<StorageSection {...props} />);
+    await userEvent.click(screen.getByRole("button", { name: "Remove Ust-Kut from this device" }));
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(props.onRemove).not.toHaveBeenCalled();
   });
 
   it("marks the current limit and changes it", async () => {

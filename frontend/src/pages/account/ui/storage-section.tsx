@@ -53,6 +53,7 @@ function UsageReadout({ usage, failed }: { usage: StorageUsage | null; failed: b
 export function StorageSection({ usage, usageFailed, savedLoaded, saved, onLimit, onClear, onRemove }: StorageSectionProps) {
   const [confirming, setConfirming] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [removing, setRemoving] = useState<SavedTerritory | null>(null);
 
   const clear = async () => {
     setClearing(true);
@@ -90,7 +91,7 @@ export function StorageSection({ usage, usageFailed, savedLoaded, saved, onLimit
                   {formatBytes(t.bytes)} · saved {longDate(t.savedAt)} · synced {longDate(t.syncedAt)}
                 </span>
               </span>
-              <Button size="sm" aria-label={`Remove ${t.title} from this device`} onClick={() => void onRemove(t.slug)}>
+              <Button size="sm" aria-label={`Remove ${t.title} from this device`} onClick={() => setRemoving(t)}>
                 Remove
               </Button>
             </li>
@@ -109,6 +110,18 @@ export function StorageSection({ usage, usageFailed, savedLoaded, saved, onLimit
         busy={clearing}
         onConfirm={() => void clear()}
         onCancel={() => setConfirming(false)}
+      />
+      <ConfirmDialog
+        open={removing !== null}
+        tone="danger"
+        title={`Remove ${removing?.title ?? ""} from this device?`}
+        description="It will need the network to download again."
+        confirmLabel="Remove"
+        onConfirm={() => {
+          if (removing) void onRemove(removing.slug);
+          setRemoving(null);
+        }}
+        onCancel={() => setRemoving(null)}
       />
     </Card>
   );

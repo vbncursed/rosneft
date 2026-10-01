@@ -27,4 +27,8 @@ describe("offlineView", () => {
   });
   it("shows a resync of a saved territory as saving", () =>
     expect(offlineView(saved, { slug: "a", state: "saving", done: 1, total: 4 }).kind).toBe("saving"));
+  it("a failed resync of a saved territory still reads saved: the copy is intact", () => {
+    const failed = { slug: "a", state: "failed" as const, done: 0, total: 0, error: "network" as const };
+    expect(offlineView(saved, failed)).toEqual({ kind: "saved", label: "Available offline · 1.2 GB" });
+  });
 });

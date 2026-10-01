@@ -8,6 +8,8 @@ vi.mock("@tanstack/react-query", async (real) => ({
   ...(await real<typeof import("@tanstack/react-query")>()),
   useQuery,
 }));
+const { useOfflineUser } = vi.hoisted(() => ({ useOfflineUser: vi.fn() }));
+vi.mock("@/features/offline-save", () => ({ useOfflineUser }));
 // A stand-in for the router context: the shell is rendered on its own.
 vi.mock("@tanstack/react-router", () => ({
   Outlet: () => <p>screen</p>,
@@ -45,5 +47,10 @@ describe("ConsoleShell", () => {
     useQuery.mockReturnValue({ data: undefined });
     const { container } = render(<ConsoleShell />);
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("tells the offline store whose copies to list", () => {
+    render(<ConsoleShell />);
+    expect(useOfflineUser).toHaveBeenCalledWith("u-1");
   });
 });

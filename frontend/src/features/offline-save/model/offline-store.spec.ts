@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DesktopBridge, OfflineProgress } from "@/shared/lib/desktop";
-import { offlineActions, resetOfflineStore, useOfflineState, useOfflineTerritory } from "./offline-store";
+import { offlineActions, resetOfflineStore, syncOfflineUser, useOfflineState, useOfflineTerritory, useOfflineUser, useSavedTerritories } from "./offline-store";
 
 const saved = { slug: "a", title: "A", bytes: 10, savedAt: "t", syncedAt: "t" };
 
@@ -66,5 +66,48 @@ describe("offline store", () => {
     await waitFor(() => expect(result.current.loaded).toBe(true));
     resetOfflineStore();
     expect(renderHook(() => useOfflineState()).result.current.loaded).toBe(false);
+  });
+  it("re-reads when the signed-in user changes, and the previous user's list is gone at once", async () => {
+    const b = bridge();
+    const { result, rerender } = renderHook(({ id }) => ({ list: useSavedTerritories(), user: useOfflineUser(id) }), { initialProps: { id: "u1" } });
+    await waitFor(() => expect(result.current.list.map((t) => t.slug)).toEqual(["a"]));
+    let answer!: (v: unknown[]) => void;
+    b.offline.list.mockImplementation(() => new Promise((r) => (answer = r as typeof answer)));
+    rerender({ id: "u2" });
+    expect(result.current.list).toEqual([]);
+    await act(async () => answer([{ ...saved, slug: "z" }]));
+    expect(result.current.list.map((t) => t.slug)).toEqual(["z"]);
+  });
+  it("a list that answers after the account changed is dropped", async () => {
+    const b = bridge();
+    const answers: ((v: unknown[]) => void)[] = [];
+    b.offline.list.mockImplementation(() => new Promise((r) => answers.push(r as (v: unknown[]) => void)));
+    const { result } = renderHook(() => useSavedTerritories());
+    syncOfflineUser("u1");
+    syncOfflineUser("u2");
+    await act(async () => {
+      answers.at(-1)!([{ ...saved, slug: "new" }]);
+      answers[0]!([{ ...saved, slug: "old" }]);
+    });
+    expect(result.current.map((t) => t.slug)).toEqual(["new"]);
+  });
+  it("the same user again does not re-read", async () => {
+    const b = bridge();
+    syncOfflineUser("u1");
+    syncOfflineUser("u1");
+    syncOfflineUser(undefined);
+    expect(b.offline.list).toHaveBeenCalledTimes(1);
+  });
+  it("an IPC rejection from save or cancel is swallowed", async () => {
+    const b = bridge();
+    b.offline.save.mockRejectedValue(new Error("gone"));
+    b.offline.cancel.mockRejectedValue(new Error("gone"));
+    const unhandled = vi.fn();
+    process.on("unhandledRejection", unhandled);
+    offlineActions.save("a");
+    offlineActions.cancel("a");
+    await new Promise((r) => setTimeout(r, 10));
+    process.off("unhandledRejection", unhandled);
+    expect(unhandled).not.toHaveBeenCalled();
   });
 });

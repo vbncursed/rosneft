@@ -36,7 +36,17 @@ describe("OfflineToggle", () => {
     render(<OfflineToggle slug="a" title="Ust-Kut" />);
     expect(screen.getByRole("status")).toHaveTextContent("Available offline · 2 KB");
     await userEvent.click(screen.getByRole("button", { name: "Remove from device" }));
+    expect(actions.remove).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog", { name: "Remove Ust-Kut from this device?" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Remove" }));
     expect(actions.remove).toHaveBeenCalledWith("a");
+  });
+  it("keeps the copy when removal is cancelled", async () => {
+    state.value = { saved };
+    render(<OfflineToggle slug="a" title="Ust-Kut" />);
+    await userEvent.click(screen.getByRole("button", { name: "Remove from device" }));
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(actions.remove).not.toHaveBeenCalled();
   });
   it("names the territory and the state on the compact card control", () => {
     state.value = {};
@@ -76,6 +86,7 @@ describe("OfflineToggle", () => {
       state.value = { saved };
       render(<OfflineToggle slug="a" title="Ust-Kut" />);
       await userEvent.click(screen.getByRole("button", { name: "Remove from device" }));
+      await userEvent.click(screen.getByRole("button", { name: "Remove" }));
       expect(actions.remove).toHaveBeenCalledWith("a");
     });
   });

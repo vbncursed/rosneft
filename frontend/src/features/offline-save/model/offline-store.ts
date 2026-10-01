@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { desktopBridge, type OfflineProgress, type SavedTerritory } from "@/shared/lib/desktop";
 
 type State = {
@@ -18,9 +18,28 @@ const set = (next: State) => {
   listeners.forEach((l) => l());
 };
 
+// Newest read wins: a list that answers after the account changed belongs to the old one.
+let reads = 0;
+// The account the list on screen belongs to. Module-level so a shell remount keeps it.
+let owner: string | null = null;
+
 async function reload(): Promise<void> {
+  const mine = ++reads;
   const list = await desktopBridge()?.offline.list();
-  if (list) set({ ...state, saved: new Map(list.map((t) => [t.slug, t])), loaded: true });
+  if (list && mine === reads) set({ ...state, saved: new Map(list.map((t) => [t.slug, t])), loaded: true });
+}
+
+/** The shell lists the signed-in user's copies only on request: call when that user is known or changes. A new one empties the list first, so the last user's titles never show. */
+export function syncOfflineUser(userId: string | undefined): void {
+  if (!userId || userId === owner) return;
+  owner = userId;
+  set(EMPTY);
+  void reload().catch(() => undefined);
+}
+
+/** Runs `syncOfflineUser` for the signed-in user; mount it once in every shell. */
+export function useOfflineUser(userId: string | undefined): void {
+  useEffect(() => syncOfflineUser(userId), [userId]);
 }
 
 function wire(): void {
@@ -55,8 +74,9 @@ export function useOfflineTerritory(slug: string): { saved?: SavedTerritory; pro
 export const useSavedTerritories = (): SavedTerritory[] => [...useOfflineState().saved.values()];
 
 export const offlineActions = {
-  save: (slug: string): void => void desktopBridge()?.offline.save(slug),
-  cancel: (slug: string): void => void desktopBridge()?.offline.cancel(slug),
+  // An IPC rejection (shell restarting, handler threw) must not surface as an unhandled rejection.
+  save: (slug: string): void => void desktopBridge()?.offline.save(slug).catch(() => undefined),
+  cancel: (slug: string): void => void desktopBridge()?.offline.cancel(slug).catch(() => undefined),
   remove: async (slug: string): Promise<void> => {
     await desktopBridge()?.offline.remove(slug);
     await reload().catch(() => undefined);
@@ -66,6 +86,8 @@ export const offlineActions = {
 /** Test seam: forget the shell so the next subscriber wires up afresh. */
 export function resetOfflineStore(): void {
   state = EMPTY;
+  owner = null;
+  reads = 0;
   wired = false;
   listeners.clear();
 }

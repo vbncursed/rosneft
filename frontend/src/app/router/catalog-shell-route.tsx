@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import type { MouseEvent } from "react";
 import { meQuery } from "@/entities/user";
+import { useOfflineUser } from "@/features/offline-save";
 import { CatalogShell } from "@/widgets/catalog-shell";
 import { OfflineBanner } from "@/widgets/offline-banner";
 import { Toaster } from "@/widgets/toaster";
@@ -21,6 +22,7 @@ import { isTerritoryPage, routesInApp } from "./guard";
  */
 export function CatalogShellRoute() {
   const { data: me } = useQuery(meQuery);
+  useOfflineUser(me?.id);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   if (!me) return null;

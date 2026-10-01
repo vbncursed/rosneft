@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { desktopBridge } from "@/shared/lib/desktop";
 import { useOnline } from "@/shared/lib/use-online";
 import { Button } from "@/shared/ui/button";
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { Icon } from "@/shared/ui/icon";
 import { offlineActions, useOfflineTerritory } from "../model/offline-store";
 import { offlineView, type OfflineView } from "../model/offline-view";
@@ -61,12 +63,29 @@ export type OfflineToggleProps = {
 export function OfflineToggle({ slug, title, compact = false }: OfflineToggleProps) {
   const { saved, progress } = useOfflineTerritory(slug);
   const online = useOnline();
+  const [removing, setRemoving] = useState(false);
   if (!desktopBridge()) return null;
   const view = offlineView(saved, progress, online);
   const act = () => {
     if (view.kind === "saving") offlineActions.cancel(slug);
-    else if (view.kind === "saved") void offlineActions.remove(slug);
+    else if (view.kind === "saved") setRemoving(true);
     else offlineActions.save(slug);
   };
-  return <OfflineControl view={view} title={title} onAct={act} compact={compact} />;
+  return (
+    <>
+      <OfflineControl view={view} title={title} onAct={act} compact={compact} />
+      <ConfirmDialog
+        open={removing}
+        tone="danger"
+        title={`Remove ${title} from this device?`}
+        description="It will need the network to download again."
+        confirmLabel="Remove"
+        onConfirm={() => {
+          setRemoving(false);
+          void offlineActions.remove(slug);
+        }}
+        onCancel={() => setRemoving(false)}
+      />
+    </>
+  );
 }

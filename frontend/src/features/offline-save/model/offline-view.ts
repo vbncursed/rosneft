@@ -24,7 +24,8 @@ export function offlineView(saved?: SavedTerritory, progress?: OfflineProgress, 
   }
   // A save needs the network: offer none that would fail. A saved territory and a running save are unaffected.
   if (!online && !saved) return { kind: "offline", label: "Reconnect to save" };
-  if (progress?.state === "failed") return { kind: "failed", label: `Couldn't save — ${REASON[progress.error ?? "failed"]}` };
+  // A saved copy outranks a failed attempt: a failed resync leaves it intact.
   if (saved) return { kind: "saved", label: `Available offline · ${formatBytes(saved.bytes)}` };
+  if (progress?.state === "failed") return { kind: "failed", label: `Couldn't save — ${REASON[progress.error ?? "failed"]}` };
   return { kind: "idle", label: "Save offline" };
 }
