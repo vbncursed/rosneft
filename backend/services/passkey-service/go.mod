@@ -13,7 +13,7 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/vbncursed/rosneft/backend/pkg v0.0.0
 	github.com/vbncursed/rosneft/backend/proto v0.0.0
-	google.golang.org/grpc v1.83.2
+	google.golang.org/grpc v1.84.0
 	gotest.tools/v3 v3.5.2
 )
 
