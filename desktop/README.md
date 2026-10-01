@@ -129,7 +129,9 @@ not a Developer ID.
   1. Open the dmg (or unzip) and drag Andrey to `/Applications`.
   2. The first launch is blocked as *"damaged"* or *"cannot be opened"*. The
      file is fine. Run `xattr -dr com.apple.quarantine /Applications/Andrey.app`,
-     or open System Settings, Privacy & Security, and press *Open Anyway*.
+     or try to open the app once, then go to System Settings, Privacy &
+     Security, and press *Open Anyway* (it appears only after that blocked
+     attempt and stays for about an hour).
   3. On first launch, and after every update, macOS asks for the Keychain item
      "Andrey Safe Storage". Allow it (*Always Allow*); it holds the key that
      encrypts your sign-in cookie.
