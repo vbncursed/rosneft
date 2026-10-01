@@ -1,5 +1,5 @@
-# Four ecosystems, because the repository has four and none of them were
-# watched. github-actions is the one that is easy to forget and the reason this
+# Three ecosystems (github-actions, npm in two directories, gomod), because
+# none of them were watched. github-actions is the one that is easy to forget and the reason this
 # file exists at all: the action versions in desktop.yml had to be checked by
 # hand to notice softprops/action-gh-release had gone from v2 to v3.
 version: 2
@@ -22,12 +22,13 @@ updates:
       npm-minor-patch:
         update-types: [minor, patch]
 
-  - package-ecosystem: cargo
-    directory: /desktop/src-tauri
+  - package-ecosystem: npm
+    directory: /desktop
     schedule:
       interval: weekly
     groups:
-      cargo-minor-patch:
+      # Electron majors stay separate: each moves Chromium and Node under the shell.
+      desktop-minor-patch:
         update-types: [minor, patch]
 
   # One entry per module: go.work does not make twelve modules one target, and
