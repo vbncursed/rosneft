@@ -77,11 +77,12 @@ export class OfflineSaver {
 
   constructor(private readonly d: SaverDeps) {}
 
-  save(slug: string): Promise<void> {
+  /** `silent`: a resync of a saved copy — only the final `saved` is emitted, so the list re-reads and nothing flashes. */
+  save(slug: string, silent = false): Promise<void> {
     const running = this.jobs.get(slug);
     if (running) return running.promise;
     const abort = new AbortController();
-    const promise = this.run(slug, abort.signal, this.d.settings.value.userId).finally(() => this.jobs.delete(slug));
+    const promise = this.run(slug, abort.signal, this.d.settings.value.userId, silent).finally(() => this.jobs.delete(slug));
     this.jobs.set(slug, { promise, abort });
     return promise;
   }
@@ -119,15 +120,28 @@ export class OfflineSaver {
   async resyncAll(): Promise<void> {
     const user = this.d.settings.value.userId;
     if (!user) return;
-    for (const pin of await this.d.store.readPins(user)) void this.save(pin.slug);
+    for (const pin of await this.d.store.readPins(user)) void this.save(pin.slug, true);
   }
 
-  private async acquire(): Promise<void> {
+  /** Rejects on abort without taking a slot: a cancelled queued save must not wait for one. */
+  private acquire(signal: AbortSignal): Promise<void> {
+    if (signal.aborted) return Promise.reject(signal.reason);
     if (this.free > 0) {
       this.free -= 1;
-      return;
+      return Promise.resolve();
     }
-    await new Promise<void>((resolve) => this.waiting.push(resolve));
+    return new Promise<void>((resolve, reject) => {
+      const turn = () => {
+        signal.removeEventListener("abort", onAbort);
+        resolve();
+      };
+      const onAbort = () => {
+        this.waiting.splice(this.waiting.indexOf(turn), 1);
+        reject(signal.reason);
+      };
+      this.waiting.push(turn);
+      signal.addEventListener("abort", onAbort, { once: true });
+    });
   }
 
   private release(): void {
@@ -153,11 +167,18 @@ export class OfflineSaver {
     return JSON.parse(body.toString("utf8")) as T;
   }
 
-  private async run(slug: string, signal: AbortSignal, user: string | null): Promise<void> {
-    const { store, emit } = this.d;
+  private async run(slug: string, signal: AbortSignal, user: string | null, silent: boolean): Promise<void> {
+    const { store } = this.d;
+    const emit = (p: Progress) => {
+      if (!silent || p.state === "saved") this.d.emit(p);
+    };
     const report = throttled(emit, 250);
     emit({ slug, state: "queued", done: 0, total: 0 });
-    await this.acquire();
+    try {
+      await this.acquire(signal);
+    } catch {
+      return emit({ slug, state: "cancelled", done: 0, total: 0 });
+    }
     let before: Pin | undefined;
     try {
       signal.throwIfAborted();
@@ -203,6 +224,7 @@ export class OfflineSaver {
       // A first save that never finished leaves no pin; a failed resync keeps the copy it had.
       if (user && !before?.syncedAt) await store.updatePins(user, (all) => all.filter((p) => p.slug !== slug)).catch(() => undefined);
       if (signal.aborted) emit({ slug, state: "cancelled", done: 0, total: 0 });
+      else if (silent) console.warn("offline: resync failed", slug, err);
       else emit({ slug, state: "failed", done: 0, total: 0, error: reasonOf(err) });
     } finally {
       this.release();

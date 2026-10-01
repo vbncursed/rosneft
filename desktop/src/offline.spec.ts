@@ -257,6 +257,52 @@ describe("OfflineSaver", () => {
     expect(scenes().map(([u]) => new URL(String(u)).pathname.split("/")[3]).sort()).toEqual(["a", "a", "b", "b"]);
   });
 
+  it("resyncAll is silent: only the final saved, no queued/saving", async () => {
+    const h = await harness();
+    await h.saver.save("a");
+    h.events.length = 0;
+    await h.saver.resyncAll();
+    await vi.waitFor(() => expect(h.events).toHaveLength(1));
+    expect(h.events[0]).toMatchObject({ slug: "a", state: "saved" });
+  });
+
+  it("a failed resyncAll emits nothing and keeps the copy", async () => {
+    const h = await harness();
+    await h.saver.save("a");
+    const before = await h.saver.list();
+    h.events.length = 0;
+    h.fetch.mockImplementation(async () => {
+      throw new TypeError("net::ERR_INTERNET_DISCONNECTED");
+    });
+    await h.saver.resyncAll();
+    await sleep(50);
+    expect(h.events).toEqual([]);
+    expect(await h.saver.list()).toEqual(before);
+  });
+
+  it("a user save of a first-time territory keeps full progress", async () => {
+    const h = await harness();
+    await h.saver.save("a");
+    expect(h.events.map((e) => e.state)).toContain("queued");
+    expect(h.events.map((e) => e.state)).toContain("saving");
+  });
+
+  it("cancelling a save still queued answers cancelled at once and never takes a slot", async () => {
+    const { gate, release } = gated();
+    const h = await harness(server({ blob: async (hash) => (await gate, new Response(nameOf(hash))) }));
+    const running = ["a", "b"].map((s) => h.saver.save(s));
+    await vi.waitFor(() => expect(h.events.filter((e) => e.state === "saving")).toHaveLength(2));
+    const queued = h.saver.save("c");
+    h.saver.cancel("c");
+    await queued;
+    expect(last(h.events.filter((e) => e.slug === "c"))?.state).toBe("cancelled");
+    expect(h.fetch.mock.calls.some(([u]) => String(u).includes("/c/"))).toBe(false);
+    release();
+    await Promise.all(running);
+    await h.saver.save("d");
+    expect(last(h.events.filter((e) => e.slug === "d"))?.state).toBe("saved");
+  });
+
   it("sums unequal blob sizes exactly when downloads finish out of order", async () => {
     const delay: Record<string, number> = { "terrain-lod0": 40, "terrain-lod1": 10, pump: 30, pano: 0, pdf: 20 };
     const h = await harness(server({ blob: async (hash) => (await sleep(delay[nameOf(hash)]!), new Response(nameOf(hash))) }));

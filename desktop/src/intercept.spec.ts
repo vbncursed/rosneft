@@ -132,6 +132,23 @@ describe("createHandler", () => {
     expect(h.states).toEqual([true, false]);
   });
 
+  it("a shell file answered from Chromium's cache does not report online while /api is down", async () => {
+    const h = await harness(async (r) => (new URL(r.url).pathname.startsWith("/api/") ? offline() : new Response("js")));
+    await h.handle(req("/api/models"));
+    await h.handle(req("/assets/a.js"));
+    await h.handle(req("/"));
+    await h.handle(req("/assets/b.js"));
+    await h.handle(req("/api/models"));
+    expect(h.states).toEqual([false]);
+  });
+
+  it("a shell or navigation failure alone says nothing about connectivity", async () => {
+    const h = await harness(offline);
+    await h.handle(req("/assets/a.js"));
+    await h.handle(req("/"));
+    expect(h.states).toEqual([]);
+  });
+
   it("does not read a request the page cancelled as being offline", async () => {
     const ac = new AbortController();
     const h = await harness(async () => {

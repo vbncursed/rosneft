@@ -50,6 +50,8 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
       epoch += 1;
       await d.settings.update({ userId: null });
     }
+    // Only the gateway speaks for connectivity: shell files may be answered from Chromium's HTTP cache.
+    const gateway = url.pathname === "/api" || url.pathname.startsWith("/api/");
     const born = epoch;
     const user = d.settings.value.userId;
 
@@ -62,11 +64,11 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
     let res: Response;
     try {
       res = await d.network(req);
-      seen(true);
+      if (gateway) seen(true);
     } catch {
       // A request the page itself cancelled says nothing about the network.
       if (req.signal.aborted) return Response.error();
-      seen(false);
+      if (gateway) seen(false);
       return withCsp(await fallback(d, route, user));
     }
     return withCsp(await afterNetwork(d, route, user, req, res, () => epoch === born));
