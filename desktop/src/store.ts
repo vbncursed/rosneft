@@ -57,31 +57,38 @@ export class Store {
     return path.join(this.userDir(user), "blobs", hash);
   }
 
-  private snapshotBase(user: string, key: string): string {
+  private snapshotFile(user: string, key: string): string {
     return path.join(this.userDir(user), "snapshots", createHash("sha256").update(key).digest("hex"));
   }
 
   private async atomicWrite(dest: string, data: string | Buffer): Promise<void> {
     const tmp = this.tmpFile();
-    await writeFile(tmp, data);
-    await mkdir(path.dirname(dest), { recursive: true });
-    await rename(tmp, dest);
+    try {
+      await writeFile(tmp, data);
+      await mkdir(path.dirname(dest), { recursive: true });
+      await rename(tmp, dest);
+    } finally {
+      await rm(tmp, { force: true });
+    }
   }
 
+  /** One file per key — [4-byte meta length][meta JSON][body] — so a body can never be paired with another response's headers. */
   async readSnapshot(user: string, key: string): Promise<{ meta: SnapshotMeta; body: Buffer } | null> {
-    const base = this.snapshotBase(user, key);
     try {
-      const [meta, body] = await Promise.all([readFile(`${base}.json`, "utf8"), readFile(`${base}.body`)]);
-      return { meta: JSON.parse(meta) as SnapshotMeta, body };
+      const data = await readFile(this.snapshotFile(user, key));
+      const metaEnd = 4 + data.readUInt32BE(0);
+      if (metaEnd > data.length) return null;
+      return { meta: JSON.parse(data.subarray(4, metaEnd).toString("utf8")) as SnapshotMeta, body: data.subarray(metaEnd) };
     } catch {
       return null;
     }
   }
 
   async writeSnapshot(user: string, key: string, meta: SnapshotMeta, body: Buffer): Promise<void> {
-    const base = this.snapshotBase(user, key);
-    await this.atomicWrite(`${base}.body`, body);
-    await this.atomicWrite(`${base}.json`, JSON.stringify(meta));
+    const json = Buffer.from(JSON.stringify(meta));
+    const head = Buffer.alloc(4);
+    head.writeUInt32BE(json.length);
+    await this.atomicWrite(this.snapshotFile(user, key), Buffer.concat([head, json, body]));
   }
 
   async blob(user: string, hash: string): Promise<{ path: string; size: number; type: string } | null> {
@@ -111,8 +118,8 @@ export class Store {
       await pipeline(Readable.fromWeb(body as NodeWebStream<Uint8Array>), count, createWriteStream(tmp), { signal });
       if (digest.digest("hex") !== hash) throw new Error(`store: ${hash} did not hash to itself`);
       await mkdir(path.dirname(dest), { recursive: true });
-      await writeFile(`${dest}.type`, type);
       await rename(tmp, dest);
+      await this.atomicWrite(`${dest}.type`, type);
       return size;
     } finally {
       await rm(tmp, { force: true });
@@ -153,20 +160,27 @@ export class Store {
   async readPins(user: string): Promise<Pin[]> {
     try {
       return JSON.parse(await readFile(path.join(this.userDir(user), "pins.json"), "utf8")) as Pin[];
-    } catch {
-      return [];
+    } catch (err) {
+      // Anything but "no file yet" (corrupt JSON, EACCES) must not read as "no pins": eviction would delete pinned blobs.
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") return [];
+      throw err;
     }
+  }
+
+  /** Pin writes and eviction share one queue: a pin landing between evict's read and its delete must not lose its blob. */
+  private serialised<T>(task: () => Promise<T>): Promise<T> {
+    const next = this.pinChain.then(task);
+    this.pinChain = next.catch(() => undefined);
+    return next;
   }
 
   /** Read-modify-write, one at a time: two saves finishing together must not drop each other's pin. */
   updatePins(user: string, change: (pins: Pin[]) => Pin[]): Promise<Pin[]> {
-    const next = this.pinChain.then(async () => {
+    return this.serialised(async () => {
       const pins = change(await this.readPins(user));
       await this.atomicWrite(path.join(this.userDir(user), "pins.json"), JSON.stringify(pins));
       return pins;
     });
-    this.pinChain = next.catch(() => undefined);
-    return next;
   }
 
   async usage(user: string): Promise<{ used: number; pinned: number }> {
@@ -176,8 +190,10 @@ export class Store {
     return { used: sum(files), pinned: sum(files.filter((f) => pinned.has(f.hash))) };
   }
 
-  async evict(user: string, limit: number): Promise<void> {
-    const [files, pins] = await Promise.all([this.blobFiles(user), this.readPins(user)]);
-    await this.removeBlobs(user, pickVictims(files, new Set(pins.flatMap((p) => p.hashes)), limit));
+  evict(user: string, limit: number): Promise<void> {
+    return this.serialised(async () => {
+      const [files, pins] = await Promise.all([this.blobFiles(user), this.readPins(user)]);
+      await this.removeBlobs(user, pickVictims(files, new Set(pins.flatMap((p) => p.hashes)), limit));
+    });
   }
 }

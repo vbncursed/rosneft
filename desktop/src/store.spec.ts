@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtempSync, readdirSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -97,5 +97,58 @@ describe("Store", () => {
       store.updatePins(A, (p) => [...p, pin("two", [])]),
     ]);
     expect((await store.readPins(A)).map((p) => p.slug).sort()).toEqual(["one", "two"]);
+  });
+
+  it("a failed rename leaves no orphan .type and nothing in tmp/", async () => {
+    const h = sha("hello");
+    const blobs = path.join(root, "users", A, "blobs");
+    mkdirSync(path.join(blobs, h), { recursive: true });
+    await expect(store.writeBlob(A, h, "x", body("hello"))).rejects.toThrow();
+    expect(readdirSync(blobs).filter((n) => n.endsWith(".type"))).toEqual([]);
+    expect(readdirSync(path.join(root, "tmp"))).toEqual([]);
+  });
+
+  it("an aborted write rejects and leaves nothing behind", async () => {
+    const h = sha("hello");
+    const ac = new AbortController();
+    const stalled = new ReadableStream<Uint8Array>({ pull() { return new Promise(() => {}); } });
+    const pending = store.writeBlob(A, h, "x", stalled, ac.signal);
+    setTimeout(() => ac.abort(), 10);
+    await expect(pending).rejects.toThrow();
+    expect(readdirSync(path.join(root, "tmp"))).toEqual([]);
+    expect(await store.blob(A, h)).toBeNull();
+  });
+
+  it("a corrupt pins.json is an error, not an empty list", async () => {
+    mkdirSync(path.join(root, "users", A), { recursive: true });
+    writeFileSync(path.join(root, "users", A, "pins.json"), "{not json");
+    await expect(store.readPins(A)).rejects.toThrow();
+  });
+
+  it("evict on a corrupt pins.json rejects and deletes nothing", async () => {
+    const h = sha("a");
+    await store.writeBlob(A, h, "x", body("a"));
+    writeFileSync(path.join(root, "users", A, "pins.json"), "{not json");
+    await expect(store.evict(A, 0)).rejects.toThrow();
+    expect(await store.blob(A, h)).not.toBeNull();
+  });
+
+  it("evict does not delete a blob pinned while it runs", async () => {
+    const x = sha("x");
+    await store.writeBlob(A, x, "x", body("x"));
+    await Promise.all([store.updatePins(A, () => [pin("t", [x])]), store.evict(A, 0)]);
+    expect(await store.blob(A, x)).not.toBeNull();
+  });
+
+  it("stores a snapshot as one file and reads a garbled one as missing", async () => {
+    await store.writeSnapshot(A, "/k", { status: 200, headers: [] }, Buffer.from("body"));
+    const dir = path.join(root, "users", A, "snapshots");
+    const [name = ""] = readdirSync(dir);
+    expect(readdirSync(dir)).toHaveLength(1);
+    expect((await store.readSnapshot(A, "/k"))?.body.toString()).toBe("body");
+    writeFileSync(path.join(dir, name), Buffer.from([0, 0, 1]));
+    expect(await store.readSnapshot(A, "/k")).toBeNull();
+    writeFileSync(path.join(dir, name), Buffer.from([0, 0, 0, 99, 1, 2]));
+    expect(await store.readSnapshot(A, "/k")).toBeNull();
   });
 });
