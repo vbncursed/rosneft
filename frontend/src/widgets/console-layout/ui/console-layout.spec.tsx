@@ -50,6 +50,11 @@ describe("ConsoleLayout", () => {
     expect(screen.getByRole("link", { name: "Users" })).not.toHaveAttribute("aria-current");
   });
 
+  it("is one window tall under the offline banner, not banner plus a window", () => {
+    const { container } = layout();
+    expect(container.firstElementChild).toHaveClass("min-h-[calc(100dvh-var(--offline-h))]");
+  });
+
   it("keeps the sidebar out of the main region, so a page cannot nest chrome", () => {
     layout();
     expect(screen.getByRole("main")).not.toContainElement(

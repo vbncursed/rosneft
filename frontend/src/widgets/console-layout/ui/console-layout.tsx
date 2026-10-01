@@ -28,7 +28,7 @@ export function ConsoleLayout({
   children,
 }: ConsoleLayoutProps) {
   return (
-    <div className="grid min-h-dvh grid-cols-1 bg-bg text-fg lg:grid-cols-[236px_minmax(0,1fr)]">
+    <div className="grid min-h-[calc(100dvh-var(--offline-h))] grid-cols-1 bg-bg text-fg lg:grid-cols-[236px_minmax(0,1fr)]">
       <ConsoleSidebar items={items} active={active} backHref={backHref} viewer={viewer} />
       <main className="flex min-w-0 flex-col gap-5 px-4 pb-16 pt-8 lg:px-9">{children}</main>
     </div>

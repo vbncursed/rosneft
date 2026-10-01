@@ -12,7 +12,7 @@ andrey/
 ├── backend/            # Go 1.27.1 microservices (gateway, catalog, content, auth,
 │                       #   twofa, passkey, mesh, upload, asset)
 ├── frontend/           # Vite + React 19 SPA, Feature-Sliced (TanStack Router + react-three-fiber)
-├── desktop/            # Tauri v2 desktop shell wrapping the same SPA
+├── desktop/            # Electron desktop shell around the production SPA
 ├── ops/                # deployment + observability config (Prometheus, …)
 ├── docs/               # design specs and implementation plans
 ├── docker-compose.yml  # postgres, redis, every backend service, prometheus
@@ -64,13 +64,12 @@ See [`backend/README.md`](backend/README.md).
 
 ### Desktop (`desktop/`)
 
-Tauri v2 wrapper around the same Vite + React SPA — no separate frontend, no
-separate build. A loopback axum server inside the Rust process serves the
-embedded `frontend/dist` and proxies `/api` to the gateway, reproducing
-production's nginx single-origin topology so the frontend needs no
-desktop-specific code. Holds the session in the OS keychain (never in the
-webview), caches `/api/assets/{hash}` on disk per user under a 5 GB cap, and
-replays the last good JSON response when the network is down.
+Electron shell that opens the production SPA in its own session partition, so
+the frontend needs no desktop-specific build. The main process keeps an offline
+copy of the SPA, `/api` snapshots for the territory screens and per-user blobs
+on disk, and answers from them when the network is down; territories can be
+pinned with **Save offline**. The session is Chromium's cookie, encrypted by the
+OS keyring through Electron's `EnableCookieEncryption` fuse, which the build turns on.
 
 See [`desktop/README.md`](desktop/README.md).
 

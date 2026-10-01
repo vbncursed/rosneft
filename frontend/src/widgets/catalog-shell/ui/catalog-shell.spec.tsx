@@ -33,7 +33,7 @@ describe("CatalogShell · viewport layout", () => {
       </CatalogShell>,
     );
     const main = screen.getByRole("main");
-    expect(main.className).toContain("h-dvh");
+    expect(main.className).toContain("h-[calc(100dvh-var(--offline-h))]");
     expect(main.className).not.toContain("px-9");
     expect(main.className).not.toContain("pt-8");
   });
@@ -55,7 +55,23 @@ describe("CatalogShell · viewport layout", () => {
         <p>page</p>
       </CatalogShell>,
     );
-    expect(screen.getByRole("main").className).toContain("min-h-dvh");
+    expect(screen.getByRole("main").className).toContain("min-h-[calc(100dvh-var(--offline-h))]");
+  });
+});
+
+// The offline banner sits above the shell in the route; --offline-h is its
+// height (0 while online, index.css), so banner + shell is still one window.
+describe("CatalogShell · under the offline banner", () => {
+  it("subtracts the banner from the viewer's height, and nothing else is a full window", () => {
+    render(
+      <CatalogShell layout="viewport">
+        <p>scene</p>
+      </CatalogShell>,
+    );
+    const main = screen.getByRole("main");
+    expect(main.className).not.toMatch(/(^|\s)h-dvh/);
+    expect(main.parentElement?.className).not.toMatch(/(^|\s)min-h-dvh/);
+    expect(main.parentElement?.className).toContain("min-h-[calc(100dvh-var(--offline-h))]");
   });
 });
 

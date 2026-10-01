@@ -107,4 +107,18 @@ export default {
       />
     </div>
   ),
+  unavailable: (
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-3.5 p-6">
+      <CatalogCard
+        title="North Ridge Pad"
+        slug="north-ridge-pad"
+        badge={{ label: "ready", tone: "ok" }}
+        chips={[{ label: "3 placements", tone: "plain" }]}
+        trailing={{ label: "Open →", tone: "accent" }}
+        href="/territories/north-ridge-pad"
+        onOpen={() => {}}
+        unavailable="Unavailable offline"
+      />
+    </div>
+  ),
 };

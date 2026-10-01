@@ -2,7 +2,7 @@ import type { AuditEntry } from "@/entities/audit";
 import type { Passkey } from "@/entities/passkey";
 import type { TwoFactorStatus } from "@/entities/user";
 import type { Principal } from "@/shared/session";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { pageSummary } from "../model/paging";
 import { postureCards } from "../model/posture";
 import { AccountHeader } from "./account-header";
@@ -43,6 +43,8 @@ export type AccountPageProps = {
   onPage: (page: number) => void;
   onSignOut: () => void;
   signingOut: boolean;
+  /** The desktop shell's Storage section; absent in a browser. */
+  storage?: ReactNode;
 };
 
 /** The account screen's content: identity, posture, password, 2FA, passkeys, activity. Draws no chrome. */
@@ -84,6 +86,7 @@ export function AccountPage(props: AccountPageProps) {
         onRemove={props.onRemovePasskey}
         onAdded={props.onPasskeyAdded}
       />
+      {props.storage}
       <ActivitySection
         entries={props.activity}
         page={props.activityPage}

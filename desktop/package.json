@@ -1,0 +1,30 @@
+{
+  "name": "andrey-desktop",
+  "productName": "Andrey",
+  "version": "0.3.0",
+  "description": "Desktop client for the Andrey 3D viewer",
+  "homepage": "https://andrey.vbncursed.fun",
+  "author": {
+    "name": "vbncursed",
+    "email": "vbncursed@users.noreply.github.com"
+  },
+  "private": true,
+  "main": "dist/main.js",
+  "scripts": {
+    "build:ts": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "oxlint src",
+    "test": "vitest run",
+    "dev": "yarn build:ts && electron .",
+    "dist": "yarn build:ts && electron-builder --publish never"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "electron": "44.5.1",
+    "electron-builder": "26.15.3",
+    "oxlint": "1.86.0",
+    "typescript": "7.0.2",
+    "vite": "^8",
+    "vitest": "5.0.3"
+  }
+}

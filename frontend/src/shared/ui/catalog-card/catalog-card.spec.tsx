@@ -268,4 +268,23 @@ describe("CatalogCard", () => {
     expect(still).not.toContain("hover:border-line-2");
     expect(still).not.toContain("active:scale");
   });
+
+  it("is not openable and says why when unavailable", async () => {
+    const onOpen = vi.fn();
+    render(
+      <CatalogCard
+        title="North Ridge Pad"
+        slug="north-ridge-pad"
+        trailing={{ label: "Open →", tone: "accent" }}
+        href="/territories/north-ridge-pad"
+        onOpen={onOpen}
+        unavailable="Unavailable offline"
+      />,
+    );
+    expect(screen.getByText("Unavailable offline")).toBeInTheDocument();
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.queryByText("Open →")).toBeNull();
+    await userEvent.click(screen.getByText("North Ridge Pad"));
+    expect(onOpen).not.toHaveBeenCalled();
+  });
 });

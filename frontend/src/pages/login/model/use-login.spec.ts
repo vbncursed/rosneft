@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HttpError } from "@/shared/api";
+import type { DesktopBridge } from "@/shared/lib/desktop";
 import { beginLogin, finishLogin, getCredential } from "@/entities/passkey";
 import { login, startSession, verifyTwoFactor } from "@/entities/user";
 import { useLogin } from "./use-login";
@@ -35,7 +36,7 @@ vi.mock("@tanstack/react-router", () => ({
 beforeEach(() => {
   vi.resetAllMocks();
   search = {};
-  delete window.__DESKTOP__;
+  delete window.desktop;
 });
 
 const ceremony = () => {
@@ -163,9 +164,9 @@ describe("useLogin", () => {
       expect(result.current.credentials.onPasskey).toBeTypeOf("function");
     });
 
-    // The desktop shell's loopback origin is never an RP origin.
+    // A desktop OS where the ceremony does not work.
     it("offers none in the desktop shell", () => {
-      window.__DESKTOP__ = true;
+      window.desktop = { passkeys: false } as DesktopBridge;
       const { result } = renderHook(() => useLogin());
       expect(result.current.credentials.onPasskey).toBeUndefined();
     });

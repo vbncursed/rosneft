@@ -1,0 +1,91 @@
+import { useState } from "react";
+import { desktopBridge } from "@/shared/lib/desktop";
+import { useOnline } from "@/shared/lib/use-online";
+import { Button } from "@/shared/ui/button";
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
+import { Icon } from "@/shared/ui/icon";
+import { offlineActions, useOfflineTerritory } from "../model/offline-store";
+import { offlineView, type OfflineView } from "../model/offline-view";
+
+const ICON = { idle: "download", saving: "close", saved: "check", failed: "refresh", offline: "download" } as const;
+const ACTION: Record<OfflineView["kind"], string> = { idle: "Save offline", saving: "Cancel", saved: "Remove from device",
+  failed: "Retry",
+  offline: "Save offline",
+};
+
+// The icon alone says little, so the name says what a press does (or why it does nothing).
+const COMPACT_NAME: Record<OfflineView["kind"], (title: string, label: string) => string> = {
+  idle: (title) => `Save ${title} offline`,
+  saving: (title, label) => `Cancel saving ${title} — ${label}`,
+  saved: (title, label) => `${title} — ${label}`,
+  failed: (title, label) => `Retry saving ${title} — ${label}`,
+  offline: (title) => `Reconnect to save ${title}`,
+};
+
+export type OfflineControlProps = {
+  view: OfflineView;
+  title: string;
+  onAct: () => void;
+  compact?: boolean;
+};
+
+/** What the control looks like for one state — the part a fixture can draw without a shell. */
+export function OfflineControl({ view, title, onAct, compact = false }: OfflineControlProps) {
+  if (compact) {
+    const name = COMPACT_NAME[view.kind](title, view.label);
+    return (
+      <Button shape="icon" size="sm" variant="secondary" aria-label={name} tooltip={{ label: view.label }} disabled={view.kind === "saved" || view.kind === "offline"} onClick={onAct}>
+        <Icon name={ICON[view.kind]} size={14} />
+      </Button>
+    );
+  }
+  return (
+    <span className="flex items-center gap-2">
+      <span role="status" className="font-mono text-[10px] text-muted">
+        {view.label}
+      </span>
+      <Button variant="secondary" size="sm" disabled={view.kind === "offline"} onClick={onAct}>
+        <Icon name={ICON[view.kind]} size={14} className="mr-2" />
+        {ACTION[view.kind]}
+      </Button>
+    </span>
+  );
+}
+
+export type OfflineToggleProps = {
+  slug: string;
+  title: string;
+  /** The catalog card's icon control: save, cancel or retry — removal lives on the viewer and the Storage section. */
+  compact?: boolean;
+};
+
+/** Save a territory to this device, follow the download, remove it. Draws nothing outside the desktop shell. */
+export function OfflineToggle({ slug, title, compact = false }: OfflineToggleProps) {
+  const { saved, progress } = useOfflineTerritory(slug);
+  const online = useOnline();
+  const [removing, setRemoving] = useState(false);
+  if (!desktopBridge()) return null;
+  const view = offlineView(saved, progress, online);
+  const act = () => {
+    if (view.kind === "saving") offlineActions.cancel(slug);
+    else if (view.kind === "saved") setRemoving(true);
+    else offlineActions.save(slug);
+  };
+  return (
+    <>
+      <OfflineControl view={view} title={title} onAct={act} compact={compact} />
+      <ConfirmDialog
+        open={removing}
+        tone="danger"
+        title={`Remove ${title} from this device?`}
+        description="It will need the network to download again."
+        confirmLabel="Remove"
+        onConfirm={() => {
+          setRemoving(false);
+          void offlineActions.remove(slug);
+        }}
+        onCancel={() => setRemoving(false)}
+      />
+    </>
+  );
+}

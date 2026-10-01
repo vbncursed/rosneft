@@ -191,4 +191,16 @@ describe("TerritoryCatalogPage preload", () => {
     render(<TerritoryCatalogPage {...props({ canReplace: false })} />);
     expect(screen.queryByRole("button", { name: /Edit details of/ })).not.toBeInTheDocument();
   });
+
+  it("puts each card's offline control among its actions and dims what is unavailable", () => {
+    render(
+      <TerritoryCatalogPage
+        {...props()}
+        offlineControl={(card) => <button type="button">{`offline ${card.slug}`}</button>}
+        unavailable={(slug) => slug === "north-ridge-pad"}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "offline north-ridge-pad" })).toBeInTheDocument();
+    expect(screen.getByText("Unavailable offline")).toBeInTheDocument();
+  });
 });

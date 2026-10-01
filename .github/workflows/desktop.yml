@@ -7,9 +7,10 @@ on:
   push:
     tags: ["desktop-v*"]
   pull_request:
+    # The SPA is no longer embedded — the shell loads it from production — so a
+    # frontend change cannot break this build.
     paths:
       - "desktop/**"
-      - "frontend/**"
       - ".github/workflows/desktop.yml"
 
 jobs:
@@ -20,145 +21,85 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-      # webkit2gtk and its friends are what tauri links against; without them
-      # cargo fails at link time, not at compile time, which reads as a mystery.
-      - run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: desktop/src-tauri
-      # tauri::generate_context!() embeds frontendDist at Rust compile time, so
-      # cargo fmt/clippy/test all need a built frontend/dist to exist first —
-      # not just `cargo tauri build` (that's the `build` job below).
-      - run: yarn --cwd frontend install --frozen-lockfile
-      - run: yarn --cwd frontend build
+          cache: yarn
+          cache-dependency-path: desktop/yarn.lock
+      - run: yarn --cwd desktop install --frozen-lockfile
       - run: make -C desktop check
-
-      # `make check` is fmt, clippy and tests — it scans no dependencies. Five
-      # crates took a major bump in one commit here, so the advisory database
-      # is the only thing that would notice a known hole in one of them.
-      # taiki-e/install-action fetches a prebuilt binary; `cargo install
-      # cargo-audit` compiles it on every run for the same result.
-      - uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-audit
-      - run: cargo audit
-        working-directory: desktop/src-tauri
+      # Electron ships inside every installer, so its advisories matter even
+      # though it is a devDependency: audit every group, fail on high.
+      - run: yarn --cwd desktop audit --level high
 
   build:
     needs: check
-    # The repository's default workflow token is read-only, so creating a
-    # release fails with "Resource not accessible by integration" — after a
-    # full build on all three runners. Granted here rather than repo-wide so
-    # the check job keeps the read-only default.
+    # The default workflow token is read-only; creating a release needs write.
+    # Granted here rather than repo-wide so check keeps the read-only default.
     permissions:
       contents: write
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-22.04, windows-latest]
+        include:
+          # dmg + zip for arm64 and x64: macos-latest builds both arches.
+          - os: macos-latest
+            expect: 4
+          # 22.04: the oldest glibc the AppImage then runs on. AppImage + deb.
+          - os: ubuntu-22.04
+            expect: 2
+          # NSIS setup + portable exe.
+          - os: windows-latest
+            expect: 2
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-      - uses: dtolnay/rust-toolchain@stable
-      - if: matrix.os == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: desktop/src-tauri
-      - run: yarn --cwd frontend install --frozen-lockfile
-      # Explicit, because tauri.conf.json declares no beforeBuildCommand:
-      # tauri resolves it against projectPath (desktop/) while the config
-      # itself lives a level deeper, so any relative path there is correct
-      # for exactly one of the two ways this gets invoked.
-      - run: yarn --cwd frontend build
+          cache: yarn
+          cache-dependency-path: desktop/yarn.lock
+      - run: yarn --cwd desktop install --frozen-lockfile
 
-      # The version lives in tauri.conf.json — the bundler stamps it into every
-      # installer name — and the tag has to agree with it, or a release called
-      # v0.2.0 ships files called 0.1.0. Nothing used to check that, and the
-      # mismatch is only visible to whoever reads both. Checked before the
-      # build, so a wrong tag costs seconds instead of three full builds.
+      # The tag has to agree with package.json's version, or a release called
+      # v0.4.0 ships files called 0.3.0. Checked before the build, so a wrong tag
+      # costs seconds instead of three builds.
       - id: meta
         shell: bash
         run: |
           set -euo pipefail
-          version=$(node -p "require('./desktop/src-tauri/tauri.conf.json').version")
-          if [ "$GITHUB_REF_TYPE" = tag ]; then
-            expected="desktop-v${version}"
-            if [ "$GITHUB_REF_NAME" != "$expected" ]; then
-              echo "::error::tag $GITHUB_REF_NAME does not match tauri.conf.json version $version (expected $expected)"
-              exit 1
-            fi
+          version=$(node -p "require('./desktop/package.json').version")
+          if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "desktop-v${version}" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match desktop/package.json version $version"
+            exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
-      # Builds and packages only. Publishing is the step below: tauri-action
-      # uploads whatever the bundler named, and those names (Andrey_0.2.0_
-      # aarch64.dmg) leak the bundler's arch spelling into a user-facing
-      # download. Leaving tagName empty keeps this action away from Releases
-      # entirely, on a tag push as much as on a pull request.
-      - uses: tauri-apps/tauri-action@v1
-        with:
-          projectPath: desktop
+      # electron-builder.yml sets mac.identity "-", which signs ad-hoc whatever
+      # auto-discovery finds (Apple Silicon refuses an unsigned arm64 binary).
+      # CSC_FOR_PULL_REQUEST: the builder skips signing on pull_request runs, and
+      # a PR's arm64 artifact would then not launch. No certificate is configured
+      # on any runner, so nothing but the ad-hoc signature is applied.
+      - run: yarn --cwd desktop dist
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_FOR_PULL_REQUEST: "true"
 
-      # One name for both destinations — the run's Artifacts and the Release —
-      # so a file downloaded from either is called the same thing.
-      #
-      # The arch label follows each platform's own convention rather than one
-      # spelling for all three: macOS says arm64, Linux says x86_64, Windows
-      # says x64, and a user matching a download against their machine reads
-      # the word their OS uses. RUNNER_ARCH is only consulted on macOS, where
-      # both kinds of runner exist.
-      - id: package
-        shell: bash
-        # Passed as an environment variable rather than interpolated into the
-        # script: `${{ }}` is textual substitution into the shell source, and
-        # that is the shape workflow injections take. This value comes from our
-        # own tauri.conf.json, but the habit is the point.
+      # Names come from electron-builder.yml's artifactName. Exactly the expected
+      # set per OS: anything else means the builder wrote somewhere these globs
+      # do not look, and silently publishing less is what this catches. The
+      # globs stop at the extension, so *.blockmap, latest*.yml and
+      # builder-debug.yml never match.
+      - shell: bash
         env:
-          VERSION: ${{ steps.meta.outputs.version }}
+          EXPECT: ${{ matrix.expect }}
         run: |
           set -euo pipefail
-          version="$VERSION"
-          case "$RUNNER_OS" in
-            macOS)   platform=macos;   arch=$([ "$RUNNER_ARCH" = ARM64 ] && echo arm64 || echo x64) ;;
-            Linux)   platform=linux;   arch=x86_64 ;;
-            Windows) platform=windows; arch=x64 ;;
-            *)       echo "::error::unknown runner OS $RUNNER_OS"; exit 1 ;;
-          esac
-
           mkdir -p dist
           shopt -s nullglob
-          bundle=desktop/src-tauri/target/release/bundle
-          for built in "$bundle"/dmg/*.dmg "$bundle"/appimage/*.AppImage "$bundle"/nsis/*.exe; do
-            ext="${built##*.}"
-            # NSIS produces an installer, not the app; the suffix says so.
-            [ "$ext" = exe ] && suffix=-setup || suffix=
-            mv "$built" "dist/Andrey-${version}-${platform}-${arch}${suffix}.${ext}"
+          for f in desktop/release/Andrey-*.dmg desktop/release/Andrey-*.zip desktop/release/Andrey-*.exe desktop/release/Andrey-*.AppImage desktop/release/Andrey-*.deb; do
+            mv "$f" dist/
           done
-
-          # Every OS produces exactly one installer. An empty dist/ means the
-          # bundler wrote somewhere these globs do not look, and silently
-          # publishing nothing is the failure this catches.
-          count=$(ls -1 dist | wc -l)
-          [ "$count" -eq 1 ] || { echo "::error::expected 1 installer, found $count"; ls -la dist; exit 1; }
+          count=$(ls -1 dist | wc -l | tr -d ' ')
+          [ "$count" -eq "$EXPECT" ] || { echo "::error::expected $EXPECT installers, found $count"; ls -la dist desktop/release; exit 1; }
           ls -la dist
 
-      # Without this the installers are built and then thrown away with the
-      # runner. They are unsigned, so treat a download as a smoke test, not a
-      # release — see desktop/README.md for what each OS does to an unsigned
-      # bundle and how to get past it.
       - uses: actions/upload-artifact@v7
         with:
           name: andrey-desktop-${{ matrix.os }}
@@ -169,20 +110,18 @@ jobs:
       # Only a tag publishes; a pull request cannot, whatever it does to this
       # file. The three matrix jobs all target the same release and finish at
       # different times, so the action has to create-or-update rather than
-      # create — that is what this one does, and it is why the upload is not
-      # three hand-rolled `gh release` calls racing each other.
+      # create.
       - if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v3
         with:
-          # The tag is `desktop-v0.2.0`; the title says `Andrey Desktop v0.2.0`.
-          # Interpolating the tag straight in produced "Andrey Desktop
-          # desktop-v0.2.0", which reads like a typo because it is one.
+          # The tag is `desktop-v0.4.0`; the title says `Andrey Desktop v0.4.0`.
           name: Andrey Desktop v${{ steps.meta.outputs.version }}
           files: dist/*
           draft: false
           body: |
-            Desktop client for the 3D viewer. Points at production
+            Desktop client for the 3D viewer. Loads production
             (`https://andrey.vbncursed.fun`) — sign in with your normal account.
+            Territories you save with **Save offline** open without a network.
 
             **These builds are not code-signed, and every OS will object.**
 
@@ -190,9 +129,9 @@ jobs:
               opened"*. The message is misleading — the file is fine. After
               dragging it to `/Applications`, run:
               `xattr -dr com.apple.quarantine /Applications/Andrey.app`
-            - **Windows** shows SmartScreen: *More info → Run anyway*.
-            - **Linux** needs `chmod +x` on the `.AppImage`. If a scene runs at
-              a crawl, try `WEBKIT_DISABLE_DMABUF_RENDERER=1` — WebKitGTK falls
-              back to software rendering on some drivers.
+            - **Windows** shows SmartScreen: *More info → Run anyway*. The
+              portable `.exe` needs no install.
+            - **Linux** needs `chmod +x` on the `.AppImage`, or install the
+              `.deb` with `sudo apt install ./Andrey-*.deb`.
 
             There is no auto-update; check back here for newer builds.

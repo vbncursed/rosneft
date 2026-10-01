@@ -5,6 +5,7 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 // Shared with src/architecture.spec.ts's EXEMPT — one policy, one list.
 import { EXEMPT_MODULES } from "./exempt-modules.ts";
+import { shellManifest } from "./build/shell-manifest.ts";
 
 // These three.js packages ship no `exports` map, and vitest resolves no
 // `module` field (mainFields: []), so under test each loaded its `main` — a
@@ -28,7 +29,7 @@ const ESM_BUILDS = {
 };
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), shellManifest()],
   resolve: {
     alias: { "@": path.resolve(import.meta.dirname, "src") },
   },
@@ -59,7 +60,7 @@ export default defineConfig({
       replacement: `${pkg}/${file}`,
     })),
     server: { deps: { inline: Object.keys(ESM_BUILDS) } },
-    include: ["src/**/*.spec.ts", "src/**/*.spec.tsx"],
+    include: ["src/**/*.spec.ts", "src/**/*.spec.tsx", "build/**/*.spec.ts"],
     coverage: {
       provider: "v8",
       include: ["src/**/*.{ts,tsx}"],

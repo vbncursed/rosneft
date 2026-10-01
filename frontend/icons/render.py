@@ -1,5 +1,5 @@
 """Render icon 2e (Site Icon.dc.html) into every format the web app and the
-desktop bundle ship, and the link-preview card (OG Card.dc.html, 1a).
+desktop bundle ship (desktop icons land in desktop/build), and the link-preview card (OG Card.dc.html, 1a).
 Run from anywhere:  python3 frontend/icons/render.py
 Needs Python 3.10+, Playwright with Chromium (python3 -m playwright install
 chromium), Pillow, macOS iconutil for .icns, and frontend/node_modules for
@@ -16,7 +16,7 @@ from playwright.sync_api import sync_playwright
 
 HERE = Path(__file__).resolve().parent
 PUBLIC = HERE.parent / "public"
-DESKTOP = HERE.parents[1] / "desktop" / "src-tauri" / "icons"
+DESKTOP = HERE.parents[1] / "desktop" / "build"
 SRC = {k: (HERE / f).read_text() for k, f in
        {"main": "icon.svg", "maskable": "icon-maskable.svg", "small": "icon-small.svg"}.items()}
 FAVICON_RX = 6                 # on the 32 grid: 3 px at 16, as the mock's tab
@@ -91,9 +91,10 @@ def main() -> None:
         png("main", 512).save(PUBLIC / "icon-512.png")
         png("maskable", 512).save(PUBLIC / "icon-maskable-512.png")
 
-        # Desktop: square PNGs (Linux, window icon), rounded .ico (Windows).
-        for name, px in [("32x32.png", 32), ("128x128.png", 128), ("128x128@2x.png", 256), ("icon.png", 512)]:
-            png("main", px).save(DESKTOP / name)
+        # Desktop (electron-builder reads desktop/build/): a 512 PNG for Linux,
+        # the rounded .ico for Windows, the .icns below for macOS.
+        DESKTOP.mkdir(parents=True, exist_ok=True)
+        png("main", 512).save(DESKTOP / "icon.png")
         save_ico([png("small" if s == 16 else "main", s, WINDOWS_RX) for s in (16, 24, 32, 48, 64, 128, 256)],
                  DESKTOP / "icon.ico")
 

@@ -16,6 +16,8 @@ node_modules/
 .next/
 out/
 build/
+!frontend/build/
+!desktop/build/
 dist/
 *.tsbuildinfo
 next-env.d.ts
@@ -91,3 +93,7 @@ docker-compose.override.*.yml
 .agents/
 skills-lock.json
 .claude/skills/tauri*
+
+desktop/node_modules/
+desktop/dist/
+desktop/release/

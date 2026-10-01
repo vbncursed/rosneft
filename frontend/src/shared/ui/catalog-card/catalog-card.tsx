@@ -39,16 +39,14 @@ export type CatalogCardProps = {
    * new tab, middle-clickable and copyable; `onOpen` alone gives none of that.
    */
   href?: string;
+  /** Shown instead of opening — the desktop shell offline, on a territory it never saved. */
+  unavailable?: string;
   /** md = Territory Catalog, sm = Model Library. */
   size?: "md" | "sm";
   className?: string;
 };
 
-const TONE: Record<CatalogTone, string> = {
-  neutral: "border-line",
-  warn: "border-warn",
-  bad: "border-bad",
-};
+const TONE: Record<CatalogTone, string> = { neutral: "border-line", warn: "border-warn", bad: "border-bad" };
 
 const TRAILING: Record<CatalogCardProps["trailing"]["tone"], string> = {
   accent: "text-accent",
@@ -81,16 +79,22 @@ export function CatalogCard({
   onOpen,
   onPreload,
   href,
+  unavailable,
   size = "md",
   className,
 }: CatalogCardProps) {
   const sm = size === "sm";
+  // Offline and never saved: the card still shows what exists, it just cannot open.
+  const open = unavailable ? undefined : onOpen;
+  const preload = unavailable ? undefined : onPreload;
+  const link = unavailable ? undefined : href;
+  const shownChips: CatalogChip[] | undefined = unavailable ? [...(chips ?? []), { label: unavailable, tone: "plain" }] : chips;
   // The article's own onClick handles the rest of the card; without stopping
   // here the click would bubble there too and fire onOpen a second time.
   const stop = (event: { stopPropagation: () => void }) => event.stopPropagation();
   // The card is one target: a hover anywhere lights the title (group-hover)
   // and, on a neutral card, the frame — a converting or failed card keeps its tone.
-  const openable = Boolean(onOpen || href);
+  const openable = Boolean(open || link);
   const interactive =
     "m-0 border-0 bg-transparent p-0 text-left text-inherit no-underline [font:inherit] transition-colors duration-150 group-hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
   const titleClass = cx(
@@ -101,14 +105,15 @@ export function CatalogCard({
   return (
     <article
       aria-label={title}
-      onClick={onOpen}
-      onMouseEnter={onPreload}
-      onFocus={onPreload}
+      onClick={open}
+      onMouseEnter={preload}
+      onFocus={preload}
       className={cx(
         "group overflow-hidden border bg-panel transition-[border-color,scale] duration-150 ease-out",
         TONE[tone],
         openable && tone === "neutral" && "hover:border-line-2",
-        onOpen && "cursor-pointer active:scale-[0.99]",
+        open && "cursor-pointer active:scale-[0.99]",
+        unavailable && "opacity-60",
         sm ? "rounded-[12px]" : "rounded-[14px]",
         className,
       )}
@@ -153,16 +158,16 @@ export function CatalogCard({
         )}
       >
         <h3 className={titleClass}>
-          {href ? (
-            <a href={href} onClick={stop} className={interactive}>
+          {link ? (
+            <a href={link} onClick={stop} className={interactive}>
               {title}
             </a>
-          ) : onOpen ? (
+          ) : open ? (
             <button
               type="button"
               onClick={(event) => {
                 stop(event);
-                onOpen();
+                open();
               }}
               className={interactive}
             >
@@ -178,9 +183,9 @@ export function CatalogCard({
 
         {description ? <p className="m-0 text-[13px] leading-[1.55] text-muted">{description}</p> : null}
 
-        {chips && chips.length > 0 ? (
+        {shownChips && shownChips.length > 0 ? (
           <div className="flex flex-wrap gap-1.5">
-            {chips.map((chip, index) => {
+            {shownChips.map((chip, index) => {
               const { tone: chipTone, fill } = CHIP[chip.tone];
               return (
                 <Badge key={`${chip.label}-${index}`} tone={chipTone} fill={fill} shape="chip">
@@ -211,15 +216,17 @@ export function CatalogCard({
           )}
         >
           {sm ? null : <span className="truncate font-mono text-[11px] text-muted">{slug}</span>}
-          <span
-            className={cx(
-              "whitespace-nowrap font-mono text-[10px]",
-              sm ? "tracking-[0.06em]" : "uppercase tracking-[0.16em]",
-              TRAILING[trailing.tone],
-            )}
-          >
-            {trailing.label}
-          </span>
+          {unavailable ? null : (
+            <span
+              className={cx(
+                "whitespace-nowrap font-mono text-[10px]",
+                sm ? "tracking-[0.06em]" : "uppercase tracking-[0.16em]",
+                TRAILING[trailing.tone],
+              )}
+            >
+              {trailing.label}
+            </span>
+          )}
           {sm && meta ? <span className="truncate font-mono text-[10px] text-muted">{meta}</span> : null}
         </div>
       </div>

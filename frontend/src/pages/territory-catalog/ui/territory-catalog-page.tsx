@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { TerritoryCard, territoryPath, type TerritoryCardModel } from "@/entities/territory";
 import { ThemeToggle } from "@/features/theme-toggle";
 import { FilterBar } from "@/features/audit-filter";
@@ -34,6 +35,10 @@ export type TerritoryCatalogPageProps = {
   onDelete: (slug: string) => void;
   /** What the list says when it is empty — a filter miss by default. */
   emptyHint?: string;
+  /** The desktop shell's per-card offline control; absent in a browser. */
+  offlineControl?: (card: TerritoryCardModel) => ReactNode;
+  /** True for a card that cannot open right now (offline and never saved). */
+  unavailable?: (slug: string) => boolean;
 };
 
 export function TerritoryCatalogPage({
@@ -52,6 +57,8 @@ export function TerritoryCatalogPage({
   onEdit,
   onDelete,
   emptyHint,
+  offlineControl,
+  unavailable,
 }: TerritoryCatalogPageProps) {
   return (
     <>
@@ -112,9 +119,11 @@ export function TerritoryCatalogPage({
               href={territoryPath(card.slug)}
               onOpen={() => onOpen(card.slug)}
               onPreload={card.status === "ready" ? warmViewer : undefined}
+              unavailable={unavailable?.(card.slug) ? "Unavailable offline" : undefined}
               actions={
-                canReplace || canDelete ? (
+                canReplace || canDelete || offlineControl ? (
                   <>
+                    {offlineControl?.(card)}
                     {canReplace ? (
                       <>
                         <Button

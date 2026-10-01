@@ -169,4 +169,15 @@ describe("AccountPage", () => {
     expect(screen.getByText("Two-factor status is unavailable right now.")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Enable two-factor" })).not.toBeInTheDocument();
   });
+
+  it("draws the storage slot between passkeys and activity, and nothing without one", () => {
+    const { rerender } = render(<AccountPage {...props()} />);
+    expect(screen.queryByText("Storage slot")).not.toBeInTheDocument();
+    rerender(<AccountPage {...props({ storage: <section aria-label="Storage slot" /> })} />);
+    const passkeys = screen.getByRole("heading", { level: 2, name: "Passkeys" });
+    const slot = screen.getByRole("region", { name: "Storage slot" });
+    const activity = screen.getByRole("heading", { level: 2, name: "My activity" });
+    expect(passkeys.compareDocumentPosition(slot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(slot.compareDocumentPosition(activity) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });

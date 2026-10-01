@@ -1,14 +1,18 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TerritoryCardModel } from "@/entities/territory";
+import { resetOfflineStore } from "@/features/offline-save";
+import type { DesktopBridge } from "@/shared/lib/desktop";
 import type { TerritoryCatalogState } from "../model/use-territory-catalog";
 import { TerritoryCatalogScreen } from "./territory-catalog-screen";
 
-const { useTerritoryCatalog, navigate } = vi.hoisted(() => ({
+const { useTerritoryCatalog, navigate, online } = vi.hoisted(() => ({
   useTerritoryCatalog: vi.fn(),
   navigate: vi.fn(),
+  online: { value: true },
 }));
+vi.mock("@/shared/lib/use-online", () => ({ useOnline: () => online.value }));
 vi.mock("../model/use-territory-catalog", () => ({ useTerritoryCatalog }));
 // A stand-in for the router context: the screen is rendered on its own.
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
@@ -55,6 +59,12 @@ const state = (over: Partial<TerritoryCatalogState> = {}): TerritoryCatalogState
 beforeEach(() => {
   useTerritoryCatalog.mockReset();
   navigate.mockReset();
+});
+
+afterEach(() => {
+  online.value = true;
+  delete window.desktop;
+  resetOfflineStore();
 });
 
 describe("TerritoryCatalogScreen", () => {
@@ -146,5 +156,39 @@ describe("TerritoryCatalogScreen", () => {
     render(<TerritoryCatalogScreen />);
     await userEvent.click(screen.getByRole("button", { name: "Edit details of T 1" }));
     expect(screen.getByRole("dialog", { name: "Edit T 1" })).toBeInTheDocument();
+  });
+
+  it("dims a territory that was never saved while the shell is offline, and says to reconnect on the unsaved one", async () => {
+    const saved = { slug: "t-1", title: "T 1", bytes: 10, savedAt: "t", syncedAt: "t" };
+    window.desktop = {
+      passkeys: false,
+      offline: { list: async () => [saved], save: async () => {}, cancel: async () => {}, remove: async () => {}, onProgress: () => () => {} },
+    } as unknown as DesktopBridge;
+    online.value = false;
+    useTerritoryCatalog.mockReturnValue(state());
+    render(<TerritoryCatalogScreen />);
+    expect(await screen.findByRole("button", { name: "T 1 — Available offline · 10 B" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reconnect to save T 2" })).toBeInTheDocument();
+    expect(screen.getAllByText("Unavailable offline")).toHaveLength(1);
+    expect(screen.queryByText("Open →", { selector: "article[aria-label=\"T 2\"] *" })).toBeNull();
+  });
+
+  it("draws no offline control in a browser", () => {
+    useTerritoryCatalog.mockReturnValue(state());
+    render(<TerritoryCatalogScreen />);
+    expect(screen.queryByRole("button", { name: /offline/ })).toBeNull();
+  });
+  it("does not call anything unavailable before the saved list has answered", async () => {
+    let answer: (v: unknown[]) => void = () => {};
+    window.desktop = {
+      passkeys: false,
+      offline: { list: () => new Promise((r) => (answer = r)), save: async () => {}, cancel: async () => {}, remove: async () => {}, onProgress: () => () => {} },
+    } as unknown as DesktopBridge;
+    online.value = false;
+    useTerritoryCatalog.mockReturnValue(state());
+    render(<TerritoryCatalogScreen />);
+    expect(screen.queryByText("Unavailable offline")).toBeNull();
+    await act(async () => answer([]));
+    expect(screen.getAllByText("Unavailable offline")).toHaveLength(2);
   });
 });
