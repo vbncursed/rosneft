@@ -13,6 +13,8 @@ export type TerritoryCardProps = {
   onPreload?: () => void;
   /** Top-right overlay controls — the catalog's replace/delete buttons. */
   actions?: ReactNode;
+  /** Shown instead of opening — offline, on a territory the device never saved. */
+  unavailable?: string;
 };
 
 const TONE: Record<ConversionStatus, CatalogTone> = {
@@ -29,7 +31,7 @@ const BADGE: Partial<Record<ConversionStatus, { label: string; tone: "ok" | "war
 };
 
 /** How a territory looks in a grid — the catalog's card, one geometry everywhere. */
-export function TerritoryCard({ card, href, onOpen, onPreload, actions }: TerritoryCardProps) {
+export function TerritoryCard({ card, href, onOpen, onPreload, actions, unavailable }: TerritoryCardProps) {
   return (
     <CatalogCard
       title={card.title}
@@ -44,6 +46,7 @@ export function TerritoryCard({ card, href, onOpen, onPreload, actions }: Territ
       onPreload={onPreload}
       href={href}
       actions={actions}
+      unavailable={unavailable}
     />
   );
 }

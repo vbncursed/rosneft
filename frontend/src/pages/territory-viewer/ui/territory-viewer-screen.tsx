@@ -1,6 +1,7 @@
 import { useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { EditDetailsDialog } from "@/features/edit-entity";
+import { OfflineToggle } from "@/features/offline-save";
 import { Callout } from "@/shared/ui/callout";
 import { NotFoundView } from "@/widgets/not-found";
 import { ViewerSkeleton } from "@/widgets/viewer-skeleton";
@@ -44,7 +45,14 @@ function ViewerBody({ slug }: { slug: string }) {
 
   return (
     <>
-      <TerritoryViewerPage {...state} header={{ ...state.header, onEdit: () => setEditing(true) }} />
+      <TerritoryViewerPage
+        {...state}
+        header={{
+          ...state.header,
+          onEdit: () => setEditing(true),
+          offline: <OfflineToggle slug={state.header.slug} title={state.header.title} />,
+        }}
+      />
       {editing ? (
         <EditDetailsDialog
           kind="territory"

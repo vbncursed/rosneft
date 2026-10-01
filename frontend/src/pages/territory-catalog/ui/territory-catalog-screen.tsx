@@ -2,6 +2,9 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { territoryPath, type TerritoryCardModel } from "@/entities/territory";
 import { EditDetailsDialog } from "@/features/edit-entity";
+import { OfflineToggle, useOfflineState } from "@/features/offline-save";
+import { desktopBridge } from "@/shared/lib/desktop";
+import { useOnline } from "@/shared/lib/use-online";
 import { Callout } from "@/shared/ui/callout";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { PageSkeleton } from "@/shared/ui/skeleton";
@@ -14,6 +17,9 @@ export function TerritoryCatalogScreen() {
   const s = useTerritoryCatalog();
   const navigate = useNavigate();
   const [editing, setEditing] = useState<TerritoryCardModel | null>(null);
+  const online = useOnline();
+  const offline = useOfflineState();
+  const inShell = desktopBridge() !== undefined;
 
   if (s.status === "loading") {
     return (
@@ -45,6 +51,8 @@ export function TerritoryCatalogScreen() {
         onReplace={(slug) => void navigate({ href: `/territories/${encodeURIComponent(slug)}/replace` })}
         onEdit={(slug) => setEditing(filtered.find((c) => c.slug === slug) ?? null)}
         onDelete={s.ask}
+        offlineControl={inShell ? (card) => <OfflineToggle compact slug={card.slug} title={card.title} /> : undefined}
+        unavailable={(slug) => !online && !offline.saved.has(slug)}
         {...(s.cards.length === 0
           ? { emptyHint: "No territories yet — upload one to get started." }
           : {})}

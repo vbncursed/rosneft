@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 import type { Chain, MeasurePoint } from "@/entities/measurement";
 import type { PlacementGroup, PlacementTransform, ResolvedPlacement } from "@/entities/placement";
 import type { LodChoice, ModelOption, SceneViewModel } from "@/entities/scene";
@@ -35,6 +35,8 @@ export type ViewerHeaderProps = {
   description?: string;
   /** Opens the details editor. The screen supplies it, so a fixture draws no button. */
   onEdit?: () => void;
+  /** The desktop shell's Save offline control; draws nothing in a browser. */
+  offline?: ReactNode;
 };
 
 export type ViewerErrorProps = {

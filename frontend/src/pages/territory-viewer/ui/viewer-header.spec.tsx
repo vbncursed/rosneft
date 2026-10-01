@@ -99,4 +99,9 @@ describe("ViewerHeader", () => {
     render(<ViewerHeader {...props({ canReplace: false, onEdit: vi.fn() })} />);
     expect(screen.queryByRole("button", { name: "Edit details" })).not.toBeInTheDocument();
   });
+
+  it("draws the offline control the screen hands it", () => {
+    render(<ViewerHeader {...props()} offline={<button type="button">offline control</button>} />);
+    expect(screen.getByRole("button", { name: "offline control" })).toBeInTheDocument();
+  });
 });

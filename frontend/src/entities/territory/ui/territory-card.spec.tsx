@@ -64,4 +64,10 @@ describe("TerritoryCard", () => {
     render(<TerritoryCard card={card({ status: "converting", progress: { value: 62, stage: "Compressing textures" }, trailing: { label: "converting", tone: "muted" } })} href="#" />);
     expect(screen.getByRole("progressbar", { name: "Compressing textures" })).toHaveAttribute("aria-valuenow", "62");
   });
+
+  it("says why it cannot open when told it is unavailable", () => {
+    render(<TerritoryCard card={card()} href="/territories/north-ridge-pad" unavailable="Unavailable offline" />);
+    expect(screen.getByText("Unavailable offline")).toBeInTheDocument();
+    expect(screen.queryByRole("link")).toBeNull();
+  });
 });
