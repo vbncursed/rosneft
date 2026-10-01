@@ -13,8 +13,7 @@ export type BlobFile = { hash: string; size: number; mtimeMs: number };
 
 /**
  * Least-recently-*modified* first, never a pinned file. Not LRU: a cache hit
- * reads the file and leaves its mtime alone — the same accepted trade-off the
- * Tauri shell's evict.rs made.
+ * reads the file and leaves its mtime alone; a real LRU would need a side-index.
  */
 export function pickVictims(files: BlobFile[], pinned: ReadonlySet<string>, limit: number): string[] {
   let total = files.reduce((n, f) => n + f.size, 0);

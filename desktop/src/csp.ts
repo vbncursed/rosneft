@@ -1,6 +1,5 @@
-// Ported verbatim from the Tauri shell (desktop/src-tauri/src/server.rs), where
-// it was verified against real territories: three.js and the Draco/basis
-// decoders need 'unsafe-eval' and blob: workers, pdf.js needs 'unsafe-inline'.
+// Verified against real territories: three.js and the Draco/basis decoders need
+// 'unsafe-eval' and blob: workers, pdf.js needs 'unsafe-inline'.
 // base-uri, form-action and frame-ancestors do not fall back to default-src —
 // left out they are unrestricted — so they are spelled out.
 export const CSP = [
