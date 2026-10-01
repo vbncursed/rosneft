@@ -17,9 +17,11 @@ const PARTITION = "persist:andrey";
 // keychain-access-groups entitlement, i.e. a Developer ID signature our builds lack.
 const PASSKEYS: Partial<Record<NodeJS.Platform, boolean>> = { darwin: false, win32: false, linux: false };
 
-// A build pointed elsewhere keeps its own profile: it never shares — or locks — the
-// installed app's cookie, cache or single-instance lock.
-if (process.env.DESKTOP_UPSTREAM) app.setPath("userData", `${app.getPath("userData")}-dev`);
+// A build pointed elsewhere, and any unpackaged run, keeps its own profile. An unpackaged
+// run has no fuses: it cannot read the installed app's encrypted cookie store and would
+// write plaintext into it. Neither may share — or lock — the installed app's cookie,
+// cache or single-instance lock.
+if (process.env.DESKTOP_UPSTREAM || !app.isPackaged) app.setPath("userData", `${app.getPath("userData")}-dev`);
 
 let win: BrowserWindow | null = null;
 let online: boolean | null = null;

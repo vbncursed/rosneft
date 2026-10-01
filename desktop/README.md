@@ -29,9 +29,12 @@ For a local backend, run the frontend's dev server (`yarn --cwd frontend dev`,
 port 3000, which proxies `/api`) and point the shell at it with
 `DESKTOP_UPSTREAM=http://localhost:3000`.
 
-When `DESKTOP_UPSTREAM` is set the user-data directory becomes
-`<userData>-dev`. That is deliberate: a dev build never shares the installed
-app's cookie, cache or single-instance lock, so the two run side by side.
+Every unpackaged run (`make dev`) and every run with `DESKTOP_UPSTREAM` set uses
+the user-data directory `<userData>-dev`. That is deliberate: a dev build never
+shares the installed app's cookie, cache or single-instance lock, so the two run
+side by side. It matters for more than tidiness: an unpackaged run has no fuses,
+so it cannot read the installed app's encrypted cookie store and would write
+plaintext cookies into it, which can sign the installed app out.
 
 `make build` runs electron-builder with the targets in `electron-builder.yml`:
 dmg + zip (arm64 and x64), NSIS setup + portable (x64), AppImage + deb (x64).
@@ -81,12 +84,15 @@ issues a session cookie with no expiry date, which Chromium drops when the app
 quits, so every launch starts at the sign-in screen, and offline you cannot sign
 in at all.
 
-**On macOS an unsigned dev build asks for Keychain access after every
-rebuild.** The ACL authorises the *binary that asked*, by signature, and every
-rebuild is a binary that was never on the list; **Always Allow** does not stick.
-That is the OS working as designed, not something the shell can code around. A
-signed release has a stable identity and is authorised once. `make dev` opens
-its window and works while the prompt is up.
+**A dev run does not touch the Keychain for cookies.** `make dev` has no fuses,
+so its cookies are plaintext in its own `-dev` profile.
+
+**On macOS a release asks for Keychain access again after every update.** It
+encrypts cookies with a key kept in the keychain ("Andrey Safe Storage"). The ACL
+authorises the *binary that asked*, and releases are only ad-hoc signed, so their
+identity is the cdhash, which changes with every build. **Always Allow** lasts
+until the next update. That is the OS working as designed, not something the
+shell can code around.
 
 ## Passkeys
 
