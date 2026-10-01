@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { Plugin } from "vite";
 
@@ -19,6 +19,9 @@ export function writeShellManifest(dir: string): void {
     for (const name of readdirSync(path.join(dir, rel)).sort()) {
       const relPath = rel ? `${rel}/${name}` : name;
       const full = path.join(dir, relPath);
+      // Finder litter copied from public/ must not ship; other dotfiles stay on disk but out of the manifest.
+      if (name === ".DS_Store") rmSync(full);
+      if (name.startsWith(".")) continue;
       if (statSync(full).isDirectory()) {
         walk(relPath);
         continue;

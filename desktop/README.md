@@ -124,13 +124,29 @@ Builds are **not code-signed**, and every OS will object. Only macOS carries an
 ad-hoc signature, which Apple Silicon needs to run an arm64 binary at all; it is
 not a Developer ID.
 
-- **macOS** reports the app as *"damaged and can't be opened"*. The message is
-  misleading, the file is fine. After dragging it to `/Applications`:
-  `xattr -dr com.apple.quarantine /Applications/Andrey.app`
-- **Windows** shows SmartScreen: *More info → Run anyway*. The portable `.exe`
-  needs no install.
-- **Linux** needs `chmod +x` on the `.AppImage`, or
-  `sudo apt install ./Andrey-*.deb`.
+- **macOS**: `Andrey-*-macos-arm64` for Apple Silicon, `Andrey-*-macos-x64`
+  for Intel, each as `.dmg` and `.zip`.
+  1. Open the dmg (or unzip) and drag Andrey to `/Applications`.
+  2. The first launch is blocked as *"damaged"* or *"cannot be opened"*. The
+     file is fine. Run `xattr -dr com.apple.quarantine /Applications/Andrey.app`,
+     or try to open the app once, then go to System Settings, Privacy &
+     Security, and press *Open Anyway* (it appears only after that blocked
+     attempt and stays for about an hour).
+  3. On first launch, and after every update, macOS asks for the Keychain item
+     "Andrey Safe Storage". Allow it (*Always Allow*); it holds the key that
+     encrypts your sign-in cookie.
+- **Windows**: `Andrey-*-windows-x64-setup.exe` or
+  `Andrey-*-windows-x64-portable.exe`. SmartScreen says "Windows protected your
+  PC": press *More info*, then *Run anyway*. The portable `.exe` needs no
+  install and shares its data with the installed version.
+- **Linux**: `Andrey-*-linux-x86_64.AppImage` or `Andrey-*-linux-amd64.deb`.
+  - AppImage: `chmod +x Andrey-*.AppImage && ./Andrey-*.AppImage`. Ubuntu
+    22.04 and newer may need `sudo apt install libfuse2`.
+  - deb: `sudo apt install ./Andrey-*.deb`.
+  - Without libsecret or KWallet (a keyring) the sign-in cookie is only
+    obfuscated, not encrypted.
+- **Sign-in**: keep "Keep me signed in on this device" ticked, or you are
+  signed out every time the app closes.
 
 There is no auto-update. Pull requests and manual runs build the same
 installers but publish nothing; they land in the run's Artifacts for 14 days.

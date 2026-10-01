@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync }
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { contentType, parseManifest, Shell } from "./shell";
+import { contentType, parseManifest, Shell, sizeAcceptable } from "./shell";
 
 const ORIGIN = "https://andrey.vbncursed.fun";
 const ID1 = "a".repeat(32);
@@ -53,7 +53,48 @@ describe("contentType", () => {
   });
 });
 
+describe("sizeAcceptable", () => {
+  it("lets an intermediary append to an HTML file", () => {
+    expect(sizeAcceptable("/index.html", 3545, 2607)).toBe(true);
+    expect(sizeAcceptable("/pdfjs/web/viewer.html", 10, 10)).toBe(true);
+  });
+  it("refuses a truncated HTML file", () => {
+    expect(sizeAcceptable("/index.html", 2606, 2607)).toBe(false);
+  });
+  it("keeps the exact check for every other file", () => {
+    expect(sizeAcceptable("/assets/a.js", 11, 10)).toBe(false);
+    expect(sizeAcceptable("/assets/a.js", 9, 10)).toBe(false);
+    expect(sizeAcceptable("/assets/a.js", 10, 10)).toBe(true);
+  });
+});
+
 describe("Shell", () => {
+  it("swaps the generation when a proxy appends a script to index.html", async () => {
+    const dir = root();
+    const appended = vi.fn(async (url: string) => {
+      const p = new URL(url).pathname;
+      if (p === "/shell-manifest.json") return json({ id: ID1, files: [{ path: "/index.html", size: 6 }] });
+      return new Response("<html><script>cf</script>");
+    });
+    const shell = new Shell(dir, ORIGIN, appended);
+    await shell.refresh();
+    expect(readFileSync(path.join(dir, "current"), "utf8")).toBe(ID1);
+    expect(await shell.file("/index.html")).toMatchObject({ size: 25 });
+  });
+
+  it("keeps the current generation when a .js file is longer than the manifest", async () => {
+    const dir = root();
+    await new Shell(dir, ORIGIN, server({ "/index.html": "<v1>" }, ID1)).refresh();
+    const longer = vi.fn(async (url: string) => {
+      const p = new URL(url).pathname;
+      if (p === "/shell-manifest.json") return json({ id: ID2, files: [{ path: "/index.html", size: 4 }, { path: "/a.js", size: 2 }] });
+      return new Response(p === "/a.js" ? "too long" : "<v2>");
+    });
+    await new Shell(dir, ORIGIN, longer).refresh();
+    expect(readFileSync(path.join(dir, "current"), "utf8")).toBe(ID1);
+    expect(existsSync(path.join(dir, ID2))).toBe(false);
+  });
+
   it("downloads a generation and serves its files by path", async () => {
     const dir = root();
     const shell = new Shell(dir, ORIGIN, server({ "/index.html": "<html>", "/assets/a.js": "js" }, ID1));

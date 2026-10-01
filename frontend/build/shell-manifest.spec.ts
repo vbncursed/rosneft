@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -38,5 +38,27 @@ describe("writeShellManifest", () => {
     writeShellManifest(dir);
     expect(read(dir).id).not.toBe(first);
     expect(read(dir).id).toMatch(/^[0-9a-f]{32}$/);
+  });
+  it("skips dotfiles and dot directories, and they do not affect the id", () => {
+    const dir = dist();
+    writeShellManifest(dir);
+    const first = read(dir).id;
+    writeFileSync(path.join(dir, ".DS_Store"), "x");
+    mkdirSync(path.join(dir, ".hidden"));
+    writeFileSync(path.join(dir, ".hidden", "x"), "x");
+    writeShellManifest(dir);
+    expect(read(dir).files.map((f: { path: string }) => f.path)).toEqual(["/assets/app.js", "/index.html"]);
+    expect(read(dir).id).toBe(first);
+  });
+  it("deletes .DS_Store at any depth and leaves other dotfiles in place", () => {
+    const dir = dist();
+    writeFileSync(path.join(dir, ".DS_Store"), "x");
+    writeFileSync(path.join(dir, "assets", ".DS_Store"), "x");
+    writeFileSync(path.join(dir, ".keep"), "x");
+    writeShellManifest(dir);
+    expect(existsSync(path.join(dir, ".DS_Store"))).toBe(false);
+    expect(existsSync(path.join(dir, "assets", ".DS_Store"))).toBe(false);
+    expect(existsSync(path.join(dir, ".keep"))).toBe(true);
+    expect(read(dir).files).toHaveLength(2);
   });
 });

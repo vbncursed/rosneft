@@ -29,6 +29,15 @@ export function parseManifest(raw: unknown): ShellManifest | null {
   return out.some((f) => f.path === "/index.html") ? { id, files: out } : null;
 }
 
+/**
+ * Production sits behind Cloudflare with JavaScript Detections on, which appends
+ * a <script> to every HTML response, so an HTML file arrives longer than the
+ * manifest says. An intermediary only appends: HTML may be longer, never
+ * shorter. Every other file must match exactly.
+ */
+export const sizeAcceptable = (urlPath: string, actual: number, expected: number): boolean =>
+  urlPath.endsWith(".html") ? actual >= expected : actual === expected;
+
 const TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript",
@@ -108,7 +117,7 @@ export class Shell {
       await mkdir(path.dirname(dest), { recursive: true });
       await pipeline(Readable.fromWeb(r.body as NodeWebStream<Uint8Array>), createWriteStream(dest));
       const size = (await stat(dest)).size;
-      if (size !== f.size) throw new Error(`shell: ${f.path} is ${size} bytes, manifest says ${f.size}`);
+      if (!sizeAcceptable(f.path, size, f.size)) throw new Error(`shell: ${f.path} is ${size} bytes, manifest says ${f.size}`);
     });
 
     await rm(path.join(this.root, manifest.id), { recursive: true, force: true });
