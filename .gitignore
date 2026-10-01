@@ -17,6 +17,7 @@ node_modules/
 out/
 build/
 !frontend/build/
+!desktop/build/
 dist/
 *.tsbuildinfo
 next-env.d.ts

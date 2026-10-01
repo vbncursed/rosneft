@@ -1,0 +1,48 @@
+appId: fun.vbncursed.andrey.desktop
+productName: Andrey
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**/*
+  - package.json
+publish: null
+
+mac:
+  category: public.app-category.productivity
+  icon: build/icon.icns
+  # Ad-hoc: Apple Silicon refuses to run an arm64 binary with no signature at
+  # all. Not a Developer ID — Gatekeeper still needs the xattr step (README).
+  identity: "-"
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+  artifactName: Andrey-${version}-macos-${arch}.${ext}
+
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+nsis:
+  artifactName: Andrey-${version}-windows-x64-setup.${ext}
+portable:
+  artifactName: Andrey-${version}-windows-x64-portable.${ext}
+
+linux:
+  icon: build/icon.png
+  category: Graphics
+  maintainer: vbncursed <vbncursed@users.noreply.github.com>
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
+appImage:
+  artifactName: Andrey-${version}-linux-x86_64.${ext}
+deb:
+  artifactName: Andrey-${version}-linux-amd64.${ext}
