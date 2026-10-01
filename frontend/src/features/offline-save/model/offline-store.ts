@@ -1,5 +1,7 @@
 import { useEffect, useSyncExternalStore } from "react";
+import { messageOf } from "@/shared/api";
 import { desktopBridge, type OfflineProgress, type SavedTerritory } from "@/shared/lib/desktop";
+import { notify } from "@/shared/lib/notify";
 
 type State = {
   saved: ReadonlyMap<string, SavedTerritory>;
@@ -78,7 +80,8 @@ export const offlineActions = {
   save: (slug: string): void => void desktopBridge()?.offline.save(slug).catch(() => undefined),
   cancel: (slug: string): void => void desktopBridge()?.offline.cancel(slug).catch(() => undefined),
   remove: async (slug: string): Promise<void> => {
-    await desktopBridge()?.offline.remove(slug);
+    // The one place a refused removal is reported (viewer and Storage section alike).
+    await desktopBridge()?.offline.remove(slug).catch((err: unknown) => notify.error(`Could not remove the territory from this device: ${messageOf(err)}`));
     await reload().catch(() => undefined);
   },
 };

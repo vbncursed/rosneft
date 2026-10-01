@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { clearNotices, useNotices } from "@/shared/lib/notify";
 import type { DesktopBridge, OfflineProgress } from "@/shared/lib/desktop";
 import { offlineActions, resetOfflineStore, syncOfflineUser, useOfflineState, useOfflineTerritory, useOfflineUser, useSavedTerritories } from "./offline-store";
 
@@ -19,6 +20,7 @@ function bridge() {
 }
 
 afterEach(() => {
+  clearNotices();
   delete window.desktop;
   resetOfflineStore();
 });
@@ -52,6 +54,13 @@ describe("offline store", () => {
     expect(b.offline.save).toHaveBeenCalledWith("a");
     expect(b.offline.cancel).toHaveBeenCalledWith("a");
     expect(b.offline.remove).toHaveBeenCalledWith("a");
+  });
+  it("reports a refused removal once instead of rejecting", async () => {
+    const b = bridge();
+    b.offline.remove.mockRejectedValue(new Error("EBUSY"));
+    const { result } = renderHook(() => useNotices());
+    await expect(offlineActions.remove("a")).resolves.toBeUndefined();
+    expect(result.current.map((n) => n.message)).toEqual(["Could not remove the territory from this device: Something went wrong. Try again."]);
   });
   it("survives a list that fails after a removal", async () => {
     const b = bridge();
