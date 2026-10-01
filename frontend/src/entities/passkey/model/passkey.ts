@@ -1,12 +1,5 @@
 import { supported } from "@github/webauthn-json";
 
-declare global {
-  interface Window {
-    /** Set by the Tauri shell's initialization script. Absent in a browser. */
-    __DESKTOP__?: boolean;
-  }
-}
-
 /** One registered credential, as the account screen lists it. */
 export type Passkey = {
   id: string;
@@ -20,14 +13,13 @@ export type Passkey = {
  * The single gate on the whole passkey surface. One check, not two: a second
  * one somewhere else is how the two drift apart.
  *
- * The desktop term is not about capability — the Tauri webview implements
- * WebAuthn perfectly well. Its origin is a loopback port that
- * `PASSKEY_RP_ORIGINS` will never list, so a ceremony started there fails with
- * an opaque client-side error and nothing in any server log. The desktop
- * shell sets `window.__DESKTOP__` in its init script (desktop/src-tauri/src/main.rs).
+ * Inside the desktop shell the origin is the real one, so the RP accepts it;
+ * what varies is the OS — Electron reaches Touch ID, Windows Hello or a
+ * security key differently on each — and the shell says per platform whether
+ * a ceremony works there (window.desktop.passkeys, set in desktop/src/main.ts).
  */
 export const isPasskeySupported = (): boolean =>
-  typeof window !== "undefined" && !window.__DESKTOP__ && supported();
+  typeof window !== "undefined" && (window.desktop?.passkeys ?? true) && supported();
 
 const dmy = (iso: string): string => {
   const d = new Date(iso);

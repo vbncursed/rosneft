@@ -4,6 +4,7 @@ import type { MouseEvent } from "react";
 import { meQuery } from "@/entities/user";
 import { viewerOf } from "@/shared/session";
 import { ConsoleLayout } from "@/widgets/console-layout";
+import { OfflineBanner } from "@/widgets/offline-banner";
 import { Toaster } from "@/widgets/toaster";
 import { activeSection, consoleNav, routesInApp } from "./guard";
 
@@ -33,6 +34,7 @@ export function ConsoleShell() {
     // role="presentation": the wrapper exists for the click delegate only and
     // adds nothing to the accessibility tree.
     <div role="presentation" onClickCapture={onClickCapture}>
+      <OfflineBanner />
       <ConsoleLayout
         items={consoleNav(me)}
         active={activeSection(pathname)}

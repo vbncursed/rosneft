@@ -38,4 +38,11 @@ describe("registerServiceWorker", () => {
 
     expect(handle).toHaveBeenCalledOnce();
   });
+
+  it("registers nothing inside the desktop shell, which owns offline itself", () => {
+    const register = vi.fn(() => Promise.resolve());
+    const win = { desktop: {}, addEventListener: vi.fn() } as unknown as Window;
+    registerServiceWorker({ serviceWorker: { register } } as unknown as Navigator, win);
+    expect(win.addEventListener).not.toHaveBeenCalled();
+  });
 });

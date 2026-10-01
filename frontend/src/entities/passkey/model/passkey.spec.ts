@@ -1,23 +1,25 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { DesktopBridge } from "@/shared/lib/desktop";
 import { isPasskeySupported, passkeyMeta } from "./passkey";
 
 vi.mock("@github/webauthn-json", () => ({ supported: () => true }));
 
 describe("isPasskeySupported", () => {
   afterEach(() => {
-    delete window.__DESKTOP__;
+    delete window.desktop;
   });
 
   it("is true in a browser that can run the ceremony", () => {
     expect(isPasskeySupported()).toBe(true);
   });
 
-  // The Tauri shell *has* WebAuthn — only its RP origin, a loopback port,
-  // is one PASSKEY_RP_ORIGINS will never list. Reporting supported there
-  // offers an Add control whose ceremony fails with no server log at all.
-  it("is false inside the desktop shell, where the ceremony cannot succeed", () => {
-    window.__DESKTOP__ = true;
+  it("is false inside the desktop shell when this OS has no working ceremony", () => {
+    window.desktop = { passkeys: false } as DesktopBridge;
     expect(isPasskeySupported()).toBe(false);
+  });
+  it("is true inside the desktop shell when this OS has one", () => {
+    window.desktop = { passkeys: true } as DesktopBridge;
+    expect(isPasskeySupported()).toBe(true);
   });
 });
 

@@ -3,6 +3,7 @@ import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import type { MouseEvent } from "react";
 import { meQuery } from "@/entities/user";
 import { CatalogShell } from "@/widgets/catalog-shell";
+import { OfflineBanner } from "@/widgets/offline-banner";
 import { Toaster } from "@/widgets/toaster";
 import { isTerritoryPage, routesInApp } from "./guard";
 
@@ -36,6 +37,7 @@ export function CatalogShellRoute() {
     // role="presentation": the wrapper exists for the click delegate only and
     // adds nothing to the accessibility tree.
     <div role="presentation" onClickCapture={onClickCapture}>
+      <OfflineBanner />
       <CatalogShell layout={viewer ? "viewport" : "page"}>
         <Outlet />
       </CatalogShell>
