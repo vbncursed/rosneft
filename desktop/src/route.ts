@@ -37,3 +37,6 @@ export function classify(method: string, url: URL): Route {
   const last = path.slice(path.lastIndexOf("/") + 1);
   return last.includes(".") ? { kind: "shell", path } : { kind: "navigate" };
 }
+
+/** The answers a proxy gives when the backend behind it is down (Cloudflare's 520-527 included): to the shell that is "offline", not the server speaking. */
+export const serverUnreachable = (status: number): boolean => status === 502 || status === 503 || status === 504 || (status >= 520 && status <= 527);

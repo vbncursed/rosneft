@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classify } from "./route";
+import { classify, serverUnreachable } from "./route";
 
 const at = (path: string) => new URL(`https://andrey.vbncursed.fun${path}`);
 const HASH = "b".repeat(64);
@@ -36,4 +36,9 @@ describe("classify", () => {
     expect(classify("POST", at("/api/territories"))).toEqual({ kind: "pass" });
     expect(classify("POST", at("/"))).toEqual({ kind: "pass" });
   });
+});
+
+describe("serverUnreachable", () => {
+  it.each([502, 503, 504, 520, 523, 527])("%i is a dead backend", (status) => expect(serverUnreachable(status)).toBe(true));
+  it.each([200, 304, 400, 401, 404, 429, 500, 501, 505, 519, 528])("%i is the server speaking", (status) => expect(serverUnreachable(status)).toBe(false));
 });

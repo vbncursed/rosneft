@@ -54,7 +54,10 @@ Three layers, all on disk under the profile's `cache/`:
    the app boots and serves any route from the current generation.
 2. **Snapshots** — the last good answer of a fixed whitelist of `GET /api`
    routes (`auth/me`, `territories`, one territory, its `scene`, `models`).
-   Nothing with a query string is stored.
+   Nothing with a query string is stored. A 502, 503, 504 or 520-527 from the
+   server counts as "unreachable": the saved copy is served and the app reads
+   as offline; with no copy the answer passes through. Any other status is the
+   server speaking and passes through.
 3. **Blobs** — `GET /api/assets/{hash}`, per user, each verified against its
    own SHA-256 before it is kept. They are evicted least-recently-*modified*
    first once the cache passes the limit (5, 10, 20 or 50 GB, 10 by default,

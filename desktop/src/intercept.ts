@@ -3,7 +3,7 @@ import { Readable } from "node:stream";
 import { withCsp } from "./csp";
 import { offlineResponse } from "./offline-page";
 import { parseRange } from "./range";
-import { classify, type Route } from "./route";
+import { classify, serverUnreachable, type Route } from "./route";
 import type { SettingsFile } from "./settings";
 import type { Shell } from "./shell";
 import type { Store } from "./store";
@@ -11,11 +11,13 @@ import { isUserId } from "./validate";
 
 export type InterceptDeps = {
   origin: string;
-  network: (req: Request) => Promise<Response>;
+  network: (req: Request, init?: { cache?: RequestCache }) => Promise<Response>;
   store: Store;
   shell: Shell;
   settings: SettingsFile;
   connectivity: (online: boolean) => void;
+  /** A new session cookie is about to be handed out: whatever runs on the old one must stop. */
+  onSessionReset: () => void;
 };
 
 // Hop-by-hop or already undone by the network stack: replaying them offline would lie.
@@ -42,12 +44,32 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
     d.connectivity(now);
   };
 
+  // One eviction at a time per user; a download finishing meanwhile asks for exactly one more run.
+  const evicting = new Map<string, { again: boolean }>();
+  const scheduleEvict = (user: string) => {
+    const running = evicting.get(user);
+    if (running) {
+      running.again = true;
+      return;
+    }
+    const state = { again: false };
+    evicting.set(user, state);
+    void (async () => {
+      do {
+        state.again = false;
+        await d.store.evict(user, d.settings.value.limit).catch(warn);
+      } while (state.again);
+      evicting.delete(user);
+    })();
+  };
+
   return async (req) => {
     const url = new URL(req.url);
     if (url.origin !== d.origin) return d.network(req);
     const route = classify(req.method, url);
     if (route.kind === "session-reset") {
       epoch += 1;
+      d.onSessionReset();
       await d.settings.update({ userId: null });
     }
     // Only the gateway speaks for connectivity: shell files may be answered from Chromium's HTTP cache.
@@ -64,14 +86,21 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
     let res: Response;
     try {
       res = await d.network(req);
+      if (gateway && serverUnreachable(res.status) && (route.kind === "snapshot" || route.kind === "blob")) {
+        const copy = await savedCopy(d, route, user);
+        if (copy) {
+          seen(false);
+          return withCsp(copy);
+        }
+      }
       if (gateway) seen(true);
     } catch {
       // A request the page itself cancelled says nothing about the network.
       if (req.signal.aborted) return Response.error();
       if (gateway) seen(false);
-      return withCsp(await fallback(d, route, user));
+      return withCsp(await fallback(d, route, user, req));
     }
-    return withCsp(await afterNetwork(d, route, user, req, res, () => epoch === born));
+    return withCsp(await afterNetwork(d, route, user, req, res, () => epoch === born, scheduleEvict));
   };
 }
 
@@ -86,7 +115,7 @@ async function learnUser(d: InterceptDeps, body: Buffer, fresh: () => boolean): 
   }
 }
 
-async function afterNetwork(d: InterceptDeps, route: Route, user: string | null, req: Request, res: Response, fresh: () => boolean): Promise<Response> {
+async function afterNetwork(d: InterceptDeps, route: Route, user: string | null, req: Request, res: Response, fresh: () => boolean, scheduleEvict: (user: string) => void): Promise<Response> {
   if (route.kind === "navigate" && res.ok) void d.shell.refresh();
 
   if (route.kind === "snapshot" && res.status === 200) {
@@ -103,7 +132,7 @@ async function afterNetwork(d: InterceptDeps, route: Route, user: string | null,
     const type = res.headers.get("content-type") ?? "application/octet-stream";
     void d.store
       .writeBlob(user, route.hash, type, toDisk)
-      .then(() => d.store.evict(user, d.settings.value.limit))
+      .then(() => scheduleEvict(user))
       .catch((err: unknown) => {
         warn(err);
         void toDisk.cancel().catch(() => undefined);
@@ -113,7 +142,20 @@ async function afterNetwork(d: InterceptDeps, route: Route, user: string | null,
   return res;
 }
 
-async function fallback(d: InterceptDeps, route: Route, user: string | null): Promise<Response> {
+/** What the shell holds for a cacheable /api route, or null. */
+async function savedCopy(d: InterceptDeps, route: Route, user: string | null): Promise<Response | null> {
+  if (route.kind === "snapshot" && user) {
+    const s = await d.store.readSnapshot(user, route.key);
+    if (s) return new Response(new Uint8Array(s.body), { status: s.meta.status, headers: s.meta.headers });
+  }
+  if (route.kind === "blob" && user) {
+    const hit = await d.store.blob(user, route.hash);
+    if (hit) return fileResponse(hit.path, hit.size, hit.type, null);
+  }
+  return null;
+}
+
+async function fallback(d: InterceptDeps, route: Route, user: string | null, req: Request): Promise<Response> {
   switch (route.kind) {
     case "navigate": {
       const index = await d.shell.file("/index.html");
@@ -122,16 +164,10 @@ async function fallback(d: InterceptDeps, route: Route, user: string | null): Pr
     case "shell": {
       const f = await d.shell.file(route.path);
       if (f) return fileResponse(f.path, f.size, f.type, null);
-      return Response.error();
+      // ponytail: a lazy chunk neither in the finished generation nor in Chromium's cache still fails until the next online refresh.
+      return d.network(req, { cache: "only-if-cached" }).then((r) => (r.ok ? r : Response.error()), () => Response.error());
     }
-    case "snapshot": {
-      const s = user ? await d.store.readSnapshot(user, route.key) : null;
-      if (s) return new Response(new Uint8Array(s.body), { status: s.meta.status, headers: s.meta.headers });
-      return Response.error();
-    }
-    case "blob":
-      return new Response(null, { status: 503 });
     default:
-      return Response.error();
+      return (await savedCopy(d, route, user)) ?? Response.error();
   }
 }

@@ -17,7 +17,7 @@ const req = (p: string, init?: RequestInit) => new Request(`${ORIGIN}${p}`, init
 const me = (id: string) => new Response(JSON.stringify({ id }), { headers: { "content-type": "application/json" } });
 const offline = () => Promise.reject(new TypeError("net::ERR_INTERNET_DISCONNECTED"));
 
-async function harness(network: (r: Request) => Promise<Response>, user: string | null = A, shellFiles: Record<string, string> = {}) {
+async function harness(network: (r: Request, init?: { cache?: RequestCache }) => Promise<Response>, user: string | null = A, shellFiles: Record<string, string> = {}) {
   const root = mkdtempSync(path.join(tmpdir(), "intercept-"));
   const settings = new SettingsFile(path.join(root, "settings.json"));
   await settings.update({ userId: user });
@@ -35,8 +35,9 @@ async function harness(network: (r: Request) => Promise<Response>, user: string 
   });
   const states: boolean[] = [];
   const net = vi.fn(network);
-  const handle = createHandler({ origin: ORIGIN, network: net, store, shell, settings, connectivity: (o) => states.push(o) });
-  return { handle, net, store, settings, shell, states, root };
+  const reset = vi.fn();
+  const handle = createHandler({ origin: ORIGIN, network: net, store, shell, settings, connectivity: (o) => states.push(o), onSessionReset: reset });
+  return { handle, net, store, settings, shell, states, root, reset };
 }
 
 describe("createHandler", () => {
@@ -102,9 +103,82 @@ describe("createHandler", () => {
     expect((await h.handle(req(`/api/assets/${hash}`, { headers: { range: "bytes=10-" } }))).status).toBe(416);
   });
 
-  it("a blob that is not cached answers 503 with no network", async () => {
+  it("a blob that is not cached fails like a dead network, not with a made-up status", async () => {
     const h = await harness(offline);
-    expect((await h.handle(req(`/api/assets/${sha("x")}`))).status).toBe(503);
+    expect((await h.handle(req(`/api/assets/${sha("x")}`))).type).toBe("error");
+  });
+
+  it("a dead backend (503) serves the saved snapshot and reports offline", async () => {
+    let up = true;
+    const h = await harness(async () => (up ? new Response("[1]") : new Response("bad gateway", { status: 502 })));
+    await (await h.handle(req("/api/models"))).text();
+    up = false;
+    const res = await h.handle(req("/api/models"));
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("[1]");
+    expect(h.states).toEqual([true, false]);
+  });
+
+  it("a dead backend with no saved snapshot passes its answer through", async () => {
+    const h = await harness(async () => new Response("down", { status: 503 }));
+    const res = await h.handle(req("/api/models"));
+    expect(res.status).toBe(503);
+    expect(await res.text()).toBe("down");
+  });
+
+  it("an ordinary server error (500) is not read as offline even with a snapshot", async () => {
+    let ok = true;
+    const h = await harness(async () => (ok ? new Response("[1]") : new Response("boom", { status: 500 })));
+    await (await h.handle(req("/api/models"))).text();
+    ok = false;
+    expect((await h.handle(req("/api/models"))).status).toBe(500);
+  });
+
+  it("a blob already on disk is served even when the backend answers 503", async () => {
+    const hash = sha("on disk");
+    const h = await harness(async () => new Response("down", { status: 503 }));
+    await h.store.writeBlob(A, hash, "x/y", new Response("on disk").body as ReadableStream<Uint8Array>);
+    expect(await (await h.handle(req(`/api/assets/${hash}`))).text()).toBe("on disk");
+  });
+
+  it("a blob not on disk passes a 503 through unchanged", async () => {
+    const h = await harness(async () => new Response("down", { status: 503 }));
+    expect((await h.handle(req(`/api/assets/${sha("nope")}`))).status).toBe(503);
+  });
+
+  it("a burst of blob downloads runs the eviction at most twice", async () => {
+    const letters = ["a", "b", "c", "d", "e", "f"];
+    const h = await harness(async (r) => new Response(letters.find((n) => r.url.endsWith(sha(n)))));
+    const evict = vi.spyOn(h.store, "evict").mockImplementation(() => new Promise((r) => setTimeout(r, 40)));
+    const names = letters.map((n) => `/api/assets/${sha(n)}`);
+    await Promise.all(names.map(async (p) => (await h.handle(req(p))).text()));
+    await new Promise((r) => setTimeout(r, 200));
+    expect(evict.mock.calls.length).toBeGreaterThanOrEqual(1);
+    expect(evict.mock.calls.length).toBeLessThanOrEqual(2);
+  });
+
+  it("a session reset cancels the running saves first", async () => {
+    const h = await harness(async () => new Response("{}"));
+    await (await h.handle(req("/api/auth/logout", { method: "POST" }))).text();
+    expect(h.reset).toHaveBeenCalledTimes(1);
+  });
+
+  it("a shell file the generation lacks comes from Chromium's HTTP cache, and a miss fails", async () => {
+    const cached = vi.fn(async (_r: Request, init?: { cache?: RequestCache }) => (init?.cache === "only-if-cached" ? new Response("cached js") : offline()));
+    const h = await harness(cached);
+    const res = await h.handle(req("/assets/lazy.js"));
+    expect(await res.text()).toBe("cached js");
+    expect(cached).toHaveBeenLastCalledWith(expect.any(Request), { cache: "only-if-cached" });
+    const miss = await harness(offline);
+    expect((await miss.handle(req("/assets/lazy.js"))).type).toBe("error");
+  });
+
+  it("the current generation wins over Chromium's cache", async () => {
+    const h = await harness(offline, A, { "/index.html": "<html>", "/assets/a.js": "gen js" });
+    await h.shell.refresh();
+    h.net.mockClear();
+    expect(await (await h.handle(req("/assets/a.js"))).text()).toBe("gen js");
+    expect(h.net).toHaveBeenCalledTimes(1);
   });
 
   it("navigation with no shell answers the built-in offline page", async () => {

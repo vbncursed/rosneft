@@ -91,9 +91,10 @@ async function start(): Promise<void> {
     new URL(ORIGIN).protocol.slice(0, -1),
     createHandler({
       origin: ORIGIN,
-      network: (req) => network(req),
+      network: (req, init) => network(req, init),
       store,
       shell: shellCache,
+      onSessionReset: () => saver.cancelAll(),
       settings,
       connectivity: (now) => {
         online = now;
