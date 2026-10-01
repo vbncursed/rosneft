@@ -2,10 +2,15 @@
 # none of them were watched. github-actions is the one that is easy to forget and the reason this
 # file exists at all: the action versions in desktop.yml had to be checked by
 # hand to notice softprops/action-gh-release had gone from v2 to v3.
+#
+# Every update targets `dev`, not the default branch: work lands on dev first
+# and reaches main through a dev → main PR, and a bump that skips dev leaves
+# the two branches disagreeing about versions.
 version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
+    target-branch: dev
     schedule:
       interval: weekly
     groups:
@@ -14,6 +19,7 @@ updates:
 
   - package-ecosystem: npm
     directory: /frontend
+    target-branch: dev
     schedule:
       interval: weekly
     groups:
@@ -21,15 +27,26 @@ updates:
       # they are never routine — typescript 6→7 forced a linter replacement.
       npm-minor-patch:
         update-types: [minor, patch]
+    ignore:
+      # @types/node follows the Node major CI and production run (24), not
+      # npm's latest: newer types allow APIs the runtime does not have. Bump it
+      # by hand together with node-version in the workflows.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: npm
     directory: /desktop
+    target-branch: dev
     schedule:
       interval: weekly
     groups:
       # Electron majors stay separate: each moves Chromium and Node under the shell.
       desktop-minor-patch:
         update-types: [minor, patch]
+    ignore:
+      # Same rule as the frontend: Node 24 in CI, so @types/node stays on 24.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   # One entry per module: go.work does not make twelve modules one target, and
   # a glob keeps this from having to be edited every time a service is added.
@@ -38,8 +55,16 @@ updates:
       - /backend/pkg
       - /backend/proto
       - /backend/services/*
+    target-branch: dev
     schedule:
       interval: weekly
     groups:
       gomod-minor-patch:
         update-types: [minor, patch]
+    ignore:
+      # grpc 1.84.x re-introduces GO-2026-6443 (server panic on a missing
+      # :authority/Host), fixed in 1.83.2 and again only from 1.85.0. Drop this
+      # once 1.85.0 is out — govulncheck in `make -C backend check` would fail
+      # on 1.84 anyway.
+      - dependency-name: "google.golang.org/grpc"
+        versions: ["1.84.x"]
