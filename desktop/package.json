@@ -19,7 +19,7 @@
     "dist": "yarn build:ts && electron-builder --publish never"
   },
   "devDependencies": {
-    "@types/node": "^24",
+    "@types/node": "^26",
     "electron": "44.5.1",
     "electron-builder": "26.15.3",
     "oxlint": "1.86.0",
