@@ -1,9 +1,10 @@
 import { createWriteStream } from "node:fs";
-import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as NodeWebStream } from "node:stream/web";
+import { atomicWrite } from "./atomic-write";
 import { eachLimit } from "./limit";
 
 export type ShellManifest = { id: string; files: { path: string; size: number }[] };
@@ -112,8 +113,7 @@ export class Shell {
 
     await rm(path.join(this.root, manifest.id), { recursive: true, force: true });
     await rename(staging, path.join(this.root, manifest.id));
-    await writeFile(path.join(this.root, "current.tmp"), manifest.id);
-    await rename(path.join(this.root, "current.tmp"), path.join(this.root, "current"));
+    await atomicWrite(path.join(this.root, "current"), manifest.id);
     await this.sweep(manifest.id);
   }
 

@@ -42,6 +42,9 @@ class SaveFailure extends Error {
   }
 }
 
+/** The signed-in user is no longer the one this save started for. */
+class SessionChanged extends Error {}
+
 function reasonOf(err: unknown): SaveError {
   if (err instanceof SaveFailure) return err.reason;
   if ((err as { code?: unknown })?.code === "ENOSPC") return "no-space";
@@ -91,6 +94,16 @@ export class OfflineSaver {
     this.jobs.get(slug)?.abort.abort();
   }
 
+  /** A session reset: nothing running or queued may go on with the next session's cookie. */
+  cancelAll(): void {
+    for (const slug of this.jobs.keys()) this.cancel(slug);
+  }
+
+  /** Called before every write: a save belongs to the user it started for. */
+  private still(user: string): void {
+    if (this.d.settings.value.userId !== user) throw new SessionChanged();
+  }
+
   async list(): Promise<SavedTerritory[]> {
     const user = this.d.settings.value.userId;
     if (!user) return [];
@@ -107,13 +120,11 @@ export class OfflineSaver {
     const user = this.d.settings.value.userId;
     if (!user) return;
     let removed: Pin | undefined;
-    const pins = await this.d.store.updatePins(user, (all) => {
+    await this.d.store.updatePins(user, (all) => {
       removed = all.find((p) => p.slug === slug);
       return all.filter((p) => p.slug !== slug);
     });
-    if (!removed) return;
-    const keep = new Set(pins.flatMap((p) => p.hashes));
-    await this.d.store.removeBlobs(user, removed.hashes.filter((h) => !keep.has(h)));
+    if (removed) await this.d.store.removeUnpinned(user, removed.hashes);
   }
 
   /** On every return of the network: pinned territories pick up new models and documents by themselves. */
@@ -162,6 +173,7 @@ export class OfflineSaver {
   private async json<T>(user: string, key: string, signal: AbortSignal): Promise<T> {
     const res = checked(await this.get(`${this.d.origin}${key}`, signal));
     const body = Buffer.from(await res.arrayBuffer());
+    this.still(user);
     const headers = [...res.headers].filter(([k]) => k === "content-type" || k === "etag");
     await this.d.store.writeSnapshot(user, key, { status: 200, headers }, body);
     return JSON.parse(body.toString("utf8")) as T;
@@ -192,6 +204,7 @@ export class OfflineSaver {
       const now = (this.d.now ?? (() => new Date()))().toISOString();
       const title = scene.territory.title;
       // Pinned before the first byte: eviction must not take a blob this save just wrote.
+      this.still(user);
       await store.updatePins(user, (pins) =>
         upsert(pins, { slug, title, hashes: [...new Set([...(before?.hashes ?? []), ...hashes])], bytes: before?.bytes ?? 0, savedAt: before?.savedAt ?? now, syncedAt: before?.syncedAt ?? null }),
       );
@@ -207,6 +220,7 @@ export class OfflineSaver {
         } else {
           const res = checked(await this.get(`${this.d.origin}/api/assets/${hash}`, signal));
           if (!res.body) throw new SaveFailure("failed");
+          this.still(user);
           // Await first: `bytes += await …` reads bytes before the suspension and loses concurrent downloads' sizes.
           const size = await store.writeBlob(user, hash, res.headers.get("content-type") ?? "application/octet-stream", res.body as ReadableStream<Uint8Array>, signal);
           bytes += size;
@@ -215,15 +229,15 @@ export class OfflineSaver {
         report({ slug, state: "saving", done, total: hashes.length });
       });
 
-      const pins = await store.updatePins(user, (all) => upsert(all, { slug, title, hashes, bytes, savedAt: before?.savedAt ?? now, syncedAt: now }));
-      const keep = new Set(pins.flatMap((p) => p.hashes));
-      await store.removeBlobs(user, (before?.hashes ?? []).filter((h) => !keep.has(h)));
+      this.still(user);
+      await store.updatePins(user, (all) => upsert(all, { slug, title, hashes, bytes, savedAt: before?.savedAt ?? now, syncedAt: now }));
+      await store.removeUnpinned(user, before?.hashes ?? []);
       await store.evict(user, this.d.settings.value.limit).catch((e: unknown) => console.warn("offline: evict failed", e));
       emit({ slug, state: "saved", done: hashes.length, total: hashes.length });
     } catch (err) {
       // A first save that never finished leaves no pin; a failed resync keeps the copy it had.
       if (user && !before?.syncedAt) await store.updatePins(user, (all) => all.filter((p) => p.slug !== slug)).catch(() => undefined);
-      if (signal.aborted) emit({ slug, state: "cancelled", done: 0, total: 0 });
+      if (signal.aborted || err instanceof SessionChanged) emit({ slug, state: "cancelled", done: 0, total: 0 });
       else if (silent) console.warn("offline: resync failed", slug, err);
       else emit({ slug, state: "failed", done: 0, total: 0, error: reasonOf(err) });
     } finally {

@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { rename, writeFile } from "node:fs/promises";
+import { atomicWrite } from "./atomic-write";
 import { DEFAULT_LIMIT, isLimit, isUserId } from "./validate";
 
 export type Settings = { userId: string | null; limit: number };
@@ -30,10 +30,7 @@ export class SettingsFile {
     this.value = { ...this.value, ...patch };
     const snapshot = JSON.stringify(this.value);
     this.chain = this.chain
-      .then(async () => {
-        await writeFile(`${this.file}.tmp`, snapshot);
-        await rename(`${this.file}.tmp`, this.file);
-      })
+      .then(() => atomicWrite(this.file, snapshot))
       .catch((err: unknown) => console.error("settings: write failed", err));
     return this.chain;
   }

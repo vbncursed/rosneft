@@ -1,10 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
 import { createWriteStream } from "node:fs";
-import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as NodeWebStream } from "node:stream/web";
+import { atomicWrite } from "./atomic-write";
 import { isHash, isUserId } from "./validate";
 
 export type SnapshotMeta = { status: number; headers: [string, string][] };
@@ -60,17 +61,6 @@ export class Store {
     return path.join(this.userDir(user), "snapshots", createHash("sha256").update(key).digest("hex"));
   }
 
-  private async atomicWrite(dest: string, data: string | Buffer): Promise<void> {
-    const tmp = this.tmpFile();
-    try {
-      await writeFile(tmp, data);
-      await mkdir(path.dirname(dest), { recursive: true });
-      await rename(tmp, dest);
-    } finally {
-      await rm(tmp, { force: true });
-    }
-  }
-
   /** One file per key — [4-byte meta length][meta JSON][body] — so a body can never be paired with another response's headers. */
   async readSnapshot(user: string, key: string): Promise<{ meta: SnapshotMeta; body: Buffer } | null> {
     try {
@@ -87,7 +77,7 @@ export class Store {
     const json = Buffer.from(JSON.stringify(meta));
     const head = Buffer.alloc(4);
     head.writeUInt32BE(json.length);
-    await this.atomicWrite(this.snapshotFile(user, key), Buffer.concat([head, json, body]));
+    await atomicWrite(this.snapshotFile(user, key), Buffer.concat([head, json, body]), this.tmpFile());
   }
 
   async blob(user: string, hash: string): Promise<{ path: string; size: number; type: string } | null> {
@@ -118,7 +108,7 @@ export class Store {
       if (digest.digest("hex") !== hash) throw new Error(`store: ${hash} did not hash to itself`);
       await mkdir(path.dirname(dest), { recursive: true });
       await rename(tmp, dest);
-      await this.atomicWrite(`${dest}.type`, type);
+      await atomicWrite(`${dest}.type`, type, this.tmpFile());
       return size;
     } finally {
       await rm(tmp, { force: true });
@@ -146,14 +136,27 @@ export class Store {
     return files.filter((f): f is BlobFile => f !== null);
   }
 
+  /** One locked file (Windows EBUSY/EPERM on a blob being streamed) is logged and skipped, never a rejected batch. */
   async removeBlobs(user: string, hashes: Iterable<string>): Promise<void> {
     await Promise.all(
       [...hashes].map(async (hash) => {
         const file = this.blobPath(user, hash);
-        await rm(file, { force: true });
-        await rm(`${file}.type`, { force: true });
+        try {
+          await rm(file, { force: true });
+          await rm(`${file}.type`, { force: true });
+        } catch (err) {
+          console.warn("store: could not remove blob", hash, err);
+        }
       }),
     );
+  }
+
+  /** Deletes the hashes no pin holds *now*: pins are re-read inside the serialiser that `updatePins` and `evict` share, so a save pinning one in the meantime keeps it. */
+  removeUnpinned(user: string, hashes: Iterable<string>): Promise<void> {
+    return this.serialised(async () => {
+      const held = new Set((await this.readPins(user)).flatMap((p) => p.hashes));
+      await this.removeBlobs(user, [...hashes].filter((h) => !held.has(h)));
+    });
   }
 
   async readPins(user: string): Promise<Pin[]> {
@@ -177,7 +180,7 @@ export class Store {
   updatePins(user: string, change: (pins: Pin[]) => Pin[]): Promise<Pin[]> {
     return this.serialised(async () => {
       const pins = change(await this.readPins(user));
-      await this.atomicWrite(path.join(this.userDir(user), "pins.json"), JSON.stringify(pins));
+      await atomicWrite(path.join(this.userDir(user), "pins.json"), JSON.stringify(pins), this.tmpFile());
       return pins;
     });
   }

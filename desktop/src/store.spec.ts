@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { pickVictims, Store, type Pin } from "./store";
 
 const A = "0b5e8a3c-1f2d-4c5b-9a7e-3d2c1b0a9f8e";
@@ -138,6 +138,36 @@ describe("Store", () => {
     await store.writeBlob(A, x, "x", body("x"));
     await Promise.all([store.updatePins(A, () => [pin("t", [x])]), store.evict(A, 0)]);
     expect(await store.blob(A, x)).not.toBeNull();
+  });
+
+  it("removeBlobs logs and carries on when one file cannot be deleted", async () => {
+    const [stuck, free] = [sha("stuck"), sha("free")];
+    await store.writeBlob(A, free, "x", body("free"));
+    // A directory where the blob should be: rm without recursive throws, like Windows EBUSY on a streamed file.
+    mkdirSync(path.join(root, "users", A, "blobs", stuck), { recursive: true });
+    writeFileSync(path.join(root, "users", A, "blobs", stuck, "x"), "x");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    await expect(store.removeBlobs(A, [stuck, free])).resolves.toBeUndefined();
+    expect(await store.blob(A, free)).toBeNull();
+    expect(warn).toHaveBeenCalled();
+  });
+
+  it("removeUnpinned deletes only what no current pin holds", async () => {
+    const [kept, gone] = [sha("kept"), sha("gone")];
+    await store.writeBlob(A, kept, "x", body("kept"));
+    await store.writeBlob(A, gone, "x", body("gone"));
+    await store.updatePins(A, () => [pin("t", [kept])]);
+    await store.removeUnpinned(A, [kept, gone]);
+    expect(await store.blob(A, kept)).not.toBeNull();
+    expect(await store.blob(A, gone)).toBeNull();
+  });
+
+  it("removeUnpinned on a corrupt pins.json rejects and deletes nothing", async () => {
+    const h = sha("a");
+    await store.writeBlob(A, h, "x", body("a"));
+    writeFileSync(path.join(root, "users", A, "pins.json"), "{not json");
+    await expect(store.removeUnpinned(A, [h])).rejects.toThrow();
+    expect(await store.blob(A, h)).not.toBeNull();
   });
 
   it("stores a snapshot as one file and reads a garbled one as missing", async () => {

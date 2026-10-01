@@ -319,6 +319,50 @@ describe("OfflineSaver", () => {
     expect((await h.saver.list()).map((t) => t.slug)).toEqual(["ust-kut"]);
   });
 
+  it("a blob another save pins while remove is deleting survives", async () => {
+    const h = await harness();
+    await h.saver.save("ust-kut");
+    const real = h.store.updatePins.bind(h.store);
+    let first = true;
+    vi.spyOn(h.store, "updatePins").mockImplementation(async (user, change) => {
+      const pins = await real(user, change);
+      if (first) {
+        first = false;
+        // A concurrent save pins the pump after remove's unpin, before remove deletes.
+        await real(user, (all) => [...all, { slug: "other", title: "o", hashes: [H.pump!], bytes: 0, savedAt: "t", syncedAt: "t" }]);
+      }
+      return pins;
+    });
+    await h.saver.remove("ust-kut");
+    expect(await h.store.blob(A, H.pump!)).not.toBeNull();
+    expect(await h.store.blob(A, H.pdf!)).toBeNull();
+  });
+
+  it("cancelAll stops every running and queued save", async () => {
+    const { gate, release } = gated();
+    const h = await harness(server({ blob: async (_hash, signal) => (await gate, signal?.throwIfAborted(), new Response("never")) }));
+    const runs = ["a", "b", "c"].map((slug) => h.saver.save(slug));
+    await vi.waitFor(() => expect(h.events.some((e) => e.state === "saving")).toBe(true));
+    h.saver.cancelAll();
+    release();
+    await Promise.all(runs);
+    for (const slug of ["a", "b", "c"]) expect(h.events.filter((e) => e.slug === slug).pop()?.state).toBe("cancelled");
+    expect(await h.store.readPins(A)).toEqual([]);
+  });
+
+  it("a save whose user signed out mid-flight writes no blob into the old user's store", async () => {
+    const { gate, release } = gated();
+    const h = await harness(server({ blob: async (hash) => (await gate, new Response(nameOf(hash))) }));
+    const run = h.saver.save("ust-kut");
+    await vi.waitFor(() => expect(h.events.some((e) => e.state === "saving")).toBe(true));
+    await h.settings.update({ userId: B });
+    release();
+    await run;
+    expect(last(h.events)?.state).toBe("cancelled");
+    expect(await h.store.blobFiles(A)).toEqual([]);
+    expect(await h.store.readPins(A)).toEqual([]);
+  });
+
   it("a malformed scene is failed, not network", async () => {
     const { placements: _, ...broken } = scene;
     const h = await harness(vi.fn(async () => new Response(JSON.stringify(broken))));
