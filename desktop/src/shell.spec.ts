@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readdirSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -36,6 +36,13 @@ describe("parseManifest", () => {
   });
 });
 
+describe("parseManifest dedupe", () => {
+  it("keeps the first entry of a repeated path", () => {
+    const m = parseManifest({ id: ID1, files: [{ path: "/index.html", size: 1 }, { path: "/index.html", size: 9 }] });
+    expect(m?.files).toEqual([{ path: "/index.html", size: 1 }]);
+  });
+});
+
 describe("contentType", () => {
   it("names the types the SPA ships", () => {
     expect(contentType("/index.html")).toBe("text/html; charset=utf-8");
@@ -47,7 +54,7 @@ describe("contentType", () => {
 });
 
 describe("Shell", () => {
-  it("downloads a generation and serves its files; navigations get index.html", async () => {
+  it("downloads a generation and serves its files by path", async () => {
     const dir = root();
     const shell = new Shell(dir, ORIGIN, server({ "/index.html": "<html>", "/assets/a.js": "js" }, ID1));
     await shell.refresh();
@@ -77,10 +84,30 @@ describe("Shell", () => {
     const dir = root();
     await new Shell(dir, ORIGIN, server({ "/index.html": "<v1>" }, ID1)).refresh();
     const lying = vi.fn(async (url: string) =>
-      new URL(url).pathname === "/shell-manifest.json" ? json({ id: ID2, files: [{ path: "/index.html", size: 999 }] }) : new Response("<v2>"),
+      new URL(url).pathname === "/shell-manifest.json" ? json({ id: ID2, files: [{ path: "/index.html", size: 999 }] }) : new Response("<v2 body>"),
     );
     await new Shell(dir, ORIGIN, lying).refresh();
     expect(await new Shell(dir, ORIGIN, lying).file("/index.html")).toMatchObject({ size: 4 });
+    expect(readFileSync(path.join(dir, "current"), "utf8")).toBe(ID1);
+    expect(existsSync(path.join(dir, ID2))).toBe(false);
+  });
+
+  it("removes a stray generation even when the manifest id is the current one", async () => {
+    const dir = root();
+    const s = new Shell(dir, ORIGIN, server({ "/index.html": "<v1>" }, ID1));
+    await s.refresh();
+    mkdirSync(path.join(dir, ID2));
+    await s.refresh();
+    expect(readdirSync(dir).sort()).toEqual([ID1, "current"]);
+  });
+
+  it("re-downloads when the current generation lost its index.html", async () => {
+    const dir = root();
+    const s = new Shell(dir, ORIGIN, server({ "/index.html": "<v1>" }, ID1));
+    await s.refresh();
+    rmSync(path.join(dir, ID1, "index.html"));
+    await s.refresh();
+    expect(await s.file("/index.html")).toMatchObject({ size: 4 });
   });
 
   it("does not fetch twice for overlapping refreshes", async () => {

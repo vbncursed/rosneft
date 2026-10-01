@@ -18,9 +18,12 @@ export function parseManifest(raw: unknown): ShellManifest | null {
   const { id, files } = raw as { id?: unknown; files?: unknown };
   if (typeof id !== "string" || !ID.test(id) || !Array.isArray(files)) return null;
   const out: ShellManifest["files"] = [];
+  const seen = new Set<string>();
   for (const f of files as { path?: unknown; size?: unknown }[]) {
-    if (typeof f?.path === "string" && safe(f.path) && typeof f.size === "number" && f.size >= 0) out.push({ path: f.path, size: f.size });
-    else console.warn("shell: skipping manifest entry", f);
+    if (typeof f?.path === "string" && safe(f.path) && typeof f.size === "number" && f.size >= 0 && !seen.has(f.path)) {
+      seen.add(f.path);
+      out.push({ path: f.path, size: f.size });
+    } else console.warn("shell: skipping manifest entry", f);
   }
   return out.some((f) => f.path === "/index.html") ? { id, files: out } : null;
 }
@@ -92,7 +95,8 @@ export class Shell {
     // manifest yet is "nothing to update", not an error.
     if (!res.ok || !(res.headers.get("content-type") ?? "").includes("application/json")) return;
     const manifest = parseManifest(await res.json());
-    if (!manifest || manifest.id === (await this.currentId())) return;
+    if (!manifest) return;
+    if (manifest.id === (await this.currentId()) && (await this.hasIndex(manifest.id))) return this.sweep(manifest.id);
 
     const staging = path.join(this.root, `${manifest.id}.tmp`);
     await rm(staging, { recursive: true, force: true });
@@ -110,8 +114,17 @@ export class Shell {
     await rename(staging, path.join(this.root, manifest.id));
     await writeFile(path.join(this.root, "current.tmp"), manifest.id);
     await rename(path.join(this.root, "current.tmp"), path.join(this.root, "current"));
+    await this.sweep(manifest.id);
+  }
+
+  private hasIndex(id: string): Promise<boolean> {
+    return stat(path.join(this.root, id, "index.html")).then(() => true, () => false);
+  }
+
+  /** Drops every generation but `keep`. */
+  private async sweep(keep: string): Promise<void> {
     for (const name of await readdir(this.root)) {
-      if (name === manifest.id || name === "current") continue;
+      if (name === keep || name === "current") continue;
       // Windows refuses to delete a file a page is still reading; the next refresh retries.
       await rm(path.join(this.root, name), { recursive: true, force: true }).catch(() => undefined);
     }

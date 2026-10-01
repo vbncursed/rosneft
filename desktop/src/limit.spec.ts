@@ -22,4 +22,31 @@ describe("eachLimit", () => {
   it("does nothing for no items", async () => {
     await expect(eachLimit([], 4, async () => {})).resolves.toBeUndefined();
   });
+  it("starts no new item after the first failure", async () => {
+    const started: number[] = [];
+    await expect(
+      eachLimit([1, 2, 3, 4], 2, async (n) => {
+        started.push(n);
+        if (n === 1) throw new Error("boom");
+        await new Promise((r) => setTimeout(r, 10));
+      }),
+    ).rejects.toThrow("boom");
+    expect(started).toEqual([1, 2]);
+  });
+  it("rejects only after in-flight items have settled", async () => {
+    let slowDone = false;
+    await expect(
+      eachLimit([1, 2], 2, async (n) => {
+        if (n === 1) throw new Error("boom");
+        await new Promise((r) => setTimeout(r, 20));
+        slowDone = true;
+      }),
+    ).rejects.toThrow("boom");
+    expect(slowDone).toBe(true);
+  });
+  it("treats n below 1 as 1", async () => {
+    const seen: number[] = [];
+    await eachLimit([1, 2, 3], 0, async (n) => { seen.push(n); });
+    expect(seen).toEqual([1, 2, 3]);
+  });
 });
