@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { resetOfflineStore } from "@/features/offline-save";
+import type { DesktopBridge } from "@/shared/lib/desktop";
 import { AccountScreen } from "./account-screen";
 
 const { useAccount, signOut, signOutState } = vi.hoisted(() => ({
@@ -40,6 +42,30 @@ describe("AccountScreen", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Passkeys" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "My activity" })).toBeInTheDocument();
     expect(screen.getByText("Nothing to show yet")).toBeInTheDocument();
+  });
+
+  afterEach(() => {
+    delete window.desktop;
+    resetOfflineStore();
+  });
+
+  it("has no Storage section in a browser", () => {
+    useAccount.mockReturnValue(ready());
+    render(<AccountScreen />);
+    expect(screen.queryByRole("heading", { name: "Storage on this device" })).not.toBeInTheDocument();
+  });
+
+  it("shows the Storage section inside the desktop shell", async () => {
+    window.desktop = {
+      passkeys: false,
+      onConnectivity: () => () => {},
+      offline: { list: async () => [], onProgress: () => () => {} },
+      storage: { usage: async () => ({ used: 1024 ** 3, pinned: 0, limit: 10 * 1024 ** 3 }) },
+    } as unknown as DesktopBridge;
+    useAccount.mockReturnValue(ready());
+    render(<AccountScreen />);
+    expect(screen.getByRole("heading", { level: 2, name: "Storage on this device" })).toBeInTheDocument();
+    expect(await screen.findByText("1 GB of 10 GB used")).toBeInTheDocument();
   });
 
   it("signs out through the sign-out feature and holds the button while it runs", async () => {

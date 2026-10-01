@@ -1,13 +1,17 @@
 import { useSignOut } from "@/features/sign-out";
+import { desktopBridge } from "@/shared/lib/desktop";
 import { ErrorState } from "@/shared/ui/card";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { useAccount } from "../model/use-account";
+import { useDeviceStorage } from "../model/use-device-storage";
 import { AccountPage } from "./account-page";
+import { StorageSection } from "./storage-section";
 
 /** Maps the container's phases onto the page: loading skeleton, error state, or the page itself. */
 export function AccountScreen() {
   const s = useAccount();
   const { signOut, pending: signingOut } = useSignOut();
+  const device = useDeviceStorage();
 
   if (s.phase === "loading") {
     return (
@@ -54,6 +58,19 @@ export function AccountScreen() {
       onPage={s.onPage}
       onSignOut={() => void signOut()}
       signingOut={signingOut}
+      storage={
+        desktopBridge() ? (
+          <StorageSection
+            usage={device.usage}
+            usageFailed={device.usageFailed}
+            savedLoaded={device.savedLoaded}
+            saved={device.saved}
+            onLimit={device.setLimit}
+            onClear={device.clear}
+            onRemove={device.remove}
+          />
+        ) : undefined
+      }
     />
   );
 }
