@@ -1,5 +1,5 @@
 import path from "node:path";
-import { app, BrowserWindow, ipcMain, safeStorage, session, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, safeStorage, session, shell } from "electron";
 import { upstreamOrigin } from "./config";
 import { createHandler } from "./intercept";
 import { registerIpc, buildHandlers } from "./ipc";
@@ -17,9 +17,12 @@ const PARTITION = "persist:andrey";
 // keychain-access-groups entitlement, i.e. a Developer ID signature our builds lack.
 const PASSKEYS: Partial<Record<NodeJS.Platform, boolean>> = { darwin: false, win32: false, linux: false };
 
+// A build pointed elsewhere keeps its own profile: it never shares — or locks — the
+// installed app's cookie, cache or single-instance lock.
 if (process.env.DESKTOP_UPSTREAM) app.setPath("userData", `${app.getPath("userData")}-dev`);
 
 let win: BrowserWindow | null = null;
+let online: boolean | null = null;
 const send = <C extends keyof Push>(channel: C, value: Push[C]) => win?.webContents.send(channel, value);
 
 function createWindow(passkeysOn: boolean): BrowserWindow {
@@ -88,20 +91,20 @@ async function start(): Promise<void> {
       store,
       shell: shellCache,
       settings,
-      connectivity: (online) => {
-        send("connectivity", online);
-        if (online) void saver.resyncAll();
+      connectivity: (now) => {
+        online = now;
+        send("connectivity", now);
+        if (now) saver.resyncAll().catch((e: unknown) => console.warn("resync failed", e));
       },
     }),
   );
-  registerIpc(ipcMain, ORIGIN, buildHandlers({ saver, store, settings }));
+  registerIpc(ipcMain, ORIGIN, buildHandlers({ saver, store, settings, connectivity: () => online ?? true }));
 
   if (process.platform === "linux" && safeStorage.getSelectedStorageBackend() === "basic_text") {
     console.warn("no keyring (libsecret/KWallet): the session cookie is stored with Chromium's basic encryption");
   }
 
   win = createWindow(PASSKEYS[process.platform] ?? false);
-  void shellCache.refresh();
 }
 
 if (!app.requestSingleInstanceLock()) {
@@ -113,5 +116,11 @@ if (!app.requestSingleInstanceLock()) {
     win.focus();
   });
   app.on("window-all-closed", () => app.quit());
-  void app.whenReady().then(start);
+  app
+    .whenReady()
+    .then(start)
+    .catch((err: unknown) => {
+      dialog.showErrorBox("Andrey could not start", String(err));
+      app.exit(1);
+    });
 }

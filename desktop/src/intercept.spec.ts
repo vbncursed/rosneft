@@ -132,6 +132,16 @@ describe("createHandler", () => {
     expect(h.states).toEqual([true, false]);
   });
 
+  it("does not read a request the page cancelled as being offline", async () => {
+    const ac = new AbortController();
+    const h = await harness(async () => {
+      ac.abort();
+      throw new DOMException("aborted", "AbortError");
+    });
+    expect((await h.handle(req("/api/models", { signal: ac.signal }))).type).toBe("error");
+    expect(h.states).toEqual([]);
+  });
+
   it("lets other origins through untouched", async () => {
     const h = await harness(async () => new Response("<x>", { headers: { "content-type": "text/html" } }));
     const res = await h.handle(new Request("https://example.com/"));

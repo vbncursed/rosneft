@@ -19,7 +19,11 @@ const listen = <C extends keyof Push>(channel: C, cb: (value: Push[C]) => void):
 if (location.origin === arg("origin") && window === window.top) {
   contextBridge.exposeInMainWorld("desktop", {
     passkeys: arg("passkeys") === "1",
-    onConnectivity: (cb: (online: boolean) => void) => listen("connectivity", cb),
+    // Pull then push: the push for the very first state fires before this page exists.
+    onConnectivity: (cb: (online: boolean) => void) => {
+      void invoke("connectivity:get").then(cb, () => {});
+      return listen("connectivity", cb);
+    },
     offline: {
       list: () => invoke("offline:list"),
       save: (slug: string) => invoke("offline:save", slug),

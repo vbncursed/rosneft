@@ -64,6 +64,8 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
       res = await d.network(req);
       seen(true);
     } catch {
+      // A request the page itself cancelled says nothing about the network.
+      if (req.signal.aborted) return Response.error();
       seen(false);
       return withCsp(await fallback(d, route, user));
     }

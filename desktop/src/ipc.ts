@@ -8,7 +8,7 @@ import { isLimit, isSlug } from "./validate";
 export type Handlers = { [C in keyof Invoke]: (...args: Invoke[C]["args"]) => Promise<Invoke[C]["result"]> };
 
 /** The slice of IpcMainInvokeEvent the gate reads — a plain shape so a test can build one. */
-export type IpcEventLike = { senderFrame: { url: string } | null; sender: { mainFrame: unknown } };
+export type IpcEventLike = { senderFrame: { url: string; parent: unknown; detached: boolean } | null };
 
 /** Only the upstream's top-level page. A same-origin iframe — pdf.js rendering a user's upload — gets nothing. */
 export function senderAllowed(frameUrl: string | undefined, isMainFrame: boolean, origin: string): boolean {
@@ -19,6 +19,7 @@ export function buildHandlers(d: {
   saver: Pick<OfflineSaver, "list" | "save" | "cancel" | "remove">;
   store: Store;
   settings: SettingsFile;
+  connectivity: () => boolean;
 }): Handlers {
   const user = () => d.settings.value.userId;
   return {
@@ -41,6 +42,7 @@ export function buildHandlers(d: {
       const u = user();
       if (u) await d.store.evict(u, 0);
     },
+    "connectivity:get": async () => d.connectivity(),
   };
 }
 
@@ -52,6 +54,7 @@ const ARGS: { [C in keyof Invoke]: (args: unknown[]) => boolean } = {
   "storage:usage": (a) => a.length === 0,
   "storage:set-limit": (a) => a.length === 1 && isLimit(a[0]),
   "storage:clear": (a) => a.length === 0,
+  "connectivity:get": (a) => a.length === 0,
 };
 
 export function registerIpc(
@@ -62,7 +65,7 @@ export function registerIpc(
   for (const channel of Object.keys(ARGS) as (keyof Invoke)[]) {
     ipc.handle(channel, async (event, ...args) => {
       const frame = event.senderFrame;
-      if (!senderAllowed(frame?.url, frame !== null && frame === event.sender.mainFrame, origin)) {
+      if (!senderAllowed(frame?.url, frame !== null && frame.parent === null && !frame.detached, origin)) {
         throw new Error(`ipc: ${channel} refused for ${frame?.url ?? "a destroyed frame"}`);
       }
       if (!ARGS[channel](args)) throw new Error(`ipc: ${channel} refused its arguments`);

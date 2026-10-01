@@ -16,6 +16,7 @@ export type Invoke = {
   "storage:usage": { args: []; result: Usage };
   "storage:set-limit": { args: [bytes: number]; result: void };
   "storage:clear": { args: []; result: void };
+  "connectivity:get": { args: []; result: boolean };
 };
 
 export type Push = { "offline:progress": Progress; connectivity: boolean };
