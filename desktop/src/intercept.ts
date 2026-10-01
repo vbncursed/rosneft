@@ -34,6 +34,8 @@ export function fileResponse(file: string, size: number, type: string, range: st
 
 export function createHandler(d: InterceptDeps): (req: Request) => Promise<Response> {
   let online: boolean | null = null;
+  // Bumped on every session reset: a /me that was in flight across one belongs to the old session.
+  let epoch = 0;
   const seen = (now: boolean) => {
     if (now === online) return;
     online = now;
@@ -44,30 +46,35 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
     const url = new URL(req.url);
     if (url.origin !== d.origin) return d.network(req);
     const route = classify(req.method, url);
-    if (route.kind === "session-reset") await d.settings.update({ userId: null });
+    if (route.kind === "session-reset") {
+      epoch += 1;
+      await d.settings.update({ userId: null });
+    }
+    const born = epoch;
     const user = d.settings.value.userId;
 
     if (route.kind === "blob" && user) {
       const hit = await d.store.blob(user, route.hash);
-      if (hit) return fileResponse(hit.path, hit.size, hit.type, req.headers.get("range"));
+      // ponytail: eviction can unlink the file between blob() and the lazy createReadStream open (truncated body); open the fd before responding to close it.
+      if (hit) return withCsp(fileResponse(hit.path, hit.size, hit.type, req.headers.get("range")));
     }
 
     let res: Response;
     try {
       res = await d.network(req);
       seen(true);
-    } catch (err) {
+    } catch {
       seen(false);
-      return withCsp(await fallback(d, route, user, err));
+      return withCsp(await fallback(d, route, user));
     }
-    return withCsp(await afterNetwork(d, route, user, req, res));
+    return withCsp(await afterNetwork(d, route, user, req, res, () => epoch === born));
   };
 }
 
-async function learnUser(d: InterceptDeps, body: Buffer): Promise<string | null> {
+async function learnUser(d: InterceptDeps, body: Buffer, fresh: () => boolean): Promise<string | null> {
   try {
     const id = (JSON.parse(body.toString("utf8")) as { id?: unknown }).id;
-    if (!isUserId(id)) return null;
+    if (!isUserId(id) || !fresh()) return null;
     if (id !== d.settings.value.userId) await d.settings.update({ userId: id });
     return id;
   } catch {
@@ -75,16 +82,16 @@ async function learnUser(d: InterceptDeps, body: Buffer): Promise<string | null>
   }
 }
 
-async function afterNetwork(d: InterceptDeps, route: Route, user: string | null, req: Request, res: Response): Promise<Response> {
+async function afterNetwork(d: InterceptDeps, route: Route, user: string | null, req: Request, res: Response, fresh: () => boolean): Promise<Response> {
   if (route.kind === "navigate" && res.ok) void d.shell.refresh();
 
   if (route.kind === "snapshot" && res.status === 200) {
     const body = Buffer.from(await res.clone().arrayBuffer());
-    const owner = route.key === "/api/auth/me" ? await learnUser(d, body) : user;
+    const owner = route.key === "/api/auth/me" ? await learnUser(d, body, fresh) : user;
     const headers = [...res.headers].filter(([k]) => !DROP.has(k));
     // Awaited: a few KB of JSON, and a snapshot that lands after the next
     // request would make "just went offline" depend on timing.
-    if (owner) await d.store.writeSnapshot(owner, route.key, { status: 200, headers }, body).catch(warn);
+    if (owner && body.length > 0) await d.store.writeSnapshot(owner, route.key, { status: 200, headers }, body).catch(warn);
   }
 
   if (route.kind === "blob" && user && res.status === 200 && res.body && !req.headers.has("range")) {
@@ -93,13 +100,16 @@ async function afterNetwork(d: InterceptDeps, route: Route, user: string | null,
     void d.store
       .writeBlob(user, route.hash, type, toDisk)
       .then(() => d.store.evict(user, d.settings.value.limit))
-      .catch(warn);
+      .catch((err: unknown) => {
+        warn(err);
+        void toDisk.cancel().catch(() => undefined);
+      });
     return new Response(toPage, { status: res.status, statusText: res.statusText, headers: res.headers });
   }
   return res;
 }
 
-async function fallback(d: InterceptDeps, route: Route, user: string | null, err: unknown): Promise<Response> {
+async function fallback(d: InterceptDeps, route: Route, user: string | null): Promise<Response> {
   switch (route.kind) {
     case "navigate": {
       const index = await d.shell.file("/index.html");
@@ -108,16 +118,16 @@ async function fallback(d: InterceptDeps, route: Route, user: string | null, err
     case "shell": {
       const f = await d.shell.file(route.path);
       if (f) return fileResponse(f.path, f.size, f.type, null);
-      throw err;
+      return Response.error();
     }
     case "snapshot": {
       const s = user ? await d.store.readSnapshot(user, route.key) : null;
       if (s) return new Response(new Uint8Array(s.body), { status: s.meta.status, headers: s.meta.headers });
-      throw err;
+      return Response.error();
     }
     case "blob":
       return new Response(null, { status: 503 });
     default:
-      throw err;
+      return Response.error();
   }
 }
