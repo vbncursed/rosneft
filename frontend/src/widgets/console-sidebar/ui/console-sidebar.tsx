@@ -34,7 +34,7 @@ export function ConsoleSidebar({
     // Below lg both are a plain strip above the content (ConsoleLayout
     // stacks them): a viewport-tall sticky there would cover the screen.
     <div className="border-b border-line bg-panel lg:border-b-0 lg:border-r">
-      <div className="flex flex-col gap-3 px-4 py-3 lg:sticky lg:top-0 lg:h-dvh lg:gap-5.5 lg:overflow-hidden lg:px-4.5 lg:py-6">
+      <div className="flex flex-col gap-3 px-4 py-3 lg:sticky lg:top-(--offline-h) lg:h-[calc(100dvh-var(--offline-h))] lg:gap-5.5 lg:overflow-hidden lg:px-4.5 lg:py-6">
         <div className="flex items-center gap-2.5">
           <span
             aria-hidden="true"

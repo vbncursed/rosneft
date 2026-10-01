@@ -91,7 +91,9 @@ describe("ConsoleSidebar", () => {
   it("holds its contents in place while the page scrolls past", () => {
     const { container } = sidebar();
     const inner = container.firstElementChild!.firstElementChild as HTMLElement;
-    expect(inner).toHaveClass("lg:sticky", "lg:top-0", "lg:h-dvh");
+    // Below the offline banner when there is one: it sticks under it and is
+    // as tall as what is left, so its footer is never past the fold.
+    expect(inner).toHaveClass("lg:sticky", "lg:top-(--offline-h)", "lg:h-[calc(100dvh-var(--offline-h))]");
   });
 
   // Below lg the column is a strip over the content: a viewport-tall sticky

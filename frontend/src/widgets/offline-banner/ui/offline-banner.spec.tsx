@@ -16,4 +16,12 @@ describe("OfflineBanner", () => {
     render(<OfflineBanner />);
     expect(screen.getByRole("status")).toHaveTextContent("Offline — showing saved data");
   });
+  // index.css turns --offline-h on while this marker is in the document; the
+  // shells subtract it, so the banner's height is accounted for exactly.
+  it("carries the marker that sets --offline-h, and is exactly that tall", () => {
+    online.value = false;
+    render(<OfflineBanner />);
+    expect(screen.getByRole("status")).toHaveAttribute("data-offline");
+    expect(screen.getByRole("status")).toHaveClass("h-(--offline-h)", "shrink-0");
+  });
 });

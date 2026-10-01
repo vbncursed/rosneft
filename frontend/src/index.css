@@ -11,6 +11,15 @@ html:not(:has([data-fullbleed])) {
   scrollbar-gutter: stable;
 }
 
+/* The offline banner's height, for the shells to subtract from a window: 0
+   until the banner is in the document. The :has pattern is the one above. */
+:root {
+  --offline-h: 0px;
+}
+html:has([data-offline]) {
+  --offline-h: 2.5rem;
+}
+
 body {
   margin: 0;
   background: var(--bg);

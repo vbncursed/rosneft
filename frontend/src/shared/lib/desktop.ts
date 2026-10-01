@@ -1,4 +1,5 @@
 // Mirrors desktop/src/ipc-contract.ts — two packages, no shared build; change both together.
+// OfflineProgress and StorageUsage are the contract's `Progress` and `Usage` under SPA names.
 
 export type SavedTerritory = { slug: string; title: string; bytes: number; savedAt: string; syncedAt: string };
 export type SaveState = "queued" | "saving" | "saved" | "failed" | "cancelled";
