@@ -86,14 +86,16 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
     let res: Response;
     try {
       res = await d.network(req);
-      if (gateway && serverUnreachable(res.status) && (route.kind === "snapshot" || route.kind === "blob")) {
-        const copy = await savedCopy(d, route, user);
+      if (gateway && serverUnreachable(res.status)) {
+        // A dead backend is offline whichever route asked; a saved copy, where the route has one, replaces its answer.
+        seen(false);
+        const cacheable = route.kind === "snapshot" || route.kind === "blob";
+        const copy = cacheable ? await savedCopy(d, route, user) : null;
         if (copy) {
-          seen(false);
+          void res.body?.cancel().catch(() => undefined);
           return withCsp(copy);
         }
-      }
-      if (gateway) seen(true);
+      } else if (gateway) seen(true);
     } catch {
       // A request the page itself cancelled says nothing about the network.
       if (req.signal.aborted) return Response.error();
@@ -164,8 +166,9 @@ async function fallback(d: InterceptDeps, route: Route, user: string | null, req
     case "shell": {
       const f = await d.shell.file(route.path);
       if (f) return fileResponse(f.path, f.size, f.type, null);
-      // ponytail: a lazy chunk neither in the finished generation nor in Chromium's cache still fails until the next online refresh.
-      return d.network(req, { cache: "only-if-cached" }).then((r) => (r.ok ? r : Response.error()), () => Response.error());
+      // Content-hashed files: Chromium's cached copy is the right one. force-cache offline gives it or fails fast (only-if-cached is refused for a cors-mode request).
+      // ponytail: a chunk never fetched and not in a finished generation still fails until the next online refresh.
+      return d.network(req, { cache: "force-cache" }).then((r) => (r.ok ? r : Response.error()), () => Response.error());
     }
     default:
       return (await savedCopy(d, route, user)) ?? Response.error();

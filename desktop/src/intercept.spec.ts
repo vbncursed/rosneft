@@ -108,15 +108,31 @@ describe("createHandler", () => {
     expect((await h.handle(req(`/api/assets/${sha("x")}`))).type).toBe("error");
   });
 
-  it("a dead backend (503) serves the saved snapshot and reports offline", async () => {
+  it("a dead backend (502) serves the saved snapshot, drops the upstream body and reports offline", async () => {
     let up = true;
-    const h = await harness(async () => (up ? new Response("[1]") : new Response("bad gateway", { status: 502 })));
+    const dead = new Response("bad gateway", { status: 502 });
+    const cancel = vi.spyOn(dead.body!, "cancel");
+    const h = await harness(async () => (up ? new Response("[1]") : dead));
     await (await h.handle(req("/api/models"))).text();
     up = false;
     const res = await h.handle(req("/api/models"));
+    expect(cancel).toHaveBeenCalled();
     expect(res.status).toBe(200);
     expect(await res.text()).toBe("[1]");
     expect(h.states).toEqual([true, false]);
+  });
+
+  it("a 502 on an uncached /api route never reads as online", async () => {
+    let up = false;
+    const h = await harness(async () => (up ? new Response("[]") : offline()));
+    await h.handle(req("/api/jobs"));
+    up = true;
+    await h.handle(req("/api/models"));
+    expect(h.states).toEqual([false, true]);
+    const dead = await harness(async () => new Response("bad", { status: 502 }));
+    const res = await dead.handle(req("/api/jobs"));
+    expect(res.status).toBe(502);
+    expect(dead.states).toEqual([false]);
   });
 
   it("a dead backend with no saved snapshot passes its answer through", async () => {
@@ -164,11 +180,11 @@ describe("createHandler", () => {
   });
 
   it("a shell file the generation lacks comes from Chromium's HTTP cache, and a miss fails", async () => {
-    const cached = vi.fn(async (_r: Request, init?: { cache?: RequestCache }) => (init?.cache === "only-if-cached" ? new Response("cached js") : offline()));
+    const cached = vi.fn(async (_r: Request, init?: { cache?: RequestCache }) => (init?.cache === "force-cache" ? new Response("cached js") : offline()));
     const h = await harness(cached);
     const res = await h.handle(req("/assets/lazy.js"));
     expect(await res.text()).toBe("cached js");
-    expect(cached).toHaveBeenLastCalledWith(expect.any(Request), { cache: "only-if-cached" });
+    expect(cached).toHaveBeenLastCalledWith(expect.any(Request), { cache: "force-cache" });
     const miss = await harness(offline);
     expect((await miss.handle(req("/assets/lazy.js"))).type).toBe("error");
   });
