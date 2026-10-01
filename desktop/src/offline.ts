@@ -45,7 +45,7 @@ class SaveFailure extends Error {
 function reasonOf(err: unknown): SaveError {
   if (err instanceof SaveFailure) return err.reason;
   if ((err as { code?: unknown })?.code === "ENOSPC") return "no-space";
-  if (err instanceof TypeError || String((err as Error)?.message).includes("net::ERR")) return "network";
+  if (String((err as Error)?.message).includes("net::ERR")) return "network";
   return "failed";
 }
 
@@ -57,6 +57,12 @@ function throttled(emit: (p: Progress) => void, ms: number) {
     last = now;
     emit(p);
   };
+}
+
+function checked(res: Response): Response {
+  if (res.status === 401) throw new SaveFailure("signed-out");
+  if (res.status !== 200) throw new SaveFailure("failed");
+  return res;
 }
 
 const upsert = (pins: Pin[], pin: Pin): Pin[] => [...pins.filter((p) => p.slug !== pin.slug), pin];
@@ -75,7 +81,7 @@ export class OfflineSaver {
     const running = this.jobs.get(slug);
     if (running) return running.promise;
     const abort = new AbortController();
-    const promise = this.run(slug, abort.signal).finally(() => this.jobs.delete(slug));
+    const promise = this.run(slug, abort.signal, this.d.settings.value.userId).finally(() => this.jobs.delete(slug));
     this.jobs.set(slug, { promise, abort });
     return promise;
   }
@@ -93,7 +99,10 @@ export class OfflineSaver {
   }
 
   async remove(slug: string): Promise<void> {
+    // save() never rejects; waiting for it means a commit already under way lands before the unpin, not after.
+    const job = this.jobs.get(slug);
     this.cancel(slug);
+    await job?.promise;
     const user = this.d.settings.value.userId;
     if (!user) return;
     let removed: Pin | undefined;
@@ -127,24 +136,33 @@ export class OfflineSaver {
     else this.free += 1;
   }
 
+  /** Only a fetch that throws is a network failure; anything else that throws is our own. */
+  private async get(url: string, signal: AbortSignal): Promise<Response> {
+    try {
+      return await this.d.fetch(url, signal);
+    } catch {
+      throw new SaveFailure("network");
+    }
+  }
+
   private async json<T>(user: string, key: string, signal: AbortSignal): Promise<T> {
-    const res = await this.d.fetch(`${this.d.origin}${key}`, signal);
-    if (res.status !== 200) throw new SaveFailure("failed");
+    const res = checked(await this.get(`${this.d.origin}${key}`, signal));
     const body = Buffer.from(await res.arrayBuffer());
     const headers = [...res.headers].filter(([k]) => k === "content-type" || k === "etag");
     await this.d.store.writeSnapshot(user, key, { status: 200, headers }, body);
     return JSON.parse(body.toString("utf8")) as T;
   }
 
-  private async run(slug: string, signal: AbortSignal): Promise<void> {
+  private async run(slug: string, signal: AbortSignal, user: string | null): Promise<void> {
     const { store, emit } = this.d;
     const report = throttled(emit, 250);
     emit({ slug, state: "queued", done: 0, total: 0 });
     await this.acquire();
-    const user = this.d.settings.value.userId;
     let before: Pin | undefined;
     try {
       signal.throwIfAborted();
+      // A save queued for one account must not write into another's store.
+      if (this.d.settings.value.userId !== user) return emit({ slug, state: "cancelled", done: 0, total: 0 });
       if (!user) throw new SaveFailure("signed-out");
       before = (await store.readPins(user)).find((p) => p.slug === slug);
       const scene = await this.json<SceneLike>(user, `/api/territories/${slug}/scene`, signal);
@@ -166,8 +184,8 @@ export class OfflineSaver {
         if (have) {
           bytes += have.size;
         } else {
-          const res = await this.d.fetch(`${this.d.origin}/api/assets/${hash}`, signal);
-          if (res.status !== 200 || !res.body) throw new SaveFailure("failed");
+          const res = checked(await this.get(`${this.d.origin}/api/assets/${hash}`, signal));
+          if (!res.body) throw new SaveFailure("failed");
           // Await first: `bytes += await …` reads bytes before the suspension and loses concurrent downloads' sizes.
           const size = await store.writeBlob(user, hash, res.headers.get("content-type") ?? "application/octet-stream", res.body as ReadableStream<Uint8Array>, signal);
           bytes += size;
@@ -179,7 +197,7 @@ export class OfflineSaver {
       const pins = await store.updatePins(user, (all) => upsert(all, { slug, title, hashes, bytes, savedAt: before?.savedAt ?? now, syncedAt: now }));
       const keep = new Set(pins.flatMap((p) => p.hashes));
       await store.removeBlobs(user, (before?.hashes ?? []).filter((h) => !keep.has(h)));
-      await store.evict(user, this.d.settings.value.limit);
+      await store.evict(user, this.d.settings.value.limit).catch((e: unknown) => console.warn("offline: evict failed", e));
       emit({ slug, state: "saved", done: hashes.length, total: hashes.length });
     } catch (err) {
       // A first save that never finished leaves no pin; a failed resync keeps the copy it had.
