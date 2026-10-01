@@ -1,0 +1,183 @@
+import { createHash, randomUUID } from "node:crypto";
+import { createWriteStream } from "node:fs";
+import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { Readable, Transform } from "node:stream";
+import { pipeline } from "node:stream/promises";
+import type { ReadableStream as NodeWebStream } from "node:stream/web";
+import { isHash, isUserId } from "./validate";
+
+export type SnapshotMeta = { status: number; headers: [string, string][] };
+export type Pin = { slug: string; title: string; hashes: string[]; bytes: number; savedAt: string; syncedAt: string | null };
+export type BlobFile = { hash: string; size: number; mtimeMs: number };
+
+/**
+ * Least-recently-*modified* first, never a pinned file. Not LRU: a cache hit
+ * reads the file and leaves its mtime alone — the same accepted trade-off the
+ * Tauri shell's evict.rs made.
+ */
+export function pickVictims(files: BlobFile[], pinned: ReadonlySet<string>, limit: number): string[] {
+  let total = files.reduce((n, f) => n + f.size, 0);
+  const victims: string[] = [];
+  const candidates = files.filter((f) => !pinned.has(f.hash)).sort((a, b) => a.mtimeMs - b.mtimeMs);
+  for (const f of candidates) {
+    if (total <= limit) break;
+    victims.push(f.hash);
+    total -= f.size;
+  }
+  return victims;
+}
+
+export class Store {
+  private pinChain: Promise<unknown> = Promise.resolve();
+
+  constructor(private readonly root: string) {}
+
+  /** tmp/ is outside everything eviction sweeps; a hard kill can only orphan files there. */
+  async init(): Promise<void> {
+    await rm(this.tmpDir(), { recursive: true, force: true });
+    await mkdir(this.tmpDir(), { recursive: true });
+  }
+
+  private tmpDir(): string {
+    return path.join(this.root, "tmp");
+  }
+
+  private tmpFile(): string {
+    return path.join(this.tmpDir(), randomUUID());
+  }
+
+  private userDir(user: string): string {
+    if (!isUserId(user)) throw new Error(`store: refusing user id ${JSON.stringify(user)}`);
+    return path.join(this.root, "users", user);
+  }
+
+  private blobPath(user: string, hash: string): string {
+    if (!isHash(hash)) throw new Error(`store: refusing hash ${JSON.stringify(hash)}`);
+    return path.join(this.userDir(user), "blobs", hash);
+  }
+
+  private snapshotBase(user: string, key: string): string {
+    return path.join(this.userDir(user), "snapshots", createHash("sha256").update(key).digest("hex"));
+  }
+
+  private async atomicWrite(dest: string, data: string | Buffer): Promise<void> {
+    const tmp = this.tmpFile();
+    await writeFile(tmp, data);
+    await mkdir(path.dirname(dest), { recursive: true });
+    await rename(tmp, dest);
+  }
+
+  async readSnapshot(user: string, key: string): Promise<{ meta: SnapshotMeta; body: Buffer } | null> {
+    const base = this.snapshotBase(user, key);
+    try {
+      const [meta, body] = await Promise.all([readFile(`${base}.json`, "utf8"), readFile(`${base}.body`)]);
+      return { meta: JSON.parse(meta) as SnapshotMeta, body };
+    } catch {
+      return null;
+    }
+  }
+
+  async writeSnapshot(user: string, key: string, meta: SnapshotMeta, body: Buffer): Promise<void> {
+    const base = this.snapshotBase(user, key);
+    await this.atomicWrite(`${base}.body`, body);
+    await this.atomicWrite(`${base}.json`, JSON.stringify(meta));
+  }
+
+  async blob(user: string, hash: string): Promise<{ path: string; size: number; type: string } | null> {
+    const file = this.blobPath(user, hash);
+    try {
+      const [s, type] = await Promise.all([stat(file), readFile(`${file}.type`, "utf8")]);
+      return { path: file, size: s.size, type };
+    } catch {
+      return null;
+    }
+  }
+
+  /** Streams into tmp/, checks the bytes hash to `hash`, renames into blobs/. Throws on any failure; nothing is left behind. */
+  async writeBlob(user: string, hash: string, type: string, body: ReadableStream<Uint8Array>, signal?: AbortSignal): Promise<number> {
+    const dest = this.blobPath(user, hash);
+    const tmp = this.tmpFile();
+    const digest = createHash("sha256");
+    let size = 0;
+    const count = new Transform({
+      transform(chunk: Buffer, _enc, done) {
+        digest.update(chunk);
+        size += chunk.length;
+        done(null, chunk);
+      },
+    });
+    try {
+      await pipeline(Readable.fromWeb(body as NodeWebStream<Uint8Array>), count, createWriteStream(tmp), { signal });
+      if (digest.digest("hex") !== hash) throw new Error(`store: ${hash} did not hash to itself`);
+      await mkdir(path.dirname(dest), { recursive: true });
+      await writeFile(`${dest}.type`, type);
+      await rename(tmp, dest);
+      return size;
+    } finally {
+      await rm(tmp, { force: true });
+    }
+  }
+
+  async blobFiles(user: string): Promise<BlobFile[]> {
+    const dir = path.join(this.userDir(user), "blobs");
+    let names: string[];
+    try {
+      names = await readdir(dir);
+    } catch {
+      return [];
+    }
+    const files = await Promise.all(
+      names.filter(isHash).map(async (hash) => {
+        try {
+          const s = await stat(path.join(dir, hash));
+          return { hash, size: s.size, mtimeMs: s.mtimeMs };
+        } catch {
+          return null;
+        }
+      }),
+    );
+    return files.filter((f): f is BlobFile => f !== null);
+  }
+
+  async removeBlobs(user: string, hashes: Iterable<string>): Promise<void> {
+    await Promise.all(
+      [...hashes].map(async (hash) => {
+        const file = this.blobPath(user, hash);
+        await rm(file, { force: true });
+        await rm(`${file}.type`, { force: true });
+      }),
+    );
+  }
+
+  async readPins(user: string): Promise<Pin[]> {
+    try {
+      return JSON.parse(await readFile(path.join(this.userDir(user), "pins.json"), "utf8")) as Pin[];
+    } catch {
+      return [];
+    }
+  }
+
+  /** Read-modify-write, one at a time: two saves finishing together must not drop each other's pin. */
+  updatePins(user: string, change: (pins: Pin[]) => Pin[]): Promise<Pin[]> {
+    const next = this.pinChain.then(async () => {
+      const pins = change(await this.readPins(user));
+      await this.atomicWrite(path.join(this.userDir(user), "pins.json"), JSON.stringify(pins));
+      return pins;
+    });
+    this.pinChain = next.catch(() => undefined);
+    return next;
+  }
+
+  async usage(user: string): Promise<{ used: number; pinned: number }> {
+    const [files, pins] = await Promise.all([this.blobFiles(user), this.readPins(user)]);
+    const pinned = new Set(pins.flatMap((p) => p.hashes));
+    const sum = (list: BlobFile[]) => list.reduce((n, f) => n + f.size, 0);
+    return { used: sum(files), pinned: sum(files.filter((f) => pinned.has(f.hash))) };
+  }
+
+  async evict(user: string, limit: number): Promise<void> {
+    const [files, pins] = await Promise.all([this.blobFiles(user), this.readPins(user)]);
+    await this.removeBlobs(user, pickVictims(files, new Set(pins.flatMap((p) => p.hashes)), limit));
+  }
+}
