@@ -101,7 +101,7 @@ column, and its spec asserts as much.
 - `manifest.webmanifest`, `favicon.ico`, `favicon.svg`, `apple-touch-icon.png`,
   `icon-192.png`, `icon-512.png`, `icon-maskable-512.png` — install metadata
   and icons: icon 2e from `Site Icon.dc.html`. Every icon file here and in
-  `desktop/src-tauri/icons/` is generated from the three SVG sources in
+  `desktop/build/` is generated from the three SVG sources in
   `icons/` by `python3 frontend/icons/render.py`; edit a source and rerun it,
   never an output. It needs Python 3.10+, Pillow, macOS `iconutil`,
   `node_modules` (for the card's font) and, once,
