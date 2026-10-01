@@ -69,7 +69,7 @@ the frontend needs no desktop-specific build. The main process keeps an offline
 copy of the SPA, `/api` snapshots for the territory screens and per-user blobs
 on disk, and answers from them when the network is down; territories can be
 pinned with **Save offline**. The session is Chromium's cookie, encrypted by the
-OS keyring.
+OS keyring through Electron's `EnableCookieEncryption` fuse, which the build turns on.
 
 See [`desktop/README.md`](desktop/README.md).
 

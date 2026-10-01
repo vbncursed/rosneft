@@ -8,12 +8,25 @@ files:
   - package.json
 publish: null
 
+# Electron ships every fuse at its permissive default. Cookie encryption is what
+# puts the session cookie behind the OS keychain/DPAPI/keyring; the rest close
+# ways to turn the signed binary into a Node shell or attach a debugger.
+electronFuses:
+  runAsNode: false
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  onlyLoadAppFromAsar: true
+
 mac:
   category: public.app-category.productivity
   icon: build/icon.icns
   # Ad-hoc: Apple Silicon refuses to run an arm64 binary with no signature at
   # all. Not a Developer ID — Gatekeeper still needs the xattr step (README).
   identity: "-"
+  # No notarization, so the hardened runtime buys nothing — and with an ad-hoc
+  # signature its library validation can refuse to load Electron's own frameworks.
+  hardenedRuntime: false
   target:
     - target: dmg
       arch: [arm64, x64]

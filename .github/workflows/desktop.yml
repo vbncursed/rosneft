@@ -72,11 +72,14 @@ jobs:
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
-      # No CSC_IDENTITY_AUTO_DISCOVERY here: electron-builder.yml sets
-      # mac.identity "-" (ad-hoc, which Apple Silicon needs to run an arm64
-      # binary at all), and turning discovery off risks skipping that signing.
-      # No certificate is configured on any runner, so nothing else gets signed.
+      # electron-builder.yml sets mac.identity "-", which signs ad-hoc whatever
+      # auto-discovery finds (Apple Silicon refuses an unsigned arm64 binary).
+      # CSC_FOR_PULL_REQUEST: the builder skips signing on pull_request runs, and
+      # a PR's arm64 artifact would then not launch. No certificate is configured
+      # on any runner, so nothing but the ad-hoc signature is applied.
       - run: yarn --cwd desktop dist
+        env:
+          CSC_FOR_PULL_REQUEST: "true"
 
       # Names come from electron-builder.yml's artifactName. Exactly the expected
       # set per OS: anything else means the builder wrote somewhere these globs

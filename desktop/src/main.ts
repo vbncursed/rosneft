@@ -64,6 +64,8 @@ async function start(): Promise<void> {
   await store.init();
 
   const ses = session.fromPartition(PARTITION);
+  // The SPA asks for no device permission; the only one it uses is a user-gesture clipboard write (copy-text.ts).
+  ses.setPermissionRequestHandler((_wc, permission, callback) => callback(permission === "clipboard-sanitized-write"));
   // ses.fetch, never net.fetch: that is the default session, without our cookie.
   // credentials: "include" — without it Electron blocks cookies both ways.
   const network = (input: Request | string, init: RequestInit = {}) =>
@@ -101,7 +103,7 @@ async function start(): Promise<void> {
   registerIpc(ipcMain, ORIGIN, buildHandlers({ saver, store, settings, connectivity: () => online ?? true }));
 
   if (process.platform === "linux" && safeStorage.getSelectedStorageBackend() === "basic_text") {
-    console.warn("no keyring (libsecret/KWallet): the session cookie is stored with Chromium's basic encryption");
+    console.warn("no keyring (libsecret/KWallet): the cookie encryption fuse falls back to a hard-coded key (basic_text), so the session cookie is obfuscated, not protected");
   }
 
   win = createWindow(PASSKEYS[process.platform] ?? false);

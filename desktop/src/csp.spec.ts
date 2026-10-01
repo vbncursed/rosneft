@@ -6,6 +6,10 @@ describe("withCsp", () => {
     const res = withCsp(new Response("<p>", { headers: { "content-type": "text/html; charset=utf-8" } }));
     expect(res.headers.get("content-security-policy")).toBe(CSP);
   });
+  it("matches the content type case-insensitively", () => {
+    const res = withCsp(new Response("<p>", { headers: { "content-type": "Text/HTML; charset=UTF-8" } }));
+    expect(res.headers.get("content-security-policy")).toBe(CSP);
+  });
   it("leaves everything else alone", () => {
     const res = withCsp(new Response("{}", { headers: { "content-type": "application/json" } }));
     expect(res.headers.get("content-security-policy")).toBeNull();

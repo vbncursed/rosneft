@@ -19,7 +19,7 @@ export const CSP = [
 
 /** Keyed on the content type, not the path: index.html, offline pages and pdf.js's viewer.html all need it. */
 export function withCsp(res: Response): Response {
-  if (!(res.headers.get("content-type") ?? "").startsWith("text/html")) return res;
+  if (!(res.headers.get("content-type") ?? "").toLowerCase().startsWith("text/html")) return res;
   const headers = new Headers(res.headers);
   headers.set("content-security-policy", CSP);
   return new Response(res.body, { status: res.status, statusText: res.statusText, headers });

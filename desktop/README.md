@@ -68,10 +68,18 @@ the app works online and does not boot offline.
 
 ## Session and the keychain
 
-Sign-in is the ordinary cookie, kept by Chromium in the profile and encrypted
-with a key from the OS store (Keychain on macOS, DPAPI on Windows,
-libsecret/KWallet on Linux). On Linux with neither, Chromium falls back to its
-`basic_text` encryption and the shell logs a warning; sign-in still works.
+Sign-in is the ordinary cookie, kept by Chromium in the profile. It is
+encrypted on disk because the build turns on Electron's `EnableCookieEncryption`
+fuse (`electronFuses` in `electron-builder.yml`; Electron ships it off, and then
+the cookie database is plaintext). The key comes from the OS store: Keychain on
+macOS, DPAPI on Windows, libsecret/KWallet on Linux. On Linux with neither,
+Chromium falls back to `basic_text`, a hard-coded key that only obfuscates, and
+the shell logs a warning; sign-in still works.
+
+**Keep "Keep me signed in on this device" ticked.** Without it the gateway
+issues a session cookie with no expiry date, which Chromium drops when the app
+quits, so every launch starts at the sign-in screen, and offline you cannot sign
+in at all.
 
 **On macOS an unsigned dev build asks for Keychain access after every
 rebuild.** The ACL authorises the *binary that asked*, by signature, and every
@@ -123,4 +131,4 @@ web app's; edit a source there and rerun it, never an output.
 
 ## Baseline
 
-To be measured in Task 16: time to window and memory on an open territory.
+Not yet measured: time to window and memory on an open territory.
