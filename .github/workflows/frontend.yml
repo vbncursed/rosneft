@@ -10,8 +10,11 @@ on:
       - "frontend/**"
       - ".github/workflows/frontend.yml"
   push:
-    branches: [main, dev]
+    branches: [dev]
   workflow_dispatch:
+  # deploy.yml runs this as its gate on main; main is not listed under `push`
+  # so the same checks do not run twice there.
+  workflow_call:
 
 permissions:
   contents: read
