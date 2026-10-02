@@ -102,7 +102,7 @@ function ThumbnailCard({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
         className="sr-only"
         aria-label="Thumbnail file"
         onChange={(e) => {

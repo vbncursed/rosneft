@@ -110,7 +110,7 @@ export function QueueRowCard({ row, onTitle, onRemove, onThumbnail }: QueueRowPr
             </span>
             <input
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               aria-label={
                 row.thumbnail ? `Thumbnail attached for ${row.file.name}` : `Add thumbnail for ${row.file.name}`
               }

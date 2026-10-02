@@ -26,6 +26,14 @@ describe("QueueRowCard", () => {
     expect(screen.getByRole("textbox", { name: "Title for pump-jack-unit.zip" })).toHaveValue("Pump Jack Unit");
   });
 
+  it("offers only the thumbnail types the server accepts", () => {
+    render(<QueueRowCard row={row()} onTitle={() => {}} onRemove={() => {}} onThumbnail={() => {}} />);
+    expect(screen.getByLabelText("Add thumbnail for pump-jack-unit.zip")).toHaveAttribute(
+      "accept",
+      "image/jpeg,image/png,image/webp",
+    );
+  });
+
   it("edits the title", async () => {
     const onTitle = vi.fn();
     render(<QueueRowCard row={row()} onTitle={onTitle} onRemove={() => {}} onThumbnail={() => {}} />);

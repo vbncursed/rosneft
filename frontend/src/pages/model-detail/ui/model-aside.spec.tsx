@@ -108,6 +108,11 @@ describe("ModelAside", () => {
     expect(onRemoveThumbnail).toHaveBeenCalled();
   });
 
+  it("offers only the thumbnail types the server accepts", () => {
+    render(<ModelAside {...props({ canWrite: true })} />);
+    expect(screen.getByLabelText("Thumbnail file")).toHaveAttribute("accept", "image/jpeg,image/png,image/webp");
+  });
+
   it("hands a picked file to onThumbnail through the hidden input", async () => {
     const onThumbnail = vi.fn();
     render(<ModelAside {...props({ canWrite: true, onThumbnail })} />);

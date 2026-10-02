@@ -120,6 +120,19 @@ describe("offline store", () => {
     await act(async () => answer([{ ...saved, slug: "z" }]));
     expect(result.current.list.map((t) => t.slug)).toEqual(["z"]);
   });
+  it("a gone copy is announced even when only the shell sync is mounted", async () => {
+    const b = bridge();
+    syncOfflineUser("u");
+    await waitFor(() => expect(b.offline.list).toHaveBeenCalled());
+    await waitFor(() => expect(b.offline.onProgress).toHaveBeenCalled());
+    const calls = b.offline.list.mock.calls.length;
+    const { result } = renderHook(() => useNotices());
+    act(() => b.push({ slug: "zz", state: "gone", done: 0, total: 0 }));
+    expect(result.current.map((n) => n.message)).toEqual([
+      "“zz” is no longer available and was removed from this device",
+    ]);
+    await waitFor(() => expect(b.offline.list.mock.calls.length).toBeGreaterThan(calls));
+  });
   it("a list that answers after the account changed is dropped", async () => {
     const b = bridge();
     const answers: ((v: unknown[]) => void)[] = [];

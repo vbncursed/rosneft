@@ -35,6 +35,8 @@ async function reload(): Promise<void> {
 export function syncOfflineUser(userId: string | undefined): void {
   if (!userId || userId === owner) return;
   owner = userId;
+  // A resync can end in `gone` while no card is mounted: the progress push needs a listener from the shell on.
+  wire();
   set(EMPTY);
   void reload().catch(() => undefined);
 }
@@ -44,11 +46,11 @@ export function useOfflineUser(userId: string | undefined): void {
   useEffect(() => syncOfflineUser(userId), [userId]);
 }
 
-function wire(): void {
+/** Subscribes to the shell's progress pushes once; true when this call did it. */
+function wire(): boolean {
   const bridge = desktopBridge();
-  if (wired || !bridge) return;
+  if (wired || !bridge) return false;
   wired = true;
-  void reload().catch(() => undefined);
   bridge.offline.onProgress((p) => {
     const progress = new Map(state.progress);
     if (p.state === "saved" || p.state === "cancelled" || p.state === "gone") progress.delete(p.slug);
@@ -62,10 +64,11 @@ function wire(): void {
     if (p.state === "saved" || p.state === "failed" || p.state === "cancelled" || p.state === "gone")
       void reload().catch(() => undefined);
   });
+  return true;
 }
 
 function subscribe(listener: () => void): () => void {
-  wire();
+  if (wire()) void reload().catch(() => undefined);
   listeners.add(listener);
   return () => {
     listeners.delete(listener);
