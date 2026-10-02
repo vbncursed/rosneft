@@ -1,1 +1,33 @@
-{ "$schema": "./node_modules/oxlint/configuration_schema.json", "categories": { "correctness": "error" } }
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": ["dist/**", "build/**", "release/**"],
+  "categories": { "correctness": "error", "suspicious": "error", "perf": "error" },
+  "rules": {
+    // `x == null` is the null-or-undefined test; `===` would change behaviour.
+    "eqeqeq": ["error", "always", { "null": "ignore" }],
+    "require-unicode-regexp": "error",
+    "no-negated-condition": "error",
+    "typescript/no-floating-promises": "error",
+    // Async handlers handed to callback props; conditions, spreads and arguments stay checked.
+    "typescript/no-misused-promises": ["error", { "checksVoidReturn": { "attributes": false, "properties": false } }],
+    "typescript/await-thenable": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/restrict-template-expressions": "error",
+    // Casts at trust boundaries (JSON.parse, IPC payloads) are the typed contract; replacing
+    // them is runtime schema validation, a separate decision. Not in the spec's type-aware list.
+    "typescript/no-unsafe-type-assertion": "off",
+    // Fires on cleanup-returning callbacks and exhaustive switches; TS return types check this.
+    "typescript/consistent-return": "off"
+  },
+  "overrides": [
+    {
+      "files": ["**/*.spec.ts"],
+      "rules": {
+        // `expect(fake.method)` is the vitest idiom.
+        "typescript/unbound-method": "off",
+        // Test steps run in order on purpose.
+        "no-await-in-loop": "off"
+      }
+    }
+  ]
+}
