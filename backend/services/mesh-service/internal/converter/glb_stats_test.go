@@ -88,3 +88,18 @@ func TestGLBStatsHandlesMeshoptFallbackBuffer(t *testing.T) {
 	assert.Equal(t, vertices, uint64(8))
 	assert.Equal(t, faces, uint64(12))
 }
+
+// A negative accessor count would wrap to ~2^64 vertices when widened; the
+// gltf decoder is what keeps it out (count must be > 0), and this pins that
+// the bound G115 relies on in glbStats holds.
+func TestGLBStatsRejectsNegativeCount(t *testing.T) {
+	body := buildGLBFixture(t, `{
+		"asset": {"version": "2.0"},
+		"accessors": [{"componentType": 5126, "count": -3, "type": "VEC3"}],
+		"meshes": [{"primitives": [{"attributes": {"POSITION": 0}}]}]
+	}`)
+
+	_, _, err := glbStats(body)
+
+	assert.ErrorContains(t, err, "accessor.count")
+}
