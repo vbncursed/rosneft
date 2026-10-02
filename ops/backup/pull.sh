@@ -18,8 +18,10 @@ rsync -az --stats -e ssh "$HOST:/root/backups/" "$DEST/"
 
 # Verify what arrived, on this side. A backup verified only on the machine
 # that produced it is a backup verified by the thing that might be broken.
-latest=$(ls -1t "$DEST"/andrey-*.sql.gz | head -1)
+# shellcheck disable=SC2012 # names are ours: [a-z0-9-] only
+latest=$(ls -1t "$DEST"/andrey-[0-9]*.sql.gz | head -1)
 gzip -t "$latest"
 echo "pull.sh: verified $latest"
 
-ls -1t "$DEST"/andrey-*.sql.gz | tail -n +$((KEEP+1)) | xargs -r rm -f
+# shellcheck disable=SC2012 # names are ours: [a-z0-9-] only
+ls -1t "$DEST"/andrey-[0-9]*.sql.gz | tail -n +$((KEEP+1)) | xargs -r rm -f

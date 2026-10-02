@@ -6,6 +6,6 @@ endif
 
 .PHONY: check
 check:
-	$(SHELLCHECK) -x -S warning deploy/*.sh backup/*.sh
+	$(SHELLCHECK) -x deploy/*.sh backup/*.sh
 	bash deploy/deploy_test.sh
 	bash backup/dump_test.sh

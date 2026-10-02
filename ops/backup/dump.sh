@@ -45,7 +45,8 @@ fi
 gzip -t "$dump"
 
 # Size sanity: a dump that suddenly halves is a dump of half a database.
-prev=$(ls -1t "$DEST"/andrey-*.sql.gz 2>/dev/null | sed -n 2p || true)
+# shellcheck disable=SC2012 # names are ours: [a-z0-9-] only
+prev=$(ls -1t "$DEST"/andrey-[0-9]*.sql.gz 2>/dev/null | sed -n 2p || true)
 if [[ -n "$prev" ]]; then
   now_sz=$(stat -c%s "$dump")
   prev_sz=$(stat -c%s "$prev")
@@ -137,8 +138,11 @@ if [[ -n "$missing" ]]; then
 fi
 
 # Rotation. Only reached once every artifact above succeeded.
-ls -1t "$DEST"/andrey-*.sql.gz        | tail -n +$((KEEP+1)) | xargs -r rm -f
+# shellcheck disable=SC2012 # names are ours: [a-z0-9-] only
+ls -1t "$DEST"/andrey-[0-9]*.sql.gz        | tail -n +$((KEEP+1)) | xargs -r rm -f
+# shellcheck disable=SC2012 # names are ours: [a-z0-9-] only
 ls -1t "$DEST"/audit-digest-*.tar.gz  | tail -n +$((KEEP+1)) | xargs -r rm -f
+# shellcheck disable=SC2012 # names are ours: [a-z0-9-] only
 ls -1t "$DEST"/source-hashes-*.txt    | tail -n +$((KEEP+1)) | xargs -r rm -f
 
 echo "dump.sh: ok $STAMP"

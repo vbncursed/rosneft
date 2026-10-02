@@ -64,6 +64,12 @@ fi
 exec "$REAL_DOCKER" "\$@"
 STUB
 chmod +x "$BIN/docker"
+# dump.sh is GNU-only (stat -c); on macOS translate so the size guard still runs.
+if ! stat -c%s /dev/null >/dev/null 2>&1; then
+  # shellcheck disable=SC2016 # the $ must reach the stub unexpanded
+  printf '#!/usr/bin/env bash\n[[ $1 == -c%%s ]] && { shift; exec /usr/bin/stat -f%%z "$@"; }\nexec /usr/bin/stat "$@"\n' > "$BIN/stat"
+  chmod +x "$BIN/stat"
+fi
 export PATH="$BIN:$PATH"
 
 fail() { echo "FAIL: $1" >&2; exit 1; }
@@ -140,3 +146,14 @@ if find "$WORK" -name pwned | grep -q .; then
   fail "the injection-shaped hash executed: found a 'pwned' file"
 fi
 echo "PASS: valid blob copied, injection-shaped hash rejected without executing, no pwned file"
+
+echo "=== 4. a predeploy dump is not a daily dump ==="
+DEST4="$WORK/backups-predeploy"
+mkdir -p "$DEST4"
+touch -t 202001010000 "$DEST4/andrey-20200101-000000.sql.gz"
+touch -t 203001010000 "$DEST4/andrey-predeploy-20300101-000000-abcdef0.sql.gz"
+PG_DUMP_STUB='printf "SELECT 1;\n"' DEST="$DEST4" KEEP=1 "$HERE/dump.sh" >"$WORK/pre.log" 2>&1 || { cat "$WORK/pre.log"; fail "dump.sh failed beside a predeploy dump"; }
+[[ -f "$DEST4/andrey-predeploy-20300101-000000-abcdef0.sql.gz" ]] || fail "rotation deleted the predeploy dump"
+[[ ! -f "$DEST4/andrey-20200101-000000.sql.gz" ]] || fail "old daily dump survived KEEP=1"
+[[ $(find "$DEST4" -name 'andrey-2*.sql.gz' ! -name '*predeploy*' | wc -l) -eq 1 ]] || fail "the new daily dump was rotated away"
+echo "PASS: rotation counts only daily dumps"

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC1091,SC2016,SC2012 # sourced path; literal hostile strings; names are ours
 # Hermetic test for deploy.sh: no docker, no network, no flock, no server.
 # Part 1 sources the script (DEPLOY_LIB_ONLY=1) and checks its pure decisions;
 # part 2 runs the real script against stub docker/git/curl/flock on PATH, with
@@ -47,6 +48,15 @@ no "one unhealthy" all_healthy "$(row a running healthy; row b running unhealthy
 no "one exited" all_healthy "$(row a running healthy; row b exited "")"
 no "no-healthcheck service restarting" all_healthy "$(row a running healthy; row b restarting "")"
 no "empty input" all_healthy ""
+no "exited with a stale health value" all_healthy "$(row a exited healthy)"
+no "created, never started" all_healthy "$(row a created "")"
+# a real `docker compose ps -a --format json` line (Compose 2.40 field set)
+full() { printf '{"Command":"\\"/app\\"","CreatedAt":"2026-10-02 10:00:00 +0000 UTC","ExitCode":%s,"Health":"%s","ID":"abc123","Image":"ghcr.io/vbncursed/andrey-%s:abc","Labels":"com.docker.compose.project=andrey,x=y","LocalVolumes":"0","Mounts":"","Name":"andrey-%s-1","Names":"andrey-%s-1","Networks":"andrey_default","Ports":"","Project":"andrey","Publishers":null,"RunningFor":"1 hour ago","Service":"%s","Size":"0B","State":"%s","Status":"Up 1 hour (%s)"}\n' "$5" "$3" "$1" "$1" "$1" "$1" "$2" "$4"; }
+ok "real json: running healthy + running without healthcheck" all_healthy "$(full gateway running healthy healthy 0; full worker running "" "no check" 0)"
+no "real json: exited" all_healthy "$(full gateway running healthy healthy 0; full job exited "" "Exited (1)" 1)"
+no "real json: restarting" all_healthy "$(full gateway restarting "" "Restarting" 1)"
+no "real json: health starting" all_healthy "$(full gateway running starting "health: starting" 0)"
+no "real json: unhealthy" all_healthy "$(full gateway running unhealthy unhealthy 0)"
 
 echo "=== 3. images_to_prune ==="
 imgs=$(printf '%s\n' \
@@ -77,11 +87,13 @@ echo "docker $*" >> "$CALLS"
 case "$1" in
   compose)
     case "$*" in
+      *" pull"*) sleep "${STUB_SLOW:-0}"; [[ -z ${STUB_PULL_FAIL:-} ]] || exit 1 ;;
+      *" up "*) [[ ${ANDREY_TAG:-} != "${STUB_UP_FAIL_TAG:-x}" ]] || exit 1 ;;
       *" ps "*) for s in gateway auth; do printf '{"Service":"%s","State":"running","Health":"healthy"}\n' "$s"; done ;;
     esac ;;
   exec) [[ -z ${STUB_PGDUMP_FAIL:-} ]] || exit 1; echo "SELECT 1;" ;;
-  login) cat > "$WORK/login_stdin" ;;
-  create) echo "cid-${2##*:}" ;;
+  login) cat > "$WORK/login_stdin"; [[ -z ${STUB_LOGIN_FAIL:-} ]] || exit 1 ;;
+  create) [[ ${2##*:} != "${STUB_CREATE_FAIL_TAG:-x}" ]] || exit 1; echo "cid-${2##*:}" ;;
   cp)
     id=${2#cid-}; id=${id%%:*}
     mkdir -p "$3/assets"
@@ -94,6 +106,7 @@ STUB
 cat > "$BIN/git" <<'STUB'
 #!/usr/bin/env bash
 echo "git $*" >> "$CALLS"
+[[ $3 != fetch || -z ${STUB_FETCH_FAIL:-} ]] || exit 1
 [[ $3 != diff ]] || printf '%s\n' ${STUB_MIGRATIONS:-}
 exit 0
 STUB
@@ -116,6 +129,18 @@ cat > "$BIN/flock" <<'STUB'
 echo "flock $*" >> "$CALLS"
 [[ -z ${STUB_LOCK_HELD:-} ]]
 STUB
+cat > "$BIN/cp" <<'STUB'
+#!/usr/bin/env bash
+[[ ${ANDREY_TAG:-} != "${STUB_CP_FAIL_TAG:-x}" ]] || exit 1
+exec /bin/cp "$@"
+STUB
+# bsdtar (macOS) rejects the GNU-only flag the server's tar needs; record it, drop it.
+cat > "$BIN/tar" <<'STUB'
+#!/usr/bin/env bash
+echo "tar $*" >> "$CALLS"
+args=(); for a in "$@"; do [[ $a == --no-overwrite-dir ]] || args+=("$a"); done
+exec /usr/bin/tar "${args[@]}"
+STUB
 chmod +x "$BIN"/*
 export PATH="$BIN:$PATH" CALLS WORK
 
@@ -128,7 +153,7 @@ fresh() {
     ANDREY_LOGS="$WORK/s/logs" ANDREY_BACKUPS="$WORK/s/backups" ANDREY_SECRETS="$WORK/s/secrets" \
     ANDREY_ORIGIN="https://x.test" ANDREY_LOCK="$WORK/s/lock" ANDREY_CHECK_TIMEOUT=0 ANDREY_CHECK_INTERVAL=0 \
     TMPDIR="$WORK/s/tmp" STUB_OLD="$SHA1" STUB_NEW="$SHA2" STUB_BROKEN_RE=""
-  unset ANDREY_LOCK_WAIT DRY_RUN STUB_LOCK_HELD STUB_PGDUMP_FAIL STUB_MIGRATIONS STUB_TG_FAIL SSH_ORIGINAL_COMMAND || true
+  unset STUB_SLOW STUB_PULL_FAIL STUB_UP_FAIL_TAG STUB_LOGIN_FAIL STUB_CREATE_FAIL_TAG STUB_FETCH_FAIL STUB_CP_FAIL_TAG ANDREY_LOCK_WAIT DRY_RUN STUB_LOCK_HELD STUB_PGDUMP_FAIL STUB_MIGRATIONS STUB_TG_FAIL SSH_ORIGINAL_COMMAND || true
 }
 
 # deploy.sh with $TOKEN on stdin; sets $out, $rc, $log. The command substitution
@@ -162,13 +187,16 @@ export STUB_OLD="$SHA3" STUB_MIGRATIONS="backend/services/audit-service/internal
 export SSH_ORIGINAL_COMMAND="$SHA2 vbncursed"
 go
 [[ $rc -eq 0 ]] || { echo "$out"; fail "happy path exit $rc"; }
-ok "step order" in_order "$log" '^+ backup' "git -C .* fetch origin" "checkout --detach $SHA2" ' pull$' ' up -d$' \
-  'force-recreate --no-deps audit' '^+ publish_rest' '^+ publish_last' '^+ write_deployed' '^+ prune_images'
+ok "step order" in_order "$log" '^+ backup' "git -C .* fetch origin" "checkout --detach $SHA2" ' pull$' ' up -d --no-build$' \
+  'force-recreate --no-build --no-deps audit' '^+ publish_rest' '^+ publish_last' '^+ write_deployed' '^+ prune_images'
 ok ".deployed written" [ "$(deployed)" = "$SHA2" ]
 ok "frontend published" [ "$(live_id)" = "$SHA2" ]
 ok "old assets kept" [ -f "$ANDREY_WWW/assets/app.js" ]
 ok "backup is a valid gzip named with sha7" gzip -t "$ANDREY_BACKUPS/andrey-predeploy-"*"-${SHA2:0:7}.sql.gz"
 ok "only 10 predeploy backups kept" [ "$(ls "$ANDREY_BACKUPS" | wc -l)" -eq 10 ]
+ok "ps -a, so exited containers count" calls_have ' ps -a --format json'
+ok "frontend extracted without following image modes" calls_have 'tar -C .* -x --no-overwrite-dir --no-same-owner'
+no "temp frontend dir removed" compgen -G "$WORK/s/tmp/andrey-front.*"
 ok "flock waits 1800 s by default" calls_have "^flock -w 1800 9"
 ok "success notice names the migration" calls_have "00003_x.sql"
 ok "image older than the last deploys pruned" calls_have "rmi ghcr.io/vbncursed/andrey-gateway:$SHA3"
@@ -186,6 +214,44 @@ ok ".deployed unchanged" [ "$(deployed)" = "$SHA1" ]
 ok "previous frontend is live again" [ "$(live_id)" = "$SHA1" ]
 ok "notice names rollback and the failing check" calls_have "text=deploy ${SHA2:0:7} rolled back to ${SHA1:0:7}: shell-manifest"
 no "nothing pruned after a failure" grep -q '^+ prune_images' <<<"$log"
+
+echo "=== 6b. rollback is offline: it never fetches, logs in or pulls ==="
+for knob in PULL LOGIN FETCH UP EXTRACT CP; do
+  fresh
+  echo "$SHA1" > "$ANDREY_ROOT/.deployed"
+  case $knob in
+    PULL) export STUB_PULL_FAIL=1 ;;
+    LOGIN) export STUB_LOGIN_FAIL=1 ;;
+    FETCH) export STUB_FETCH_FAIL=1 ;;
+    UP) export STUB_UP_FAIL_TAG="$SHA2" ;;
+    EXTRACT) export STUB_CREATE_FAIL_TAG="$SHA2" ;;
+    CP) export STUB_CP_FAIL_TAG="$SHA2" ;;
+  esac
+  go "$SHA2" vbncursed
+  [[ $rc -eq 1 ]] || { echo "$out"; fail "$knob: exit $rc, want 1"; }
+  ok "$knob: rolled back to the previous sha" [ "$(deployed)" = "$SHA1" ]
+  ok "$knob: previous frontend live" [ "$(live_id)" = "$SHA1" ]
+  ok "$knob: rollback up without build" in_order "$(sed -n "/checkout --detach $SHA1/,\$p" "$CALLS")" "checkout" ' up -d --no-build$'
+  no "$knob: no fetch/login/pull after the rollback began" grep -q -e '^git .* fetch' -e '^docker login' -e '^docker compose .* pull$' <(sed -n "/checkout --detach $SHA1/,\$p" "$CALLS")
+  ok "$knob: notice names rollback" calls_have "rolled back to ${SHA1:0:7}"
+done
+
+echo "=== 6c. client gone mid-deploy: the deploy still finishes and logs ==="
+fresh
+echo "$SHA1" > "$ANDREY_ROOT/.deployed"
+export STUB_BROKEN_RE="$SHA2" STUB_SLOW=1
+set +e
+printf '%s\n' "$TOKEN" | "$HERE/deploy.sh" "$SHA2" vbncursed 2>&1 | head -n1 >/dev/null
+rc=${PIPESTATUS[1]}
+set -e
+for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+  grep -q 'rolled back to' "$WORK"/s/logs/*.log 2>/dev/null && break
+  sleep 0.5
+done
+ok "exit 1 despite the closed pipe" [ "$rc" -eq 1 ]
+ok "rolled back" [ "$(deployed)" = "$SHA1" ]
+ok "log finished after the client left" grep -q 'rolled back to' "$WORK"/s/logs/*.log
+ok "notice sent" calls_have "rolled back to ${SHA1:0:7}"
 
 echo "=== 7. failed check with no previous deploy: no rollback ==="
 fresh

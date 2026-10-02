@@ -97,3 +97,6 @@ skills-lock.json
 desktop/node_modules/
 desktop/dist/
 desktop/release/
+
+# CD: the SHA the production server last deployed (written by ops/deploy/deploy.sh)
+/.deployed

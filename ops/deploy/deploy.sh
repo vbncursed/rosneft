@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2329,SC2012 # steps run through run()/step(); names are ours
 # Server-side deploy. Runs ON THE PRODUCTION HOST as the forced command of the
 # CD ssh key (see docs/superpowers/specs/2026-10-02-cd-design.md §2-3), with
 # "<sha> <actor>" in $1 $2 or $SSH_ORIGINAL_COMMAND and the GHCR token on the
@@ -13,7 +14,7 @@ set -euo pipefail
 
 valid_sha() { [[ $1 =~ ^[0-9a-f]{40}$ ]]; }
 
-# $1 = `docker compose ps --format json`, one object per line. No jq on the
+# $1 = `docker compose ps -a --format json`, one object per line. No jq on the
 # server, so the three fields are cut out with sed.
 all_healthy() {
   local line state health n=0
@@ -22,11 +23,8 @@ all_healthy() {
     state=$(sed -n 's/.*"State" *: *"\([^"]*\)".*/\1/p' <<<"$line")
     health=$(sed -n 's/.*"Health" *: *"\([^"]*\)".*/\1/p' <<<"$line")
     n=$((n + 1))
-    if [[ -n $health ]]; then
-      [[ $health == healthy ]] || return 1
-    else
-      [[ $state == running ]] || return 1
-    fi
+    [[ $state == running ]] || return 1
+    [[ -z $health || $health == healthy ]] || return 1
   done <<<"$1"
   ((n > 0))
 }
@@ -71,6 +69,14 @@ LOGGED_IN=""
 TOKEN=""
 ACTOR=""
 
+logwriter() { # <logfile>: stdin -> logfile, then stdout (errors ignored)
+  local l
+  while IFS= read -r l || [[ -n $l ]]; do
+    printf '%s\n' "$l" >>"$1"
+    printf '%s\n' "$l" 2>/dev/null || true
+  done
+}
+
 log() { printf '%s\n' "$*"; }
 run() { log "+ $*"; [[ -n ${DRY_RUN:-} ]] || "$@"; }
 step() { local reason=$1; shift; run "$@" || { FAIL_REASON=$reason; return 1; }; }
@@ -102,26 +108,41 @@ backup() {
   ls -1t "$BACKUPS"/andrey-predeploy-*.sql.gz | tail -n +11 | xargs -r rm -f
 }
 
-extract_front() { # <sha> <dest>
+extract_front() { # <sha> <dest dir>
   local cid
   cid=$(docker create "$FRONT_IMAGE:$1") || return 1
-  docker cp "$cid:/dist" "$2" || { docker rm "$cid" >/dev/null; return 1; }
+  docker cp "$cid:/dist/." "$2" || { docker rm "$cid" >/dev/null; return 1; }
   docker rm "$cid" >/dev/null
 }
 
 # Old hashed assets are never deleted: open tabs and the desktop shell still load them.
+# The docroot's own modes and owner stay as they are, whatever the image carried.
 publish_rest() { # <dist>
   local f ex=()
   for f in $(last_files); do ex+=(--exclude="./$f"); done
   mkdir -p "$WWW"
-  tar -C "$1" -c "${ex[@]}" . | tar -C "$WWW" -x
+  tar -C "$1" -c "${ex[@]}" . | tar -C "$WWW" -x --no-overwrite-dir --no-same-owner
 }
 
+# cp to a temp name, then rename: a reader never sees a truncated index.html.
 publish_last() { # <dist>
   local f
   for f in $(last_files); do
-    if [[ -f $1/$f ]]; then cp "$1/$f" "$WWW/$f"; fi
+    [[ -f $1/$f ]] || continue
+    cp "$1/$f" "$WWW/.$f.tmp" && mv -f "$WWW/.$f.tmp" "$WWW/$f" || return 1
   done
+}
+
+# Sets MANIFEST_ID; always removes its temp dir.
+publish_front() { # <sha>
+  local dist rc=0
+  dist=$(mktemp -d "${TMPDIR:-/tmp}/andrey-front.XXXXXX")
+  step "frontend image extract failed" extract_front "$1" "$dist" &&
+    step "frontend publish failed" publish_rest "$dist" &&
+    step "frontend publish failed" publish_last "$dist" || rc=1
+  MANIFEST_ID=$(manifest_id <"$dist/shell-manifest.json" 2>/dev/null || true)
+  rm -rf "$dist"
+  return $rc
 }
 
 # The token never reaches argv, a log line or a run() echo.
@@ -138,27 +159,28 @@ registry_login() {
   trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
 }
 
-compose_healthy() { all_healthy "$("${DC[@]}" ps --format json)"; }
+compose_healthy() { all_healthy "$("${DC[@]}" ps -a --format json)"; }
 
-# Steps 3-5: put <sha>'s compose file, images and frontend in place.
-apply() {
-  local sha=$1 dist
-  dist="${TMPDIR:-/tmp}/andrey-front-${sha:0:7}"
+# Steps 3-5: put <sha>'s compose file, images and frontend in place. In rollback
+# mode (<sha> was running before, its commit and images are local) nothing touches
+# the network: no fetch, no login, no pull, so a registry or GitHub outage cannot
+# stop a rollback; a missing image makes `up --no-build` fail loudly.
+apply() { # <sha> [rollback]
+  local sha=$1 mode=${2:-deploy}
   export ANDREY_TAG=$sha
-  step "git fetch failed" git -C "$ROOT" fetch origin || return 1
+  if [[ $mode == deploy ]]; then
+    step "git fetch failed" git -C "$ROOT" fetch origin || return 1
+  fi
   step "git checkout failed" git -C "$ROOT" checkout --detach "$sha" || return 1
-  registry_login || { FAIL_REASON="registry login failed"; return 1; }
-  step "compose pull failed" "${DC[@]}" pull || return 1
-  step "compose up failed" "${DC[@]}" up -d || return 1
+  if [[ $mode == deploy ]]; then
+    registry_login || { FAIL_REASON="registry login failed"; return 1; }
+    step "compose pull failed" "${DC[@]}" pull || return 1
+  fi
+  step "compose up failed" "${DC[@]}" up -d --no-build || return 1
   # Audit triggers register only at audit's boot, so it restarts after the rest is up.
   wait_for compose_healthy || { FAIL_REASON="containers not healthy before audit restart"; return 1; }
-  step "audit recreate failed" "${DC[@]}" up -d --force-recreate --no-deps audit || return 1
-  rm -rf "$dist"
-  step "frontend image extract failed" extract_front "$sha" "$dist" || return 1
-  step "frontend publish failed" publish_rest "$dist" || return 1
-  step "frontend publish failed" publish_last "$dist" || return 1
-  MANIFEST_ID=$(manifest_id <"$dist/shell-manifest.json" 2>/dev/null || true)
-  rm -rf "$dist"
+  step "audit recreate failed" "${DC[@]}" up -d --force-recreate --no-build --no-deps audit || return 1
+  publish_front "$sha"
 }
 
 http_code() { curl -sS --max-time 10 -o /dev/null -w '%{http_code}' "$1" 2>/dev/null || true; }
@@ -176,8 +198,8 @@ check_once() { # <manifest-id>
 
 checks() { wait_for check_once "$1"; }
 
-deploy() { apply "$1" && checks "$MANIFEST_ID"; }
-rollback() { log "rolling back to $1"; deploy "$1"; }
+deploy() { apply "$1" "${2:-deploy}" && checks "$MANIFEST_ID"; }
+rollback() { log "rolling back to $1"; deploy "$1" rollback; }
 
 write_deployed() {
   mkdir -p "$STATE"
@@ -185,9 +207,9 @@ write_deployed() {
   echo "$SHA" >>"$STATE/history"
 }
 
-prune_images() { # keeps this deploy, the previous one and the last two in history
+prune_images() { # keeps this deploy, the one before it and the last three in history
   local keep
-  keep="$SHA $PREV $(tail -n 2 "$STATE/history")"
+  keep="$SHA $PREV $(tail -n 3 "$STATE/history")"
   # shellcheck disable=SC2086 # tags are validated SHAs
   docker images --format '{{.Repository}}:{{.Tag}}' | images_to_prune $keep | xargs -r docker rmi >/dev/null || true
 }
@@ -214,7 +236,7 @@ main() {
     printf 'deploy.sh: refusing %q %q, expected "<40 lowercase hex> <github user>"\n' "$SHA" "$ACTOR" >&2
     exit 2
   fi
-  if [[ -t 0 ]]; then TOKEN=""; else IFS= read -r TOKEN || true; fi
+  IFS= read -r -t 5 TOKEN || true
 
   exec 9>"$LOCK"
   flock -w "$LOCK_WAIT" 9 || { echo "deploy.sh: another deploy holds the lock" >&2; exit 4; }
@@ -225,7 +247,11 @@ main() {
     mkdir -p "$LOGS"
     logfile="$LOGS/$STAMP-${SHA:0:7}.log"
   fi
-  exec > >(tee -a "$logfile") 2>&1
+  # no-pty: when the ssh client drops, stdout becomes a dead pipe. SIGPIPE ignored
+  # and a writer that logs first and then mirrors to stdout keep the deploy (and
+  # a rollback) running and the log complete.
+  trap '' PIPE HUP
+  exec > >(logwriter "$logfile") 2>&1
 
   PREV=$(cat "$ROOT/.deployed" 2>/dev/null || true)
   local s7=${SHA:0:7} p7=${PREV:0:7}
