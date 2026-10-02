@@ -27,7 +27,7 @@ export function newerRelease(current: string, releases: unknown): { version: str
 }
 
 export type UpdateDeps = {
-  fetch: (url: string, init: { headers: Record<string, string> }) => Promise<Response>;
+  fetch: (url: string, init: { headers: Record<string, string>; signal: AbortSignal }) => Promise<Response>;
   settings: { value: Pick<Settings, "dismissedUpdate">; update: (patch: Partial<Settings>) => Promise<void> };
   /** Resolves to the index of the pressed button: 0 Download, 1 Later. */
   showDialog: (message: string, detail: string) => Promise<number>;
@@ -35,29 +35,55 @@ export type UpdateDeps = {
   currentVersion: string;
 };
 
-let open = false;
+const FETCH_TIMEOUT_MS = 15_000;
+const FIRST_CHECK_MS = 30_000;
+const CHECK_EVERY_MS = 6 * 60 * 60 * 1000;
 
-export async function checkForUpdates(deps: UpdateDeps): Promise<void> {
-  if (open) return;
-  open = true;
-  try {
-    const res = await deps.fetch(RELEASES_URL, { headers: { Accept: "application/vnd.github+json" } });
-    if (!res.ok) return;
-    const found = newerRelease(deps.currentVersion, await res.json());
-    if (!found || deps.settings.value.dismissedUpdate === found.version) return;
-    const pressed = await deps.showDialog(
-      `Andrey Desktop v${found.version} is available`,
-      `You have v${deps.currentVersion}.`,
-    );
-    if (pressed === 0) {
-      if (openableExternally(found.url) && new URL(found.url).hostname === "github.com")
-        await deps.openExternal(found.url);
-    } else {
-      await deps.settings.update({ dismissedUpdate: found.version });
+export function createUpdateChecker(deps: UpdateDeps): () => Promise<void> {
+  let busy = false;
+  return async () => {
+    if (busy) return;
+    busy = true;
+    try {
+      const res = await deps.fetch(RELEASES_URL, {
+        headers: { Accept: "application/vnd.github+json" },
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
+      if (!res.ok) {
+        console.warn("update check: HTTP", res.status);
+        return;
+      }
+      const found = newerRelease(deps.currentVersion, await res.json());
+      if (!found || deps.settings.value.dismissedUpdate === found.version) return;
+      const pressed = await deps.showDialog(
+        `Andrey Desktop v${found.version} is available`,
+        `You have v${deps.currentVersion}.`,
+      );
+      if (pressed === 0) {
+        if (openableExternally(found.url) && new URL(found.url).hostname === "github.com") {
+          await deps.openExternal(found.url);
+        }
+      } else {
+        await deps.settings.update({ dismissedUpdate: found.version });
+      }
+    } catch (err) {
+      console.warn("update check failed", err);
+    } finally {
+      busy = false;
     }
-  } catch (err) {
-    console.warn("update check failed", err);
-  } finally {
-    open = false;
-  }
+  };
+}
+
+type Timer = { unref?: () => void };
+
+export function scheduleUpdateChecks(o: {
+  setTimeout: (fn: () => void, ms: number) => Timer;
+  setInterval: (fn: () => void, ms: number) => Timer;
+  check: () => unknown;
+  packaged: boolean;
+}): void {
+  if (!o.packaged) return;
+  const run = () => void o.check();
+  o.setTimeout(run, FIRST_CHECK_MS).unref?.();
+  o.setInterval(run, CHECK_EVERY_MS).unref?.();
 }

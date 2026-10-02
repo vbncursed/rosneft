@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { checkForUpdates, newerRelease, type UpdateDeps } from "./updates";
+import { createUpdateChecker, newerRelease, scheduleUpdateChecks, type UpdateDeps } from "./updates";
+
+const checkForUpdates = (deps: UpdateDeps) => createUpdateChecker(deps)();
 
 const rel = (tag: string, extra: object = {}) => ({
   tag_name: tag,
@@ -101,11 +103,59 @@ describe("checkForUpdates", () => {
   it("does not stack a second dialog while one is open", async () => {
     let close!: (n: number) => void;
     const d = setup({ showDialog: vi.fn(() => new Promise<number>((r) => (close = r))) });
-    const first = checkForUpdates(d);
-    const second = checkForUpdates(d);
+    const check = createUpdateChecker(d);
+    const first = check();
+    const second = check();
     await vi.waitFor(() => expect(d.showDialog).toHaveBeenCalled());
     close(1);
     await Promise.all([first, second]);
     expect(d.showDialog).toHaveBeenCalledOnce();
+  });
+});
+
+describe("hung network", () => {
+  it("aborts the request so a later check can run", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.useFakeTimers();
+    const fetch = vi
+      .fn()
+      .mockImplementationOnce(
+        (_url: string, init: { signal: AbortSignal }) =>
+          new Promise<Response>((_res, rej) => init.signal.addEventListener("abort", () => rej(new Error("aborted")))),
+      )
+      .mockImplementation(async () => new Response("[]"));
+    const check = createUpdateChecker(setup({ fetch }));
+    const first = check();
+    await vi.advanceTimersByTimeAsync(15_000);
+    await first;
+    await check();
+    vi.useRealTimers();
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+  it("logs the status of a non-2xx answer", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await checkForUpdates(setup({ fetch: vi.fn(async () => new Response("{}", { status: 403 })) }));
+    expect(warn).toHaveBeenCalledWith("update check: HTTP", 403);
+  });
+});
+
+const fake = () => {
+  const unref = vi.fn();
+  return { setTimeout: vi.fn(() => ({ unref })), setInterval: vi.fn(() => ({ unref })), check: vi.fn(), unref };
+};
+
+describe("scheduleUpdateChecks", () => {
+  it("schedules nothing when not packaged", () => {
+    const f = fake();
+    scheduleUpdateChecks({ ...f, packaged: false });
+    expect(f.setTimeout).not.toHaveBeenCalled();
+    expect(f.setInterval).not.toHaveBeenCalled();
+  });
+  it("checks after 30 s then every 6 h, without holding the process open", () => {
+    const f = fake();
+    scheduleUpdateChecks({ ...f, packaged: true });
+    expect(f.setTimeout).toHaveBeenCalledWith(expect.any(Function), 30_000);
+    expect(f.setInterval).toHaveBeenCalledWith(expect.any(Function), 21_600_000);
+    expect(f.unref).toHaveBeenCalledTimes(2);
   });
 });

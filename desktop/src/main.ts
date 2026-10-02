@@ -8,7 +8,7 @@ import { OfflineSaver } from "./offline";
 import { SettingsFile } from "./settings";
 import { Shell } from "./shell";
 import { Store } from "./store";
-import { checkForUpdates } from "./updates";
+import { createUpdateChecker, scheduleUpdateChecks } from "./updates";
 import { attachPermissionPolicy, attachWindowPolicy } from "./window-policy";
 
 const ORIGIN = upstreamOrigin(process.env);
@@ -105,22 +105,18 @@ async function start(): Promise<void> {
 
   win = createWindow(PASSKEYS[process.platform] ?? false);
 
-  if (app.isPackaged) {
-    const check = () =>
-      checkForUpdates({
-        // net.fetch, not ses.fetch: GitHub is not the upstream, needs no session cookie, and net.fetch honours the system proxy.
-        fetch: (url, init) => net.fetch(url, init),
-        settings,
-        showDialog: async (message, detail) => {
-          const options = { message, detail, buttons: ["Download", "Later"], defaultId: 0, cancelId: 1 };
-          return (await (win ? dialog.showMessageBox(win, options) : dialog.showMessageBox(options))).response;
-        },
-        openExternal: (url) => shell.openExternal(url),
-        currentVersion: app.getVersion(),
-      });
-    setTimeout(() => void check(), 30_000);
-    setInterval(() => void check(), 6 * 60 * 60 * 1000);
-  }
+  const check = createUpdateChecker({
+    // net.fetch, not ses.fetch: GitHub is not the upstream, needs no session cookie, and net.fetch honours the system proxy.
+    fetch: (url, init) => net.fetch(url, init),
+    settings,
+    showDialog: async (message, detail) => {
+      const options = { message, detail, buttons: ["Download", "Later"], defaultId: 0, cancelId: 1 };
+      return (await (win ? dialog.showMessageBox(win, options) : dialog.showMessageBox(options))).response;
+    },
+    openExternal: (url) => shell.openExternal(url),
+    currentVersion: app.getVersion(),
+  });
+  scheduleUpdateChecks({ setTimeout, setInterval, check, packaged: app.isPackaged });
 }
 
 if (app.requestSingleInstanceLock()) {
