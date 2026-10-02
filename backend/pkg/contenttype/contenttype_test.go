@@ -1,8 +1,8 @@
-package service
+package contenttype
 
 import "testing"
 
-func TestNormaliseContentType(t *testing.T) {
+func TestNormalise(t *testing.T) {
 	tests := []struct {
 		name string
 		in   string
@@ -27,8 +27,8 @@ func TestNormaliseContentType(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := normaliseContentType(tt.in); got != tt.want {
-				t.Errorf("normaliseContentType(%q) = %q, want %q", tt.in, got, tt.want)
+			if got := Normalise(tt.in); got != tt.want {
+				t.Errorf("Normalise(%q) = %q, want %q", tt.in, got, tt.want)
 			}
 		})
 	}

@@ -1,4 +1,6 @@
-package service
+// Package contenttype is the one place an upload's declared Content-Type is
+// reduced to a value safe to store and replay when the blob is served.
+package contenttype
 
 import "mime"
 
@@ -19,10 +21,10 @@ var allowedContentTypes = map[string]bool{
 
 const fallbackContentType = "application/octet-stream"
 
-// normaliseContentType lower-cases the type, drops its parameters and maps
+// Normalise lower-cases the type, drops its parameters and maps
 // anything off the allow-list (including empty or unparsable) to
 // application/octet-stream. It never rejects: an upload that worked keeps working.
-func normaliseContentType(raw string) string {
+func Normalise(raw string) string {
 	mediaType, _, err := mime.ParseMediaType(raw)
 	if err != nil || !allowedContentTypes[mediaType] {
 		return fallbackContentType
