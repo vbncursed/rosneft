@@ -156,7 +156,7 @@ describe("useUsers", () => {
     ] as const) {
       act(() => result.current.users.ask(kind));
       act(() => result.current.users.confirm());
-      await waitFor(() => expect(result.current.notices[0]?.message).toBe(message));
+      await waitFor(() => expect(result.current.notices.at(-1)?.message).toBe(message));
     }
   });
 

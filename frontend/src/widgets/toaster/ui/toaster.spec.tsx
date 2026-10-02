@@ -1,7 +1,7 @@
-import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { clearNotices, notify, useNotices } from "@/shared/lib/notify";
+import { clearNotices, notify } from "@/shared/lib/notify";
 import { Toaster } from "./toaster";
 
 beforeEach(() => clearNotices());
@@ -34,111 +34,82 @@ describe("Toaster", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
-  it("slides a card in from above, and only fades under reduced motion", () => {
+  it("draws each notice as a design-system toast that lets clicks through around it", () => {
     render(<Toaster />);
     act(() => {
       notify.success("Saved");
     });
-    const card = region()!.firstElementChild!;
-    expect(card.className.split(/\s+/)).toEqual(
-      expect.arrayContaining([
-        "starting:opacity-0",
-        "starting:-translate-y-2",
-        "motion-reduce:starting:translate-y-0",
-        "transition-[opacity,translate]",
-        "duration-200",
-        "ease-out",
-      ]),
-    );
-  });
-
-  // E11: in the viewer the top-right corner is the Overlays panel's head;
-  // there the stack sits bottom-centre, above the status strip, and rises.
-  it("sits bottom-centre when asked, its cards rising from that edge", () => {
-    render(<Toaster placement="bottom-center" />);
-    act(() => {
-      notify.success("Saved");
-    });
-    const host = region()!;
-    expect(host.className.split(/\s+/)).toEqual(
-      expect.arrayContaining(["fixed", "bottom-16", "left-1/2", "-translate-x-1/2"]),
-    );
-    expect(host).not.toHaveClass("top-4");
-    const card = host.firstElementChild!.className.split(/\s+/);
-    expect(card).toEqual(expect.arrayContaining(["starting:translate-y-2", "motion-reduce:starting:translate-y-0"]));
-    expect(card).not.toContain("starting:-translate-y-2");
-  });
-
-  // Anchored at the bottom, the newest card sits on that edge and the older
-  // ones stack above it; the hover bridge below each card skips the bottom one.
-  it("stacks bottom-up when anchored at the bottom, bridging every gap but the edge", () => {
-    render(<Toaster placement="bottom-center" />);
-    act(() => {
-      notify.error("first");
-      notify.error("second");
-    });
-    const host = region()!;
-    expect(host).toHaveClass("flex-col-reverse");
-    expect(host).not.toHaveClass("flex-col");
-    const [newest, older] = [...host.children];
-    expect(newest).toHaveTextContent("second");
-    expect(newest).toHaveClass("first:after:hidden");
-    expect(older).not.toHaveClass("last:after:hidden");
+    expect(region()).toHaveClass("pointer-events-none");
+    expect(region()!.firstElementChild).toHaveClass("toast", "pointer-events-auto");
   });
 
   it("sits top-right by default", () => {
     render(<Toaster />);
-    expect(region()!.className.split(/\s+/)).toEqual(expect.arrayContaining(["fixed", "right-4", "top-4", "flex-col"]));
+    expect(region()!.className.split(/\s+/)).toEqual(expect.arrayContaining(["fixed", "right-4", "top-4"]));
   });
 
-  it("holds a confirmation while the pointer is on it", () => {
+  // E11: in the viewer the top-right corner is the Overlays panel's head.
+  it("sits bottom-centre when asked", () => {
+    render(<Toaster placement="bottom-center" />);
+    const cls = region()!.className.split(/\s+/);
+    expect(cls).toEqual(expect.arrayContaining(["fixed", "bottom-16", "left-1/2", "-translate-x-1/2", "z-50"]));
+    expect(cls).not.toContain("top-4");
+  });
+
+  it("shows three cards, newest on top, and folds the rest into +N more", () => {
+    render(<Toaster />);
+    act(() => {
+      ["one", "two", "three", "four", "five"].forEach((m) => notify.error(m));
+    });
+    expect(screen.getAllByRole("alert").map((a) => a.querySelector("p")!.textContent)).toEqual([
+      "five",
+      "four",
+      "three",
+    ]);
+    expect(region()).toHaveTextContent("+2 more");
+  });
+
+  it("lets a confirmation go after four seconds, and holds it under the pointer", () => {
     vi.useFakeTimers();
     render(<Toaster />);
     act(() => {
       notify.success("Saved");
     });
-
-    fireEvent.mouseEnter(region()!.firstElementChild!);
+    fireEvent.pointerEnter(region()!.firstElementChild!);
     act(() => vi.advanceTimersByTime(10_000));
     expect(region()).toHaveTextContent("Saved");
 
-    fireEvent.mouseLeave(region()!.firstElementChild!);
-    act(() => vi.advanceTimersByTime(4000));
+    fireEvent.pointerLeave(region()!.firstElementChild!);
+    act(() => vi.advanceTimersByTime(4150));
     expect(region()).toBeEmptyDOMElement();
   });
 
-  it("holds a confirmation while the tab is hidden", () => {
+  // A card's countdown runs only while it is drawn; a hidden tab draws none.
+  it("keeps a confirmation for the reader who comes back to the tab", () => {
     vi.useFakeTimers();
     render(<Toaster />);
     act(() => {
       notify.success("Saved");
     });
-
     act(() => setHidden(true));
     act(() => vi.advanceTimersByTime(10_000));
-    expect(region()).toHaveTextContent("Saved");
-
     act(() => setHidden(false));
-    act(() => vi.advanceTimersByTime(4000));
+    expect(region()).toHaveTextContent("Saved");
+    act(() => vi.advanceTimersByTime(4150));
     expect(region()).toBeEmptyDOMElement();
   });
 
-  // Dismissing the card under the pointer removes it without a mouseleave;
-  // the hover hold must not outlive the last card.
-  it("drops the hover hold once the last card is gone", async () => {
-    render(<Toaster />);
-    act(() => {
-      notify.error("Failed");
-    });
-    fireEvent.mouseEnter(region()!.firstElementChild!);
-    await userEvent.click(screen.getByRole("button", { name: "Dismiss: Failed" }));
-
+  // A tab opened in the background fires no visibilitychange until it is shown.
+  it("holds from the start when mounted in a hidden tab", () => {
     vi.useFakeTimers();
+    Object.defineProperty(document, "hidden", { configurable: true, value: true });
+    render(<Toaster />);
     act(() => {
       notify.success("Saved");
     });
-    act(() => vi.advanceTimersByTime(4000));
-    expect(region()).toBeEmptyDOMElement();
+    act(() => vi.advanceTimersByTime(10_000));
+    act(() => setHidden(false));
+    expect(region()).toHaveTextContent("Saved");
   });
 
   it("shows a reported failure as an alert and lets the reader dismiss it", async () => {
@@ -149,7 +120,7 @@ describe("Toaster", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("Cannot freeze the last admin.");
     await userEvent.click(screen.getByRole("button", { name: "Dismiss: Cannot freeze the last admin." }));
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
   });
 
   it("runs a notice's action once and takes the card away", async () => {
@@ -160,7 +131,7 @@ describe("Toaster", () => {
     });
     await userEvent.click(screen.getByRole("button", { name: "Retry: Measurement not saved" }));
     expect(run).toHaveBeenCalledOnce();
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
   });
 
   // Review M6 m-5: the card goes away under the pointer; focus must not fall
@@ -180,7 +151,7 @@ describe("Toaster", () => {
       notify.error("Not saved", action);
     });
     await userEvent.click(screen.getByRole("button", { name }));
-    expect(screen.getByRole("button", { name: "Measure" })).toHaveFocus();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Measure" })).toHaveFocus());
   });
 
   // Review M6 m-8: the way back is used once. A later card closed by a click
@@ -198,16 +169,17 @@ describe("Toaster", () => {
       notify.error("First");
     });
     await userEvent.click(screen.getByRole("button", { name: "Dismiss: First" }));
-    expect(measure).toHaveFocus();
+    await waitFor(() => expect(measure).toHaveFocus());
     measure.blur();
     act(() => {
       notify.error("Second");
     });
     fireEvent.click(screen.getByRole("button", { name: "Dismiss: Second" }));
+    await waitFor(() => expect(screen.queryByText("Second")).not.toBeInTheDocument());
     expect(document.body).toHaveFocus();
   });
 
-  it("leaves a field the reader moved on to alone when a card closes", () => {
+  it("leaves a field the reader moved on to alone when a card closes", async () => {
     render(
       <>
         <button type="button">Measure</button>
@@ -226,6 +198,7 @@ describe("Toaster", () => {
       title.focus();
     });
     fireEvent.click(screen.getByRole("button", { name: "Dismiss: Not saved" }));
+    await waitFor(() => expect(screen.queryByText("Not saved")).not.toBeInTheDocument());
     expect(title).toHaveFocus();
   });
 
@@ -240,53 +213,5 @@ describe("Toaster", () => {
 
     expect(screen.getByRole("button", { name: "Dismiss: Saved" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Dismiss: Cannot freeze the last admin." })).toBeInTheDocument();
-  });
-
-  // A tab opened in the background fires no visibilitychange until it is
-  // shown, so the hold has to be read on mount.
-  it("holds from the start when mounted in a hidden tab", () => {
-    vi.useFakeTimers();
-    Object.defineProperty(document, "hidden", { configurable: true, value: true });
-    render(<Toaster />);
-    act(() => {
-      notify.success("Saved");
-    });
-    act(() => vi.advanceTimersByTime(10_000));
-    expect(region()).toHaveTextContent("Saved");
-  });
-
-  // The holds live in the module; a shell unmounting mid-hover must not
-  // leave the clocks stopped for whatever mounts next.
-  it("drops its holds when it unmounts", () => {
-    vi.useFakeTimers();
-    const { unmount } = render(<Toaster />);
-    act(() => {
-      notify.success("Saved");
-    });
-    fireEvent.mouseEnter(region()!.firstElementChild!);
-    act(() => setHidden(true));
-    unmount();
-
-    const { result } = renderHook(() => useNotices());
-    act(() => vi.advanceTimersByTime(4000));
-    expect(result.current).toEqual([]);
-  });
-
-  // The gap between two cards is page, not card: crossing it fired
-  // mouseleave and let the clock run for a moment. A pseudo-element under
-  // each card bridges it; Tailwind's --tw-content defaults to "", so every
-  // after: utility draws one, and the last card's is hidden instead.
-  it("bridges the gap between cards so hover survives the crossing", () => {
-    render(<Toaster />);
-    act(() => {
-      notify.success("Saved");
-    });
-    expect(region()!.firstElementChild).toHaveClass(
-      "relative",
-      "after:absolute",
-      "after:top-full",
-      "after:h-2",
-      "last:after:hidden",
-    );
   });
 });

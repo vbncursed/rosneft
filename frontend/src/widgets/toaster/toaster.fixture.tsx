@@ -9,6 +9,14 @@ export default (
     <Button onClick={() => notify.error("Measurement not saved: network error", { label: "Retry", run: () => {} })}>
       Error with Retry
     </Button>
+    <Button onClick={() => notify.info("mesh-worker is processing storage-tank-500")}>Info</Button>
+    <Button
+      onClick={() => {
+        for (let i = 1; i <= 5; i++) notify.error(`Failure ${i}`);
+      }}
+    >
+      Five at once
+    </Button>
     <Toaster />
   </div>
 );
