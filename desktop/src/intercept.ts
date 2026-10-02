@@ -76,6 +76,7 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
     const url = new URL(req.url);
     if (url.origin !== d.origin) return d.network(req);
     const route = classify(req.method, url);
+    const asset = url.pathname.startsWith("/api/assets/");
     if (route.kind === "session-reset") {
       epoch += 1;
       d.onSessionReset();
@@ -102,21 +103,21 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
         const copy = cacheable ? await savedCopy(d, route, user) : null;
         if (copy) {
           void res.body?.cancel().catch(() => undefined);
-          return secure(route, copy);
+          return secure(asset, copy);
         }
       } else if (gateway) seen(true);
     } catch {
       // A request the page itself cancelled says nothing about the network.
       if (req.signal.aborted) return Response.error();
       if (gateway) seen(false);
-      return secure(route, await fallback(d, route, user, req));
+      return secure(asset, await fallback(d, route, user, req));
     }
-    return secure(route, await afterNetwork(d, route, user, req, res, () => epoch === born, scheduleEvict));
+    return secure(asset, await afterNetwork(d, route, user, req, res, () => epoch === born, scheduleEvict));
   };
 }
 
-/** A blob gets the sandbox policy whatever its type; everything else the content-type-keyed SPA one. */
-const secure = (route: Route, res: Response) => (route.kind === "blob" ? withBlobCsp(res) : withCsp(res));
+/** Chosen by path, not route kind: a query or HEAD makes classify say "pass", and withCsp would hand an asset the SPA policy. */
+const secure = (asset: boolean, res: Response) => (asset ? withBlobCsp(res) : withCsp(res));
 
 async function learnUser(d: InterceptDeps, body: Buffer, fresh: () => boolean): Promise<string | null> {
   try {

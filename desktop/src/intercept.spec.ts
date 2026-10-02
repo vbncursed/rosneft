@@ -333,6 +333,37 @@ describe("createHandler isolation", () => {
     await res.text();
   });
 
+  it("sandboxes /api/assets answers whatever the query or method (path decides, not route kind)", async () => {
+    const hash = sha("x");
+    const h = await harness(async () => new Response("<script>", { headers: { "content-type": "text/html" } }));
+    for (const [url, init] of [
+      [`/api/assets/${hash}?x`, undefined],
+      [`/api/assets/${hash}`, { method: "HEAD" }],
+    ] as const) {
+      const res = await h.handle(req(url, init));
+      expect(res.headers.get("content-security-policy")).toBe(BLOB_CSP);
+      expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+    }
+  });
+
+  it("sandboxes a network 206 for a ranged blob request", async () => {
+    const h = await harness(
+      async () => new Response("23", { status: 206, headers: { "content-type": "application/pdf" } }),
+    );
+    const res = await h.handle(req(`/api/assets/${sha("y")}`, { headers: { range: "bytes=2-3" } }));
+    expect(res.status).toBe(206);
+    expect(res.headers.get("content-security-policy")).toBe(BLOB_CSP);
+  });
+
+  it("sandboxes a cached ranged blob answer", async () => {
+    const hash = sha("0123456789");
+    const h = await harness(offline);
+    await h.store.writeBlob(A, hash, "application/pdf", new Response("0123456789").body as ReadableStream<Uint8Array>);
+    const res = await h.handle(req(`/api/assets/${hash}`, { headers: { range: "bytes=2-4" } }));
+    expect(res.status).toBe(206);
+    expect(res.headers.get("content-security-policy")).toBe(BLOB_CSP);
+  });
+
   it("between login and /me neither reads nor writes a blob on disk", async () => {
     const hash = sha("A's model");
     const h = await harness(async (r) =>

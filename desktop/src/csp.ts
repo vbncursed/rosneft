@@ -25,6 +25,8 @@ export function withCsp(res: Response): Response {
   return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
 }
 
+// Applied by path to every /api/assets/ answer, whatever the query, method or content type (a query or HEAD is
+// not a "blob" route, and the SPA policy would let an uploaded text/html run script on the app origin).
 // A blob is user content served from the app's origin: opened as a top-level document it must not run script.
 // Fetched by pdf.js, three.js loaders and <img>, a CSP on the resource is ignored, so they are unaffected.
 export const BLOB_CSP = "sandbox; default-src 'none'";
