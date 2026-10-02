@@ -116,7 +116,8 @@ describe("checkForUpdates", () => {
 describe("hung network", () => {
   it("aborts the request so a later check can run", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
-    vi.useFakeTimers();
+    const timeout = new AbortController();
+    const spy = vi.spyOn(AbortSignal, "timeout").mockReturnValueOnce(timeout.signal);
     const fetch = vi
       .fn()
       .mockImplementationOnce(
@@ -126,11 +127,12 @@ describe("hung network", () => {
       .mockImplementation(async () => new Response("[]"));
     const check = createUpdateChecker(setup({ fetch }));
     const first = check();
-    await vi.advanceTimersByTimeAsync(15_000);
+    expect(spy).toHaveBeenCalledWith(15_000);
+    timeout.abort();
     await first;
     await check();
-    vi.useRealTimers();
     expect(fetch).toHaveBeenCalledTimes(2);
+    spy.mockRestore();
   });
   it("logs the status of a non-2xx answer", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
