@@ -79,8 +79,7 @@ jobs:
       # certificate instead; an absent secret (fork PR, Dependabot) is empty and
       # leaves the ad-hoc signature. Not CSC_LINK: Windows would read that too.
       # CSC_FOR_PULL_REQUEST: the builder skips signing on pull_request runs, and
-      # a PR's arm64 artifact would then not launch. No certificate is configured
-      # on any runner, so nothing but the ad-hoc signature is applied.
+      # a PR's arm64 artifact would then not launch.
       - run: yarn --cwd desktop dist
         env:
           CSC_FOR_PULL_REQUEST: "true"

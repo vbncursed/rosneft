@@ -22,7 +22,7 @@ mac:
   category: public.app-category.productivity
   icon: build/icon.icns
   # "-" is the ad-hoc fallback: Apple Silicon refuses an arm64 binary with no
-  # signature at all. When CSC_LINK carries the self-signed certificate, the
+  # signature at all. With ANDREY_SIGN_P12 set (the self-signed certificate), the
   # `sign` hook (src/signing.ts) signs with it instead: the builder's own lookup
   # uses `find-identity -v`, which hides an untrusted certificate. Not a Developer
   # ID — Gatekeeper still needs the xattr step (README).
