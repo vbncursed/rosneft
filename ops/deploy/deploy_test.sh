@@ -198,7 +198,7 @@ ok "only 10 predeploy backups kept" [ "$(ls "$ANDREY_BACKUPS" | wc -l)" -eq 10 ]
 ok "ps -a, so exited containers count" calls_have ' ps -a --format json'
 ok "frontend extracted without following image modes" calls_have 'tar -C .* -x --no-overwrite-dir --no-same-owner'
 no "temp frontend dir removed" compgen -G "$WORK/s/tmp/andrey-front.*"
-ok "flock waits 1800 s by default" calls_have "^flock -w 1800 9"
+ok "flock waits 600 s by default" calls_have "^flock -w 600 9"
 ok "success notice names the migration" calls_have "00003_x.sql"
 ok "image older than the last deploys pruned" calls_have "rmi ghcr.io/vbncursed/andrey-gateway:$SHA3"
 no "current image kept" calls_have "rmi .*$SHA2"
