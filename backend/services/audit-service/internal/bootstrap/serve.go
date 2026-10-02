@@ -61,7 +61,7 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 
 	go RunCheckpointer(rootCtx, svc, witness, cfg.CheckpointInterval, logger)
 
-	grpcSrv, healthSrv := InitGRPCServer(handler, logger)
+	grpcSrv, healthSrv := InitGRPCServer(handler, logger) //nolint:contextcheck // false positive: the recovery stream interceptor takes its context from the stream (ss.Context()) per request, not from this bootstrap ctx
 
 	go grpcutil.WatchReadiness(rootCtx, grpcutil.ReadinessConfig{
 		Service: "audit",

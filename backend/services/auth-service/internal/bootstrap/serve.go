@@ -54,7 +54,7 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	if err := EnsureBootstrapAdmin(rootCtx, userStore, cfg); err != nil {
 		return fmt.Errorf("bootstrap admin: %w", err)
 	}
-	grpcSrv, healthSrv := InitGRPCServer(handler, logger)
+	grpcSrv, healthSrv := InitGRPCServer(handler, logger) //nolint:contextcheck // false positive: the recovery stream interceptor takes its context from the stream (ss.Context()) per request, not from this bootstrap ctx
 
 	go grpcutil.WatchReadiness(rootCtx, grpcutil.ReadinessConfig{
 		Service: "auth",

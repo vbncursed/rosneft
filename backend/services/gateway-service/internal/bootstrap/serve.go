@@ -153,7 +153,7 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 
 	stopCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()
-	if err := srv.Shutdown(stopCtx); err != nil {
+	if err := srv.Shutdown(stopCtx); err != nil { //nolint:contextcheck // shutdown must outlive rootCtx, which is already cancelled here; stopCtx is a fresh Background-derived timeout by design
 		logger.Warn("gateway: shutdown forced", "err", err)
 	} else {
 		logger.Info("gateway: graceful shutdown complete")
