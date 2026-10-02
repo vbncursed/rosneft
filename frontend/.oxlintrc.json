@@ -1,16 +1,48 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "ignorePatterns": ["dist/**", "build/**", "public/**"],
+  "ignorePatterns": ["dist/**", "build/**", "public/**", "coverage/**"],
   "plugins": ["react", "typescript", "oxc"],
+  "categories": { "correctness": "error", "suspicious": "error", "perf": "error" },
   "rules": {
+    // React 19 automatic JSX runtime: no React import is needed in scope.
+    "react/react-in-jsx-scope": "off",
     "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
+    "react/only-export-components": ["error", { "allowConstantExport": true }],
+    // `x == null` is the null-or-undefined test; `===` would change behaviour.
+    "eqeqeq": ["error", "always", { "null": "ignore" }],
+    "require-unicode-regexp": "error",
+    "no-negated-condition": "error",
+    // Sync `act(() => …)` returns a thenable that need not be awaited.
+    "typescript/no-floating-promises": ["error", { "allowForKnownSafeCalls": [
+      { "from": "package", "name": "act", "package": "react" },
+      { "from": "package", "name": "act", "package": "@testing-library/react" }
+    ] }],
+    // Async handlers handed to JSX props and handler objects; conditions, spreads and arguments stay checked.
+    "typescript/no-misused-promises": ["error", { "checksVoidReturn": { "attributes": false, "properties": false } }],
+    "typescript/await-thenable": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/restrict-template-expressions": "error",
+    // `res.json() as T` is the typed contract with the gateway's OpenAPI DTOs; replacing the casts
+    // is runtime schema validation, a separate decision. Not in the spec's type-aware list.
+    "typescript/no-unsafe-type-assertion": "off",
+    // Fires on effects that return a cleanup on one path only and on exhaustive switch reducers;
+    // TS return types already check both.
+    "typescript/consistent-return": "off"
   },
   "overrides": [
     {
       "files": ["**/*.fixture.tsx", "src/cosmos.decorator.tsx"],
+      "rules": { "react/only-export-components": "off" }
+    },
+    {
+      "files": ["**/*.spec.ts", "**/*.spec.tsx", "**/*.fixture.tsx", "src/shared/lib/test-setup.ts"],
       "rules": {
-        "react/only-export-components": "off"
+        // `expect(mock.method)` is the vitest idiom.
+        "typescript/unbound-method": "off",
+        // testing-library text matchers like /save/i: the u flag adds nothing to them.
+        "require-unicode-regexp": "off",
+        // Test steps run in order on purpose.
+        "no-await-in-loop": "off"
       }
     }
   ]
