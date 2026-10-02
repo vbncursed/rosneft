@@ -40,7 +40,7 @@ func (c *Converter) convertRaw(ctx context.Context, sourcePath string) (rawGLB, 
 	report(ctx, "parsing", 0.30)
 	src, err := parseOBJ(f)
 	if err != nil {
-		return rawGLB{}, fmt.Errorf("converter: parse: %w", err)
+		return rawGLB{}, fmt.Errorf("converter: parse: %w: %w", domain.ErrBadSource, err)
 	}
 	if err := ctx.Err(); err != nil {
 		return rawGLB{}, err

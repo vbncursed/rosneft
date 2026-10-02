@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"strings"
 	"sync"
 	"time"
 
@@ -38,7 +37,7 @@ const MaxQueueWait = 6 * time.Hour
 // Idempotent at the catalog level — re-running on a fully-converted catalog
 // is a no-op aside from the read pass.
 //
-// A target whose latest job failed on its input (domain.ErrInvalidInput: an
+// A target whose latest job failed on its input (Job.FailedOnSource: an
 // archive past the extraction cap, no .obj inside) is left alone: the same
 // bytes fail the same way, so re-queuing it every tick only churns the index
 // and the worker. Replacing the source does not wait for this tick: the
@@ -46,10 +45,9 @@ const MaxQueueWait = 6 * time.Hour
 // consults the failed job, so such a target is not stranded.
 //
 // Trade-off: only input failures are skipped. Infrastructure failures (worker
-// killed mid-job, Redis or catalog blip) keep the old self-healing retry. The
-// failure is recognised by ErrInvalidInput's text in the job's stored message,
-// as the job records no error kind.
-// ponytail: a job records neither its error kind nor its source blob. If a
+// killed mid-job, Redis or catalog blip) keep the old self-healing retry, and
+// so does a job saved before FailedOnSource existed.
+// ponytail: a job does not record its source blob. If a
 // replace-source's own submit fails after the hash swap, the target waits for
 // a retry of the replace; store the source on the job to retry it here.
 //
@@ -140,7 +138,7 @@ func targetKey(kind domain.Kind, slug string) string {
 	return kind.String() + ":" + slug
 }
 
-// failedOnInput is the targets whose latest job failed with ErrInvalidInput.
+// failedOnInput is the targets whose latest job failed on its source.
 // An index read error yields an empty set, so the tick retries as before.
 func failedOnInput(ctx context.Context, index func() ([]domain.Job, error)) map[string]struct{} {
 	set := map[string]struct{}{}
@@ -150,7 +148,7 @@ func failedOnInput(ctx context.Context, index func() ([]domain.Job, error)) map[
 		return set
 	}
 	for _, j := range jobs {
-		if j.Status == domain.JobStatusFailed && strings.Contains(j.ErrorMessage, domain.ErrInvalidInput.Error()) {
+		if j.Status == domain.JobStatusFailed && j.FailedOnSource {
 			set[targetKey(j.Kind, j.Slug)] = struct{}{}
 		}
 	}

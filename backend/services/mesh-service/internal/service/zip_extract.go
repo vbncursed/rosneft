@@ -42,7 +42,7 @@ func (m *Mesh) fetchAndExtract(ctx context.Context, hash, dir string) error {
 	}
 	zr, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
 	if err != nil {
-		return fmt.Errorf("%w: zip open: %w", domain.ErrInvalidInput, err)
+		return fmt.Errorf("%w: zip open: %w", domain.ErrBadSource, err)
 	}
 	return extractZip(zr, dir, maxExtractBytes, maxExtractEntries)
 }
@@ -67,7 +67,7 @@ func findFirstOBJ(dir string) (string, error) {
 		return "", err
 	}
 	if found == "" {
-		return "", fmt.Errorf("%w: no .obj in source archive", domain.ErrInvalidInput)
+		return "", fmt.Errorf("%w: no .obj in source archive", domain.ErrBadSource)
 	}
 	return found, nil
 }
@@ -92,14 +92,15 @@ func formatBytes(n int64) string {
 // archive may hold at most maxEntries entries and expand to at most maxBytes in
 // total, counted on the bytes actually copied (the header sizes are
 // attacker-controlled); either limit fails the extraction with
-// domain.ErrInvalidInput. Entries inside
+// domain.ErrBadSource, as does every other failure the archive's own content
+// causes (escaping name, unreadable or corrupt entry, name conflict). Entries inside
 // `__MACOSX/` and AppleDouble `._*` resource-fork files are skipped: macOS
 // Finder bakes them into ZIPs and they share extensions with real assets,
 // which used to make findFirstOBJ pick a 349-byte metadata blob and fail
 // the conversion with "no non-empty primitives".
 func extractZip(zr *zip.Reader, dir string, maxBytes int64, maxEntries int) error {
 	if len(zr.File) > maxEntries {
-		return fmt.Errorf("%w: archive has more than %d entries", domain.ErrInvalidInput, maxEntries)
+		return fmt.Errorf("%w: archive has more than %d entries", domain.ErrBadSource, maxEntries)
 	}
 	remaining := maxBytes
 	for _, f := range zr.File {
@@ -107,28 +108,42 @@ func extractZip(zr *zip.Reader, dir string, maxBytes int64, maxEntries int) erro
 			continue
 		}
 		if !filepath.IsLocal(f.Name) {
-			return fmt.Errorf("zip entry escapes target: %q", f.Name)
+			return fmt.Errorf("%w: zip entry escapes target: %q", domain.ErrBadSource, f.Name)
 		}
 		dst := filepath.Join(dir, f.Name) //nolint:gosec // G305: f.Name passed filepath.IsLocal above
 		if f.FileInfo().IsDir() {
 			if err := os.MkdirAll(dst, 0o750); err != nil {
-				return err
+				return fmt.Errorf("%w: directory entry %q: %w", domain.ErrBadSource, f.Name, err)
 			}
 			continue
 		}
 		if err := os.MkdirAll(filepath.Dir(dst), 0o750); err != nil {
-			return err
+			return fmt.Errorf("%w: entry %q: %w", domain.ErrBadSource, f.Name, err)
 		}
 		n, err := writeZipEntry(f, dst, remaining)
 		if err != nil {
-			if errors.Is(err, domain.ErrInvalidInput) {
-				return fmt.Errorf("%w: archive expands past %s", domain.ErrInvalidInput, formatBytes(maxBytes))
+			if errors.Is(err, errOverBudget) {
+				return fmt.Errorf("%w: archive expands past %s", domain.ErrBadSource, formatBytes(maxBytes))
 			}
 			return err
 		}
 		remaining -= n
 	}
 	return nil
+}
+
+var errOverBudget = errors.New("entry overruns the extraction budget")
+
+// sourceReader tags a read failure as the archive's own: it comes from the
+// decompressor or the checksum, never from the disk being written to.
+type sourceReader struct{ io.Reader }
+
+func (r sourceReader) Read(p []byte) (int, error) {
+	n, err := r.Reader.Read(p)
+	if err != nil && err != io.EOF { //nolint:errorlint // io.Reader contract: EOF is returned unwrapped
+		err = fmt.Errorf("%w: %w", domain.ErrBadSource, err)
+	}
+	return n, err
 }
 
 // isAppleDoubleEntry returns true for ZIP paths the macOS Finder
@@ -144,11 +159,13 @@ func isAppleDoubleEntry(name string) bool {
 
 // writeZipEntry copies f to dst and returns the bytes written. It reads at most
 // limit bytes: one more means the entry overruns the budget, and the partial
-// file is removed and domain.ErrInvalidInput returned.
+// file is removed and errOverBudget returned. A failure reading the entry (an
+// unsupported method, a broken stream, a CRC mismatch) is the archive's fault
+// and carries domain.ErrBadSource; one writing it to disk does not.
 func writeZipEntry(f *zip.File, dst string, limit int64) (int64, error) {
 	rc, err := f.Open()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("%w: entry %q: %w", domain.ErrBadSource, f.Name, err)
 	}
 	defer func() { _ = rc.Close() }()
 
@@ -156,9 +173,9 @@ func writeZipEntry(f *zip.File, dst string, limit int64) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	n, err := io.Copy(w, io.LimitReader(rc, limit+1))
+	n, err := io.Copy(w, io.LimitReader(sourceReader{rc}, limit+1))
 	if err == nil && n > limit {
-		err = domain.ErrInvalidInput
+		err = errOverBudget
 	}
 	if err != nil {
 		_ = w.Close()

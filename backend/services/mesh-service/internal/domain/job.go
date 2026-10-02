@@ -60,9 +60,13 @@ type Job struct {
 	Slug         string
 	Status       JobStatus
 	ErrorMessage string
-	ArtifactHash string
-	Progress     float32
-	Stage        string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	// FailedOnSource is set on a Failed job whose cause was the source's own
+	// content (ErrBadSource). Jobs stored before the field existed read false
+	// and are retried.
+	FailedOnSource bool
+	ArtifactHash   string
+	Progress       float32
+	Stage          string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }

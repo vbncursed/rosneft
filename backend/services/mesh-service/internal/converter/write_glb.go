@@ -6,6 +6,8 @@ import (
 
 	"github.com/qmuntal/gltf"
 	"github.com/qmuntal/gltf/modeler"
+
+	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 )
 
 // textureAsset is one resolved image that can be reused across primitives.
@@ -99,7 +101,7 @@ func writeGLB(positions []vertex, uvs []uv, groups []materialGroup, materials []
 	}
 
 	if len(prims) == 0 {
-		return nil, fmt.Errorf("writeGLB: no non-empty primitives")
+		return nil, fmt.Errorf("writeGLB: %w: no non-empty primitives", domain.ErrBadSource)
 	}
 
 	doc.Meshes = []*gltf.Mesh{{Primitives: prims}}

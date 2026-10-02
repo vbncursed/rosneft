@@ -25,23 +25,11 @@ func (r *Redis) SaveJob(ctx context.Context, j domain.Job) error {
 	}
 	j.UpdatedAt = now
 
-	fields := map[string]any{
-		"id":            j.ID,
-		"kind":          j.Kind.String(),
-		"slug":          j.Slug,
-		"status":        j.Status.String(),
-		"error_message": j.ErrorMessage,
-		"artifact_hash": j.ArtifactHash,
-		"progress":      strconv.FormatFloat(float64(j.Progress), 'f', 4, 32),
-		"stage":         j.Stage,
-		"created_at":    j.CreatedAt.Format(time.RFC3339Nano),
-		"updated_at":    j.UpdatedAt.Format(time.RFC3339Nano),
-	}
 	// Two keys in one MULTI: single-node Redis, so this is fine. Under a
 	// cluster client the same pipeline would be CROSSSLOT unless the keys were
 	// hash-tagged into one slot.
 	_, err := r.client.TxPipelined(ctx, func(p redis.Pipeliner) error {
-		p.HSet(ctx, jobKey(j.ID), fields)
+		p.HSet(ctx, jobKey(j.ID), jobFields(j))
 		p.HSet(ctx, targetsKey, targetField(j.Kind, j.Slug), j.ID)
 		return nil
 	})
@@ -49,4 +37,21 @@ func (r *Redis) SaveJob(ctx context.Context, j domain.Job) error {
 		return fmt.Errorf("storage.SaveJob: pipeline: %w", err)
 	}
 	return nil
+}
+
+// jobFields is the hash representation of j; jobFromHash is its inverse.
+func jobFields(j domain.Job) map[string]any {
+	return map[string]any{
+		"id":               j.ID,
+		"kind":             j.Kind.String(),
+		"slug":             j.Slug,
+		"status":           j.Status.String(),
+		"error_message":    j.ErrorMessage,
+		"failed_on_source": strconv.FormatBool(j.FailedOnSource),
+		"artifact_hash":    j.ArtifactHash,
+		"progress":         strconv.FormatFloat(float64(j.Progress), 'f', 4, 32),
+		"stage":            j.Stage,
+		"created_at":       j.CreatedAt.Format(time.RFC3339Nano),
+		"updated_at":       j.UpdatedAt.Format(time.RFC3339Nano),
+	}
 }

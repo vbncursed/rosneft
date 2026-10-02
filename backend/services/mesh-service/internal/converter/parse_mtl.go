@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+
+	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 )
 
 // material is the subset of MTL we care about: a diffuse colour, an opacity
@@ -65,7 +67,7 @@ func parseMTL(r io.Reader) ([]material, error) {
 			}
 			r, g, b, err := parseTriplet(rest)
 			if err != nil {
-				return nil, fmt.Errorf("parseMTL: Kd %q: %w", rest, err)
+				return nil, fmt.Errorf("%w: parseMTL: Kd %q: %w", domain.ErrBadSource, rest, err)
 			}
 			cur.kd = [3]float32{r, g, b}
 		case "d":
@@ -74,7 +76,7 @@ func parseMTL(r io.Reader) ([]material, error) {
 			}
 			v, err := parseSingleFloat(rest)
 			if err != nil {
-				return nil, fmt.Errorf("parseMTL: d %q: %w", rest, err)
+				return nil, fmt.Errorf("%w: parseMTL: d %q: %w", domain.ErrBadSource, rest, err)
 			}
 			cur.alpha = v
 		case "Tr":
@@ -83,7 +85,7 @@ func parseMTL(r io.Reader) ([]material, error) {
 			}
 			v, err := parseSingleFloat(rest)
 			if err != nil {
-				return nil, fmt.Errorf("parseMTL: Tr %q: %w", rest, err)
+				return nil, fmt.Errorf("%w: parseMTL: Tr %q: %w", domain.ErrBadSource, rest, err)
 			}
 			cur.alpha = 1 - v
 		case "map_Kd":
@@ -94,7 +96,7 @@ func parseMTL(r io.Reader) ([]material, error) {
 		}
 	}
 	if err := sc.Err(); err != nil {
-		return nil, fmt.Errorf("parseMTL: scan: %w", err)
+		return nil, fmt.Errorf("%w: parseMTL: scan: %w", domain.ErrBadSource, err)
 	}
 	flush()
 	return mats, nil

@@ -181,7 +181,7 @@ func (s *ReconcileSuite) TestSkipsTargetWhoseLatestJobFailedOnItsInput() {
 	s.catalog.HasLOD0Mock.Return(false, nil)
 	s.queue.ListTargetJobsMock.Return([]domain.Job{{
 		ID: "j1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusFailed,
-		ErrorMessage: "service.runConversion: extract: invalid input: archive expands past 8.0 GiB",
+		ErrorMessage: "service.runConversion: extract: bad source: archive expands past 8 GiB", FailedOnSource: true,
 	}}, nil)
 
 	n, err := s.svc.ReconcileMissingArtifacts(s.ctx)
@@ -213,6 +213,29 @@ func (s *ReconcileSuite) TestRetriesTargetWhoseLatestJobFailedOnInfrastructure()
 	assert.Equal(s.T(), n, 1)
 }
 
+// The kind is the job's recorded field, not its message: a catalog refusal
+// that happens to read "invalid input: ..." (and a job saved before the field
+// existed) is still retried.
+func (s *ReconcileSuite) TestRetriesFailedJobWhoseMessageMerelyMentionsInvalidInput() {
+	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
+		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
+	}, nil)
+	s.catalog.HasLOD0Mock.Return(false, nil)
+	s.queue.TryLockTargetMock.Return(true, nil)
+	s.queue.SaveJobMock.Return(nil)
+	s.queue.EnqueueJobMock.Return(nil)
+	s.queue.GetJobMock.Return(domain.Job{}, nil)
+	s.queue.ListTargetJobsMock.Return([]domain.Job{{
+		ID: "j1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusFailed,
+		ErrorMessage: "register artifact lod=0: rpc error: code = InvalidArgument desc = invalid input: kind 3",
+	}}, nil)
+
+	n, err := s.svc.ReconcileMissingArtifacts(s.ctx)
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), n, 1)
+}
+
 // Only the failed target is skipped; its neighbour is still queued.
 func (s *ReconcileSuite) TestSkipIsPerTarget() {
 	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
@@ -226,7 +249,7 @@ func (s *ReconcileSuite) TestSkipIsPerTarget() {
 	s.queue.GetJobMock.Return(domain.Job{}, nil)
 	s.queue.ListTargetJobsMock.Return([]domain.Job{{
 		ID: "j1", Kind: domain.KindTerritory, Slug: "bad", Status: domain.JobStatusFailed,
-		ErrorMessage: "invalid input: no .obj in source archive",
+		ErrorMessage: "bad source: no .obj in source archive", FailedOnSource: true,
 	}}, nil)
 
 	n, err := s.svc.ReconcileMissingArtifacts(s.ctx)

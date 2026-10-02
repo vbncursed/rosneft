@@ -83,20 +83,24 @@ func (m *Mesh) markRunning(ctx context.Context, j *domain.Job) error {
 	}
 	j.Status = domain.JobStatusRunning
 	j.ErrorMessage = ""
+	j.FailedOnSource = false
 	return m.queue.SaveJob(ctx, *j)
 }
 
 func (m *Mesh) markSucceeded(ctx context.Context, j domain.Job) error {
 	j.Status = domain.JobStatusSucceeded
 	j.ErrorMessage = ""
+	j.FailedOnSource = false
 	return m.queue.SaveJob(ctx, j)
 }
 
-// The reconciler decides retry-or-skip by finding domain.ErrInvalidInput's text
-// in the stored ErrorMessage, so cause.Error() must keep it (wrap with %w).
+// markFailed records the failure and whether the source's own content caused
+// it (domain.ErrBadSource in the chain), which is what the reconciler reads to
+// decide between retrying the target and leaving it alone.
 func (m *Mesh) markFailed(ctx context.Context, j domain.Job, cause error) error {
 	j.Status = domain.JobStatusFailed
 	j.ErrorMessage = cause.Error()
+	j.FailedOnSource = errors.Is(cause, domain.ErrBadSource)
 	return m.queue.SaveJob(ctx, j)
 }
 
@@ -125,7 +129,7 @@ func (m *Mesh) runConversion(ctx context.Context, j *domain.Job) (string, error)
 		return "", fmt.Errorf("get target: %w", err)
 	}
 	if target.SourceBlobHash == "" {
-		return "", fmt.Errorf("%w: target has no source_blob_hash", domain.ErrInvalidInput)
+		return "", fmt.Errorf("%w: target has no source_blob_hash", domain.ErrBadSource)
 	}
 
 	workDir, err := os.MkdirTemp("", "mesh-job-*")

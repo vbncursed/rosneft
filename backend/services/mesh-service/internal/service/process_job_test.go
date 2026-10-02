@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"testing"
 	"time"
@@ -217,4 +218,44 @@ func (s *ProcessJobSuite) TestFailsAndReleasesTheJobOnAHoldError() {
 	assert.ErrorContains(s.T(), err, "service.ProcessJob: hold: ")
 	assert.DeepEqual(s.T(), s.calls, []string{"hold:" + domain.KindTerritory.String() + "/t1", "save:" + domain.JobStatusFailed.String()})
 	assert.Equal(s.T(), s.saved[0].ErrorMessage, err.Error())
+}
+
+// failTarget runs a job whose GetTarget fails with err, returning the saved
+// Failed job.
+func (s *ProcessJobSuite) failTarget(err error) domain.Job {
+	s.queue.GetJobMock.Return(domain.Job{ID: "job-1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusPending}, nil)
+	s.catalog.GetTargetMock.Return(domain.ConversionTarget{}, err)
+	s.queue.UnlockTargetMock.Return(nil)
+
+	_ = s.svc.ProcessJob(s.ctx, "job-1")
+
+	last := s.saved[len(s.saved)-1]
+	assert.Equal(s.T(), last.Status, domain.JobStatusFailed)
+	return last
+}
+
+// markFailed records whether the source's own content caused the failure, from
+// the error chain.
+func (s *ProcessJobSuite) TestFailureOnTheSourceIsRecorded() {
+	last := s.failTarget(fmt.Errorf("get target: %w: x", domain.ErrBadSource))
+
+	assert.Assert(s.T(), last.FailedOnSource)
+}
+
+// A catalog refusal that reads "invalid input: x" is not the source's fault.
+func (s *ProcessJobSuite) TestCatalogInvalidInputIsNotASourceFailure() {
+	last := s.failTarget(errors.New("rpc error: code = InvalidArgument desc = invalid input: x"))
+
+	assert.Assert(s.T(), !last.FailedOnSource)
+}
+
+// A retry that succeeds must not carry the failure kind of the attempt before.
+func (s *ProcessJobSuite) TestRunningClearsAStaleFailureKind() {
+	s.queue.GetJobMock.Return(domain.Job{ID: "job-1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusFailed, FailedOnSource: true}, nil)
+	s.catalog.GetTargetMock.Return(domain.ConversionTarget{}, errors.New("catalog down"))
+	s.queue.UnlockTargetMock.Return(nil)
+
+	_ = s.svc.ProcessJob(s.ctx, "job-1")
+
+	assert.Assert(s.T(), !s.saved[0].FailedOnSource, "the Running write kept the old kind")
 }

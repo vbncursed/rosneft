@@ -31,8 +31,10 @@ func jobFromHash(res map[string]string) domain.Job {
 		Slug:         res["slug"],
 		Status:       domain.ParseJobStatus(res["status"]),
 		ErrorMessage: res["error_message"],
-		ArtifactHash: res["artifact_hash"],
-		Stage:        res["stage"],
+		// Absent on jobs saved before the field existed: not a source failure.
+		FailedOnSource: res["failed_on_source"] == "true",
+		ArtifactHash:   res["artifact_hash"],
+		Stage:          res["stage"],
 	}
 	if p, err := strconv.ParseFloat(res["progress"], 32); err == nil {
 		j.Progress = float32(p)
