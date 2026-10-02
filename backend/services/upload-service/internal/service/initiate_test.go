@@ -102,3 +102,10 @@ func (s *InitiateSuite) TestRejectsMissingAuthor() {
 	_, err := s.svc.Initiate(s.ctx, "", 100, "application/zip")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
+
+func (s *InitiateSuite) TestStoresAllowListedContentTypeOnly() {
+	s.store.InitiateMock.Expect(s.ctx, "fixed-id", author, int64(100), "application/octet-stream").
+		Return(domain.Session{ID: "fixed-id"}, nil)
+	_, err := s.svc.Initiate(s.ctx, author, 100, "TEXT/HTML; charset=utf-8")
+	assert.NilError(s.T(), err)
+}

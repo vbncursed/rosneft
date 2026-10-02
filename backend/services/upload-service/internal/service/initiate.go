@@ -21,5 +21,5 @@ func (u *Upload) Initiate(ctx context.Context, owner string, size int64, content
 		return domain.Session{}, fmt.Errorf("%w: size %d exceeds max %d", domain.ErrInvalidInput, size, u.maxUploadBytes)
 	}
 	id := u.idGen()
-	return u.store.Initiate(ctx, id, owner, size, contentType)
+	return u.store.Initiate(ctx, id, owner, size, normaliseContentType(contentType))
 }
