@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "ignorePatterns": ["dist/**", "build/**", "public/**", "coverage/**"],
+  "ignorePatterns": ["dist/**", "public/**", "coverage/**"],
   "plugins": ["react", "typescript", "oxc"],
   "categories": { "correctness": "error", "suspicious": "error", "perf": "error" },
   "rules": {
@@ -25,8 +25,8 @@
     // `res.json() as T` is the typed contract with the gateway's OpenAPI DTOs; replacing the casts
     // is runtime schema validation, a separate decision. Not in the spec's type-aware list.
     "typescript/no-unsafe-type-assertion": "off",
-    // Fires on effects that return a cleanup on one path only and on exhaustive switch reducers;
-    // TS return types already check both.
+    // Effects return a cleanup on one path only (the React idiom) and exhaustive switch reducers
+    // have no trailing return.
     "typescript/consistent-return": "off",
     // Its remedy is mutating each item in place; state, DTO mappers and the query cache here are immutable by convention.
     "oxc/no-map-spread": "off"

@@ -16,7 +16,7 @@
     // Casts at trust boundaries (JSON.parse, IPC payloads) are the typed contract; replacing
     // them is runtime schema validation, a separate decision. Not in the spec's type-aware list.
     "typescript/no-unsafe-type-assertion": "off",
-    // Fires on cleanup-returning callbacks and exhaustive switches; TS return types check this.
+    // Callbacks return a cleanup on one path only.
     "typescript/consistent-return": "off"
   },
   "overrides": [
