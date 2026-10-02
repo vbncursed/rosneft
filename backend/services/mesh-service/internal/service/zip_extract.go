@@ -42,7 +42,7 @@ func (m *Mesh) fetchAndExtract(ctx context.Context, hash, dir string) error {
 	}
 	zr, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
 	if err != nil {
-		return fmt.Errorf("zip open: %w", err)
+		return fmt.Errorf("%w: zip open: %w", domain.ErrInvalidInput, err)
 	}
 	return extractZip(zr, dir, maxExtractBytes, maxExtractEntries)
 }

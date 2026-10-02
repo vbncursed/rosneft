@@ -3,16 +3,37 @@ package service
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"gotest.tools/v3/assert"
 
+	"github.com/vbncursed/rosneft/backend/pkg/blobstore"
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 )
+
+// bytesBlobs serves one fixed body for any hash.
+type bytesBlobs struct {
+	BlobStore
+	body []byte
+}
+
+func (b bytesBlobs) Get(context.Context, string) (io.ReadCloser, blobstore.Blob, error) {
+	return io.NopCloser(bytes.NewReader(b.body)), blobstore.Blob{}, nil
+}
+
+// A source that is not a ZIP fails the same way on every retry, so it must
+// carry ErrInvalidInput for the reconciler to leave it alone.
+func TestFetchAndExtractMarksACorruptArchiveInvalidInput(t *testing.T) {
+	m := &Mesh{blobs: bytesBlobs{body: []byte("not a zip")}}
+	err := m.fetchAndExtract(t.Context(), "h", t.TempDir())
+	assert.Assert(t, errors.Is(err, domain.ErrInvalidInput), "got %v", err)
+}
 
 // buildZip returns a reader over an in-memory archive with the given entries.
 func buildZip(t *testing.T, files map[string][]byte) *zip.Reader {

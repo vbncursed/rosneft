@@ -92,6 +92,8 @@ func (m *Mesh) markSucceeded(ctx context.Context, j domain.Job) error {
 	return m.queue.SaveJob(ctx, j)
 }
 
+// The reconciler decides retry-or-skip by finding domain.ErrInvalidInput's text
+// in the stored ErrorMessage, so cause.Error() must keep it (wrap with %w).
 func (m *Mesh) markFailed(ctx context.Context, j domain.Job, cause error) error {
 	j.Status = domain.JobStatusFailed
 	j.ErrorMessage = cause.Error()

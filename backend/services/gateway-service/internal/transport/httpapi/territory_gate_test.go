@@ -38,6 +38,10 @@ type TerritoryGateSuite struct {
 
 func TestTerritoryGateSuite(t *testing.T) { suite.Run(t, new(TerritoryGateSuite)) }
 
+// SetupTest keeps one test's logger from leaking into the next: the suite
+// struct outlives every test method.
+func (s *TerritoryGateSuite) SetupTest() { s.logger = nil }
+
 // gateCase is the principal a case runs as.
 type gateCase struct {
 	adminID   string

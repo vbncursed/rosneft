@@ -234,3 +234,30 @@ func (s *ReconcileSuite) TestSkipIsPerTarget() {
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), n, 1)
 }
+
+// The index only decides what to skip; when it cannot be read the tick must
+// still queue the missing target rather than stall behind a Redis blip.
+func (s *ReconcileSuite) TestStillSubmitsWhenTheIndexReadFails() {
+	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
+		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
+	}, nil)
+	s.catalog.HasLOD0Mock.Return(false, nil)
+	s.queue.TryLockTargetMock.Return(true, nil)
+	s.queue.SaveJobMock.Return(nil)
+	s.queue.EnqueueJobMock.Return(nil)
+	s.queue.GetJobMock.Return(domain.Job{}, nil)
+	// Only the tick's own read fails; SubmitConversion reads the index too.
+	reads := 0
+	s.queue.ListTargetJobsMock.Set(func(context.Context) ([]domain.Job, error) {
+		reads++
+		if reads == 1 {
+			return nil, errors.New("redis down")
+		}
+		return nil, nil
+	})
+
+	n, err := s.svc.ReconcileMissingArtifacts(s.ctx)
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), n, 1)
+}
