@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import type { ToastTone } from "@/shared/ui/toast";
+import { waitsForReader, type ToastTone } from "@/shared/ui/toast";
 
 /** The one thing a reader can do about a failure from the card itself. */
 export type NoticeAction = { label: string; run: () => void };
@@ -19,10 +19,10 @@ const emit = () => listeners.forEach((listen) => listen());
 // leave after 4 s, error and warning wait for the reader.
 function push(tone: ToastTone, message: string, action?: NoticeAction): number {
   // The same failure twice is one card: a repeated click must not build a wall.
-  // Only a card that waits for the reader folds — a confirmation goes by itself
+  // Only a card that waits for the reader folds (the Toast's lifetimes say which) — a confirmation goes by itself
   // and a repeat is its own event — and never one with an action: each Retry
   // closes over its own attempt.
-  const waits = tone === "error" || tone === "warning";
+  const waits = waitsForReader(tone);
   const same = waits && !action && notices.find((n) => n.tone === tone && n.message === message && !n.action);
   if (same) return same.id;
   const id = nextId++;

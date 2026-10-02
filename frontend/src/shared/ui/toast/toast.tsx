@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 import { clsx as cx } from "clsx";
 import { Icon, type IconName } from "@/shared/ui/icon";
 import { Tooltip } from "@/shared/ui/tooltip";
@@ -67,6 +67,10 @@ const TONE: Record<ToastTone, { label: string; skin: string; icon: IconName | nu
 
 const EXIT_MS = 150;
 
+/** True for a tone whose card stays until the reader acts (no default lifetime). */
+// oxlint-disable-next-line react/only-export-components -- a pure predicate over TONE, which must stay beside the lifetimes it reads
+export const waitsForReader = (tone: ToastTone): boolean => TONE[tone].life === null;
+
 export function Toast({
   tone,
   children,
@@ -82,7 +86,10 @@ export function Toast({
   const lifetime = duration === undefined ? life : duration;
   const timed = lifetime != null && lifetime > 0 && !!onDismiss;
   const [leaving, setLeaving] = useState(false);
-  const [held, setHeld] = useState(false);
+  // Pointer and focus hold the countdown independently: either one alone keeps it paused.
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const held = hovered || focused;
   const left = useRef(lifetime ?? 0);
   const started = useRef(0);
   const bar = useRef<HTMLSpanElement>(null);
@@ -92,6 +99,9 @@ export function Toast({
     setLeaving(true);
     setTimeout(() => onDismiss?.(), EXIT_MS);
   };
+
+  // The timer fires the latest render's leave, so a rerendered onDismiss is the one called.
+  const expire = useEffectEvent(leave);
 
   // The countdown runs only while nothing holds it: hovering or focusing the
   // card pauses both the timer and the bar, which resumes from where it was.
@@ -106,7 +116,7 @@ export function Toast({
       el.style.transition = `transform ${left.current}ms linear`;
       el.style.transform = "scaleX(0)";
     }
-    const t = setTimeout(leave, left.current);
+    const t = setTimeout(expire, left.current);
     return () => {
       clearTimeout(t);
       left.current = Math.max(0, left.current - (Date.now() - started.current));
@@ -115,7 +125,6 @@ export function Toast({
         el.style.transform = `scaleX(${left.current / lifetime})`;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timed, held, leaving, lifetime]);
 
   return (
@@ -124,10 +133,12 @@ export function Toast({
       // host's polite live region (a status inside it would nest regions).
       role={tone === "error" || tone === "warning" ? "alert" : undefined}
       aria-busy={tone === "loading" || undefined}
-      onPointerEnter={() => setHeld(true)}
-      onPointerLeave={() => setHeld(false)}
-      onFocus={() => setHeld(true)}
-      onBlur={() => setHeld(false)}
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setFocused(false);
+      }}
       data-leaving={leaving || undefined}
       className={cx(
         "toast relative flex w-full items-start gap-2.5 overflow-hidden rounded-card border px-3.5 py-3 shadow-elevation",

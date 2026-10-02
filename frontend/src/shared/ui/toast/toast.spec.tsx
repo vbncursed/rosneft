@@ -2,7 +2,7 @@ import { render, screen, waitFor, act, fireEvent } from "@testing-library/react"
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import type { ReactElement } from "react";
-import { Toast, ToastStack } from "./toast";
+import { Toast, ToastStack, waitsForReader } from "./toast";
 import { Icon } from "@/shared/ui/icon";
 import { hoverTip } from "@/shared/ui/tooltip/testing";
 
@@ -261,6 +261,86 @@ describe("Toast · lifetime", () => {
     act(() => screen.getByRole("button", { name: "Dismiss" }).focus());
     act(() => vi.advanceTimersByTime(10_000));
     expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  const timed = (onDismiss = vi.fn()) => {
+    render(
+      <Toast tone="success" onDismiss={onDismiss}>
+        Saved.
+      </Toast>,
+    );
+    return { onDismiss, dismiss: screen.getByRole("button", { name: "Dismiss" }) };
+  };
+
+  it("keeps holding when the pointer leaves while focus is still in the card", () => {
+    const { onDismiss, dismiss } = timed();
+    act(() => dismiss.focus());
+    fireEvent.pointerEnter(card("Saved."));
+    fireEvent.pointerLeave(card("Saved."));
+    act(() => vi.advanceTimersByTime(10_000));
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  it("keeps holding when focus leaves while the pointer is still on the card", () => {
+    const { onDismiss, dismiss } = timed();
+    fireEvent.pointerEnter(card("Saved."));
+    act(() => dismiss.focus());
+    act(() => dismiss.blur());
+    act(() => vi.advanceTimersByTime(10_000));
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  it("does not restart the clock when focus moves between the card's own buttons", () => {
+    const onDismiss = vi.fn();
+    render(
+      <Toast tone="success" onDismiss={onDismiss} action={{ label: "Undo", onClick: vi.fn() }}>
+        Saved.
+      </Toast>,
+    );
+    act(() => vi.advanceTimersByTime(3000));
+    act(() => screen.getByRole("button", { name: "Undo" }).focus());
+    act(() => screen.getByRole("button", { name: "Dismiss" }).focus());
+    act(() => vi.advanceTimersByTime(10_000));
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  it("resumes once both are gone", () => {
+    const { onDismiss, dismiss } = timed();
+    act(() => vi.advanceTimersByTime(3000));
+    act(() => dismiss.focus());
+    fireEvent.pointerEnter(card("Saved."));
+    act(() => vi.advanceTimersByTime(10_000));
+    fireEvent.pointerLeave(card("Saved."));
+    act(() => dismiss.blur());
+    act(() => vi.advanceTimersByTime(999));
+    expect(onDismiss).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(151));
+    expect(onDismiss).toHaveBeenCalledOnce();
+  });
+
+  it("calls the latest onDismiss, not the one the countdown started with", () => {
+    const first = vi.fn();
+    const second = vi.fn();
+    const ui = (onDismiss: () => void) => (
+      <Toast tone="success" onDismiss={onDismiss}>
+        Saved.
+      </Toast>
+    );
+    const { rerender } = render(ui(first));
+    act(() => vi.advanceTimersByTime(2000));
+    rerender(ui(second));
+    act(() => vi.advanceTimersByTime(2000 + 150));
+    expect(second).toHaveBeenCalledOnce();
+    expect(first).not.toHaveBeenCalled();
+  });
+});
+
+describe("waitsForReader", () => {
+  it.each(["error", "warning", "loading"] as const)("is true for %s", (tone) => {
+    expect(waitsForReader(tone)).toBe(true);
+  });
+  it.each(["success", "info", "neutral"] as const)("is false for %s", (tone) => {
+    expect(waitsForReader(tone)).toBe(false);
   });
 });
 

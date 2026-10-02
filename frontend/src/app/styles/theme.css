@@ -107,6 +107,8 @@
 
   --font-sans: "Geist Variable", "Geist", "Helvetica Neue", system-ui, sans-serif;
   --font-mono: "Fira Code Variable", "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Fira Code ligatures turn -> and != into symbols; keep the bytes readable (design-system README). */
+  --font-mono--font-feature-settings: "liga" 0, "calt" 0;
 
   /* Radii, per Foundations: control-sm / control / card / pill. */
   --radius-control-sm: 6px;
