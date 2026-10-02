@@ -72,12 +72,12 @@ ACTOR=""
 logwriter() { # <logfile>: stdin -> logfile, then stdout (errors ignored)
   local l
   while IFS= read -r l || [[ -n $l ]]; do
-    printf '%s\n' "$l" >>"$1"
+    printf '%s\n' "$l" >>"$1" 2>/dev/null || true
     printf '%s\n' "$l" 2>/dev/null || true
   done
 }
 
-log() { printf '%s\n' "$*"; }
+log() { printf '%s\n' "$*" || true; }
 run() { log "+ $*"; [[ -n ${DRY_RUN:-} ]] || "$@"; }
 step() { local reason=$1; shift; run "$@" || { FAIL_REASON=$reason; return 1; }; }
 
@@ -108,9 +108,10 @@ backup() {
   ls -1t "$BACKUPS"/andrey-predeploy-*.sql.gz | tail -n +11 | xargs -r rm -f
 }
 
-extract_front() { # <sha> <dest dir>
-  local cid
-  cid=$(docker create "$FRONT_IMAGE:$1") || return 1
+extract_front() { # <sha> <dest dir> [deploy|rollback]
+  local cid policy=missing # docker's default; rollback must never reach the registry
+  [[ ${3:-deploy} == deploy ]] || policy=never
+  cid=$(docker create --pull="$policy" "$FRONT_IMAGE:$1") || return 1
   docker cp "$cid:/dist/." "$2" || { docker rm "$cid" >/dev/null; return 1; }
   docker rm "$cid" >/dev/null
 }
@@ -134,10 +135,10 @@ publish_last() { # <dist>
 }
 
 # Sets MANIFEST_ID; always removes its temp dir.
-publish_front() { # <sha>
+publish_front() { # <sha> [deploy|rollback]
   local dist rc=0
   dist=$(mktemp -d "${TMPDIR:-/tmp}/andrey-front.XXXXXX")
-  step "frontend image extract failed" extract_front "$1" "$dist" &&
+  step "frontend image extract failed" extract_front "$1" "$dist" "${2:-deploy}" &&
     step "frontend publish failed" publish_rest "$dist" &&
     step "frontend publish failed" publish_last "$dist" || rc=1
   MANIFEST_ID=$(manifest_id <"$dist/shell-manifest.json" 2>/dev/null || true)
@@ -163,8 +164,9 @@ compose_healthy() { all_healthy "$("${DC[@]}" ps -a --format json)"; }
 
 # Steps 3-5: put <sha>'s compose file, images and frontend in place. In rollback
 # mode (<sha> was running before, its commit and images are local) nothing touches
-# the network: no fetch, no login, no pull, so a registry or GitHub outage cannot
-# stop a rollback; a missing image makes `up --no-build` fail loudly.
+# the network: no fetch, no login, no pull, and `--pull never` on `up` and on
+# `docker create` (compose and docker would otherwise pull a missing image), so a
+# registry or GitHub outage cannot stop a rollback and a missing image fails loudly.
 apply() { # <sha> [rollback]
   local sha=$1 mode=${2:-deploy}
   export ANDREY_TAG=$sha
@@ -176,11 +178,22 @@ apply() { # <sha> [rollback]
     registry_login || { FAIL_REASON="registry login failed"; return 1; }
     step "compose pull failed" "${DC[@]}" pull || return 1
   fi
-  step "compose up failed" "${DC[@]}" up -d --no-build || return 1
+  # Rollback: --pull never so a missing image fails here instead of reaching for the
+  # registry; --remove-orphans because the failed forward SHA may have added a service
+  # that would otherwise stay behind and fail the checks. The forward `up` removes
+  # nothing: a container it does not know about is not ours to delete.
+  local flags=(--no-build) upflags
+  if [[ $mode == deploy ]]; then
+    upflags=("${flags[@]}")
+  else
+    flags+=(--pull never)
+    upflags=("${flags[@]}" --remove-orphans)
+  fi
+  step "compose up failed" "${DC[@]}" up -d "${upflags[@]}" || return 1
   # Audit triggers register only at audit's boot, so it restarts after the rest is up.
   wait_for compose_healthy || { FAIL_REASON="containers not healthy before audit restart"; return 1; }
-  step "audit recreate failed" "${DC[@]}" up -d --force-recreate --no-build --no-deps audit || return 1
-  publish_front "$sha"
+  step "audit recreate failed" "${DC[@]}" up -d --force-recreate "${flags[@]}" --no-deps audit || return 1
+  publish_front "$sha" "$mode"
 }
 
 http_code() { curl -sS --max-time 10 -o /dev/null -w '%{http_code}' "$1" 2>/dev/null || true; }
@@ -244,7 +257,7 @@ main() {
   STAMP=$(date +%Y%m%d-%H%M%S)
   local logfile=/dev/null
   if [[ -z ${DRY_RUN:-} ]]; then
-    mkdir -p "$LOGS"
+    mkdir -p "$LOGS" 2>/dev/null || true # an unwritable log must not stop a deploy
     logfile="$LOGS/$STAMP-${SHA:0:7}.log"
   fi
   # no-pty: when the ssh client drops, stdout becomes a dead pipe. SIGPIPE ignored

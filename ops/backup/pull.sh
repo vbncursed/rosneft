@@ -25,3 +25,7 @@ echo "pull.sh: verified $latest"
 
 # shellcheck disable=SC2012 # names are ours: [a-z0-9-] only
 ls -1t "$DEST"/andrey-[0-9]*.sql.gz | tail -n +$((KEEP+1)) | xargs -r rm -f
+
+# Predeploy dumps rotate on their own count (newest 10), separate from the daily ones.
+# shellcheck disable=SC2012 # names are ours: [a-z0-9-] only
+ls -1t "$DEST"/andrey-predeploy-*.sql.gz 2>/dev/null | tail -n +11 | while IFS= read -r f; do rm -f "$f"; done || true

@@ -88,12 +88,13 @@ case "$1" in
   compose)
     case "$*" in
       *" pull"*) sleep "${STUB_SLOW:-0}"; [[ -z ${STUB_PULL_FAIL:-} ]] || exit 1 ;;
-      *" up "*) [[ ${ANDREY_TAG:-} != "${STUB_UP_FAIL_TAG:-x}" ]] || exit 1 ;;
-      *" ps "*) for s in gateway auth; do printf '{"Service":"%s","State":"running","Health":"healthy"}\n' "$s"; done ;;
+      *" up "*) [[ " $* " != *" --remove-orphans "* ]] || touch "$WORK/orphan_gone"; [[ ${ANDREY_TAG:-} != "${STUB_UP_FAIL_TAG:-x}" ]] || exit 1 ;;
+      *" ps "*) for s in gateway auth; do printf '{"Service":"%s","State":"running","Health":"healthy"}\n' "$s"; done
+        if [[ -n ${STUB_ORPHAN:-} && ! -f $WORK/orphan_gone ]]; then printf '{"Service":"newsvc","State":"exited","Health":""}\n'; fi ;;
     esac ;;
   exec) [[ -z ${STUB_PGDUMP_FAIL:-} ]] || exit 1; echo "SELECT 1;" ;;
   login) cat > "$WORK/login_stdin"; [[ -z ${STUB_LOGIN_FAIL:-} ]] || exit 1 ;;
-  create) [[ ${2##*:} != "${STUB_CREATE_FAIL_TAG:-x}" ]] || exit 1; echo "cid-${2##*:}" ;;
+  create) img=${*: -1}; [[ ${img##*:} != "${STUB_CREATE_FAIL_TAG:-x}" ]] || exit 1; echo "cid-${img##*:}" ;;
   cp)
     id=${2#cid-}; id=${id%%:*}
     mkdir -p "$3/assets"
@@ -148,12 +149,12 @@ export PATH="$BIN:$PATH" CALLS WORK
 fresh() {
   rm -rf "$WORK/s"; mkdir -p "$WORK/s"/{root,www,state,logs,backups,secrets,tmp}
   echo "bot-token" > "$WORK/s/secrets/telegram_bot_token"; echo "42" > "$WORK/s/secrets/telegram_chat_id"
-  : > "$CALLS"; rm -f "$WORK/login_stdin"
+  : > "$CALLS"; rm -f "$WORK/login_stdin" "$WORK/orphan_gone"
   export ANDREY_ROOT="$WORK/s/root" ANDREY_WWW="$WORK/s/www" ANDREY_STATE="$WORK/s/state" \
     ANDREY_LOGS="$WORK/s/logs" ANDREY_BACKUPS="$WORK/s/backups" ANDREY_SECRETS="$WORK/s/secrets" \
     ANDREY_ORIGIN="https://x.test" ANDREY_LOCK="$WORK/s/lock" ANDREY_CHECK_TIMEOUT=0 ANDREY_CHECK_INTERVAL=0 \
     TMPDIR="$WORK/s/tmp" STUB_OLD="$SHA1" STUB_NEW="$SHA2" STUB_BROKEN_RE=""
-  unset STUB_SLOW STUB_PULL_FAIL STUB_UP_FAIL_TAG STUB_LOGIN_FAIL STUB_CREATE_FAIL_TAG STUB_FETCH_FAIL STUB_CP_FAIL_TAG ANDREY_LOCK_WAIT DRY_RUN STUB_LOCK_HELD STUB_PGDUMP_FAIL STUB_MIGRATIONS STUB_TG_FAIL SSH_ORIGINAL_COMMAND || true
+  unset STUB_ORPHAN STUB_SLOW STUB_PULL_FAIL STUB_UP_FAIL_TAG STUB_LOGIN_FAIL STUB_CREATE_FAIL_TAG STUB_FETCH_FAIL STUB_CP_FAIL_TAG ANDREY_LOCK_WAIT DRY_RUN STUB_LOCK_HELD STUB_PGDUMP_FAIL STUB_MIGRATIONS STUB_TG_FAIL SSH_ORIGINAL_COMMAND || true
 }
 
 # deploy.sh with $TOKEN on stdin; sets $out, $rc, $log. The command substitution
@@ -213,6 +214,8 @@ ok "one backup only" [ "$(grep -c '^+ backup' <<<"$log")" -eq 1 ]
 ok ".deployed unchanged" [ "$(deployed)" = "$SHA1" ]
 ok "previous frontend is live again" [ "$(live_id)" = "$SHA1" ]
 ok "notice names rollback and the failing check" calls_have "text=deploy ${SHA2:0:7} rolled back to ${SHA1:0:7}: shell-manifest"
+ok "rollback never pulls: --pull never on up and docker create" in_order "$(sed -n "/checkout --detach $SHA1/,\$p" "$CALLS")" "up -d --no-build --pull never --remove-orphans" "force-recreate --no-build --pull never" "docker create --pull=never"
+no "forward calls carry neither flag" grep -q -e '--pull never' -e '--pull=never' -e '--remove-orphans' <(sed -n "/checkout --detach $SHA2/,/checkout --detach $SHA1/p" "$CALLS" | grep -v '^git')
 no "nothing pruned after a failure" grep -q '^+ prune_images' <<<"$log"
 
 echo "=== 6b. rollback is offline: it never fetches, logs in or pulls ==="
@@ -231,10 +234,27 @@ for knob in PULL LOGIN FETCH UP EXTRACT CP; do
   [[ $rc -eq 1 ]] || { echo "$out"; fail "$knob: exit $rc, want 1"; }
   ok "$knob: rolled back to the previous sha" [ "$(deployed)" = "$SHA1" ]
   ok "$knob: previous frontend live" [ "$(live_id)" = "$SHA1" ]
-  ok "$knob: rollback up without build" in_order "$(sed -n "/checkout --detach $SHA1/,\$p" "$CALLS")" "checkout" ' up -d --no-build$'
+  ok "$knob: rollback up without build" in_order "$(sed -n "/checkout --detach $SHA1/,\$p" "$CALLS")" "checkout" ' up -d --no-build --pull never --remove-orphans$'
   no "$knob: no fetch/login/pull after the rollback began" grep -q -e '^git .* fetch' -e '^docker login' -e '^docker compose .* pull$' <(sed -n "/checkout --detach $SHA1/,\$p" "$CALLS")
   ok "$knob: notice names rollback" calls_have "rolled back to ${SHA1:0:7}"
 done
+
+echo "=== 6d. an orphan the failed deploy left behind does not fail the rollback ==="
+fresh
+echo "$SHA1" > "$ANDREY_ROOT/.deployed"
+export STUB_ORPHAN=1 STUB_BROKEN_RE="$SHA2"
+go "$SHA2" vbncursed
+ok "exit 1, not 3" [ "$rc" -eq 1 ]
+ok "rolled back" [ "$(deployed)" = "$SHA1" ]
+
+echo "=== 6e. a log that cannot be written does not hide the notice ==="
+fresh
+echo "$SHA1" > "$ANDREY_ROOT/.deployed"
+export STUB_BROKEN_RE="$SHA2" ANDREY_LOGS=/dev/null/logs
+go "$SHA2" vbncursed
+ok "exit 1" [ "$rc" -eq 1 ]
+ok "notice still sent" calls_have "rolled back to ${SHA1:0:7}"
+ok "rolled back" [ "$(deployed)" = "$SHA1" ]
 
 echo "=== 6c. client gone mid-deploy: the deploy still finishes and logs ==="
 fresh
