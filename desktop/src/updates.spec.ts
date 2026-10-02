@@ -65,6 +65,20 @@ describe("checkForUpdates", () => {
     const d = setup({ showDialog: vi.fn(async () => 0) });
     await checkForUpdates(d);
     expect(d.openExternal).toHaveBeenCalledWith(url("0.4.0"));
+    expect(d.settings.update).toHaveBeenCalledWith({ dismissedUpdate: "0.4.0" });
+  });
+  it("after Download the same version no longer prompts", async () => {
+    let dismissed: string | null = null;
+    const d = setup({ showDialog: vi.fn(async () => 0) });
+    d.settings.value = {
+      get dismissedUpdate() {
+        return dismissed;
+      },
+    };
+    d.settings.update = vi.fn(async (p) => void (dismissed = p.dismissedUpdate ?? null));
+    await checkForUpdates(d);
+    await checkForUpdates(d);
+    expect(d.showDialog).toHaveBeenCalledOnce();
   });
   it("Later remembers the version", async () => {
     const d = setup();

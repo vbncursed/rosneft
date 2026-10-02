@@ -29,7 +29,7 @@ export function newerRelease(current: string, releases: unknown): { version: str
 export type UpdateDeps = {
   fetch: (url: string, init: { headers: Record<string, string>; signal: AbortSignal }) => Promise<Response>;
   settings: { value: Pick<Settings, "dismissedUpdate">; update: (patch: Partial<Settings>) => Promise<void> };
-  /** Resolves to the index of the pressed button: 0 Download, 1 Later. */
+  /** Resolves to the index of the pressed button: 0 Download, 1 Later; either one dismisses the version. */
   showDialog: (message: string, detail: string) => Promise<number>;
   openExternal: (url: string) => Promise<void>;
   currentVersion: string;
@@ -59,13 +59,11 @@ export function createUpdateChecker(deps: UpdateDeps): () => Promise<void> {
         `Andrey Desktop v${found.version} is available`,
         `You have v${deps.currentVersion}.`,
       );
-      if (pressed === 0) {
-        if (openableExternally(found.url) && new URL(found.url).hostname === "github.com") {
-          await deps.openExternal(found.url);
-        }
-      } else {
-        await deps.settings.update({ dismissedUpdate: found.version });
+      if (pressed === 0 && openableExternally(found.url) && new URL(found.url).hostname === "github.com") {
+        await deps.openExternal(found.url);
       }
+      // Download and Later both end the prompt for this version; a newer one asks again.
+      await deps.settings.update({ dismissedUpdate: found.version });
     } catch (err) {
       console.warn("update check failed", err);
     } finally {
