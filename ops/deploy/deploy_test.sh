@@ -224,6 +224,7 @@ ok "one backup only" [ "$(grep -c '^+ backup' <<<"$log")" -eq 1 ]
 ok ".deployed unchanged" [ "$(deployed)" = "$SHA1" ]
 ok "previous frontend is live again" [ "$(live_id)" = "$SHA1" ]
 ok "notice names rollback and the failing check" calls_have "text=deploy ${SHA2:0:7} rolled back to ${SHA1:0:7}: shell-manifest"
+ok "rollback's manifest check busts the cache with its own id" calls_have "shell-manifest.json?v=$SHA1"
 ok "rollback never pulls: --pull never on up and docker create" in_order "$(sed -n "/checkout --detach $SHA1/,\$p" "$CALLS")" "up -d --no-build --pull never --remove-orphans" "force-recreate --no-build --pull never" "docker create --pull=never"
 no "forward calls carry neither flag" grep -q -e '--pull never' -e '--pull=never' -e '--remove-orphans' <(sed -n "/checkout --detach $SHA2/,/checkout --detach $SHA1/p" "$CALLS" | grep -v '^git')
 no "nothing pruned after a failure" grep -q '^+ prune_images' <<<"$log"

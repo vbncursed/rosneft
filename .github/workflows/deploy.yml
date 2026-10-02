@@ -1,7 +1,8 @@
 name: deploy
 
 # Merge to main: gate (the same workflows a PR runs) -> images to GHCR -> SSH to
-# the server, whose forced command (ops/deploy/deploy.sh) backs up, rolls out,
+# the server, whose forced command (/usr/local/sbin/andrey-deploy, refreshed from
+# ops/deploy/deploy.sh after each successful deploy) backs up, rolls out,
 # checks and rolls back on failure. workflow_dispatch redeploys an existing
 # commit's images (retry or rollback): no gate, no build.
 

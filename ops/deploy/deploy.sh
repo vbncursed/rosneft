@@ -212,7 +212,7 @@ check_once() { # <manifest-id>
   [[ $code == 200 ]] || { FAIL_REASON="GET / answered ${code:-nothing}"; return 1; }
   code=$(http_code "$ORIGIN/api/auth/me")
   [[ $code == 401 ]] || { FAIL_REASON="GET /api/auth/me answered ${code:-nothing}, expected 401"; return 1; }
-  live=$(curl -fsS --max-time 10 -H 'Cache-Control: no-cache' "$ORIGIN/shell-manifest.json?v=$SHA" 2>/dev/null | manifest_id || true)
+  live=$(curl -fsS --max-time 10 -H 'Cache-Control: no-cache' "$ORIGIN/shell-manifest.json?v=$1" 2>/dev/null | manifest_id || true)
   [[ -n $1 && $live == "$1" ]] || { FAIL_REASON="shell-manifest id is '$live', expected '$1'"; return 1; }
 }
 
@@ -289,7 +289,7 @@ main() {
   local reason=$FAIL_REASON
   if [[ -z $UPPED ]]; then
     # Nothing is running differently. The checkout is the only change: put it back.
-    [[ -z $PREV ]] || git -C "$ROOT" checkout --detach "$PREV" >/dev/null 2>&1 || true
+    [[ -z $PREV ]] || git -C "$ROOT" checkout --detach "$PREV" || log "restoring the previous checkout failed"
     notify "deploy $s7 aborted before any change: $reason"
     exit 1
   fi
