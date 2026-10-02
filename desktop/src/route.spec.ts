@@ -19,7 +19,14 @@ describe("classify", () => {
     expect(classify("HEAD", at(`/api/assets/${HASH}`))).toEqual({ kind: "pass" });
   });
   it("snapshots the whitelist and nothing with a query", () => {
-    for (const p of ["/api/auth/me", "/api/territories", "/api/territories/ust-kut", "/api/territories/ust-kut/scene", "/api/models", "/api/jobs"]) {
+    for (const p of [
+      "/api/auth/me",
+      "/api/territories",
+      "/api/territories/ust-kut",
+      "/api/territories/ust-kut/scene",
+      "/api/models",
+      "/api/jobs",
+    ]) {
       expect(classify("GET", at(p))).toEqual({ kind: "snapshot", key: p });
     }
     expect(classify("GET", at("/api/audit?limit=50"))).toEqual({ kind: "pass" });
@@ -28,7 +35,13 @@ describe("classify", () => {
     expect(classify("GET", at("/api/jobs/abc/events"))).toEqual({ kind: "pass" });
   });
   it("resets the session on every step that issues or revokes a cookie", () => {
-    for (const p of ["/api/auth/login", "/api/auth/login/2fa", "/api/auth/passkey/login/begin", "/api/auth/passkey/login/finish", "/api/auth/logout"]) {
+    for (const p of [
+      "/api/auth/login",
+      "/api/auth/login/2fa",
+      "/api/auth/passkey/login/begin",
+      "/api/auth/passkey/login/finish",
+      "/api/auth/logout",
+    ]) {
       expect(classify("POST", at(p))).toEqual({ kind: "session-reset" });
     }
     expect(classify("GET", at("/api/auth/logout"))).toEqual({ kind: "pass" });
@@ -40,6 +53,10 @@ describe("classify", () => {
 });
 
 describe("serverUnreachable", () => {
-  it.each([502, 503, 504, 520, 523, 527])("%i is a dead backend", (status) => expect(serverUnreachable(status)).toBe(true));
-  it.each([200, 304, 400, 401, 404, 429, 500, 501, 505, 519, 528])("%i is the server speaking", (status) => expect(serverUnreachable(status)).toBe(false));
+  it.each([502, 503, 504, 520, 523, 527])("%i is a dead backend", (status) =>
+    expect(serverUnreachable(status)).toBe(true),
+  );
+  it.each([200, 304, 400, 401, 404, 429, 500, 501, 505, 519, 528])("%i is the server speaking", (status) =>
+    expect(serverUnreachable(status)).toBe(false),
+  );
 });

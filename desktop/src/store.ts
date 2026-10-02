@@ -9,7 +9,14 @@ import { atomicWrite } from "./atomic-write";
 import { isHash, isUserId } from "./validate";
 
 export type SnapshotMeta = { status: number; headers: [string, string][] };
-export type Pin = { slug: string; title: string; hashes: string[]; bytes: number; savedAt: string; syncedAt: string | null };
+export type Pin = {
+  slug: string;
+  title: string;
+  hashes: string[];
+  bytes: number;
+  savedAt: string;
+  syncedAt: string | null;
+};
 export type BlobFile = { hash: string; size: number; mtimeMs: number };
 
 /**
@@ -67,7 +74,10 @@ export class Store {
       const data = await readFile(this.snapshotFile(user, key));
       const metaEnd = 4 + data.readUInt32BE(0);
       if (metaEnd > data.length) return null;
-      return { meta: JSON.parse(data.subarray(4, metaEnd).toString("utf8")) as SnapshotMeta, body: data.subarray(metaEnd) };
+      return {
+        meta: JSON.parse(data.subarray(4, metaEnd).toString("utf8")) as SnapshotMeta,
+        body: data.subarray(metaEnd),
+      };
     } catch {
       return null;
     }
@@ -91,7 +101,13 @@ export class Store {
   }
 
   /** Streams into tmp/, checks the bytes hash to `hash`, renames into blobs/. Throws on any failure; nothing is left behind. */
-  async writeBlob(user: string, hash: string, type: string, body: ReadableStream<Uint8Array>, signal?: AbortSignal): Promise<number> {
+  async writeBlob(
+    user: string,
+    hash: string,
+    type: string,
+    body: ReadableStream<Uint8Array>,
+    signal?: AbortSignal,
+  ): Promise<number> {
     const dest = this.blobPath(user, hash);
     const tmp = this.tmpFile();
     const digest = createHash("sha256");
@@ -155,7 +171,10 @@ export class Store {
   removeUnpinned(user: string, hashes: Iterable<string>): Promise<void> {
     return this.serialised(async () => {
       const held = new Set((await this.readPins(user)).flatMap((p) => p.hashes));
-      await this.removeBlobs(user, [...hashes].filter((h) => !held.has(h)));
+      await this.removeBlobs(
+        user,
+        [...hashes].filter((h) => !held.has(h)),
+      );
     });
   }
 

@@ -41,4 +41,5 @@ export function classify(method: string, url: URL): Route {
 }
 
 /** The answers a proxy gives when the backend behind it is down (Cloudflare's 520-527 included): to the shell that is "offline", not the server speaking. */
-export const serverUnreachable = (status: number): boolean => status === 502 || status === 503 || status === 504 || (status >= 520 && status <= 527);
+export const serverUnreachable = (status: number): boolean =>
+  status === 502 || status === 503 || status === 504 || (status >= 520 && status <= 527);

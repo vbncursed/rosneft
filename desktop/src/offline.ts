@@ -20,7 +20,9 @@ export function sceneHashes(scene: SceneLike): string[] {
   const all = [
     scene.artifact?.hash,
     ...(scene.artifact?.artifacts ?? []).map((a) => a.hash),
-    ...scene.modelOptions.filter((m) => placed.has(m.slug)).flatMap((m) => [m.thumbnailBlobHash, ...m.artifacts.map((a) => a.hash)]),
+    ...scene.modelOptions
+      .filter((m) => placed.has(m.slug))
+      .flatMap((m) => [m.thumbnailBlobHash, ...m.artifacts.map((a) => a.hash)]),
     ...(scene.panoramas ?? []).flatMap((p) => [p.sourceBlobHash, p.thumbnailBlobHash]),
     ...(scene.documents ?? []).map((d) => d.sourceBlobHash),
   ];
@@ -85,7 +87,9 @@ export class OfflineSaver {
     const running = this.jobs.get(slug);
     if (running) return running.promise;
     const abort = new AbortController();
-    const promise = this.run(slug, abort.signal, this.d.settings.value.userId, silent).finally(() => this.jobs.delete(slug));
+    const promise = this.run(slug, abort.signal, this.d.settings.value.userId, silent).finally(() =>
+      this.jobs.delete(slug),
+    );
     this.jobs.set(slug, { promise, abort });
     return promise;
   }
@@ -206,7 +210,14 @@ export class OfflineSaver {
       // Pinned before the first byte: eviction must not take a blob this save just wrote.
       this.still(user);
       await store.updatePins(user, (pins) =>
-        upsert(pins, { slug, title, hashes: [...new Set([...(before?.hashes ?? []), ...hashes])], bytes: before?.bytes ?? 0, savedAt: before?.savedAt ?? now, syncedAt: before?.syncedAt ?? null }),
+        upsert(pins, {
+          slug,
+          title,
+          hashes: [...new Set([...(before?.hashes ?? []), ...hashes])],
+          bytes: before?.bytes ?? 0,
+          savedAt: before?.savedAt ?? now,
+          syncedAt: before?.syncedAt ?? null,
+        }),
       );
 
       let done = 0;
@@ -222,7 +233,13 @@ export class OfflineSaver {
           if (!res.body) throw new SaveFailure("failed");
           this.still(user);
           // Await first: `bytes += await …` reads bytes before the suspension and loses concurrent downloads' sizes.
-          const size = await store.writeBlob(user, hash, res.headers.get("content-type") ?? "application/octet-stream", res.body as ReadableStream<Uint8Array>, signal);
+          const size = await store.writeBlob(
+            user,
+            hash,
+            res.headers.get("content-type") ?? "application/octet-stream",
+            res.body as ReadableStream<Uint8Array>,
+            signal,
+          );
           bytes += size;
         }
         done += 1;
@@ -230,13 +247,18 @@ export class OfflineSaver {
       });
 
       this.still(user);
-      await store.updatePins(user, (all) => upsert(all, { slug, title, hashes, bytes, savedAt: before?.savedAt ?? now, syncedAt: now }));
+      await store.updatePins(user, (all) =>
+        upsert(all, { slug, title, hashes, bytes, savedAt: before?.savedAt ?? now, syncedAt: now }),
+      );
       await store.removeUnpinned(user, before?.hashes ?? []);
-      await store.evict(user, this.d.settings.value.limit).catch((e: unknown) => console.warn("offline: evict failed", e));
+      await store
+        .evict(user, this.d.settings.value.limit)
+        .catch((e: unknown) => console.warn("offline: evict failed", e));
       emit({ slug, state: "saved", done: hashes.length, total: hashes.length });
     } catch (err) {
       // A first save that never finished leaves no pin; a failed resync keeps the copy it had.
-      if (user && !before?.syncedAt) await store.updatePins(user, (all) => all.filter((p) => p.slug !== slug)).catch(() => undefined);
+      if (user && !before?.syncedAt)
+        await store.updatePins(user, (all) => all.filter((p) => p.slug !== slug)).catch(() => undefined);
       if (signal.aborted || err instanceof SessionChanged) emit({ slug, state: "cancelled", done: 0, total: 0 });
       else if (silent) console.warn("offline: resync failed", slug, err);
       else emit({ slug, state: "failed", done: 0, total: 0, error: reasonOf(err) });

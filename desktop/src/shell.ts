@@ -57,7 +57,8 @@ const TYPES: Record<string, string> = {
   ".ftl": "text/plain; charset=utf-8",
 };
 
-export const contentType = (urlPath: string): string => TYPES[path.extname(urlPath).toLowerCase()] ?? "application/octet-stream";
+export const contentType = (urlPath: string): string =>
+  TYPES[path.extname(urlPath).toLowerCase()] ?? "application/octet-stream";
 
 /** The SPA's files, one complete generation per deployed frontend, so it boots and opens any route with no network. */
 export class Shell {
@@ -117,7 +118,8 @@ export class Shell {
       await mkdir(path.dirname(dest), { recursive: true });
       await pipeline(Readable.fromWeb(r.body as NodeWebStream<Uint8Array>), createWriteStream(dest));
       const size = (await stat(dest)).size;
-      if (!sizeAcceptable(f.path, size, f.size)) throw new Error(`shell: ${f.path} is ${size} bytes, manifest says ${f.size}`);
+      if (!sizeAcceptable(f.path, size, f.size))
+        throw new Error(`shell: ${f.path} is ${size} bytes, manifest says ${f.size}`);
     });
 
     await rm(path.join(this.root, manifest.id), { recursive: true, force: true });
@@ -127,7 +129,10 @@ export class Shell {
   }
 
   private hasIndex(id: string): Promise<boolean> {
-    return stat(path.join(this.root, id, "index.html")).then(() => true, () => false);
+    return stat(path.join(this.root, id, "index.html")).then(
+      () => true,
+      () => false,
+    );
   }
 
   /** Drops every generation but `keep`. */

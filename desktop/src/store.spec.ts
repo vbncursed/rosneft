@@ -9,7 +9,14 @@ const A = "0b5e8a3c-1f2d-4c5b-9a7e-3d2c1b0a9f8e";
 const B = "1c6f9b4d-2a3e-4d6c-8b8f-4e3d2c1b0a9f";
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 const body = (s: string) => new Response(s).body as ReadableStream<Uint8Array>;
-const pin = (slug: string, hashes: string[]): Pin => ({ slug, title: slug, hashes, bytes: 0, savedAt: "t", syncedAt: "t" });
+const pin = (slug: string, hashes: string[]): Pin => ({
+  slug,
+  title: slug,
+  hashes,
+  bytes: 0,
+  savedAt: "t",
+  syncedAt: "t",
+});
 
 let root: string;
 let store: Store;
@@ -52,7 +59,11 @@ describe("Store", () => {
 
   it("a failed write leaves nothing behind", async () => {
     const h = sha("hello");
-    const broken = new ReadableStream<Uint8Array>({ pull(c) { c.error(Object.assign(new Error("disk full"), { code: "ENOSPC" })); } });
+    const broken = new ReadableStream<Uint8Array>({
+      pull(c) {
+        c.error(Object.assign(new Error("disk full"), { code: "ENOSPC" }));
+      },
+    });
     await expect(store.writeBlob(A, h, "x", broken)).rejects.toMatchObject({ code: "ENOSPC" });
     expect(readdirSync(path.join(root, "tmp"))).toEqual([]);
     expect(await store.blob(A, h)).toBeNull();
@@ -61,7 +72,12 @@ describe("Store", () => {
   it("keeps each user's blobs and snapshots apart", async () => {
     const h = sha("a");
     await store.writeBlob(A, h, "x", body("a"));
-    await store.writeSnapshot(A, "/api/auth/me", { status: 200, headers: [["content-type", "application/json"]] }, Buffer.from("{}"));
+    await store.writeSnapshot(
+      A,
+      "/api/auth/me",
+      { status: 200, headers: [["content-type", "application/json"]] },
+      Buffer.from("{}"),
+    );
     expect(await store.blob(B, h)).toBeNull();
     expect(await store.readSnapshot(B, "/api/auth/me")).toBeNull();
     expect((await store.readSnapshot(A, "/api/auth/me"))?.meta.status).toBe(200);
@@ -111,7 +127,11 @@ describe("Store", () => {
   it("an aborted write rejects and leaves nothing behind", async () => {
     const h = sha("hello");
     const ac = new AbortController();
-    const stalled = new ReadableStream<Uint8Array>({ pull() { return new Promise(() => {}); } });
+    const stalled = new ReadableStream<Uint8Array>({
+      pull() {
+        return new Promise(() => {});
+      },
+    });
     const pending = store.writeBlob(A, h, "x", stalled, ac.signal);
     setTimeout(() => ac.abort(), 10);
     await expect(pending).rejects.toThrow();

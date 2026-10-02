@@ -106,7 +106,9 @@ async function start(): Promise<void> {
   registerIpc(ipcMain, ORIGIN, buildHandlers({ saver, store, settings, connectivity: () => online ?? true }));
 
   if (process.platform === "linux" && safeStorage.getSelectedStorageBackend() === "basic_text") {
-    console.warn("no keyring (libsecret/KWallet): the cookie encryption fuse falls back to a hard-coded key (basic_text), so the session cookie is obfuscated, not protected");
+    console.warn(
+      "no keyring (libsecret/KWallet): the cookie encryption fuse falls back to a hard-coded key (basic_text), so the session cookie is obfuscated, not protected",
+    );
   }
 
   win = createWindow(PASSKEYS[process.platform] ?? false);

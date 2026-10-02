@@ -56,7 +56,16 @@ export async function sign(opts: SignOptions): Promise<void> {
     security("create-keychain", "-p", pass, keychain);
     security("unlock-keychain", "-p", pass, keychain);
     security("set-keychain-settings", keychain);
-    security("import", join(dir, "cert.p12"), "-k", keychain, "-T", "/usr/bin/codesign", "-P", process.env.ANDREY_SIGN_P12_PASSWORD ?? "");
+    security(
+      "import",
+      join(dir, "cert.p12"),
+      "-k",
+      keychain,
+      "-T",
+      "/usr/bin/codesign",
+      "-P",
+      process.env.ANDREY_SIGN_P12_PASSWORD ?? "",
+    );
     security("set-key-partition-list", "-S", "apple-tool:,apple:", "-s", "-k", pass, keychain);
     // codesign looks for the identity only in the user's search list, whatever
     // --keychain says (a GitHub macOS runner answers "no identity found"), so the

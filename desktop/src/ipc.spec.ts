@@ -22,13 +22,23 @@ async function setup() {
   await settings.update({ userId: A });
   const store = new Store(path.join(root, "cache"));
   await store.init();
-  const saver = { list: vi.fn(async () => []), save: vi.fn((_slug: string): Promise<void> => new Promise(() => {})), cancel: vi.fn(), remove: vi.fn(async () => {}) };
+  const saver = {
+    list: vi.fn(async () => []),
+    save: vi.fn((_slug: string): Promise<void> => new Promise(() => {})),
+    cancel: vi.fn(),
+    remove: vi.fn(async () => {}),
+  };
   const online = { value: false };
   const registered = new Map<string, (event: IpcEventLike, ...args: unknown[]) => unknown>();
-  registerIpc({ handle: (c, fn) => registered.set(c, fn) }, ORIGIN, buildHandlers({ saver, store, settings, connectivity: () => online.value }));
+  registerIpc(
+    { handle: (c, fn) => registered.set(c, fn) },
+    ORIGIN,
+    buildHandlers({ saver, store, settings, connectivity: () => online.value }),
+  );
   const main = { url: `${ORIGIN}/territories`, parent: null, detached: false };
   const event = (frame: IpcEventLike["senderFrame"] = main): IpcEventLike => ({ senderFrame: frame });
-  const call = (channel: string, ev: IpcEventLike, ...args: unknown[]) => Promise.resolve(registered.get(channel)!(ev, ...args));
+  const call = (channel: string, ev: IpcEventLike, ...args: unknown[]) =>
+    Promise.resolve(registered.get(channel)!(ev, ...args));
   return { saver, store, online, settings, call, event, main, registered };
 }
 
@@ -45,7 +55,14 @@ describe("registerIpc", () => {
   it("registers every channel of the contract", async () => {
     const s = await setup();
     expect([...s.registered.keys()].sort()).toEqual([
-      "connectivity:get", "offline:cancel", "offline:list", "offline:remove", "offline:save", "storage:clear", "storage:set-limit", "storage:usage",
+      "connectivity:get",
+      "offline:cancel",
+      "offline:list",
+      "offline:remove",
+      "offline:save",
+      "storage:clear",
+      "storage:set-limit",
+      "storage:usage",
     ]);
   });
 

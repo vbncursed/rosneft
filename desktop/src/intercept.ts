@@ -26,11 +26,19 @@ const warn = (err: unknown) => console.warn("intercept:", err);
 
 export function fileResponse(file: string, size: number, type: string, range: string | null): Response {
   const r = parseRange(range, size);
-  if (r === "unsatisfiable") return new Response(null, { status: 416, headers: { "content-range": `bytes */${size}` } });
+  if (r === "unsatisfiable")
+    return new Response(null, { status: 416, headers: { "content-range": `bytes */${size}` } });
   const { start, end } = r ?? { start: 0, end: size - 1 };
-  const headers: Record<string, string> = { "content-type": type, "content-length": String(Math.max(0, end - start + 1)), "accept-ranges": "bytes" };
+  const headers: Record<string, string> = {
+    "content-type": type,
+    "content-length": String(Math.max(0, end - start + 1)),
+    "accept-ranges": "bytes",
+  };
   if (r) headers["content-range"] = `bytes ${start}-${end}/${size}`;
-  const body = size === 0 ? null : (Readable.toWeb(createReadStream(file, { start, end })) as unknown as ReadableStream<Uint8Array>);
+  const body =
+    size === 0
+      ? null
+      : (Readable.toWeb(createReadStream(file, { start, end })) as unknown as ReadableStream<Uint8Array>);
   return new Response(body, { status: r ? 206 : 200, headers });
 }
 
@@ -117,7 +125,15 @@ async function learnUser(d: InterceptDeps, body: Buffer, fresh: () => boolean): 
   }
 }
 
-async function afterNetwork(d: InterceptDeps, route: Route, user: string | null, req: Request, res: Response, fresh: () => boolean, scheduleEvict: (user: string) => void): Promise<Response> {
+async function afterNetwork(
+  d: InterceptDeps,
+  route: Route,
+  user: string | null,
+  req: Request,
+  res: Response,
+  fresh: () => boolean,
+  scheduleEvict: (user: string) => void,
+): Promise<Response> {
   if (route.kind === "navigate" && res.ok) void d.shell.refresh();
 
   if (route.kind === "snapshot" && res.status === 200) {
@@ -126,7 +142,8 @@ async function afterNetwork(d: InterceptDeps, route: Route, user: string | null,
     const headers = [...res.headers].filter(([k]) => !DROP.has(k));
     // Awaited: a few KB of JSON, and a snapshot that lands after the next
     // request would make "just went offline" depend on timing.
-    if (owner && body.length > 0) await d.store.writeSnapshot(owner, route.key, { status: 200, headers }, body).catch(warn);
+    if (owner && body.length > 0)
+      await d.store.writeSnapshot(owner, route.key, { status: 200, headers }, body).catch(warn);
   }
 
   if (route.kind === "blob" && user && res.status === 200 && res.body && !req.headers.has("range")) {
@@ -168,7 +185,10 @@ async function fallback(d: InterceptDeps, route: Route, user: string | null, req
       if (f) return fileResponse(f.path, f.size, f.type, null);
       // Content-hashed files: Chromium's cached copy is the right one. force-cache offline gives it or fails fast (only-if-cached is refused for a cors-mode request).
       // ponytail: a chunk never fetched and not in a finished generation still fails until the next online refresh.
-      return d.network(req, { cache: "force-cache" }).then((r) => (r.ok ? r : Response.error()), () => Response.error());
+      return d.network(req, { cache: "force-cache" }).then(
+        (r) => (r.ok ? r : Response.error()),
+        () => Response.error(),
+      );
     }
     default:
       return (await savedCopy(d, route, user)) ?? Response.error();
