@@ -48,3 +48,22 @@ func (s *RespondSuite) TestARefusalKeepsItsMessage() {
 		status.Error(codes.InvalidArgument, "password too short"))
 	assert.Equal(s.T(), rec.Body.String(), `{"code":"invalid_input","message":"password too short"}`+"\n")
 }
+
+// A body that cannot be encoded after the headers went out is not answered a
+// second time; the request's own log line keeps the error.
+func (s *RespondSuite) TestAFailedEncodeIsLoggedOnTheRequestLine() {
+	var logs bytes.Buffer
+	h := chi.NewRouter()
+	h.Use(slogchi.New(slog.New(slog.NewJSONHandler(&logs, nil))))
+	h.Get("/x", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, r, http.StatusOK, make(chan int))
+	})
+
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequestWithContext(s.T().Context(), http.MethodGet, "/x", nil))
+
+	assert.Equal(s.T(), rec.Code, http.StatusOK)
+	lines := strings.Split(strings.TrimSpace(logs.String()), "\n")
+	assert.Equal(s.T(), len(lines), 1, logs.String())
+	assert.Assert(s.T(), strings.Contains(lines[0], "unsupported type"), lines[0])
+}

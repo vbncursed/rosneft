@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	slogchi "github.com/samber/slog-chi"
+
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
@@ -20,7 +22,7 @@ func (s *Server) ListJobs(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	scopeAdminID, allAccess := authhttp.Scope(ctx)
 	if !allAccess && scopeAdminID == "" {
-		writeJobs(w, nil) // fail-closed, as ListTerritories does
+		writeJobs(w, r, nil) // fail-closed, as ListTerritories does
 		return
 	}
 	jobs, err := s.svc.ListTargetJobs(ctx)
@@ -45,7 +47,7 @@ func (s *Server) ListJobs(w http.ResponseWriter, r *http.Request) {
 			out = append(out, j)
 		}
 	}
-	writeJobs(w, out)
+	writeJobs(w, r, out)
 }
 
 // visibleJob is the one rule both /api/jobs and the per-id stream apply.
@@ -71,7 +73,7 @@ func visibleJob(j domain.Job, visible map[string]bool, allAccess bool) bool {
 	}
 }
 
-func writeJobs(w http.ResponseWriter, jobs []domain.Job) {
+func writeJobs(w http.ResponseWriter, r *http.Request, jobs []domain.Job) {
 	resp := make([]Job, len(jobs))
 	for i, j := range jobs {
 		resp[i] = jobToAPI(j)
@@ -79,8 +81,9 @@ func writeJobs(w http.ResponseWriter, jobs []domain.Job) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		// Headers are out; the body cannot be redone, only reported.
-		slog.Warn("write jobs body", "error", err)
+		// Headers are out; the body cannot be redone, only reported,
+		// on the request's own log line.
+		slogchi.AddContextAttributes(r.Context(), slog.String("error", err.Error()))
 	}
 }
 

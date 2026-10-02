@@ -16,7 +16,7 @@ func (h *Handlers) passkeyLoginBegin(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"optionsJson": opts, "flowId": flowID})
+	writeJSON(w, r, http.StatusOK, map[string]any{"optionsJson": opts, "flowId": flowID})
 }
 
 func (h *Handlers) passkeyLoginFinish(w http.ResponseWriter, r *http.Request) {
@@ -38,7 +38,7 @@ func (h *Handlers) passkeyLoginFinish(w http.ResponseWriter, r *http.Request) {
 	// done by an already-logged-in user and issues no new session.
 	// No checkbox on the passkey path; it stays persistent.
 	h.setSession(w, token, true)
-	writeJSON(w, http.StatusOK, map[string]any{"token": token, "csrfToken": h.CSRFToken(token)})
+	writeJSON(w, r, http.StatusOK, map[string]any{"token": token, "csrfToken": h.CSRFToken(token)})
 }
 
 // --- passkey enrollment + management (authenticated; passkey-service) ---
@@ -49,7 +49,7 @@ func (h *Handlers) passkeyRegisterBegin(w http.ResponseWriter, r *http.Request) 
 		fail(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"optionsJson": opts, "flowId": flowID})
+	writeJSON(w, r, http.StatusOK, map[string]any{"optionsJson": opts, "flowId": flowID})
 }
 
 func (h *Handlers) passkeyRegisterFinish(w http.ResponseWriter, r *http.Request) {
@@ -66,7 +66,7 @@ func (h *Handlers) passkeyRegisterFinish(w http.ResponseWriter, r *http.Request)
 		fail(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, credToJSON(c))
+	writeJSON(w, r, http.StatusOK, credToJSON(c))
 }
 
 func (h *Handlers) passkeyList(w http.ResponseWriter, r *http.Request) {
@@ -79,7 +79,7 @@ func (h *Handlers) passkeyList(w http.ResponseWriter, r *http.Request) {
 	for _, c := range creds {
 		out = append(out, credToJSON(c))
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"credentials": out})
+	writeJSON(w, r, http.StatusOK, map[string]any{"credentials": out})
 }
 
 // passkeyDelete requires step-up re-authentication: a TOTP code when the user
