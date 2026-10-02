@@ -19,6 +19,11 @@ export function pickIdentity(findIdentityOutput: string): string | null {
   return null;
 }
 
+/** The paths of `security list-keychains` output, one quoted path per line. */
+export function parseKeychains(listOutput: string): string[] {
+  return [...listOutput.matchAll(/"([^"]+)"/g)].map((m) => m[1] ?? "").filter(Boolean);
+}
+
 type FileOptions = Record<string, unknown>;
 type SignOptions = { identity?: string; keychain?: string; optionsForFile?: (file: string) => FileOptions };
 
@@ -45,6 +50,7 @@ export async function sign(opts: SignOptions): Promise<void> {
   const dir = mkdtempSync(join(tmpdir(), "andrey-sign-"));
   const keychain = join(dir, "sign.keychain");
   const pass = randomBytes(24).toString("base64");
+  let restore = () => {};
   try {
     writeFileSync(join(dir, "cert.p12"), Buffer.from(p12, "base64"));
     security("create-keychain", "-p", pass, keychain);
@@ -52,11 +58,18 @@ export async function sign(opts: SignOptions): Promise<void> {
     security("set-keychain-settings", keychain);
     security("import", join(dir, "cert.p12"), "-k", keychain, "-T", "/usr/bin/codesign", "-P", process.env.ANDREY_SIGN_P12_PASSWORD ?? "");
     security("set-key-partition-list", "-S", "apple-tool:,apple:", "-s", "-k", pass, keychain);
+    // codesign looks for the identity only in the user's search list, whatever
+    // --keychain says (a GitHub macOS runner answers "no identity found"), so the
+    // throwaway keychain joins it for the signing and the old list comes back after.
+    const searchList = parseKeychains(security("list-keychains", "-d", "user"));
+    security("list-keychains", "-d", "user", "-s", keychain, ...searchList);
+    restore = () => security("list-keychains", "-d", "user", "-s", ...searchList);
     const hash = pickIdentity(security("find-identity", "-p", "codesigning", keychain));
     if (!hash) throw new Error(`no "${SIGNING_CN}" identity in ANDREY_SIGN_P12`);
     const optionsForFile = (file: string): FileOptions => ({ ...opts.optionsForFile?.(file), timestamp: "none" });
     return await signAsync({ ...opts, identity: hash, keychain, optionsForFile } as never);
   } finally {
+    restore();
     rmSync(dir, { recursive: true, force: true });
   }
 }
