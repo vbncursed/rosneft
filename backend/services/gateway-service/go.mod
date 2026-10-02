@@ -3,7 +3,7 @@ module github.com/vbncursed/rosneft/backend/services/gateway-service
 go 1.27.1
 
 require (
-	github.com/andybalholm/brotli v1.2.5
+	github.com/andybalholm/brotli v1.2.6
 	github.com/getkin/kin-openapi v0.149.0
 	github.com/go-chi/chi/v5 v5.3.2
 	github.com/go-chi/cors v1.2.2
