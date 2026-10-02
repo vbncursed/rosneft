@@ -1,8 +1,13 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, act, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
-import { Toast } from "./toast";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import type { ReactElement } from "react";
+import { Toast, ToastStack } from "./toast";
+import { Icon } from "@/shared/ui/icon";
 import { hoverTip } from "@/shared/ui/tooltip/testing";
+
+const card = (text: string) => screen.getByText(text).closest(".toast")!;
+const glyphOf = (ui: ReactElement) => render(ui).container.querySelector("svg")!.innerHTML;
 
 describe("Toast", () => {
   // A calm tone carries no role of its own: the host's polite live region
@@ -130,5 +135,172 @@ describe("Toast · ground", () => {
       expect.arrayContaining(["bg-panel", `bg-[image:linear-gradient(var(--${soft}-soft),var(--${soft}-soft))]`]),
     );
     expect(cls).not.toContain(`bg-${soft}-soft`);
+  });
+
+  it("draws neutral on the bare panel", () => {
+    render(<Toast tone="neutral">3 placements moved.</Toast>);
+    const cls = card("3 placements moved.").className.split(/\s+/);
+    expect(cls).toEqual(expect.arrayContaining(["bg-panel", "border-line-2"]));
+    expect(cls.filter((c) => c.startsWith("bg-[image:"))).toHaveLength(0);
+  });
+});
+
+describe("Toast · tones", () => {
+  it.each([
+    ["error", "close"],
+    ["warning", "warning"],
+    ["info", "info"],
+    ["success", "check"],
+  ] as const)("marks %s with the %s glyph", (tone, name) => {
+    expect(glyphOf(<Toast tone={tone}>x</Toast>)).toBe(glyphOf(<Icon name={name} />));
+  });
+
+  it("states a plain fact as an untinted Notice", () => {
+    render(<Toast tone="neutral">3 placements moved.</Toast>);
+    expect(screen.getByText("Notice")).toBeInTheDocument();
+    expect(card("3 placements moved.").className).toContain("border-line-2");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("shows work under way as busy, with a determinate bar when given progress", () => {
+    render(
+      <Toast tone="loading" progress={62.4}>
+        Converting
+      </Toast>,
+    );
+    expect(screen.getByText("Working")).toBeInTheDocument();
+    expect(card("Converting")).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "62");
+  });
+
+  it("draws no progress bar for loading without progress", () => {
+    render(<Toast tone="loading">Waiting</Toast>);
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+  });
+});
+
+describe("Toast · lifetime", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it.each(["success", "info", "neutral"] as const)("lets %s go after 4 s and its 150 ms exit", (tone) => {
+    const onDismiss = vi.fn();
+    render(
+      <Toast tone={tone} onDismiss={onDismiss}>
+        Saved.
+      </Toast>,
+    );
+    act(() => vi.advanceTimersByTime(3999));
+    expect(card("Saved.")).not.toHaveAttribute("data-leaving");
+    act(() => vi.advanceTimersByTime(1));
+    expect(card("Saved.")).toHaveAttribute("data-leaving");
+    expect(onDismiss).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(150));
+    expect(onDismiss).toHaveBeenCalledOnce();
+  });
+
+  it.each(["error", "warning", "loading"] as const)("keeps %s until the reader acts", (tone) => {
+    const onDismiss = vi.fn();
+    render(
+      <Toast tone={tone} onDismiss={onDismiss}>
+        Stays.
+      </Toast>,
+    );
+    act(() => vi.advanceTimersByTime(60_000));
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  it("takes duration over the tone's, and null keeps any card", () => {
+    const quick = vi.fn();
+    const kept = vi.fn();
+    render(
+      <>
+        <Toast tone="error" onDismiss={quick} duration={1000}>
+          Quick
+        </Toast>
+        <Toast tone="success" onDismiss={kept} duration={null}>
+          Kept
+        </Toast>
+      </>,
+    );
+    act(() => vi.advanceTimersByTime(1150));
+    expect(quick).toHaveBeenCalledOnce();
+    act(() => vi.advanceTimersByTime(60_000));
+    expect(kept).not.toHaveBeenCalled();
+  });
+
+  it("stops the countdown under the pointer and resumes with what was left", () => {
+    const onDismiss = vi.fn();
+    render(
+      <Toast tone="success" onDismiss={onDismiss}>
+        Saved.
+      </Toast>,
+    );
+    act(() => vi.advanceTimersByTime(3000));
+    fireEvent.pointerEnter(card("Saved."));
+    act(() => vi.advanceTimersByTime(10_000));
+    expect(card("Saved.")).not.toHaveAttribute("data-leaving");
+
+    fireEvent.pointerLeave(card("Saved."));
+    act(() => vi.advanceTimersByTime(999));
+    expect(card("Saved.")).not.toHaveAttribute("data-leaving");
+    act(() => vi.advanceTimersByTime(151));
+    expect(onDismiss).toHaveBeenCalledOnce();
+  });
+
+  it("stops the countdown while focus is on the card", () => {
+    const onDismiss = vi.fn();
+    render(
+      <Toast tone="success" onDismiss={onDismiss}>
+        Saved.
+      </Toast>,
+    );
+    act(() => screen.getByRole("button", { name: "Dismiss" }).focus());
+    act(() => vi.advanceTimersByTime(10_000));
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+});
+
+describe("ToastStack", () => {
+  const errors = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({ id: i + 1, tone: "error" as const, children: `Notice ${i + 1}` }));
+  const drawn = () => screen.getAllByText(/^Notice \d$/).map((p) => p.textContent);
+
+  it("draws the newest on top, at most three, and counts the rest", () => {
+    render(<ToastStack toasts={errors(5)} onDismiss={vi.fn()} />);
+    expect(drawn()).toEqual(["Notice 5", "Notice 4", "Notice 3"]);
+    expect(screen.getByText("+2 more")).toBeInTheDocument();
+  });
+
+  it("takes another max", () => {
+    render(<ToastStack toasts={errors(2)} max={1} onDismiss={vi.fn()} />);
+    expect(drawn()).toEqual(["Notice 2"]);
+    expect(screen.getByText("+1 more")).toBeInTheDocument();
+  });
+
+  it("has no overflow line when every card fits", () => {
+    render(<ToastStack toasts={errors(3)} onDismiss={vi.fn()} />);
+    expect(screen.queryByText(/more$/)).not.toBeInTheDocument();
+  });
+
+  it("pins itself top-right as a polite region, unless inline", () => {
+    const { rerender } = render(<ToastStack toasts={[]} onDismiss={vi.fn()} />);
+    const region = screen.getByRole("region", { name: "Notifications" });
+    expect(region).toHaveAttribute("aria-live", "polite");
+    expect(region.className.split(/\s+/)).toEqual(expect.arrayContaining(["fixed", "top-4", "right-4"]));
+    rerender(<ToastStack toasts={[]} onDismiss={vi.fn()} position="inline" />);
+    expect(region).not.toHaveClass("fixed");
+  });
+
+  it("hands back the id of the card dismissed", async () => {
+    const onDismiss = vi.fn();
+    render(
+      <ToastStack
+        toasts={errors(2).map((t) => ({ ...t, dismissLabel: `Dismiss: ${t.children}` }))}
+        onDismiss={onDismiss}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Dismiss: Notice 1" }));
+    await waitFor(() => expect(onDismiss).toHaveBeenCalledExactlyOnceWith(1));
   });
 });
