@@ -74,12 +74,18 @@ jobs:
 
       # electron-builder.yml sets mac.identity "-", which signs ad-hoc whatever
       # auto-discovery finds (Apple Silicon refuses an unsigned arm64 binary).
+      # On the macOS job only, the two ANDREY_SIGN_* variables (from the
+      # MAC_CSC_* secrets) make src/signing.ts sign with the stable self-signed
+      # certificate instead; an absent secret (fork PR, Dependabot) is empty and
+      # leaves the ad-hoc signature. Not CSC_LINK: Windows would read that too.
       # CSC_FOR_PULL_REQUEST: the builder skips signing on pull_request runs, and
       # a PR's arm64 artifact would then not launch. No certificate is configured
       # on any runner, so nothing but the ad-hoc signature is applied.
       - run: yarn --cwd desktop dist
         env:
           CSC_FOR_PULL_REQUEST: "true"
+          ANDREY_SIGN_P12: ${{ matrix.os == 'macos-latest' && secrets.MAC_CSC_LINK || '' }}
+          ANDREY_SIGN_P12_PASSWORD: ${{ matrix.os == 'macos-latest' && secrets.MAC_CSC_KEY_PASSWORD || '' }}
 
       # Names come from electron-builder.yml's artifactName. Exactly the expected
       # set per OS: anything else means the builder wrote somewhere these globs
@@ -123,7 +129,7 @@ jobs:
             (`https://andrey.vbncursed.fun`) — sign in with your normal account.
             Territories you save with **Save offline** open without a network.
 
-            **These builds are not code-signed, and every OS will object.**
+            **These builds are not Apple- or Microsoft-signed, and every OS will object.**
 
             **macOS** - `Andrey-*-macos-arm64` for Apple Silicon, `Andrey-*-macos-x64`
             for Intel (each as `.dmg` and `.zip`).
@@ -134,9 +140,9 @@ jobs:
                or try to open the app once, then go to System Settings, Privacy &
                Security, and press *Open Anyway* (it appears only after that blocked
                attempt and stays for about an hour).
-            3. On first launch, and after every update, macOS asks for the
-               Keychain item "Andrey Safe Storage". Allow it (*Always Allow*);
-               it holds the key that encrypts your sign-in cookie.
+            3. On first launch macOS asks for the Keychain item "Andrey Safe
+               Storage". Allow it (*Always Allow*); it holds the key that
+               encrypts your sign-in cookie. Updates do not ask again.
 
             **Windows** - `Andrey-*-windows-x64-setup.exe` or
             `Andrey-*-windows-x64-portable.exe`. SmartScreen says "Windows
