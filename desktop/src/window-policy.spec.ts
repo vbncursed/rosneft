@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { attachWindowPolicy, permissionAllowed, permissionCheckAllowed } from "./window-policy";
+import { attachPermissionPolicy, attachWindowPolicy, permissionAllowed, permissionCheckAllowed } from "./window-policy";
 
 const ORIGIN = "https://andrey.vbncursed.fun";
 
@@ -91,10 +91,55 @@ describe("permissionAllowed", () => {
 
 describe("permissionCheckAllowed", () => {
   it.each([
-    ["clipboard-sanitized-write", ORIGIN, true],
-    ["clipboard-sanitized-write", "https://evil.example", false],
-    ["clipboard-read", ORIGIN, false],
-  ])("%s from %s -> %s", (permission, from, want) => {
-    expect(permissionCheckAllowed(permission, from, ORIGIN)).toBe(want);
+    ["clipboard-sanitized-write", ORIGIN, true, true],
+    ["clipboard-sanitized-write", ORIGIN, false, false],
+    ["clipboard-sanitized-write", ORIGIN, undefined, false],
+    ["clipboard-sanitized-write", "https://evil.example", true, false],
+    ["clipboard-read", ORIGIN, true, false],
+  ])("%s from %s mainFrame=%s -> %s", (permission, from, isMainFrame, want) => {
+    expect(permissionCheckAllowed(permission, from, { isMainFrame }, ORIGIN)).toBe(want);
+  });
+});
+
+describe("attachPermissionPolicy", () => {
+  function wire() {
+    let request!: (wc: null, p: string, cb: (ok: boolean) => void, d: object) => void;
+    let check!: (wc: null, p: string, o: string, d: object) => boolean;
+    attachPermissionPolicy(
+      {
+        setPermissionRequestHandler: (h: typeof request) => void (request = h),
+        setPermissionCheckHandler: (h: typeof check) => void (check = h),
+      } as never,
+      ORIGIN,
+    );
+    const ask = (p: string, d: object) => {
+      const cb = vi.fn();
+      request(null, p, cb, d);
+      return cb.mock.calls[0]![0] as boolean;
+    };
+    return { ask, check: (p: string, o: string, d: object) => check(null, p, o, d) };
+  }
+  const clip = "clipboard-sanitized-write";
+  const main = { requestingUrl: `${ORIGIN}/a`, isMainFrame: true };
+
+  it("grants a main-frame same-origin clipboard request and check", () => {
+    const w = wire();
+    expect(w.ask(clip, main)).toBe(true);
+    expect(w.check(clip, ORIGIN, main)).toBe(true);
+  });
+  it("denies a sub-frame", () => {
+    const w = wire();
+    expect(w.ask(clip, { ...main, isMainFrame: false })).toBe(false);
+    expect(w.check(clip, ORIGIN, { ...main, isMainFrame: false })).toBe(false);
+  });
+  it("denies a foreign origin", () => {
+    const w = wire();
+    expect(w.ask(clip, { requestingUrl: "https://evil.example/", isMainFrame: true })).toBe(false);
+    expect(w.check(clip, "https://evil.example", main)).toBe(false);
+  });
+  it("denies any other permission", () => {
+    const w = wire();
+    expect(w.ask("media", main)).toBe(false);
+    expect(w.check("media", ORIGIN, main)).toBe(false);
   });
 });

@@ -44,5 +44,8 @@ describe("preload import boundary", () => {
     const src = readFileSync(path.join(__dirname, "preload.ts"), "utf8");
     const imports = [...src.matchAll(/^import\s+(?!type\b)[^;]*?from\s+"([^"]+)"/gmsu)].map((m) => m[1]);
     expect(imports).toEqual(["electron"]);
+    // no side-effect import, require() or dynamic import() sneaking a second module in
+    expect(src).not.toMatch(/^import\s+"/mu);
+    expect(src).not.toMatch(/\brequire\s*\(|\bimport\s*\(/u);
   });
 });

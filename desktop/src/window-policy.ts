@@ -1,4 +1,4 @@
-import type { WebContents } from "electron";
+import type { Session, WebContents } from "electron";
 import { openableExternally, sameOrigin } from "./links";
 
 const CLIPBOARD = "clipboard-sanitized-write";
@@ -38,6 +38,23 @@ export function permissionAllowed(
   return permission === CLIPBOARD && details.isMainFrame === true && sameOrigin(details.requestingUrl ?? "", origin);
 }
 
-export function permissionCheckAllowed(permission: string, requestingOrigin: string, origin: string): boolean {
-  return permission === CLIPBOARD && requestingOrigin === origin;
+export function permissionCheckAllowed(
+  permission: string,
+  requestingOrigin: string,
+  details: { isMainFrame?: boolean },
+  origin: string,
+): boolean {
+  return permission === CLIPBOARD && details.isMainFrame === true && requestingOrigin === origin;
+}
+
+export function attachPermissionPolicy(
+  ses: Pick<Session, "setPermissionRequestHandler" | "setPermissionCheckHandler">,
+  origin: string,
+): void {
+  ses.setPermissionRequestHandler((_wc, permission, callback, details) =>
+    callback(permissionAllowed(permission, details, origin)),
+  );
+  ses.setPermissionCheckHandler((_wc, permission, requestingOrigin, details) =>
+    permissionCheckAllowed(permission, requestingOrigin, details, origin),
+  );
 }

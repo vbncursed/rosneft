@@ -8,7 +8,7 @@ import { OfflineSaver } from "./offline";
 import { SettingsFile } from "./settings";
 import { Shell } from "./shell";
 import { Store } from "./store";
-import { attachWindowPolicy, permissionAllowed, permissionCheckAllowed } from "./window-policy";
+import { attachPermissionPolicy, attachWindowPolicy } from "./window-policy";
 
 const ORIGIN = upstreamOrigin(process.env);
 const PARTITION = "persist:andrey";
@@ -58,12 +58,7 @@ async function start(): Promise<void> {
   await store.init();
 
   const ses = session.fromPartition(PARTITION);
-  ses.setPermissionRequestHandler((_wc, permission, callback, details) =>
-    callback(permissionAllowed(permission, details, ORIGIN)),
-  );
-  ses.setPermissionCheckHandler((_wc, permission, requestingOrigin) =>
-    permissionCheckAllowed(permission, requestingOrigin, ORIGIN),
-  );
+  attachPermissionPolicy(ses, ORIGIN);
   // ses.fetch, never net.fetch: that is the default session, without our cookie.
   // credentials: "include" — without it Electron blocks cookies both ways.
   const network = (input: Request | string, init: RequestInit = {}) =>
