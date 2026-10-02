@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2329,SC2012 # steps run through run()/step(); names are ours
+# shellcheck disable=SC2329,SC2317,SC2012 # steps run through run()/step(); names are ours
 # Server-side deploy. Runs ON THE PRODUCTION HOST as the forced command of the
 # CD ssh key (see docs/superpowers/specs/2026-10-02-cd-design.md §2-3; authorized_keys
 # `command=` points at /usr/local/sbin/andrey-deploy, a copy this script refreshes
