@@ -32,9 +32,16 @@ mac:
   # ID — Gatekeeper still needs the xattr step (README).
   identity: "-"
   sign: ./dist/signing.js
-  # No notarization, so the hardened runtime buys nothing — and with an ad-hoc
-  # signature its library validation can refuse to load Electron's own frameworks.
-  hardenedRuntime: false
+  # The hardened runtime blocks DYLD_INSERT_LIBRARIES and debugger attach whether
+  # or not the app is notarized, which keeps the Keychain-held cookie key
+  # ("Andrey Safe Storage") out of an injected library's reach. The entitlements
+  # are what Electron needs: allow-jit and allow-unsigned-executable-memory (V8,
+  # the wasm decoders) and disable-library-validation (an ad-hoc or self-signed
+  # signature has no Team ID). Deliberately not allow-dyld-environment-variables
+  # or get-task-allow: they would reopen the holes.
+  hardenedRuntime: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
   target:
     - target: dmg
       arch: [arm64, x64]
