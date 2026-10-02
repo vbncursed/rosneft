@@ -51,6 +51,16 @@ describe("createHandler", () => {
     expect(await res.text()).toBe('[{"slug":"a"}]');
   });
 
+  it("answers /api/jobs from its snapshot once the network is gone", async () => {
+    let up = true;
+    const h = await harness(async () => (up ? new Response("[]", { headers: { "content-type": "application/json" } }) : offline()));
+    await h.handle(req("/api/jobs"));
+    up = false;
+    const res = await h.handle(req("/api/jobs"));
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("[]");
+  });
+
   it("learns the current user from /api/auth/me", async () => {
     const h = await harness(async () => me(B), null);
     await (await h.handle(req("/api/auth/me"))).text();

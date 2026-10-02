@@ -18,6 +18,8 @@ const SNAPSHOT = [
   /^\/api\/territories\/[a-z0-9-]+$/,
   /^\/api\/territories\/[a-z0-9-]+\/scene$/,
   /^\/api\/models$/,
+  // The catalog and Home both wait on it; offline they show the last known conversion states.
+  /^\/api\/jobs$/,
 ];
 
 const BLOB = /^\/api\/assets\/([0-9a-f]{64})$/;

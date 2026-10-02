@@ -19,11 +19,12 @@ describe("classify", () => {
     expect(classify("HEAD", at(`/api/assets/${HASH}`))).toEqual({ kind: "pass" });
   });
   it("snapshots the whitelist and nothing with a query", () => {
-    for (const p of ["/api/auth/me", "/api/territories", "/api/territories/ust-kut", "/api/territories/ust-kut/scene", "/api/models"]) {
+    for (const p of ["/api/auth/me", "/api/territories", "/api/territories/ust-kut", "/api/territories/ust-kut/scene", "/api/models", "/api/jobs"]) {
       expect(classify("GET", at(p))).toEqual({ kind: "snapshot", key: p });
     }
     expect(classify("GET", at("/api/audit?limit=50"))).toEqual({ kind: "pass" });
     expect(classify("GET", at("/api/territories?x=1"))).toEqual({ kind: "pass" });
+    expect(classify("GET", at("/api/jobs?x=1"))).toEqual({ kind: "pass" });
     expect(classify("GET", at("/api/jobs/abc/events"))).toEqual({ kind: "pass" });
   });
   it("resets the session on every step that issues or revokes a cookie", () => {

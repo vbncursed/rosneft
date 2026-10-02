@@ -53,7 +53,7 @@ Three layers, all on disk under the profile's `cache/`:
    refresh keeps the current generation; old ones are swept. With no network
    the app boots and serves any route from the current generation.
 2. **Snapshots** — the last good answer of a fixed whitelist of `GET /api`
-   routes (`auth/me`, `territories`, one territory, its `scene`, `models`).
+   routes (`auth/me`, `territories`, one territory, its `scene`, `models`, `jobs`).
    Nothing with a query string is stored. A 502, 503, 504 or 520-527 from the
    server counts as "unreachable": the saved copy is served and the app reads
    as offline; with no copy the answer passes through. Any other status is the
