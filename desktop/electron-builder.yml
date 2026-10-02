@@ -10,13 +10,17 @@ publish: null
 
 # Electron ships every fuse at its permissive default. Cookie encryption is what
 # puts the session cookie behind the OS keychain/DPAPI/keyring; the rest close
-# ways to turn the signed binary into a Node shell or attach a debugger.
+# ways to turn the signed binary into a Node shell or attach a debugger. ASAR
+# integrity makes a tampered app.asar refuse to load; the app never loads file://,
+# so its extra privileges are dropped.
 electronFuses:
   runAsNode: false
   enableCookieEncryption: true
   enableNodeOptionsEnvironmentVariable: false
   enableNodeCliInspectArguments: false
   onlyLoadAppFromAsar: true
+  enableEmbeddedAsarIntegrityValidation: true
+  grantFileProtocolExtraPrivileges: false
 
 mac:
   category: public.app-category.productivity
