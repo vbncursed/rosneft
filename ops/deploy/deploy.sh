@@ -250,7 +250,8 @@ main() {
   if (($# > 0)); then
     SHA=$1 ACTOR=${2:-}
   else # a newline would hide a second command line from `read`
-    IFS=' ' read -r SHA ACTOR extra <<<"${SSH_ORIGINAL_COMMAND//$'\n'/_}" || true
+    local cmd=${SSH_ORIGINAL_COMMAND:-} # unset when the key connects with no command
+    IFS=' ' read -r SHA ACTOR extra <<<"${cmd//$'\n'/_}" || true
   fi
   if [[ -n $extra ]] || ! valid_sha "$SHA" || ! valid_actor "$ACTOR"; then
     printf 'deploy.sh: refusing %q %q, expected "<40 lowercase hex> <github user>"\n' "$SHA" "$ACTOR" >&2

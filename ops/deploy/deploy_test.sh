@@ -336,6 +336,11 @@ for cmd in "; rm -rf /" "main vbncursed" "abc vbncursed" "$SHA1" "$SHA1 x;id" "$
   echo "PASS: refused '$cmd'"
 done
 fresh
+go
+[[ $rc -eq 2 ]] || { echo "$out"; fail "no args and no SSH_ORIGINAL_COMMAND: exit $rc, want 2"; }
+echo "PASS: no args, SSH_ORIGINAL_COMMAND unset: refused"
+[[ ! -s $CALLS ]] || fail "unset command called something"
+fresh
 go "$SHA1"
 ok "args: missing actor refused" [ "$rc" -eq 2 ]
 
