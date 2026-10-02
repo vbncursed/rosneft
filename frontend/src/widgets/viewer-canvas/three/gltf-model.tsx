@@ -72,6 +72,7 @@ function GltfPrimitive({
       // unlocks ~100x faster raycasts on the territory mesh — vital for
       // per-frame snap-to-surface during a placement drag.
       if (!m.geometry.boundsTree) m.geometry.computeBoundsTree();
+      // oxlint-disable-next-line typescript/unbound-method -- the saved method is restored onto the same mesh (m.raycast = orig), so `this` stays m
       if (!m.userData.origRaycast) m.userData.origRaycast = m.raycast;
       const orig = m.userData.origRaycast as Mesh["raycast"];
       m.raycast = raycastable ? orig : noopRaycast;

@@ -23,6 +23,7 @@ export function hoverTip(el: Element) {
  * `:focus-visible` with false for every focus, so this one says it is visible.
  */
 export function focusTip(el: HTMLElement) {
+  // oxlint-disable-next-line typescript/unbound-method -- always invoked as matches.call(this, ...)
   const matches = Element.prototype.matches;
   const spy = vi.spyOn(Element.prototype, "matches").mockImplementation(function (this: Element, selector: string) {
     return selector === ":focus-visible" || matches.call(this, selector);

@@ -172,6 +172,7 @@ export async function createInPage(element: ReactNode) {
 }
 
 export async function unmountInPage() {
+  // oxlint-disable-next-line eslint/no-await-in-loop -- unmounts run in registration order, each inside its own act scope
   for (const unmount of [...inPage]) await unmount();
 }
 
@@ -192,6 +193,7 @@ export async function eventually(check: () => void, timeout = 1000) {
     } catch (error) {
       if (Date.now() > deadline) throw error;
     }
+    // oxlint-disable-next-line eslint/no-await-in-loop -- a poll: each attempt must wait for the previous one to fail
     await waitInAct(10);
   }
 }

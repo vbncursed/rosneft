@@ -65,16 +65,16 @@ export function useAutoLod(object: RefObject<Object3D | null>, chain: LodArtifac
       const o = object.current;
       const sphere = o && isShown(o) ? boundsOf(o) : null;
       if (!sphere) return false;
-      const { chain, camera, height } = view.current;
-      const cam = camera as PerspectiveCamera;
+      const seen = view.current;
+      const cam = seen.camera as PerspectiveCamera;
       if (!cam.isPerspectiveCamera) return true;
       const area = projectedArea({
         radius: sphere.radius,
         distance: cam.position.distanceTo(sphere.center),
         fovDeg: cam.fov,
-        heightPx: height,
+        heightPx: seen.height,
       });
-      const lod = autoLod(chain, area);
+      const lod = autoLod(seen.chain, area);
       if (lod !== null) setHeld((h) => (h.key === key && lod < h.best ? { key, best: lod } : h));
       return true;
     });

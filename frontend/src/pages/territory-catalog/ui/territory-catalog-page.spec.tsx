@@ -191,7 +191,7 @@ describe("TerritoryCatalogPage preload", () => {
     render(
       <TerritoryCatalogPage
         {...props()}
-        offlineControl={(card) => <button type="button">{`offline ${card.slug}`}</button>}
+        offlineControl={(territory) => <button type="button">{`offline ${territory.slug}`}</button>}
         unavailable={(slug) => slug === "north-ridge-pad"}
       />,
     );

@@ -86,6 +86,7 @@ export function useLodDownload(artifact: LodArtifact | null, drawn: string | nul
           const chunks: BlobPart[] = [];
           let received = 0;
           for (;;) {
+            // oxlint-disable-next-line eslint/no-await-in-loop -- a stream is read in order, each chunk depends on the previous read
             const { done, value } = await reader.read();
             if (done) break;
             // A fetch chunk is always ArrayBuffer-backed; its type says

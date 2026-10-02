@@ -31,6 +31,7 @@ export async function runChunkedUpload(file: File, opts: RunChunkedUploadOpts = 
     while (offset < total) {
       if (signal?.aborted) throw new Error("upload aborted");
       const slice = file.slice(offset, Math.min(offset + CHUNK_SIZE, total));
+      // oxlint-disable-next-line eslint/no-await-in-loop -- the next chunk starts at the offset the gateway just returned; parallel PATCHes would corrupt the upload
       offset = await appendChunk(session.id, offset, slice, signal);
       onProgress?.({ bytes: offset, total, chunk: Math.ceil(offset / CHUNK_SIZE), chunks });
     }

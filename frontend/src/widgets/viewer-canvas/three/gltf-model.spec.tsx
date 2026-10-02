@@ -661,11 +661,11 @@ describe("GltfModel", () => {
     const calls: LodReport[] = [];
     const r = await create(model({ onReport: (report) => calls.push(report) }));
     await eventually(() => expect(calls.at(-1)!.shown).toBe(0));
-    const settled = calls.length;
+    const settledCount = calls.length;
 
     await r.update(model({ onReport: (report) => calls.push(report) }));
     await r.update(model({ onReport: (report) => calls.push(report) }));
-    expect(calls.length).toBe(settled);
+    expect(calls.length).toBe(settledCount);
   });
 
   it("renders nothing for a territory that has not been converted", async () => {

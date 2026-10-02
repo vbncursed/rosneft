@@ -5,14 +5,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useSignOut } from "./use-sign-out";
 
 const { logout, navigate, calls } = vi.hoisted(() => {
-  const calls: string[] = [];
+  const log: string[] = [];
   return {
-    calls,
+    calls: log,
     logout: vi.fn(async () => {
-      calls.push("logout");
+      log.push("logout");
     }),
     navigate: vi.fn(async () => {
-      calls.push("navigate");
+      log.push("navigate");
     }),
   };
 });

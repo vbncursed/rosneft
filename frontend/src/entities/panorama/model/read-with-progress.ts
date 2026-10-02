@@ -17,6 +17,7 @@ export async function readWithProgress(res: Response, onProgress: (p: number | n
   const chunks: BlobPart[] = [];
   let loaded = 0;
   for (;;) {
+    // oxlint-disable-next-line eslint/no-await-in-loop -- a stream is read in order, each chunk depends on the previous read
     const { done, value } = await reader.read();
     if (done) break;
     chunks.push(value);

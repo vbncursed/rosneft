@@ -5,11 +5,11 @@ import { useSectionFolds } from "@/widgets/view-tab";
 import { useViewerDocuments } from "./use-viewer-documents";
 
 const { list, useDocumentList, useDocumentUpload } = vi.hoisted(() => {
-  const list = { documents: [] as unknown[], pendingId: null, add: vi.fn(), remove: vi.fn() };
+  const hooked = { documents: [] as unknown[], pendingId: null, add: vi.fn(), remove: vi.fn() };
   return {
-    list,
+    list: hooked,
     // A fresh object each render, exactly as the real hook returns one.
-    useDocumentList: vi.fn(() => ({ ...list })),
+    useDocumentList: vi.fn(() => ({ ...hooked })),
     useDocumentUpload: vi.fn((params: { onCreated: (d: never) => void }) => ({
       params,
       canSubmit: false,

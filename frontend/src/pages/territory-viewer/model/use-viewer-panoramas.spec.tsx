@@ -6,7 +6,7 @@ import { useSectionFolds } from "@/widgets/view-tab";
 import { useViewerPanoramas } from "./use-viewer-panoramas";
 
 const { list, usePanoramaList, usePanoramaTexture, usePanoramaUpload, useTerritoryLink } = vi.hoisted(() => {
-  const list = {
+  const hooked = {
     panoramas: [] as unknown[],
     pendingId: null,
     add: vi.fn(),
@@ -15,10 +15,10 @@ const { list, usePanoramaList, usePanoramaTexture, usePanoramaUpload, useTerrito
     setPanoramas: vi.fn(),
   };
   return {
-    list,
+    list: hooked,
     // A fresh object each render, exactly as the real hook returns one: the
     // composite must depend on its stable members, not on the object.
-    usePanoramaList: vi.fn(() => ({ ...list })),
+    usePanoramaList: vi.fn(() => ({ ...hooked })),
     usePanoramaTexture: vi.fn(() => ({ bitmap: null, progress: null, status: "idle" })),
     usePanoramaUpload: vi.fn((params: { onCreated: (p: never) => void }) => ({
       params,

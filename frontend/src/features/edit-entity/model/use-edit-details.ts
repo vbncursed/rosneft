@@ -51,14 +51,17 @@ async function writeBack(client: QueryClient, kind: EntityKind, saved: Details) 
   }
   const rename = <T extends { slug: string; title: string }>(o: T): T =>
     o.slug === saved.slug ? { ...o, title: saved.title } : o;
-  for (const [queryKey] of client.getQueriesData<SceneCopy>({ queryKey: ["scene"] })) {
-    // undefined leaves a bundle that does not offer the model untouched.
-    await mergeInto<SceneCopy>(client, [...queryKey], (old) =>
-      old?.modelOptions?.some((o) => o.slug === saved.slug)
-        ? { ...old, modelOptions: old.modelOptions.map(rename) }
-        : undefined,
-    );
-  }
+  // Each bundle is its own query key, so the merges are independent.
+  await Promise.all(
+    client.getQueriesData<SceneCopy>({ queryKey: ["scene"] }).map(([queryKey]) =>
+      // undefined leaves a bundle that does not offer the model untouched.
+      mergeInto<SceneCopy>(client, [...queryKey], (old) =>
+        old?.modelOptions?.some((o) => o.slug === saved.slug)
+          ? { ...old, modelOptions: old.modelOptions.map(rename) }
+          : undefined,
+      ),
+    ),
+  );
 }
 
 /** PATCHes a model's or territory's title and description; a refusal is a toast (the dialog also shows it inline). */
