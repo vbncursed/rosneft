@@ -63,7 +63,7 @@ func Open(path string) (*Writer, error) {
 	if path == "" {
 		return nil, nil //nolint:nilnil // documented: no path means witnessing is off, and a nil *Writer is a working no-op
 	}
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600) //nolint:gosec // G304: path is the operator-configured witness file, not request input
 	if err != nil {
 		return nil, fmt.Errorf("digest.Open %s: %w", path, err)
 	}

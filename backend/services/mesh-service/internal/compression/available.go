@@ -17,7 +17,7 @@ func (o *Optimizer) Available(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("compression: gltfpack not found at %q: %w", o.binPath, err)
 	}
-	cmd := exec.CommandContext(ctx, path, "-h")
+	cmd := exec.CommandContext(ctx, path, "-h") //nolint:gosec // G204: path is o.binPath (MESH_GLTFPACK_BIN) resolved by LookPath; the only argument is a fixed -h
 	if err := cmd.Run(); err != nil {
 		// gltfpack exits non-zero on -h in some versions; we only treat
 		// "cannot start binary" errors as fatal here.

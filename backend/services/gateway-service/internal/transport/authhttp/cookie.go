@@ -38,7 +38,7 @@ func (h *Handlers) setSession(w http.ResponseWriter, token string, persist bool)
 	if persist {
 		maxAge = int(h.cookie.TTL.Seconds())
 	}
-	http.SetCookie(w, &http.Cookie{
+	http.SetCookie(w, &http.Cookie{ //nolint:gosec // G124: HttpOnly and SameSite=Lax are set; Secure comes from config (false only for plain-http dev)
 		Name:     sessionCookieName,
 		Value:    token,
 		Path:     "/",
@@ -52,7 +52,7 @@ func (h *Handlers) setSession(w http.ResponseWriter, token string, persist bool)
 // clearSession deletes the cookie. The attributes must match the ones it was set
 // with, or the browser keeps the original alongside the deletion.
 func (h *Handlers) clearSession(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{
+	http.SetCookie(w, &http.Cookie{ //nolint:gosec // G124: HttpOnly and SameSite=Lax are set; Secure comes from config (false only for plain-http dev); this deletes the cookie
 		Name:     sessionCookieName,
 		Value:    "",
 		Path:     "/",

@@ -20,7 +20,7 @@ func (f *FS) Finalize(ctx context.Context, id string, putBlob func(ctx context.C
 	}
 	defer func() { _ = os.RemoveAll(dir) }()
 
-	src, err := os.Open(dataPath)
+	src, err := os.Open(dataPath) //nolint:gosec // G304: dataPath comes from paths(), whose session id passed validateID (hex and dash only)
 	if err != nil {
 		return "", 0, fmt.Errorf("storage.Finalize: open: %w", err)
 	}
@@ -37,7 +37,7 @@ func (f *FS) Finalize(ctx context.Context, id string, putBlob func(ctx context.C
 	}
 
 	// Re-open for the put pass so the reader is at offset 0.
-	body, err := os.Open(dataPath)
+	body, err := os.Open(dataPath) //nolint:gosec // G304: dataPath comes from paths(), whose session id passed validateID (hex and dash only)
 	if err != nil {
 		return "", 0, fmt.Errorf("storage.Finalize: reopen: %w", err)
 	}
@@ -59,7 +59,7 @@ func (f *FS) Abort(_ context.Context, id string) error {
 }
 
 func hashFile(path string) (string, error) {
-	src, err := os.Open(path)
+	src, err := os.Open(path) //nolint:gosec // G304: path is dataPath from paths(), whose session id passed validateID (hex and dash only)
 	if err != nil {
 		return "", fmt.Errorf("storage.hashFile: open: %w", err)
 	}

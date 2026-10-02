@@ -110,7 +110,7 @@ func writeZipEntry(f *zip.File, dst string) error {
 	}
 	defer func() { _ = rc.Close() }()
 
-	w, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
+	w, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600) //nolint:gosec // G304: dst is dir joined with an entry name that passed the ".."/absolute check in extractZip
 	if err != nil {
 		return err
 	}

@@ -105,14 +105,15 @@ func buildGLMaterials(ctx context.Context, src parsedSource, sourcePath string) 
 // safely without nil checks.
 func loadMTL(ctx context.Context, objDir, mtllib, sourcePath string) map[string]material {
 	candidates := make([]string, 0, 2)
-	if mtllib != "" {
+	// mtllib is text from the uploaded OBJ: only a path inside objDir counts.
+	if mtllib != "" && filepath.IsLocal(mtllib) {
 		candidates = append(candidates, filepath.Join(objDir, mtllib))
 	}
 	base := strings.TrimSuffix(filepath.Base(sourcePath), filepath.Ext(sourcePath))
 	candidates = append(candidates, filepath.Join(objDir, base+".mtl"))
 
 	for _, path := range candidates {
-		f, err := os.Open(path)
+		f, err := os.Open(path) //nolint:gosec // G304: objDir/mtllib with mtllib checked by filepath.IsLocal, or objDir/<obj base>.mtl
 		if err != nil {
 			continue
 		}
@@ -142,6 +143,12 @@ func loadTexture(ctx context.Context, objDir, relPath string, cache map[string]*
 	if t, ok := cache[relPath]; ok {
 		return t
 	}
+	if !filepath.IsLocal(relPath) {
+		slog.WarnContext(ctx, "converter: skipping texture: path leaves the OBJ directory",
+			slog.String("path", relPath))
+		cache[relPath] = nil
+		return nil
+	}
 	full := filepath.Join(objDir, relPath)
 	mime, err := mimeFromPath(full)
 	if err != nil {
@@ -150,7 +157,7 @@ func loadTexture(ctx context.Context, objDir, relPath string, cache map[string]*
 		cache[relPath] = nil
 		return nil
 	}
-	data, err := os.ReadFile(full)
+	data, err := os.ReadFile(full) //nolint:gosec // G304: objDir/relPath with relPath checked by filepath.IsLocal above
 	if err != nil {
 		slog.WarnContext(ctx, "converter: skipping texture: read failed",
 			slog.String("path", full), slog.Any("error", err))
