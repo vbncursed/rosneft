@@ -53,6 +53,22 @@ non-zero-exit failure that names the hash, rather than a silent no-op.
 Rotation is skipped when any blob is missing, so an incomplete run cannot
 push a complete older backup out of the retention window.
 
+## Putting source blobs back
+
+`dump.sh` copies blobs as root, so the files in `blobs/` are root-owned and the
+`.json` sidecars are `0600` (the services create them that way). Every service
+runs as uid 65532 (`nonroot`) on the `blob-data` volume; copy them back and
+hand them over, or the services get `permission denied` on every sidecar:
+
+```
+docker run --rm -v andrey_blob-data:/var/blob -v "$BACKUP/blobs":/in:ro alpine sh -c '
+  for f in /in/*.bin /in/*.json; do
+    h=$(basename "$f"); h=${h%%.*}; mkdir -p "/var/blob/${h:0:2}"
+    cp "$f" "/var/blob/${h:0:2}/"
+  done
+  chown -R 65532:65532 /var/blob'
+```
+
 ## The restore that was actually run
 
 Performed against production **read-only** — no write, no script execution,
