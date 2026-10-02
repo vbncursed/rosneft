@@ -91,7 +91,13 @@ export function DocumentWindow({
           onResizeStart={pip.startResize}
           dragging={pip.dragging}
         >
-          {/* oxlint-disable-next-line react/iframe-missing-sandbox -- pdf.js needs scripts and, to fetch the session-gated /api/assets blob, the page's own origin; allow-scripts + allow-same-origin on a same-origin document is no isolation, so none is claimed. What binds it is the CSP on viewer.html (nginx; desktop withCsp), pdf.js scripting is off, and the file is validated same-origin. */}
+          {/*
+            No sandbox: pdf.js needs scripts and, to fetch the session-gated /api/assets blob, the page's own origin,
+            and allow-scripts + allow-same-origin on a same-origin document is no isolation. What binds viewer.html is
+            pdf.js's own <meta> CSP (default-src 'none'; script-src 'self' 'wasm-unsafe-eval') plus withCsp in desktop;
+            PDF JavaScript cannot run (build/pdf.sandbox.mjs is not vendored); the file is validated same-origin.
+          */}
+          {/* oxlint-disable-next-line react/iframe-missing-sandbox -- same-origin pdf.js, bound by its meta CSP, not a sandbox */}
           <iframe title={file} src={src} className="size-full border-0" />
         </ViewportWindow>
       </div>
