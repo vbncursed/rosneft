@@ -238,16 +238,16 @@ describe("OfflineSaver", () => {
     const h = await harness(server({ blob: async (hash) => (await gate, new Response(nameOf(hash))) }));
     const scenes = () => h.fetch.mock.calls.filter(([u]) => u.endsWith("/scene")).length;
     const all = ["a", "b", "c", "d"].map((s) => h.saver.save(s));
-    await vi.waitFor(() => expect(scenes()).toBe(2));
-    await sleep(20);
-    expect(scenes()).toBe(2);
-    expect(h.events.filter((e) => e.state === "queued")).toHaveLength(4);
-    expect(
+    const saving = () =>
       h.events
         .filter((e) => e.state === "saving")
         .map((e) => e.slug)
-        .toSorted(),
-    ).toEqual(["a", "b"]);
+        .toSorted();
+    // "saving" follows two GETs and a pin write, so wait for it rather than give it a fixed slice of time.
+    await vi.waitFor(() => expect(saving()).toEqual(["a", "b"]));
+    await sleep(20);
+    expect(scenes()).toBe(2);
+    expect(h.events.filter((e) => e.state === "queued")).toHaveLength(4);
     h.saver.cancel("c");
     release();
     await Promise.all(all);
