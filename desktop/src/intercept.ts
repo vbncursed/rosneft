@@ -1,6 +1,6 @@
 import { createReadStream } from "node:fs";
 import { Readable } from "node:stream";
-import { withCsp } from "./csp";
+import { withBlobCsp, withCsp } from "./csp";
 import { offlineResponse } from "./offline-page";
 import { parseRange } from "./range";
 import { classify, serverUnreachable, type Route } from "./route";
@@ -89,7 +89,7 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
     if (route.kind === "blob" && user) {
       const hit = await d.store.blob(user, route.hash);
       // ponytail: eviction can unlink the file between blob() and the lazy createReadStream open (truncated body); open the fd before responding to close it.
-      if (hit) return withCsp(fileResponse(hit.path, hit.size, hit.type, req.headers.get("range")));
+      if (hit) return withBlobCsp(fileResponse(hit.path, hit.size, hit.type, req.headers.get("range")));
     }
 
     let res: Response;
@@ -102,18 +102,21 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
         const copy = cacheable ? await savedCopy(d, route, user) : null;
         if (copy) {
           void res.body?.cancel().catch(() => undefined);
-          return withCsp(copy);
+          return secure(route, copy);
         }
       } else if (gateway) seen(true);
     } catch {
       // A request the page itself cancelled says nothing about the network.
       if (req.signal.aborted) return Response.error();
       if (gateway) seen(false);
-      return withCsp(await fallback(d, route, user, req));
+      return secure(route, await fallback(d, route, user, req));
     }
-    return withCsp(await afterNetwork(d, route, user, req, res, () => epoch === born, scheduleEvict));
+    return secure(route, await afterNetwork(d, route, user, req, res, () => epoch === born, scheduleEvict));
   };
 }
+
+/** A blob gets the sandbox policy whatever its type; everything else the content-type-keyed SPA one. */
+const secure = (route: Route, res: Response) => (route.kind === "blob" ? withBlobCsp(res) : withCsp(res));
 
 async function learnUser(d: InterceptDeps, body: Buffer, fresh: () => boolean): Promise<string | null> {
   try {

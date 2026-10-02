@@ -3,7 +3,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { CSP } from "./csp";
+import { BLOB_CSP, CSP } from "./csp";
 import { createHandler } from "./intercept";
 import { SettingsFile } from "./settings";
 import { Shell } from "./shell";
@@ -315,11 +315,22 @@ describe("createHandler isolation", () => {
     expect(await h.store.readSnapshot(A, "/api/auth/me")).toBeNull();
   });
 
-  it("serves a cached text/html blob with the CSP", async () => {
+  it("serves a cached blob, even text/html, with the sandbox CSP and nosniff", async () => {
     const hash = sha("<script>");
     const h = await harness(offline);
     await h.store.writeBlob(A, hash, "text/html", new Response("<script>").body as ReadableStream<Uint8Array>);
-    expect((await h.handle(req(`/api/assets/${hash}`))).headers.get("content-security-policy")).toBe(CSP);
+    const res = await h.handle(req(`/api/assets/${hash}`));
+    expect(res.headers.get("content-security-policy")).toBe(BLOB_CSP);
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+  });
+
+  it("serves a network blob with the sandbox CSP and nosniff", async () => {
+    const hash = sha("pdf");
+    const h = await harness(async () => new Response("pdf", { headers: { "content-type": "application/pdf" } }));
+    const res = await h.handle(req(`/api/assets/${hash}`));
+    expect(res.headers.get("content-security-policy")).toBe(BLOB_CSP);
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+    await res.text();
   });
 
   it("between login and /me neither reads nor writes a blob on disk", async () => {

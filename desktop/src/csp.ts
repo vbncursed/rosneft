@@ -24,3 +24,15 @@ export function withCsp(res: Response): Response {
   headers.set("content-security-policy", CSP);
   return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
 }
+
+// A blob is user content served from the app's origin: opened as a top-level document it must not run script.
+// Fetched by pdf.js, three.js loaders and <img>, a CSP on the resource is ignored, so they are unaffected.
+export const BLOB_CSP = "sandbox; default-src 'none'";
+
+export function withBlobCsp(res: Response): Response {
+  if (res.type === "error") return res; // Response.error() has no status to copy
+  const headers = new Headers(res.headers);
+  headers.set("content-security-policy", BLOB_CSP);
+  headers.set("x-content-type-options", "nosniff");
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+}
