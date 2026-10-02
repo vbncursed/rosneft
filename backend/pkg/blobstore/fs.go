@@ -31,7 +31,7 @@ func NewFS(root string) (*FS, error) {
 	if root == "" {
 		return nil, errors.New("blobstore: empty root")
 	}
-	if err := os.MkdirAll(root, 0o755); err != nil {
+	if err := os.MkdirAll(root, 0o750); err != nil {
 		return nil, fmt.Errorf("blobstore.NewFS: %w", err)
 	}
 	return &FS{root: root}, nil
@@ -73,7 +73,7 @@ func (f *FS) Put(ctx context.Context, hash, contentType string, r io.Reader) (Bl
 	if err != nil {
 		return Blob{}, err
 	}
-	if err := os.MkdirAll(filepath.Dir(data), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(data), 0o750); err != nil {
 		return Blob{}, fmt.Errorf("blobstore: mkdir: %w", err)
 	}
 
@@ -104,7 +104,7 @@ func (f *FS) Put(ctx context.Context, hash, contentType string, r io.Reader) (Bl
 	if err != nil {
 		return blob, fmt.Errorf("blobstore: marshal meta: %w", err)
 	}
-	if err := os.WriteFile(meta, metaBytes, 0o644); err != nil {
+	if err := os.WriteFile(meta, metaBytes, 0o600); err != nil {
 		return blob, fmt.Errorf("blobstore: write meta: %w", err)
 	}
 	return blob, nil

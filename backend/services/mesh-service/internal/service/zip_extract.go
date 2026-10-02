@@ -77,12 +77,12 @@ func extractZip(zr *zip.Reader, dir string) error {
 		}
 		dst := filepath.Join(dir, clean)
 		if f.FileInfo().IsDir() {
-			if err := os.MkdirAll(dst, 0o755); err != nil {
+			if err := os.MkdirAll(dst, 0o750); err != nil {
 				return err
 			}
 			continue
 		}
-		if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(dst), 0o750); err != nil {
 			return err
 		}
 		if err := writeZipEntry(f, dst); err != nil {
@@ -110,7 +110,7 @@ func writeZipEntry(f *zip.File, dst string) error {
 	}
 	defer func() { _ = rc.Close() }()
 
-	w, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+	w, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err
 	}

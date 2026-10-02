@@ -18,7 +18,7 @@ func (f *FS) Initiate(_ context.Context, id, owner string, size int64, contentTy
 	if err != nil {
 		return domain.Session{}, err
 	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return domain.Session{}, fmt.Errorf("storage.Initiate: mkdir: %w", err)
 	}
 	now := time.Now().UTC()
@@ -43,7 +43,7 @@ func writeMeta(path string, s domain.Session) error {
 	if err != nil {
 		return fmt.Errorf("storage.writeMeta: marshal: %w", err)
 	}
-	if err := os.WriteFile(tmp, body, 0o644); err != nil {
+	if err := os.WriteFile(tmp, body, 0o600); err != nil {
 		return fmt.Errorf("storage.writeMeta: write: %w", err)
 	}
 	if err := os.Rename(tmp, path); err != nil {

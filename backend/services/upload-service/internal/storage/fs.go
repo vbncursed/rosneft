@@ -21,7 +21,7 @@ func NewFS(root string) (*FS, error) {
 	if root == "" {
 		return nil, errors.New("storage: empty root")
 	}
-	if err := os.MkdirAll(root, 0o755); err != nil {
+	if err := os.MkdirAll(root, 0o750); err != nil {
 		return nil, fmt.Errorf("storage.NewFS: %w", err)
 	}
 	return &FS{root: root}, nil
