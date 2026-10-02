@@ -3,7 +3,7 @@ desktop bundle ship (desktop icons land in desktop/build), and the link-preview 
 Run from anywhere:  python3 frontend/icons/render.py
 Needs Python 3.10+, Playwright with Chromium (python3 -m playwright install
 chromium), Pillow, macOS iconutil for .icns, and frontend/node_modules for
-the card's Archivo."""
+the card's Geist."""
 import math
 import shutil
 import subprocess
@@ -65,8 +65,8 @@ def og_card(page) -> None:
     page.goto((HERE / "og-card.html").as_uri())
     page.evaluate("document.fonts.ready")
     # fonts.ready resolves on a failed load too, and the fallback face would ship.
-    if not page.evaluate("[...document.fonts].some(f => f.family === 'Archivo' && f.status === 'loaded')"):
-        raise SystemExit("og-card.html: Archivo did not load; run `yarn` in frontend/ first")
+    if not page.evaluate("[...document.fonts].some(f => f.family === 'Geist' && f.status === 'loaded')"):
+        raise SystemExit("og-card.html: Geist did not load; run `yarn` in frontend/ first")
     card = Image.open(BytesIO(page.screenshot())).convert("RGB")
     card.save(PUBLIC / "og-card.png", optimize=True)
 

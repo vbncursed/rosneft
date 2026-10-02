@@ -210,6 +210,4 @@ re-exported to Tailwind through `@theme inline` (so `bg-panel`, `text-muted`,
 applies on its own and an explicit `data-theme` on `<html>` overrides it in
 either direction — `applyTheme()` in `shared/lib/theme.ts` is the only writer.
 
-**Archivo ships no Cyrillic subset.** Territory and model names may be Russian,
-so the `--font-sans` stack falls through to Helvetica Neue and then system-ui
-for those glyphs. JetBrains Mono does carry Cyrillic.
+**Geist and Fira Code both carry Cyrillic**, so Russian territory and model names render in the brand faces.

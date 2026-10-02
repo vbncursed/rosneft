@@ -1,5 +1,8 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+import type { ReactElement } from "react";
+import { Icon } from "@/shared/ui/icon";
 import { Callout } from "./callout";
 
 describe("Callout", () => {
@@ -24,16 +27,77 @@ describe("Callout", () => {
     expect(container.firstElementChild!.className).toContain("border-accent-line");
   });
 
-  it("carries the warning triangle by default and takes another glyph", () => {
-    const { container, rerender } = render(<Callout tone="bad">w</Callout>);
-    expect(container.querySelector("svg")).toBeInTheDocument();
+  const glyphOf = (ui: ReactElement) => render(ui).container.querySelector("svg")!.innerHTML;
 
-    rerender(
-      <Callout tone="ok" icon="eye">
-        seen
-      </Callout>,
-    );
-    expect(container.querySelector("svg")).toBeInTheDocument();
+  describe("Callout · tone glyph", () => {
+    it.each([
+      ["bad", "close"],
+      ["warn", "warning"],
+      ["ok", "check"],
+      ["accent", "info"],
+      ["neutral", "info"],
+    ] as const)("draws the %s tone's own glyph, %s", (tone, name) => {
+      expect(glyphOf(<Callout tone={tone}>x</Callout>)).toBe(glyphOf(<Icon name={name} />));
+    });
+
+    it("takes another glyph over the tone's", () => {
+      expect(
+        glyphOf(
+          <Callout tone="bad" icon="warning">
+            x
+          </Callout>,
+        ),
+      ).toBe(glyphOf(<Icon name="warning" />));
+    });
+  });
+
+  describe("Callout · neutral and loading", () => {
+    it("draws neutral untinted, on the raised ground", () => {
+      const { container } = render(<Callout tone="neutral">Tip</Callout>);
+      expect(container.firstElementChild!.className.split(/\s+/)).toEqual(
+        expect.arrayContaining(["border-line-2", "bg-panel-2", "text-muted"]),
+      );
+    });
+
+    it("spins for loading, ignores the icon and marks itself busy", () => {
+      const { container } = render(
+        <Callout tone="loading" icon="eye">
+          Rebuilding…
+        </Callout>,
+      );
+      expect(container.querySelector("svg")).toBeNull();
+      expect(container.querySelector(".animate-spin")).not.toBeNull();
+      expect(container.firstElementChild).toHaveAttribute("aria-busy", "true");
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Callout · dismiss", () => {
+    it("has no close button unless it can be dismissed", () => {
+      render(<Callout tone="neutral">Tip</Callout>);
+      expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    });
+
+    it("calls onDismiss and leaves the removal to the caller", async () => {
+      const onDismiss = vi.fn();
+      render(
+        <Callout tone="neutral" onDismiss={onDismiss} dismissLabel="Dismiss tip">
+          Tip
+        </Callout>,
+      );
+      await userEvent.click(screen.getByRole("button", { name: "Dismiss tip" }));
+      expect(onDismiss).toHaveBeenCalledOnce();
+      expect(screen.getByText("Tip")).toBeInTheDocument();
+    });
+
+    it("names its close button Dismiss by default", () => {
+      render(
+        <Callout tone="ok" onDismiss={() => {}}>
+          Done
+        </Callout>,
+      );
+      expect(screen.getByRole("button", { name: "Dismiss" })).toBeInTheDocument();
+    });
   });
 
   it("keeps the icon decorative — the text carries the meaning", () => {
