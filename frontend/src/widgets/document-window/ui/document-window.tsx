@@ -91,6 +91,7 @@ export function DocumentWindow({
           onResizeStart={pip.startResize}
           dragging={pip.dragging}
         >
+          {/* oxlint-disable-next-line react/iframe-missing-sandbox -- pdf.js needs scripts and, to fetch the session-gated /api/assets blob, the page's own origin; allow-scripts + allow-same-origin on a same-origin document is no isolation, so none is claimed. What binds it is the CSP on viewer.html (nginx; desktop withCsp), pdf.js scripting is off, and the file is validated same-origin. */}
           <iframe title={file} src={src} className="size-full border-0" />
         </ViewportWindow>
       </div>

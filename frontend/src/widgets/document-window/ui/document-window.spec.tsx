@@ -45,6 +45,11 @@ describe("DocumentWindow", () => {
     expect(screen.getByTitle(FILE)).toHaveAttribute("src", "/pdfjs/web/viewer.html?file=%2Fapi%2Fassets%2Fh");
   });
 
+  it("carries no sandbox: pdf.js needs scripts plus the page's origin, which would make the attribute decorative", () => {
+    render(<DocumentWindow {...props()} />);
+    expect(screen.getByTitle(FILE)).not.toHaveAttribute("sandbox");
+  });
+
   it("is a pip window named by the file, with the handle, the grip, and its actions", async () => {
     const onWindow = vi.fn();
     const onExit = vi.fn();
