@@ -4,7 +4,14 @@
 export type SavedTerritory = { slug: string; title: string; bytes: number; savedAt: string; syncedAt: string };
 export type SaveState = "queued" | "saving" | "saved" | "failed" | "cancelled" | "gone";
 export type SaveError = "network" | "no-space" | "signed-out" | "failed";
-export type OfflineProgress = { slug: string; state: SaveState; done: number; total: number; error?: SaveError };
+export type OfflineProgress = {
+  slug: string;
+  state: SaveState;
+  done: number;
+  total: number;
+  error?: SaveError;
+  title?: string;
+};
 export type StorageUsage = { used: number; pinned: number; limit: number };
 
 export type DesktopBridge = {

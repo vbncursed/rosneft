@@ -298,7 +298,7 @@ describe("OfflineSaver", () => {
       answering(h, 404, suffix);
       await h.saver.resyncAll();
       await vi.waitFor(() => expect(h.events).toHaveLength(1));
-      expect(h.events[0]).toEqual({ slug: "ust-kut", state: "gone", done: 0, total: 0 });
+      expect(h.events[0]).toEqual({ slug: "ust-kut", state: "gone", done: 0, total: 0, title: "Ust-Kut" });
       expect(await h.saver.list()).toEqual([]);
       for (const hash of Object.values(H)) expect(await h.store.blob(A, hash)).toBeNull();
       expect(await snap(h, "/api/territories/ust-kut")).toBeNull();

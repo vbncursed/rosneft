@@ -120,6 +120,15 @@ describe("offline store", () => {
     await act(async () => answer([{ ...saved, slug: "z" }]));
     expect(result.current.list.map((t) => t.slug)).toEqual(["z"]);
   });
+  it("a gone push carrying a title right after syncOfflineUser announces the title, not the slug", () => {
+    const b = bridge();
+    const { result } = renderHook(() => useNotices());
+    syncOfflineUser("u");
+    act(() => b.push({ slug: "zz", state: "gone", done: 0, total: 0, title: "Zed" }));
+    expect(result.current.map((n) => n.message)).toEqual([
+      "\u201cZed\u201d is no longer available and was removed from this device",
+    ]);
+  });
   it("a gone copy is announced even when only the shell sync is mounted", async () => {
     const b = bridge();
     syncOfflineUser("u");

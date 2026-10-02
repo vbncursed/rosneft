@@ -55,10 +55,10 @@ function wire(): boolean {
     const progress = new Map(state.progress);
     if (p.state === "saved" || p.state === "cancelled" || p.state === "gone") progress.delete(p.slug);
     else progress.set(p.slug, p);
-    // The title is read before the reload drops it.
+    // The push carries the title; `saved` is only the fallback, and is empty right after a user switch.
     if (p.state === "gone")
       notify.warning(
-        `\u201c${state.saved.get(p.slug)?.title ?? p.slug}\u201d is no longer available and was removed from this device`,
+        `\u201c${p.title ?? state.saved.get(p.slug)?.title ?? p.slug}\u201d is no longer available and was removed from this device`,
       );
     set({ ...state, progress });
     if (p.state === "saved" || p.state === "failed" || p.state === "cancelled" || p.state === "gone")

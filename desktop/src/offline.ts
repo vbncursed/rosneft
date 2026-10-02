@@ -129,19 +129,20 @@ export class OfflineSaver {
     await this.unpin(user, slug);
   }
 
-  private async unpin(user: string, slug: string): Promise<void> {
+  private async unpin(user: string, slug: string): Promise<Pin | undefined> {
     let removed: Pin | undefined;
     await this.d.store.updatePins(user, (all) => {
       removed = all.find((p) => p.slug === slug);
       return all.filter((p) => p.slug !== slug);
     });
     if (removed) await this.d.store.removeUnpinned(user, removed.hashes);
+    return removed;
   }
 
-  /** Access is gone: drop the copy, then what the offline shell would still replay of it. Snapshot failures are logged only: the copy is gone either way. */
-  private async drop(user: string, slug: string): Promise<void> {
+  /** Access is gone: drop the copy (answers its title for the notice), then what the offline shell would still replay of it. Snapshot failures are logged only: the copy is gone either way. */
+  private async drop(user: string, slug: string): Promise<string | undefined> {
     this.still(user);
-    await this.unpin(user, slug);
+    const pin = await this.unpin(user, slug);
     await Promise.all(
       [`/api/territories/${slug}`, `/api/territories/${slug}/scene`].map((key) =>
         this.d.store
@@ -149,6 +150,7 @@ export class OfflineSaver {
           .catch((e: unknown) => console.warn("offline: snapshot not removed", key, e)),
       ),
     );
+    return pin?.title;
   }
 
   /** On every return of the network: pinned territories pick up new models and documents by themselves. */
@@ -283,8 +285,8 @@ export class OfflineSaver {
         await store.updatePins(user, (all) => all.filter((p) => p.slug !== slug)).catch(() => undefined);
       if (err instanceof Gone && before?.syncedAt && user && !signal.aborted) {
         try {
-          await this.drop(user, slug);
-          return this.d.emit({ slug, state: "gone", done: 0, total: 0 });
+          const title = await this.drop(user, slug);
+          return this.d.emit({ slug, state: "gone", done: 0, total: 0, title });
         } catch (dropErr) {
           if (dropErr instanceof SessionChanged) return emit({ slug, state: "cancelled", done: 0, total: 0 });
           console.warn("offline: could not drop", slug, dropErr);

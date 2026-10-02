@@ -5,7 +5,14 @@
 export type SavedTerritory = { slug: string; title: string; bytes: number; savedAt: string; syncedAt: string };
 export type SaveState = "queued" | "saving" | "saved" | "failed" | "cancelled" | "gone";
 export type SaveError = "network" | "no-space" | "signed-out" | "failed";
-export type Progress = { slug: string; state: SaveState; done: number; total: number; error?: SaveError };
+export type Progress = {
+  slug: string;
+  state: SaveState;
+  done: number;
+  total: number;
+  error?: SaveError;
+  /** Set only for `gone`: the dropped copy's name, which the page has no other way to know. */ title?: string;
+};
 export type Usage = { used: number; pinned: number; limit: number };
 
 export type Invoke = {
