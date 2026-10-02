@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 )
@@ -113,12 +114,12 @@ func extractZip(zr *zip.Reader, dir string, maxBytes int64, maxEntries int) erro
 		dst := filepath.Join(dir, f.Name) //nolint:gosec // G305: f.Name passed filepath.IsLocal above
 		if f.FileInfo().IsDir() {
 			if err := os.MkdirAll(dst, 0o750); err != nil {
-				return fmt.Errorf("%w: directory entry %q: %w", domain.ErrBadSource, f.Name, err)
+				return mkdirError(f.Name, err)
 			}
 			continue
 		}
 		if err := os.MkdirAll(filepath.Dir(dst), 0o750); err != nil {
-			return fmt.Errorf("%w: entry %q: %w", domain.ErrBadSource, f.Name, err)
+			return mkdirError(f.Name, err)
 		}
 		n, err := writeZipEntry(f, dst, remaining)
 		if err != nil {
@@ -130,6 +131,22 @@ func extractZip(zr *zip.Reader, dir string, maxBytes int64, maxEntries int) erro
 		remaining -= n
 	}
 	return nil
+}
+
+// mkdirError reports a failed MkdirAll for entry name. A name that collides
+// with an earlier entry is the archive's fault (domain.ErrBadSource); any other
+// failure (a full disk, no inodes left) is the worker's and stays retryable.
+func mkdirError(name string, err error) error {
+	if isEntryConflict(err) {
+		return fmt.Errorf("%w: entry %q: %w", domain.ErrBadSource, name, err)
+	}
+	return fmt.Errorf("entry %q: %w", name, err)
+}
+
+// isEntryConflict is true when err says a path component is already a file
+// (ENOTDIR) or the name is taken (EEXIST).
+func isEntryConflict(err error) bool {
+	return errors.Is(err, syscall.ENOTDIR) || errors.Is(err, syscall.EEXIST)
 }
 
 var errOverBudget = errors.New("entry overruns the extraction budget")

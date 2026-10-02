@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"syscall"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -240,6 +241,26 @@ func TestFormatBytes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.want, func(t *testing.T) {
 			assert.Equal(t, formatBytes(tt.n), tt.want)
+		})
+	}
+}
+
+// Only an entry-name conflict is the archive's fault; a full disk or an
+// exhausted inode table is the worker's and must stay retryable.
+func TestIsEntryConflict(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{"file where a directory is needed", &os.PathError{Op: "mkdir", Err: syscall.ENOTDIR}, true},
+		{"name already taken", &os.PathError{Op: "mkdir", Err: syscall.EEXIST}, true},
+		{"disk full", &os.PathError{Op: "mkdir", Err: syscall.ENOSPC}, false},
+		{"inodes exhausted", &os.PathError{Op: "mkdir", Err: syscall.EDQUOT}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, isEntryConflict(tt.err), tt.want)
 		})
 	}
 }
