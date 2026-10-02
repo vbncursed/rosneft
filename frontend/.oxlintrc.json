@@ -27,7 +27,9 @@
     "typescript/no-unsafe-type-assertion": "off",
     // Fires on effects that return a cleanup on one path only and on exhaustive switch reducers;
     // TS return types already check both.
-    "typescript/consistent-return": "off"
+    "typescript/consistent-return": "off",
+    // Its remedy is mutating each item in place; state, DTO mappers and the query cache here are immutable by convention.
+    "oxc/no-map-spread": "off"
   },
   "overrides": [
     {
