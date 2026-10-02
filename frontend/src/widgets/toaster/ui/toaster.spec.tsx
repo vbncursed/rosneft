@@ -110,6 +110,34 @@ describe("Toaster", () => {
     act(() => vi.advanceTimersByTime(10_000));
     act(() => setHidden(false));
     expect(region()).toHaveTextContent("Saved");
+    act(() => vi.advanceTimersByTime(4150));
+    expect(region()).toBeEmptyDOMElement();
+  });
+
+  // A card timing out is not the reader's doing: it must not pull focus off the
+  // card they are in, nor spend the way back.
+  it("keeps focus on a card the reader is in when another one times out", async () => {
+    vi.useFakeTimers();
+    render(
+      <>
+        <button type="button">Measure</button>
+        <Toaster />
+      </>,
+    );
+    screen.getByRole("button", { name: "Measure" }).focus();
+    act(() => {
+      notify.error("Not saved", { label: "Retry", run: () => {} });
+      notify.success("Saved");
+    });
+    const retry = screen.getByRole("button", { name: "Retry: Not saved" });
+    act(() => retry.focus());
+    act(() => vi.advanceTimersByTime(4150));
+    expect(screen.queryByText("Saved")).not.toBeInTheDocument();
+    expect(retry).toHaveFocus();
+
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss: Not saved" }));
+    act(() => vi.advanceTimersByTime(200));
+    expect(screen.getByRole("button", { name: "Measure" })).toHaveFocus();
   });
 
   it("shows a reported failure as an alert and lets the reader dismiss it", async () => {

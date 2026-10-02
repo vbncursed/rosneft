@@ -12,6 +12,7 @@
 // v4: frontend-v2 became frontend — offline.html was redrawn in the design
 // system's tokens; the cache is renamed for the same reason as in v3.
 // v5: offline.html follows the Offline v2 mock and gained an inline script (theme, reachability probe, reload); renamed so installed copies refetch it.
+// v6: Geist/Fira Code swap; offline.html comment.
 const CACHE = "andrey-shell-v6";
 const OFFLINE_URL = "/offline.html";
 

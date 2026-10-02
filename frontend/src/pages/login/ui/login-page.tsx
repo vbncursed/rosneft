@@ -66,7 +66,7 @@ export function LoginPage({ step, intro, credentials, twoFactor, error, onDismis
     >
       {error ? (
         <div className="fixed right-4 top-4 z-10 w-[min(92vw,22rem)]">
-          <Toast tone="error" onDismiss={onDismissError} className="shadow-elevation">
+          <Toast tone="error" onDismiss={onDismissError}>
             {error}
           </Toast>
         </div>

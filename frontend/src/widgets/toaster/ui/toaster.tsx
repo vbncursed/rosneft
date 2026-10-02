@@ -42,9 +42,9 @@ export function Toaster({ placement = "top-right" }: { placement?: ToasterPlacem
   // Where focus came from when it entered the stack. A card leaves under the
   // pointer, and without this focus would fall to <body> after Retry or Dismiss.
   // The way back is used once, forgotten when focus leaves the stack, and taken
-  // only while focus is still in the stack or lost — never out of a field the
-  // reader has moved on to (Safari focuses no button on click).
-  const region = useRef<HTMLDivElement>(null);
+  // only when focus is lost or sits in the card that is closing — never out of a
+  // field the reader has moved on to (Safari focuses no button on click), and
+  // never because another card timed out around the one the reader is in.
   const cameFrom = useRef<HTMLElement | null>(null);
   const onFocus = (e: FocusEvent<HTMLDivElement>) => {
     const from = e.relatedTarget;
@@ -53,18 +53,21 @@ export function Toaster({ placement = "top-right" }: { placement?: ToasterPlacem
   const onBlur = (e: FocusEvent<HTMLDivElement>) => {
     if (!e.currentTarget.contains(e.relatedTarget)) cameFrom.current = null;
   };
-  const close = (id: number) => {
-    const back = cameFrom.current;
-    cameFrom.current = null;
+  // `inCard`: the caller is that card's own button, so focus is in the card even
+  // though it is not leaving yet (Retry). Dismiss and expiry arrive with the card
+  // marked data-leaving.
+  const close = (id: number, inCard = false) => {
     const active = document.activeElement;
-    const lost = !active || active === document.body || region.current?.contains(active);
+    const lost = !active || active === document.body || inCard || !!active.closest(".toast[data-leaving]");
+    const back = lost ? cameFrom.current : null;
+    if (lost) cameFrom.current = null;
     dismiss(id);
-    if (lost && back?.isConnected) back.focus();
+    if (back?.isConnected) back.focus();
   };
 
   return (
     // display: contents — the wrapper only catches focus for the way back.
-    <div ref={region} onFocus={onFocus} onBlur={onBlur} className="contents">
+    <div onFocus={onFocus} onBlur={onBlur} className="contents">
       <ToastStack
         {...PLACEMENT[placement]}
         onDismiss={(id) => close(Number(id))}
@@ -81,7 +84,7 @@ export function Toaster({ placement = "top-right" }: { placement?: ToasterPlacem
                   label: notice.action.label,
                   name: `${notice.action.label}: ${notice.message}`,
                   onClick: () => {
-                    close(notice.id);
+                    close(notice.id, true);
                     notice.action!.run();
                   },
                 },
