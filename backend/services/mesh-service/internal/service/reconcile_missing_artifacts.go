@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
@@ -36,12 +38,31 @@ const MaxQueueWait = 6 * time.Hour
 // Idempotent at the catalog level — re-running on a fully-converted catalog
 // is a no-op aside from the read pass.
 //
+// A target whose latest job failed on its input (domain.ErrInvalidInput: an
+// archive past the extraction cap, no .obj inside) is left alone: the same
+// bytes fail the same way, so re-queuing it every tick only churns the index
+// and the worker. Replacing the source does not wait for this tick: the
+// gateway calls SubmitConversion right after swapping the hash, and that never
+// consults the failed job, so such a target is not stranded.
+//
+// Trade-off: only input failures are skipped. Infrastructure failures (worker
+// killed mid-job, Redis or catalog blip) keep the old self-healing retry. The
+// failure is recognised by ErrInvalidInput's text in the job's stored message,
+// as the job records no error kind.
+// ponytail: a job records neither its error kind nor its source blob. If a
+// replace-source's own submit fails after the hash swap, the target waits for
+// a retry of the replace; store the source on the job to retry it here.
+//
 // Returns the number of conversions enqueued.
 func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 	targets, err := m.catalog.ListTargets(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("service.ReconcileMissingArtifacts: list: %w", err)
 	}
+
+	// One index read per tick, taken on first need and shared with the sweep.
+	index := sync.OnceValues(func() ([]domain.Job, error) { return m.queue.ListTargetJobs(ctx) })
+	var failed map[string]struct{}
 
 	queued := 0
 	for _, t := range targets {
@@ -53,6 +74,12 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 			return queued, fmt.Errorf("service.ReconcileMissingArtifacts: check %s/%s: %w", t.Kind, t.Slug, err)
 		}
 		if has {
+			continue
+		}
+		if failed == nil {
+			failed = failedOnInput(ctx, index)
+		}
+		if _, skip := failed[targetKey(t.Kind, t.Slug)]; skip {
 			continue
 		}
 		// SubmitConversion holds the target claim; when the target is already
@@ -67,7 +94,7 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 		slog.InfoContext(ctx, "reconcile: queued conversion", "kind", t.Kind, "slug", t.Slug)
 		queued++
 	}
-	m.sweepIndex(ctx, targets)
+	m.sweepIndex(ctx, targets, index)
 	return queued, nil
 }
 
@@ -81,7 +108,7 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 // HDEL'd here once. That's safe: SaveJob re-HSETs the index field on every
 // write (progress and terminal alike), so the entry reappears the moment the
 // worker writes to it again.
-func (m *Mesh) sweepIndex(ctx context.Context, targets []domain.ConversionTarget) {
+func (m *Mesh) sweepIndex(ctx context.Context, targets []domain.ConversionTarget, index func() ([]domain.Job, error)) {
 	// A context cancelled between the loop finishing and here (typically
 	// shutdown racing the tick) would otherwise reach ListTargetJobs and log
 	// a Warn on every graceful shutdown; skip the sweep instead.
@@ -90,15 +117,15 @@ func (m *Mesh) sweepIndex(ctx context.Context, targets []domain.ConversionTarget
 	}
 	live := make(map[string]struct{}, len(targets))
 	for _, t := range targets {
-		live[t.Kind.String()+":"+t.Slug] = struct{}{}
+		live[targetKey(t.Kind, t.Slug)] = struct{}{}
 	}
-	jobs, err := m.queue.ListTargetJobs(ctx)
+	jobs, err := index()
 	if err != nil {
 		slog.WarnContext(ctx, "reconcile: index read failed", "err", err)
 		return
 	}
 	for _, j := range jobs {
-		if _, ok := live[j.Kind.String()+":"+j.Slug]; ok {
+		if _, ok := live[targetKey(j.Kind, j.Slug)]; ok {
 			continue
 		}
 		if err := m.queue.ForgetTarget(ctx, j.Kind, j.Slug); err != nil {
@@ -107,4 +134,25 @@ func (m *Mesh) sweepIndex(ctx context.Context, targets []domain.ConversionTarget
 		}
 		slog.InfoContext(ctx, "reconcile: forgot deleted target", "kind", j.Kind, "slug", j.Slug)
 	}
+}
+
+func targetKey(kind domain.Kind, slug string) string {
+	return kind.String() + ":" + slug
+}
+
+// failedOnInput is the targets whose latest job failed with ErrInvalidInput.
+// An index read error yields an empty set, so the tick retries as before.
+func failedOnInput(ctx context.Context, index func() ([]domain.Job, error)) map[string]struct{} {
+	set := map[string]struct{}{}
+	jobs, err := index()
+	if err != nil {
+		slog.WarnContext(ctx, "reconcile: index read failed", "err", err)
+		return set
+	}
+	for _, j := range jobs {
+		if j.Status == domain.JobStatusFailed && strings.Contains(j.ErrorMessage, domain.ErrInvalidInput.Error()) {
+			set[targetKey(j.Kind, j.Slug)] = struct{}{}
+		}
+	}
+	return set
 }
