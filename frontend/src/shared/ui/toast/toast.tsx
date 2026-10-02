@@ -31,32 +31,33 @@ export type ToastProps = {
   className?: string;
 };
 
-// The tint sits on an opaque panel: a card over the viewer's chrome must not
-// let the text beneath read through it (same ground as ModeChip).
+// The ground is the opaque panel, tone or not: a card over the viewer's chrome
+// must not let the text beneath read through it (same ground as ModeChip). The
+// tone shows in the border, the overline, the icon and the countdown bar.
 const TONE: Record<ToastTone, { label: string; skin: string; icon: IconName | null; life: number | null }> = {
   error: {
     label: "Error",
     icon: "close",
     life: null,
-    skin: "border-bad bg-panel bg-[image:linear-gradient(var(--bad-soft),var(--bad-soft))] text-bad",
+    skin: "border-bad bg-panel text-bad",
   },
   warning: {
     label: "Warning",
     icon: "warning",
     life: null,
-    skin: "border-warn bg-panel bg-[image:linear-gradient(var(--warn-soft),var(--warn-soft))] text-warn",
+    skin: "border-warn bg-panel text-warn",
   },
   info: {
     label: "Info",
     icon: "info",
     life: 4000,
-    skin: "border-accent-line bg-panel bg-[image:linear-gradient(var(--accent-soft),var(--accent-soft))] text-accent",
+    skin: "border-accent-line bg-panel text-accent",
   },
   success: {
     label: "Success",
     icon: "check",
     life: 4000,
-    skin: "border-ok bg-panel bg-[image:linear-gradient(var(--ok-soft),var(--ok-soft))] text-ok",
+    skin: "border-ok bg-panel text-ok",
   },
   // No tint: a plain fact with nothing to celebrate or fix.
   neutral: { label: "Notice", icon: null, life: 4000, skin: "border-line-2 bg-panel text-muted" },

@@ -9,6 +9,7 @@ export default (
     <Button onClick={() => notify.error("Measurement not saved: network error", { label: "Retry", run: () => {} })}>
       Error with Retry
     </Button>
+    <Button onClick={() => notify.warning("Two-factor status is unavailable right now.")}>Warning</Button>
     <Button onClick={() => notify.info("mesh-worker is processing storage-tank-500")}>Info</Button>
     <Button
       onClick={() => {

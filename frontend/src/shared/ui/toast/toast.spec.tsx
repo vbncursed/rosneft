@@ -125,16 +125,19 @@ describe("Toast · tooltip", () => {
   });
 });
 
-// A 10–12 % tint alone let the viewer's chrome read through the card.
+// The card is opaque so the viewer's chrome never reads through it, and
+// untinted: the tone shows in the border, overline, icon and countdown bar.
 describe("Toast · ground", () => {
-  it.each(["error", "warning", "info", "success"] as const)("lays the %s tint over an opaque panel", (tone) => {
+  it.each([
+    ["error", "border-bad"],
+    ["warning", "border-warn"],
+    ["info", "border-accent-line"],
+    ["success", "border-ok"],
+  ] as const)("draws %s on the bare opaque panel with a %s border", (tone, border) => {
     render(<Toast tone={tone}>Saved.</Toast>);
     const cls = screen.getByText("Saved.").closest(".toast")!.className.split(/\s+/);
-    const soft = { error: "bad", warning: "warn", info: "accent", success: "ok" }[tone];
-    expect(cls).toEqual(
-      expect.arrayContaining(["bg-panel", `bg-[image:linear-gradient(var(--${soft}-soft),var(--${soft}-soft))]`]),
-    );
-    expect(cls).not.toContain(`bg-${soft}-soft`);
+    expect(cls).toEqual(expect.arrayContaining(["bg-panel", border]));
+    expect(cls.filter((c) => c.startsWith("bg-[image:") || c.endsWith("-soft"))).toEqual([]);
   });
 
   it("draws neutral on the bare panel", () => {
