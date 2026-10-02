@@ -18,7 +18,8 @@ func TestUpdateModelSendsOnlyTheSetFields(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, got.Slug, "pump")
 	assert.Assert(t, cc.model.Title == nil && cc.model.Description == nil)
-	assert.Equal(t, *cc.model.ThumbnailBlobHash, "")
+	assert.Assert(t, cc.model.ThumbnailBlobHash != nil)
+	assert.Equal(t, cc.model.GetThumbnailBlobHash(), "")
 }
 
 func TestUpdateModelNotFoundIsTheSentinel(t *testing.T) {
