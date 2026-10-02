@@ -43,11 +43,11 @@ func (e *Engine) BeginRegistration(u *User) (*protocol.CredentialCreation, *lib.
 func (e *Engine) FinishRegistration(u *User, sess lib.SessionData, body io.Reader) (*lib.Credential, error) {
 	parsed, err := protocol.ParseCredentialCreationResponseBody(body)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", domain.ErrAssertionInvalid, err)
+		return nil, assertionInvalid(err)
 	}
 	cred, err := e.w.CreateCredential(u, sess, parsed)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", domain.ErrAssertionInvalid, err)
+		return nil, assertionInvalid(err)
 	}
 	return cred, nil
 }
@@ -64,11 +64,21 @@ func (e *Engine) BeginLogin() (*protocol.CredentialAssertion, *lib.SessionData, 
 func (e *Engine) FinishLogin(handler lib.DiscoverableUserHandler, sess lib.SessionData, body io.Reader) (*lib.Credential, error) {
 	parsed, err := protocol.ParseCredentialRequestResponseBody(body)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", domain.ErrAssertionInvalid, err)
+		return nil, assertionInvalid(err)
 	}
 	cred, err := e.w.ValidateDiscoverableLogin(handler, sess, parsed)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", domain.ErrAssertionInvalid, err)
+		return nil, assertionInvalid(err)
 	}
 	return cred, nil
+}
+
+// assertionInvalid classifies a library failure as domain.ErrAssertionInvalid
+// and keeps its text for the log. The cause is deliberately not wrapped: the
+// library chains the user handler's own errors (a store's ErrNotFound), and
+// the gRPC mapper checks ErrNotFound first, so exposing them would turn
+// Unauthenticated into NotFound.
+func assertionInvalid(cause error) error {
+	//nolint:errorlint // opaque on purpose: wrapping the library chain changes the gRPC code, see engine_test.go
+	return fmt.Errorf("%w: %v", domain.ErrAssertionInvalid, cause)
 }
