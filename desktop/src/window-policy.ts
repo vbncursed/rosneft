@@ -44,7 +44,7 @@ export function permissionCheckAllowed(
   details: { isMainFrame?: boolean },
   origin: string,
 ): boolean {
-  return permission === CLIPBOARD && details.isMainFrame === true && requestingOrigin === origin;
+  return permission === CLIPBOARD && details.isMainFrame === true && sameOrigin(requestingOrigin, origin);
 }
 
 export function attachPermissionPolicy(
