@@ -4,11 +4,11 @@ import { upstreamOrigin } from "./config";
 import { createHandler } from "./intercept";
 import { registerIpc, buildHandlers } from "./ipc";
 import type { Push } from "./ipc-contract";
-import { openableExternally, sameOrigin } from "./links";
 import { OfflineSaver } from "./offline";
 import { SettingsFile } from "./settings";
 import { Shell } from "./shell";
 import { Store } from "./store";
+import { attachWindowPolicy, permissionAllowed, permissionCheckAllowed } from "./window-policy";
 
 const ORIGIN = upstreamOrigin(process.env);
 const PARTITION = "persist:andrey";
@@ -43,15 +43,7 @@ function createWindow(passkeysOn: boolean): BrowserWindow {
       sandbox: true,
     },
   });
-  w.webContents.setWindowOpenHandler(({ url }) => {
-    if (!sameOrigin(url, ORIGIN) && openableExternally(url)) void shell.openExternal(url);
-    return { action: "deny" };
-  });
-  w.webContents.on("will-navigate", (event, url) => {
-    if (sameOrigin(url, ORIGIN)) return;
-    event.preventDefault();
-    if (openableExternally(url)) void shell.openExternal(url);
-  });
+  attachWindowPolicy(w.webContents, ORIGIN, (url) => void shell.openExternal(url));
   w.on("closed", () => {
     win = null;
   });
@@ -66,8 +58,12 @@ async function start(): Promise<void> {
   await store.init();
 
   const ses = session.fromPartition(PARTITION);
-  // The SPA asks for no device permission; the only one it uses is a user-gesture clipboard write (copy-text.ts).
-  ses.setPermissionRequestHandler((_wc, permission, callback) => callback(permission === "clipboard-sanitized-write"));
+  ses.setPermissionRequestHandler((_wc, permission, callback, details) =>
+    callback(permissionAllowed(permission, details, ORIGIN)),
+  );
+  ses.setPermissionCheckHandler((_wc, permission, requestingOrigin) =>
+    permissionCheckAllowed(permission, requestingOrigin, ORIGIN),
+  );
   // ses.fetch, never net.fetch: that is the default session, without our cookie.
   // credentials: "include" — without it Electron blocks cookies both ways.
   const network = (input: Request | string, init: RequestInit = {}) =>
