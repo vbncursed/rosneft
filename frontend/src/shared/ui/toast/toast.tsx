@@ -1,9 +1,8 @@
 import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 import { clsx as cx } from "clsx";
-import { Icon, type IconName } from "@/shared/ui/icon";
+import { Icon } from "@/shared/ui/icon";
 import { Tooltip } from "@/shared/ui/tooltip";
-
-export type ToastTone = "error" | "warning" | "info" | "success" | "neutral" | "loading";
+import { TONE, type ToastTone } from "./tone";
 
 export type ToastProps = {
   tone: ToastTone;
@@ -31,45 +30,7 @@ export type ToastProps = {
   className?: string;
 };
 
-// The ground is the opaque panel, tone or not: a card over the viewer's chrome
-// must not let the text beneath read through it (same ground as ModeChip). The
-// tone shows in the border, the overline, the icon and the countdown bar.
-const TONE: Record<ToastTone, { label: string; skin: string; icon: IconName | null; life: number | null }> = {
-  error: {
-    label: "Error",
-    icon: "close",
-    life: null,
-    skin: "border-bad bg-panel text-bad",
-  },
-  warning: {
-    label: "Warning",
-    icon: "warning",
-    life: null,
-    skin: "border-warn bg-panel text-warn",
-  },
-  info: {
-    label: "Info",
-    icon: "info",
-    life: 4000,
-    skin: "border-accent-line bg-panel text-accent",
-  },
-  success: {
-    label: "Success",
-    icon: "check",
-    life: 4000,
-    skin: "border-ok bg-panel text-ok",
-  },
-  // No tint: a plain fact with nothing to celebrate or fix.
-  neutral: { label: "Notice", icon: null, life: 4000, skin: "border-line-2 bg-panel text-muted" },
-  // Work under way: the spinner is the icon; it stays until the caller replaces it.
-  loading: { label: "Working", icon: null, life: null, skin: "border-line-2 bg-panel text-accent" },
-};
-
 const EXIT_MS = 150;
-
-/** True for a tone whose card stays until the reader acts (no default lifetime). */
-// oxlint-disable-next-line react/only-export-components -- a pure predicate over TONE, which must stay beside the lifetimes it reads
-export const waitsForReader = (tone: ToastTone): boolean => TONE[tone].life === null;
 
 export function Toast({
   tone,

@@ -1,9 +1,2 @@
-export {
-  Toast,
-  ToastStack,
-  waitsForReader,
-  type ToastProps,
-  type ToastTone,
-  type ToastStackItem,
-  type ToastStackProps,
-} from "./toast";
+export { Toast, ToastStack, type ToastProps, type ToastStackItem, type ToastStackProps } from "./toast";
+export { waitsForReader, type ToastTone } from "./tone";

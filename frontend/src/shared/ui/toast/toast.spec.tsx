@@ -2,7 +2,7 @@ import { render, screen, waitFor, act, fireEvent } from "@testing-library/react"
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import type { ReactElement } from "react";
-import { Toast, ToastStack, waitsForReader } from "./toast";
+import { Toast, ToastStack } from "./toast";
 import { Icon } from "@/shared/ui/icon";
 import { hoverTip } from "@/shared/ui/tooltip/testing";
 
@@ -332,15 +332,6 @@ describe("Toast · lifetime", () => {
     act(() => vi.advanceTimersByTime(2000 + 150));
     expect(second).toHaveBeenCalledOnce();
     expect(first).not.toHaveBeenCalled();
-  });
-});
-
-describe("waitsForReader", () => {
-  it.each(["error", "warning", "loading"] as const)("is true for %s", (tone) => {
-    expect(waitsForReader(tone)).toBe(true);
-  });
-  it.each(["success", "info", "neutral"] as const)("is false for %s", (tone) => {
-    expect(waitsForReader(tone)).toBe(false);
   });
 });
 
