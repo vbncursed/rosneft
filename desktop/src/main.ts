@@ -1,5 +1,5 @@
 import path from "node:path";
-import { app, BrowserWindow, dialog, ipcMain, safeStorage, session, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, net, safeStorage, session, shell } from "electron";
 import { upstreamOrigin } from "./config";
 import { createHandler } from "./intercept";
 import { registerIpc, buildHandlers } from "./ipc";
@@ -8,6 +8,7 @@ import { OfflineSaver } from "./offline";
 import { SettingsFile } from "./settings";
 import { Shell } from "./shell";
 import { Store } from "./store";
+import { checkForUpdates } from "./updates";
 import { attachPermissionPolicy, attachWindowPolicy } from "./window-policy";
 
 const ORIGIN = upstreamOrigin(process.env);
@@ -103,6 +104,23 @@ async function start(): Promise<void> {
   }
 
   win = createWindow(PASSKEYS[process.platform] ?? false);
+
+  if (app.isPackaged) {
+    const check = () =>
+      checkForUpdates({
+        // net.fetch, not ses.fetch: GitHub is not the upstream, needs no session cookie, and net.fetch honours the system proxy.
+        fetch: (url, init) => net.fetch(url, init),
+        settings,
+        showDialog: async (message, detail) => {
+          const options = { message, detail, buttons: ["Download", "Later"], defaultId: 0, cancelId: 1 };
+          return (await (win ? dialog.showMessageBox(win, options) : dialog.showMessageBox(options))).response;
+        },
+        openExternal: (url) => shell.openExternal(url),
+        currentVersion: app.getVersion(),
+      });
+    setTimeout(() => void check(), 30_000);
+    setInterval(() => void check(), 6 * 60 * 60 * 1000);
+  }
 }
 
 if (app.requestSingleInstanceLock()) {

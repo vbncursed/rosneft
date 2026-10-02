@@ -2,14 +2,19 @@ import { readFileSync } from "node:fs";
 import { atomicWrite } from "./atomic-write";
 import { DEFAULT_LIMIT, isLimit, isUserId } from "./validate";
 
-export type Settings = { userId: string | null; limit: number };
+export type Settings = { userId: string | null; limit: number; dismissedUpdate: string | null };
 
 function load(file: string): Settings {
   try {
     const raw = JSON.parse(readFileSync(file, "utf8")) as Partial<Settings>;
-    return { userId: isUserId(raw.userId) ? raw.userId : null, limit: isLimit(raw.limit) ? raw.limit : DEFAULT_LIMIT };
+    const dismissed = typeof raw.dismissedUpdate === "string" && /^\d+\.\d+\.\d+$/u.test(raw.dismissedUpdate);
+    return {
+      userId: isUserId(raw.userId) ? raw.userId : null,
+      limit: isLimit(raw.limit) ? raw.limit : DEFAULT_LIMIT,
+      dismissedUpdate: dismissed ? raw.dismissedUpdate! : null,
+    };
   } catch {
-    return { userId: null, limit: DEFAULT_LIMIT };
+    return { userId: null, limit: DEFAULT_LIMIT, dismissedUpdate: null };
   }
 }
 
