@@ -1,7 +1,6 @@
 package httpapi
 
 import (
-	"context"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -13,12 +12,12 @@ import (
 func TestNegativeLodIsNotFound(t *testing.T) {
 	srv := New(struct{ Service }{})
 
-	terr, err := srv.GetTerritoryArtifact(context.Background(), GetTerritoryArtifactRequestObject{Slug: "yard", Lod: -1})
+	terr, err := srv.GetTerritoryArtifact(t.Context(), GetTerritoryArtifactRequestObject{Slug: "yard", Lod: -1})
 	assert.NilError(t, err)
 	_, ok := terr.(GetTerritoryArtifact404JSONResponse)
 	assert.Assert(t, ok)
 
-	model, err := srv.GetModelArtifact(context.Background(), GetModelArtifactRequestObject{Slug: "pump", Lod: -1})
+	model, err := srv.GetModelArtifact(t.Context(), GetModelArtifactRequestObject{Slug: "pump", Lod: -1})
 	assert.NilError(t, err)
 	_, ok = model.(GetModelArtifact404JSONResponse)
 	assert.Assert(t, ok)

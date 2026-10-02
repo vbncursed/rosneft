@@ -64,7 +64,21 @@ func (c *Converter) finish(ctx context.Context, raw rawGLB) (domain.ConversionRe
 // the conversion can always produce a sensible artifact.
 func buildGLMaterials(ctx context.Context, src parsedSource, sourcePath string) []glMaterial {
 	objDir := filepath.Dir(sourcePath)
-	mtlByName := loadMTL(ctx, objDir, src.mtllib, sourcePath)
+	rootDir := sourceRoot(ctx, objDir)
+	root, err := os.OpenRoot(rootDir)
+	if err != nil {
+		slog.WarnContext(ctx, "converter: cannot open source root, materials default to white",
+			slog.String("root", rootDir), slog.Any("error", err))
+		return defaultMaterials(src)
+	}
+	defer func() { _ = root.Close() }()
+	// Every path below is relative to the root, so nothing the MTL says can
+	// name a file outside the extraction.
+	objRel, err := filepath.Rel(rootDir, objDir)
+	if err != nil {
+		return defaultMaterials(src)
+	}
+	mtlByName := loadMTL(ctx, root, objRel, src.mtllib, sourcePath)
 
 	textureCache := map[string]*textureAsset{}
 
@@ -87,7 +101,7 @@ func buildGLMaterials(ctx context.Context, src parsedSource, sourcePath string) 
 			BaseColor: [4]float32{m.kd[0], m.kd[1], m.kd[2], m.alpha},
 		}
 		if m.diffuseMap != "" {
-			tex := loadTexture(ctx, objDir, m.diffuseMap, textureCache)
+			tex := loadTexture(ctx, root, objRel, m.diffuseMap, textureCache)
 			if tex != nil {
 				gm.Texture = tex
 			}
@@ -97,24 +111,57 @@ func buildGLMaterials(ctx context.Context, src parsedSource, sourcePath string) 
 	return out
 }
 
+func defaultMaterials(src parsedSource) []glMaterial {
+	out := make([]glMaterial, len(src.groups))
+	for i, g := range src.groups {
+		out[i] = glMaterial{Name: g.name, BaseColor: [4]float32{1, 1, 1, 1}}
+	}
+	return out
+}
+
+type sourceRootKey struct{}
+
+// WithSourceRoot tells the converter which directory holds the whole
+// extracted upload. An MTL or texture reference may point anywhere inside it
+// ("../textures/x.jpg" from "model/m.obj") but never outside; without a root
+// the OBJ's own directory is the limit.
+func WithSourceRoot(ctx context.Context, dir string) context.Context {
+	return context.WithValue(ctx, sourceRootKey{}, dir)
+}
+
+func sourceRoot(ctx context.Context, objDir string) string {
+	if dir, ok := ctx.Value(sourceRootKey{}).(string); ok && dir != "" {
+		if rel, err := filepath.Rel(dir, objDir); err == nil && filepath.IsLocal(rel) {
+			return dir
+		}
+	}
+	return objDir
+}
+
 // loadMTL reads and parses the MTL referenced by `mtllib` (relative to the OBJ
 // directory). When mtllib is empty the function falls back to "<obj-base>.mtl"
 // — the de-facto convention when mtllib is omitted by hand-written OBJs.
 //
+// root confines every read: mtllib is text from the uploaded OBJ, and a path
+// that leaves the root (or follows a symlink out of it) is refused and logged.
+//
 // Returns an empty map (never nil) on any error so the caller can iterate
 // safely without nil checks.
-func loadMTL(ctx context.Context, objDir, mtllib, sourcePath string) map[string]material {
+func loadMTL(ctx context.Context, root *os.Root, objRel, mtllib, sourcePath string) map[string]material {
 	candidates := make([]string, 0, 2)
-	// mtllib is text from the uploaded OBJ: only a path inside objDir counts.
-	if mtllib != "" && filepath.IsLocal(mtllib) {
-		candidates = append(candidates, filepath.Join(objDir, mtllib))
+	if mtllib != "" {
+		candidates = append(candidates, filepath.Join(objRel, mtllib))
 	}
 	base := strings.TrimSuffix(filepath.Base(sourcePath), filepath.Ext(sourcePath))
-	candidates = append(candidates, filepath.Join(objDir, base+".mtl"))
+	candidates = append(candidates, filepath.Join(objRel, base+".mtl"))
 
 	for _, path := range candidates {
-		f, err := os.Open(path) //nolint:gosec // G304: objDir/mtllib with mtllib checked by filepath.IsLocal, or objDir/<obj base>.mtl
+		f, err := root.Open(path)
 		if err != nil {
+			if !errors.Is(err, os.ErrNotExist) {
+				slog.WarnContext(ctx, "converter: skipping MTL: not readable inside the upload",
+					slog.String("path", path), slog.Any("error", err))
+			}
 			continue
 		}
 		mats, err := parseMTL(f)
@@ -135,21 +182,15 @@ func loadMTL(ctx context.Context, objDir, mtllib, sourcePath string) map[string]
 	return map[string]material{}
 }
 
-// loadTexture reads a single texture from disk, resolves the MIME type from
+// loadTexture reads a single texture through root, resolves the MIME type from
 // the extension, and caches the result so the same file isn't re-read for
-// each material that references it. Returns nil when the file is missing or
-// unsupported (caller falls back to baseColorFactor only).
-func loadTexture(ctx context.Context, objDir, relPath string, cache map[string]*textureAsset) *textureAsset {
+// each material that references it. Returns nil when the file is missing,
+// outside root or unsupported (caller falls back to baseColorFactor only).
+func loadTexture(ctx context.Context, root *os.Root, objRel, relPath string, cache map[string]*textureAsset) *textureAsset {
 	if t, ok := cache[relPath]; ok {
 		return t
 	}
-	if !filepath.IsLocal(relPath) {
-		slog.WarnContext(ctx, "converter: skipping texture: path leaves the OBJ directory",
-			slog.String("path", relPath))
-		cache[relPath] = nil
-		return nil
-	}
-	full := filepath.Join(objDir, relPath)
+	full := filepath.Join(objRel, relPath)
 	mime, err := mimeFromPath(full)
 	if err != nil {
 		slog.WarnContext(ctx, "converter: skipping texture: unsupported format",
@@ -157,9 +198,9 @@ func loadTexture(ctx context.Context, objDir, relPath string, cache map[string]*
 		cache[relPath] = nil
 		return nil
 	}
-	data, err := os.ReadFile(full) //nolint:gosec // G304: objDir/relPath with relPath checked by filepath.IsLocal above
+	data, err := root.ReadFile(full)
 	if err != nil {
-		slog.WarnContext(ctx, "converter: skipping texture: read failed",
+		slog.WarnContext(ctx, "converter: skipping texture: not readable inside the upload",
 			slog.String("path", full), slog.Any("error", err))
 		cache[relPath] = nil
 		return nil

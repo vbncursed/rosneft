@@ -25,6 +25,7 @@ func TestPutKeepsShardAndMetaPrivate(t *testing.T) {
 	for path, other := range map[string]os.FileMode{
 		filepath.Join(root, "blobs"):       0o007,
 		shard:                              0o007,
+		filepath.Join(shard, hash+".bin"):  0o077,
 		filepath.Join(shard, hash+".json"): 0o077,
 	} {
 		info, err := os.Stat(path)

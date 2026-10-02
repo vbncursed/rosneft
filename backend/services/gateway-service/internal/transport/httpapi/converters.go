@@ -66,12 +66,12 @@ func vec3PtrFromAPI(v *Vec3) domain.Vec3 {
 func artifactToAPI(a domain.Artifact, withChain bool) Artifact {
 	out := Artifact{
 		Slug:        a.Slug,
-		Lod:         int32(a.LOD),
+		Lod:         int32(a.LOD), //nolint:gosec // G115: LOD comes from the catalog's short LOD chain, far below 2^31
 		Hash:        a.Hash,
 		ContentType: a.ContentType,
 		Size:        a.Size,
-		Vertices:    new(int64(a.Vertices)),
-		Faces:       new(int64(a.Faces)),
+		Vertices:    new(int64(a.Vertices)), //nolint:gosec // G115: vertex/face totals of our own GLBs, far below 2^63
+		Faces:       new(int64(a.Faces)),    //nolint:gosec // G115: vertex/face totals of our own GLBs, far below 2^63
 	}
 	out.BboxMin = new(vec3ToAPI(a.BBoxMin))
 	out.BboxMax = new(vec3ToAPI(a.BBoxMax))
@@ -88,11 +88,11 @@ func lodChainToAPI(in []domain.LodArtifact) []LodArtifact {
 	out := make([]LodArtifact, len(in))
 	for i, l := range in {
 		out[i] = LodArtifact{
-			Lod:      int32(l.LOD),
+			Lod:      int32(l.LOD), //nolint:gosec // G115: LOD comes from the catalog's short LOD chain, far below 2^31
 			Hash:     l.Hash,
 			Size:     l.Size,
-			Vertices: new(int64(l.Vertices)),
-			Faces:    new(int64(l.Faces)),
+			Vertices: new(int64(l.Vertices)), //nolint:gosec // G115: vertex/face totals of our own GLBs, far below 2^63
+			Faces:    new(int64(l.Faces)),    //nolint:gosec // G115: vertex/face totals of our own GLBs, far below 2^63
 		}
 	}
 	return out

@@ -146,6 +146,7 @@ func (m *Mesh) runConversion(ctx context.Context, j *domain.Job) (string, error)
 	convCtx := converter.WithProgress(ctx, func(stage string, fraction float32) {
 		progress(fraction, stage)
 	})
+	convCtx = converter.WithSourceRoot(convCtx, workDir)
 	results, err := m.converter.ConvertLODs(convCtx, objPath)
 	if err != nil {
 		return "", fmt.Errorf("convert: %w", err)
