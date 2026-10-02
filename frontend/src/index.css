@@ -1,5 +1,5 @@
-@import "@fontsource-variable/archivo";
-@import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/fira-code";
 @import "tailwindcss";
 @import "./app/styles/theme.css";
 

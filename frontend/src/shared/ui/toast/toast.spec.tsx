@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { Toast } from "./toast";
@@ -42,7 +42,7 @@ describe("Toast", () => {
       </Toast>,
     );
     await userEvent.click(screen.getByRole("button", { name: "Dismiss" }));
-    expect(onDismiss).toHaveBeenCalledOnce();
+    await waitFor(() => expect(onDismiss).toHaveBeenCalledOnce());
   });
 
   it("draws its action as a named button that runs it", async () => {
@@ -124,7 +124,7 @@ describe("Toast · tooltip", () => {
 describe("Toast · ground", () => {
   it.each(["error", "warning", "info", "success"] as const)("lays the %s tint over an opaque panel", (tone) => {
     render(<Toast tone={tone}>Saved.</Toast>);
-    const cls = screen.getByText("Saved.").parentElement!.className.split(/\s+/);
+    const cls = screen.getByText("Saved.").closest(".toast")!.className.split(/\s+/);
     const soft = { error: "bad", warning: "warn", info: "accent", success: "ok" }[tone];
     expect(cls).toEqual(
       expect.arrayContaining(["bg-panel", `bg-[image:linear-gradient(var(--${soft}-soft),var(--${soft}-soft))]`]),

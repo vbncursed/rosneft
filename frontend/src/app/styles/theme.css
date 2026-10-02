@@ -105,9 +105,8 @@
   --color-bad-soft: var(--bad-soft);
   --color-grid: var(--grid);
 
-  /* Archivo carries no Cyrillic subset — the fallback stack has to. */
-  --font-sans: "Archivo Variable", "Helvetica Neue", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: "Geist Variable", "Geist", "Helvetica Neue", system-ui, sans-serif;
+  --font-mono: "Fira Code Variable", "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* Radii, per Foundations: control-sm / control / card / pill. */
   --radius-control-sm: 6px;
@@ -238,4 +237,30 @@ dialog[data-side][open]::backdrop {
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--line-2) transparent;
+}
+
+/* Toasts arrive from above, into the top-right stack, and leave toward the
+   edge they live on. Enter 200ms, exit 150ms, as every overlay. */
+.toast {
+  transition-property: opacity, translate;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  @starting-style {
+    opacity: 0;
+    translate: 0 -8px;
+  }
+}
+.toast[data-leaving] {
+  opacity: 0;
+  translate: 12px 0;
+  transition-duration: 150ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .toast[data-leaving] {
+    translate: none;
+    @starting-style {
+      translate: none;
+    }
+  }
 }

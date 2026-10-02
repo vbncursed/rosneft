@@ -13,6 +13,8 @@ const LIFETIME: Record<ToastTone, number | null> = {
   info: 4000,
   error: null,
   warning: null,
+  neutral: 4000,
+  loading: null,
 };
 
 /** Why the countdowns are stopped: the pointer is on a card, or the tab is hidden. */
