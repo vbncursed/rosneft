@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { setCsrfToken } from "@/shared/api";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useTerritoryCatalog } from "./use-territory-catalog";
@@ -31,7 +31,7 @@ const T2 = { slug: "t-2", title: "T 2", sourceBlobHash: "b".repeat(64), placemen
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
-let fetchMock: ReturnType<typeof vi.fn>;
+let fetchMock: Mock<(url: string, init?: RequestInit) => Promise<Response>>;
 let client: QueryClient;
 let JOBS: unknown[] = [];
 const wrapper = ({ children }: { children: ReactNode }) => (
@@ -74,7 +74,7 @@ describe("useTerritoryCatalog", () => {
   it("asks for the list once, never once per row", async () => {
     const { result } = renderHook(() => useTerritoryCatalog(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
-    expect(fetchMock.mock.calls.map(([u]) => String(u)).filter((u) => u.startsWith("/api/territories"))).toEqual([
+    expect(fetchMock.mock.calls.map(([u]) => u).filter((u) => u.startsWith("/api/territories"))).toEqual([
       "/api/territories",
     ]);
   });
@@ -112,15 +112,12 @@ describe("useTerritoryCatalog", () => {
     await waitFor(() => expect(result.current.s.status).toBe("ready"));
     act(() => result.current.s.ask("t-1"));
     expect(result.current.s.pending?.slug).toBe("t-1");
-    expect(fetchMock.mock.calls.some(([, i]) => (i as RequestInit | undefined)?.method === "DELETE")).toBe(false);
+    expect(fetchMock.mock.calls.some(([, i]) => i?.method === "DELETE")).toBe(false);
     act(() => result.current.s.confirm());
     await waitFor(() => expect(result.current.notices[0]?.message).toBe("Territory deleted"));
     expect(result.current.s.pending).toBeNull();
     await waitFor(() =>
-      expect(
-        fetchMock.mock.calls.filter(([u, i]) => u === "/api/territories" && !(i as RequestInit | undefined)?.method)
-          .length,
-      ).toBe(2),
+      expect(fetchMock.mock.calls.filter(([u, i]) => u === "/api/territories" && !i?.method).length).toBe(2),
     );
   });
 

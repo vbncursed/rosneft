@@ -13,7 +13,7 @@ const load = async () => {
 beforeEach(() => {
   localStorage.clear();
   document.documentElement.removeAttribute("data-theme");
-  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false } as MediaQueryList));
+  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
 });
 
 afterEach(() => {

@@ -76,7 +76,7 @@ export function haloStyle(rect: Rect): CSSProperties {
 // Keyed on the values that clip rather than on `visible`: jsdom computes the
 // shorthand as "" on an element that never set it, and clipping to <body>'s
 // empty box there hid every halo.
-const CLIPS = /auto|scroll|hidden|clip/;
+const CLIPS = /auto|scroll|hidden|clip/u;
 export function visibleRect(el: Element): Rect {
   let { top, left, right, bottom } = el.getBoundingClientRect();
   // The nearest *scrolling* clipper, not the widest clipper: the viewer's
@@ -87,7 +87,7 @@ export function visibleRect(el: Element): Rect {
     const style = getComputedStyle(p);
     if (!CLIPS.test(style.overflow)) continue;
     const box = p.getBoundingClientRect();
-    if (clipLeft === undefined && /auto|scroll/.test(style.overflow)) clipLeft = box.left;
+    if (clipLeft === undefined && /auto|scroll/u.test(style.overflow)) clipLeft = box.left;
     // A scrolled container may lay chrome over its own top — the Overlays
     // panel's "scrolled" strip — and declares that band as scroll-padding.
     const covered = p.scrollTop > 0 ? parseFloat(style.scrollPaddingTop) || 0 : 0;
@@ -107,7 +107,7 @@ export function visibleRect(el: Element): Rect {
 // scrolls vertically and has somewhere to go.
 export function scrollerOf(el: Element | null): Element | null {
   for (let p = el?.parentElement; p; p = p.parentElement) {
-    if (/auto|scroll/.test(getComputedStyle(p).overflowY) && p.scrollHeight > p.clientHeight) return p;
+    if (/auto|scroll/u.test(getComputedStyle(p).overflowY) && p.scrollHeight > p.clientHeight) return p;
   }
   return null;
 }

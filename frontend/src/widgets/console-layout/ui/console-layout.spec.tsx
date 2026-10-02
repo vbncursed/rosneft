@@ -11,7 +11,7 @@ const ITEMS: ConsoleNavItem[] = [
 const viewer = { username: "a.ivanova", roleTitle: "Company Owner" };
 
 beforeEach(() => {
-  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false } as MediaQueryList));
+  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
 });
 
 afterEach(() => {

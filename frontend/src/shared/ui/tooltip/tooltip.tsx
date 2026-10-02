@@ -18,7 +18,7 @@ function mergeHandlers(own: ChildProps, ours: TriggerProps) {
       name,
       (event: never) => {
         (own[name] as Handler | undefined)?.(event);
-        (ours[name] as Handler)(event);
+        ours[name](event);
       },
     ]),
   );

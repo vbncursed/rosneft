@@ -39,11 +39,11 @@ export function CoverageMeter({ label, segments, detail, detailTone, className }
     <div className={className}>
       <div className="flex items-baseline justify-between gap-3">
         <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted">{label}</span>
-        {detail !== undefined ? (
+        {detail === undefined ? null : (
           <span className={cx("font-mono text-[11px]", TEXT[detailTone ?? segments[0]?.tone ?? "neutral"])}>
             {detail}
           </span>
-        ) : null}
+        )}
       </div>
 
       <div

@@ -7,7 +7,7 @@ import { WEEKDAYS, dayLabel, monthGrid, monthLabel, parseIso, shiftMonth, toIso,
 
 export type DatePickerProps = {
   /** "YYYY-MM-DD", or "" for no date chosen. */
-  value: IsoDate | "";
+  value: IsoDate;
   onChange: (value: IsoDate) => void;
   label: string;
   /** Marked with a ring; defaults to the real today. */

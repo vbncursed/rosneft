@@ -12,8 +12,9 @@ const URL = `otpauth://totp/Andrey:t.throwaway?secret=${SECRET}&issuer=Andrey`;
 beforeEach(() => clearNotices());
 afterEach(() => vi.unstubAllGlobals());
 
+// Object.create keeps navigator's prototype (a spread would copy none of its getters).
 const stubClipboard = (writeText: ReturnType<typeof vi.fn>) =>
-  vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+  vi.stubGlobal("navigator", Object.create(navigator, { clipboard: { value: { writeText }, configurable: true } }));
 
 describe("ScanPane", () => {
   it("draws no QR until the gateway has answered — an empty code scans as nothing", () => {

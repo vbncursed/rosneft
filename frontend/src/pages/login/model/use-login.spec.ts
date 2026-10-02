@@ -142,6 +142,18 @@ describe("useLogin", () => {
     await waitFor(() => expect(navigate).toHaveBeenCalledWith({ href: "/" }));
   });
 
+  // A navigation that rejects after a good sign-in must reach the form, not
+  // vanish as an unhandled rejection with the button already free again.
+  it("shows a failed navigation after a password sign-in instead of dropping it", async () => {
+    vi.mocked(login).mockResolvedValue({ twoFactorRequired: false, challengeToken: "" });
+    navigate.mockRejectedValue(new Error("Could not open the page."));
+    const { result } = renderHook(() => useLogin());
+
+    act(() => result.current.credentials.onSubmit());
+
+    await waitFor(() => expect(result.current.error).toBe("Something went wrong. Try again."));
+  });
+
   // A visitor bounced out of a deep link comes back to it, not to Home —
   // the whole point of guard.ts carrying `next` through in the first place.
   it("returns to the page a bounced visit was headed to", async () => {
@@ -181,6 +193,16 @@ describe("useLogin", () => {
     });
 
     // Closing the OS dialog is a choice, not an error.
+    it("points to the password when the navigation after a passkey sign-in fails", async () => {
+      ceremony();
+      navigate.mockRejectedValue(new Error("Could not open the page."));
+      const { result } = renderHook(() => useLogin());
+
+      act(() => result.current.credentials.onPasskey!());
+
+      await waitFor(() => expect(result.current.error).toMatch(/password/u));
+    });
+
     it("says nothing when the user cancels the system prompt", async () => {
       ceremony();
       vi.mocked(getCredential).mockRejectedValue(new DOMException("x", "NotAllowedError"));

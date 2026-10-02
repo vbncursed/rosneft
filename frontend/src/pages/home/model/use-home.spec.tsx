@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { setCsrfToken } from "@/shared/api";
 import { useHome } from "./use-home";
 
@@ -43,7 +43,7 @@ const ENTRIES = [1, 2, 3, 4, 5, 6].map((id) => ({
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
-let fetchMock: ReturnType<typeof vi.fn>;
+let fetchMock: Mock<(url: string, init?: RequestInit) => Promise<Response>>;
 let client: QueryClient;
 let JOBS: unknown[] = [];
 
@@ -81,7 +81,7 @@ describe("useHome", () => {
     expect(result.current.territories.cards[0].status).toBe("ready");
     expect(result.current.territories.cards[0].chips).toEqual([]);
     // The LODs ride on the list: no card asks for its own.
-    expect(fetchMock.mock.calls.some(([u]) => String(u).endsWith("/artifacts"))).toBe(false);
+    expect(fetchMock.mock.calls.some(([u]) => u.endsWith("/artifacts"))).toBe(false);
   });
 
   it("slices the feed to four rows and names the signed-in reader", async () => {

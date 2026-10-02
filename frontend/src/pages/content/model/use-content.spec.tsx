@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { setCsrfToken } from "@/shared/api";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useContent } from "./use-content";
@@ -31,7 +31,7 @@ const MODEL = { slug: "m-1", title: "M 1", sourceBlobHash: "b".repeat(64), lods:
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
-let fetchMock: ReturnType<typeof vi.fn>;
+let fetchMock: Mock<(url: string, init?: RequestInit) => Promise<Response>>;
 let client: QueryClient;
 let JOBS: unknown[] = [];
 const wrapper = ({ children }: { children: ReactNode }) => (
@@ -123,16 +123,13 @@ describe("useContent", () => {
     act(() => result.current.s.select("territory", "t-1"));
     act(() => result.current.s.ask());
     expect(result.current.s.pending?.slug).toBe("t-1");
-    expect(fetchMock.mock.calls.some(([, i]) => (i as RequestInit | undefined)?.method === "DELETE")).toBe(false);
+    expect(fetchMock.mock.calls.some(([, i]) => i?.method === "DELETE")).toBe(false);
     act(() => result.current.s.confirm());
     await waitFor(() => expect(result.current.notices[0]?.message).toBe("Territory deleted"));
     expect(result.current.s.selected).toBeNull();
     expect(result.current.s.pending).toBeNull();
     await waitFor(() =>
-      expect(
-        fetchMock.mock.calls.filter(([u, i]) => u === "/api/territories" && !(i as RequestInit | undefined)?.method)
-          .length,
-      ).toBe(2),
+      expect(fetchMock.mock.calls.filter(([u, i]) => u === "/api/territories" && !i?.method).length).toBe(2),
     );
   });
 
@@ -220,7 +217,7 @@ describe("useContent", () => {
     await waitFor(() => expect(result.current.status).toBe("ready"));
     expect(result.current.items).toHaveLength(5);
     expect(result.current.storageBytes).toBe(3 * 1024);
-    expect(fetchMock.mock.calls.map(([u]) => String(u)).toSorted()).toEqual([
+    expect(fetchMock.mock.calls.map(([u]) => u).toSorted()).toEqual([
       "/api/auth/me",
       "/api/jobs",
       "/api/models",

@@ -23,7 +23,7 @@ export const PIPELINE: readonly { token: string; label: string }[] = [
 ];
 
 const LOD_STEP = 5;
-const LOD = /^lod-\d+$/;
+const LOD = /^lod-\d+$/u;
 
 /** The step a worker token belongs to; -1 for nothing reported or a token this list does not know. */
 export function stepIndexOf(stage: string | null): number {

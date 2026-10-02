@@ -187,7 +187,7 @@ function stateOf(key: RailTool, activeKey: RailTool | null, inside: boolean, a: 
   if (key === "panoramas" || key === "documents") return key === activeKey ? "active" : "idle";
   if (!a.geometry) return "inert";
   if (inside && NEEDS_MESH.includes(key)) return "inert";
-  if (key === "play") return a.mode !== "orbit" ? "inert" : a.playing && !a.tourActive ? "active" : "idle";
+  if (key === "play") return a.mode === "orbit" ? (a.playing && !a.tourActive ? "active" : "idle") : "inert";
   if (key === activeKey) return "active";
   return a.loading ? "inert" : "idle";
 }

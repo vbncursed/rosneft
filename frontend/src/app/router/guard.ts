@@ -162,9 +162,9 @@ export const CATALOG_PATHS = [
   ENROLLMENT_PATH,
 ] as const;
 
-const MODEL_PAGE = /^\/models\/[^/]+$/;
-const TERRITORY_PAGE = /^\/territories\/[^/]+$/;
-const REPLACE_FORM = /^\/territories\/[^/]+\/replace$/;
+const MODEL_PAGE = /^\/models\/[^/]+$/u;
+const TERRITORY_PAGE = /^\/territories\/[^/]+$/u;
+const REPLACE_FORM = /^\/territories\/[^/]+\/replace$/u;
 
 /**
  * A territory's own page, by pathname alone — what the catalog shell reads to

@@ -74,8 +74,11 @@ function jpegWithGps(f: Fixture): Uint8Array {
     // RATIONALs exceed 4 bytes so their value field holds an offset; ASCII and
     // BYTE values are inline, and EXIF packs them from the first byte of the
     // field regardless of endianness — which is how the parser reads them.
-    if (e.block !== undefined) tiff.setUint32(at + 8, blockAt[e.block], le);
-    else tiff.setUint8(at + 8, e.inline ?? 0);
+    if (e.block === undefined) {
+      tiff.setUint8(at + 8, e.inline ?? 0);
+    } else {
+      tiff.setUint32(at + 8, blockAt[e.block], le);
+    }
   });
   blocks.forEach((b, i) => {
     b.forEach(([num, den], j) => {

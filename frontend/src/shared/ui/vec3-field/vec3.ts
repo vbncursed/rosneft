@@ -10,7 +10,7 @@ export const AXES: Axis[] = ["x", "y", "z"];
  */
 export function parseAxis(raw: string): number | null {
   const trimmed = raw.trim();
-  if (trimmed === "" || !/^-?\d*\.?\d*$/.test(trimmed)) return null;
+  if (trimmed === "" || !/^-?\d*\.?\d*$/u.test(trimmed)) return null;
   const n = Number(trimmed);
   return Number.isFinite(n) ? n : null;
 }

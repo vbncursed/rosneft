@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { setCsrfToken } from "@/shared/api";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useAccount, type AccountState } from "./use-account";
@@ -53,12 +53,12 @@ const auditCursorPage = (cursor: number | null) => {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
-let fetchMock: ReturnType<typeof vi.fn>;
+let fetchMock: Mock<(url: string, init?: RequestInit) => Promise<Response>>;
 let client: QueryClient;
 let twoFactorStatus = 200;
 let passkeysStatus = 200;
 /** What /api/audit/mine answers for a cursor. Reassigned by the paging cases. */
-let auditPage: (cursor: number | null) => unknown | Promise<unknown>;
+let auditPage: (cursor: number | null) => unknown;
 
 const wrapper = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -70,13 +70,12 @@ const ready = (result: { current: AccountState }): Ready => {
   return result.current;
 };
 
-const fetchCalls = (path: string) =>
-  fetchMock.mock.calls.filter(([url]) => new URL(url as string, "http://x").pathname === path);
+const fetchCalls = (path: string) => fetchMock.mock.calls.filter(([url]) => new URL(url, "http://x").pathname === path);
 
 /** The cursor of every /api/audit/mine call, in order — null for the first page. */
 const cursorsAsked = () =>
   fetchCalls("/api/audit/mine").map(([url]) => {
-    const raw = new URL(url as string, "http://x").searchParams.get("cursor");
+    const raw = new URL(url, "http://x").searchParams.get("cursor");
     return raw === null ? null : Number(raw);
   });
 

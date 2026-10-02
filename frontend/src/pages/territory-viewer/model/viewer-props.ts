@@ -163,10 +163,10 @@ export type PageHandlers = {
   /** One checkbox of the selected placement's per-panorama allowlist. */
   onVisibility: (placementId: number, panoramaId: number, visible: boolean) => void;
   /** Hides or shows many placements for everyone; a hidden selection is dropped (§1.7). */
-  onSetHidden: (ids: number[], hidden: boolean) => void;
+  onSetHidden: (ids: number[], hidden: boolean) => Promise<void>;
   /** The group's own flag (D6); a selection that leaves with it is dropped (§1.7). */
   onSetGroupHidden: (id: number, hidden: boolean) => void;
-  onMoveToGroup: (ids: number[], groupId: number | null) => void;
+  onMoveToGroup: (ids: number[], groupId: number | null) => Promise<void>;
   /** Opens the picker aimed at one user group; the batch lands in it (G-4). */
   onAddToGroup: (groupId: number) => void;
 };

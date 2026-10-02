@@ -133,9 +133,12 @@ describe("usePanoramaTexture", () => {
       "fetch",
       vi.fn(async () => ok()),
     );
-    const { result, rerender } = renderHook(({ hash }) => usePanoramaTexture(hash, decoder()), {
-      initialProps: { hash: "abc" as string | null },
-    });
+    const { result, rerender } = renderHook<ReturnType<typeof usePanoramaTexture>, { hash: string | null }>(
+      ({ hash }) => usePanoramaTexture(hash, decoder()),
+      {
+        initialProps: { hash: "abc" },
+      },
+    );
     await waitFor(() => expect(result.current.status).toBe("ready"));
     const delivered = result.current.bitmap!;
 
@@ -165,9 +168,12 @@ describe("usePanoramaTexture", () => {
       "fetch",
       vi.fn(async () => ok()),
     );
-    const { result, rerender } = renderHook(({ hash }) => usePanoramaTexture(hash, decoder()), {
-      initialProps: { hash: "abc" as string | null },
-    });
+    const { result, rerender } = renderHook<ReturnType<typeof usePanoramaTexture>, { hash: string | null }>(
+      ({ hash }) => usePanoramaTexture(hash, decoder()),
+      {
+        initialProps: { hash: "abc" },
+      },
+    );
     await waitFor(() => expect(result.current.status).toBe("ready"));
     const first = result.current.bitmap;
 

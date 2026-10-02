@@ -51,8 +51,8 @@ describe("StepChips", () => {
   it("dresses the three tones as the design does", () => {
     render(<StepChips steps={ENABLE} />);
     const [scan, confirm, codes] = screen.getAllByRole("listitem");
-    expect(scan!.className).toContain("text-ok");
-    expect(confirm!.className).toContain("bg-accent-soft");
-    expect(codes!.className).toContain("text-muted");
+    expect(scan.className).toContain("text-ok");
+    expect(confirm.className).toContain("bg-accent-soft");
+    expect(codes.className).toContain("text-muted");
   });
 });

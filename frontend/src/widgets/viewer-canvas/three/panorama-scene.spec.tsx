@@ -96,7 +96,7 @@ const mount = (over: Partial<Props> = {}) => ReactThreeTestRenderer.create(scene
 
 const named = (r: Awaited<ReturnType<typeof mount>>, name: string) => r.scene.findAll((n) => n.instance.name === name);
 
-const spheres = (r: Awaited<ReturnType<typeof mount>>) => r.scene.findAll((n) => (n.instance as Mesh).isMesh === true);
+const spheres = (r: Awaited<ReturnType<typeof mount>>) => r.scene.findAll((n) => (n.instance as Mesh).isMesh);
 
 const ready = { activePanorama: PANO, bitmap: fakeBitmap(), status: "ready" as const };
 

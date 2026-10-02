@@ -33,8 +33,8 @@ export function useConsoleCounters(items: ConsoleNavItem[]): Record<ConsoleKey, 
     users: hint("users", ({ users }) => (users ? usersHint(users.total, users.frozen) : null)),
     roles: hint("roles", ({ roles }) => (roles ? rolesHint(roles.roles, roles.permissions) : null)),
     content: hint("content", ({ content }) => (content ? contentHint(content.territories, content.models) : null)),
-    access: hint("access", ({ access }) => (access != null ? accessHint(access) : null)),
-    audit: hint("audit", ({ audit24h }) => (audit24h != null ? auditHint(audit24h) : null)),
-    metrics: hint("metrics", ({ alerts }) => (alerts != null ? metricsHint(alerts) : null)),
+    access: hint("access", ({ access }) => (access == null ? null : accessHint(access))),
+    audit: hint("audit", ({ audit24h }) => (audit24h == null ? null : auditHint(audit24h))),
+    metrics: hint("metrics", ({ alerts }) => (alerts == null ? null : metricsHint(alerts))),
   };
 }

@@ -13,7 +13,10 @@ const ENROLLMENT_REQUIRED = "twofa_enrollment_required";
  * `headers`: extra request headers, e.g. a batch's `Idempotency-Key`. */
 export type SendOpts = { credentialed?: boolean; headers?: Record<string, string> };
 
-async function send<T>(path: string, init: RequestInit, parse: "json" | "blob" | "none", opts?: SendOpts): Promise<T> {
+/** `headers` is a plain record: every caller here builds one, and spreading a `Headers` or an array would lose them. */
+type Init = Omit<RequestInit, "headers"> & { headers?: Record<string, string> };
+
+async function send<T>(path: string, init: Init, parse: "json" | "blob" | "none", opts?: SendOpts): Promise<T> {
   // No Authorization header: the session is an httpOnly cookie, and the SPA is
   // single-origin with the API in both dev and prod, so the browser attaches it
   // to every request here without being asked.

@@ -14,7 +14,7 @@ export function progressLine(
 ): { header: string; stats: string[] } {
   const pct = Math.round((p.bytes / p.total) * 100);
   const eta = formatEta(stats.etaSeconds);
-  const speed = stats.bytesPerSecond !== null ? `${formatBytes(stats.bytesPerSecond)}/s` : "—";
+  const speed = stats.bytesPerSecond === null ? "—" : `${formatBytes(stats.bytesPerSecond)}/s`;
   return {
     header: `${pct}% · ${formatBytes(p.bytes)} / ${formatBytes(p.total)}${eta ? ` · ${eta}` : ""}`,
     stats: [`chunk ${p.chunk} / ${p.chunks}`, "8 MB chunks", speed, "resumable"],

@@ -56,7 +56,7 @@ export default defineConfig({
     env: { VITE_API_URL: "" },
     setupFiles: ["./src/shared/lib/test-setup.ts"],
     alias: Object.entries(ESM_BUILDS).map(([pkg, file]) => ({
-      find: new RegExp(`^${pkg}$`),
+      find: new RegExp(`^${pkg}$`, "u"),
       replacement: `${pkg}/${file}`,
     })),
     server: { deps: { inline: Object.keys(ESM_BUILDS) } },

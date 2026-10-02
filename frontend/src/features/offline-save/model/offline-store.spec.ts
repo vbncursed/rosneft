@@ -108,7 +108,7 @@ describe("offline store", () => {
     syncOfflineUser("u2");
     await act(async () => {
       answers.at(-1)!([{ ...saved, slug: "new" }]);
-      answers[0]!([{ ...saved, slug: "old" }]);
+      answers[0]([{ ...saved, slug: "old" }]);
     });
     expect(result.current.map((t) => t.slug)).toEqual(["new"]);
   });

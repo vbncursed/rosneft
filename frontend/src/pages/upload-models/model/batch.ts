@@ -100,7 +100,7 @@ export function currentStats(progress: UploadProgress, samples: UploadSample[], 
   const { bytesPerSecond } = uploadStats(samples, progress.total);
   return {
     chunk: `${progress.chunk} / ${progress.chunks}`,
-    speed: bytesPerSecond !== null ? `${formatBytes(bytesPerSecond)}/s` : "—",
+    speed: bytesPerSecond === null ? "—" : `${formatBytes(bytesPerSecond)}/s`,
     ...(hasThumbnail ? { thumbnail: "attached" } : {}),
   };
 }

@@ -1,7 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const media = (light: boolean) => vi.fn().mockReturnValue({ matches: light } as MediaQueryList);
+const media = (light: boolean) => vi.fn().mockReturnValue({ matches: light });
 
 // The theme lives in a module-level store, so each case needs the module read
 // afresh — that first read is where the remembered choice and the OS

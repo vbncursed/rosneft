@@ -63,12 +63,13 @@ function Harness({
     if (probe) probe.camera = camera;
     set({ controls: orbit as unknown as OrbitControlsImpl });
   }, [set, orbit, probe, camera]);
+  const territoryRef: RefObject<Object3D | null> = { current: territory() };
   useGizmoEvents({
     tcRef: { current: tc as unknown as TransformControlsImpl },
     target,
     selectedId,
     mode,
-    territoryRef: { current: territory() } as RefObject<Object3D | null>,
+    territoryRef,
     snapEnabled,
     onCommit,
   });

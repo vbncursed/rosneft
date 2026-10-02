@@ -82,7 +82,7 @@ export function useLogin(): LoginPageProps {
           setChallengeToken(result.challengeToken);
           setStep("two-factor");
         } else {
-          goToTarget();
+          return goToTarget();
         }
       })
       .catch((err: unknown) => setError(messageOf(err)))
@@ -110,7 +110,7 @@ export function useLogin(): LoginPageProps {
       .then(({ optionsJson, flowId }) => getCredential(optionsJson).then((assertion) => finishLogin(flowId, assertion)))
       .then((csrfToken) => {
         startSession(csrfToken);
-        goToTarget();
+        return goToTarget();
       })
       .catch((err: unknown) => {
         if (!isCancelled(err)) setError(PASSKEY_FAILED);

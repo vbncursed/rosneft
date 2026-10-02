@@ -47,7 +47,7 @@ function stubRects(box: { top: number; left: number; width: number; height: numb
       this.getAttribute("role") === "tooltip"
         ? { ...box, width: (this.textContent?.length ?? 0) * 10, height: 20 }
         : box;
-    return { ...r, x: r.left, y: r.top, right: r.left + r.width, bottom: r.top + r.height, toJSON: () => r } as DOMRect;
+    return { ...r, x: r.left, y: r.top, right: r.left + r.width, bottom: r.top + r.height, toJSON: () => r };
   });
 }
 

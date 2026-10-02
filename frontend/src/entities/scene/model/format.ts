@@ -8,7 +8,7 @@ import type { Vec3 } from "@/entities/placement";
 export const groupDigits = (n: number) =>
   Math.round(n)
     .toString()
-    .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    .replace(/\B(?=(\d{3})+(?!\d))/gu, " ");
 
 /** The bounding box as a detail line prints it: "182 / 44 / 96". */
 export const formatSize = (dimensions: { x: number; y: number; z: number }) =>

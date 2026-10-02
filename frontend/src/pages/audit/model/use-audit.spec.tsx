@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { setCsrfToken } from "@/shared/api";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useAudit } from "./use-audit";
@@ -45,14 +45,14 @@ const dto = (id: number, over: Record<string, unknown> = {}) => ({
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
-let fetchMock: ReturnType<typeof vi.fn>;
+let fetchMock: Mock<(url: string, init?: RequestInit) => Promise<Response>>;
 let client: QueryClient;
 let csvStatus = 200;
 const wrapper = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={client}>{children}</QueryClientProvider>
 );
 
-const urls = () => fetchMock.mock.calls.map(([u]) => u as string);
+const urls = () => fetchMock.mock.calls.map(([u]) => u);
 const journalCalls = () => urls().filter((u) => u.startsWith("/api/audit?") && u.includes("limit=50"));
 const writeText = vi.fn<(text: string) => Promise<void>>(() => Promise.resolve());
 

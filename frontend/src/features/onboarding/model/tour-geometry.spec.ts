@@ -14,15 +14,14 @@ type Box = { top: number; left: number; width: number; height: number };
 function el(box: Box, parent: HTMLElement = document.body, style: Partial<CSSStyleDeclaration> = {}) {
   const node = document.createElement("div");
   Object.assign(node.style, style);
-  node.getBoundingClientRect = () =>
-    ({
-      ...box,
-      right: box.left + box.width,
-      bottom: box.top + box.height,
-      x: box.left,
-      y: box.top,
-      toJSON: () => ({}),
-    }) as DOMRect;
+  node.getBoundingClientRect = () => ({
+    ...box,
+    right: box.left + box.width,
+    bottom: box.top + box.height,
+    x: box.left,
+    y: box.top,
+    toJSON: () => ({}),
+  });
   parent.append(node);
   made.push(node);
   return node;

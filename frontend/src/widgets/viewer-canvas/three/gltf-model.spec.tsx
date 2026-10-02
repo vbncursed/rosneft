@@ -346,7 +346,7 @@ describe("GltfModel", () => {
     expect(shownAfter).not.toContain(null);
     expect(URL.revokeObjectURL).not.toHaveBeenCalledWith("blob:mid");
     expect(drei.useGLTF.clear).not.toHaveBeenCalledWith("blob:mid");
-    expect(vi.mocked(fetch).mock.calls.filter((c) => String(c[0]).endsWith("/mid"))).toHaveLength(1);
+    expect(vi.mocked(fetch).mock.calls.filter((c) => (c[0] as string).endsWith("/mid"))).toHaveLength(1);
     expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:fine");
     expect(drei.useGLTF.clear).toHaveBeenCalledWith("blob:fine");
   });
@@ -430,7 +430,7 @@ describe("GltfModel", () => {
     const parsedFrom = vi.mocked(drei.useGLTF).mock.calls.length;
     await r.update(model({ onReport, targetLod: 1, lods }));
     await waitInAct(SETTLE_MS);
-    const midFetches = vi.mocked(fetch).mock.calls.filter((c) => String(c[0]).endsWith("/mid"));
+    const midFetches = vi.mocked(fetch).mock.calls.filter((c) => (c[0] as string).endsWith("/mid"));
     expect(midFetches).toHaveLength(1);
     expect(onReport.mock.calls.slice(from).map((c) => (c[0] as LodReport).shown)).not.toContain(null);
     expect(last()).toMatchObject({ shown: 1, target: 1 });
@@ -631,7 +631,7 @@ describe("GltfModel", () => {
       return { scene: fakeScene() } as never;
     });
     vi.mocked(drei.useGLTF.clear).mockImplementation((url) => {
-      for (const u of Array.isArray(url) ? url : [url]) cached.delete(String(u));
+      for (const u of Array.isArray(url) ? url : [url]) cached.delete(u);
     });
 
     const onReport = vi.fn();

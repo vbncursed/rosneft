@@ -27,7 +27,7 @@ export function focusSeries(
 
   const plain = series.filter((s) => serviceOf(s) === undefined);
   if (selected !== null) {
-    const hit = named.filter((s) => matchesService(serviceOf(s)!, selected));
+    const hit = named.filter((s) => matchesService(serviceOf(s), selected));
     return { series: [...plain, ...hit], hidden: 0 };
   }
   const loudest = [...named].sort((a, b) => lastValue(b) - lastValue(a)).slice(0, PLOTTED);
@@ -37,10 +37,10 @@ export function focusSeries(
 // `/pkg.Service/Method`, the full method a gRPC call carries, and the bare
 // `pkg.Service` the latency panel groups by. A name with neither — a scrape
 // name like "gateway" — has nothing to shorten and is returned untouched.
-const FULL_METHOD = /^\/([\w.]+)\.(\w+)\/(\w+)$/;
-const BARE_SERVICE = /^[\w.]+\.(\w+)$/;
+const FULL_METHOD = /^\/([\w.]+)\.(\w+)\/(\w+)$/u;
+const BARE_SERVICE = /^[\w.]+\.(\w+)$/u;
 
-const trim = (service: string) => service.replace(/Service$/, "");
+const trim = (service: string) => service.replace(/Service$/u, "");
 
 /**
  * "/rosneft.catalog.v1.CatalogService/ListTerritories" → "Catalog.ListTerritories";

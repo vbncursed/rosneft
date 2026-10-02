@@ -91,7 +91,7 @@ export function useLodDownload(artifact: LodArtifact | null, drawn: string | nul
             // A fetch chunk is always ArrayBuffer-backed; its type says
             // ArrayBufferLike, which also admits SharedArrayBuffer and so is not
             // a BlobPart.
-            chunks.push(value as BlobPart);
+            chunks.push(value);
             received += value.byteLength;
             setState({ hash, blobUrl: null, received, failed: null });
           }

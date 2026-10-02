@@ -17,7 +17,7 @@ export function SectionHeading({ title, count, as: Tag = "h2", trailing, classNa
   return (
     <div className={cx("flex flex-wrap items-center gap-3", className)}>
       <Tag className="m-0 text-[13px] font-semibold text-fg">{title}</Tag>
-      {count !== undefined ? <span className="font-mono text-[10px] text-dim">{count}</span> : null}
+      {count === undefined ? null : <span className="font-mono text-[10px] text-dim">{count}</span>}
       <span aria-hidden="true" className="h-px min-w-5 flex-1 bg-line" />
       {trailing}
     </div>

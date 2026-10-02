@@ -14,7 +14,7 @@ export const toIso = (year: number, month: number, day: number): IsoDate => `${y
  * parses a bare date as UTC, so west of Greenwich it reads back a day early.
  */
 export function parseIso(iso: string): { year: number; month: number; day: number } | null {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(iso);
   if (!match) return null;
   const [year, month, day] = [Number(match[1]), Number(match[2]) - 1, Number(match[3])];
   if (month < 0 || month > 11 || day < 1 || day > daysInMonth(year, month)) return null;

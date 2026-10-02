@@ -134,7 +134,7 @@ export function InstanceRow({
           </button>
         </Tooltip>
       ) : null}
-      {!editor ? (
+      {editor ? null : (
         // Nothing is drawn to frame on a hidden placement (§1.7).
         <Tooltip label={unseen ? `${name} is hidden` : `Focus camera on ${name}`}>
           <button
@@ -147,7 +147,7 @@ export function InstanceRow({
             Focus
           </button>
         </Tooltip>
-      ) : null}
+      )}
     </div>
   );
 }

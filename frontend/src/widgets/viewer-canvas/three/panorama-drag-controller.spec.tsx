@@ -31,7 +31,7 @@ describe("PanoramaDragController", () => {
     const { renderer, controls } = await mount();
     expect(controls.enabled).toBe(false);
     await ReactThreeTestRenderer.act(async () => {
-      renderer.unmount();
+      await renderer.unmount();
     });
     expect(controls.enabled).toBe(true);
   });
@@ -100,7 +100,7 @@ describe("PanoramaDragController", () => {
   it("stops listening once the drag is over", async () => {
     const { renderer, onEnd, onMove, territoryRef } = await mount();
     await ReactThreeTestRenderer.act(async () => {
-      renderer.update(
+      await renderer.update(
         <WithControls controls={fakeControls()}>
           <PanoramaDragController dragging={false} territoryRef={territoryRef} onMove={onMove} onEnd={onEnd} />
         </WithControls>,

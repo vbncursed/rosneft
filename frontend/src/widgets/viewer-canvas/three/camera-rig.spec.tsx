@@ -186,6 +186,7 @@ describe("CameraRig · fly-around", () => {
       at,
       to: (ms: number) => {
         if (now === null) return at(ms);
+        // oxlint-disable-next-line no-unmodified-loop-condition -- `at` assigns `now` through the closure; each call advances the clock
         while (now < ms) at(Math.min(now + 16, ms));
       },
     };

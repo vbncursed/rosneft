@@ -1,6 +1,6 @@
 /** Keeps only digits and never lets the code grow past `length`. */
 export function sanitize(raw: string, length: number): string {
-  return raw.replace(/\D/g, "").slice(0, length);
+  return raw.replace(/\D/gu, "").slice(0, length);
 }
 
 /**

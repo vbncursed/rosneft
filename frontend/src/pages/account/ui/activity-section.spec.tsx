@@ -83,9 +83,9 @@ describe("ActivitySection", () => {
   it("draws no second line for a row that carries nothing to say", () => {
     render(<ActivitySection {...props({ entries: [entry({ id: 9 })] })} />);
     const [row] = screen.getAllByRole("listitem");
-    expect(within(row!).getByText("auth.login")).toBeInTheDocument();
-    expect(within(row!).queryByText("session")).not.toBeInTheDocument();
-    expect(within(row!).getAllByText(/./, { selector: "p" })).toHaveLength(1);
+    expect(within(row).getByText("auth.login")).toBeInTheDocument();
+    expect(within(row).queryByText("session")).not.toBeInTheDocument();
+    expect(within(row).getAllByText(/./, { selector: "p" })).toHaveLength(1);
   });
 
   it("keeps the second line when the row failed", () => {

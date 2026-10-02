@@ -39,7 +39,7 @@ if (!("ResizeObserver" in globalThis)) {
     observe() {}
     unobserve() {}
     disconnect() {}
-  } as unknown as typeof ResizeObserver;
+  };
 }
 
 // jsdom's window.scrollTo is a stub that reports "Not implemented" on every

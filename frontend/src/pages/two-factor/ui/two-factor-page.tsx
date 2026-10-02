@@ -38,14 +38,14 @@ const TITLE: Record<string, { h1: string; lede: string }> = {
 
 const REGENERATE = "/account/two-factor?mode=regenerate";
 
-const titleFor = (flow: Flow, stage: Stage) => (stage === "codes" ? TITLE.codes! : TITLE[`${flow}/confirm`]!);
+const titleFor = (flow: Flow, stage: Stage) => (stage === "codes" ? TITLE.codes : TITLE[`${flow}/confirm`]);
 
 /** The wizard, props only: both flows, both stages, and the dead end at 422. */
 export function TwoFactorPage(s: TwoFactorPageProps) {
   // A non-retryable setup failure is only ever "2FA is already on" —
   // use-two-factor maps every other failure to retryable.
   const alreadyOn = s.setupError !== null && !s.setupError.retryable;
-  const { h1, lede } = alreadyOn ? TITLE["already-on"]! : titleFor(s.flow, s.stage);
+  const { h1, lede } = alreadyOn ? TITLE["already-on"] : titleFor(s.flow, s.stage);
 
   return (
     <div className="mx-auto flex w-full max-w-[760px] flex-col gap-5">

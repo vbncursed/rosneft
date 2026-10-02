@@ -7,7 +7,7 @@ const STAGE_LABELS: Record<string, string> = {
   registering: "Registering artifacts",
 };
 
-const LOD_STAGE = /^lod-(\d+)$/;
+const LOD_STAGE = /^lod-(\d+)$/u;
 
 /**
  * Humanises the worker's coarse-grained `Job.stage` token for the upload and

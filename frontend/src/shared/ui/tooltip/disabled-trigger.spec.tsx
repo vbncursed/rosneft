@@ -59,7 +59,7 @@ describe("Tooltip · a disabled, absolutely positioned trigger", () => {
         right: r.left + r.width,
         bottom: r.top + r.height,
         toJSON: () => r,
-      } as DOMRect;
+      };
     });
     render(
       <Tooltip label="Reveal">

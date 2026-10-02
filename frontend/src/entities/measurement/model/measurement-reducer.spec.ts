@@ -233,7 +233,10 @@ test("a sync action for a chain that is gone returns the same state object", () 
 test("restore puts a chain back after a failed delete, once", () => {
   const removed = reduce(seeded, { type: "removeChain", chainId: 1 });
   const back = reduce(removed, { type: "restore", chain: seeded.chains[0] });
-  assert.deepEqual(back.chains.map((c) => c.id).sort(), [1, 2]);
+  assert.deepEqual(
+    back.chains.map((c) => c.id).sort((a, b) => a - b),
+    [1, 2],
+  );
   assert.equal(reduce(back, { type: "restore", chain: seeded.chains[0] }), back);
 });
 

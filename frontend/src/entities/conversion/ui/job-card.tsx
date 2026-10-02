@@ -47,7 +47,7 @@ export function JobCard({ card }: JobCardProps) {
           Open {card.title} →
         </a>
       </div>
-      {card.percent !== undefined ? (
+      {card.percent === undefined ? null : (
         <div className="mt-3 flex items-center gap-[11px]">
           <ProgressBar
             size="lg"
@@ -58,7 +58,7 @@ export function JobCard({ card }: JobCardProps) {
           />
           <span className="whitespace-nowrap font-mono text-[11px] text-warn">{card.percent}%</span>
         </div>
-      ) : null}
+      )}
       {card.error ? (
         <p className="m-0 mt-[11px] break-words font-mono text-[11px] leading-[1.5] text-bad select-text">
           {card.error}

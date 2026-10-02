@@ -22,7 +22,7 @@ test("reports monotonic progress ending at 100 when Content-Length is known", as
   assert.equal(blob.size, 5);
   assert.deepEqual(seen, [60, 100]);
   for (let i = 1; i < seen.length; i++) {
-    assert.ok((seen[i] as number) >= (seen[i - 1] as number), "progress must not decrease");
+    assert.ok(seen[i] >= seen[i - 1], "progress must not decrease");
   }
 });
 

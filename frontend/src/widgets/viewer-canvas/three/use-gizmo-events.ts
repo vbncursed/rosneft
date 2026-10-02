@@ -25,7 +25,7 @@ interface TransformEmitter {
 }
 
 function asEmitter(tc: TransformControlsImpl): TransformEmitter {
-  return tc as unknown as TransformEmitter;
+  return tc;
 }
 
 interface UseGizmoEventsParams {

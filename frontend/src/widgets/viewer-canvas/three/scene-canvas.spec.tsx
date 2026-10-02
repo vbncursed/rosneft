@@ -18,7 +18,7 @@ vi.mock("./ktx2-init", () => ({ default: () => null }));
 // the props it was handed captured for the pointer-missed assertions.
 const canvas = vi.hoisted(() => ({ props: {} as Record<string, () => void> }));
 vi.mock("@react-three/fiber", async (orig) => {
-  const real = (await (orig as () => Promise<Record<string, unknown>>)()) as Record<string, unknown>;
+  const real = await (orig as () => Promise<Record<string, unknown>>)();
   return {
     ...real,
     Canvas: (p: { children: unknown }) => {

@@ -41,17 +41,15 @@ describe("postureCards", () => {
   // sentence described the factor being on and was printed under "Off" and
   // under "—" as well: two of the three states read as a lie.
   it("describes what two-factor does when it is on, and what its absence means when it is off", () => {
-    expect(postureCards(on, 2)[0]!.hint).toBe("Every sign-in asks for a code from your authenticator app.");
-    expect(postureCards(off, 2)[0]!.hint).toBe("Your password alone signs you in — no second factor is asked for.");
-    expect(postureCards(null, 2)[0]!.hint).toBe("We could not read the two-factor status just now.");
+    expect(postureCards(on, 2)[0].hint).toBe("Every sign-in asks for a code from your authenticator app.");
+    expect(postureCards(off, 2)[0].hint).toBe("Your password alone signs you in — no second factor is asked for.");
+    expect(postureCards(null, 2)[0].hint).toBe("We could not read the two-factor status just now.");
   });
 
   it("does the same for passkeys, including admitting it could not find out", () => {
-    expect(postureCards(on, 3)[1]!.hint).toBe("These devices sign you in with the unlock they already use.");
-    expect(postureCards(on, 0)[1]!.hint).toBe(
-      "No device is registered, so nothing signs you in without your password.",
-    );
-    expect(postureCards(on, null)[1]!.hint).toBe("We could not read your registered passkeys just now.");
+    expect(postureCards(on, 3)[1].hint).toBe("These devices sign you in with the unlock they already use.");
+    expect(postureCards(on, 0)[1].hint).toBe("No device is registered, so nothing signs you in without your password.");
+    expect(postureCards(on, null)[1].hint).toBe("We could not read your registered passkeys just now.");
   });
 
   it("always reports the password as a set fallback", () => {

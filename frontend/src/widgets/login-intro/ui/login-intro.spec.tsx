@@ -14,7 +14,7 @@ const props = (over: Partial<LoginIntroProps> = {}): LoginIntroProps => ({
 });
 
 beforeEach(() => {
-  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false } as MediaQueryList));
+  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
 });
 
 afterEach(() => {

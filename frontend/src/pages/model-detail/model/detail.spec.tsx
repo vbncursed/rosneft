@@ -62,6 +62,6 @@ describe("model detail facts", () => {
 
   it("omits the triangle count for an unmeasured LOD", () => {
     const rows = artifactRows("valve", [art(1, 0)]);
-    expect(rows[0]!.meta).toBe("mid range");
+    expect(rows[0].meta).toBe("mid range");
   });
 });

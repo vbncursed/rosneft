@@ -80,7 +80,7 @@ const base: HomePageProps = {
 const page = (over: Partial<HomePageProps> = {}) => render(<HomePage {...base} {...over} />);
 
 beforeEach(() => {
-  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false } as MediaQueryList));
+  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
 });
 
 describe("HomePage", () => {
