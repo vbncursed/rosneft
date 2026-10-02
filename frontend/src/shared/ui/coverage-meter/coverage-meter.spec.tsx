@@ -52,9 +52,7 @@ describe("CoverageMeter", () => {
   });
 
   it("takes the readout's tone from the caller when the default is wrong", () => {
-    render(
-      <CoverageMeter label="2FA coverage" segments={SEGMENTS} detail="8 / 26" detailTone="bad" />,
-    );
+    render(<CoverageMeter label="2FA coverage" segments={SEGMENTS} detail="8 / 26" detailTone="bad" />);
     expect(screen.getByText("8 / 26").className).toContain("text-bad");
   });
 });

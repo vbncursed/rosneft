@@ -13,7 +13,7 @@ const load = async () => {
 beforeEach(() => {
   localStorage.clear();
   document.documentElement.removeAttribute("data-theme");
-  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false } as MediaQueryList));
+  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
 });
 
 afterEach(() => {
@@ -38,9 +38,7 @@ describe("ThemeToggle", () => {
   it("names both the current theme and what pressing it does", async () => {
     const ThemeToggle = await load();
     render(<ThemeToggle />);
-    expect(
-      screen.getByRole("button", { name: "Theme: dark. Switch to light" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Theme: dark. Switch to light" })).toBeInTheDocument();
   });
 
   it("switches the document's theme", async () => {

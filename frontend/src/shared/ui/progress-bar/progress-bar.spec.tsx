@@ -52,10 +52,7 @@ describe("ProgressBar · thin", () => {
 
   it("still reports its value", () => {
     render(<ProgressBar variant="thin" value={40} ariaLabel="Granted" />);
-    expect(screen.getByRole("progressbar", { name: "Granted" })).toHaveAttribute(
-      "aria-valuenow",
-      "40",
-    );
+    expect(screen.getByRole("progressbar", { name: "Granted" })).toHaveAttribute("aria-valuenow", "40");
   });
 });
 
@@ -86,9 +83,7 @@ describe("ProgressBar · fill", () => {
 
 describe("ProgressBar · lg", () => {
   it("draws the mock's 8px framed track with the caption above it", () => {
-    const { container } = render(
-      <ProgressBar size="lg" value={58} label="Building LOD 1" detail="58%" />,
-    );
+    const { container } = render(<ProgressBar size="lg" value={58} label="Building LOD 1" detail="58%" />);
     const track = screen.getByRole("progressbar", { name: "Building LOD 1" });
     expect(track).toHaveAttribute("aria-valuenow", "58");
     expect(track.className).toContain("h-2");

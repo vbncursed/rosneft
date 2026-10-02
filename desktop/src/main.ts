@@ -1,14 +1,15 @@
 import path from "node:path";
-import { app, BrowserWindow, dialog, ipcMain, safeStorage, session, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, net, safeStorage, session, shell } from "electron";
 import { upstreamOrigin } from "./config";
 import { createHandler } from "./intercept";
 import { registerIpc, buildHandlers } from "./ipc";
 import type { Push } from "./ipc-contract";
-import { openableExternally, sameOrigin } from "./links";
 import { OfflineSaver } from "./offline";
 import { SettingsFile } from "./settings";
 import { Shell } from "./shell";
 import { Store } from "./store";
+import { createUpdateChecker, scheduleUpdateChecks } from "./updates";
+import { attachPermissionPolicy, attachWindowPolicy } from "./window-policy";
 
 const ORIGIN = upstreamOrigin(process.env);
 const PARTITION = "persist:andrey";
@@ -43,15 +44,7 @@ function createWindow(passkeysOn: boolean): BrowserWindow {
       sandbox: true,
     },
   });
-  w.webContents.setWindowOpenHandler(({ url }) => {
-    if (!sameOrigin(url, ORIGIN) && openableExternally(url)) void shell.openExternal(url);
-    return { action: "deny" };
-  });
-  w.webContents.on("will-navigate", (event, url) => {
-    if (sameOrigin(url, ORIGIN)) return;
-    event.preventDefault();
-    if (openableExternally(url)) void shell.openExternal(url);
-  });
+  attachWindowPolicy(w.webContents, ORIGIN, (url) => void shell.openExternal(url));
   w.on("closed", () => {
     win = null;
   });
@@ -66,8 +59,7 @@ async function start(): Promise<void> {
   await store.init();
 
   const ses = session.fromPartition(PARTITION);
-  // The SPA asks for no device permission; the only one it uses is a user-gesture clipboard write (copy-text.ts).
-  ses.setPermissionRequestHandler((_wc, permission, callback) => callback(permission === "clipboard-sanitized-write"));
+  attachPermissionPolicy(ses, ORIGIN);
   // ses.fetch, never net.fetch: that is the default session, without our cookie.
   // credentials: "include" — without it Electron blocks cookies both ways.
   const network = (input: Request | string, init: RequestInit = {}) =>
@@ -76,7 +68,7 @@ async function start(): Promise<void> {
       bypassCustomProtocolHandlers: true,
       credentials: "include",
       ...(input instanceof Request && input.body ? { duplex: "half" } : {}),
-    } as RequestInit);
+    });
 
   const shellCache = new Shell(path.join(data, "cache", "shell"), ORIGIN, (url) => network(url, { cache: "no-store" }));
   const saver = new OfflineSaver({
@@ -106,15 +98,28 @@ async function start(): Promise<void> {
   registerIpc(ipcMain, ORIGIN, buildHandlers({ saver, store, settings, connectivity: () => online ?? true }));
 
   if (process.platform === "linux" && safeStorage.getSelectedStorageBackend() === "basic_text") {
-    console.warn("no keyring (libsecret/KWallet): the cookie encryption fuse falls back to a hard-coded key (basic_text), so the session cookie is obfuscated, not protected");
+    console.warn(
+      "no keyring (libsecret/KWallet): the cookie encryption fuse falls back to a hard-coded key (basic_text), so the session cookie is obfuscated, not protected",
+    );
   }
 
   win = createWindow(PASSKEYS[process.platform] ?? false);
+
+  const check = createUpdateChecker({
+    // net.fetch, not ses.fetch: GitHub is not the upstream, needs no session cookie, and net.fetch honours the system proxy.
+    fetch: (url, init) => net.fetch(url, init),
+    settings,
+    showDialog: async (message, detail) => {
+      const options = { message, detail, buttons: ["Download", "Later"], defaultId: 0, cancelId: 1 };
+      return (await (win ? dialog.showMessageBox(win, options) : dialog.showMessageBox(options))).response;
+    },
+    openExternal: (url) => shell.openExternal(url),
+    currentVersion: app.getVersion(),
+  });
+  scheduleUpdateChecks({ setTimeout, setInterval, check, packaged: app.isPackaged });
 }
 
-if (!app.requestSingleInstanceLock()) {
-  app.quit();
-} else {
+if (app.requestSingleInstanceLock()) {
   app.on("second-instance", () => {
     if (!win) return;
     if (win.isMinimized()) win.restore();
@@ -128,4 +133,6 @@ if (!app.requestSingleInstanceLock()) {
       dialog.showErrorBox("Andrey could not start", String(err));
       app.exit(1);
     });
+} else {
+  app.quit();
 }

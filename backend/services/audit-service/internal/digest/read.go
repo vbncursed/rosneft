@@ -17,7 +17,7 @@ import (
 // Later lines win: a checkpoint written twice (a restart mid-tick) is not
 // corruption, and the last word is the one the database ended up agreeing with.
 func ReadFile(path string) (map[int64]string, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(path) //nolint:gosec // G304: path is the operator-configured witness file, not request input
 	if err != nil {
 		return nil, fmt.Errorf("digest.ReadFile %s: %w", path, err)
 	}

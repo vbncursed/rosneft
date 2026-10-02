@@ -45,12 +45,22 @@ function UsageReadout({ usage, failed }: { usage: StorageUsage | null; failed: b
   return failed ? (
     <Callout tone="warn">Storage usage unavailable</Callout>
   ) : (
-    <p role="status" className="m-0 text-[13px] text-muted">Reading storage…</p>
+    <p role="status" className="m-0 text-[13px] text-muted">
+      Reading storage…
+    </p>
   );
 }
 
 /** This device's offline copy: how much it takes, what is saved, the limit. Desktop shell only. */
-export function StorageSection({ usage, usageFailed, savedLoaded, saved, onLimit, onClear, onRemove }: StorageSectionProps) {
+export function StorageSection({
+  usage,
+  usageFailed,
+  savedLoaded,
+  saved,
+  onLimit,
+  onClear,
+  onRemove,
+}: StorageSectionProps) {
   const [confirming, setConfirming] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [removing, setRemoving] = useState<SavedTerritory | null>(null);
@@ -77,26 +87,30 @@ export function StorageSection({ usage, usageFailed, savedLoaded, saved, onLimit
         onChange={(g) => void onLimit(Number(g) * GIB)}
       />
 
-      {!savedLoaded ? (
-        <p role="status" className="m-0 text-[13px] text-muted">Reading saved territories…</p>
-      ) : saved.length === 0 ? (
-        <p className="m-0 text-[13px] text-muted">Nothing saved on this device yet.</p>
-      ) : (
-        <ul className="m-0 flex list-none flex-col divide-y divide-line p-0">
-          {saved.map((t) => (
-            <li key={t.slug} className="flex items-center justify-between gap-4 py-2.5">
-              <span className="min-w-0">
-                <span className="block truncate text-[13px] font-semibold text-fg">{t.title}</span>
-                <span className="font-mono text-[10px] text-dim">
-                  {formatBytes(t.bytes)} · saved {longDate(t.savedAt)} · synced {longDate(t.syncedAt)}
+      {savedLoaded ? (
+        saved.length === 0 ? (
+          <p className="m-0 text-[13px] text-muted">Nothing saved on this device yet.</p>
+        ) : (
+          <ul className="m-0 flex list-none flex-col divide-y divide-line p-0">
+            {saved.map((t) => (
+              <li key={t.slug} className="flex items-center justify-between gap-4 py-2.5">
+                <span className="min-w-0">
+                  <span className="block truncate text-[13px] font-semibold text-fg">{t.title}</span>
+                  <span className="font-mono text-[10px] text-dim">
+                    {formatBytes(t.bytes)} · saved {longDate(t.savedAt)} · synced {longDate(t.syncedAt)}
+                  </span>
                 </span>
-              </span>
-              <Button size="sm" aria-label={`Remove ${t.title} from this device`} onClick={() => setRemoving(t)}>
-                Remove
-              </Button>
-            </li>
-          ))}
-        </ul>
+                <Button size="sm" aria-label={`Remove ${t.title} from this device`} onClick={() => setRemoving(t)}>
+                  Remove
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )
+      ) : (
+        <p role="status" className="m-0 text-[13px] text-muted">
+          Reading saved territories…
+        </p>
       )}
 
       <div>

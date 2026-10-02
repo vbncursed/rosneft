@@ -22,17 +22,19 @@ const line = (id: number, z: number, over: Partial<Chain> = {}): Chain => ({
 
 const SAVED = [line(1, -0.5, { serverId: 11, sync: "saved" }), line(2, 0, { serverId: 12, sync: "saved" })];
 
-const measuring = (chains: Chain[], unsaved: boolean) => (p: PageParts): PageParts => ({
-  ...p,
-  mode: { ...p.mode, mode: "measure" },
-  panel: { tab: "view", collapsed: false },
-  measure: {
-    ...p.measure,
-    chains,
-    activeChainId: null,
-    summary: { segments: chains.length * 2, total: `${(chains.length * 13.42).toFixed(2)} m`, unsaved },
-  },
-});
+const measuring =
+  (chains: Chain[], unsaved: boolean) =>
+  (p: PageParts): PageParts => ({
+    ...p,
+    mode: { ...p.mode, mode: "measure" },
+    panel: { tab: "view", collapsed: false },
+    measure: {
+      ...p.measure,
+      chains,
+      activeChainId: null,
+      summary: { segments: chains.length * 2, total: `${(chains.length * 13.42).toFixed(2)} m`, unsaved },
+    },
+  });
 
 export default {
   "measure · saved": page(measuring(SAVED, false)),

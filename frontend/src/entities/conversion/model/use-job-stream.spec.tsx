@@ -48,7 +48,7 @@ describe("useJobStream", () => {
   it("does not subscribe to an empty id, and drops the previous id's frame", () => {
     const { result, rerender } = renderHook(({ id }) => useJobStream(id, "t"), {
       wrapper,
-      initialProps: { id: "" as string },
+      initialProps: { id: "" },
     });
     // "" would open /api/jobs//events — a route the gateway does not have.
     expect(openJobStream).not.toHaveBeenCalled();

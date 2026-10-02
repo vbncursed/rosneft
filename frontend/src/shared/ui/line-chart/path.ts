@@ -31,11 +31,7 @@ export function scaleY(value: number, max: number, geo: ChartGeometry): number {
  * sample is a missed scrape, not a zero: it lifts the pen, so the path picks
  * up with a fresh `M` after the gap rather than drawing a slope across it.
  */
-export function toLinePath(
-  values: (number | null)[],
-  max: number,
-  geo: ChartGeometry = DEFAULT_GEOMETRY,
-): string {
+export function toLinePath(values: (number | null)[], max: number, geo: ChartGeometry = DEFAULT_GEOMETRY): string {
   if (values.length === 0) return "";
   // A single reading has no run to draw across, so it becomes a flat segment
   // rather than a point nobody can see.
@@ -78,11 +74,7 @@ export function toLinePath(
  * honest fill — which side of it would the shading belong to — so the whole
  * area is skipped rather than guessed.
  */
-export function toAreaPath(
-  values: (number | null)[],
-  max: number,
-  geo: ChartGeometry = DEFAULT_GEOMETRY,
-): string {
+export function toAreaPath(values: (number | null)[], max: number, geo: ChartGeometry = DEFAULT_GEOMETRY): string {
   if (values.includes(null)) return "";
   const line = toLinePath(values, max, geo);
   if (!line) return "";

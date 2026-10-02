@@ -20,9 +20,7 @@ vi.mock("@react-three/drei", async (orig) => ({
 
 const segment = { id: encodeSegmentId(4, 2), a: { x: 0, y: 0, z: 0 }, b: { x: 1, y: 0, z: 0 } };
 
-const draw = (
-  props: { onRemoveSegment?: () => void; onRemoveChain?: () => void; removable?: boolean } = {},
-) =>
+const draw = (props: { onRemoveSegment?: () => void; onRemoveChain?: () => void; removable?: boolean } = {}) =>
   createInPage(
     <MeasurementSegment
       measurement={segment}

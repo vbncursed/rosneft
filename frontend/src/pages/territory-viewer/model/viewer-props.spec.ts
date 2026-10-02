@@ -17,9 +17,7 @@ describe("the page's prop shapes", () => {
   });
 
   it("hands the placements panel exactly what that widget asks for", () => {
-    expectTypeOf<
-      NonNullable<TerritoryViewerPageProps["panel"]>["placements"]
-    >().toEqualTypeOf<PlacementsPanelProps>();
+    expectTypeOf<NonNullable<TerritoryViewerPageProps["panel"]>["placements"]>().toEqualTypeOf<PlacementsPanelProps>();
   });
 
   it("hands the picker exactly what the modal asks for", () => {

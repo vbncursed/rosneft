@@ -5,7 +5,8 @@ const ORIGIN = "https://andrey.vbncursed.fun";
 
 describe("sameOrigin", () => {
   it("matches a path on the upstream", () => expect(sameOrigin(`${ORIGIN}/territories`, ORIGIN)).toBe(true));
-  it("rejects a look-alike host", () => expect(sameOrigin("https://andrey.vbncursed.fun.evil.io/", ORIGIN)).toBe(false));
+  it("rejects a look-alike host", () =>
+    expect(sameOrigin("https://andrey.vbncursed.fun.evil.io/", ORIGIN)).toBe(false));
   it("rejects another scheme", () => expect(sameOrigin("http://andrey.vbncursed.fun/", ORIGIN)).toBe(false));
   it("rejects garbage", () => expect(sameOrigin("::", ORIGIN)).toBe(false));
 });

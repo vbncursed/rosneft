@@ -87,9 +87,7 @@ describe("UsersScreen", () => {
 
   it("says the list is unavailable, with the gateway's own words", () => {
     showing({ status: "unavailable", users: null, error: "You don't have permission to do this" });
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "People are unavailable: You don't have permission to do this",
-    );
+    expect(screen.getByRole("alert")).toHaveTextContent("People are unavailable: You don't have permission to do this");
     expect(screen.queryByRole("heading", { name: "Users" })).not.toBeInTheDocument();
   });
 
@@ -129,9 +127,7 @@ describe("UsersScreen", () => {
     showing({ selected: USER, pending: { kind: "freeze", user: USER } });
     const dialog = screen.getByRole("dialog", { name: "Freeze a.ivanova?" });
     expect(
-      within(dialog).getByText(
-        "They are signed out everywhere and cannot sign in until unfrozen.",
-      ),
+      within(dialog).getByText("They are signed out everywhere and cannot sign in until unfrozen."),
     ).toBeInTheDocument();
     // The confirm button names the action exactly as the one that opened it.
     expect(within(dialog).getByRole("button", { name: "Freeze" })).toBeInTheDocument();

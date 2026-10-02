@@ -42,7 +42,9 @@ describe("useEditDetails", () => {
     const { result } = hook("model", "valve");
     await act(() => result.current.save.mutateAsync({ title: "Valve B" }));
 
-    expect(client.getQueryData(["models"])).toEqual([{ slug: "valve", title: "Valve B", description: undefined, lods: [1, 2] }]);
+    expect(client.getQueryData(["models"])).toEqual([
+      { slug: "valve", title: "Valve B", description: undefined, lods: [1, 2] },
+    ]);
   });
 
   it("leaves caches that were never loaded empty rather than inventing them", async () => {
@@ -136,7 +138,10 @@ describe("useEditDetails", () => {
 
   it("renames a model in every cached scene bundle's model options, keeping stale marks", async () => {
     const option = (slug: string, title: string) => ({ slug, title, chain: [] });
-    client.setQueryData(["scene", "yard"], { territory: { slug: "yard" }, modelOptions: [option("valve", "Valve"), option("pump", "Pump")] });
+    client.setQueryData(["scene", "yard"], {
+      territory: { slug: "yard" },
+      modelOptions: [option("valve", "Valve"), option("pump", "Pump")],
+    });
     client.setQueryData(["scene", "plant"], { territory: { slug: "plant" }, modelOptions: [option("valve", "Valve")] });
     const other = { territory: { slug: "shed" }, modelOptions: [option("pump", "Pump")] };
     client.setQueryData(["scene", "shed"], other, { updatedAt: 1 });
@@ -146,7 +151,10 @@ describe("useEditDetails", () => {
     await act(() => result.current.save.mutateAsync({ title: "Gate valve" }));
 
     type Bundle = { modelOptions: { slug: string; title: string }[] };
-    expect(client.getQueryData<Bundle>(["scene", "yard"])!.modelOptions.map((o) => o.title)).toEqual(["Gate valve", "Pump"]);
+    expect(client.getQueryData<Bundle>(["scene", "yard"])!.modelOptions.map((o) => o.title)).toEqual([
+      "Gate valve",
+      "Pump",
+    ]);
     expect(client.getQueryData<Bundle>(["scene", "plant"])!.modelOptions[0]).toEqual(option("valve", "Gate valve"));
     expect(client.getQueryState(["scene", "plant"])?.isInvalidated).toBe(true);
     expect(client.getQueryState(["scene", "yard"])?.isInvalidated).toBe(false);

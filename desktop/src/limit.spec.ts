@@ -13,11 +13,15 @@ describe("eachLimit", () => {
       seen.push(n);
       inFlight -= 1;
     });
-    expect(seen.sort()).toEqual([1, 2, 3, 4, 5]);
+    expect(seen.toSorted((a, b) => a - b)).toEqual([1, 2, 3, 4, 5]);
     expect(peak).toBe(2);
   });
   it("rejects with the first failure", async () => {
-    await expect(eachLimit([1, 2], 2, async (n) => { if (n === 2) throw new Error("boom"); })).rejects.toThrow("boom");
+    await expect(
+      eachLimit([1, 2], 2, async (n) => {
+        if (n === 2) throw new Error("boom");
+      }),
+    ).rejects.toThrow("boom");
   });
   it("does nothing for no items", async () => {
     await expect(eachLimit([], 4, async () => {})).resolves.toBeUndefined();
@@ -46,7 +50,9 @@ describe("eachLimit", () => {
   });
   it("treats n below 1 as 1", async () => {
     const seen: number[] = [];
-    await eachLimit([1, 2, 3], 0, async (n) => { seen.push(n); });
+    await eachLimit([1, 2, 3], 0, async (n) => {
+      seen.push(n);
+    });
     expect(seen).toEqual([1, 2, 3]);
   });
 });

@@ -33,26 +33,13 @@ const uploading: FileUploadState = {
 export default {
   "panorama-idle": <UploadModal {...base} />,
   "panorama-picked": (
-    <UploadModal
-      {...base}
-      title="Pump house, south wall"
-      canSubmit
-      upload={{ stage: "picked", file: photo }}
-    />
+    <UploadModal {...base} title="Pump house, south wall" canSubmit upload={{ stage: "picked", file: photo }} />
   ),
-  "panorama-uploading": (
-    <UploadModal {...base} title="Pump house, south wall" upload={uploading} />
-  ),
+  "panorama-uploading": <UploadModal {...base} title="Pump house, south wall" upload={uploading} />,
   "panorama-creating": (
-    <UploadModal
-      {...base}
-      title="Pump house, south wall"
-      upload={{ stage: "creating", file: photo }}
-    />
+    <UploadModal {...base} title="Pump house, south wall" upload={{ stage: "creating", file: photo }} />
   ),
-  "document-idle": (
-    <UploadModal {...base} kind="document" gps={undefined} />
-  ),
+  "document-idle": <UploadModal {...base} kind="document" gps={undefined} />,
   refused: (
     <UploadModal
       {...base}

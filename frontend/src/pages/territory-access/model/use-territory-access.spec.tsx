@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { setCsrfToken } from "@/shared/api";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useTerritoryAccess } from "./use-territory-access";
@@ -49,7 +49,7 @@ const T2 = { slug: "t-2", title: "T 2", sourceBlobHash: "b".repeat(64) };
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
-let fetchMock: ReturnType<typeof vi.fn>;
+let fetchMock: Mock<(url: string, init?: RequestInit) => Promise<Response>>;
 let client: QueryClient;
 const wrapper = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -65,8 +65,7 @@ beforeEach(() => {
     if (url === "/api/territories") return json([T1, T2]);
     if (url.startsWith("/api/auth/users")) return json(USERS);
     if (url === "/api/territory-admins" && method === "GET") return json({ "t-1": ["u-1"], "t-2": null });
-    if (url === "/api/territories/t-1/admins" && method === "PUT")
-      return new Response(null, { status: 204 });
+    if (url === "/api/territories/t-1/admins" && method === "PUT") return new Response(null, { status: 204 });
     return json({ code: "forbidden", message: "You don't have permission to do this" }, 403);
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -76,11 +75,9 @@ afterEach(() => {
   clearNotices();
 });
 
-const puts = () => fetchMock.mock.calls.filter(([, i]) => (i as RequestInit | undefined)?.method === "PUT");
+const puts = () => fetchMock.mock.calls.filter(([, i]) => i?.method === "PUT");
 const adminReads = () =>
-  fetchMock.mock.calls.filter(
-    ([u, i]) => u === "/api/territory-admins" && ((i as RequestInit | undefined)?.method ?? "GET") === "GET",
-  ).length;
+  fetchMock.mock.calls.filter(([u, i]) => u === "/api/territory-admins" && (i?.method ?? "GET") === "GET").length;
 
 describe("useTerritoryAccess", () => {
   it("is loading until the admin map answered, then ready with rows and grants", async () => {
@@ -95,7 +92,7 @@ describe("useTerritoryAccess", () => {
     expect(result.current.grantsOf("t-2")).toEqual([]);
     expect(result.current.canManage).toBe(true);
     expect(adminReads()).toBe(1);
-    expect(fetchMock.mock.calls.some(([u]) => /\/api\/territories\/[^/]+\/admins$/.test(String(u)))).toBe(false);
+    expect(fetchMock.mock.calls.some(([u]) => /\/api\/territories\/[^/]+\/admins$/.test(u))).toBe(false);
   });
 
   it("edits a draft per territory, keeps it across a switch, and cancels one", async () => {
@@ -134,7 +131,7 @@ describe("useTerritoryAccess", () => {
     act(() => result.current.s.save());
     await waitFor(() => expect(result.current.notices[0]?.message).toBe("Access saved"));
     expect(puts()).toHaveLength(1);
-    expect(JSON.parse(puts()[0][1].body as string)).toEqual({ userIds: ["u-1", "u-2"] });
+    expect(JSON.parse(puts()[0]?.[1]?.body as string)).toEqual({ userIds: ["u-1", "u-2"] });
     // The PUT is a full replace answering 204, so the set just sent is the
     // saved set: written straight into the one map entry, nothing re-read.
     expect(client.getQueryData(["territory-admins"])).toEqual({ "t-1": ["u-1", "u-2"], "t-2": [] });

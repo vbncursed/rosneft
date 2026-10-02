@@ -10,10 +10,7 @@ describe("ViewerSkeleton", () => {
 
   it("reports the progress it was given", () => {
     render(<ViewerSkeleton progress={45} />);
-    expect(screen.getByRole("progressbar", { name: "Loading interface…" })).toHaveAttribute(
-      "aria-valuenow",
-      "45",
-    );
+    expect(screen.getByRole("progressbar", { name: "Loading interface…" })).toHaveAttribute("aria-valuenow", "45");
   });
 
   it("runs indeterminate before the loader reports anything", () => {

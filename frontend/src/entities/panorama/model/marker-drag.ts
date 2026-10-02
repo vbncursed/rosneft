@@ -18,17 +18,11 @@ export function begin(id: number): DragState {
 
 // A move only registers while a marker is grabbed; otherwise it's ignored.
 export function move(state: DragState, point: Vec3): DragState {
-  return state.draggingId === null
-    ? state
-    : { draggingId: state.draggingId, livePos: point };
+  return state.draggingId === null ? state : { draggingId: state.draggingId, livePos: point };
 }
 
 // The commit target read on pointer-up: id + position, or null when the
 // grab produced no surface point (a plain click) so nothing is persisted.
-export function dropTarget(
-  state: DragState,
-): { id: number; position: Vec3 } | null {
-  return state.draggingId !== null && state.livePos !== null
-    ? { id: state.draggingId, position: state.livePos }
-    : null;
+export function dropTarget(state: DragState): { id: number; position: Vec3 } | null {
+  return state.draggingId !== null && state.livePos !== null ? { id: state.draggingId, position: state.livePos } : null;
 }

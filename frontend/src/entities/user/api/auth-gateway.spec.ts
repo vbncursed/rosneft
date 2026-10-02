@@ -28,9 +28,7 @@ describe("auth gateway", () => {
   it("does not mark a session when a second factor is still due", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        jsonResponse(200, { twoFactorRequired: true, challengeToken: "chal-1" }),
-      ),
+      vi.fn().mockResolvedValue(jsonResponse(200, { twoFactorRequired: true, challengeToken: "chal-1" })),
     );
 
     const r = await login("a.ivanova", "pw", true);
@@ -43,9 +41,7 @@ describe("auth gateway", () => {
   it("marks the session when no second factor is due", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        jsonResponse(200, { twoFactorRequired: false, token: "t", csrfToken: "c" }),
-      ),
+      vi.fn().mockResolvedValue(jsonResponse(200, { twoFactorRequired: false, token: "t", csrfToken: "c" })),
     );
 
     await login("a.ivanova", "pw", true);
@@ -54,10 +50,7 @@ describe("auth gateway", () => {
   });
 
   it("marks the session once the second factor is verified", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(jsonResponse(200, { token: "t", csrfToken: "c" })),
-    );
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, { token: "t", csrfToken: "c" })));
 
     await verifyTwoFactor("chal-1", "402913", true);
 
@@ -70,9 +63,7 @@ describe("auth gateway", () => {
   it("sends the remember choice on both steps", async () => {
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce(
-        jsonResponse(200, { twoFactorRequired: true, challengeToken: "chal-1" }),
-      )
+      .mockResolvedValueOnce(jsonResponse(200, { twoFactorRequired: true, challengeToken: "chal-1" }))
       .mockResolvedValueOnce(jsonResponse(200, { token: "t", csrfToken: "c" }));
     vi.stubGlobal("fetch", fetchMock);
 

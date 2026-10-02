@@ -56,11 +56,7 @@ export function syncPlan(
   return opsFor(action, before, after).filter((op) => grants[REQUIRED[op.kind]]);
 }
 
-function opsFor(
-  action: MeasurementAction,
-  before: MeasurementState,
-  after: MeasurementState,
-): SyncOp[] {
+function opsFor(action: MeasurementAction, before: MeasurementState, after: MeasurementState): SyncOp[] {
   switch (action.type) {
     case "saved":
       // The chain went while its create was in flight: the new row is an orphan
@@ -105,18 +101,12 @@ function updates(before: MeasurementState, after: MeasurementState): SyncOp[] {
     .map((c): SyncOp => ({ kind: "update", id: c.id, serverId: c.serverId, points: c.points, closed: c.closed }));
 }
 
-function creates(
-  action: MeasurementAction,
-  before: MeasurementState,
-  after: MeasurementState,
-): SyncOp[] {
+function creates(action: MeasurementAction, before: MeasurementState, after: MeasurementState): SyncOp[] {
   const known = new Set(before.chains.map((c) => c.id));
-  const target =
-    action.type === "removeSegment" ? before.chains.find((c) => c.id === action.chainId) : undefined;
+  const target = action.type === "removeSegment" ? before.chains.find((c) => c.id === action.chainId) : undefined;
   // A chain whose save failed is still meant for the server, so its parts are too.
   const cutReachesServer =
-    target != null &&
-    (target.id === before.activeChainId || isSaved(target) || target.sync === "failed");
+    target != null && (target.id === before.activeChainId || isSaved(target) || target.sync === "failed");
   return after.chains
     .filter(
       (c) =>
@@ -129,8 +119,5 @@ function creates(
 }
 
 function samePoints(a: MeasurePoint[], b: MeasurePoint[]): boolean {
-  return (
-    a.length === b.length &&
-    a.every((pt, i) => pt.x === b[i].x && pt.y === b[i].y && pt.z === b[i].z)
-  );
+  return a.length === b.length && a.every((pt, i) => pt.x === b[i].x && pt.y === b[i].y && pt.z === b[i].z);
 }

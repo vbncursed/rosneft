@@ -46,13 +46,8 @@ describe("TerritoryViewerScreen", () => {
     useSceneSeeded.mockReturnValue(false);
     useTerritoryViewer.mockReturnValue({ status: "missing" });
     render(<TerritoryViewerScreen />);
-    expect(
-      screen.getByRole("heading", { level: 1, name: "No territory at this address" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Browse territories" })).toHaveAttribute(
-      "href",
-      "/territories",
-    );
+    expect(screen.getByRole("heading", { level: 1, name: "No territory at this address" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Browse territories" })).toHaveAttribute("href", "/territories");
   });
 
   it("says why when the scene could not be read", () => {

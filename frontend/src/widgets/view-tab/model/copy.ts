@@ -61,8 +61,7 @@ export const YAW_SHORT = "Yaw";
 export const SAVE = "Save";
 export const EXIT = "Exit";
 
-export const IMAGE_FAILED =
-  "This panorama's image failed to load. Delete it and upload a fresh one.";
+export const IMAGE_FAILED = "This panorama's image failed to load. Delete it and upload a fresh one.";
 
 /** Which of the territory's panoramas is open — the accent note beside the overline. */
 export const anchorCounter = (current: number, total: number) => `${current} of ${total}`;

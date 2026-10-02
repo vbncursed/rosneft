@@ -18,11 +18,7 @@ export function ModelsSection({ cards, total, meta, onOpen }: ModelsSectionProps
         title="Models"
         count={meta}
         className="pb-3 pt-0.5"
-        trailing={
-          total > 0 ? (
-            <TrailingLink href="/models">{seeAll("models", total)}</TrailingLink>
-          ) : undefined
-        }
+        trailing={total > 0 ? <TrailingLink href="/models">{seeAll("models", total)}</TrailingLink> : undefined}
       />
       {cards.length === 0 ? (
         <EmptyState

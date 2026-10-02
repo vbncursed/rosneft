@@ -18,11 +18,7 @@ export function matchesPerson(user: User, query: string): boolean {
     if (key === "passkey" && known(user.passkeyEnabled) !== value) return false;
   }
   const text = freeText(query).trim().toLowerCase();
-  return (
-    text === "" ||
-    user.username.toLowerCase().includes(text) ||
-    user.email.toLowerCase().includes(text)
-  );
+  return text === "" || user.username.toLowerCase().includes(text) || user.email.toLowerCase().includes(text);
 }
 
 const person = (user: User): Person => ({ user });

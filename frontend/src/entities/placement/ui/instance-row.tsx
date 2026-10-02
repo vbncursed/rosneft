@@ -36,6 +36,8 @@ export type InstanceRowProps = {
 const ICON_BUTTON =
   "flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] border transition-[color,background-color,border-color,scale] duration-150 ease-out enabled:active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50";
 
+const NO_GROUPS: never[] = [];
+
 /** One placed instance: eye, select by name, then move, rename, delete or focus — each by grant. */
 export function InstanceRow({
   group,
@@ -49,7 +51,7 @@ export function InstanceRow({
   onDelete,
   onFocus,
   onHide,
-  groups = [],
+  groups = NO_GROUPS,
   onMove,
   showModel = false,
   groupHidden = false,
@@ -134,7 +136,7 @@ export function InstanceRow({
           </button>
         </Tooltip>
       ) : null}
-      {!editor ? (
+      {editor ? null : (
         // Nothing is drawn to frame on a hidden placement (§1.7).
         <Tooltip label={unseen ? `${name} is hidden` : `Focus camera on ${name}`}>
           <button
@@ -147,7 +149,7 @@ export function InstanceRow({
             Focus
           </button>
         </Tooltip>
-      ) : null}
+      )}
     </div>
   );
 }

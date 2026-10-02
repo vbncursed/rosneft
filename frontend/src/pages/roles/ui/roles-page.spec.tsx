@@ -73,9 +73,7 @@ const edited = (over = {}) => ({
 describe("RolesPage", () => {
   it("names the page with one h1", () => {
     render(<RolesPage {...props()} />);
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Roles & Permissions" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Roles & Permissions" })).toBeInTheDocument();
     expect(screen.getByText("Access control · permission sets")).toBeInTheDocument();
   });
 
@@ -117,9 +115,7 @@ describe("RolesPage", () => {
 
   it("opens the inspector on the selected role", () => {
     render(<RolesPage {...props({ selectedSlug: "field-operator", edited: edited() })} />);
-    expect(
-      screen.getByRole("complementary", { name: "Role: Field Operator" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "Role: Field Operator" })).toBeInTheDocument();
     // Fades in (tens of opens a session: opacity only, no movement); leaves at once.
     expect(screen.getByRole("complementary").parentElement).toHaveClass(
       "starting:opacity-0",
@@ -131,11 +127,7 @@ describe("RolesPage", () => {
 
   it("toggles a permission through the inspector", async () => {
     const onTogglePermission = vi.fn();
-    render(
-      <RolesPage
-        {...props({ selectedSlug: "field-operator", edited: edited(), onTogglePermission })}
-      />,
-    );
+    render(<RolesPage {...props({ selectedSlug: "field-operator", edited: edited(), onTogglePermission })} />);
     await userEvent.click(screen.getByRole("button", { name: "users:write" }));
     expect(onTogglePermission).toHaveBeenCalledWith("users:write");
   });
@@ -179,9 +171,7 @@ describe("RolesPage", () => {
   });
 
   it("says so when the filter matches nothing", () => {
-    render(
-      <RolesPage {...props({ groups: [{ key: "custom", label: "Custom roles", roles: [] }] })} />,
-    );
+    render(<RolesPage {...props({ groups: [{ key: "custom", label: "Custom roles", roles: [] }] })} />);
     expect(screen.getByText("No roles match this filter.")).toBeInTheDocument();
   });
 

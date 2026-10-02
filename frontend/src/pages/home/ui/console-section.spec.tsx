@@ -19,9 +19,7 @@ const locked = (label: string, href: string): ConsoleCardProps => ({
 describe("ConsoleSection", () => {
   it("draws one card per screen, locked ones without a link", () => {
     render(
-      <ConsoleSection
-        cards={[open("Users", "/console/users", "12 users"), locked("Metrics", "/console/metrics")]}
-      />,
+      <ConsoleSection cards={[open("Users", "/console/users", "12 users"), locked("Metrics", "/console/metrics")]} />,
     );
     expect(screen.getByRole("heading", { level: 2, name: "Console" })).toBeInTheDocument();
     expect(screen.getByText("company administration")).toBeInTheDocument();

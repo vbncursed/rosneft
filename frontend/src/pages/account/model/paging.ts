@@ -8,8 +8,7 @@ export const PAGE_SIZE = 6;
 export const pageCount = (total: number): number => Math.max(1, Math.ceil(total / PAGE_SIZE));
 
 /** The page's rows out of what is loaded so far; a short last page included. */
-export const pageSlice = <T>(rows: T[], page: number): T[] =>
-  rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+export const pageSlice = <T>(rows: T[], page: number): T[] => rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
 /**
  * "1–6 of 184 events" — the mock's line, en dash and all. The range form

@@ -22,10 +22,7 @@ export function ServiceHealthList({
     return emptyHint ? (
       <EmptyState title={emptyHint} />
     ) : (
-      <EmptyState
-        title="No services match this filter."
-        description="Loosen the filter to see more services."
-      />
+      <EmptyState title="No services match this filter." description="Loosen the filter to see more services." />
     );
   }
 

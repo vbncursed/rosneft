@@ -108,10 +108,7 @@ describe("useUploadModels", () => {
       return Promise.resolve({ model: { slug: "a", title: "A" }, job: { id: "job-a" } });
     });
 
-    const { result } = renderHook(
-      () => ({ s: useUploadModels(), notices: useNotices() }),
-      { wrapper },
-    );
+    const { result } = renderHook(() => ({ s: useUploadModels(), notices: useNotices() }), { wrapper });
     act(() => result.current.s.onFiles([file("a.zip"), file("b.zip")]));
     const [a, b] = result.current.s.rows;
     act(() => result.current.s.onTitle(a.id, "A"));
@@ -192,10 +189,7 @@ describe("useUploadModels", () => {
           opts.signal?.addEventListener("abort", () => reject(new Error("upload aborted")));
         }),
     );
-    const { result } = renderHook(
-      () => ({ s: useUploadModels(), notices: useNotices() }),
-      { wrapper },
-    );
+    const { result } = renderHook(() => ({ s: useUploadModels(), notices: useNotices() }), { wrapper });
     act(() => result.current.s.onFiles([file("a.zip"), file("b.zip")]));
     const [a, b] = result.current.s.rows;
     act(() => result.current.s.onTitle(a.id, "A"));

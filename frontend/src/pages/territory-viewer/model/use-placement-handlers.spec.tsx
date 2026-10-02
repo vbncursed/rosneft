@@ -8,7 +8,7 @@ const GROUPS = [
 ];
 
 const mount = (selectedId: number | null = null, landed = true) => {
-  const mode = { state: { selectedId: selectedId as number | null }, select: vi.fn() };
+  const mode = { state: { selectedId: selectedId }, select: vi.fn() };
   const editor = {
     setHidden: vi.fn(async () => landed),
     moveToGroup: vi.fn(async () => landed),

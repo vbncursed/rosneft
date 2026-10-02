@@ -18,7 +18,9 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 const trigger = () => screen.getByRole("button", { name: "Row actions" });
-const menu = (onSelect = vi.fn()) => <Menu trigger="⋮" triggerLabel="Row actions" items={[{ label: "Edit", onSelect }]} />;
+const menu = (onSelect = vi.fn()) => (
+  <Menu trigger="⋮" triggerLabel="Row actions" items={[{ label: "Edit", onSelect }]} />
+);
 
 describe("Tooltip · keyboard focus", () => {
   it("opens on the focus a Tab brings, Shift+Tab included", async () => {

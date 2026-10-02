@@ -1,11 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  ARCHIVE_CHECKLIST,
-  canSubmit,
-  fileMeta,
-  stagesFor,
-  type UploadForm,
-} from "./upload-form";
+import { ARCHIVE_CHECKLIST, canSubmit, fileMeta, stagesFor, type UploadForm } from "./upload-form";
 
 const form = (over: Partial<UploadForm> = {}): UploadForm => ({
   title: "",

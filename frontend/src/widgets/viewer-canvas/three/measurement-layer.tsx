@@ -45,6 +45,7 @@ function MeasurementLayerImpl({
   // and on hide/show, which drops or brings back every line at once.
   useEffect(() => {
     invalidate();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- trigger, not input: a changed chain list or hide/show flip is what needs the frame
   }, [chains, visible, invalidate]);
 
   // Unmounted rather than `<group visible>`: the labels are drei <Html>, DOM
@@ -73,10 +74,10 @@ function MeasurementLayerImpl({
             {chain.points.map((p, idx) => {
               // Active chain's first vertex (when there are at least
               // two points to close into a loop) becomes the closer.
-              const isCloser =
-                isActive && idx === 0 && chain.points.length >= 2 && !chain.closed;
+              const isCloser = isActive && idx === 0 && chain.points.length >= 2 && !chain.closed;
               return (
                 <PointMarker
+                  // oxlint-disable-next-line react/no-array-index-key -- a vertex has no id; its position in the chain is its identity and a chain only changes at its end or is replaced whole
                   key={idx}
                   position={p}
                   variant={isCloser ? "active-start" : "passive"}

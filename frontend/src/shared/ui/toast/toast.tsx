@@ -25,21 +25,25 @@ export type ToastProps = {
 // The tint sits on an opaque panel: a card over the viewer's chrome must not
 // let the text beneath read through it (same ground as ModeChip).
 const TONE: Record<ToastTone, { label: string; skin: string }> = {
-  error: { label: "Error", skin: "border-bad bg-panel bg-[image:linear-gradient(var(--bad-soft),var(--bad-soft))] text-bad" },
-  warning: { label: "Warning", skin: "border-warn bg-panel bg-[image:linear-gradient(var(--warn-soft),var(--warn-soft))] text-warn" },
-  info: { label: "Info", skin: "border-accent-line bg-panel bg-[image:linear-gradient(var(--accent-soft),var(--accent-soft))] text-accent" },
-  success: { label: "Success", skin: "border-ok bg-panel bg-[image:linear-gradient(var(--ok-soft),var(--ok-soft))] text-ok" },
+  error: {
+    label: "Error",
+    skin: "border-bad bg-panel bg-[image:linear-gradient(var(--bad-soft),var(--bad-soft))] text-bad",
+  },
+  warning: {
+    label: "Warning",
+    skin: "border-warn bg-panel bg-[image:linear-gradient(var(--warn-soft),var(--warn-soft))] text-warn",
+  },
+  info: {
+    label: "Info",
+    skin: "border-accent-line bg-panel bg-[image:linear-gradient(var(--accent-soft),var(--accent-soft))] text-accent",
+  },
+  success: {
+    label: "Success",
+    skin: "border-ok bg-panel bg-[image:linear-gradient(var(--ok-soft),var(--ok-soft))] text-ok",
+  },
 };
 
-export function Toast({
-  tone,
-  children,
-  label,
-  onDismiss,
-  dismissLabel = "Dismiss",
-  action,
-  className,
-}: ToastProps) {
+export function Toast({ tone, children, label, onDismiss, dismissLabel = "Dismiss", action, className }: ToastProps) {
   const { label: fallback, skin } = TONE[tone];
 
   return (
@@ -47,15 +51,9 @@ export function Toast({
       // Errors and warnings interrupt; the other two are announced by the
       // host's polite live region (a status inside it would nest regions).
       role={tone === "error" || tone === "warning" ? "alert" : undefined}
-      className={cx(
-        "flex items-start gap-2.5 rounded-[10px] border px-3.5 py-3",
-        skin,
-        className,
-      )}
+      className={cx("flex items-start gap-2.5 rounded-[10px] border px-3.5 py-3", skin, className)}
     >
-      <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em]">
-        {label ?? fallback}
-      </span>
+      <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em]">{label ?? fallback}</span>
       <p className="m-0 flex-1 text-[13px] leading-[1.45] text-fg">{children}</p>
       {action ? (
         <button

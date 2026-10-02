@@ -170,3 +170,117 @@ func (s *ReconcileSuite) TestTargetLockOutlivesOneSerialTextureConversion() {
 	assert.Assert(s.T(), service.TargetLockTTL <= 30*time.Minute,
 		"TargetLockTTL %v keeps a dead worker's target waiting too long", service.TargetLockTTL)
 }
+
+// A conversion that failed on its input (an archive past the extraction cap)
+// fails the same way on every retry, so the tick leaves it alone. Submit's
+// mocks are unconfigured: reaching them fails the test.
+func (s *ReconcileSuite) TestSkipsTargetWhoseLatestJobFailedOnItsInput() {
+	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
+		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
+	}, nil)
+	s.catalog.HasLOD0Mock.Return(false, nil)
+	s.queue.ListTargetJobsMock.Return([]domain.Job{{
+		ID: "j1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusFailed,
+		ErrorMessage: "service.runConversion: extract: bad source: archive expands past 8 GiB", FailedOnSource: true,
+	}}, nil)
+
+	n, err := s.svc.ReconcileMissingArtifacts(s.ctx)
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), n, 0)
+	assert.Equal(s.T(), len(s.queue.ListTargetJobsMock.Calls()), 1, "one index read per tick")
+}
+
+// A failure that is not the input's fault (worker killed, Redis blip) may
+// succeed next time, so it is still retried.
+func (s *ReconcileSuite) TestRetriesTargetWhoseLatestJobFailedOnInfrastructure() {
+	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
+		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
+	}, nil)
+	s.catalog.HasLOD0Mock.Return(false, nil)
+	s.queue.TryLockTargetMock.Return(true, nil)
+	s.queue.SaveJobMock.Return(nil)
+	s.queue.EnqueueJobMock.Return(nil)
+	s.queue.GetJobMock.Return(domain.Job{}, nil)
+	s.queue.ListTargetJobsMock.Return([]domain.Job{{
+		ID: "j1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusFailed,
+		ErrorMessage: "service.runConversion: store artifact: connection reset",
+	}}, nil)
+
+	n, err := s.svc.ReconcileMissingArtifacts(s.ctx)
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), n, 1)
+}
+
+// The kind is the job's recorded field, not its message: a catalog refusal
+// that happens to read "invalid input: ..." (and a job saved before the field
+// existed) is still retried.
+func (s *ReconcileSuite) TestRetriesFailedJobWhoseMessageMerelyMentionsInvalidInput() {
+	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
+		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
+	}, nil)
+	s.catalog.HasLOD0Mock.Return(false, nil)
+	s.queue.TryLockTargetMock.Return(true, nil)
+	s.queue.SaveJobMock.Return(nil)
+	s.queue.EnqueueJobMock.Return(nil)
+	s.queue.GetJobMock.Return(domain.Job{}, nil)
+	s.queue.ListTargetJobsMock.Return([]domain.Job{{
+		ID: "j1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusFailed,
+		ErrorMessage: "register artifact lod=0: rpc error: code = InvalidArgument desc = invalid input: kind 3",
+	}}, nil)
+
+	n, err := s.svc.ReconcileMissingArtifacts(s.ctx)
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), n, 1)
+}
+
+// Only the failed target is skipped; its neighbour is still queued.
+func (s *ReconcileSuite) TestSkipIsPerTarget() {
+	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
+		{Kind: domain.KindTerritory, Slug: "bad", SourceBlobHash: "h"},
+		{Kind: domain.KindTerritory, Slug: "new", SourceBlobHash: "h"},
+	}, nil)
+	s.catalog.HasLOD0Mock.Return(false, nil)
+	s.queue.TryLockTargetMock.Return(true, nil)
+	s.queue.SaveJobMock.Return(nil)
+	s.queue.EnqueueJobMock.Return(nil)
+	s.queue.GetJobMock.Return(domain.Job{}, nil)
+	s.queue.ListTargetJobsMock.Return([]domain.Job{{
+		ID: "j1", Kind: domain.KindTerritory, Slug: "bad", Status: domain.JobStatusFailed,
+		ErrorMessage: "bad source: no .obj in source archive", FailedOnSource: true,
+	}}, nil)
+
+	n, err := s.svc.ReconcileMissingArtifacts(s.ctx)
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), n, 1)
+}
+
+// The index only decides what to skip; when it cannot be read the tick must
+// still queue the missing target rather than stall behind a Redis blip.
+func (s *ReconcileSuite) TestStillSubmitsWhenTheIndexReadFails() {
+	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
+		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
+	}, nil)
+	s.catalog.HasLOD0Mock.Return(false, nil)
+	s.queue.TryLockTargetMock.Return(true, nil)
+	s.queue.SaveJobMock.Return(nil)
+	s.queue.EnqueueJobMock.Return(nil)
+	s.queue.GetJobMock.Return(domain.Job{}, nil)
+	// Only the tick's own read fails; SubmitConversion reads the index too.
+	reads := 0
+	s.queue.ListTargetJobsMock.Set(func(context.Context) ([]domain.Job, error) {
+		reads++
+		if reads == 1 {
+			return nil, errors.New("redis down")
+		}
+		return nil, nil
+	})
+
+	n, err := s.svc.ReconcileMissingArtifacts(s.ctx)
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), n, 1)
+}

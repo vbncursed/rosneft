@@ -63,13 +63,7 @@ export function SectionHead({ overline, count, upload, fold }: SectionHeadProps)
         </>
       )}
       {upload ? (
-        <Button
-          shape="icon"
-          size="xs"
-          onClick={upload.onClick}
-          aria-label={upload.title}
-          data-tour={upload.tourId}
-        >
+        <Button shape="icon" size="xs" onClick={upload.onClick} aria-label={upload.title} data-tour={upload.tourId}>
           <Icon name="arrow-up" size={12} />
         </Button>
       ) : null}

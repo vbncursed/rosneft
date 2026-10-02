@@ -5,7 +5,9 @@ import { describe, expect, it, vi } from "vitest";
 import { Vec3Field } from "./vec3-field";
 import type { Vec3 } from "./vec3";
 
-function Harness({ initial = { x: 12.4, y: 0, z: -3.1 } }: { initial?: Vec3 }) {
+const START: Vec3 = { x: 12.4, y: 0, z: -3.1 };
+
+function Harness({ initial = START }: { initial?: Vec3 }) {
   const [value, setValue] = useState(initial);
   return (
     <>
@@ -106,14 +108,7 @@ describe("Vec3Field · row layout", () => {
     expect(screen.getByText("1").className).toContain("text-fg");
 
     rerender(
-      <Vec3Field
-        layout="row"
-        readOnly
-        tone="muted"
-        label="Pos"
-        value={{ x: 1, y: 2, z: 3 }}
-        onChange={() => {}}
-      />,
+      <Vec3Field layout="row" readOnly tone="muted" label="Pos" value={{ x: 1, y: 2, z: 3 }} onChange={() => {}} />,
     );
     expect(screen.getByText("1").className).toContain("text-muted");
   });
@@ -123,9 +118,7 @@ describe("Vec3Field · row layout", () => {
   it("prints an editable row cell through the caller's format until it is typed into", async () => {
     function Row() {
       const [value, setValue] = useState({ x: 0.03343509, y: 0, z: -4.05 });
-      return (
-        <Vec3Field layout="row" label="Pos" value={value} onChange={setValue} format={(n) => n.toFixed(3)} />
-      );
+      return <Vec3Field layout="row" label="Pos" value={value} onChange={setValue} format={(n) => n.toFixed(3)} />;
     }
     render(<Row />);
     const x = screen.getByLabelText("Pos x");
@@ -143,9 +136,7 @@ describe("Vec3Field · row layout", () => {
   it("selects a cell's whole number on focus, so typing replaces it", async () => {
     function Row() {
       const [value, setValue] = useState({ x: 1, y: 0, z: 0 });
-      return (
-        <Vec3Field layout="row" label="Scl" value={value} onChange={setValue} format={(n) => n.toFixed(3)} />
-      );
+      return <Vec3Field layout="row" label="Scl" value={value} onChange={setValue} format={(n) => n.toFixed(3)} />;
     }
     render(<Row />);
     const x = screen.getByLabelText("Scl x") as HTMLInputElement;

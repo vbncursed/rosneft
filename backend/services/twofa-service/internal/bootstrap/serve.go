@@ -51,7 +51,7 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	}
 	defer func() { _ = authClient.Close() }()
 
-	grpcSrv, healthSrv := InitGRPCServer(handler, logger)
+	grpcSrv, healthSrv := InitGRPCServer(handler, logger) //nolint:contextcheck // false positive: the recovery stream interceptor takes its context from the stream (ss.Context()) per request, not from this bootstrap ctx
 
 	go grpcutil.WatchReadiness(rootCtx, grpcutil.ReadinessConfig{
 		Service: "twofa",
@@ -63,7 +63,7 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 		Logger: logger,
 	})
 
-	lis, err := net.Listen("tcp", cfg.GRPCAddr)
+	lis, err := (&net.ListenConfig{}).Listen(rootCtx, "tcp", cfg.GRPCAddr)
 	if err != nil {
 		return fmt.Errorf("listen %s: %w", cfg.GRPCAddr, err)
 	}

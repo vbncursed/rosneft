@@ -55,9 +55,7 @@ export function matchesPanel(title: string, query: string): boolean {
 }
 
 const errorTone = (id: PanelId, last: number | null) =>
-  (id === "red-errors" || id === "stat-errors") && last !== null && last > 0
-    ? ("bad" as const)
-    : undefined;
+  (id === "red-errors" || id === "stat-errors") && last !== null && last > 0 ? ("bad" as const) : undefined;
 
 /** Panels whose legends carry gRPC names to shorten. */
 const GRPC_LABELLED: ReadonlySet<PanelId> = new Set<PanelId>(["red-rate", "red-errors", "red-latency"]);
@@ -90,11 +88,7 @@ export const servicesStale = (results: Partial<Record<PanelId, PanelResult>>): b
   (["services-up", "red-rate", "red-errors", "red-latency"] as const).some((id) => isStale(results[id]));
 
 /** One panel card: its catalogue entry, plus whatever its query has to say. */
-export function panelEntry(
-  id: PanelId,
-  result: PanelResult,
-  selected: string | null = null,
-): MetricPanelEntry {
+export function panelEntry(id: PanelId, result: PanelResult, selected: string | null = null): MetricPanelEntry {
   const { title, meta, unit } = PANELS[id];
   if (result.kind === "loading") return { key: id, title, meta, unit, last: "…", series: [] };
   if (result.kind === "unavailable") {
@@ -137,9 +131,7 @@ export function panelEntry(
     unit,
     last: formatValue(last, unit),
     ...(tone ? { lastTone: tone } : {}),
-    series: ZERO_FILLED.has(id)
-      ? aligned.map((s) => ({ ...s, values: s.values.map((v) => v ?? 0) }))
-      : aligned,
+    series: ZERO_FILLED.has(id) ? aligned.map((s) => ({ ...s, values: s.values.map((v) => v ?? 0) })) : aligned,
   };
 }
 
@@ -187,8 +179,7 @@ export function servicesHint(result: PanelResult | undefined): string | undefine
   return undefined;
 }
 
-const dash = (label: string, value: string): Detail =>
-  value ? { label, value } : { label, value: "—", tone: "dim" };
+const dash = (label: string, value: string): Detail => (value ? { label, value } : { label, value: "—", tone: "dim" });
 
 /** What the inspector prints about the alert it is showing. */
 export function alertDetails(a: AlertSummary): Detail[] {

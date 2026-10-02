@@ -40,11 +40,7 @@ describe("ViewerHeader", () => {
       />,
     );
     const status = screen.getByRole("status", { name: "Scene status" });
-    expect([...status.children].map((c) => c.textContent)).toEqual([
-      "ready",
-      "viewer · read-only",
-      "measuring",
-    ]);
+    expect([...status.children].map((c) => c.textContent)).toEqual(["ready", "viewer · read-only", "measuring"]);
   });
 
   it("prints the meta line when there is one", () => {
@@ -67,10 +63,7 @@ describe("ViewerHeader", () => {
 
   it("escapes the slug in the replace link", () => {
     render(<ViewerHeader {...props({ slug: "a b" })} />);
-    expect(screen.getByRole("link", { name: /Replace source/ })).toHaveAttribute(
-      "href",
-      "/territories/a%20b/replace",
-    );
+    expect(screen.getByRole("link", { name: /Replace source/ })).toHaveAttribute("href", "/territories/a%20b/replace");
   });
 
   it("offers no Replace source without the grant", () => {

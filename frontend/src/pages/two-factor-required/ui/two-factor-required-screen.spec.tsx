@@ -28,17 +28,13 @@ beforeEach(() => signOut.mockReset());
 describe("TwoFactorRequiredScreen", () => {
   it("shows the gate while enrolment is owed", () => {
     renderWith(principal(false));
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Set up two-factor to continue" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Set up two-factor to continue" })).toBeInTheDocument();
     expect(screen.getByText("enroll1")).toBeInTheDocument();
   });
 
   it("shows the gate while enrolment is unknown", () => {
     renderWith(principal(null));
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Set up two-factor to continue" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Set up two-factor to continue" })).toBeInTheDocument();
   });
 
   it("shows the done card once two-factor is on", () => {

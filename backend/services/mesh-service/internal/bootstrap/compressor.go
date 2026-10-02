@@ -20,7 +20,7 @@ func InitCompressor(ctx context.Context, cfg config.Config, logger *slog.Logger)
 	opts := buildCompressorOptions(cfg)
 	if len(opts) == 0 {
 		logger.Info("compressor: all optimisations disabled")
-		return nil, nil
+		return nil, nil //nolint:nilnil // documented: nil Compressor means "skip the post-process step" to converter.New
 	}
 
 	o := compression.New(cfg.GltfpackBin, opts...)

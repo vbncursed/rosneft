@@ -84,9 +84,7 @@ export function SelectedBlock({
   return (
     <div className="flex flex-col gap-[11px]">
       <div className="flex items-center justify-between gap-2.5">
-        <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.2em] text-muted">
-          {overlineFor(form)}
-        </span>
+        <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.2em] text-muted">{overlineFor(form)}</span>
         <span className="min-w-0 truncate font-mono text-[10px] text-accent">{name}</span>
       </div>
 
@@ -149,9 +147,7 @@ export function SelectedBlock({
             {/* The id sits on the words alone — the key hint is not part of the
                 control's name. */}
             <span id={snapId}>Snap to surface</span>{" "}
-            <kbd className="rounded-[3px] border border-line-2 px-1 font-mono text-[9px] text-muted">
-              G
-            </kbd>
+            <kbd className="rounded-[3px] border border-line-2 px-1 font-mono text-[9px] text-muted">G</kbd>
           </span>
           {/* Named by the visible text rather than repeating it: the label and
               the aria-label could otherwise drift apart. */}

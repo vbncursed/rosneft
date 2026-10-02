@@ -15,8 +15,7 @@ const role = (over: Partial<Role> = {}): Role => ({
   ...over,
 });
 
-const card = (props = {}) =>
-  render(<RoleCard role={role()} totalPermissions={15} {...props} />);
+const card = (props = {}) => render(<RoleCard role={role()} totalPermissions={15} {...props} />);
 
 describe("RoleCard", () => {
   it("names the role by title and slug", () => {
@@ -28,9 +27,10 @@ describe("RoleCard", () => {
   it("meters how much of the permission set it grants", () => {
     card();
     expect(screen.getByText("6/15")).toBeInTheDocument();
-    expect(
-      screen.getByRole("progressbar", { name: "Field Operator permissions granted" }),
-    ).toHaveAttribute("aria-valuenow", "40");
+    expect(screen.getByRole("progressbar", { name: "Field Operator permissions granted" })).toHaveAttribute(
+      "aria-valuenow",
+      "40",
+    );
   });
 
   it("counts its holders, agreeing in number", () => {
@@ -105,12 +105,12 @@ describe("RoleCard", () => {
   // The whole card is the target: it answers the press, gently at this size.
   it("presses on pointer-down", () => {
     const { container } = render(<RoleCard role={role()} totalPermissions={15} />);
-    const card = container.querySelector("article")!;
-    expect(card).toHaveClass(
+    const article = container.querySelector("article")!;
+    expect(article).toHaveClass(
       "active:scale-[0.99]",
       "transition-[color,background-color,border-color,scale]",
       "ease-out",
     );
-    expect(card).not.toHaveClass("transition-colors");
+    expect(article).not.toHaveClass("transition-colors");
   });
 });

@@ -51,5 +51,6 @@ export function diffRows(before: Row, after: Row): DiffField[] {
 export function formatValue(value: unknown): string {
   if (value === undefined) return "—";
   if (typeof value === "string") return `"${value}"`;
-  return JSON.stringify(value) ?? String(value);
+  // JSON.stringify answers undefined only for functions and symbols, which a journal row never holds.
+  return JSON.stringify(value) ?? "—";
 }

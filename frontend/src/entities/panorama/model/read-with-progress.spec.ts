@@ -22,7 +22,7 @@ test("reports monotonic progress ending at 100 when Content-Length is known", as
   assert.equal(blob.size, 5);
   assert.deepEqual(seen, [60, 100]);
   for (let i = 1; i < seen.length; i++) {
-    assert.ok((seen[i] as number) >= (seen[i - 1] as number), "progress must not decrease");
+    assert.ok(seen[i] >= seen[i - 1], "progress must not decrease");
   }
 });
 
@@ -40,6 +40,9 @@ test("caps progress at 100 if the stream overruns Content-Length", async () => {
   const seen: (number | null)[] = [];
   await readWithProgress(streamResponse(chunks, 5), (p) => seen.push(p));
 
-  assert.ok(seen.every((p) => (p as number) <= 100), "progress never exceeds 100");
+  assert.ok(
+    seen.every((p) => (p as number) <= 100),
+    "progress never exceeds 100",
+  );
   assert.equal(seen.at(-1), 100);
 });

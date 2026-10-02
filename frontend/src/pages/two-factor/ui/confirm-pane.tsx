@@ -43,7 +43,11 @@ export function ConfirmPane({ flow, code, error, busy, onCode, onConfirm, onCanc
           compiled stylesheet's source order rather than by this string. */}
       <OtpInput value={code} onChange={onCode} size="lg" label="Six-digit code" className="max-w-[380px]" />
 
-      {error ? <p role="alert" className="m-0 font-mono text-[11px] text-bad">{error}</p> : null}
+      {error ? (
+        <p role="alert" className="m-0 font-mono text-[11px] text-bad">
+          {error}
+        </p>
+      ) : null}
 
       <div className="flex flex-wrap gap-2">
         <Button

@@ -25,20 +25,9 @@ describe("TerritoriesSection", () => {
         onOpen={vi.fn()}
       />,
     );
-    expect(screen.getByRole("link", { name: "See all 4 territories →" })).toHaveAttribute(
-      "href",
-      "/territories",
-    );
+    expect(screen.getByRole("link", { name: "See all 4 territories →" })).toHaveAttribute("href", "/territories");
 
-    rerender(
-      <TerritoriesSection
-        cards={[]}
-        total={0}
-        meta="none yet"
-        viewerEmpty={false}
-        onOpen={vi.fn()}
-      />,
-    );
+    rerender(<TerritoriesSection cards={[]} total={0} meta="none yet" viewerEmpty={false} onOpen={vi.fn()} />);
     expect(screen.queryByRole("link", { name: /See all/ })).not.toBeInTheDocument();
   });
 
@@ -67,21 +56,11 @@ describe("TerritoriesSection", () => {
     );
     expect(screen.getByText("No territories are assigned to you yet")).toBeInTheDocument();
 
-    rerender(
-      <TerritoriesSection
-        cards={[]}
-        total={0}
-        meta="none yet"
-        viewerEmpty={false}
-        onOpen={vi.fn()}
-      />,
-    );
+    rerender(<TerritoriesSection cards={[]} total={0} meta="none yet" viewerEmpty={false} onOpen={vi.fn()} />);
     expect(screen.getByText("No territories yet")).toBeInTheDocument();
     // Home draws no upload button any more, so the sentence names where one is.
     expect(
-      screen.getByText(
-        "Upload a source archive from the territory catalog and the first one will appear here.",
-      ),
+      screen.getByText("Upload a source archive from the territory catalog and the first one will appear here."),
     ).toBeInTheDocument();
   });
 });

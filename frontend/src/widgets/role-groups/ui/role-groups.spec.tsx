@@ -56,10 +56,7 @@ describe("RoleGroups", () => {
 
   it("marks the selected role", () => {
     render(<RoleGroups groups={GROUPS} totalPermissions={15} selectedSlug="field-operator" />);
-    expect(screen.getByRole("article", { name: "Field Operator" })).toHaveAttribute(
-      "aria-current",
-      "true",
-    );
+    expect(screen.getByRole("article", { name: "Field Operator" })).toHaveAttribute("aria-current", "true");
   });
 
   it("reports a selection by slug", async () => {
@@ -70,12 +67,7 @@ describe("RoleGroups", () => {
   });
 
   it("hides a group the filter emptied", () => {
-    render(
-      <RoleGroups
-        groups={[...GROUPS, { key: "x", label: "Archived", roles: [] }]}
-        totalPermissions={15}
-      />,
-    );
+    render(<RoleGroups groups={[...GROUPS, { key: "x", label: "Archived", roles: [] }]} totalPermissions={15} />);
     expect(screen.queryByRole("region", { name: "Archived" })).not.toBeInTheDocument();
   });
 

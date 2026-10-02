@@ -18,8 +18,7 @@ const PLACEMENT: Record<ToasterPlacement, { host: string; card: string }> = {
   },
 };
 
-const onVisibility = () =>
-  document.hidden ? holdNotices("hidden") : releaseNotices("hidden");
+const onVisibility = () => (document.hidden ? holdNotices("hidden") : releaseNotices("hidden"));
 
 /**
  * The one place notices are drawn. Mounted by the console shell; the login

@@ -124,7 +124,12 @@ describe("PanoramaMarker", () => {
     mount();
     const ring = screen.getByRole("button", { name: "Open panorama Control room" });
     expect(ring.className).not.toMatch(/hover:scale/);
-    expect(ring).toHaveClass("hover:ring-4", "hover:ring-accent-soft", "active:scale-95", "motion-reduce:transition-none");
+    expect(ring).toHaveClass(
+      "hover:ring-4",
+      "hover:ring-accent-soft",
+      "active:scale-95",
+      "motion-reduce:transition-none",
+    );
   });
 
   it("does not dip a ring that is being dragged", () => {

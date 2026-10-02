@@ -20,8 +20,9 @@ func TestUpdateTerritorySendsOnlyTheSetFields(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, got.Slug, "yard")
 	assert.Assert(t, cc.territory.Title == nil && cc.territory.ExternalPanoramaUrl == nil)
-	assert.Equal(t, *cc.territory.Description, "")
-	assert.Equal(t, *cc.territory.SourceBlobHash, "h")
+	assert.Assert(t, cc.territory.Description != nil && cc.territory.SourceBlobHash != nil)
+	assert.Equal(t, cc.territory.GetDescription(), "")
+	assert.Equal(t, cc.territory.GetSourceBlobHash(), "h")
 }
 
 func TestUpdateTerritoryNotFoundIsTheSentinel(t *testing.T) {

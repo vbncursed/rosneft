@@ -68,11 +68,7 @@ describe("PersonInspector", () => {
 
   it("tones a detail row when asked", () => {
     render(
-      <PersonInspector
-        user={user()}
-        details={[{ label: "sessions", value: "none", tone: "dim" }]}
-        {...handlers()}
-      />,
+      <PersonInspector user={user()} details={[{ label: "sessions", value: "none", tone: "dim" }]} {...handlers()} />,
     );
     expect(screen.getByText("none").className).toContain("text-dim");
   });

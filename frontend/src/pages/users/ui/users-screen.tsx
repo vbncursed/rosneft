@@ -45,8 +45,7 @@ const QUESTION: Record<
   }),
   "require-2fa": (n) => ({
     title: `Require 2FA for ${n}?`,
-    description:
-      "They keep signing in, but reach only the enrollment screens until a second factor is enrolled.",
+    description: "They keep signing in, but reach only the enrollment screens until a second factor is enrolled.",
     confirmLabel: "Require 2FA",
     tone: "default",
   }),
@@ -65,14 +64,18 @@ export function UsersScreen() {
   const s = useUsers();
 
   const groups = useMemo(
-    () => (s.users ? groupPeople(s.users.filter((u) => matchesPerson(u, s.query)), s.roles) : []),
+    () =>
+      s.users
+        ? groupPeople(
+            s.users.filter((u) => matchesPerson(u, s.query)),
+            s.roles,
+          )
+        : [],
     [s.users, s.roles, s.query],
   );
 
   if (s.status === "loading") {
-    return (
-      <PageSkeleton shape="console" label="Loading people" />
-    );
+    return <PageSkeleton shape="console" label="Loading people" />;
   }
   if (s.status === "unavailable" || !s.users) {
     return <Callout tone="bad">People are unavailable: {s.error}</Callout>;
@@ -121,9 +124,7 @@ export function UsersScreen() {
         onDelete={() => s.ask(selected?.status === "deleted" ? "restore" : "delete")}
       />
 
-      {question ? (
-        <ConfirmDialog open {...question} busy={s.busy} onConfirm={s.confirm} onCancel={s.dismiss} />
-      ) : null}
+      {question ? <ConfirmDialog open {...question} busy={s.busy} onConfirm={s.confirm} onCancel={s.dismiss} /> : null}
       {s.creating ? (
         <CreateUserDialog
           open

@@ -55,13 +55,7 @@ function chipState(on: boolean, locked: boolean, readOnly: boolean): ChipState {
   return on ? "on" : "off";
 }
 
-export function PermissionMatrix({
-  all,
-  granted,
-  onToggle,
-  grantable,
-  readOnly = false,
-}: PermissionMatrixProps) {
+export function PermissionMatrix({ all, granted, onToggle, grantable, readOnly = false }: PermissionMatrixProps) {
   const groups = groupPermissions(all);
 
   return (
@@ -72,9 +66,7 @@ export function PermissionMatrix({
         return (
           <div key={group.name}>
             <div className="flex items-baseline justify-between gap-2.5">
-              <p className="m-0 font-mono text-[10px] uppercase tracking-[0.18em] text-dim">
-                {group.name}
-              </p>
+              <p className="m-0 font-mono text-[10px] uppercase tracking-[0.18em] text-dim">{group.name}</p>
               <span className="font-mono text-[10px] text-muted">
                 {grantedHere} / {group.permissions.length}
               </span>
@@ -109,10 +101,7 @@ export function PermissionMatrix({
                       CHIP[state],
                     )}
                   >
-                    <span
-                      aria-hidden="true"
-                      className={cx("size-1.5 shrink-0 rounded-full", DOT[state])}
-                    />
+                    <span aria-hidden="true" className={cx("size-1.5 shrink-0 rounded-full", DOT[state])} />
                     {actionOf(permission.slug)}
                   </button>
                 );

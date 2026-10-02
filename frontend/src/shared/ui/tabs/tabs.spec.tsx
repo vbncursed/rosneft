@@ -28,10 +28,7 @@ describe("Tabs", () => {
     render(<Harness />);
     expect(screen.getByRole("tablist", { name: "Territory sections" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Overview" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tab", { name: "Placements" })).toHaveAttribute(
-      "aria-selected",
-      "false",
-    );
+    expect(screen.getByRole("tab", { name: "Placements" })).toHaveAttribute("aria-selected", "false");
   });
 
   it("switches on click", async () => {
@@ -89,9 +86,7 @@ describe("Tabs, segments variant", () => {
     // which one paints. The fill would silently not appear.
     expect(active.className).not.toContain("bg-transparent");
     expect(active.className).not.toContain("border-b-2");
-    expect(screen.getByRole("tablist", { name: "Overlays sections" }).className).not.toContain(
-      "border-b",
-    );
+    expect(screen.getByRole("tablist", { name: "Overlays sections" }).className).not.toContain("border-b");
   });
 
   it("points the active tab at the panel it drives, and names itself for it", () => {
@@ -110,10 +105,7 @@ describe("Tabs, segments variant", () => {
     render(<Segments />);
     screen.getByRole("tab", { name: "Overview" }).focus();
     await userEvent.keyboard("{ArrowRight}");
-    expect(screen.getByRole("tab", { name: "Placements" })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
+    expect(screen.getByRole("tab", { name: "Placements" })).toHaveAttribute("aria-selected", "true");
   });
 
   it("presses an enabled tab and animates the scale with the colours", () => {

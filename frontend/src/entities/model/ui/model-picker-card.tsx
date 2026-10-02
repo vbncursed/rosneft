@@ -39,10 +39,7 @@ export function ModelPickerCard({
         // border say it; the reason prints at full strength.
         unavailable
           ? "border-line bg-panel-2"
-          : cx(
-              "active:scale-[0.97]",
-              selected ? "border-accent bg-accent-soft" : "border-line-2 bg-panel-2",
-            ),
+          : cx("active:scale-[0.97]", selected ? "border-accent bg-accent-soft" : "border-line-2 bg-panel-2"),
       )}
     >
       <button
@@ -63,11 +60,7 @@ export function ModelPickerCard({
             selected ? "text-accent" : "text-dim",
           )}
         >
-          {thumbUrl ? (
-            <img src={thumbUrl} alt="" className="size-full object-cover" />
-          ) : (
-            <Icon name="cube" size={26} />
-          )}
+          {thumbUrl ? <img src={thumbUrl} alt="" className="size-full object-cover" /> : <Icon name="cube" size={26} />}
         </span>
         <span
           className={cx(
@@ -87,12 +80,7 @@ export function ModelPickerCard({
 
       {selected && quantity !== undefined && onQuantityChange ? (
         <div className="absolute inset-x-0 bottom-[26px] flex justify-center bg-panel py-[3px]">
-          <QuantityStepper
-            value={quantity}
-            onChange={onQuantityChange}
-            min={1}
-            label={`${model.title} quantity`}
-          />
+          <QuantityStepper value={quantity} onChange={onQuantityChange} min={1} label={`${model.title} quantity`} />
         </div>
       ) : null}
 

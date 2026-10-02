@@ -40,7 +40,7 @@ func pendingKey(c string) string     { return "2fa_pending:" + c }
 // level down.
 const (
 	failKeyPrefix               = "login_fail:"
-	changePasswordFailKeyPrefix = "changepw_fail:"
+	changePasswordFailKeyPrefix = "changepw_fail:" //nolint:gosec // G101: a Redis key prefix, not a credential
 )
 
 func failKey(id string) string                   { return failKeyPrefix + id }

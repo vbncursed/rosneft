@@ -1,6 +1,6 @@
 import { createReadStream } from "node:fs";
 import { Readable } from "node:stream";
-import { withCsp } from "./csp";
+import { withBlobCsp, withCsp } from "./csp";
 import { offlineResponse } from "./offline-page";
 import { parseRange } from "./range";
 import { classify, serverUnreachable, type Route } from "./route";
@@ -26,11 +26,19 @@ const warn = (err: unknown) => console.warn("intercept:", err);
 
 export function fileResponse(file: string, size: number, type: string, range: string | null): Response {
   const r = parseRange(range, size);
-  if (r === "unsatisfiable") return new Response(null, { status: 416, headers: { "content-range": `bytes */${size}` } });
+  if (r === "unsatisfiable")
+    return new Response(null, { status: 416, headers: { "content-range": `bytes */${size}` } });
   const { start, end } = r ?? { start: 0, end: size - 1 };
-  const headers: Record<string, string> = { "content-type": type, "content-length": String(Math.max(0, end - start + 1)), "accept-ranges": "bytes" };
+  const headers: Record<string, string> = {
+    "content-type": type,
+    "content-length": String(Math.max(0, end - start + 1)),
+    "accept-ranges": "bytes",
+  };
   if (r) headers["content-range"] = `bytes ${start}-${end}/${size}`;
-  const body = size === 0 ? null : (Readable.toWeb(createReadStream(file, { start, end })) as unknown as ReadableStream<Uint8Array>);
+  const body =
+    size === 0
+      ? null
+      : (Readable.toWeb(createReadStream(file, { start, end })) as unknown as ReadableStream<Uint8Array>);
   return new Response(body, { status: r ? 206 : 200, headers });
 }
 
@@ -57,6 +65,7 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
     void (async () => {
       do {
         state.again = false;
+        // oxlint-disable-next-line no-await-in-loop -- a rerun must start after the previous evict finished (one eviction per user at a time)
         await d.store.evict(user, d.settings.value.limit).catch(warn);
       } while (state.again);
       evicting.delete(user);
@@ -67,6 +76,7 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
     const url = new URL(req.url);
     if (url.origin !== d.origin) return d.network(req);
     const route = classify(req.method, url);
+    const asset = url.pathname.startsWith("/api/assets/");
     if (route.kind === "session-reset") {
       epoch += 1;
       d.onSessionReset();
@@ -80,7 +90,7 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
     if (route.kind === "blob" && user) {
       const hit = await d.store.blob(user, route.hash);
       // ponytail: eviction can unlink the file between blob() and the lazy createReadStream open (truncated body); open the fd before responding to close it.
-      if (hit) return withCsp(fileResponse(hit.path, hit.size, hit.type, req.headers.get("range")));
+      if (hit) return withBlobCsp(fileResponse(hit.path, hit.size, hit.type, req.headers.get("range")));
     }
 
     let res: Response;
@@ -93,18 +103,21 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
         const copy = cacheable ? await savedCopy(d, route, user) : null;
         if (copy) {
           void res.body?.cancel().catch(() => undefined);
-          return withCsp(copy);
+          return secure(asset, copy);
         }
       } else if (gateway) seen(true);
     } catch {
       // A request the page itself cancelled says nothing about the network.
       if (req.signal.aborted) return Response.error();
       if (gateway) seen(false);
-      return withCsp(await fallback(d, route, user, req));
+      return secure(asset, await fallback(d, route, user, req));
     }
-    return withCsp(await afterNetwork(d, route, user, req, res, () => epoch === born, scheduleEvict));
+    return secure(asset, await afterNetwork(d, route, user, req, res, () => epoch === born, scheduleEvict));
   };
 }
+
+/** Chosen by path, not route kind: a query or HEAD makes classify say "pass", and withCsp would hand an asset the SPA policy. */
+const secure = (asset: boolean, res: Response) => (asset ? withBlobCsp(res) : withCsp(res));
 
 async function learnUser(d: InterceptDeps, body: Buffer, fresh: () => boolean): Promise<string | null> {
   try {
@@ -117,7 +130,15 @@ async function learnUser(d: InterceptDeps, body: Buffer, fresh: () => boolean): 
   }
 }
 
-async function afterNetwork(d: InterceptDeps, route: Route, user: string | null, req: Request, res: Response, fresh: () => boolean, scheduleEvict: (user: string) => void): Promise<Response> {
+async function afterNetwork(
+  d: InterceptDeps,
+  route: Route,
+  user: string | null,
+  req: Request,
+  res: Response,
+  fresh: () => boolean,
+  scheduleEvict: (user: string) => void,
+): Promise<Response> {
   if (route.kind === "navigate" && res.ok) void d.shell.refresh();
 
   if (route.kind === "snapshot" && res.status === 200) {
@@ -126,7 +147,8 @@ async function afterNetwork(d: InterceptDeps, route: Route, user: string | null,
     const headers = [...res.headers].filter(([k]) => !DROP.has(k));
     // Awaited: a few KB of JSON, and a snapshot that lands after the next
     // request would make "just went offline" depend on timing.
-    if (owner && body.length > 0) await d.store.writeSnapshot(owner, route.key, { status: 200, headers }, body).catch(warn);
+    if (owner && body.length > 0)
+      await d.store.writeSnapshot(owner, route.key, { status: 200, headers }, body).catch(warn);
   }
 
   if (route.kind === "blob" && user && res.status === 200 && res.body && !req.headers.has("range")) {
@@ -168,7 +190,10 @@ async function fallback(d: InterceptDeps, route: Route, user: string | null, req
       if (f) return fileResponse(f.path, f.size, f.type, null);
       // Content-hashed files: Chromium's cached copy is the right one. force-cache offline gives it or fails fast (only-if-cached is refused for a cors-mode request).
       // ponytail: a chunk never fetched and not in a finished generation still fails until the next online refresh.
-      return d.network(req, { cache: "force-cache" }).then((r) => (r.ok ? r : Response.error()), () => Response.error());
+      return d.network(req, { cache: "force-cache" }).then(
+        (r) => (r.ok ? r : Response.error()),
+        () => Response.error(),
+      );
     }
     default:
       return (await savedCopy(d, route, user)) ?? Response.error();

@@ -28,12 +28,7 @@ export function GrantRow({ grant, onRemove }: GrantRowProps) {
         grant.inactive && "opacity-60",
       )}
     >
-      <Avatar
-        name={grant.username}
-        size={28}
-        variant={owner ? "soft" : "plain"}
-        className="text-[10px]"
-      />
+      <Avatar name={grant.username} size={28} variant={owner ? "soft" : "plain"} className="text-[10px]" />
 
       <div className="min-w-0 flex-1">
         <p className="m-0 truncate text-xs font-medium text-fg">{grant.username}</p>

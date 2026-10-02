@@ -5,9 +5,7 @@ import { ModeChip } from "./mode-chip";
 describe("ModeChip", () => {
   it("renders its text as a named status line", () => {
     render(<ModeChip label="Pointer mode">orbit · drag to rotate</ModeChip>);
-    expect(screen.getByRole("status", { name: "Pointer mode" })).toHaveTextContent(
-      "orbit · drag to rotate",
-    );
+    expect(screen.getByRole("status", { name: "Pointer mode" })).toHaveTextContent("orbit · drag to rotate");
   });
   it("is plain text without a name — an unnamed live region announces from nowhere", () => {
     render(<ModeChip>coarse LOD 2 shown · LOD 0 62%</ModeChip>);
@@ -15,11 +13,19 @@ describe("ModeChip", () => {
     expect(screen.getByText("coarse LOD 2 shown · LOD 0 62%")).toBeInTheDocument();
   });
   it("draws the kbd after the text", () => {
-    render(<ModeChip label="Panorama mode" kbd="P">panorama · next</ModeChip>);
+    render(
+      <ModeChip label="Panorama mode" kbd="P">
+        panorama · next
+      </ModeChip>,
+    );
     expect(screen.getByRole("status").querySelector("kbd")).toHaveTextContent("P");
   });
   it("marks the spinning variant busy", () => {
-    render(<ModeChip label="Loading" spinning icon="refresh">Loading model</ModeChip>);
+    render(
+      <ModeChip label="Loading" spinning icon="refresh">
+        Loading model
+      </ModeChip>,
+    );
     expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
   });
 
@@ -37,7 +43,11 @@ describe("ModeChip", () => {
   });
 
   it("spins its icon at 700ms, and slowly rather than not at all under reduced motion", () => {
-    render(<ModeChip label="Loading" spinning icon="refresh">Loading model</ModeChip>);
+    render(
+      <ModeChip label="Loading" spinning icon="refresh">
+        Loading model
+      </ModeChip>,
+    );
     const icon = screen.getByRole("status").querySelector("svg")!;
     const cls = (icon.getAttribute("class") ?? "").split(/\s+/);
     expect(cls).toEqual(

@@ -120,12 +120,7 @@ export function ProgressBar({
         )}
       </div>
       {label || detail ? (
-        <p
-          className={cx(
-            "mt-[7px] flex justify-between gap-2 font-mono text-[11px]",
-            TEXT[tone],
-          )}
-        >
+        <p className={cx("mt-[7px] flex justify-between gap-2 font-mono text-[11px]", TEXT[tone])}>
           {label ? <span>{label}</span> : null}
           {detail ? <span>{detail}</span> : null}
         </p>

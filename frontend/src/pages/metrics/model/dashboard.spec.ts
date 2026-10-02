@@ -158,8 +158,8 @@ describe("panelEntry", () => {
   });
 
   it("draws a stale panel's kept series and says it is stale", () => {
-    const series = [{ label: "gateway", points: [{ t: 1, v: 142 }], labels: {} }];
-    const entry = panelEntry("red-rate", { kind: "value", series, stale: true });
+    const kept = [{ label: "gateway", points: [{ t: 1, v: 142 }], labels: {} }];
+    const entry = panelEntry("red-rate", { kind: "value", series: kept, stale: true });
     expect(entry.meta).toBe(`${PANELS["red-rate"].meta} · stale — last answer kept`);
     expect(entry.series).toHaveLength(1);
     expect(entry.last).not.toBe("—");
@@ -183,9 +183,7 @@ describe("panelEntry", () => {
     expect(panelEntry("red-rate", { kind: "value", series: [series(path, 3)] }).series[0].label).toBe(
       "Catalog.ListTerritories",
     );
-    expect(
-      panelEntry("runtime-memory", { kind: "value", series: [series(path, 3)] }).series[0].label,
-    ).toBe(path);
+    expect(panelEntry("runtime-memory", { kind: "value", series: [series(path, 3)] }).series[0].label).toBe(path);
   });
 
   it("fills a rate panel's gap with zero — no traffic is a zero, not a missed scrape", () => {

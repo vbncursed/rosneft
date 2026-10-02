@@ -62,11 +62,11 @@ export function viewTabProps(p: PageParts): ViewTabProps {
       onToggle: measure.onToggleShow,
     },
     footer:
-      loadingLevel(p.view) !== null
-        ? LOADING_FOOTER
-        : inside === null
+      loadingLevel(p.view) === null
+        ? inside === null
           ? null
-          : insideFooter(p.placements.filter((x) => isShownIn(x, inside, p.placementGroups.list)).length),
+          : insideFooter(p.placements.filter((x) => isShownIn(x, inside, p.placementGroups.list)).length)
+        : LOADING_FOOTER,
   };
 }
 
@@ -203,11 +203,7 @@ export function uploadProps(p: PageParts): UploadModalProps | null {
 }
 
 /** Everything the two dialogs share; only the kind and the GPS box differ. */
-const common = (
-  territoryTitle: string,
-  form: PageParts["documents"]["upload"]["form"],
-  onClose: () => void,
-) => ({
+const common = (territoryTitle: string, form: PageParts["documents"]["upload"]["form"], onClose: () => void) => ({
   open: true,
   territoryTitle,
   upload: form.upload,

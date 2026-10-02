@@ -45,8 +45,7 @@ describe("PanoramaSphere", () => {
     // three imports nowhere near the feature hook any more (it would ride in
     // every page's bundle); the texture is built here, from the bitmap.
     const r = await mount();
-    const texture = (r.scene.children[0].instance as Mesh & { material: MeshBasicMaterial }).material
-      .map as Texture;
+    const texture = (r.scene.children[0].instance as Mesh & { material: MeshBasicMaterial }).material.map as Texture;
     expect(texture.colorSpace).toBe(SRGBColorSpace);
     // The bitmap arrives pre-flipped, and WebGL cannot flip one itself.
     expect(texture.flipY).toBe(false);

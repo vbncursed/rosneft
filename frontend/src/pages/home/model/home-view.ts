@@ -35,8 +35,14 @@ export function headerMeta(territories: number, models: number, jobs: TargetJob[
   if (empty) return "0 territories assigned · read-only access";
   const converting = jobs.filter(isLive).length;
   const failed = jobs.filter((j) => j.status === "failed").length;
-  const flight = [converting > 0 ? `${converting} converting` : "", failed > 0 ? `${failed} failed` : ""].filter(Boolean);
-  return [plural(territories, "territory", "territories"), plural(models, "model", "models"), ...(flight.length ? flight : ["nothing converting"])].join(" · ");
+  const flight = [converting > 0 ? `${converting} converting` : "", failed > 0 ? `${failed} failed` : ""].filter(
+    Boolean,
+  );
+  return [
+    plural(territories, "territory", "territories"),
+    plural(models, "model", "models"),
+    ...(flight.length ? flight : ["nothing converting"]),
+  ].join(" · ");
 }
 
 export function territoriesMeta(shown: number, total: number, empty: boolean): string {
@@ -54,8 +60,10 @@ export function jobsMeta(jobs: TargetJob[]): string {
   return jobs.some(isLive) ? `${n} · updates by itself` : n;
 }
 
-export const titleOf = (territories: Territory[], models: Model[]): TitleOf => (kind, slug) =>
-  (kind === "territory" ? territories : models).find((x) => x.slug === slug)?.title;
+export const titleOf =
+  (territories: Territory[], models: Model[]): TitleOf =>
+  (kind, slug) =>
+    (kind === "territory" ? territories : models).find((x) => x.slug === slug)?.title;
 
 export const showConsole = (items: ConsoleNavItem[]): boolean => items.some((i) => !i.disabled);
 

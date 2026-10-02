@@ -10,11 +10,39 @@ const TERRITORY = {
   placementCount: 0,
 };
 
-const running: TargetJob = { kind: "territory", slug: TERRITORY.slug, status: "running", progress: 0.58, stage: "lod-1", errorMessage: null };
-const queued: TargetJob = { kind: "territory", slug: TERRITORY.slug, status: "pending", progress: null, stage: null, errorMessage: null };
-const failed: TargetJob = { kind: "territory", slug: TERRITORY.slug, status: "failed", progress: null, stage: "compressing", errorMessage: "ktx2: unsupported pixel format in tank_albedo_04.tga" };
+const running: TargetJob = {
+  kind: "territory",
+  slug: TERRITORY.slug,
+  status: "running",
+  progress: 0.58,
+  stage: "lod-1",
+  errorMessage: null,
+};
+const queued: TargetJob = {
+  kind: "territory",
+  slug: TERRITORY.slug,
+  status: "pending",
+  progress: null,
+  stage: null,
+  errorMessage: null,
+};
+const failed: TargetJob = {
+  kind: "territory",
+  slug: TERRITORY.slug,
+  status: "failed",
+  progress: null,
+  stage: "compressing",
+  errorMessage: "ktx2: unsupported pixel format in tank_albedo_04.tga",
+};
 // GET /api/jobs for cotest on 2026-09-07 — no stage, no progress, only the message.
-const failedLive: TargetJob = { kind: "territory", slug: TERRITORY.slug, status: "failed", progress: null, stage: null, errorMessage: "fetch/extract source: blob get: blobstore: blob not found" };
+const failedLive: TargetJob = {
+  kind: "territory",
+  slug: TERRITORY.slug,
+  status: "failed",
+  progress: null,
+  stage: null,
+  errorMessage: "fetch/extract source: blob get: blobstore: blob not found",
+};
 
 const page = (phase: Phase, job: TargetJob | null, hasLod0 = false) => (
   <CatalogShell>

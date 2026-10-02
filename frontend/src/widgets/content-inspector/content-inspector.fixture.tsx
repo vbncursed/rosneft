@@ -52,7 +52,15 @@ export default {
   ready: (
     <div className="max-w-sm p-6">
       <ContentInspector
-        item={{ ...converting, slug: "north-ridge-pad", title: "North Ridge Pad", status: "ready", lods: "LOD 0-2", size: "412 MB", progress: undefined }}
+        item={{
+          ...converting,
+          slug: "north-ridge-pad",
+          title: "North Ridge Pad",
+          status: "ready",
+          lods: "LOD 0-2",
+          size: "412 MB",
+          progress: undefined,
+        }}
         details={[
           { label: "source", value: "north-ridge-pad.obj · 1.1 GB" },
           { label: "artifacts", value: "GLB + KTX2 · 412 MB" },

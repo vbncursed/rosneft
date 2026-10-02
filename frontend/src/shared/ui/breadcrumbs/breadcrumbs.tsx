@@ -14,17 +14,17 @@ export type BreadcrumbsProps = {
 export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
   return (
     <nav aria-label="Breadcrumb" className={className}>
-      <ol
-        className={cx(
-          "m-0 flex list-none items-center gap-2 p-0 font-mono text-[11px] text-muted",
-        )}
-      >
+      <ol className={cx("m-0 flex list-none items-center gap-2 p-0 font-mono text-[11px] text-muted")}>
         {items.map((item, index) => {
           const last = index === items.length - 1;
           return (
+            // oxlint-disable-next-line react/no-array-index-key -- a trail is a short fixed-order path with no id of its own and never reorders
             <li key={index} className="flex items-center gap-2">
               {item.href && !last ? (
-                <a href={item.href} className="text-muted underline decoration-transparent transition-colors duration-150 hover:decoration-current">
+                <a
+                  href={item.href}
+                  className="text-muted underline decoration-transparent transition-colors duration-150 hover:decoration-current"
+                >
                   {item.label}
                 </a>
               ) : (

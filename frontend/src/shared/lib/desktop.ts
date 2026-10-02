@@ -2,9 +2,16 @@
 // OfflineProgress and StorageUsage are the contract's `Progress` and `Usage` under SPA names.
 
 export type SavedTerritory = { slug: string; title: string; bytes: number; savedAt: string; syncedAt: string };
-export type SaveState = "queued" | "saving" | "saved" | "failed" | "cancelled";
+export type SaveState = "queued" | "saving" | "saved" | "failed" | "cancelled" | "gone";
 export type SaveError = "network" | "no-space" | "signed-out" | "failed";
-export type OfflineProgress = { slug: string; state: SaveState; done: number; total: number; error?: SaveError };
+export type OfflineProgress = {
+  slug: string;
+  state: SaveState;
+  done: number;
+  total: number;
+  error?: SaveError;
+  title?: string;
+};
 export type StorageUsage = { used: number; pinned: number; limit: number };
 
 export type DesktopBridge = {
@@ -32,4 +39,5 @@ declare global {
   }
 }
 
-export const desktopBridge = (): DesktopBridge | undefined => (typeof window === "undefined" ? undefined : window.desktop);
+export const desktopBridge = (): DesktopBridge | undefined =>
+  typeof window === "undefined" ? undefined : window.desktop;

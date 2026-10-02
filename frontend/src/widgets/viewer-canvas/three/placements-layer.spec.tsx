@@ -3,7 +3,6 @@ import { createElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { RootState } from "@react-three/fiber";
 import type { Placement } from "@/entities/placement";
-import type { GizmoMode } from "@/features/viewer-mode";
 import { AutoLodClock } from "./auto-lod-clock";
 import PlacementsLayer from "./placements-layer";
 import { eventually, fakePlacement } from "./testing";
@@ -39,7 +38,7 @@ const layer = (over: Partial<Parameters<typeof PlacementsLayer>[0]> = {}) => (
       placements={[fakePlacement(1), fakePlacement(2)]}
       placementGroups={[]}
       selectedId={2}
-      mode={"translate" as GizmoMode}
+      mode="translate"
       measureMode={false}
       measuring={false}
       canEdit
@@ -178,9 +177,7 @@ describe("PlacementsLayer", () => {
 
   it("lets a click fall through to the canvas while picking points", async () => {
     const onSelect = vi.fn();
-    const r = await ReactThreeTestRenderer.create(
-      layer({ selectedId: null, measureMode: true, onSelect }),
-    );
+    const r = await ReactThreeTestRenderer.create(layer({ selectedId: null, measureMode: true, onSelect }));
     await r.fireEvent(instances(r)[0], "click", { stopPropagation: vi.fn() });
     expect(onSelect).not.toHaveBeenCalled();
   });
@@ -188,14 +185,10 @@ describe("PlacementsLayer", () => {
   // Without the gizmo — a guest, or an editor measuring — a click lit the row
   // in the panel and nothing at all in the scene.
   it("rings the selection in the 3D view when no gizmo marks it", async () => {
-    const guest = await ReactThreeTestRenderer.create(
-      layer({ canEdit: false, markerLabels: { 1: "a", 2: "b" } }),
-    );
+    const guest = await ReactThreeTestRenderer.create(layer({ canEdit: false, markerLabels: { 1: "a", 2: "b" } }));
     expect(markers(guest)[0].instance.userData.ids).toEqual([2]);
 
-    const measuring = await ReactThreeTestRenderer.create(
-      layer({ measureMode: true, markerLabels: { 2: "b" } }),
-    );
+    const measuring = await ReactThreeTestRenderer.create(layer({ measureMode: true, markerLabels: { 2: "b" } }));
     expect(markers(measuring)[0].instance.userData.ids).toEqual([2]);
 
     const editing = await ReactThreeTestRenderer.create(layer({ markerLabels: { 2: "b" } }));
@@ -215,7 +208,14 @@ describe("PlacementsLayer", () => {
   it("marks no hidden placement inside a panorama", async () => {
     const [one, two] = inPanorama();
     const r = await ReactThreeTestRenderer.create(
-      layer({ placements: [{ ...one, hidden: true }, { ...two, visiblePanoramaIds: [3] }], activePanoramaId: 3, selectedId: null }),
+      layer({
+        placements: [
+          { ...one, hidden: true },
+          { ...two, visiblePanoramaIds: [3] },
+        ],
+        activePanoramaId: 3,
+        selectedId: null,
+      }),
     );
     expect(markers(r)[0].instance.userData.ids).toEqual([2]);
   });

@@ -54,9 +54,7 @@ export function usePanoramaCalibration(
   }, [editing, draft, onSave]);
 
   const nudge = useCallback((axis: "x" | "y" | "z", delta: number) => {
-    setDraft((d) =>
-      d ? { ...d, position: nudgePosition(d.position, axis, delta) } : d,
-    );
+    setDraft((d) => (d ? { ...d, position: nudgePosition(d.position, axis, delta) } : d));
   }, []);
 
   const setYaw = useCallback((yawOffset: number) => {
@@ -67,15 +65,9 @@ export function usePanoramaCalibration(
     setDraft((d) => (d ? { ...d, position } : d));
   }, []);
 
-  const setOpacity = useCallback(
-    (o: number) => setOpacityState(clampOpacity(o)),
-    [],
-  );
+  const setOpacity = useCallback((o: number) => setOpacityState(clampOpacity(o)), []);
 
-  const effective =
-    editing && draft && draft.id === editing.id
-      ? applyCalibration(editing, draft)
-      : null;
+  const effective = editing && draft && draft.id === editing.id ? applyCalibration(editing, draft) : null;
 
   return {
     calibrating,

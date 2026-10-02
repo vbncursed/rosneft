@@ -87,11 +87,7 @@ describe("CredentialsForm", () => {
   });
 
   it("freezes every control while the request is in flight", () => {
-    render(
-      <CredentialsForm
-        {...props({ submitting: true, onPasskey: vi.fn(), onRememberChange: vi.fn() })}
-      />,
-    );
+    render(<CredentialsForm {...props({ submitting: true, onPasskey: vi.fn(), onRememberChange: vi.fn() })} />);
     expect(screen.getByLabelText("Email or username")).toBeDisabled();
     expect(screen.getByRole("button", { name: /Sign in/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Continue with passkey/ })).toBeDisabled();

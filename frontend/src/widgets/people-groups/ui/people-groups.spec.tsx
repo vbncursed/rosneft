@@ -62,10 +62,7 @@ describe("PeopleGroups", () => {
 
   it("marks the selected person", () => {
     render(<PeopleGroups groups={GROUPS} selectedId="u-2" />);
-    expect(screen.getByRole("article", { name: "d.smirnov" })).toHaveAttribute(
-      "aria-current",
-      "true",
-    );
+    expect(screen.getByRole("article", { name: "d.smirnov" })).toHaveAttribute("aria-current", "true");
   });
 
   it("reports a selection by id", async () => {

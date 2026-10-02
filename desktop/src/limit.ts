@@ -9,6 +9,7 @@ export async function eachLimit<T>(items: readonly T[], n: number, fn: (item: T)
   const worker = async (): Promise<void> => {
     while (!failed && next < items.length) {
       try {
+        // oxlint-disable-next-line no-await-in-loop -- each worker takes the next item only after its previous one settled; that is the concurrency cap
         await fn(items[next++] as T);
       } catch (err) {
         if (!failed) firstError = err;

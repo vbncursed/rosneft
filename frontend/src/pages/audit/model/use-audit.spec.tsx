@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { setCsrfToken } from "@/shared/api";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useAudit } from "./use-audit";
@@ -45,14 +45,14 @@ const dto = (id: number, over: Record<string, unknown> = {}) => ({
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
-let fetchMock: ReturnType<typeof vi.fn>;
+let fetchMock: Mock<(url: string, init?: RequestInit) => Promise<Response>>;
 let client: QueryClient;
 let csvStatus = 200;
 const wrapper = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={client}>{children}</QueryClientProvider>
 );
 
-const urls = () => fetchMock.mock.calls.map(([u]) => u as string);
+const urls = () => fetchMock.mock.calls.map(([u]) => u);
 const journalCalls = () => urls().filter((u) => u.startsWith("/api/audit?") && u.includes("limit=50"));
 const writeText = vi.fn<(text: string) => Promise<void>>(() => Promise.resolve());
 
@@ -157,9 +157,7 @@ describe("useAudit", () => {
     await waitFor(() => expect(result.current.status).toBe("ready"));
 
     act(() => result.current.setRange({ from: "2026-09-01", to: "" }));
-    await waitFor(() =>
-      expect(journalCalls().at(-1)).toContain("from=2026-09-01T00%3A00%3A00Z"),
-    );
+    await waitFor(() => expect(journalCalls().at(-1)).toContain("from=2026-09-01T00%3A00%3A00Z"));
     expect(journalCalls().at(-1)).not.toContain("to=");
 
     act(() => result.current.setQuery("to:2026-09-02"));
@@ -211,9 +209,7 @@ describe("useAudit", () => {
 
     csvStatus = 403;
     act(() => result.current.s.exportCsv());
-    await waitFor(() =>
-      expect(result.current.notices[0]?.message).toBe("You don't have permission to do this"),
-    );
+    await waitFor(() => expect(result.current.notices[0]?.message).toBe("You don't have permission to do this"));
     expect(result.current.notices[0]?.tone).toBe("error");
     expect(saveBlob).toHaveBeenCalledOnce();
   });

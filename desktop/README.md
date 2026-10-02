@@ -108,6 +108,12 @@ only; `mac.sign` in `electron-builder.yml` (`src/signing.ts`) imports it into a
 throwaway keychain. Without the secrets the build falls back to ad-hoc. It is not
 an Apple certificate, so Gatekeeper still needs the `xattr` step below.
 
+The mac build runs with the hardened runtime (`build/entitlements.mac.plist`:
+JIT, unsigned executable memory, no library validation), which blocks
+`DYLD_INSERT_LIBRARIES` and debugger attach. Check a build with
+`codesign -dv --verbose=4 <app>` (`flags=…(runtime)`) and
+`codesign -d --entitlements :- <app>` (the three keys).
+
 ## Passkeys
 
 Off in the shell on every OS today (`PASSKEYS` in `src/main.ts`; the SPA reads it

@@ -39,11 +39,7 @@ describe("CatalogCard", () => {
     expect(screen.getByText("Compressing textures… ~4 min")).toBeInTheDocument();
 
     rerender(
-      <CatalogCard
-        title="Terminal Yard 4"
-        slug="terminal-yard-4"
-        trailing={{ label: "Open →", tone: "accent" }}
-      />,
+      <CatalogCard title="Terminal Yard 4" slug="terminal-yard-4" trailing={{ label: "Open →", tone: "accent" }} />,
     );
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
   });
@@ -149,9 +145,7 @@ describe("CatalogCard", () => {
         onOpen={() => {}}
       />,
     );
-    expect(
-      screen.getByRole("heading", { level: 3, name: "North Ridge Pad" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 3, name: "North Ridge Pad" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "North Ridge Pad" })).toBeInTheDocument();
   });
 
@@ -211,9 +205,7 @@ describe("CatalogCard", () => {
   });
 
   it("omits the description paragraph when there is none", () => {
-    const { container } = render(
-      <CatalogCard title="T" slug="t" trailing={{ label: "Open →", tone: "accent" }} />,
-    );
+    const { container } = render(<CatalogCard title="T" slug="t" trailing={{ label: "Open →", tone: "accent" }} />);
     expect(container.querySelectorAll("p")).toHaveLength(0);
   });
 
@@ -248,10 +240,23 @@ describe("CatalogCard", () => {
   // The card is one target: hovering anywhere on it lights the title and the
   // frame together, and both ease rather than snap.
   it("answers a hover anywhere on an openable card, on the title and the frame alike", () => {
-    render(<CatalogCard title="North Ridge Pad" slug="north-ridge-pad" href="/t/n" onOpen={vi.fn()} trailing={{ label: "Open →", tone: "accent" }} />);
+    render(
+      <CatalogCard
+        title="North Ridge Pad"
+        slug="north-ridge-pad"
+        href="/t/n"
+        onOpen={vi.fn()}
+        trailing={{ label: "Open →", tone: "accent" }}
+      />,
+    );
     const card = screen.getByRole("article", { name: "North Ridge Pad" }).className.split(/\s+/);
     expect(card).toEqual(
-      expect.arrayContaining(["group", "hover:border-line-2", "transition-[border-color,scale]", "active:scale-[0.99]"]),
+      expect.arrayContaining([
+        "group",
+        "hover:border-line-2",
+        "transition-[border-color,scale]",
+        "active:scale-[0.99]",
+      ]),
     );
     const title = screen.getByRole("link", { name: "North Ridge Pad" }).className.split(/\s+/);
     expect(title).toEqual(expect.arrayContaining(["group-hover:text-accent", "transition-colors"]));

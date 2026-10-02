@@ -7,7 +7,7 @@ type Where = { mode: ViewerMode; view: ViewerView["kind"] };
 
 const mount = () =>
   renderHook(({ mode, view }: Where) => useFlyAround(mode, view), {
-    initialProps: { mode: "orbit", view: "scene" } as Where,
+    initialProps: { mode: "orbit", view: "scene" },
   });
 
 describe("useFlyAround", () => {

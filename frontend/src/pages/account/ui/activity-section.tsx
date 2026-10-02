@@ -1,6 +1,7 @@
 import { ActivityRow, type AuditEntry } from "@/entities/audit";
 import { Callout } from "@/shared/ui/callout";
 import { EmptyState } from "@/shared/ui/card";
+import { useNow } from "@/shared/lib/use-now";
 import { Pager } from "@/shared/ui/pager";
 import { Skeleton } from "@/shared/ui/skeleton";
 
@@ -26,7 +27,7 @@ export type ActivitySectionProps = {
 export function ActivitySection({ entries, page, pageCount, summary, busy, onPage }: ActivitySectionProps) {
   // One reading for the whole render, so two rows a millisecond apart cannot
   // land on different sides of midnight.
-  const now = new Date();
+  const now = useNow();
   // An empty slice means three different things, and only `busy` and the page
   // count tell them apart: a page still on the wire, a page whose fetch failed
   // over a journal that demonstrably holds more, or a feed with nothing in it.

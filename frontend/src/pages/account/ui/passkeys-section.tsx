@@ -104,11 +104,7 @@ export function PasskeysSection({
         </div>
       )}
 
-      <AddPasskeyModal
-        open={adding}
-        onClose={() => setAdding(false)}
-        onAdded={onAdded}
-      />
+      <AddPasskeyModal open={adding} onClose={() => setAdding(false)} onAdded={onAdded} />
       {removing ? (
         <RemovePasskeyModal
           open

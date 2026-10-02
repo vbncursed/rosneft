@@ -1,13 +1,4 @@
-import {
-  memo,
-  type Ref,
-  useCallback,
-  useImperativeHandle,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { memo, type Ref, useCallback, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Group, Object3D } from "three";
 import type { ThreeEvent } from "@react-three/fiber";
 import { useCursor, useGLTF } from "@react-three/drei";
@@ -48,13 +39,7 @@ interface PlacementInstanceProps {
 // place — the old ladder, and the right answer for a placement: one broken
 // asset among many is not worth an error card over the whole scene. The
 // territory is the exception and holds its failure (see gltf-model.tsx).
-function PlacementInstanceImpl({
-  placement,
-  measureMode,
-  measuring,
-  onSelect,
-  ref,
-}: PlacementInstanceProps) {
+function PlacementInstanceImpl({ placement, measureMode, measuring, onSelect, ref }: PlacementInstanceProps) {
   const body = useRef<Group>(null);
   // Measuring pulls LOD 0, as the page does for the territory: a ruler point
   // lands on the mesh drawn, and a coarse one is off by the simplifier's
@@ -66,13 +51,7 @@ function PlacementInstanceImpl({
   return (
     <group ref={body}>
       <LodErrorBoundary resetKey={lod.url} onError={lod.onShownDropped}>
-        <PlacementBody
-          ref={ref}
-          placement={placement}
-          url={lod.url}
-          measureMode={measureMode}
-          onSelect={onSelect}
-        />
+        <PlacementBody ref={ref} placement={placement} url={lod.url} measureMode={measureMode} onSelect={onSelect} />
       </LodErrorBoundary>
       {lod.warmUrl ? <LodWarmer url={lod.warmUrl} onReady={lod.onWarmReady} /> : null}
     </group>

@@ -19,9 +19,9 @@ type ConverterMock struct {
 	t          minimock.Tester
 	finishOnce sync.Once
 
-	funcConvertLODs          func(ctx context.Context, sourcePath string) (ca1 []domain.ConversionResult, err error)
+	funcConvertLODs          func(ctx context.Context, root string, sourcePath string) (ca1 []domain.ConversionResult, err error)
 	funcConvertLODsOrigin    string
-	inspectFuncConvertLODs   func(ctx context.Context, sourcePath string)
+	inspectFuncConvertLODs   func(ctx context.Context, root string, sourcePath string)
 	afterConvertLODsCounter  uint64
 	beforeConvertLODsCounter uint64
 	ConvertLODsMock          mConverterMockConvertLODs
@@ -70,12 +70,14 @@ type ConverterMockConvertLODsExpectation struct {
 // ConverterMockConvertLODsParams contains parameters of the Converter.ConvertLODs
 type ConverterMockConvertLODsParams struct {
 	ctx        context.Context
+	root       string
 	sourcePath string
 }
 
 // ConverterMockConvertLODsParamPtrs contains pointers to parameters of the Converter.ConvertLODs
 type ConverterMockConvertLODsParamPtrs struct {
 	ctx        *context.Context
+	root       *string
 	sourcePath *string
 }
 
@@ -89,6 +91,7 @@ type ConverterMockConvertLODsResults struct {
 type ConverterMockConvertLODsExpectationOrigins struct {
 	origin           string
 	originCtx        string
+	originRoot       string
 	originSourcePath string
 }
 
@@ -103,7 +106,7 @@ func (mmConvertLODs *mConverterMockConvertLODs) Optional() *mConverterMockConver
 }
 
 // Expect sets up expected params for Converter.ConvertLODs
-func (mmConvertLODs *mConverterMockConvertLODs) Expect(ctx context.Context, sourcePath string) *mConverterMockConvertLODs {
+func (mmConvertLODs *mConverterMockConvertLODs) Expect(ctx context.Context, root string, sourcePath string) *mConverterMockConvertLODs {
 	if mmConvertLODs.mock.funcConvertLODs != nil {
 		mmConvertLODs.mock.t.Fatalf("ConverterMock.ConvertLODs mock is already set by Set")
 	}
@@ -116,7 +119,7 @@ func (mmConvertLODs *mConverterMockConvertLODs) Expect(ctx context.Context, sour
 		mmConvertLODs.mock.t.Fatalf("ConverterMock.ConvertLODs mock is already set by ExpectParams functions")
 	}
 
-	mmConvertLODs.defaultExpectation.params = &ConverterMockConvertLODsParams{ctx, sourcePath}
+	mmConvertLODs.defaultExpectation.params = &ConverterMockConvertLODsParams{ctx, root, sourcePath}
 	mmConvertLODs.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmConvertLODs.expectations {
 		if minimock.Equal(e.params, mmConvertLODs.defaultExpectation.params) {
@@ -150,8 +153,31 @@ func (mmConvertLODs *mConverterMockConvertLODs) ExpectCtxParam1(ctx context.Cont
 	return mmConvertLODs
 }
 
-// ExpectSourcePathParam2 sets up expected param sourcePath for Converter.ConvertLODs
-func (mmConvertLODs *mConverterMockConvertLODs) ExpectSourcePathParam2(sourcePath string) *mConverterMockConvertLODs {
+// ExpectRootParam2 sets up expected param root for Converter.ConvertLODs
+func (mmConvertLODs *mConverterMockConvertLODs) ExpectRootParam2(root string) *mConverterMockConvertLODs {
+	if mmConvertLODs.mock.funcConvertLODs != nil {
+		mmConvertLODs.mock.t.Fatalf("ConverterMock.ConvertLODs mock is already set by Set")
+	}
+
+	if mmConvertLODs.defaultExpectation == nil {
+		mmConvertLODs.defaultExpectation = &ConverterMockConvertLODsExpectation{}
+	}
+
+	if mmConvertLODs.defaultExpectation.params != nil {
+		mmConvertLODs.mock.t.Fatalf("ConverterMock.ConvertLODs mock is already set by Expect")
+	}
+
+	if mmConvertLODs.defaultExpectation.paramPtrs == nil {
+		mmConvertLODs.defaultExpectation.paramPtrs = &ConverterMockConvertLODsParamPtrs{}
+	}
+	mmConvertLODs.defaultExpectation.paramPtrs.root = &root
+	mmConvertLODs.defaultExpectation.expectationOrigins.originRoot = minimock.CallerInfo(1)
+
+	return mmConvertLODs
+}
+
+// ExpectSourcePathParam3 sets up expected param sourcePath for Converter.ConvertLODs
+func (mmConvertLODs *mConverterMockConvertLODs) ExpectSourcePathParam3(sourcePath string) *mConverterMockConvertLODs {
 	if mmConvertLODs.mock.funcConvertLODs != nil {
 		mmConvertLODs.mock.t.Fatalf("ConverterMock.ConvertLODs mock is already set by Set")
 	}
@@ -174,7 +200,7 @@ func (mmConvertLODs *mConverterMockConvertLODs) ExpectSourcePathParam2(sourcePat
 }
 
 // Inspect accepts an inspector function that has same arguments as the Converter.ConvertLODs
-func (mmConvertLODs *mConverterMockConvertLODs) Inspect(f func(ctx context.Context, sourcePath string)) *mConverterMockConvertLODs {
+func (mmConvertLODs *mConverterMockConvertLODs) Inspect(f func(ctx context.Context, root string, sourcePath string)) *mConverterMockConvertLODs {
 	if mmConvertLODs.mock.inspectFuncConvertLODs != nil {
 		mmConvertLODs.mock.t.Fatalf("Inspect function is already set for ConverterMock.ConvertLODs")
 	}
@@ -199,7 +225,7 @@ func (mmConvertLODs *mConverterMockConvertLODs) Return(ca1 []domain.ConversionRe
 }
 
 // Set uses given function f to mock the Converter.ConvertLODs method
-func (mmConvertLODs *mConverterMockConvertLODs) Set(f func(ctx context.Context, sourcePath string) (ca1 []domain.ConversionResult, err error)) *ConverterMock {
+func (mmConvertLODs *mConverterMockConvertLODs) Set(f func(ctx context.Context, root string, sourcePath string) (ca1 []domain.ConversionResult, err error)) *ConverterMock {
 	if mmConvertLODs.defaultExpectation != nil {
 		mmConvertLODs.mock.t.Fatalf("Default expectation is already set for the Converter.ConvertLODs method")
 	}
@@ -215,14 +241,14 @@ func (mmConvertLODs *mConverterMockConvertLODs) Set(f func(ctx context.Context, 
 
 // When sets expectation for the Converter.ConvertLODs which will trigger the result defined by the following
 // Then helper
-func (mmConvertLODs *mConverterMockConvertLODs) When(ctx context.Context, sourcePath string) *ConverterMockConvertLODsExpectation {
+func (mmConvertLODs *mConverterMockConvertLODs) When(ctx context.Context, root string, sourcePath string) *ConverterMockConvertLODsExpectation {
 	if mmConvertLODs.mock.funcConvertLODs != nil {
 		mmConvertLODs.mock.t.Fatalf("ConverterMock.ConvertLODs mock is already set by Set")
 	}
 
 	expectation := &ConverterMockConvertLODsExpectation{
 		mock:               mmConvertLODs.mock,
-		params:             &ConverterMockConvertLODsParams{ctx, sourcePath},
+		params:             &ConverterMockConvertLODsParams{ctx, root, sourcePath},
 		expectationOrigins: ConverterMockConvertLODsExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmConvertLODs.expectations = append(mmConvertLODs.expectations, expectation)
@@ -257,17 +283,17 @@ func (mmConvertLODs *mConverterMockConvertLODs) invocationsDone() bool {
 }
 
 // ConvertLODs implements mm_service.Converter
-func (mmConvertLODs *ConverterMock) ConvertLODs(ctx context.Context, sourcePath string) (ca1 []domain.ConversionResult, err error) {
+func (mmConvertLODs *ConverterMock) ConvertLODs(ctx context.Context, root string, sourcePath string) (ca1 []domain.ConversionResult, err error) {
 	mm_atomic.AddUint64(&mmConvertLODs.beforeConvertLODsCounter, 1)
 	defer mm_atomic.AddUint64(&mmConvertLODs.afterConvertLODsCounter, 1)
 
 	mmConvertLODs.t.Helper()
 
 	if mmConvertLODs.inspectFuncConvertLODs != nil {
-		mmConvertLODs.inspectFuncConvertLODs(ctx, sourcePath)
+		mmConvertLODs.inspectFuncConvertLODs(ctx, root, sourcePath)
 	}
 
-	mm_params := ConverterMockConvertLODsParams{ctx, sourcePath}
+	mm_params := ConverterMockConvertLODsParams{ctx, root, sourcePath}
 
 	// Record call args
 	mmConvertLODs.ConvertLODsMock.mutex.Lock()
@@ -286,13 +312,18 @@ func (mmConvertLODs *ConverterMock) ConvertLODs(ctx context.Context, sourcePath 
 		mm_want := mmConvertLODs.ConvertLODsMock.defaultExpectation.params
 		mm_want_ptrs := mmConvertLODs.ConvertLODsMock.defaultExpectation.paramPtrs
 
-		mm_got := ConverterMockConvertLODsParams{ctx, sourcePath}
+		mm_got := ConverterMockConvertLODsParams{ctx, root, sourcePath}
 
 		if mm_want_ptrs != nil {
 
 			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
 				mmConvertLODs.t.Errorf("ConverterMock.ConvertLODs got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmConvertLODs.ConvertLODsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.root != nil && !minimock.Equal(*mm_want_ptrs.root, mm_got.root) {
+				mmConvertLODs.t.Errorf("ConverterMock.ConvertLODs got unexpected parameter root, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmConvertLODs.ConvertLODsMock.defaultExpectation.expectationOrigins.originRoot, *mm_want_ptrs.root, mm_got.root, minimock.Diff(*mm_want_ptrs.root, mm_got.root))
 			}
 
 			if mm_want_ptrs.sourcePath != nil && !minimock.Equal(*mm_want_ptrs.sourcePath, mm_got.sourcePath) {
@@ -312,9 +343,9 @@ func (mmConvertLODs *ConverterMock) ConvertLODs(ctx context.Context, sourcePath 
 		return (*mm_results).ca1, (*mm_results).err
 	}
 	if mmConvertLODs.funcConvertLODs != nil {
-		return mmConvertLODs.funcConvertLODs(ctx, sourcePath)
+		return mmConvertLODs.funcConvertLODs(ctx, root, sourcePath)
 	}
-	mmConvertLODs.t.Fatalf("Unexpected call to ConverterMock.ConvertLODs. %v %v", ctx, sourcePath)
+	mmConvertLODs.t.Fatalf("Unexpected call to ConverterMock.ConvertLODs. %v %v %v", ctx, root, sourcePath)
 	return
 }
 

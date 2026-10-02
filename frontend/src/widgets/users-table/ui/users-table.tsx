@@ -14,20 +14,11 @@ export type UsersTableProps = {
 
 const COLUMNS = ["User", "Email", "Roles", "Status", "2FA", "Passkey"];
 
-export function UsersTable({
-  users,
-  renderActions,
-  action,
-  title = "Users",
-}: UsersTableProps) {
+export function UsersTable({ users, renderActions, action, title = "Users" }: UsersTableProps) {
   if (users.length === 0) {
     return (
       <Card title={title} actions={action}>
-        <EmptyState
-          title="No users yet"
-          description="Invite someone to give them access."
-          action={action}
-        />
+        <EmptyState title="No users yet" description="Invite someone to give them access." action={action} />
       </Card>
     );
   }

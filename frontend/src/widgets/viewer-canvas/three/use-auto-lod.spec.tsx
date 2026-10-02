@@ -154,7 +154,12 @@ describe("useAutoLod", () => {
     await settled();
     expect(lod()).toBe(0);
     moveTo(1000);
-    await update({ chain: [{ ...CHAIN[0], hash: "fine-2" }, { ...CHAIN[1], hash: "coarse-2" }] });
+    await update({
+      chain: [
+        { ...CHAIN[0], hash: "fine-2" },
+        { ...CHAIN[1], hash: "coarse-2" },
+      ],
+    });
     expect(lod()).toBe(2);
     await settled();
     expect(lod()).toBe(2);

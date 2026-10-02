@@ -131,10 +131,7 @@ describe("UsersPage", () => {
   it("waits for the detail rather than showing a half-empty inspector", () => {
     render(<UsersPage {...props({ selectedId: "u-2", inspected: null })} />);
     expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
-    expect(screen.getByRole("article", { name: "d.smirnov" })).toHaveAttribute(
-      "aria-current",
-      "true",
-    );
+    expect(screen.getByRole("article", { name: "d.smirnov" })).toHaveAttribute("aria-current", "true");
   });
 
   it("creates a user", async () => {

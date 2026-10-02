@@ -100,7 +100,11 @@ describe("UploadModelsPage", () => {
 
   it("reads Uploading k of n… while running, and offers Cancel batch", async () => {
     const onCancel = vi.fn();
-    const current = { row: ROWS[2], progress: { bytes: 1, total: 2, chunk: 1, chunks: 2 }, stats: { chunk: "1 / 2", speed: "1 MB/s" } };
+    const current = {
+      row: ROWS[2],
+      progress: { bytes: 1, total: 2, chunk: 1, chunks: 2 },
+      stats: { chunk: "1 / 2", speed: "1 MB/s" },
+    };
     render(<UploadModelsPage {...props({ running: true, current, onCancel })} />);
     expect(screen.getByRole("button", { name: "Uploading 3 of 5…" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Cancel batch" }));
@@ -142,11 +146,7 @@ describe("UploadModelsPage", () => {
 
   it("reads singular copy for a one-row queue: 1 model, 1 archive", () => {
     const queued: QueueRow = makeRow(file("a.zip"));
-    render(
-      <UploadModelsPage
-        {...props({ rows: [queued], mix: batchMix([queued]), stats: batchStats([queued]) })}
-      />,
-    );
+    render(<UploadModelsPage {...props({ rows: [queued], mix: batchMix([queued]), stats: batchStats([queued]) })} />);
     expect(screen.getByRole("button", { name: "Upload 1 model" })).toBeInTheDocument();
     expect(screen.getByText(/^1 archive ·/)).toBeInTheDocument();
   });
@@ -161,9 +161,7 @@ describe("UploadModelsPage", () => {
 
   it("carries the sequential note verbatim", () => {
     render(<UploadModelsPage {...props()} />);
-    expect(
-      screen.getByText("rows upload sequentially · titles lock once a row starts"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("rows upload sequentially · titles lock once a row starts")).toBeInTheDocument();
   });
 
   it("names every failed file in the aside", () => {

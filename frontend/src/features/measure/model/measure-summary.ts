@@ -10,7 +10,8 @@ export function measureSummary(chains: Chain[], unitRatio: number): { segments: 
   // formatDistance's metric branch only reaches "m" at abs >= 1, so a true
   // zero (nothing measured yet) falls to its mm bucket ("0 mm") instead of
   // reading as a clean zero — spell it out directly for the empty case.
-  const total = segments.length === 0 ? `0.00 ${unitRatio === 1 ? "u" : "m"}` : formatDistance(sum * unitRatio, unitRatio);
+  const total =
+    segments.length === 0 ? `0.00 ${unitRatio === 1 ? "u" : "m"}` : formatDistance(sum * unitRatio, unitRatio);
   return { segments: segments.length, total };
 }
 

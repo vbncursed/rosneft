@@ -27,7 +27,7 @@ func (h *Handlers) twoFactorStatus(w http.ResponseWriter, r *http.Request) {
 	if !st.EnabledAt.IsZero() {
 		body["enabledAt"] = st.EnabledAt.Format(time.RFC3339)
 	}
-	writeJSON(w, http.StatusOK, body)
+	writeJSON(w, r, http.StatusOK, body)
 }
 
 func (h *Handlers) setup2FA(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +36,7 @@ func (h *Handlers) setup2FA(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"secret": secret, "otpauthUrl": url})
+	writeJSON(w, r, http.StatusOK, map[string]any{"secret": secret, "otpauthUrl": url})
 }
 
 func (h *Handlers) enable2FA(w http.ResponseWriter, r *http.Request) {
@@ -49,7 +49,7 @@ func (h *Handlers) enable2FA(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"recoveryCodes": codes})
+	writeJSON(w, r, http.StatusOK, map[string]any{"recoveryCodes": codes})
 }
 
 func (h *Handlers) disable2FA(w http.ResponseWriter, r *http.Request) {
@@ -74,5 +74,5 @@ func (h *Handlers) regenerate2FA(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"recoveryCodes": codes})
+	writeJSON(w, r, http.StatusOK, map[string]any{"recoveryCodes": codes})
 }

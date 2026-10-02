@@ -12,7 +12,7 @@ describe("upstreamOrigin", () => {
     expect(upstreamOrigin({ DESKTOP_UPSTREAM: "" })).toBe(DEFAULT_UPSTREAM);
   });
   it("refuses anything that is not http(s)", () => {
-    expect(() => upstreamOrigin({ DESKTOP_UPSTREAM: "file:///etc" })).toThrow(/http\(s\)/);
+    expect(() => upstreamOrigin({ DESKTOP_UPSTREAM: "file:///etc" })).toThrow(/http\(s\)/u);
   });
   it("refuses garbage", () => {
     expect(() => upstreamOrigin({ DESKTOP_UPSTREAM: "not a url" })).toThrow();

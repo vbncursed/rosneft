@@ -105,12 +105,7 @@ export function UsersPage({
         ))}
       </div>
 
-      <FilterBar
-        query={query}
-        onChange={onQueryChange}
-        label="Filter people"
-        placeholder={FILTER_PLACEHOLDER}
-      />
+      <FilterBar query={query} onChange={onQueryChange} label="Filter people" placeholder={FILTER_PLACEHOLDER} />
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(420px,1fr)_minmax(300px,360px)]">
         <PeopleGroups groups={groups} selectedId={selectedId} onSelect={onSelect} />

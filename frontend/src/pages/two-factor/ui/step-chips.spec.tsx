@@ -11,9 +11,11 @@ const ENABLE = [
 describe("StepChips", () => {
   it("lists every step in order under one named sequence", () => {
     render(<StepChips steps={ENABLE} />);
-    expect(
-      screen.getAllByRole("listitem").map((li) => li.textContent?.replace(/completed$/, "")),
-    ).toEqual(["1 · scan", "2 · confirm", "3 · save codes"]);
+    expect(screen.getAllByRole("listitem").map((li) => li.textContent?.replace(/completed$/, ""))).toEqual([
+      "1 · scan",
+      "2 · confirm",
+      "3 · save codes",
+    ]);
     expect(screen.getByRole("list", { name: "Two-factor progress" })).toBeInTheDocument();
   });
 
@@ -49,8 +51,8 @@ describe("StepChips", () => {
   it("dresses the three tones as the design does", () => {
     render(<StepChips steps={ENABLE} />);
     const [scan, confirm, codes] = screen.getAllByRole("listitem");
-    expect(scan!.className).toContain("text-ok");
-    expect(confirm!.className).toContain("bg-accent-soft");
-    expect(codes!.className).toContain("text-muted");
+    expect(scan.className).toContain("text-ok");
+    expect(confirm.className).toContain("bg-accent-soft");
+    expect(codes.className).toContain("text-muted");
   });
 });

@@ -8,9 +8,7 @@ const props = { username: "a.ivanova", onSignOut: vi.fn(), signingOut: false };
 describe("TwoFactorRequiredPage", () => {
   it("gate: says why, lists the three steps, and offers setup and sign-out", async () => {
     render(<TwoFactorRequiredPage {...props} stage="gate" />);
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Set up two-factor to continue" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Set up two-factor to continue" })).toBeInTheDocument();
     expect(screen.getByText("two-factor required")).toBeInTheDocument();
     const steps = screen.getAllByRole("listitem");
     expect(steps.map((li) => li.querySelector("p")?.textContent)).toEqual([
@@ -18,10 +16,7 @@ describe("TwoFactorRequiredPage", () => {
       "Scan the code and confirm six digits",
       "Save the recovery codes",
     ]);
-    expect(screen.getByRole("link", { name: "Set up two-factor" })).toHaveAttribute(
-      "href",
-      "/account/two-factor",
-    );
+    expect(screen.getByRole("link", { name: "Set up two-factor" })).toHaveAttribute("href", "/account/two-factor");
     await userEvent.click(screen.getByRole("button", { name: "Sign out" }));
     expect(props.onSignOut).toHaveBeenCalled();
   });
@@ -30,10 +25,7 @@ describe("TwoFactorRequiredPage", () => {
     render(<TwoFactorRequiredPage {...props} stage="done" />);
     expect(screen.getByRole("heading", { level: 1, name: "You're all set" })).toBeInTheDocument();
     expect(screen.getByText("two-factor on")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Continue to territories" })).toHaveAttribute(
-      "href",
-      "/territories",
-    );
+    expect(screen.getByRole("link", { name: "Continue to territories" })).toHaveAttribute("href", "/territories");
     expect(screen.queryByRole("button", { name: "Sign out" })).not.toBeInTheDocument();
   });
 

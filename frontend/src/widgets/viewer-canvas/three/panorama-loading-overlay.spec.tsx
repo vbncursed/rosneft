@@ -63,10 +63,7 @@ describe("PanoramaLoadingOverlay", () => {
 
   it("reports the download percent", () => {
     mount(40);
-    expect(screen.getByRole("progressbar", { name: "Loading panorama" })).toHaveAttribute(
-      "aria-valuenow",
-      "40",
-    );
+    expect(screen.getByRole("progressbar", { name: "Loading panorama" })).toHaveAttribute("aria-valuenow", "40");
   });
 
   it("runs indeterminate when the server sent no Content-Length", () => {

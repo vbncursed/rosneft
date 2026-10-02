@@ -107,6 +107,7 @@ export default function CameraRig({ resetVersion, playing, onPlayStop, sceneRef 
     controls.reset();
     controls.update();
     invalidate();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- trigger, not input: resetVersion is a counter whose every bump is one Reset
   }, [resetVersion, invalidate]);
 
   // Play. Our own frame loop moves the camera, since frameloop="demand" draws
@@ -139,8 +140,8 @@ export default function CameraRig({ resetVersion, playing, onPlayStop, sceneRef 
     const land = () => {
       cancelAnimationFrame(frame);
       controls.removeEventListener("start", grab);
-      const view = camera.getWorldDirection(new Vector3());
-      controls.target.copy(landingPivot(camera.position, view, sphere));
+      const sight = camera.getWorldDirection(new Vector3());
+      controls.target.copy(landingPivot(camera.position, sight, sphere));
       // The flight moved the camera without update(), so nothing has fired
       // "change" since it began. This one does: Auto LOD re-reads the view
       // where the flight left it. The pivot is on the line of sight, so the

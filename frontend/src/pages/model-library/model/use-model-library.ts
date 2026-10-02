@@ -43,9 +43,7 @@ export function useModelLibrary(): ModelLibraryState {
 
   const jobOf = (slug: string) => jobs.data?.find((j) => j.kind === "model" && j.slug === slug);
 
-  const cards = models.data
-    ? models.data.map((m) => toModelCard(m, m.lods ?? [], jobOf(m.slug)))
-    : null;
+  const cards = models.data ? models.data.map((m) => toModelCard(m, m.lods ?? [], jobOf(m.slug))) : null;
 
   const removal = useMutation({
     mutationFn: (slug: string) => deleteModel(slug),

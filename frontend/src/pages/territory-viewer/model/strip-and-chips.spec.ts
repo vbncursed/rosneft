@@ -79,9 +79,7 @@ describe("modeChip", () => {
   it("looks around rather than calibrating once the camera is inside the sphere", () => {
     // The chip answers "what does the pointer do", and inside the sphere a
     // drag looks around whatever the anchor card is doing on the panel.
-    expect(chip({ view: INSIDE, calibrating: "Control room" }).text).toBe(
-      "panorama · drag to look around",
-    );
+    expect(chip({ view: INSIDE, calibrating: "Control room" }).text).toBe("panorama · drag to look around");
   });
 });
 
@@ -96,12 +94,7 @@ describe("stripItems", () => {
 
   it("names both levels and accents the last span while the target downloads", () => {
     expect(stripItems({ metadata: METADATA, shown: 2, target: 0, failed: false })).toEqual({
-      items: [
-        "36.0 × 24.0 × 8.5 m",
-        "1 284 210 vertices",
-        "612 480 faces",
-        "LOD 2 active · LOD 0 loading",
-      ],
+      items: ["36.0 × 24.0 × 8.5 m", "1 284 210 vertices", "612 480 faces", "LOD 2 active · LOD 0 loading"],
       tone: "neutral",
       accentLast: true,
     });
@@ -117,13 +110,7 @@ describe("stripItems", () => {
 
   it("states the absence rather than showing a spinner when the mesh failed", () => {
     expect(stripItems({ metadata: METADATA, shown: null, target: 1, failed: true })).toEqual({
-      items: [
-        "no geometry loaded",
-        "dimensions unavailable",
-        "vertices —",
-        "faces —",
-        "LOD 1 requested",
-      ],
+      items: ["no geometry loaded", "dimensions unavailable", "vertices —", "faces —", "LOD 1 requested"],
       tone: "bad",
       accentLast: false,
     });

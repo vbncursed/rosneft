@@ -2,11 +2,27 @@ import { describe, expect, it } from "vitest";
 import type { TargetJob } from "@/entities/conversion";
 import type { TerritoryCardModel } from "@/entities/territory";
 import {
-  bareCard, headerMeta, jobsMeta, modelsMeta, plural, recent, seeAll, showConsole, territoriesMeta, titleOf, viewerEmpty,
+  bareCard,
+  headerMeta,
+  jobsMeta,
+  modelsMeta,
+  plural,
+  recent,
+  seeAll,
+  showConsole,
+  territoriesMeta,
+  titleOf,
+  viewerEmpty,
 } from "./home-view";
 
 const job = (over: Partial<TargetJob> = {}): TargetJob => ({
-  kind: "territory", slug: "t", status: "running", progress: 0.5, stage: "parsing", errorMessage: null, ...over,
+  kind: "territory",
+  slug: "t",
+  status: "running",
+  progress: 0.5,
+  stage: "parsing",
+  errorMessage: null,
+  ...over,
 });
 
 describe("recent", () => {
@@ -78,7 +94,9 @@ describe("viewerEmpty", () => {
 
 describe("headerMeta", () => {
   it("counts territories, models and the jobs in flight", () => {
-    expect(headerMeta(4, 57, [job(), job({ slug: "u", status: "failed" })], false)).toBe("4 territories · 57 models · 1 converting · 1 failed");
+    expect(headerMeta(4, 57, [job(), job({ slug: "u", status: "failed" })], false)).toBe(
+      "4 territories · 57 models · 1 converting · 1 failed",
+    );
   });
   it("says nothing converting when the strip is empty", () => {
     expect(headerMeta(4, 57, [], false)).toBe("4 territories · 57 models · nothing converting");
@@ -132,8 +150,13 @@ describe("titleOf / showConsole / bareCard / plural", () => {
   });
   it("strips chips and progress off a card", () => {
     const card: TerritoryCardModel = {
-      slug: "t", title: "T", status: "converting", chips: [{ label: "x", tone: "plain" }],
-      progress: { value: 1, stage: "s" }, trailing: { label: "converting", tone: "muted" }, panorama: false,
+      slug: "t",
+      title: "T",
+      status: "converting",
+      chips: [{ label: "x", tone: "plain" }],
+      progress: { value: 1, stage: "s" },
+      trailing: { label: "converting", tone: "muted" },
+      panorama: false,
     };
     expect(bareCard(card)).toEqual({ ...card, chips: [], progress: undefined });
   });

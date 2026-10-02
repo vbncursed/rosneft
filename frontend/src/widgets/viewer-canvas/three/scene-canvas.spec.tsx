@@ -18,10 +18,7 @@ vi.mock("./ktx2-init", () => ({ default: () => null }));
 // the props it was handed captured for the pointer-missed assertions.
 const canvas = vi.hoisted(() => ({ props: {} as Record<string, () => void> }));
 vi.mock("@react-three/fiber", async (orig) => {
-  const real = (await (orig as () => Promise<Record<string, unknown>>)()) as Record<
-    string,
-    unknown
-  >;
+  const real = await (orig as () => Promise<Record<string, unknown>>)();
   return {
     ...real,
     Canvas: (p: { children: unknown }) => {
@@ -152,13 +149,10 @@ const props = (over: Partial<ViewerCanvasProps> = {}): ViewerCanvasProps => ({
 const mount = (over: Partial<ViewerCanvasProps> = {}, colors = COLORS) =>
   ReactThreeTestRenderer.create(<SceneCanvas {...props(over)} colors={colors} />);
 
-const grids = (r: Awaited<ReturnType<typeof mount>>) =>
-  r.scene.findAll((n) => n.instance.type === "GridHelper");
+const grids = (r: Awaited<ReturnType<typeof mount>>) => r.scene.findAll((n) => n.instance.type === "GridHelper");
 
 const spheres = (r: Awaited<ReturnType<typeof mount>>) =>
-  r.scene.findAll(
-    (n) => ((n.instance as Mesh).geometry as BufferGeometry | undefined)?.type === "SphereGeometry",
-  );
+  r.scene.findAll((n) => ((n.instance as Mesh).geometry as BufferGeometry | undefined)?.type === "SphereGeometry");
 
 /** A panorama that has finished decoding, as the page hands it over. */
 const inside = () => ({
@@ -169,11 +163,9 @@ const inside = () => ({
 
 // The one node in the tree that carries an explicit `visible` prop: the group
 // that hides the territory behind the photograph.
-const territoryGroup = (r: Awaited<ReturnType<typeof mount>>) =>
-  r.scene.findAll((n) => n.props.visible !== undefined);
+const territoryGroup = (r: Awaited<ReturnType<typeof mount>>) => r.scene.findAll((n) => n.props.visible !== undefined);
 
-const ground = (r: Awaited<ReturnType<typeof mount>>) =>
-  (r.scene.instance as unknown as Scene).background as Color;
+const ground = (r: Awaited<ReturnType<typeof mount>>) => (r.scene.instance as unknown as Scene).background as Color;
 
 const clickEvent = (point: { x: number; y: number; z: number }) => ({
   nativeEvent: { id: 1 },

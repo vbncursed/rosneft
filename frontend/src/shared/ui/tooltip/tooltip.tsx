@@ -18,7 +18,7 @@ function mergeHandlers(own: ChildProps, ours: TriggerProps) {
       name,
       (event: never) => {
         (own[name] as Handler | undefined)?.(event);
-        (ours[name] as Handler)(event);
+        ours[name](event);
       },
     ]),
   );
@@ -34,10 +34,16 @@ const ENTER_MS = 120;
 function driftIn(el: HTMLElement, side: Side) {
   const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   const from = still ? "0 0" : `0 ${side === "top" ? 2 : -2}px`;
-  el.animate?.([{ opacity: 0, translate: from }, { opacity: 1, translate: "0 0" }], {
-    duration: ENTER_MS,
-    easing: EASE_OUT,
-  });
+  el.animate?.(
+    [
+      { opacity: 0, translate: from },
+      { opacity: 1, translate: "0 0" },
+    ],
+    {
+      duration: ENTER_MS,
+      easing: EASE_OUT,
+    },
+  );
 }
 
 /**
@@ -75,6 +81,7 @@ export function Tooltip({ label, shortcut, side = "top", children }: TooltipProp
     if (entered.current) return;
     entered.current = true;
     if (!instant) driftIn(tip.current, placed.side);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- trigger, not input: a changed label or shortcut changes the tip's size, so it is placed again
   }, [open, instant, side, label, shortcut]);
 
   const own = child.props["aria-describedby"];

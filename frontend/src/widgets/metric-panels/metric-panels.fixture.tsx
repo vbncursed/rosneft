@@ -2,9 +2,7 @@ import { useState } from "react";
 import { MetricPanels, type MetricSection } from "./ui/metric-panels";
 
 const wave = (n: number, base: number, amp: number, seed: number, drift = 0) =>
-  Array.from({ length: n }, (_, i) =>
-    Math.max(0, base + Math.sin((i + seed) * 0.7) * amp + (i / n) * drift),
-  );
+  Array.from({ length: n }, (_, i) => Math.max(0, base + Math.sin((i + seed) * 0.7) * amp + (i / n) * drift));
 
 const SECTIONS: MetricSection[] = [
   {

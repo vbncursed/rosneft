@@ -8,6 +8,6 @@ export function formatBytes(bytes: number): string {
     value /= 1024;
     unit += 1;
   }
-  const text = unit >= 3 ? value.toFixed(1).replace(/\.0$/, "") : String(Math.round(value));
+  const text = unit >= 3 ? value.toFixed(1).replace(/\.0$/u, "") : String(Math.round(value));
   return `${text} ${UNITS[unit]}`;
 }

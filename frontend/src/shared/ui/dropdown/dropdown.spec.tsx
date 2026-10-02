@@ -38,10 +38,7 @@ describe("Dropdown", () => {
     await userEvent.click(trigger());
     expect(trigger()).toHaveAttribute("aria-expanded", "true");
     expect(screen.getAllByRole("option")).toHaveLength(4);
-    expect(screen.getByRole("option", { name: /territory/ })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
+    expect(screen.getByRole("option", { name: /territory/ })).toHaveAttribute("aria-selected", "true");
   });
 
   // A drawn check on the chosen option; the others keep an empty box of the
@@ -113,9 +110,7 @@ describe("Dropdown", () => {
 
   it("never opens while disabled", async () => {
     const onChange = vi.fn();
-    render(
-      <Dropdown options={OPTIONS} value="any" onChange={onChange} ariaLabel="Entity" disabled />,
-    );
+    render(<Dropdown options={OPTIONS} value="any" onChange={onChange} ariaLabel="Entity" disabled />);
     await userEvent.click(trigger());
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });

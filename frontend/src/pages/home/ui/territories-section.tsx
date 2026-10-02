@@ -13,13 +13,7 @@ export type TerritoriesSectionProps = {
   onOpen: (href: string) => void;
 };
 
-export function TerritoriesSection({
-  cards,
-  total,
-  meta,
-  viewerEmpty,
-  onOpen,
-}: TerritoriesSectionProps) {
+export function TerritoriesSection({ cards, total, meta, viewerEmpty, onOpen }: TerritoriesSectionProps) {
   return (
     <section aria-label="Territories">
       <SectionHeading
@@ -27,9 +21,7 @@ export function TerritoriesSection({
         count={meta}
         className="pb-3 pt-0.5"
         trailing={
-          total > 0 ? (
-            <TrailingLink href="/territories">{seeAll("territories", total)}</TrailingLink>
-          ) : undefined
+          total > 0 ? <TrailingLink href="/territories">{seeAll("territories", total)}</TrailingLink> : undefined
         }
       />
       {cards.length === 0 ? (

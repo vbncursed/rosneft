@@ -16,7 +16,12 @@ const SECTION: ModelSection = {
   shown: [{ id: 2, index: 2, label: "", hidden: false, groupId: null }],
 };
 
-const mount = (c = ctx()) => render(<ul><ModelSectionItem section={SECTION} ctx={c} /></ul>);
+const mount = (c = ctx()) =>
+  render(
+    <ul>
+      <ModelSectionItem section={SECTION} ctx={c} />
+    </ul>,
+  );
 
 describe("ModelSectionItem", () => {
   it("counts only the ungrouped instances it lists", () => {
@@ -40,7 +45,11 @@ describe("ModelSectionItem", () => {
     expect(screen.queryByRole("button", { name: /storage-tank-500 #2/ })).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "storage-tank-500" }));
     expect(c.onToggleGroup).toHaveBeenCalledWith("tank");
-    rerender(<ul><ModelSectionItem section={SECTION} ctx={ctx({ selectedId: 2 })} /></ul>);
+    rerender(
+      <ul>
+        <ModelSectionItem section={SECTION} ctx={ctx({ selectedId: 2 })} />
+      </ul>,
+    );
     expect(screen.getByRole("button", { name: "storage-tank-500 #2" })).toHaveAttribute("aria-pressed", "true");
   });
 

@@ -19,10 +19,8 @@ function toSession(d: UploadSessionDto): UploadSession {
 }
 
 /** Starts a new chunked-upload session; appendChunk/finalizeUpload key off its id. */
-export const initiateUpload = async (
-  size: number,
-  contentType = "application/zip",
-): Promise<UploadSession> => toSession(await httpPost<UploadSessionDto>("/api/uploads", { size, contentType }));
+export const initiateUpload = async (size: number, contentType = "application/zip"): Promise<UploadSession> =>
+  toSession(await httpPost<UploadSessionDto>("/api/uploads", { size, contentType }));
 
 // Raw fetch, not the shared JSON client: the body is a Blob sent as
 // application/octet-stream with a custom Upload-Offset header, none of which
@@ -35,12 +33,7 @@ async function uploadHeaders(extra: Record<string, string>): Promise<Record<stri
 }
 
 /** PATCHes one slice at `offset`. The gateway rejects out-of-order or oversize writes. */
-export async function appendChunk(
-  id: string,
-  offset: number,
-  chunk: Blob,
-  signal?: AbortSignal,
-): Promise<number> {
+export async function appendChunk(id: string, offset: number, chunk: Blob, signal?: AbortSignal): Promise<number> {
   const res = await fetch(`${API_BASE}/api/uploads/${encodeURIComponent(id)}`, {
     method: "PATCH",
     headers: await uploadHeaders({
@@ -60,5 +53,4 @@ export const finalizeUpload = (id: string): Promise<FinalizedBlob> =>
   httpPost<UploadFinalizedDto>(`/api/uploads/${encodeURIComponent(id)}/finalize`);
 
 /** Discards an in-progress session. Idempotent. */
-export const abortUpload = (id: string): Promise<void> =>
-  httpDelete(`/api/uploads/${encodeURIComponent(id)}`);
+export const abortUpload = (id: string): Promise<void> => httpDelete(`/api/uploads/${encodeURIComponent(id)}`);

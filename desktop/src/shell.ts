@@ -9,8 +9,8 @@ import { eachLimit } from "./limit";
 
 export type ShellManifest = { id: string; files: { path: string; size: number }[] };
 
-const ID = /^[0-9a-f]{16,64}$/;
-const SAFE_PATH = /^\/(?:[A-Za-z0-9_.@+~-]+\/)*[A-Za-z0-9_.@+~-]+$/;
+const ID = /^[0-9a-f]{16,64}$/u;
+const SAFE_PATH = /^\/(?:[A-Za-z0-9_.@+~-]+\/)*[A-Za-z0-9_.@+~-]+$/u;
 const safe = (p: string): boolean => SAFE_PATH.test(p) && !p.split("/").some((s) => s === ".." || s === ".");
 
 /** null for anything that is not a manifest; unsafe entries are skipped with a warning rather than failing the lot. */
@@ -57,7 +57,8 @@ const TYPES: Record<string, string> = {
   ".ftl": "text/plain; charset=utf-8",
 };
 
-export const contentType = (urlPath: string): string => TYPES[path.extname(urlPath).toLowerCase()] ?? "application/octet-stream";
+export const contentType = (urlPath: string): string =>
+  TYPES[path.extname(urlPath).toLowerCase()] ?? "application/octet-stream";
 
 /** The SPA's files, one complete generation per deployed frontend, so it boots and opens any route with no network. */
 export class Shell {
@@ -117,7 +118,8 @@ export class Shell {
       await mkdir(path.dirname(dest), { recursive: true });
       await pipeline(Readable.fromWeb(r.body as NodeWebStream<Uint8Array>), createWriteStream(dest));
       const size = (await stat(dest)).size;
-      if (!sizeAcceptable(f.path, size, f.size)) throw new Error(`shell: ${f.path} is ${size} bytes, manifest says ${f.size}`);
+      if (!sizeAcceptable(f.path, size, f.size))
+        throw new Error(`shell: ${f.path} is ${size} bytes, manifest says ${f.size}`);
     });
 
     await rm(path.join(this.root, manifest.id), { recursive: true, force: true });
@@ -127,7 +129,10 @@ export class Shell {
   }
 
   private hasIndex(id: string): Promise<boolean> {
-    return stat(path.join(this.root, id, "index.html")).then(() => true, () => false);
+    return stat(path.join(this.root, id, "index.html")).then(
+      () => true,
+      () => false,
+    );
   }
 
   /** Drops every generation but `keep`. */
@@ -135,6 +140,7 @@ export class Shell {
     for (const name of await readdir(this.root)) {
       if (name === keep || name === "current") continue;
       // Windows refuses to delete a file a page is still reading; the next refresh retries.
+      // oxlint-disable-next-line no-await-in-loop -- best-effort cleanup of old generations; sequential keeps it simple
       await rm(path.join(this.root, name), { recursive: true, force: true }).catch(() => undefined);
     }
   }

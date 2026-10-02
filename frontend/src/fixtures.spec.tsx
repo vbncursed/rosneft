@@ -11,10 +11,7 @@ import { preloadViewer } from "@/widgets/viewer-canvas";
  * The glob is lazy on purpose: eager imports would throw while the file loads,
  * which fails the run without naming the fixture at fault.
  */
-const modules = import.meta.glob("./**/*.fixture.tsx") as Record<
-  string,
-  () => Promise<{ default: unknown }>
->;
+const modules = import.meta.glob("./**/*.fixture.tsx") as Record<string, () => Promise<{ default: unknown }>>;
 
 /** Cosmos accepts an element, a component, or a named map of either. */
 function nodesOf(exported: unknown): [string, ReactNode][] {

@@ -9,7 +9,14 @@ const A = "0b5e8a3c-1f2d-4c5b-9a7e-3d2c1b0a9f8e";
 const B = "1c6f9b4d-2a3e-4d6c-8b8f-4e3d2c1b0a9f";
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 const body = (s: string) => new Response(s).body as ReadableStream<Uint8Array>;
-const pin = (slug: string, hashes: string[]): Pin => ({ slug, title: slug, hashes, bytes: 0, savedAt: "t", syncedAt: "t" });
+const pin = (slug: string, hashes: string[]): Pin => ({
+  slug,
+  title: slug,
+  hashes,
+  bytes: 0,
+  savedAt: "t",
+  syncedAt: "t",
+});
 
 let root: string;
 let store: Store;
@@ -45,14 +52,18 @@ describe("Store", () => {
 
   it("a body that does not hash to its name is refused and leaves nothing behind", async () => {
     const h = sha("hello");
-    await expect(store.writeBlob(A, h, "x", body("tampered"))).rejects.toThrow(/did not hash/);
+    await expect(store.writeBlob(A, h, "x", body("tampered"))).rejects.toThrow(/did not hash/u);
     expect(await store.blob(A, h)).toBeNull();
     expect(readdirSync(path.join(root, "tmp"))).toEqual([]);
   });
 
   it("a failed write leaves nothing behind", async () => {
     const h = sha("hello");
-    const broken = new ReadableStream<Uint8Array>({ pull(c) { c.error(Object.assign(new Error("disk full"), { code: "ENOSPC" })); } });
+    const broken = new ReadableStream<Uint8Array>({
+      pull(c) {
+        c.error(Object.assign(new Error("disk full"), { code: "ENOSPC" }));
+      },
+    });
     await expect(store.writeBlob(A, h, "x", broken)).rejects.toMatchObject({ code: "ENOSPC" });
     expect(readdirSync(path.join(root, "tmp"))).toEqual([]);
     expect(await store.blob(A, h)).toBeNull();
@@ -61,15 +72,20 @@ describe("Store", () => {
   it("keeps each user's blobs and snapshots apart", async () => {
     const h = sha("a");
     await store.writeBlob(A, h, "x", body("a"));
-    await store.writeSnapshot(A, "/api/auth/me", { status: 200, headers: [["content-type", "application/json"]] }, Buffer.from("{}"));
+    await store.writeSnapshot(
+      A,
+      "/api/auth/me",
+      { status: 200, headers: [["content-type", "application/json"]] },
+      Buffer.from("{}"),
+    );
     expect(await store.blob(B, h)).toBeNull();
     expect(await store.readSnapshot(B, "/api/auth/me")).toBeNull();
     expect((await store.readSnapshot(A, "/api/auth/me"))?.meta.status).toBe(200);
   });
 
   it("refuses a user id or hash that could leave its directory", async () => {
-    await expect(store.blob("../x", sha("a"))).rejects.toThrow(/refusing user/);
-    await expect(store.blob(A, "../../etc/passwd")).rejects.toThrow(/refusing hash/);
+    await expect(store.blob("../x", sha("a"))).rejects.toThrow(/refusing user/u);
+    await expect(store.blob(A, "../../etc/passwd")).rejects.toThrow(/refusing hash/u);
   });
 
   it("clears tmp/ on init", async () => {
@@ -96,7 +112,7 @@ describe("Store", () => {
       store.updatePins(A, (p) => [...p, pin("one", [])]),
       store.updatePins(A, (p) => [...p, pin("two", [])]),
     ]);
-    expect((await store.readPins(A)).map((p) => p.slug).sort()).toEqual(["one", "two"]);
+    expect((await store.readPins(A)).map((p) => p.slug).toSorted()).toEqual(["one", "two"]);
   });
 
   it("a failed rename leaves no orphan .type and nothing in tmp/", async () => {
@@ -111,7 +127,11 @@ describe("Store", () => {
   it("an aborted write rejects and leaves nothing behind", async () => {
     const h = sha("hello");
     const ac = new AbortController();
-    const stalled = new ReadableStream<Uint8Array>({ pull() { return new Promise(() => {}); } });
+    const stalled = new ReadableStream<Uint8Array>({
+      pull() {
+        return new Promise(() => {});
+      },
+    });
     const pending = store.writeBlob(A, h, "x", stalled, ac.signal);
     setTimeout(() => ac.abort(), 10);
     await expect(pending).rejects.toThrow();
@@ -180,5 +200,12 @@ describe("Store", () => {
     expect(await store.readSnapshot(A, "/k")).toBeNull();
     writeFileSync(path.join(dir, name), Buffer.from([0, 0, 0, 99, 1, 2]));
     expect(await store.readSnapshot(A, "/k")).toBeNull();
+  });
+
+  it("removeSnapshot deletes one key and tolerates a missing one", async () => {
+    await store.writeSnapshot(A, "/k", { status: 200, headers: [] }, Buffer.from("body"));
+    await store.removeSnapshot(A, "/k");
+    expect(await store.readSnapshot(A, "/k")).toBeNull();
+    await expect(store.removeSnapshot(A, "/k")).resolves.toBeUndefined();
   });
 });

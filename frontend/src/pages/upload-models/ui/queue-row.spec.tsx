@@ -23,8 +23,14 @@ describe("QueueRowCard", () => {
   it("shows the file name and an editable title", () => {
     render(<QueueRowCard row={row()} onTitle={() => {}} onRemove={() => {}} onThumbnail={() => {}} />);
     expect(screen.getByText("pump-jack-unit.zip")).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "Title for pump-jack-unit.zip" })).toHaveValue(
-      "Pump Jack Unit",
+    expect(screen.getByRole("textbox", { name: "Title for pump-jack-unit.zip" })).toHaveValue("Pump Jack Unit");
+  });
+
+  it("offers only the thumbnail types the server accepts", () => {
+    render(<QueueRowCard row={row()} onTitle={() => {}} onRemove={() => {}} onThumbnail={() => {}} />);
+    expect(screen.getByLabelText("Add thumbnail for pump-jack-unit.zip")).toHaveAttribute(
+      "accept",
+      "image/jpeg,image/png,image/webp",
     );
   });
 
@@ -57,7 +63,12 @@ describe("QueueRowCard", () => {
 
   it("shows a progress row only while uploading", () => {
     const { rerender } = render(
-      <QueueRowCard row={row({ status: "uploading", progress: 0.62 })} onTitle={() => {}} onRemove={() => {}} onThumbnail={() => {}} />,
+      <QueueRowCard
+        row={row({ status: "uploading", progress: 0.62 })}
+        onTitle={() => {}}
+        onRemove={() => {}}
+        onThumbnail={() => {}}
+      />,
     );
     expect(screen.getByRole("progressbar")).toBeInTheDocument();
     expect(screen.getByText("62%")).toBeInTheDocument();
@@ -123,7 +134,9 @@ describe("QueueRowCard", () => {
   });
 
   it("shows no thumbnail affordance on a done row that never got one", () => {
-    render(<QueueRowCard row={row({ status: "done" })} onTitle={() => {}} onRemove={() => {}} onThumbnail={() => {}} />);
+    render(
+      <QueueRowCard row={row({ status: "done" })} onTitle={() => {}} onRemove={() => {}} onThumbnail={() => {}} />,
+    );
     expect(screen.queryByText(/add image/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/thumbnail/i)).not.toBeInTheDocument();
   });
@@ -146,7 +159,9 @@ describe("QueueRowCard", () => {
   });
 
   it("prints the status as text, not colour alone", () => {
-    render(<QueueRowCard row={row({ status: "failed" })} onTitle={() => {}} onRemove={() => {}} onThumbnail={() => {}} />);
+    render(
+      <QueueRowCard row={row({ status: "failed" })} onTitle={() => {}} onRemove={() => {}} onThumbnail={() => {}} />,
+    );
     expect(screen.getByText("failed")).toBeInTheDocument();
   });
 });

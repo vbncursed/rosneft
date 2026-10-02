@@ -91,10 +91,7 @@ export default function SceneCanvas({
   const pointMode = mode !== "orbit";
 
   const bgArgs = useMemo<[string]>(() => [colors.background], [colors.background]);
-  const gridArgs = useMemo<[number, number, string, string]>(
-    () => [6, 24, colors.grid, colors.grid],
-    [colors.grid],
-  );
+  const gridArgs = useMemo<[number, number, string, string]>(() => [6, 24, colors.grid, colors.grid], [colors.grid]);
 
   const handlePointerMissed = useCallback(() => {
     // While picking points an empty-space click is just "no surface" — leave

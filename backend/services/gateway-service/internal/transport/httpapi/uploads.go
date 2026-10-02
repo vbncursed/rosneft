@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
+	"github.com/vbncursed/rosneft/backend/pkg/contenttype"
 )
 
 func (s *Server) InitiateUpload(ctx context.Context, req InitiateUploadRequestObject) (InitiateUploadResponseObject, error) {
@@ -28,7 +29,8 @@ func (s *Server) InitiateUpload(ctx context.Context, req InitiateUploadRequestOb
 		Offset: out.Offset,
 	}
 	if contentType != "" {
-		resp.ContentType = &contentType
+		normalised := contenttype.Normalise(contentType)
+		resp.ContentType = &normalised
 	}
 	return resp, nil
 }

@@ -63,9 +63,7 @@ function push(tone: ToastTone, message: string, action?: NoticeAction): number {
   // and a repeat is its own event — and never one with an action: each Retry
   // closes over its own attempt.
   const same =
-    LIFETIME[tone] === null &&
-    !action &&
-    notices.find((n) => n.tone === tone && n.message === message && !n.action);
+    LIFETIME[tone] === null && !action && notices.find((n) => n.tone === tone && n.message === message && !n.action);
   if (same) return same.id;
   const id = nextId++;
   // Newest first, so the host draws it on top.

@@ -78,9 +78,7 @@ describe("MetricsScreen", () => {
     ).not.toBeNull();
     unmount();
 
-    useMetrics.mockReturnValue(
-      state({ status: "unavailable", results: {}, error: "Prometheus unreachable" }),
-    );
+    useMetrics.mockReturnValue(state({ status: "unavailable", results: {}, error: "Prometheus unreachable" }));
     render(<MetricsScreen />);
     expect(screen.getByRole("alert")).toHaveTextContent("Prometheus unreachable");
   });
@@ -122,9 +120,7 @@ describe("MetricsScreen", () => {
   it("calls every service up without a warning when every service is", () => {
     useMetrics.mockReturnValue(
       state({
-        services: [
-          { name: "gateway", state: "up", meta: "", samples: [], latency: "—", errors: "—" },
-        ],
+        services: [{ name: "gateway", state: "up", meta: "", samples: [], latency: "—", errors: "—" }],
       }),
     );
     render(<MetricsScreen />);
@@ -141,9 +137,7 @@ describe("MetricsScreen", () => {
       kind: "value" as const,
       series: [named("gateway", 1), named("mesh", 2), named("auth", 3), named("audit", 4)],
     };
-    useMetrics.mockReturnValue(
-      state({ selectedService: "mesh", results: { ...RESULTS, "runtime-memory": many } }),
-    );
+    useMetrics.mockReturnValue(state({ selectedService: "mesh", results: { ...RESULTS, "runtime-memory": many } }));
     render(<MetricsScreen />);
     const panel = screen.getByRole("article", { name: "Resident memory" });
     expect(panel).toHaveTextContent("mesh");
@@ -230,9 +224,7 @@ describe("MetricsScreen", () => {
         services: [],
         results: {},
         firingCount: 0,
-        alerts: [
-          { name: "TargetDown", meta: "audit", state: "pending", service: "audit", severity: "" },
-        ],
+        alerts: [{ name: "TargetDown", meta: "audit", state: "pending", service: "audit", severity: "" }],
       }),
     );
     render(<MetricsScreen />);
@@ -269,9 +261,7 @@ describe("MetricsScreen", () => {
       }),
     );
     render(<MetricsScreen />);
-    expect(
-      screen.getByText("Service health is unavailable: Prometheus unreachable"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Service health is unavailable: Prometheus unreachable")).toBeInTheDocument();
     // No meter either: "0 of 0 up" in green is a confident lie about an outage,
     // and the sentence above already says what happened.
     expect(screen.queryByRole("img", { name: /Service health/ })).not.toBeInTheDocument();

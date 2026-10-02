@@ -75,13 +75,10 @@ export function ReplaceSourcePage({
 
             <Callout tone="warn" icon="warning" size="lg">
               <>
-                <strong className="block text-[13px] font-semibold">
-                  The territory goes back to converting
-                </strong>
+                <strong className="block text-[13px] font-semibold">The territory goes back to converting</strong>
                 <span className="mt-[5px] block text-xs leading-[1.5] text-fg">
-                  While the new mesh is processed the viewer shows the conversion screen. Placements
-                  are not deleted, but coordinates are kept as-is — if the new scan shifted the
-                  origin, objects will need re-anchoring.
+                  While the new mesh is processed the viewer shows the conversion screen. Placements are not deleted,
+                  but coordinates are kept as-is — if the new scan shifted the origin, objects will need re-anchoring.
                 </span>
               </>
             </Callout>

@@ -26,10 +26,10 @@ func (f *FS) RecordUpload(_ context.Context, hash, owner string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(file), 0o750); err != nil {
 		return fmt.Errorf("storage.RecordUpload: mkdir: %w", err)
 	}
-	if err := os.WriteFile(file, nil, 0o644); err != nil {
+	if err := os.WriteFile(file, nil, 0o600); err != nil {
 		return fmt.Errorf("storage.RecordUpload: write: %w", err)
 	}
 	return nil

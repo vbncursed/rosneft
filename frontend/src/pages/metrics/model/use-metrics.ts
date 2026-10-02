@@ -89,15 +89,9 @@ export function useMetrics(range: MetricsRange): MetricsState {
     status: panels.isPending ? "loading" : failed ? "unavailable" : "ready",
     error: failed ? messageOf(failed, "Prometheus unreachable") : null,
     results,
-    services: servicesOf(
-      series("services-up"),
-      series("red-rate"),
-      series("red-errors"),
-      series("red-latency"),
-    ),
+    services: servicesOf(series("services-up"), series("red-rate"), series("red-errors"), series("red-latency")),
     alerts,
-    firingCount:
-      alertsResult?.kind === "value" ? alerts.filter((a) => a.state === "firing").length : null,
+    firingCount: alertsResult?.kind === "value" ? alerts.filter((a) => a.state === "firing").length : null,
     query,
     setQuery,
     selectedService,

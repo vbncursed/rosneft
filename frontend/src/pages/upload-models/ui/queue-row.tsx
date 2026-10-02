@@ -105,17 +105,12 @@ export function QueueRowCard({ row, onTitle, onRemove, onThumbnail }: QueueRowPr
           <span />
         ) : (
           <label className={cx("flex cursor-pointer items-center gap-1.5", locked && "pointer-events-none")}>
-            <span
-              className={cx(
-                "font-mono text-[10px] tracking-[0.06em]",
-                row.thumbnail ? "text-ok" : "text-muted",
-              )}
-            >
+            <span className={cx("font-mono text-[10px] tracking-[0.06em]", row.thumbnail ? "text-ok" : "text-muted")}>
               {row.thumbnail ? "thumbnail · attached" : "thumbnail (optional) · add image"}
             </span>
             <input
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               aria-label={
                 row.thumbnail ? `Thumbnail attached for ${row.file.name}` : `Add thumbnail for ${row.file.name}`
               }

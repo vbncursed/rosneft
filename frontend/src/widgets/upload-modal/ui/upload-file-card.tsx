@@ -27,12 +27,7 @@ export function UploadFileCard({ file, glyph, progress, onReplace }: UploadFileC
         <p className="m-0 truncate font-mono text-[11px] text-fg">{file.name}</p>
         {progress ? (
           <>
-            <ProgressBar
-              value={progress.percent}
-              variant="thin"
-              ariaLabel={progress.label}
-              className="mt-2"
-            />
+            <ProgressBar value={progress.percent} variant="thin" ariaLabel={progress.label} className="mt-2" />
             <p className="m-0 mt-2 font-mono text-[10px] text-accent">{progress.label}</p>
           </>
         ) : (

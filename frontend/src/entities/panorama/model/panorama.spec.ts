@@ -51,7 +51,9 @@ describe("isPanoramaShown", () => {
     [false, true, false],
     [true, true, false],
   ])("capture hidden %s, its phase hidden %s → shown %s", (hidden, phaseOff, shown) => {
-    expect(isPanoramaShown(panorama({ hidden, phase: "current" }), { ...ALL_PHASES_SHOWN, current: phaseOff })).toBe(shown);
+    expect(isPanoramaShown(panorama({ hidden, phase: "current" }), { ...ALL_PHASES_SHOWN, current: phaseOff })).toBe(
+      shown,
+    );
   });
 
   it("reads only its own phase's flag", () => {

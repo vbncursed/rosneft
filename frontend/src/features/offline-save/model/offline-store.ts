@@ -35,6 +35,8 @@ async function reload(): Promise<void> {
 export function syncOfflineUser(userId: string | undefined): void {
   if (!userId || userId === owner) return;
   owner = userId;
+  // A resync can end in `gone` while no card is mounted: the progress push needs a listener from the shell on.
+  wire();
   set(EMPTY);
   void reload().catch(() => undefined);
 }
@@ -44,29 +46,41 @@ export function useOfflineUser(userId: string | undefined): void {
   useEffect(() => syncOfflineUser(userId), [userId]);
 }
 
-function wire(): void {
+/** Subscribes to the shell's progress pushes once; true when this call did it. */
+function wire(): boolean {
   const bridge = desktopBridge();
-  if (wired || !bridge) return;
+  if (wired || !bridge) return false;
   wired = true;
-  void reload().catch(() => undefined);
   bridge.offline.onProgress((p) => {
     const progress = new Map(state.progress);
-    if (p.state === "saved" || p.state === "cancelled") progress.delete(p.slug);
+    if (p.state === "saved" || p.state === "cancelled" || p.state === "gone") progress.delete(p.slug);
     else progress.set(p.slug, p);
+    // The push carries the title; `saved` is only the fallback, and is empty right after a user switch.
+    if (p.state === "gone")
+      notify.warning(
+        `\u201c${p.title ?? state.saved.get(p.slug)?.title ?? p.slug}\u201d is no longer available and was removed from this device`,
+      );
     set({ ...state, progress });
-    if (p.state === "saved" || p.state === "failed" || p.state === "cancelled") void reload().catch(() => undefined);
+    if (p.state === "saved" || p.state === "failed" || p.state === "cancelled" || p.state === "gone")
+      void reload().catch(() => undefined);
   });
+  return true;
 }
 
 function subscribe(listener: () => void): () => void {
-  wire();
+  if (wire()) void reload().catch(() => undefined);
   listeners.add(listener);
   return () => {
     listeners.delete(listener);
   };
 }
 
-export const useOfflineState = (): State => useSyncExternalStore(subscribe, () => state, () => EMPTY);
+export const useOfflineState = (): State =>
+  useSyncExternalStore(
+    subscribe,
+    () => state,
+    () => EMPTY,
+  );
 
 export function useOfflineTerritory(slug: string): { saved?: SavedTerritory; progress?: OfflineProgress } {
   const s = useOfflineState();
@@ -77,11 +91,19 @@ export const useSavedTerritories = (): SavedTerritory[] => [...useOfflineState()
 
 export const offlineActions = {
   // An IPC rejection (shell restarting, handler threw) must not surface as an unhandled rejection.
-  save: (slug: string): void => void desktopBridge()?.offline.save(slug).catch(() => undefined),
-  cancel: (slug: string): void => void desktopBridge()?.offline.cancel(slug).catch(() => undefined),
+  save: (slug: string): void =>
+    void desktopBridge()
+      ?.offline.save(slug)
+      .catch(() => undefined),
+  cancel: (slug: string): void =>
+    void desktopBridge()
+      ?.offline.cancel(slug)
+      .catch(() => undefined),
   remove: async (slug: string): Promise<void> => {
     // The one place a refused removal is reported (viewer and Storage section alike).
-    await desktopBridge()?.offline.remove(slug).catch((err: unknown) => notify.error(`Could not remove the territory from this device: ${messageOf(err)}`));
+    await desktopBridge()
+      ?.offline.remove(slug)
+      .catch((err: unknown) => notify.error(`Could not remove the territory from this device: ${messageOf(err)}`));
     await reload().catch(() => undefined);
   },
 };

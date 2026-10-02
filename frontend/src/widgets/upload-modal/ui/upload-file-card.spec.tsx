@@ -26,18 +26,9 @@ describe("UploadFileCard", () => {
   });
 
   it("draws the track at the percent the upload reports, and says what it is doing", () => {
-    render(
-      <UploadFileCard
-        file={file()}
-        glyph="panorama"
-        progress={{ percent: 38, label: "Reading EXIF · 38 %" }}
-      />,
-    );
+    render(<UploadFileCard file={file()} glyph="panorama" progress={{ percent: 38, label: "Reading EXIF · 38 %" }} />);
 
-    expect(screen.getByRole("progressbar", { name: "Reading EXIF · 38 %" })).toHaveAttribute(
-      "aria-valuenow",
-      "38",
-    );
+    expect(screen.getByRole("progressbar", { name: "Reading EXIF · 38 %" })).toHaveAttribute("aria-valuenow", "38");
     expect(screen.getByText("Reading EXIF · 38 %")).toBeInTheDocument();
   });
 

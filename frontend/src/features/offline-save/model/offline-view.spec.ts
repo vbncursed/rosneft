@@ -6,10 +6,19 @@ const saved = { slug: "a", title: "A", bytes: 1288490189, savedAt: "t", syncedAt
 describe("offlineView", () => {
   it("offers to save what is not saved", () => expect(offlineView()).toEqual({ kind: "idle", label: "Save offline" }));
   it("says it is waiting while queued", () =>
-    expect(offlineView(undefined, { slug: "a", state: "queued", done: 0, total: 0 })).toEqual({ kind: "saving", label: "Waiting to save…", percent: null }));
+    expect(offlineView(undefined, { slug: "a", state: "queued", done: 0, total: 0 })).toEqual({
+      kind: "saving",
+      label: "Waiting to save…",
+      percent: null,
+    }));
   it("counts files while saving", () =>
-    expect(offlineView(undefined, { slug: "a", state: "saving", done: 2, total: 5 })).toEqual({ kind: "saving", label: "Saving… 40%", percent: 40 }));
-  it("names the size once saved", () => expect(offlineView(saved)).toEqual({ kind: "saved", label: "Available offline · 1.2 GB" }));
+    expect(offlineView(undefined, { slug: "a", state: "saving", done: 2, total: 5 })).toEqual({
+      kind: "saving",
+      label: "Saving… 40%",
+      percent: 40,
+    }));
+  it("names the size once saved", () =>
+    expect(offlineView(saved)).toEqual({ kind: "saved", label: "Available offline · 1.2 GB" }));
   it("says why a save failed, in words", () => {
     expect(offlineView(undefined, { slug: "a", state: "failed", done: 0, total: 0, error: "no-space" })).toEqual({
       kind: "failed",

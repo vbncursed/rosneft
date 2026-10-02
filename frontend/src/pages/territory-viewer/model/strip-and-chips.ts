@@ -74,17 +74,11 @@ export function stripItems(a: {
   }
 
   const { dims, vertices, faces } = a.metadata;
-  const facts = [
-    formatDims(dims),
-    `${groupDigits(vertices)} vertices`,
-    `${groupDigits(faces)} faces`,
-  ];
+  const facts = [formatDims(dims), `${groupDigits(vertices)} vertices`, `${groupDigits(faces)} faces`];
   if (a.shown === null) return { items: facts, tone: "neutral", accentLast: false };
 
   const loading = a.shown !== a.target;
-  const active = loading
-    ? `LOD ${a.shown} active · LOD ${level(a.target)} loading`
-    : `LOD ${a.shown} active`;
+  const active = loading ? `LOD ${a.shown} active · LOD ${level(a.target)} loading` : `LOD ${a.shown} active`;
   return { items: [...facts, active], tone: "neutral", accentLast: loading };
 }
 

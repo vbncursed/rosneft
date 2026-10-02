@@ -30,16 +30,7 @@ function matchesAccept(file: File, accept: string): boolean {
 }
 
 /** A labelled file input that also accepts a drag-and-drop, opened by click or Enter/Space. */
-export function DropZone({
-  label,
-  hint,
-  buttonLabel,
-  accept,
-  multiple,
-  disabled,
-  onFiles,
-  className,
-}: DropZoneProps) {
+export function DropZone({ label, hint, buttonLabel, accept, multiple, disabled, onFiles, className }: DropZoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
 

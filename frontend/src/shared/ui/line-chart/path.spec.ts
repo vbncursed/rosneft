@@ -1,11 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  DEFAULT_GEOMETRY,
-  scaleY,
-  sharedMax,
-  toAreaPath,
-  toLinePath,
-} from "./path";
+import { DEFAULT_GEOMETRY, scaleY, sharedMax, toAreaPath, toLinePath } from "./path";
 
 const geo = DEFAULT_GEOMETRY;
 

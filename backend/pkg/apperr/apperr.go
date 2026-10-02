@@ -8,6 +8,7 @@ package apperr
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -118,7 +119,10 @@ type Body struct {
 func Write(w http.ResponseWriter, httpStatus int, code, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(httpStatus)
-	_ = json.NewEncoder(w).Encode(Body{Code: code, Message: message})
+	if err := json.NewEncoder(w).Encode(Body{Code: code, Message: message}); err != nil {
+		// Headers are out; the body cannot be redone, only reported.
+		slog.Warn("write error body", "error", err)
+	}
 }
 
 // WriteStatus renders a gRPC status error as the {code, message} envelope,

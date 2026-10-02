@@ -24,7 +24,10 @@ const CLEAR_NOTE =
  * once when pressed, and `aria-pressed` on those reads as a toggle that stays on.
  * Play keeps its name while it runs; only its glyph turns to pause.
  */
-const TILES: Record<RailTool, { icon: IconName; name: string; shortcut?: string; toggle?: boolean; dataTour?: string }> = {
+const TILES: Record<
+  RailTool,
+  { icon: IconName; name: string; shortcut?: string; toggle?: boolean; dataTour?: string }
+> = {
   reset: { icon: "reset", name: "Reset camera", dataTour: "reset-camera" },
   play: { icon: "play", name: "Fly around", toggle: true },
   measure: { icon: "ruler", name: "Measure", shortcut: "M", toggle: true, dataTour: "measure" },
@@ -213,10 +216,7 @@ export function ViewerOverlays({
       <div className={`${BOTTOM_ROW} ${measuring ? "bottom-[60px]" : "bottom-3.5"}`}>
         <StatsStrip items={strip.items} tone={strip.tone} accentLast={strip.accentLast} />
         {doc?.window === "collapsed" ? (
-          <CollapsedPill
-            file={documentFileName(doc.document)}
-            onShow={() => doc.onWindow("pip")}
-          />
+          <CollapsedPill file={documentFileName(doc.document)} onShow={() => doc.onWindow("pip")} />
         ) : null}
       </div>
 

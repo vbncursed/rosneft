@@ -3,7 +3,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { CSP } from "./csp";
+import { BLOB_CSP, CSP } from "./csp";
 import { createHandler } from "./intercept";
 import { SettingsFile } from "./settings";
 import { Shell } from "./shell";
@@ -15,9 +15,14 @@ const B = "1c6f9b4d-2a3e-4d6c-8b8f-4e3d2c1b0a9f";
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 const req = (p: string, init?: RequestInit) => new Request(`${ORIGIN}${p}`, init);
 const me = (id: string) => new Response(JSON.stringify({ id }), { headers: { "content-type": "application/json" } });
+const noop = () => undefined;
 const offline = () => Promise.reject(new TypeError("net::ERR_INTERNET_DISCONNECTED"));
 
-async function harness(network: (r: Request, init?: { cache?: RequestCache }) => Promise<Response>, user: string | null = A, shellFiles: Record<string, string> = {}) {
+async function harness(
+  network: (r: Request, init?: { cache?: RequestCache }) => Promise<Response>,
+  user: string | null = A,
+  shellFiles: Record<string, string> = {},
+) {
   const root = mkdtempSync(path.join(tmpdir(), "intercept-"));
   const settings = new SettingsFile(path.join(root, "settings.json"));
   await settings.update({ userId: user });
@@ -26,9 +31,11 @@ async function harness(network: (r: Request, init?: { cache?: RequestCache }) =>
   const shell = new Shell(path.join(root, "cache", "shell"), ORIGIN, async (url) => {
     const p = new URL(url).pathname;
     if (p === "/shell-manifest.json") {
-      const files = Object.entries(shellFiles).map(([path, body]) => ({ path, size: body.length }));
+      const files = Object.entries(shellFiles).map(([file, body]) => ({ path: file, size: body.length }));
       return Object.keys(shellFiles).length
-        ? new Response(JSON.stringify({ id: "a".repeat(32), files }), { headers: { "content-type": "application/json" } })
+        ? new Response(JSON.stringify({ id: "a".repeat(32), files }), {
+            headers: { "content-type": "application/json" },
+          })
         : new Response("", { status: 404 });
     }
     return shellFiles[p] === undefined ? new Response("", { status: 404 }) : new Response(shellFiles[p]);
@@ -36,14 +43,24 @@ async function harness(network: (r: Request, init?: { cache?: RequestCache }) =>
   const states: boolean[] = [];
   const net = vi.fn(network);
   const reset = vi.fn();
-  const handle = createHandler({ origin: ORIGIN, network: net, store, shell, settings, connectivity: (o) => states.push(o), onSessionReset: reset });
+  const handle = createHandler({
+    origin: ORIGIN,
+    network: net,
+    store,
+    shell,
+    settings,
+    connectivity: (o) => states.push(o),
+    onSessionReset: reset,
+  });
   return { handle, net, store, settings, shell, states, root, reset };
 }
 
 describe("createHandler", () => {
   it("answers a whitelisted GET from its snapshot once the network is gone", async () => {
     let up = true;
-    const h = await harness(async () => (up ? new Response('[{"slug":"a"}]', { headers: { "content-type": "application/json" } }) : offline()));
+    const h = await harness(async () =>
+      up ? new Response('[{"slug":"a"}]', { headers: { "content-type": "application/json" } }) : offline(),
+    );
     expect(await (await h.handle(req("/api/territories"))).text()).toBe('[{"slug":"a"}]');
     up = false;
     const res = await h.handle(req("/api/territories"));
@@ -53,7 +70,9 @@ describe("createHandler", () => {
 
   it("answers /api/jobs from its snapshot once the network is gone", async () => {
     let up = true;
-    const h = await harness(async () => (up ? new Response("[]", { headers: { "content-type": "application/json" } }) : offline()));
+    const h = await harness(async () =>
+      up ? new Response("[]", { headers: { "content-type": "application/json" } }) : offline(),
+    );
     await h.handle(req("/api/jobs"));
     up = false;
     const res = await h.handle(req("/api/jobs"));
@@ -91,7 +110,9 @@ describe("createHandler", () => {
 
   it("stores a blob on the way through and serves it from disk next time", async () => {
     const hash = sha("glb bytes");
-    const h = await harness(async () => new Response("glb bytes", { headers: { "content-type": "model/gltf-binary" } }));
+    const h = await harness(
+      async () => new Response("glb bytes", { headers: { "content-type": "model/gltf-binary" } }),
+    );
     expect(await (await h.handle(req(`/api/assets/${hash}`))).text()).toBe("glb bytes");
     await vi.waitFor(async () => expect(await h.store.blob(A, hash)).not.toBeNull());
     h.net.mockClear();
@@ -190,7 +211,9 @@ describe("createHandler", () => {
   });
 
   it("a shell file the generation lacks comes from Chromium's HTTP cache, and a miss fails", async () => {
-    const cached = vi.fn(async (_r: Request, init?: { cache?: RequestCache }) => (init?.cache === "force-cache" ? new Response("cached js") : offline()));
+    const cached = vi.fn(async (_r: Request, init?: { cache?: RequestCache }) =>
+      init?.cache === "force-cache" ? new Response("cached js") : offline(),
+    );
     const h = await harness(cached);
     const res = await h.handle(req("/assets/lazy.js"));
     expect(await res.text()).toBe("cached js");
@@ -233,7 +256,9 @@ describe("createHandler", () => {
   });
 
   it("a shell file answered from Chromium's cache does not report online while /api is down", async () => {
-    const h = await harness(async (r) => (new URL(r.url).pathname.startsWith("/api/") ? offline() : new Response("js")));
+    const h = await harness(async (r) =>
+      new URL(r.url).pathname.startsWith("/api/") ? offline() : new Response("js"),
+    );
     await h.handle(req("/api/models"));
     await h.handle(req("/assets/a.js"));
     await h.handle(req("/"));
@@ -276,7 +301,7 @@ describe("createHandler", () => {
 
 describe("createHandler isolation", () => {
   it("a stale /api/auth/me cannot hand the cache back to the previous user", async () => {
-    let release: (r: Response) => void = () => undefined;
+    let release: (r: Response) => void = noop;
     const h = await harness((r) => {
       const p = new URL(r.url).pathname;
       if (p === "/api/auth/login") return Promise.resolve(new Response("{}"));
@@ -290,16 +315,60 @@ describe("createHandler isolation", () => {
     expect(await h.store.readSnapshot(A, "/api/auth/me")).toBeNull();
   });
 
-  it("serves a cached text/html blob with the CSP", async () => {
+  it("serves a cached blob, even text/html, with the sandbox CSP and nosniff", async () => {
     const hash = sha("<script>");
     const h = await harness(offline);
     await h.store.writeBlob(A, hash, "text/html", new Response("<script>").body as ReadableStream<Uint8Array>);
-    expect((await h.handle(req(`/api/assets/${hash}`))).headers.get("content-security-policy")).toBe(CSP);
+    const res = await h.handle(req(`/api/assets/${hash}`));
+    expect(res.headers.get("content-security-policy")).toBe(BLOB_CSP);
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+  });
+
+  it("serves a network blob with the sandbox CSP and nosniff", async () => {
+    const hash = sha("pdf");
+    const h = await harness(async () => new Response("pdf", { headers: { "content-type": "application/pdf" } }));
+    const res = await h.handle(req(`/api/assets/${hash}`));
+    expect(res.headers.get("content-security-policy")).toBe(BLOB_CSP);
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+    await res.text();
+  });
+
+  it("sandboxes /api/assets answers whatever the query or method (path decides, not route kind)", async () => {
+    const hash = sha("x");
+    const h = await harness(async () => new Response("<script>", { headers: { "content-type": "text/html" } }));
+    for (const [url, init] of [
+      [`/api/assets/${hash}?x`, undefined],
+      [`/api/assets/${hash}`, { method: "HEAD" }],
+    ] as const) {
+      const res = await h.handle(req(url, init));
+      expect(res.headers.get("content-security-policy")).toBe(BLOB_CSP);
+      expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+    }
+  });
+
+  it("sandboxes a network 206 for a ranged blob request", async () => {
+    const h = await harness(
+      async () => new Response("23", { status: 206, headers: { "content-type": "application/pdf" } }),
+    );
+    const res = await h.handle(req(`/api/assets/${sha("y")}`, { headers: { range: "bytes=2-3" } }));
+    expect(res.status).toBe(206);
+    expect(res.headers.get("content-security-policy")).toBe(BLOB_CSP);
+  });
+
+  it("sandboxes a cached ranged blob answer", async () => {
+    const hash = sha("0123456789");
+    const h = await harness(offline);
+    await h.store.writeBlob(A, hash, "application/pdf", new Response("0123456789").body as ReadableStream<Uint8Array>);
+    const res = await h.handle(req(`/api/assets/${hash}`, { headers: { range: "bytes=2-4" } }));
+    expect(res.status).toBe(206);
+    expect(res.headers.get("content-security-policy")).toBe(BLOB_CSP);
   });
 
   it("between login and /me neither reads nor writes a blob on disk", async () => {
     const hash = sha("A's model");
-    const h = await harness(async (r) => (new URL(r.url).pathname === "/api/auth/login" ? new Response("{}") : new Response("fresh")));
+    const h = await harness(async (r) =>
+      new URL(r.url).pathname === "/api/auth/login" ? new Response("{}") : new Response("fresh"),
+    );
     await h.store.writeBlob(A, hash, "model/gltf-binary", new Response("A's model").body as ReadableStream<Uint8Array>);
     await (await h.handle(req("/api/auth/login", { method: "POST", body: "{}" }))).text();
     h.net.mockClear();
@@ -322,7 +391,11 @@ describe("createHandler isolation", () => {
   it("a snapshot replay carries no set-cookie, content-encoding or content-length", async () => {
     let up = true;
     const h = await harness(async () =>
-      up ? new Response("[1]", { headers: { "set-cookie": "s=1", "content-encoding": "gzip", "content-length": "99", "x-keep": "yes" } }) : offline(),
+      up
+        ? new Response("[1]", {
+            headers: { "set-cookie": "s=1", "content-encoding": "gzip", "content-length": "99", "x-keep": "yes" },
+          })
+        : offline(),
     );
     await (await h.handle(req("/api/models"))).text();
     up = false;

@@ -36,9 +36,7 @@ export function Sparkline({
     <div className={className}>
       {showHeader ? (
         <div className="flex items-baseline justify-between gap-3">
-          <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted">
-            {label}
-          </span>
+          <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted">{label}</span>
           {detail ? <span className="font-mono text-[11px] text-muted">{detail}</span> : null}
         </div>
       ) : null}
@@ -58,6 +56,7 @@ export function Sparkline({
       >
         {bars.map((bar, index) => (
           <span
+            // oxlint-disable-next-line react/no-array-index-key -- a bar is a time bucket identified by its position; the series never reorders
             key={index}
             style={{ height: `${bar.heightPct}%` }}
             className={cx(

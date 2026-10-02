@@ -8,7 +8,10 @@ import { offlineActions, useOfflineTerritory } from "../model/offline-store";
 import { offlineView, type OfflineView } from "../model/offline-view";
 
 const ICON = { idle: "download", saving: "close", saved: "check", failed: "refresh", offline: "download" } as const;
-const ACTION: Record<OfflineView["kind"], string> = { idle: "Save offline", saving: "Cancel", saved: "Remove from device",
+const ACTION: Record<OfflineView["kind"], string> = {
+  idle: "Save offline",
+  saving: "Cancel",
+  saved: "Remove from device",
   failed: "Retry",
   offline: "Save offline",
 };
@@ -34,7 +37,15 @@ export function OfflineControl({ view, title, onAct, compact = false }: OfflineC
   if (compact) {
     const name = COMPACT_NAME[view.kind](title, view.label);
     return (
-      <Button shape="icon" size="sm" variant="secondary" aria-label={name} tooltip={{ label: view.label }} disabled={view.kind === "saved" || view.kind === "offline"} onClick={onAct}>
+      <Button
+        shape="icon"
+        size="sm"
+        variant="secondary"
+        aria-label={name}
+        tooltip={{ label: view.label }}
+        disabled={view.kind === "saved" || view.kind === "offline"}
+        onClick={onAct}
+      >
         <Icon name={ICON[view.kind]} size={14} />
       </Button>
     );

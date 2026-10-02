@@ -61,11 +61,7 @@ const editDraft = (p: ResolvedPlacement): Draft => ({
  * the scene reports a drag, and state inside it would be thrown away by the
  * refresh that a gizmo drag causes.
  */
-export function usePlacementForm(
-  editor: FormEditor,
-  select: (id: number | null) => void,
-  selectedId: number | null,
-) {
+export function usePlacementForm(editor: FormEditor, select: (id: number | null) => void, selectedId: number | null) {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [awaited, setAwaited] = useState<number | null>(null);
   const { placements, mutation, update, rename, remove } = editor;

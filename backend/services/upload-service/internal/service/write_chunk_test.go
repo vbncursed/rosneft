@@ -47,46 +47,46 @@ func (s *WriteChunkSuite) TestRejectsUnknownID() {
 }
 
 func (s *WriteChunkSuite) TestAppendsAtCorrectOffset() {
-	stubSession(s.ctx, s.store, "sess-1", author, 100, 0)
-	s.store.AppendChunkMock.Expect(s.ctx, "sess-1", int64(0), []byte("hello")).Return(int64(5), nil)
-	off, err := s.svc.WriteChunk(s.ctx, author, "sess-1", 0, []byte("hello"))
+	stubSession(s.ctx, s.store, author, 100, 0)
+	s.store.AppendChunkMock.Expect(s.ctx, sessionID, int64(0), []byte("hello")).Return(int64(5), nil)
+	off, err := s.svc.WriteChunk(s.ctx, author, sessionID, 0, []byte("hello"))
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), off, int64(5))
 }
 
 func (s *WriteChunkSuite) TestRejectsOutOfOrderOffset() {
-	stubSession(s.ctx, s.store, "sess-1", author, 100, 0)
-	s.store.AppendChunkMock.Expect(s.ctx, "sess-1", int64(10), []byte("x")).
+	stubSession(s.ctx, s.store, author, 100, 0)
+	s.store.AppendChunkMock.Expect(s.ctx, sessionID, int64(10), []byte("x")).
 		Return(int64(0), domain.ErrOffsetMismatch)
-	_, err := s.svc.WriteChunk(s.ctx, author, "sess-1", 10, []byte("x"))
+	_, err := s.svc.WriteChunk(s.ctx, author, sessionID, 10, []byte("x"))
 	assert.Assert(s.T(), errors.Is(err, domain.ErrOffsetMismatch))
 }
 
 func (s *WriteChunkSuite) TestRejectsWriteBeyondDeclaredSize() {
-	stubSession(s.ctx, s.store, "sess-1", author, 100, 0)
-	s.store.AppendChunkMock.Expect(s.ctx, "sess-1", int64(0), make([]byte, 200)).
+	stubSession(s.ctx, s.store, author, 100, 0)
+	s.store.AppendChunkMock.Expect(s.ctx, sessionID, int64(0), make([]byte, 200)).
 		Return(int64(0), domain.ErrSizeExceeded)
-	_, err := s.svc.WriteChunk(s.ctx, author, "sess-1", 0, make([]byte, 200))
+	_, err := s.svc.WriteChunk(s.ctx, author, sessionID, 0, make([]byte, 200))
 	assert.Assert(s.T(), errors.Is(err, domain.ErrSizeExceeded))
 }
 
 func (s *WriteChunkSuite) TestSequentialWritesAccumulateOffset() {
-	stubSession(s.ctx, s.store, "sess-1", author, 100, 0)
-	s.store.AppendChunkMock.When(s.ctx, "sess-1", int64(0), []byte("hello")).Then(int64(5), nil)
-	s.store.AppendChunkMock.When(s.ctx, "sess-1", int64(5), []byte(" world")).Then(int64(11), nil)
+	stubSession(s.ctx, s.store, author, 100, 0)
+	s.store.AppendChunkMock.When(s.ctx, sessionID, int64(0), []byte("hello")).Then(int64(5), nil)
+	s.store.AppendChunkMock.When(s.ctx, sessionID, int64(5), []byte(" world")).Then(int64(11), nil)
 
-	off, err := s.svc.WriteChunk(s.ctx, author, "sess-1", 0, []byte("hello"))
+	off, err := s.svc.WriteChunk(s.ctx, author, sessionID, 0, []byte("hello"))
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), off, int64(5))
 
-	off, err = s.svc.WriteChunk(s.ctx, author, "sess-1", 5, []byte(" world"))
+	off, err = s.svc.WriteChunk(s.ctx, author, sessionID, 5, []byte(" world"))
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), off, int64(11))
 }
 
 // A stranger's bytes never reach another user's session file.
 func (s *WriteChunkSuite) TestRefusesAnotherAuthorsSession() {
-	stubSession(s.ctx, s.store, "sess-1", author, 100, 0)
-	_, err := s.svc.WriteChunk(s.ctx, stranger, "sess-1", 0, []byte("x"))
+	stubSession(s.ctx, s.store, author, 100, 0)
+	_, err := s.svc.WriteChunk(s.ctx, stranger, sessionID, 0, []byte("x"))
 	assert.Assert(s.T(), errors.Is(err, domain.ErrSessionNotFound))
 }

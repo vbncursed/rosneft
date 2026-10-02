@@ -55,10 +55,7 @@ describe("ModelLibraryPage", () => {
 
   it("gives each card's title a real href into the model's page", () => {
     render(<ModelLibraryPage {...props()} />);
-    expect(screen.getByRole("link", { name: "Pump Jack Unit" })).toHaveAttribute(
-      "href",
-      "/models/pump-jack-unit",
-    );
+    expect(screen.getByRole("link", { name: "Pump Jack Unit" })).toHaveAttribute("href", "/models/pump-jack-unit");
   });
 
   it("draws no chrome of its own — the shell owns the layout", () => {
@@ -99,13 +96,13 @@ describe("ModelLibraryPage", () => {
   it("names Delete controls after their card, uniquely, and hides them without the grant", async () => {
     const onDelete = vi.fn();
     const { rerender } = render(<ModelLibraryPage {...props({ onDelete })} />);
-    expect(screen.getAllByRole("button", { name: /^Delete /})).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: /^Delete / })).toHaveLength(2);
     // Separator Vessel is the unused (enabled) one — Pump Jack Unit is placed.
     await userEvent.click(screen.getByRole("button", { name: "Delete Separator Vessel" }));
     expect(onDelete).toHaveBeenCalledWith("separator-vessel");
 
     rerender(<ModelLibraryPage {...props({ canDelete: false })} />);
-    expect(screen.queryByRole("button", { name: /^Delete /})).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Delete / })).not.toBeInTheDocument();
   });
 
   it("disables Delete for a placed model, folding the reason into its accessible name", () => {
@@ -153,9 +150,7 @@ describe("ModelLibraryPage", () => {
     const onUpload = vi.fn();
     render(<ModelLibraryPage {...props({ onUpload })} />);
     expect(screen.getByText("Add models in bulk")).toBeInTheDocument();
-    expect(
-      screen.getByText("Pick several ZIP archives at once — titles autofill from filenames."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Pick several ZIP archives at once — titles autofill from filenames.")).toBeInTheDocument();
     // Header and footer both upload, so both say what they do; the header's visible
     // text is the bare "Upload" behind a drawn plus, its aria-label keeps the object.
     const [header, footer] = screen.getAllByRole("button", { name: "Upload models" });
@@ -176,4 +171,3 @@ describe("ModelLibraryPage", () => {
     expect(screen.getByText("Nothing matches this filter.")).toBeInTheDocument();
   });
 });
-

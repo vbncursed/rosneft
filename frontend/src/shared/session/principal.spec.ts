@@ -41,15 +41,11 @@ describe("grantableSlugs", () => {
   const PERMISSIONS = [{ slug: "users:read" }, { slug: "users:write" }];
 
   it("gives an owner every slug, even holding no permissions itself", () => {
-    expect(grantableSlugs(p({ isOwner: true }), PERMISSIONS)).toEqual(
-      new Set(["users:read", "users:write"]),
-    );
+    expect(grantableSlugs(p({ isOwner: true }), PERMISSIONS)).toEqual(new Set(["users:read", "users:write"]));
   });
 
   it("gives a holder only what it holds, mirroring the backend's no-escalation rule", () => {
-    expect(grantableSlugs(p({ permissions: ["users:read"] }), PERMISSIONS)).toEqual(
-      new Set(["users:read"]),
-    );
+    expect(grantableSlugs(p({ permissions: ["users:read"] }), PERMISSIONS)).toEqual(new Set(["users:read"]));
   });
 
   it("gives no principal an empty set", () => {
@@ -59,7 +55,9 @@ describe("grantableSlugs", () => {
 
 describe("viewerOf", () => {
   it("shows the first role's title, Root for an owner without roles, and a dash otherwise", () => {
-    expect(viewerOf(p({ roleSlugs: ["admin"], roleTitles: { admin: "Company Owner" } })).roleTitle).toBe("Company Owner");
+    expect(viewerOf(p({ roleSlugs: ["admin"], roleTitles: { admin: "Company Owner" } })).roleTitle).toBe(
+      "Company Owner",
+    );
     expect(viewerOf(p({ isOwner: true, roleSlugs: [] })).roleTitle).toBe("Root");
     expect(viewerOf(p({ roleSlugs: [] })).roleTitle).toBe("—");
   });

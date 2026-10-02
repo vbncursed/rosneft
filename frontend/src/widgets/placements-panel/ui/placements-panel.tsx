@@ -105,7 +105,9 @@ export function PlacementsPanel(props: PlacementsPanelProps) {
               ))}
             </ul>
           ) : null}
-          {userGroups.length > 0 && modelGroups.length > 0 ? <hr className="m-0 border-0 border-t border-line" /> : null}
+          {userGroups.length > 0 && modelGroups.length > 0 ? (
+            <hr className="m-0 border-0 border-t border-line" />
+          ) : null}
           {modelGroups.length > 0 ? (
             <ul role="list" aria-label="Objects" className={LIST}>
               {modelGroups.map((section) => (

@@ -14,9 +14,11 @@ describe("tabCounts", () => {
   });
 
   it("counts all, ready and converting", () => {
-    expect(
-      tabCounts([card(), card({ status: "converting" }), card({ status: "failed" }), card()]),
-    ).toEqual({ all: 4, ready: 2, converting: 1 });
+    expect(tabCounts([card(), card({ status: "converting" }), card({ status: "failed" }), card()])).toEqual({
+      all: 4,
+      ready: 2,
+      converting: 1,
+    });
   });
 
   it("counts an empty catalog as zero everywhere", () => {

@@ -38,9 +38,7 @@ const props = (over: Partial<AccessInspectorProps> = {}): AccessInspectorProps =
 describe("AccessInspector", () => {
   it("is a region named after the territory", () => {
     render(<AccessInspector {...props()} />);
-    expect(
-      screen.getByRole("complementary", { name: "Access: Refinery Block C" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "Access: Refinery Block C" })).toBeInTheDocument();
     expect(screen.getByText("refinery-block-c")).toBeInTheDocument();
   });
 

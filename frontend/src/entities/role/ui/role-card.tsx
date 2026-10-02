@@ -40,14 +40,16 @@ const CHIP: Record<RoleChipTone, { tone: "neutral" | "accent" | "dim"; fill: "so
   locked: { tone: "dim", fill: "outline" },
 };
 
+const NONE: never[] = [];
+
 export function RoleCard({
   role,
   totalPermissions,
   tone = "neutral",
   tag,
   tagTone = "dim",
-  chips = [],
-  faces = [],
+  chips = NONE,
+  faces = NONE,
   selected = false,
   onSelect,
 }: RoleCardProps) {
@@ -90,9 +92,7 @@ export function RoleCard({
           value={grantShare(role, totalPermissions)}
           ariaLabel={`${role.title} permissions granted`}
         />
-        <span className="whitespace-nowrap font-mono text-[10px] text-muted">
-          {grantLabel(role, totalPermissions)}
-        </span>
+        <span className="whitespace-nowrap font-mono text-[10px] text-muted">{grantLabel(role, totalPermissions)}</span>
       </div>
 
       {chips.length > 0 ? (
@@ -117,9 +117,7 @@ export function RoleCard({
               className="-mr-1.5 text-[9px]"
             />
           ))}
-          <span className={cx("font-mono text-[10px] text-dim", faces.length > 0 && "ml-3.5")}>
-            {usersLabel(role)}
-          </span>
+          <span className={cx("font-mono text-[10px] text-dim", faces.length > 0 && "ml-3.5")}>{usersLabel(role)}</span>
         </div>
         <span className="font-mono text-[10px] text-dim">{role.updated}</span>
       </div>

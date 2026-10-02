@@ -4,12 +4,27 @@ import type { TargetJob } from "@/entities/conversion";
 import type { TerritoryConversionPageProps } from "../model/conversion-view";
 import { TerritoryConversionPage, WAITING_NOTE } from "./territory-conversion-page";
 
-const TERRITORY = { slug: "refinery-block-c", title: "Refinery Block C", sourceBlobHash: "a".repeat(64), placementCount: 0 };
+const TERRITORY = {
+  slug: "refinery-block-c",
+  title: "Refinery Block C",
+  sourceBlobHash: "a".repeat(64),
+  placementCount: 0,
+};
 const job = (over: Partial<TargetJob> = {}): TargetJob => ({
-  kind: "territory", slug: "refinery-block-c", status: "running", progress: 0.58, stage: "lod-1", errorMessage: null, ...over,
+  kind: "territory",
+  slug: "refinery-block-c",
+  status: "running",
+  progress: 0.58,
+  stage: "lod-1",
+  errorMessage: null,
+  ...over,
 });
 const props = (over: Partial<TerritoryConversionPageProps> = {}): TerritoryConversionPageProps => ({
-  territory: TERRITORY, phase: "running", job: job(), hasLod0: false, ...over,
+  territory: TERRITORY,
+  phase: "running",
+  job: job(),
+  hasLod0: false,
+  ...over,
 });
 
 describe("TerritoryConversionPage", () => {
@@ -47,7 +62,10 @@ describe("TerritoryConversionPage", () => {
   it("failed: the worker's message as an alert, the stopped step, the actions, no waiting note", () => {
     render(
       <TerritoryConversionPage
-        {...props({ phase: "failed", job: job({ status: "failed", stage: "compressing", progress: null, errorMessage: "ktx2: bad" }) })}
+        {...props({
+          phase: "failed",
+          job: job({ status: "failed", stage: "compressing", progress: null, errorMessage: "ktx2: bad" }),
+        })}
       />,
     );
     const alert = screen.getByRole("alert");
@@ -94,7 +112,10 @@ describe("TerritoryConversionPage", () => {
     expect(screen.getByText("Converted")).toBeInTheDocument();
     expect(screen.getByText("ready")).toBeInTheDocument();
     expect(screen.getByText("7 steps · finished")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open the viewer" })).toHaveAttribute("href", "/territories/refinery-block-c");
+    expect(screen.getByRole("link", { name: "Open the viewer" })).toHaveAttribute(
+      "href",
+      "/territories/refinery-block-c",
+    );
     expect(screen.queryByText(WAITING_NOTE)).not.toBeInTheDocument();
   });
 });

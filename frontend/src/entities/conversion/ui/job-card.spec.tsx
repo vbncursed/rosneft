@@ -21,9 +21,7 @@ describe("JobCard", () => {
     // strip and among the cards below, and two articles must not share a name.
     const article = screen.getByRole("article", { name: "Conversion of Refinery Block C" });
     expect(within(article).getByText("converting")).toBeInTheDocument();
-    expect(
-      within(article).getByText("territory · refinery-block-c · building LOD 1"),
-    ).toBeInTheDocument();
+    expect(within(article).getByText("territory · refinery-block-c · building LOD 1")).toBeInTheDocument();
     const link = screen.getByRole("link", { name: "Open territory refinery-block-c" });
     expect(link).toHaveAttribute("href", "/territories/refinery-block-c");
     expect(link).toHaveTextContent("Open Refinery Block C →");
@@ -31,9 +29,10 @@ describe("JobCard", () => {
 
   it("draws the bar and the percent while converting", () => {
     render(<JobCard card={card()} />);
-    expect(
-      screen.getByRole("progressbar", { name: "Refinery Block C progress" }),
-    ).toHaveAttribute("aria-valuenow", "58");
+    expect(screen.getByRole("progressbar", { name: "Refinery Block C progress" })).toHaveAttribute(
+      "aria-valuenow",
+      "58",
+    );
     expect(screen.getByText("58%")).toBeInTheDocument();
   });
 

@@ -21,7 +21,11 @@ export type ClearMeasurementsHandlers = {
  * only with the grant, and only after asking; without it Clear takes the
  * reader's own chains and asks nothing.
  */
-export function useClearMeasurements({ chains, clear, canDeleteMeasurements }: ClearMeasurementsDeps): ClearMeasurementsHandlers {
+export function useClearMeasurements({
+  chains,
+  clear,
+  canDeleteMeasurements,
+}: ClearMeasurementsDeps): ClearMeasurementsHandlers {
   const [confirmClear, setConfirmClear] = useState(false);
   const hasSaved = chains.some((c) => c.serverId != null);
 

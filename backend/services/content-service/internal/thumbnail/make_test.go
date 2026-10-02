@@ -47,7 +47,8 @@ func (s *MakeSuite) put(b []byte) string {
 	return hash
 }
 
-func gradient(w, h int) image.Image {
+func gradient() image.Image {
+	const w, h = 512, 256
 	img := image.NewRGBA(image.Rect(0, 0, w, h))
 	for y := range h {
 		for x := range w {
@@ -116,7 +117,7 @@ func (s *MakeSuite) TestScalesJPEGAndPNGDownToAStoredJPEG() {
 	} {
 		s.Run(tc.name, func() {
 			var src bytes.Buffer
-			assert.NilError(s.T(), tc.encode(&src, gradient(512, 256)))
+			assert.NilError(s.T(), tc.encode(&src, gradient()))
 
 			hash, err := thumbnail.Make(s.T().Context(), s.store, s.put(src.Bytes()))
 			assert.NilError(s.T(), err)
@@ -142,7 +143,7 @@ func (s *MakeSuite) TestScalesJPEGAndPNGDownToAStoredJPEG() {
 // The backfill retries a row on every boot, so a rerun must land on the same key.
 func (s *MakeSuite) TestARerunWritesTheSameBlob() {
 	var src bytes.Buffer
-	assert.NilError(s.T(), jpeg.Encode(&src, gradient(512, 256), nil))
+	assert.NilError(s.T(), jpeg.Encode(&src, gradient(), nil))
 	srcHash := s.put(src.Bytes())
 
 	first, err := thumbnail.Make(s.T().Context(), s.store, srcHash)
@@ -216,7 +217,7 @@ func (g gatedStore) Get(ctx context.Context, hash string) (io.ReadCloser, blobst
 // A create waiting behind the backfill's decode must give up when its request does.
 func (s *MakeSuite) TestAWaitForTheDecodeSlotHonoursCancellation() {
 	var src bytes.Buffer
-	assert.NilError(s.T(), jpeg.Encode(&src, gradient(512, 256), nil))
+	assert.NilError(s.T(), jpeg.Encode(&src, gradient(), nil))
 	srcHash := s.put(src.Bytes())
 
 	gated := gatedStore{FS: s.store, entered: make(chan struct{}), release: make(chan struct{})}
@@ -267,7 +268,7 @@ func (c countingReader) Read(p []byte) (int, error) {
 // decode: the check sits between Get and the first read.
 func (s *MakeSuite) TestACancelledRequestSkipsTheDecode() {
 	var src bytes.Buffer
-	assert.NilError(s.T(), jpeg.Encode(&src, gradient(512, 256), nil))
+	assert.NilError(s.T(), jpeg.Encode(&src, gradient(), nil))
 	srcHash := s.put(src.Bytes())
 
 	ctx, cancel := context.WithCancel(s.T().Context())

@@ -1,12 +1,15 @@
-.PHONY: check typecheck lint test dev build
+.PHONY: check typecheck lint fmt-check test dev build
 
-check: typecheck lint test
+check: typecheck lint fmt-check test
 
 typecheck:
 	yarn typecheck
 
 lint:
 	yarn lint
+
+fmt-check:
+	yarn fmt:check
 
 test:
 	yarn test

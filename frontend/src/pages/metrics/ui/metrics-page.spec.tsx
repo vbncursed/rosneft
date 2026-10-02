@@ -32,7 +32,13 @@ const props = (over: Partial<MetricsPageProps> = {}): MetricsPageProps => ({
       key: "traffic",
       title: "Traffic & latency",
       panels: [
-        { key: "latency", title: "Request latency", meta: "ms", last: "452ms", series: [{ label: "p95", values: [1, 2] }] },
+        {
+          key: "latency",
+          title: "Request latency",
+          meta: "ms",
+          last: "452ms",
+          series: [{ label: "p95", values: [1, 2] }],
+        },
       ],
     },
   ],
@@ -47,8 +53,22 @@ const props = (over: Partial<MetricsPageProps> = {}): MetricsPageProps => ({
   },
   stats: [
     { label: "Requests/sec", state: { kind: "value", value: "142/s" }, hint: "gateway", delta: "+8%", deltaTone: "ok" },
-    { label: "Error rate", state: { kind: "value", value: "0.82%" }, hint: "SLO 0.5% breached", tone: "bad", delta: "+0.3", deltaTone: "bad" },
-    { label: "p99 latency", state: { kind: "value", value: "452ms" }, hint: "SLO 600ms", tone: "accent", delta: "−12%", deltaTone: "ok" },
+    {
+      label: "Error rate",
+      state: { kind: "value", value: "0.82%" },
+      hint: "SLO 0.5% breached",
+      tone: "bad",
+      delta: "+0.3",
+      deltaTone: "bad",
+    },
+    {
+      label: "p99 latency",
+      state: { kind: "value", value: "452ms" },
+      hint: "SLO 600ms",
+      tone: "accent",
+      delta: "−12%",
+      deltaTone: "ok",
+    },
     { label: "Queue", state: { kind: "value", value: "0" }, hint: "waiting" },
   ],
   range: "6h",
@@ -224,8 +244,6 @@ describe("MetricsPage", () => {
 
   it("shows a chip for a key:value query", () => {
     render(<MetricsPage {...props({ query: "service:gateway" })} />);
-    expect(
-      screen.getByRole("button", { name: "Remove filter service:gateway" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Remove filter service:gateway" })).toBeInTheDocument();
   });
 });

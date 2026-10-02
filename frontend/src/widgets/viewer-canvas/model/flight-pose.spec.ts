@@ -28,8 +28,7 @@ const plan = (reduced = false) =>
   );
 
 /** Where the camera is at `t`, relative to the centre it circles. */
-const offset = (t: number, reduced = false) =>
-  flightPose(t, plan(reduced)).position.clone().sub(CENTER);
+const offset = (t: number, reduced = false) => flightPose(t, plan(reduced)).position.clone().sub(CENTER);
 /** cos of the angle from straight up: 1 overhead, √½ at 45°. */
 const upness = (v: Vector3) => v.y / v.length();
 const azimuth = (v: Vector3) => new Spherical().setFromVector3(v).theta;
@@ -162,7 +161,12 @@ describe("flightPose", () => {
 
 describe("planFlight's rise", () => {
   const facing = (target: Vector3) =>
-    planFlight({ position: new Vector3(6, 2, 3), target }, { center: CENTER, radius: 2 }, { fov: 50, aspect: 1.5 }, false);
+    planFlight(
+      { position: new Vector3(6, 2, 3), target },
+      { center: CENTER, radius: 2 },
+      { fov: 50, aspect: 1.5 },
+      false,
+    );
 
   it("takes the base time when the reader already faces the centre", () => {
     expect(facing(CENTER.clone()).rise).toBeCloseTo(RISE_S, 9);

@@ -44,8 +44,7 @@ export function StatTile({
   deltaTone = "muted",
   className,
 }: StatTileProps) {
-  const valueTone =
-    state.kind === "loading" ? "muted" : state.kind === "unavailable" ? "bad" : tone;
+  const valueTone = state.kind === "loading" ? "muted" : state.kind === "unavailable" ? "bad" : tone;
 
   return (
     <div
@@ -57,9 +56,7 @@ export function StatTile({
     >
       <div className="flex items-center justify-between gap-2.5">
         <p className="m-0 font-mono text-[9px] uppercase tracking-[0.2em] text-muted">{label}</p>
-        {delta ? (
-          <span className={cx("font-mono text-[10px]", TONE[deltaTone])}>{delta}</span>
-        ) : null}
+        {delta ? <span className={cx("font-mono text-[10px]", TONE[deltaTone])}>{delta}</span> : null}
       </div>
       <p
         className={cx(

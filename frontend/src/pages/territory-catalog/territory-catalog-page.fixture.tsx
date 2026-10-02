@@ -62,10 +62,7 @@ function Live() {
   const [tab, setTab] = useState<TerritoryTab>("all");
   const [query, setQuery] = useState("");
 
-  const cards = useMemo(
-    () => CARDS.filter((c) => matchesTerritory(c, tab, query)),
-    [tab, query],
-  );
+  const cards = useMemo(() => CARDS.filter((c) => matchesTerritory(c, tab, query)), [tab, query]);
 
   return (
     <CatalogShell>

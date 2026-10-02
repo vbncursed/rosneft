@@ -173,6 +173,7 @@ export function usePlacementsEditor({
         setMutation(idle);
       }
     },
+    // oxlint-disable-next-line react/memo-dependencies -- false positive: oxlint does not see the onChanged call inside finally; removing the dep would make the callback stale
     [slug, onChanged],
   );
 

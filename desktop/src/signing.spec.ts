@@ -18,7 +18,10 @@ describe("pickIdentity", () => {
 describe("parseKeychains", () => {
   it("reads the quoted paths of `security list-keychains`", () => {
     const out = '    "/Users/runner/Library/Keychains/login.keychain-db"\n    "/Library/Keychains/System.keychain"\n';
-    expect(parseKeychains(out)).toEqual(["/Users/runner/Library/Keychains/login.keychain-db", "/Library/Keychains/System.keychain"]);
+    expect(parseKeychains(out)).toEqual([
+      "/Users/runner/Library/Keychains/login.keychain-db",
+      "/Library/Keychains/System.keychain",
+    ]);
   });
   it("is empty for an empty list", () => {
     expect(parseKeychains("")).toEqual([]);

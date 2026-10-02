@@ -5,12 +5,13 @@ const PASSWORD_MIN = 8;
 const PASSWORD_MAX = 256;
 
 export function validatePassword(v: string): string | null {
+  // Code points, not UTF-16 units: auth-service counts runes, and the two must agree.
+  // oxlint-disable-next-line no-misused-spread -- code points are what is being counted
   const n = [...v].length;
   if (n < PASSWORD_MIN || n > PASSWORD_MAX) {
     return `Password must be ${PASSWORD_MIN}–${PASSWORD_MAX} characters`;
   }
-  const ok =
-    /\p{Lu}/u.test(v) && /\p{Ll}/u.test(v) && /\p{Nd}/u.test(v) && /[^\p{Lu}\p{Ll}\p{Nd}]/u.test(v);
+  const ok = /\p{Lu}/u.test(v) && /\p{Ll}/u.test(v) && /\p{Nd}/u.test(v) && /[^\p{Lu}\p{Ll}\p{Nd}]/u.test(v);
   if (!ok) {
     return "Password needs an upper- and lower-case letter, a digit, and a special character";
   }

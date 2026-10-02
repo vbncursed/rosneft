@@ -14,15 +14,14 @@ type Box = { top: number; left: number; width: number; height: number };
 function el(box: Box, parent: HTMLElement = document.body, style: Partial<CSSStyleDeclaration> = {}) {
   const node = document.createElement("div");
   Object.assign(node.style, style);
-  node.getBoundingClientRect = () =>
-    ({
-      ...box,
-      right: box.left + box.width,
-      bottom: box.top + box.height,
-      x: box.left,
-      y: box.top,
-      toJSON: () => ({}),
-    }) as DOMRect;
+  node.getBoundingClientRect = () => ({
+    ...box,
+    right: box.left + box.width,
+    bottom: box.top + box.height,
+    x: box.left,
+    y: box.top,
+    toJSON: () => ({}),
+  });
   parent.append(node);
   made.push(node);
   return node;
@@ -73,7 +72,12 @@ describe("dimStyle and haloStyle", () => {
   });
 
   it("rings the anchor 6 px out on every side", () => {
-    expect(haloStyle({ top: 10, left: 20, width: 30, height: 40 })).toEqual({ top: 4, left: 14, width: 42, height: 52 });
+    expect(haloStyle({ top: 10, left: 20, width: 30, height: 40 })).toEqual({
+      top: 4,
+      left: 14,
+      width: 42,
+      height: 52,
+    });
   });
 });
 

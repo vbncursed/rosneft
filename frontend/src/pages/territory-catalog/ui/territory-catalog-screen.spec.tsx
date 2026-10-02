@@ -32,7 +32,10 @@ const T2: TerritoryCardModel = {
   slug: "t-2",
   title: "T 2",
   status: "pending",
-  chips: [{ label: "—", tone: "plain" }, { label: "—", tone: "plain" }],
+  chips: [
+    { label: "—", tone: "plain" },
+    { label: "—", tone: "plain" },
+  ],
   trailing: { label: "pending", tone: "muted" },
   panorama: false,
 };
@@ -132,9 +135,7 @@ describe("TerritoryCatalogScreen", () => {
     useTerritoryCatalog.mockReturnValue(state({ pending: T1, confirm }));
     render(<TerritoryCatalogScreen />);
     const dialog = screen.getByRole("dialog", { name: "Delete T 1?" });
-    expect(dialog).toHaveTextContent(
-      "Its placements, panoramas and documents go with it. This cannot be undone.",
-    );
+    expect(dialog).toHaveTextContent("Its placements, panoramas and documents go with it. This cannot be undone.");
     await userEvent.click(screen.getByRole("button", { name: "Delete" }));
     expect(confirm).toHaveBeenCalled();
   });
@@ -162,7 +163,13 @@ describe("TerritoryCatalogScreen", () => {
     const saved = { slug: "t-1", title: "T 1", bytes: 10, savedAt: "t", syncedAt: "t" };
     window.desktop = {
       passkeys: false,
-      offline: { list: async () => [saved], save: async () => {}, cancel: async () => {}, remove: async () => {}, onProgress: () => () => {} },
+      offline: {
+        list: async () => [saved],
+        save: async () => {},
+        cancel: async () => {},
+        remove: async () => {},
+        onProgress: () => () => {},
+      },
     } as unknown as DesktopBridge;
     online.value = false;
     useTerritoryCatalog.mockReturnValue(state());
@@ -170,7 +177,7 @@ describe("TerritoryCatalogScreen", () => {
     expect(await screen.findByRole("button", { name: "T 1 — Available offline · 10 B" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reconnect to save T 2" })).toBeInTheDocument();
     expect(screen.getAllByText("Unavailable offline")).toHaveLength(1);
-    expect(screen.queryByText("Open →", { selector: "article[aria-label=\"T 2\"] *" })).toBeNull();
+    expect(screen.queryByText("Open →", { selector: 'article[aria-label="T 2"] *' })).toBeNull();
   });
 
   it("draws no offline control in a browser", () => {
@@ -182,7 +189,13 @@ describe("TerritoryCatalogScreen", () => {
     let answer: (v: unknown[]) => void = () => {};
     window.desktop = {
       passkeys: false,
-      offline: { list: () => new Promise((r) => (answer = r)), save: async () => {}, cancel: async () => {}, remove: async () => {}, onProgress: () => () => {} },
+      offline: {
+        list: () => new Promise((r) => (answer = r)),
+        save: async () => {},
+        cancel: async () => {},
+        remove: async () => {},
+        onProgress: () => () => {},
+      },
     } as unknown as DesktopBridge;
     online.value = false;
     useTerritoryCatalog.mockReturnValue(state());

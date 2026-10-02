@@ -4,16 +4,14 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"log/slog"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 )
 
-// Convert reads sourcePath (an OBJ file) plus its sibling MTL and any textures
+// Convert reads sourcePath (an OBJ file, inside root) plus its sibling MTL and any textures
 // the MTL references, normalizes the geometry (Z-up→Y-up, center, scale to
 // maxDim=2), and emits a binary glTF (.glb).
 //
@@ -23,8 +21,12 @@ import (
 // material refs are tolerated — a missing MTL or unreadable texture is logged
 // and the primitive falls back to a flat-coloured default — so a single bad
 // asset cannot fail the whole job.
-func (c *Converter) Convert(ctx context.Context, sourcePath string) (domain.ConversionResult, error) {
-	raw, err := c.convertRaw(ctx, sourcePath)
+//
+// root is the directory holding the whole extracted upload. An MTL or texture
+// reference may point anywhere inside it ("../textures/x.jpg" from
+// "model/m.obj") but never outside.
+func (c *Converter) Convert(ctx context.Context, root, sourcePath string) (domain.ConversionResult, error) {
+	raw, err := c.convertRaw(ctx, root, sourcePath)
 	if err != nil {
 		return domain.ConversionResult{}, err
 	}
@@ -62,9 +64,23 @@ func (c *Converter) finish(ctx context.Context, raw rawGLB) (domain.ConversionRe
 //
 // All warnings are logged via slog; this function never returns an error so
 // the conversion can always produce a sensible artifact.
-func buildGLMaterials(ctx context.Context, src parsedSource, sourcePath string) []glMaterial {
-	objDir := filepath.Dir(sourcePath)
-	mtlByName := loadMTL(ctx, objDir, src.mtllib, sourcePath)
+func buildGLMaterials(ctx context.Context, src parsedSource, rootDir, sourcePath string) []glMaterial {
+	// Every path below is relative to the root, so nothing the MTL says can
+	// name a file outside the extraction.
+	objRel, err := filepath.Rel(rootDir, filepath.Dir(sourcePath))
+	if err != nil || !filepath.IsLocal(objRel) {
+		slog.WarnContext(ctx, "converter: OBJ is outside the source root, materials default to white",
+			slog.String("root", rootDir), slog.String("obj", sourcePath))
+		return defaultMaterials(src)
+	}
+	root, err := os.OpenRoot(rootDir)
+	if err != nil {
+		slog.WarnContext(ctx, "converter: cannot open source root, materials default to white",
+			slog.String("root", rootDir), slog.Any("error", err))
+		return defaultMaterials(src)
+	}
+	defer func() { _ = root.Close() }()
+	mtlByName := loadMTL(ctx, root, objRel, src.mtllib, sourcePath)
 
 	textureCache := map[string]*textureAsset{}
 
@@ -87,7 +103,7 @@ func buildGLMaterials(ctx context.Context, src parsedSource, sourcePath string) 
 			BaseColor: [4]float32{m.kd[0], m.kd[1], m.kd[2], m.alpha},
 		}
 		if m.diffuseMap != "" {
-			tex := loadTexture(ctx, objDir, m.diffuseMap, textureCache)
+			tex := loadTexture(ctx, root, objRel, m.diffuseMap, textureCache)
 			if tex != nil {
 				gm.Texture = tex
 			}
@@ -97,84 +113,10 @@ func buildGLMaterials(ctx context.Context, src parsedSource, sourcePath string) 
 	return out
 }
 
-// loadMTL reads and parses the MTL referenced by `mtllib` (relative to the OBJ
-// directory). When mtllib is empty the function falls back to "<obj-base>.mtl"
-// — the de-facto convention when mtllib is omitted by hand-written OBJs.
-//
-// Returns an empty map (never nil) on any error so the caller can iterate
-// safely without nil checks.
-func loadMTL(ctx context.Context, objDir, mtllib, sourcePath string) map[string]material {
-	candidates := make([]string, 0, 2)
-	if mtllib != "" {
-		candidates = append(candidates, filepath.Join(objDir, mtllib))
+func defaultMaterials(src parsedSource) []glMaterial {
+	out := make([]glMaterial, len(src.groups))
+	for i, g := range src.groups {
+		out[i] = glMaterial{Name: g.name, BaseColor: [4]float32{1, 1, 1, 1}}
 	}
-	base := strings.TrimSuffix(filepath.Base(sourcePath), filepath.Ext(sourcePath))
-	candidates = append(candidates, filepath.Join(objDir, base+".mtl"))
-
-	for _, path := range candidates {
-		f, err := os.Open(path)
-		if err != nil {
-			continue
-		}
-		mats, err := parseMTL(f)
-		_ = f.Close()
-		if err != nil {
-			slog.WarnContext(ctx, "converter: MTL parse failed",
-				slog.String("path", path), slog.Any("error", err))
-			return map[string]material{}
-		}
-		out := make(map[string]material, len(mats))
-		for _, m := range mats {
-			out[m.name] = m
-		}
-		return out
-	}
-	slog.WarnContext(ctx, "converter: MTL not found, materials default to white",
-		slog.String("obj", sourcePath), slog.String("mtllib", mtllib))
-	return map[string]material{}
-}
-
-// loadTexture reads a single texture from disk, resolves the MIME type from
-// the extension, and caches the result so the same file isn't re-read for
-// each material that references it. Returns nil when the file is missing or
-// unsupported (caller falls back to baseColorFactor only).
-func loadTexture(ctx context.Context, objDir, relPath string, cache map[string]*textureAsset) *textureAsset {
-	if t, ok := cache[relPath]; ok {
-		return t
-	}
-	full := filepath.Join(objDir, relPath)
-	mime, err := mimeFromPath(full)
-	if err != nil {
-		slog.WarnContext(ctx, "converter: skipping texture: unsupported format",
-			slog.String("path", full), slog.Any("error", err))
-		cache[relPath] = nil
-		return nil
-	}
-	data, err := os.ReadFile(full)
-	if err != nil {
-		slog.WarnContext(ctx, "converter: skipping texture: read failed",
-			slog.String("path", full), slog.Any("error", err))
-		cache[relPath] = nil
-		return nil
-	}
-	t := &textureAsset{
-		Path: relPath,
-		Mime: mime,
-		Data: data,
-	}
-	cache[relPath] = t
-	return t
-}
-
-// mimeFromPath returns the IANA media type for a glTF-supported texture
-// extension. glTF 2.0 only mandates JPEG and PNG; anything else is rejected.
-func mimeFromPath(path string) (string, error) {
-	switch strings.ToLower(filepath.Ext(path)) {
-	case ".jpg", ".jpeg":
-		return "image/jpeg", nil
-	case ".png":
-		return "image/png", nil
-	default:
-		return "", errors.New("only .jpg, .jpeg, .png are supported by glTF")
-	}
+	return out
 }

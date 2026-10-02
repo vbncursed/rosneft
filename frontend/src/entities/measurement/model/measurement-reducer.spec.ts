@@ -3,11 +3,7 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
 
-import {
-  measurementReducer as reduce,
-  initialMeasurementState,
-  type MeasurementState,
-} from "./measurement-reducer";
+import { measurementReducer as reduce, initialMeasurementState, type MeasurementState } from "./measurement-reducer";
 import { CLOSE_TOLERANCE } from "./chain";
 
 const p = (x: number, y = 0, z = 0) => ({ x, y, z });
@@ -96,13 +92,19 @@ test("removeChain drops only the named chain and unsets it if active", () => {
   const first = reduce(triangle(), { type: "closeActive" });
   const second = click(first, p(9));
   const s = reduce(second, { type: "removeChain", chainId: 2 });
-  assert.deepEqual(s.chains.map((c) => c.id), [1]);
+  assert.deepEqual(
+    s.chains.map((c) => c.id),
+    [1],
+  );
   assert.equal(s.activeChainId, null);
 });
 
 test("removeChain on an unknown id changes nothing observable", () => {
   const s = reduce(triangle(), { type: "removeChain", chainId: 99 });
-  assert.deepEqual(s.chains.map((c) => c.id), [1]);
+  assert.deepEqual(
+    s.chains.map((c) => c.id),
+    [1],
+  );
   assert.equal(s.activeChainId, 1);
 });
 
@@ -164,7 +166,10 @@ test("finishing keeps an active chain of two points and every other chain", () =
   const two = click(click(initialMeasurementState, p(0)), p(1));
   const finished = reduce(two, { type: "cancelChain" });
   const withStray = reduce(click(finished, p(5)), { type: "exit" });
-  assert.deepEqual(withStray.chains.map((c) => c.id), [1]);
+  assert.deepEqual(
+    withStray.chains.map((c) => c.id),
+    [1],
+  );
 });
 
 test("toggling measure mode on does not finish anything", () => {
@@ -194,7 +199,13 @@ test("seed hands the stored chains local ids and marks them saved", () => {
 test("seed replaces stored chains and keeps local ones and the active chain", () => {
   const drawing = click(click(seeded, p(9)), p(8));
   const s = reduce(drawing, { type: "seed", chains: [{ serverId: 8, points: pt3, closed: true }] });
-  assert.deepEqual(s.chains.map((c) => [c.id, c.serverId ?? null]), [[3, null], [4, 8]]);
+  assert.deepEqual(
+    s.chains.map((c) => [c.id, c.serverId ?? null]),
+    [
+      [3, null],
+      [4, 8],
+    ],
+  );
   assert.equal(s.activeChainId, 3);
   assert.equal(s.nextId, 5);
 });
@@ -222,7 +233,10 @@ test("a sync action for a chain that is gone returns the same state object", () 
 test("restore puts a chain back after a failed delete, once", () => {
   const removed = reduce(seeded, { type: "removeChain", chainId: 1 });
   const back = reduce(removed, { type: "restore", chain: seeded.chains[0] });
-  assert.deepEqual(back.chains.map((c) => c.id).sort(), [1, 2]);
+  assert.deepEqual(
+    back.chains.map((c) => c.id).sort((a, b) => a - b),
+    [1, 2],
+  );
   assert.equal(reduce(back, { type: "restore", chain: seeded.chains[0] }), back);
 });
 
@@ -232,7 +246,13 @@ test("a cut of a saved chain keeps its server id on the left part only", () => {
     chains: [{ serverId: 7, points: [p(0), p(1), p(2), p(3)], closed: false }],
   });
   const s = reduce(four, { type: "removeSegment", chainId: 1, segmentIndex: 1 });
-  assert.deepEqual(s.chains.map((c) => [c.serverId ?? null, c.sync]), [[7, "saved"], [null, "local"]]);
+  assert.deepEqual(
+    s.chains.map((c) => [c.serverId ?? null, c.sync]),
+    [
+      [7, "saved"],
+      [null, "local"],
+    ],
+  );
 });
 
 test("removeSegment of an active one-point chain finishes it, and it goes", () => {
@@ -262,9 +282,12 @@ test("seed keeps a saved chain whose last write failed, over the server's copy o
       { serverId: 9, points: pt3, closed: false },
     ],
   });
-  assert.deepEqual(s.chains.map((c) => [c.id, c.serverId, c.sync]), [
-    [1, 7, "failed"],
-    [3, 9, "saved"],
-  ]);
+  assert.deepEqual(
+    s.chains.map((c) => [c.id, c.serverId, c.sync]),
+    [
+      [1, 7, "failed"],
+      [3, 9, "saved"],
+    ],
+  );
   assert.equal(s.chains[0].points, pt3, "the unsaved edit stays on screen");
 });

@@ -186,6 +186,7 @@ describe("CameraRig · fly-around", () => {
       at,
       to: (ms: number) => {
         if (now === null) return at(ms);
+        // oxlint-disable-next-line no-unmodified-loop-condition -- `at` assigns `now` through the closure; each call advances the clock
         while (now < ms) at(Math.min(now + 16, ms));
       },
     };
@@ -282,32 +283,29 @@ describe("CameraRig · fly-around", () => {
   it.each([
     ["a grab", () => controls!.dispatchEvent({ type: "start" } as never)],
     ["the toggle", "toggle"],
-  ] as const)(
-    "leaves the orbit pivoting on the territory when %s stops it mid-rise",
-    async (_, how) => {
-      // Looking level at a point far past the centre: mid-rise, the flight's
-      // own target is then well below the ground.
-      const frames = stubFrames();
-      const sceneRef = territory();
-      const r = await ReactThreeTestRenderer.create(rig(0, { sceneRef }));
-      controls!.target.set(0, 0, -20);
-      controls!.update();
-      await r.update(rig(0, { playing: true, sceneRef }));
-      frames.to(1000);
-      frames.to(1000 + (RISE_S / 2) * 1000);
-      expect(controls!.target.y).toBeLessThan(-2);
-      const view = camera!.getWorldDirection(new Vector3());
+  ] as const)("leaves the orbit pivoting on the territory when %s stops it mid-rise", async (_, how) => {
+    // Looking level at a point far past the centre: mid-rise, the flight's
+    // own target is then well below the ground.
+    const frames = stubFrames();
+    const sceneRef = territory();
+    const r = await ReactThreeTestRenderer.create(rig(0, { sceneRef }));
+    controls!.target.set(0, 0, -20);
+    controls!.update();
+    await r.update(rig(0, { playing: true, sceneRef }));
+    frames.to(1000);
+    frames.to(1000 + (RISE_S / 2) * 1000);
+    expect(controls!.target.y).toBeLessThan(-2);
+    const view = camera!.getWorldDirection(new Vector3());
 
-      if (how === "toggle") await r.update(rig(0, { playing: false, sceneRef }));
-      else how();
+    if (how === "toggle") await r.update(rig(0, { playing: false, sceneRef }));
+    else how();
 
-      // Nearer the centre than its own radius, and on the view ray: the
-      // reader's view does not move when the orbit takes over.
-      expect(controls!.target.length()).toBeLessThan(Math.sqrt(3));
-      const toTarget = controls!.target.clone().sub(camera!.position).normalize();
-      expect(toTarget.distanceTo(view)).toBeLessThan(1e-9);
-    },
-  );
+    // Nearer the centre than its own radius, and on the view ray: the
+    // reader's view does not move when the orbit takes over.
+    expect(controls!.target.length()).toBeLessThan(Math.sqrt(3));
+    const toTarget = controls!.target.clone().sub(camera!.position).normalize();
+    expect(toTarget.distanceTo(view)).toBeLessThan(1e-9);
+  });
 
   it("fires a change where the flight lands, so Auto LOD re-reads the view", async () => {
     // The flight moves the camera without update(): nothing has fired "change"

@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { setCsrfToken } from "@/shared/api";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useRoles } from "./use-roles";
@@ -45,14 +45,13 @@ const json = (body: unknown, status = 200) =>
 
 let created: typeof OPS | null;
 let deleteStatus: number;
-let fetchMock: ReturnType<typeof vi.fn>;
+let fetchMock: Mock<(url: string, init?: RequestInit) => Promise<Response>>;
 let client: QueryClient;
 const wrapper = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={client}>{children}</QueryClientProvider>
 );
 
-const seat = (principal: Partial<typeof PRINCIPAL> = {}) =>
-  client.setQueryData(["me"], { ...PRINCIPAL, ...principal });
+const seat = (principal: Partial<typeof PRINCIPAL> = {}) => client.setQueryData(["me"], { ...PRINCIPAL, ...principal });
 
 beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -63,8 +62,7 @@ beforeEach(() => {
   clearNotices();
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const method = init?.method ?? "GET";
-    if (url === "/api/auth/roles" && method === "GET")
-      return json(created ? [GUEST, OPS, created] : [GUEST, OPS]);
+    if (url === "/api/auth/roles" && method === "GET") return json(created ? [GUEST, OPS, created] : [GUEST, OPS]);
     if (url === "/api/auth/permissions") return json(PERMISSIONS);
     if (url.startsWith("/api/auth/users") && method === "GET") return json([USER]);
     if (method === "POST" && url === "/api/auth/roles") {
@@ -87,8 +85,8 @@ afterEach(() => {
 });
 
 const called = (predicate: (url: string, init?: RequestInit) => boolean) =>
-  fetchMock.mock.calls.some(([u, i]) => predicate(String(u), i as RequestInit | undefined));
-const urls = () => fetchMock.mock.calls.map(([u]) => String(u));
+  fetchMock.mock.calls.some(([u, i]) => predicate(u, i));
+const urls = () => fetchMock.mock.calls.map(([u]) => u);
 
 describe("useRoles", () => {
   it("is loading, then ready with the roles, permissions and people counts", async () => {
@@ -210,12 +208,10 @@ describe("useRoles", () => {
     act(() => result.current.roles.save());
     await waitFor(() => expect(result.current.notices[0]?.message).toBe("Role saved"));
 
-    const patches = fetchMock.mock.calls.filter(
-      ([, i]) => (i as RequestInit | undefined)?.method === "PATCH",
-    );
+    const patches = fetchMock.mock.calls.filter(([, i]) => i?.method === "PATCH");
     expect(patches).toHaveLength(1);
-    expect(String(patches[0][0])).toBe("/api/auth/roles/ops");
-    expect(JSON.parse(String((patches[0][1] as RequestInit).body))).toEqual({
+    expect(patches[0][0]).toBe("/api/auth/roles/ops");
+    expect(JSON.parse((patches[0][1] as RequestInit).body as string)).toEqual({
       title: "Field ops",
       permissionSlugs: ["users:read", "users:write"],
     });
@@ -233,10 +229,7 @@ describe("useRoles", () => {
     act(() => result.current.roles.select("ops"));
     act(() => result.current.roles.rename("Field ops"));
 
-    const people = () =>
-      fetchMock.mock.calls.filter(
-        ([u, i]) => String(u).startsWith("/api/auth/users") && !(i as RequestInit | undefined)?.method,
-      ).length;
+    const people = () => fetchMock.mock.calls.filter(([u, i]) => u.startsWith("/api/auth/users") && !i?.method).length;
     const before = people();
     act(() => result.current.roles.save());
     await waitFor(() => expect(result.current.notices[0]?.message).toBe("Role saved"));
@@ -267,8 +260,8 @@ describe("useRoles", () => {
 
     act(() => result.current.save());
     await waitFor(() => expect(result.current.saving).toBe(false));
-    const patch = fetchMock.mock.calls.find(([, i]) => (i as RequestInit | undefined)?.method === "PATCH");
-    expect(JSON.parse(String((patch![1] as RequestInit).body))).toEqual({ title: "Field ops" });
+    const patch = fetchMock.mock.calls.find(([, i]) => i?.method === "PATCH");
+    expect(JSON.parse((patch![1] as RequestInit).body as string)).toEqual({ title: "Field ops" });
     expect(called((_, i) => i?.method === "PUT")).toBe(false);
   });
 
@@ -282,8 +275,8 @@ describe("useRoles", () => {
 
     act(() => result.current.save());
     await waitFor(() => expect(result.current.saving).toBe(false));
-    const patch = fetchMock.mock.calls.find(([, i]) => (i as RequestInit | undefined)?.method === "PATCH");
-    expect(JSON.parse(String((patch![1] as RequestInit).body))).toEqual({
+    const patch = fetchMock.mock.calls.find(([, i]) => i?.method === "PATCH");
+    expect(JSON.parse((patch![1] as RequestInit).body as string)).toEqual({
       title: OPS.title,
       permissionSlugs: ["users:read", "users:write"],
     });
@@ -344,10 +337,8 @@ describe("useRoles", () => {
     await waitFor(() => expect(result.current.notices[0]?.message).toBe("Role created"));
     expect(result.current.roles.creating).toBe(false);
     expect(result.current.roles.draft).toEqual({ title: "Surveyor", granted: [] });
-    const post = fetchMock.mock.calls.find(
-      ([u, i]) => u === "/api/auth/roles" && (i as RequestInit | undefined)?.method === "POST",
-    );
-    expect(JSON.parse(String((post![1] as RequestInit).body))).toEqual({
+    const post = fetchMock.mock.calls.find(([u, i]) => u === "/api/auth/roles" && i?.method === "POST");
+    expect(JSON.parse((post![1] as RequestInit).body as string)).toEqual({
       title: "Surveyor",
       permissionSlugs: [],
     });

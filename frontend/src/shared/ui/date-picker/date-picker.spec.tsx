@@ -39,14 +39,8 @@ describe("DatePicker", () => {
   it("marks the selected day and today distinctly", async () => {
     render(<Harness />);
     await userEvent.click(field());
-    expect(screen.getByRole("button", { name: "24 August 2026" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    expect(screen.getByRole("button", { name: "31 August 2026" })).toHaveAttribute(
-      "aria-current",
-      "date",
-    );
+    expect(screen.getByRole("button", { name: "24 August 2026" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "31 August 2026" })).toHaveAttribute("aria-current", "date");
   });
 
   it("picks a day and closes", async () => {
@@ -89,9 +83,7 @@ describe("DatePicker", () => {
   it("draws square day cells rather than letting the digits size them", async () => {
     render(<Harness />);
     await userEvent.click(field());
-    expect(screen.getByRole("button", { name: "12 August 2026" }).className).toContain(
-      "aspect-square",
-    );
+    expect(screen.getByRole("button", { name: "12 August 2026" }).className).toContain("aspect-square");
   });
 
   it("closes on Escape without changing the value", async () => {

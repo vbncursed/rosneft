@@ -27,11 +27,13 @@ const TONE: Record<DiffKind, { border: string; text: string }> = {
   changed: { border: "border-l-accent", text: "text-accent" },
 };
 
+const NONE: never[] = [];
+
 export function RecordInspector({
   entry,
   refs,
   recordId,
-  details = [],
+  details = NONE,
   onCopyJson,
   onClose,
   onOpenEntity,
@@ -79,9 +81,7 @@ export function RecordInspector({
             <div className="flex flex-col gap-2.5">
               {fields.map((field) => (
                 <div key={field.field} className={cx("border-l-2 pl-2.5", TONE[field.kind].border)}>
-                  <p className={cx("m-0 font-mono text-[11px]", TONE[field.kind].text)}>
-                    {field.field}
-                  </p>
+                  <p className={cx("m-0 font-mono text-[11px]", TONE[field.kind].text)}>{field.field}</p>
                   <p className="m-0 mt-[3px] break-all font-mono text-[11px] leading-[1.5] text-fg">
                     {inspectorValue(field, refs)}
                   </p>

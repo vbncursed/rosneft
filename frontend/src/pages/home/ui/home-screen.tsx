@@ -22,9 +22,7 @@ export function HomeScreen({ consoleItems }: HomeScreenProps) {
   const { signOut } = useSignOut();
 
   if (s.status === "loading") {
-    return (
-      <PageSkeleton shape="catalog" label="Loading home" />
-    );
+    return <PageSkeleton shape="catalog" label="Loading home" />;
   }
   if (s.status === "unavailable") {
     return <Callout tone="bad">Home is unavailable: {s.error}</Callout>;
@@ -37,9 +35,7 @@ export function HomeScreen({ consoleItems }: HomeScreenProps) {
       jobs={s.jobs}
       jobsMeta={s.jobsMeta}
       territories={s.territories}
-      models={
-        s.models.shown ? { cards: s.models.cards, total: s.models.total, meta: s.models.meta } : null
-      }
+      models={s.models.shown ? { cards: s.models.cards, total: s.models.total, meta: s.models.meta } : null}
       console={
         showConsole(consoleItems)
           ? consoleItems.map((i) => ({

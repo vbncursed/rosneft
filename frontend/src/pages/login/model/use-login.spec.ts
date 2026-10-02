@@ -100,9 +100,7 @@ describe("useLogin", () => {
   });
 
   it("surfaces a wrong password without leaving the step", async () => {
-    vi.mocked(login).mockRejectedValue(
-      new HttpError(401, null, "Invalid username or password."),
-    );
+    vi.mocked(login).mockRejectedValue(new HttpError(401, null, "Invalid username or password."));
     const { result } = renderHook(() => useLogin());
 
     act(() => result.current.credentials.onSubmit());
@@ -144,6 +142,18 @@ describe("useLogin", () => {
     await waitFor(() => expect(navigate).toHaveBeenCalledWith({ href: "/" }));
   });
 
+  // A navigation that rejects after a good sign-in must reach the form, not
+  // vanish as an unhandled rejection with the button already free again.
+  it("shows a failed navigation after a password sign-in instead of dropping it", async () => {
+    vi.mocked(login).mockResolvedValue({ twoFactorRequired: false, challengeToken: "" });
+    navigate.mockRejectedValue(new Error("Could not open the page."));
+    const { result } = renderHook(() => useLogin());
+
+    act(() => result.current.credentials.onSubmit());
+
+    await waitFor(() => expect(result.current.error).toBe("Something went wrong. Try again."));
+  });
+
   // A visitor bounced out of a deep link comes back to it, not to Home —
   // the whole point of guard.ts carrying `next` through in the first place.
   it("returns to the page a bounced visit was headed to", async () => {
@@ -153,9 +163,7 @@ describe("useLogin", () => {
 
     act(() => result.current.credentials.onSubmit());
 
-    await waitFor(() =>
-      expect(navigate).toHaveBeenCalledWith({ href: "/console/audit?actor=a.ivanova" }),
-    );
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ href: "/console/audit?actor=a.ivanova" }));
   });
 
   describe("passkey", () => {
@@ -184,6 +192,16 @@ describe("useLogin", () => {
       expect(startSession).toHaveBeenCalledWith("csrf-1");
     });
 
+    it("points to the password when the navigation after a passkey sign-in fails", async () => {
+      ceremony();
+      navigate.mockRejectedValue(new Error("Could not open the page."));
+      const { result } = renderHook(() => useLogin());
+
+      act(() => result.current.credentials.onPasskey!());
+
+      await waitFor(() => expect(result.current.error).toMatch(/password/u));
+    });
+
     // Closing the OS dialog is a choice, not an error.
     it("says nothing when the user cancels the system prompt", async () => {
       ceremony();
@@ -204,9 +222,7 @@ describe("useLogin", () => {
 
       act(() => result.current.credentials.onPasskey!());
 
-      await waitFor(() =>
-        expect(result.current.error).toBe("Passkey sign-in failed. Try again or use your password."),
-      );
+      await waitFor(() => expect(result.current.error).toBe("Passkey sign-in failed. Try again or use your password."));
       expect(startSession).not.toHaveBeenCalled();
     });
 

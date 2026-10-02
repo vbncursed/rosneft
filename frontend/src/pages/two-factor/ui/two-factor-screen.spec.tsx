@@ -79,9 +79,7 @@ describe("TwoFactorScreen", () => {
 // headings — a set of codes attributed to a run that never happened.
 describe("TwoFactorScreen, on the real hook", () => {
   it("starts over when the flow in the URL changes", async () => {
-    const actual = await vi.importActual<typeof import("../model/use-two-factor")>(
-      "../model/use-two-factor",
-    );
+    const actual = await vi.importActual<typeof import("../model/use-two-factor")>("../model/use-two-factor");
     useTwoFactor.mockImplementation(actual.useTwoFactor);
     setup2FA.mockResolvedValue({ secret: "JBSWY3DPEHPK3PXP", otpauthUrl: "otpauth://totp/x" });
     enable2FA.mockResolvedValue(["8k2fq-p1x7d", "m4wla-9zt3c"]);
@@ -110,9 +108,7 @@ describe("TwoFactorScreen, on the real hook", () => {
     );
 
     await waitFor(() =>
-      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
-        "Replace your recovery codes",
-      ),
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Replace your recovery codes"),
     );
     expect(screen.queryByText("8k2fq-p1x7d")).not.toBeInTheDocument();
     expect(screen.getByText("Step 1 · confirm")).toBeInTheDocument();

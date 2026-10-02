@@ -55,8 +55,7 @@ const utc = (iso: string, options: Intl.DateTimeFormatOptions, locale = "en-GB")
 
 // en-GB abbreviates September as "Sept"; en-US does not, and the design's chip
 // is three letters wide.
-const shortDay = (iso: string) =>
-  `${Number(iso.slice(8, 10))} ${utc(`${iso}T00:00:00Z`, { month: "short" }, "en-US")}`;
+const shortDay = (iso: string) => `${Number(iso.slice(8, 10))} ${utc(`${iso}T00:00:00Z`, { month: "short" }, "en-US")}`;
 
 /**
  * A range that ends before it starts selects nothing. The screen refuses it
@@ -112,11 +111,7 @@ export function groupByDay(entries: AuditEntry[], now = new Date()): AuditDay[] 
 }
 
 /** 24 buckets, oldest first; the last is the hour still running. */
-export function activityOf(
-  entries: AuditEntry[],
-  now: Date,
-  capped: boolean,
-): AuditPageProps["activity"] {
+export function activityOf(entries: AuditEntry[], now: Date, capped: boolean): AuditPageProps["activity"] {
   const values = Array.from({ length: 24 }, () => 0);
   for (const e of entries) {
     const i = bucketOf(e.at, now);
@@ -134,12 +129,7 @@ export function activityOf(
 
 // The window query is rounded down to the hour and may hold a 25th hour; the
 // strip draws 24, and the counters must agree with the strip.
-export function countersOf(
-  entries: AuditEntry[],
-  now: Date,
-  capped: boolean,
-  actorCount: number,
-): AuditCounter[] {
+export function countersOf(entries: AuditEntry[], now: Date, capped: boolean, actorCount: number): AuditCounter[] {
   const inWindow = entries.filter((e) => bucketOf(e.at, now) >= 0);
   const failed = inWindow.filter((e) => e.result === "failed").length;
   return [
@@ -149,8 +139,7 @@ export function countersOf(
   ];
 }
 
-const dash = (label: string, value: string): Detail =>
-  value ? { label, value } : { label, value: "—", tone: "dim" };
+const dash = (label: string, value: string): Detail => (value ? { label, value } : { label, value: "—", tone: "dim" });
 
 export function inspectorDetails(entry: AuditEntry): Detail[] {
   return [

@@ -95,15 +95,11 @@ function Draft({
   return (
     <div className="flex flex-col gap-[11px] rounded-control-lg border border-accent bg-panel-2 p-3">
       <div className="flex items-center justify-between gap-2.5">
-        <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.2em] text-muted">
-          {EDITING_OVERLINE}
-        </span>
+        <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.2em] text-muted">{EDITING_OVERLINE}</span>
         <span className="flex items-center gap-2">
           {/* A deleted target leaves no ordinal — "0 of 2" names nothing. */}
           {index.current > 0 ? (
-            <span className="font-mono text-[10px] text-accent">
-              {anchorCounter(index.current, index.total)}
-            </span>
+            <span className="font-mono text-[10px] text-accent">{anchorCounter(index.current, index.total)}</span>
           ) : null}
           <Tooltip label={CLOSE_EDITOR}>
             <button
@@ -131,12 +127,7 @@ function Draft({
       {failed && !calibration ? null : (
         <>
           {failed ? null : (
-            <Button
-              size="sm"
-              onClick={onToggleView}
-              aria-pressed={inside}
-              data-tour="panorama-view-toggle"
-            >
+            <Button size="sm" onClick={onToggleView} aria-pressed={inside} data-tour="panorama-view-toggle">
               {inside ? SWITCH_TO_3D : ENTER_PANORAMA_VIEW}
             </Button>
           )}

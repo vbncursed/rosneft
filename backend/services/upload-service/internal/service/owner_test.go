@@ -9,13 +9,14 @@ import (
 
 // author owns the sessions these tests stub; stranger is anyone else.
 const (
-	author   = "user-1"
-	stranger = "user-2"
+	author    = "user-1"
+	stranger  = "user-2"
+	sessionID = "sess-1"
 )
 
 // stubSession answers GetStatus for id with a session of the given owner.
-func stubSession(ctx context.Context, store *mocks.SessionStoreMock, id, owner string, size, offset int64) {
-	store.GetStatusMock.When(ctx, id).Then(domain.Session{
-		ID: id, OwnerID: owner, Size: size, Offset: offset, ContentType: "application/zip",
+func stubSession(ctx context.Context, store *mocks.SessionStoreMock, owner string, size, offset int64) {
+	store.GetStatusMock.When(ctx, sessionID).Then(domain.Session{
+		ID: sessionID, OwnerID: owner, Size: size, Offset: offset, ContentType: "application/zip",
 	}, nil)
 }

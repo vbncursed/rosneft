@@ -60,13 +60,7 @@ export function CredentialsForm({
     <form onSubmit={submit} className="flex flex-col gap-3.5" aria-label="Sign in">
       {onPasskey ? (
         <>
-          <Button
-            variant="primary"
-            size="lg"
-            className={PRIMARY}
-            onClick={onPasskey}
-            disabled={submitting}
-          >
+          <Button variant="primary" size="lg" className={PRIMARY} onClick={onPasskey} disabled={submitting}>
             <Icon name="passkey" size={16} />
             Continue with passkey
           </Button>

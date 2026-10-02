@@ -56,7 +56,7 @@ export default defineConfig({
     env: { VITE_API_URL: "" },
     setupFiles: ["./src/shared/lib/test-setup.ts"],
     alias: Object.entries(ESM_BUILDS).map(([pkg, file]) => ({
-      find: new RegExp(`^${pkg}$`),
+      find: new RegExp(`^${pkg}$`, "u"),
       replacement: `${pkg}/${file}`,
     })),
     server: { deps: { inline: Object.keys(ESM_BUILDS) } },
@@ -66,12 +66,7 @@ export default defineConfig({
       include: ["src/**/*.{ts,tsx}"],
       // The modules architecture.spec.ts excuses from needing a spec, plus
       // the files that are specs or sample data themselves.
-      exclude: [
-        ...EXEMPT_MODULES,
-        "src/**/*.fixture.tsx",
-        "src/**/index.ts",
-        "src/architecture.spec.ts",
-      ],
+      exclude: [...EXEMPT_MODULES, "src/**/*.fixture.tsx", "src/**/index.ts", "src/architecture.spec.ts"],
       thresholds: { statements: 90, branches: 85, functions: 90, lines: 90 },
     },
   },

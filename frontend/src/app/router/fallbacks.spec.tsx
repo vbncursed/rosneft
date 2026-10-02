@@ -4,19 +4,13 @@ import type { ErrorComponentProps } from "@tanstack/react-router";
 import { NoConsoleAccess, NotFound, RouteError } from "./fallbacks";
 
 // A route can throw anything, so the prop is deliberately `unknown` here.
-const errorProps = (error: unknown) =>
-  ({ error, reset: () => {}, info: undefined }) as unknown as ErrorComponentProps;
+const errorProps = (error: unknown) => ({ error, reset: () => {}, info: undefined }) as unknown as ErrorComponentProps;
 
 describe("router fallbacks", () => {
   it("offers a mistyped URL a way back into the app", () => {
     render(<NotFound />);
-    expect(
-      screen.getByRole("heading", { level: 1, name: "This page doesn't exist" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Go to territories" })).toHaveAttribute(
-      "href",
-      "/territories",
-    );
+    expect(screen.getByRole("heading", { level: 1, name: "This page doesn't exist" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Go to territories" })).toHaveAttribute("href", "/territories");
     expect(screen.getByRole("link", { name: "Andrey Viewer" })).toHaveAttribute("href", "/");
     expect(screen.getByRole("button", { name: /^Theme:/ })).toBeInTheDocument();
     expect(screen.getByRole("main")).toContainElement(screen.getByRole("heading", { level: 1 }));

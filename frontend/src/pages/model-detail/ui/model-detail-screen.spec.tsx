@@ -53,9 +53,7 @@ describe("ModelDetailScreen", () => {
   it("says the model was not found, with a way back", () => {
     useModelDetail.mockReturnValue({ phase: "missing" });
     render(<ModelDetailScreen />);
-    expect(
-      screen.getByRole("heading", { level: 1, name: "No model at this address" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "No model at this address" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Browse models" })).toHaveAttribute("href", "/models");
   });
 

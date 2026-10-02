@@ -29,11 +29,7 @@ export function ViewerHeader({ slug, title, pills, meta, guest, canReplace, onEd
         <span aria-hidden="true" className="h-[22px] w-px shrink-0 bg-line" />
         <h1 className="m-0 truncate text-[19px] font-semibold tracking-[-0.02em]">{title}</h1>
         {pills.length > 0 ? (
-          <span
-            role="status"
-            aria-label="Scene status"
-            className="flex shrink-0 items-center gap-1.5"
-          >
+          <span role="status" aria-label="Scene status" className="flex shrink-0 items-center gap-1.5">
             {pills.map((pill) => (
               <Badge key={pill.label} tone={pill.tone} fill={fillOf(pill.tone)} size="status">
                 {pill.label}
@@ -41,11 +37,7 @@ export function ViewerHeader({ slug, title, pills, meta, guest, canReplace, onEd
             ))}
           </span>
         ) : null}
-        {meta ? (
-          <span className="shrink-0 font-mono text-[10px] text-muted max-[1281px]:hidden">
-            {meta}
-          </span>
-        ) : null}
+        {meta ? <span className="shrink-0 font-mono text-[10px] text-muted max-[1281px]:hidden">{meta}</span> : null}
       </div>
 
       <div className="flex shrink-0 items-center gap-[9px]">

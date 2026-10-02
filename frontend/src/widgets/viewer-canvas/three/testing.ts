@@ -55,11 +55,14 @@ export const lineColors: string[] = [];
  */
 export async function mockDrei(orig: () => Promise<unknown>) {
   const real = (await orig()) as Record<string, unknown>;
-  const useGLTF = Object.assign(vi.fn(() => ({ scene: fakeScene() })), {
-    preload: vi.fn(),
-    setDecoderPath: vi.fn(),
-    clear: vi.fn(),
-  });
+  const useGLTF = Object.assign(
+    vi.fn(() => ({ scene: fakeScene() })),
+    {
+      preload: vi.fn(),
+      setDecoderPath: vi.fn(),
+      clear: vi.fn(),
+    },
+  );
   return {
     ...real,
     useGLTF,
@@ -72,8 +75,7 @@ export async function mockDrei(orig: () => Promise<unknown>) {
       adaptiveDprProps.push(p);
       return null;
     },
-    Bounds: ({ children }: { children: ReactNode }) =>
-      createElement("group", { name: "Bounds" }, children),
+    Bounds: ({ children }: { children: ReactNode }) => createElement("group", { name: "Bounds" }, children),
     useBounds: () => boundsStub,
     TransformControls: ({ mode }: { mode: string }) =>
       createElement("group", { name: "TransformControls", userData: { gizmoMode: mode } }),
@@ -131,7 +133,7 @@ export function WithControls({
     // The probe is the spec's own object, handed in to be filled: the rule
     // cannot see that, and a callback would only move the same write one
     // frame out into every spec that mounts this.
-    // oxlint-disable-next-line react/immutability
+    // oxlint-disable-next-line react/immutability -- the probe is the spec's own object, handed in to be filled; a callback would only move the same write one frame out
     if (probe) probe.camera = camera;
     set({ controls: controls as EventDispatcher });
   }, [set, camera, controls, probe]);
@@ -170,6 +172,7 @@ export async function createInPage(element: ReactNode) {
 }
 
 export async function unmountInPage() {
+  // oxlint-disable-next-line eslint/no-await-in-loop -- unmounts run in registration order, each inside its own act scope
   for (const unmount of [...inPage]) await unmount();
 }
 
@@ -190,6 +193,7 @@ export async function eventually(check: () => void, timeout = 1000) {
     } catch (error) {
       if (Date.now() > deadline) throw error;
     }
+    // oxlint-disable-next-line eslint/no-await-in-loop -- a poll: each attempt must wait for the previous one to fail
     await waitInAct(10);
   }
 }

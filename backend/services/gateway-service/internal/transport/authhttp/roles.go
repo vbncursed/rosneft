@@ -12,7 +12,7 @@ func (h *Handlers) listRoles(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, rolesToJSON(list))
+	writeJSON(w, r, http.StatusOK, rolesToJSON(list))
 }
 
 func (h *Handlers) createRole(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +28,7 @@ func (h *Handlers) createRole(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, roleToJSON(role))
+	writeJSON(w, r, http.StatusCreated, roleToJSON(role))
 }
 
 func (h *Handlers) updateRole(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +46,7 @@ func (h *Handlers) updateRole(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, roleToJSON(role))
+	writeJSON(w, r, http.StatusOK, roleToJSON(role))
 }
 
 func (h *Handlers) deleteRole(w http.ResponseWriter, r *http.Request) {
@@ -69,7 +69,7 @@ func (h *Handlers) setRolePermissions(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, roleToJSON(role))
+	writeJSON(w, r, http.StatusOK, roleToJSON(role))
 }
 
 func (h *Handlers) listPermissions(w http.ResponseWriter, r *http.Request) {
@@ -78,5 +78,5 @@ func (h *Handlers) listPermissions(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, permissionsToJSON(list))
+	writeJSON(w, r, http.StatusOK, permissionsToJSON(list))
 }

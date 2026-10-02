@@ -9,9 +9,7 @@ describe("CatalogShell", () => {
         <h1>Scenes to walk through</h1>
       </CatalogShell>,
     );
-    expect(screen.getByRole("main")).toContainElement(
-      screen.getByRole("heading", { name: "Scenes to walk through" }),
-    );
+    expect(screen.getByRole("main")).toContainElement(screen.getByRole("heading", { name: "Scenes to walk through" }));
   });
 
   it("renders exactly one main region and no sidebar navigation", () => {

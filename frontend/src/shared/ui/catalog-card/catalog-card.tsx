@@ -88,7 +88,9 @@ export function CatalogCard({
   const open = unavailable ? undefined : onOpen;
   const preload = unavailable ? undefined : onPreload;
   const link = unavailable ? undefined : href;
-  const shownChips: CatalogChip[] | undefined = unavailable ? [...(chips ?? []), { label: unavailable, tone: "plain" }] : chips;
+  const shownChips: CatalogChip[] | undefined = unavailable
+    ? [...(chips ?? []), { label: unavailable, tone: "plain" }]
+    : chips;
   // The article's own onClick handles the rest of the card; without stopping
   // here the click would bubble there too and fire onOpen a second time.
   const stop = (event: { stopPropagation: () => void }) => event.stopPropagation();
@@ -133,9 +135,7 @@ export function CatalogCard({
         {thumbnailUrl ? (
           <img src={thumbnailUrl} alt="" className="size-full object-cover" />
         ) : noImageLabel ? (
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">
-            {noImageLabel}
-          </span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">{noImageLabel}</span>
         ) : (
           <Icon name="cube" size={sm ? 46 : 34} className="text-dim" />
         )}
@@ -152,10 +152,7 @@ export function CatalogCard({
       </div>
 
       <div
-        className={cx(
-          "flex flex-col",
-          sm ? "gap-2.5 px-[15px] pb-[15px] pt-[13px]" : "gap-3 px-[18px] pb-[18px] pt-4",
-        )}
+        className={cx("flex flex-col", sm ? "gap-2.5 px-[15px] pb-[15px] pt-[13px]" : "gap-3 px-[18px] pb-[18px] pt-4")}
       >
         <h3 className={titleClass}>
           {link ? (
@@ -188,6 +185,7 @@ export function CatalogCard({
             {shownChips.map((chip, index) => {
               const { tone: chipTone, fill } = CHIP[chip.tone];
               return (
+                // oxlint-disable-next-line react/no-array-index-key -- chips are a fixed-order projection of the card and labels may repeat
                 <Badge key={`${chip.label}-${index}`} tone={chipTone} fill={fill} shape="chip">
                   {chip.label}
                 </Badge>
@@ -209,12 +207,7 @@ export function CatalogCard({
           </div>
         ) : null}
 
-        <div
-          className={cx(
-            "flex items-center justify-between gap-2.5 border-t border-line",
-            sm ? "pt-2.5" : "pt-3",
-          )}
-        >
+        <div className={cx("flex items-center justify-between gap-2.5 border-t border-line", sm ? "pt-2.5" : "pt-3")}>
           {sm ? null : <span className="truncate font-mono text-[11px] text-muted">{slug}</span>}
           {unavailable ? null : (
             <span

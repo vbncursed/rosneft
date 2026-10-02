@@ -13,6 +13,10 @@ vi.mock("../model/download", async (importOriginal) => ({
 
 const CODES = ["8k2fq-p1x7d", "m4wla-9zt3c", "qq08r-vb51n"];
 
+// Object.create keeps navigator's prototype (a spread would copy none of its getters).
+const stubClipboard = (writeText: ReturnType<typeof vi.fn>) =>
+  vi.stubGlobal("navigator", Object.create(navigator, { clipboard: { value: { writeText }, configurable: true } }));
+
 afterEach(() => {
   vi.restoreAllMocks();
   vi.mocked(downloadText).mockClear();
@@ -29,7 +33,7 @@ describe("RecoveryCodes", () => {
   it("copies every code as one newline-separated block", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     const user = userEvent.setup({ writeToClipboard: false });
-    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    stubClipboard(writeText);
 
     render(<RecoveryCodes codes={CODES} onConfirm={() => {}} />);
     await user.click(screen.getByRole("button", { name: "Copy all" }));
@@ -39,10 +43,7 @@ describe("RecoveryCodes", () => {
 
   it("confirms the copy happened, so the click is not silent", async () => {
     const user = userEvent.setup({ writeToClipboard: false });
-    vi.stubGlobal("navigator", {
-      ...navigator,
-      clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
-    });
+    stubClipboard(vi.fn().mockResolvedValue(undefined));
 
     render(<RecoveryCodes codes={CODES} onConfirm={() => {}} />);
     await user.click(screen.getByRole("button", { name: "Copy all" }));
@@ -52,10 +53,7 @@ describe("RecoveryCodes", () => {
 
   it("leaves the label as Copy when the clipboard refuses, and toasts the reason", async () => {
     const user = userEvent.setup({ writeToClipboard: false });
-    vi.stubGlobal("navigator", {
-      ...navigator,
-      clipboard: { writeText: vi.fn().mockRejectedValue(new Error("denied")) },
-    });
+    stubClipboard(vi.fn().mockRejectedValue(new Error("denied")));
 
     render(
       <>
@@ -67,9 +65,7 @@ describe("RecoveryCodes", () => {
 
     expect(await screen.findByRole("button", { name: "Copy all" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Copied" })).not.toBeInTheDocument();
-    expect(
-      await screen.findByText("Could not copy — select it and copy by hand"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Could not copy — select it and copy by hand")).toBeInTheDocument();
   });
 
   it("hands the codes to the downloader under a named file", async () => {
@@ -78,10 +74,7 @@ describe("RecoveryCodes", () => {
 
     // What the download does with them is download.spec.ts's business; this
     // asserts the button reaches it with the right file.
-    expect(downloadText).toHaveBeenCalledWith(
-      "recovery-codes.txt",
-      "8k2fq-p1x7d\nm4wla-9zt3c\nqq08r-vb51n\n",
-    );
+    expect(downloadText).toHaveBeenCalledWith("recovery-codes.txt", "8k2fq-p1x7d\nm4wla-9zt3c\nqq08r-vb51n\n");
   });
 
   // The host draws the green card and the "Step N · save these recovery codes"
@@ -97,7 +90,7 @@ describe("RecoveryCodes", () => {
 
   it("lays the codes out as the design does: an auto-fit grid, not two fixed columns", () => {
     render(<RecoveryCodes codes={CODES} onConfirm={() => {}} />);
-    const grid = screen.getAllByRole("listitem")[0]!.parentElement!;
+    const grid = screen.getAllByRole("listitem")[0].parentElement!;
     expect(grid.className).toContain("minmax(128px,1fr)");
     expect(grid.className).toContain("gap-[7px]");
   });

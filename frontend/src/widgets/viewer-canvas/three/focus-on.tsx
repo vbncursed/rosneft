@@ -10,13 +10,7 @@ import { boxOf } from "../model/focus-box";
  * its own, so the territory's parent is that group and a frame resolved from it
  * can never reach a placement, which is the wrapper's child one level up.
  */
-export default function FocusOn({
-  root,
-  request,
-}: {
-  root: RefObject<Object3D | null>;
-  request: number[] | null;
-}) {
+export default function FocusOn({ root, request }: { root: RefObject<Object3D | null>; request: number[] | null }) {
   const bounds = useBounds();
   useEffect(() => {
     if (!request || !root.current) return;

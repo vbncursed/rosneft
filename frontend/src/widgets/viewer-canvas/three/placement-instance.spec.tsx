@@ -32,12 +32,7 @@ describe("PlacementInstance", () => {
     placement.rotation = { x: 0, y: 1, z: 0 };
     placement.scale = { x: 2, y: 2, z: 2 };
     const r = await create(
-      <PlacementInstance
-        placement={placement}
-        measureMode={false}
-        measuring={false}
-        onSelect={vi.fn()}
-      />,
+      <PlacementInstance placement={placement} measureMode={false} measuring={false} onSelect={vi.fn()} />,
     );
     const group = r.scene.findAll((n) => n.instance.userData?.placementId === 4)[0];
     expect(group.instance.position.x).toBe(4);
@@ -103,9 +98,7 @@ describe("PlacementInstance", () => {
         onSelect={vi.fn()}
       />,
     );
-    await eventually(() =>
-      expect(vi.mocked(drei.useGLTF).mock.calls.map((c) => c[0])).toContain("/api/assets/fine"),
-    );
+    await eventually(() => expect(vi.mocked(drei.useGLTF).mock.calls.map((c) => c[0])).toContain("/api/assets/fine"));
   });
 
   it("drops a level that throws and shows the next one, with no error card", async () => {
@@ -137,9 +130,7 @@ describe("PlacementInstance", () => {
 
     // The coarse level went; LOD 0 is what mounted, and the instance is on
     // screen rather than gone.
-    await eventually(() =>
-      expect(vi.mocked(drei.useGLTF).mock.calls.map((c) => c[0])).toContain("/api/assets/fine"),
-    );
+    await eventually(() => expect(vi.mocked(drei.useGLTF).mock.calls.map((c) => c[0])).toContain("/api/assets/fine"));
     expect(r.scene.findAll((n) => n.instance.userData?.placementId === 7)).toHaveLength(1);
 
     window.removeEventListener("error", swallow);
@@ -149,12 +140,7 @@ describe("PlacementInstance", () => {
 
   it("renders nothing for a model that has not been converted", async () => {
     const r = await create(
-      <PlacementInstance
-        placement={withChain([])}
-        measureMode={false}
-        measuring={false}
-        onSelect={vi.fn()}
-      />,
+      <PlacementInstance placement={withChain([])} measureMode={false} measuring={false} onSelect={vi.fn()} />,
     );
     expect(r.scene.findAll((n) => n.instance.userData?.placementId !== undefined)).toHaveLength(0);
   });
@@ -162,7 +148,12 @@ describe("PlacementInstance", () => {
   it("shows a pointer over an object that a click would select, and not while measuring", async () => {
     const hover = async (measureMode: boolean) => {
       const r = await create(
-        <PlacementInstance placement={fakePlacement(5)} measureMode={measureMode} measuring={false} onSelect={vi.fn()} />,
+        <PlacementInstance
+          placement={fakePlacement(5)}
+          measureMode={measureMode}
+          measuring={false}
+          onSelect={vi.fn()}
+        />,
       );
       const group = r.scene.findAll((n) => n.instance.userData?.placementId === 5)[0];
       await r.fireEvent(group, "onPointerOver", { stopPropagation: vi.fn() });

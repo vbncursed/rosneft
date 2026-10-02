@@ -27,11 +27,11 @@ type rawGLB struct {
 // convertRaw runs the pure conversion pipeline: parse OBJ, normalize
 // (Z-up→Y-up, center, scale to maxDim=2), resolve materials, emit GLB. No
 // external binary is involved, so the result is deterministic.
-func (c *Converter) convertRaw(ctx context.Context, sourcePath string) (rawGLB, error) {
+func (c *Converter) convertRaw(ctx context.Context, root, sourcePath string) (rawGLB, error) {
 	if err := ctx.Err(); err != nil {
 		return rawGLB{}, err
 	}
-	f, err := os.Open(sourcePath)
+	f, err := os.Open(sourcePath) //nolint:gosec // G304: sourcePath is the OBJ the service found inside its own extraction directory
 	if err != nil {
 		return rawGLB{}, fmt.Errorf("converter: open %q: %w", sourcePath, err)
 	}
@@ -40,7 +40,7 @@ func (c *Converter) convertRaw(ctx context.Context, sourcePath string) (rawGLB, 
 	report(ctx, "parsing", 0.30)
 	src, err := parseOBJ(f)
 	if err != nil {
-		return rawGLB{}, fmt.Errorf("converter: parse: %w", err)
+		return rawGLB{}, fmt.Errorf("converter: parse: %w: %w", domain.ErrBadSource, err)
 	}
 	if err := ctx.Err(); err != nil {
 		return rawGLB{}, err
@@ -49,7 +49,7 @@ func (c *Converter) convertRaw(ctx context.Context, sourcePath string) (rawGLB, 
 	report(ctx, "encoding", 0.45)
 	origMin, origMax := normalize(src.positions)
 
-	materials := buildGLMaterials(ctx, src, sourcePath)
+	materials := buildGLMaterials(ctx, src, root, sourcePath)
 
 	body, err := writeGLB(src.positions, src.uvs, src.groups, materials)
 	if err != nil {

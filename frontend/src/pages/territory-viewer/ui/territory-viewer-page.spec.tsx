@@ -14,8 +14,7 @@ vi.mock("@/widgets/viewer-canvas", () => ({
   preloadViewer: vi.fn(),
 }));
 
-const page = (edit?: (p: PageParts) => PageParts) =>
-  render(<TerritoryViewerPage {...viewerState(edit)} />);
+const page = (edit?: (p: PageParts) => PageParts) => render(<TerritoryViewerPage {...viewerState(edit)} />);
 
 const PANORAMA: Panorama = {
   id: 1,
@@ -74,9 +73,7 @@ describe("TerritoryViewerPage", () => {
     const { container } = page();
     const anchor = container.querySelector('[data-tour="overlays-tabs"]');
     expect(anchor).toContainElement(screen.getByRole("tablist"));
-    expect(screen.getByRole("complementary", { name: "Overlays" })).toContainElement(
-      anchor as HTMLElement,
-    );
+    expect(screen.getByRole("complementary", { name: "Overlays" })).toContainElement(anchor as HTMLElement);
   });
 
   it("prints the territory's facts on the View tab", () => {
@@ -169,7 +166,12 @@ describe("TerritoryViewerPage", () => {
   it("runs the guided tour over everything else", () => {
     page((p) => ({
       ...p,
-      tour: { ...p.tour, active: true, step: { id: "reset-camera", title: "Reset the camera", body: "Frame it again." }, stepIndex: 2 },
+      tour: {
+        ...p.tour,
+        active: true,
+        step: { id: "reset-camera", title: "Reset the camera", body: "Frame it again." },
+        stepIndex: 2,
+      },
     }));
     expect(screen.getByRole("dialog", { name: /Tour step 3/ })).toBeInTheDocument();
   });

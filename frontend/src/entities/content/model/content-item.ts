@@ -39,8 +39,8 @@ export const hasArtifacts = (item: ContentItem) => item.lods !== "—";
  * artifacts (Content, Territory) — kept here rather than in `conversion`
  * itself so that slice never has to import back from this one.
  */
-export function conversionStatusOf(hasArtifacts: boolean, job?: TargetJob): ConversionStatus {
-  const base: ConversionStatus = hasArtifacts ? "ready" : "pending";
+export function conversionStatusOf(converted: boolean, job?: TargetJob): ConversionStatus {
+  const base: ConversionStatus = converted ? "ready" : "pending";
   if (!job) return base;
   if (job.status === "failed") return "failed";
   return isLive(job) ? "converting" : base;

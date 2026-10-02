@@ -12,7 +12,7 @@ const ITEMS: ConsoleNavItem[] = [
 const viewer = { username: "a.ivanova", roleTitle: "Company Owner" };
 
 beforeEach(() => {
-  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false } as MediaQueryList));
+  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
 });
 
 afterEach(() => {
@@ -33,10 +33,7 @@ describe("ConsoleSidebar", () => {
 
   it("offers the way back to the site", () => {
     sidebar({ backHref: "/territories" });
-    expect(screen.getByRole("link", { name: "← Back to site" })).toHaveAttribute(
-      "href",
-      "/territories",
-    );
+    expect(screen.getByRole("link", { name: "← Back to site" })).toHaveAttribute("href", "/territories");
   });
 
   it("names the signed-in viewer and their role", () => {
@@ -108,10 +105,7 @@ describe("ConsoleSidebar", () => {
     const nav = screen.getByRole("navigation", { name: "Console" });
     expect(nav).toHaveClass("overflow-x-auto", "lg:flex-col");
     // The row scrolls sideways; a faded right edge says there is more.
-    expect(nav).toHaveClass(
-      "[mask-image:linear-gradient(to_right,#000_85%,transparent)]",
-      "lg:[mask-image:none]",
-    );
+    expect(nav).toHaveClass("[mask-image:linear-gradient(to_right,#000_85%,transparent)]", "lg:[mask-image:none]");
     // Room at the end, so the last item scrolls clear of the fade.
     expect(nav).toHaveClass("pr-8", "lg:pr-0");
     expect(nav).not.toHaveClass("flex-col");

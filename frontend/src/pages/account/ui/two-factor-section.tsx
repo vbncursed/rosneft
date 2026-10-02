@@ -83,9 +83,7 @@ export function TwoFactorSection({ status, loading, onDisable }: TwoFactorSectio
         <Callout tone="warn">Two-factor status is unavailable right now.</Callout>
       ) : (
         <>
-          <p className="m-0 max-w-[64ch] text-[13px] leading-[1.6] text-muted">
-            {on ? DISABLE_LEDE : ENABLE_LEDE}
-          </p>
+          <p className="m-0 max-w-[64ch] text-[13px] leading-[1.6] text-muted">{on ? DISABLE_LEDE : ENABLE_LEDE}</p>
           {on ? (
             <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
               <div className="flex flex-col gap-[11px] rounded-[11px] border border-line bg-panel-2 p-4">

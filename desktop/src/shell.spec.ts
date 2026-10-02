@@ -13,7 +13,10 @@ function server(files: Record<string, string>, manifestId: string) {
   return vi.fn(async (url: string) => {
     const p = new URL(url).pathname;
     if (p === "/shell-manifest.json") {
-      return json({ id: manifestId, files: Object.entries(files).map(([path, body]) => ({ path, size: body.length })) });
+      return json({
+        id: manifestId,
+        files: Object.entries(files).map(([file, body]) => ({ path: file, size: body.length })),
+      });
     }
     const body = files[p];
     return body === undefined ? new Response("nope", { status: 404 }) : new Response(body);
@@ -23,10 +26,20 @@ const root = () => mkdtempSync(path.join(tmpdir(), "shell-"));
 
 describe("parseManifest", () => {
   it("accepts a well-formed manifest", () => {
-    expect(parseManifest({ id: ID1, files: [{ path: "/index.html", size: 1 }] })).toEqual({ id: ID1, files: [{ path: "/index.html", size: 1 }] });
+    expect(parseManifest({ id: ID1, files: [{ path: "/index.html", size: 1 }] })).toEqual({
+      id: ID1,
+      files: [{ path: "/index.html", size: 1 }],
+    });
   });
   it("skips a path that could leave the generation", () => {
-    const m = parseManifest({ id: ID1, files: [{ path: "/index.html", size: 1 }, { path: "/../evil", size: 1 }, { path: "relative", size: 1 }] });
+    const m = parseManifest({
+      id: ID1,
+      files: [
+        { path: "/index.html", size: 1 },
+        { path: "/../evil", size: 1 },
+        { path: "relative", size: 1 },
+      ],
+    });
     expect(m?.files.map((f) => f.path)).toEqual(["/index.html"]);
   });
   it("refuses a manifest without index.html or with a bad id", () => {
@@ -38,7 +51,13 @@ describe("parseManifest", () => {
 
 describe("parseManifest dedupe", () => {
   it("keeps the first entry of a repeated path", () => {
-    const m = parseManifest({ id: ID1, files: [{ path: "/index.html", size: 1 }, { path: "/index.html", size: 9 }] });
+    const m = parseManifest({
+      id: ID1,
+      files: [
+        { path: "/index.html", size: 1 },
+        { path: "/index.html", size: 9 },
+      ],
+    });
     expect(m?.files).toEqual([{ path: "/index.html", size: 1 }]);
   });
 });
@@ -87,7 +106,14 @@ describe("Shell", () => {
     await new Shell(dir, ORIGIN, server({ "/index.html": "<v1>" }, ID1)).refresh();
     const longer = vi.fn(async (url: string) => {
       const p = new URL(url).pathname;
-      if (p === "/shell-manifest.json") return json({ id: ID2, files: [{ path: "/index.html", size: 4 }, { path: "/a.js", size: 2 }] });
+      if (p === "/shell-manifest.json")
+        return json({
+          id: ID2,
+          files: [
+            { path: "/index.html", size: 4 },
+            { path: "/a.js", size: 2 },
+          ],
+        });
       return new Response(p === "/a.js" ? "too long" : "<v2>");
     });
     await new Shell(dir, ORIGIN, longer).refresh();
@@ -118,14 +144,16 @@ describe("Shell", () => {
     await new Shell(dir, ORIGIN, server({ "/index.html": "<v1>" }, ID1)).refresh();
     const html = vi.fn(async () => new Response("<html>", { headers: { "content-type": "text/html" } }));
     await new Shell(dir, ORIGIN, html).refresh();
-    expect(readdirSync(dir).sort()).toEqual([ID1, "current"]);
+    expect(readdirSync(dir).toSorted()).toEqual([ID1, "current"]);
   });
 
   it("a short file keeps the current generation", async () => {
     const dir = root();
     await new Shell(dir, ORIGIN, server({ "/index.html": "<v1>" }, ID1)).refresh();
     const lying = vi.fn(async (url: string) =>
-      new URL(url).pathname === "/shell-manifest.json" ? json({ id: ID2, files: [{ path: "/index.html", size: 999 }] }) : new Response("<v2 body>"),
+      new URL(url).pathname === "/shell-manifest.json"
+        ? json({ id: ID2, files: [{ path: "/index.html", size: 999 }] })
+        : new Response("<v2 body>"),
     );
     await new Shell(dir, ORIGIN, lying).refresh();
     expect(await new Shell(dir, ORIGIN, lying).file("/index.html")).toMatchObject({ size: 4 });
@@ -139,7 +167,7 @@ describe("Shell", () => {
     await s.refresh();
     mkdirSync(path.join(dir, ID2));
     await s.refresh();
-    expect(readdirSync(dir).sort()).toEqual([ID1, "current"]);
+    expect(readdirSync(dir).toSorted()).toEqual([ID1, "current"]);
   });
 
   it("re-downloads when the current generation lost its index.html", async () => {
@@ -155,7 +183,7 @@ describe("Shell", () => {
     const fetch = server({ "/index.html": "<html>" }, ID1);
     const shell = new Shell(root(), ORIGIN, fetch);
     await Promise.all([shell.refresh(), shell.refresh()]);
-    expect(fetch.mock.calls.filter(([u]) => String(u).endsWith("/shell-manifest.json"))).toHaveLength(1);
+    expect(fetch.mock.calls.filter(([u]) => u.endsWith("/shell-manifest.json"))).toHaveLength(1);
   });
 
   it("has nothing to serve before the first generation", async () => {

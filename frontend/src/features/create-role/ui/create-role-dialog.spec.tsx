@@ -60,8 +60,6 @@ describe("CreateRoleDialog", () => {
 
   it("shows the confirm button loading while busy", () => {
     render(<CreateRoleDialog {...props({ busy: true })} />);
-    expect(screen.getByRole("button", { name: "Create role" }).getAttribute("aria-busy")).toBe(
-      "true",
-    );
+    expect(screen.getByRole("button", { name: "Create role" }).getAttribute("aria-busy")).toBe("true");
   });
 });

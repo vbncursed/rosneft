@@ -27,10 +27,10 @@ const onChanged = vi.fn();
 
 function mount(args: Partial<Args> = {}, wrapper?: (p: { children: ReactNode }) => ReactNode) {
   const initialProps: Args = { slug: "north", stored: [], grants: ALL, onChanged, ...args };
-  return renderHook(
-    (props: Args) => ({ tool: useMeasurementSync(props), notices: useNotices() }),
-    { initialProps, wrapper },
-  );
+  return renderHook((props: Args) => ({ tool: useMeasurementSync(props), notices: useNotices() }), {
+    initialProps,
+    wrapper,
+  });
 }
 
 /** Draws a two-point chain and ends it the way Escape does. */
@@ -247,7 +247,9 @@ describe("useMeasurementSync", () => {
     act(() => result.current.tool.clear(false));
     expect(api.deleteMeasurements).toHaveBeenCalledExactlyOnceWith("north");
     await waitFor(() => expect(result.current.tool.chains.map((c) => c.serverId)).toEqual([9, 10]));
-    expect(result.current.notices.map((n) => n.message)).toEqual(["Measurements not cleared: Something went wrong. Try again."]);
+    expect(result.current.notices.map((n) => n.message)).toEqual([
+      "Measurements not cleared: Something went wrong. Try again.",
+    ]);
     // Review M6 m-1: no Retry — a repeat must ask again, and Clear is right there.
     expect(result.current.notices[0].action).toBeUndefined();
   });
@@ -263,4 +265,3 @@ describe("useMeasurementSync", () => {
     expect(api.deleteMeasurements).not.toHaveBeenCalled();
   });
 });
-

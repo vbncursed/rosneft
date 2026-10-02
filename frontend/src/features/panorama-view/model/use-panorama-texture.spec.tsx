@@ -12,8 +12,7 @@ const body = (bytes = 4) =>
     },
   });
 
-const ok = (bytes = 4) =>
-  new Response(body(bytes), { status: 200, headers: { "Content-Length": String(bytes) } });
+const ok = (bytes = 4) => new Response(body(bytes), { status: 200, headers: { "Content-Length": String(bytes) } });
 
 const decoder = (): TextureDecoder => vi.fn(async () => bitmap());
 
@@ -27,7 +26,10 @@ describe("usePanoramaTexture", () => {
     // A `three` import here rides in every page's bundle (the feature is
     // imported eagerly by the viewer page); the sphere builds the texture,
     // and `panorama-sphere.spec.tsx` is where its mapping is asserted.
-    vi.stubGlobal("fetch", vi.fn(async () => ok()));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ok()),
+    );
     const decode = decoder();
     const { result } = renderHook(() => usePanoramaTexture("abc", decode));
 
@@ -39,7 +41,10 @@ describe("usePanoramaTexture", () => {
   });
 
   it("hands the decoder the downloaded blob — the orientation is its business, not the hook's", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => ok()));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ok()),
+    );
     const decode = decoder();
     renderHook(() => usePanoramaTexture("abc", decode));
 
@@ -57,7 +62,10 @@ describe("usePanoramaTexture", () => {
   });
 
   it("reports a refused download as an error", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 404 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, { status: 404 })),
+    );
     const { result } = renderHook(() => usePanoramaTexture("abc", decoder()));
 
     await waitFor(() => expect(result.current.status).toBe("error"));
@@ -65,7 +73,10 @@ describe("usePanoramaTexture", () => {
   });
 
   it("reports a picture it cannot decode as an error", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => ok()));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ok()),
+    );
     const decode = vi.fn(async () => {
       throw new Error("not an image");
     });
@@ -98,7 +109,10 @@ describe("usePanoramaTexture", () => {
   it("reads as loading again the moment the reader moves to the next capture", async () => {
     // The bitmap on screen belongs to the sphere, which frees it when this
     // prop changes; the hook must not keep reporting it as this hash's.
-    vi.stubGlobal("fetch", vi.fn(async () => ok()));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ok()),
+    );
     const { result, rerender } = renderHook(({ hash }) => usePanoramaTexture(hash, decoder()), {
       initialProps: { hash: "abc" },
     });
@@ -115,10 +129,16 @@ describe("usePanoramaTexture", () => {
     // 32 MB for a 4096x2048 equirect, and not garbage-collected bytes. The
     // sphere cannot do it: its cleanup also runs on StrictMode's dev remount,
     // where the picture is still on screen.
-    vi.stubGlobal("fetch", vi.fn(async () => ok()));
-    const { result, rerender } = renderHook(({ hash }) => usePanoramaTexture(hash, decoder()), {
-      initialProps: { hash: "abc" as string | null },
-    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ok()),
+    );
+    const { result, rerender } = renderHook<ReturnType<typeof usePanoramaTexture>, { hash: string | null }>(
+      ({ hash }) => usePanoramaTexture(hash, decoder()),
+      {
+        initialProps: { hash: "abc" },
+      },
+    );
     await waitFor(() => expect(result.current.status).toBe("ready"));
     const delivered = result.current.bitmap!;
 
@@ -128,7 +148,10 @@ describe("usePanoramaTexture", () => {
   });
 
   it("closes the bitmap when the reader leaves the page altogether", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => ok()));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ok()),
+    );
     const { result, unmount } = renderHook(() => usePanoramaTexture("abc", decoder()));
     await waitFor(() => expect(result.current.status).toBe("ready"));
     const delivered = result.current.bitmap!;
@@ -141,10 +164,16 @@ describe("usePanoramaTexture", () => {
     // The sphere freed the bitmap on the way out (close() detaches the bytes),
     // so answering "ready" with it would hand three a closed image — a flash,
     // two camera jumps, and an upload that cannot work.
-    vi.stubGlobal("fetch", vi.fn(async () => ok()));
-    const { result, rerender } = renderHook(({ hash }) => usePanoramaTexture(hash, decoder()), {
-      initialProps: { hash: "abc" as string | null },
-    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ok()),
+    );
+    const { result, rerender } = renderHook<ReturnType<typeof usePanoramaTexture>, { hash: string | null }>(
+      ({ hash }) => usePanoramaTexture(hash, decoder()),
+      {
+        initialProps: { hash: "abc" },
+      },
+    );
     await waitFor(() => expect(result.current.status).toBe("ready"));
     const first = result.current.bitmap;
 

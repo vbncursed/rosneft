@@ -39,7 +39,7 @@ func RunAPI(ctx context.Context, cfg config.Config) error {
 	}
 
 	svc := InitServiceAPI(store)
-	grpcSrv, healthSrv := InitGRPCServer(svc, logger)
+	grpcSrv, healthSrv := InitGRPCServer(svc, logger) //nolint:contextcheck // false positive: the recovery stream interceptor takes its context from the stream (ss.Context()) per request, not from this bootstrap ctx
 
 	go grpcutil.WatchReadiness(rootCtx, grpcutil.ReadinessConfig{
 		Service: "mesh-api",
@@ -49,7 +49,7 @@ func RunAPI(ctx context.Context, cfg config.Config) error {
 		Logger:  logger,
 	})
 
-	lis, err := net.Listen("tcp", cfg.GRPCAddr)
+	lis, err := (&net.ListenConfig{}).Listen(rootCtx, "tcp", cfg.GRPCAddr)
 	if err != nil {
 		return fmt.Errorf("listen %s: %w", cfg.GRPCAddr, err)
 	}

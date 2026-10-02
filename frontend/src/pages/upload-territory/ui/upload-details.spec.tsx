@@ -49,9 +49,7 @@ describe("UploadDetails", () => {
     const onForm = vi.fn();
     render(<UploadDetails form={form()} onForm={onForm} slug="" />);
     expect(
-      screen.getByText(
-        "Optional. Link to an externally-hosted 360° tour — shown as a button in the viewer.",
-      ),
+      screen.getByText("Optional. Link to an externally-hosted 360° tour — shown as a button in the viewer."),
     ).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText("Panorama tour URL"), "x");
     expect(onForm).toHaveBeenCalledWith({ panoramaUrl: "x" });

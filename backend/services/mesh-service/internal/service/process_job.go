@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"os"
 
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/converter"
@@ -64,40 +63,6 @@ func (m *Mesh) ProcessJob(ctx context.Context, jobID string) error {
 	return nil
 }
 
-// unlockTarget releases the claim on job's target. Logged
-// rather than returned in every caller: failing ProcessJob itself over an
-// `UnlockTarget` that didn't land would be worse than the stale key, which
-// the TTL clears regardless — and either way ProcessJob's own outcome
-// (published artifacts, or a job already marked Failed) is already decided.
-func (m *Mesh) unlockTarget(ctx context.Context, job domain.Job) {
-	if err := m.queue.UnlockTarget(ctx, job.Kind, job.Slug); err != nil {
-		slog.WarnContext(ctx, "process: unlock target failed", "kind", job.Kind, "slug", job.Slug, "err", err)
-	}
-}
-
-func (m *Mesh) markRunning(ctx context.Context, j *domain.Job) error {
-	// The claim restarts with the run: TargetLockTTL bounds the conversion,
-	// never the time the job waited in the stream.
-	if err := m.queue.HoldTarget(ctx, j.Kind, j.Slug, TargetLockTTL); err != nil {
-		return fmt.Errorf("service.ProcessJob: hold: %w", err)
-	}
-	j.Status = domain.JobStatusRunning
-	j.ErrorMessage = ""
-	return m.queue.SaveJob(ctx, *j)
-}
-
-func (m *Mesh) markSucceeded(ctx context.Context, j domain.Job) error {
-	j.Status = domain.JobStatusSucceeded
-	j.ErrorMessage = ""
-	return m.queue.SaveJob(ctx, j)
-}
-
-func (m *Mesh) markFailed(ctx context.Context, j domain.Job, cause error) error {
-	j.Status = domain.JobStatusFailed
-	j.ErrorMessage = cause.Error()
-	return m.queue.SaveJob(ctx, j)
-}
-
 // runConversion does the actual work. It mutates job.ArtifactHash on success.
 // Progress checkpoints (0..1) bump in coarse stages — frontend renders a
 // determinate bar so the user can tell the difference between "stuck" and
@@ -123,7 +88,7 @@ func (m *Mesh) runConversion(ctx context.Context, j *domain.Job) (string, error)
 		return "", fmt.Errorf("get target: %w", err)
 	}
 	if target.SourceBlobHash == "" {
-		return "", fmt.Errorf("%w: target has no source_blob_hash", domain.ErrInvalidInput)
+		return "", fmt.Errorf("%w: target has no source_blob_hash", domain.ErrBadSource)
 	}
 
 	workDir, err := os.MkdirTemp("", "mesh-job-*")
@@ -146,7 +111,7 @@ func (m *Mesh) runConversion(ctx context.Context, j *domain.Job) (string, error)
 	convCtx := converter.WithProgress(ctx, func(stage string, fraction float32) {
 		progress(fraction, stage)
 	})
-	results, err := m.converter.ConvertLODs(convCtx, objPath)
+	results, err := m.converter.ConvertLODs(convCtx, workDir, objPath)
 	if err != nil {
 		return "", fmt.Errorf("convert: %w", err)
 	}

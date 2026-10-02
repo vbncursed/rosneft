@@ -47,7 +47,10 @@ export const DEFAULT_SCALE = 0.1;
  * Both GLBs are normalised to max-axis 2, so scale 1 draws a model as big as
  * the territory. The source bboxes give the real ratio; without one, a small default.
  */
-export function realWorldScale(option: { bboxMin?: Vec3; bboxMax?: Vec3 } | undefined, territoryMaxDim: number): number {
+export function realWorldScale(
+  option: { bboxMin?: Vec3; bboxMax?: Vec3 } | undefined,
+  territoryMaxDim: number,
+): number {
   if (territoryMaxDim <= 0 || !option?.bboxMin || !option.bboxMax) return DEFAULT_SCALE;
   const { bboxMin: a, bboxMax: b } = option;
   const modelMax = Math.max(b.x - a.x, b.y - a.y, b.z - a.z);

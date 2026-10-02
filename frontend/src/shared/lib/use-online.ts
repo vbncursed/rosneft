@@ -23,5 +23,9 @@ function subscribe(listener: () => void): () => void {
 
 /** False only inside the desktop shell, after its last request could not reach the network. */
 export function useOnline(): boolean {
-  return useSyncExternalStore(subscribe, () => online, () => true);
+  return useSyncExternalStore(
+    subscribe,
+    () => online,
+    () => true,
+  );
 }

@@ -40,10 +40,7 @@ describe("OverlaysPanel", () => {
     );
     expect(screen.getByText("placements body")).toBeInTheDocument();
     expect(screen.queryByText("view body")).toBeNull();
-    expect(screen.getByRole("tab", { name: "Placements (0)" })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
+    expect(screen.getByRole("tab", { name: "Placements (0)" })).toHaveAttribute("aria-selected", "true");
   });
 
   it("is a tabpanel the active tab controls, and it can be scrolled from the keyboard", () => {
@@ -63,10 +60,7 @@ describe("OverlaysPanel", () => {
     // The body scrolls; without a tabindex a keyboard reader cannot reach a
     // long placements list at all.
     expect(body).toHaveAttribute("tabindex", "0");
-    expect(screen.getByRole("tab", { name: "Placements (4)" })).toHaveAttribute(
-      "aria-controls",
-      body.id,
-    );
+    expect(screen.getByRole("tab", { name: "Placements (4)" })).toHaveAttribute("aria-controls", body.id);
   });
 
   it("collapses into the rail and back", async () => {
@@ -200,9 +194,7 @@ describe("OverlaysPanel", () => {
     const anchor = container.querySelector('[data-tour="overlays-tabs"]');
     expect(anchor).not.toBeNull();
     expect(anchor).toContainElement(screen.getByRole("tablist"));
-    expect(screen.getByRole("complementary", { name: "Overlays" })).toContainElement(
-      anchor as HTMLElement,
-    );
+    expect(screen.getByRole("complementary", { name: "Overlays" })).toContainElement(anchor as HTMLElement);
   });
 
   it("emits no anchor attribute when no tour step points here", () => {
@@ -270,10 +262,7 @@ describe("OverlaysPanel · the scrolled indicator", () => {
 
   it("gives the collapse button press feedback", () => {
     panel();
-    expect(screen.getByRole("button", { name: "Collapse Overlays panel" })).toHaveClass(
-      "active:scale-95",
-      "ease-out",
-    );
+    expect(screen.getByRole("button", { name: "Collapse Overlays panel" })).toHaveClass("active:scale-95", "ease-out");
   });
 });
 

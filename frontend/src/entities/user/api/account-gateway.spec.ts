@@ -44,14 +44,20 @@ describe("account gateway", () => {
   it("reads the 2FA status and keeps a missing enabledAt as null", async () => {
     fetchMock.mockResolvedValueOnce(json({ enabled: true, recoveryRemaining: 7, recoveryTotal: 10 }));
     expect(await twoFactorStatus()).toEqual({
-      enabled: true, enabledAt: null, recoveryRemaining: 7, recoveryTotal: 10,
+      enabled: true,
+      enabledAt: null,
+      recoveryRemaining: 7,
+      recoveryTotal: 10,
     });
   });
 
   it("defaults every field when the status response omits all of them", async () => {
     fetchMock.mockResolvedValueOnce(json({}));
     expect(await twoFactorStatus()).toEqual({
-      enabled: false, enabledAt: null, recoveryRemaining: 0, recoveryTotal: 0,
+      enabled: false,
+      enabledAt: null,
+      recoveryRemaining: 0,
+      recoveryTotal: 0,
     });
   });
 

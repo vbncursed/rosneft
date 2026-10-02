@@ -1,12 +1,6 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
-import {
-  beginLogin,
-  finishLogin,
-  getCredential,
-  isCancelled,
-  isPasskeySupported,
-} from "@/entities/passkey";
+import { beginLogin, finishLogin, getCredential, isCancelled, isPasskeySupported } from "@/entities/passkey";
 import { login, startSession, verifyTwoFactor } from "@/entities/user";
 import { messageOf } from "@/shared/api";
 import type { LoginPageProps, LoginStep } from "../ui/login-page";
@@ -15,8 +9,7 @@ import { nextTarget } from "./next-target";
 const INTRO = {
   brand: "Andrey · 3D Platform",
   headline: "Territories and models, rendered with precision",
-  blurb:
-    "Heavy conversion runs server-side — the browser gets a compact GLB instead of a 100 MB OBJ.",
+  blurb: "Heavy conversion runs server-side — the browser gets a compact GLB instead of a 100 MB OBJ.",
   footnote: "Sessions are stored in a secure cookie your browser sends only to this site.",
   points: [
     {
@@ -36,8 +29,7 @@ const INTRO = {
 
 const PASSKEY_FAILED = "Passkey sign-in failed. Try again or use your password.";
 
-const FOOTNOTE =
-  "Accounts are created by your company administrator. No access — contact your organisation owner.";
+const FOOTNOTE = "Accounts are created by your company administrator. No access — contact your organisation owner.";
 
 /**
  * Container for the login screen. Owns the two-step flow and returns exactly
@@ -90,7 +82,7 @@ export function useLogin(): LoginPageProps {
           setChallengeToken(result.challengeToken);
           setStep("two-factor");
         } else {
-          goToTarget();
+          return goToTarget();
         }
       })
       .catch((err: unknown) => setError(messageOf(err)))
@@ -115,12 +107,10 @@ export function useLogin(): LoginPageProps {
     setSubmitting(true);
     setError(undefined);
     beginLogin()
-      .then(({ optionsJson, flowId }) =>
-        getCredential(optionsJson).then((assertion) => finishLogin(flowId, assertion)),
-      )
+      .then(({ optionsJson, flowId }) => getCredential(optionsJson).then((assertion) => finishLogin(flowId, assertion)))
       .then((csrfToken) => {
         startSession(csrfToken);
-        goToTarget();
+        return goToTarget();
       })
       .catch((err: unknown) => {
         if (!isCancelled(err)) setError(PASSKEY_FAILED);

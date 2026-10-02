@@ -37,7 +37,7 @@ export default class LodErrorBoundary extends Component<Props, State> {
   // the recovered subtree mount again.
   componentDidUpdate(prev: Props) {
     if (prev.resetKey !== this.props.resetKey && this.state.failed) {
-      // oxlint-disable-next-line react/no-did-update-set-state
+      // oxlint-disable-next-line react/no-did-update-set-state -- the second render is the point: a boundary that stays failed never lets the recovered subtree mount again
       this.setState({ failed: false });
     }
   }

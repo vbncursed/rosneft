@@ -24,6 +24,7 @@ function Warm({ url, onReady }: LodWarmerProps) {
   });
   useEffect(() => {
     latest.current();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- trigger, not input: onReady fires once per url, and is read through a ref so a re-render of the caller does not repeat it
   }, [url]);
   return null;
 }

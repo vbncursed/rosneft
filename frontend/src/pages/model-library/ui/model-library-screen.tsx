@@ -12,9 +12,7 @@ export function ModelLibraryScreen() {
   const navigate = useNavigate();
 
   if (s.status === "loading") {
-    return (
-      <PageSkeleton shape="catalog" label="Loading models" />
-    );
+    return <PageSkeleton shape="catalog" label="Loading models" />;
   }
   if (s.status === "unavailable" || !s.cards) {
     return <Callout tone="bad">Models are unavailable: {s.error}</Callout>;
@@ -38,9 +36,7 @@ export function ModelLibraryScreen() {
         onUpload={() => void navigate({ to: "/models/new" })}
         onOpen={(slug) => void navigate({ href: `/models/${encodeURIComponent(slug)}` })}
         onDelete={s.ask}
-        {...(s.cards.length === 0
-          ? { emptyHint: "No models yet — upload one to get started." }
-          : {})}
+        {...(s.cards.length === 0 ? { emptyHint: "No models yet — upload one to get started." } : {})}
       />
 
       {s.pending ? (

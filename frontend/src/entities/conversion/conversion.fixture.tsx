@@ -27,8 +27,8 @@ const pipeline = (stage: string | null, phase: PipelinePhase) => (
 export default {
   badges: (
     <div className="flex flex-col gap-3 rounded-card border border-line bg-panel p-6">
-      {STATES.map((state, i) => (
-        <div key={i} className="flex items-center gap-3">
+      {STATES.map((state) => (
+        <div key={`${state.status}-${state.progress ?? "none"}`} className="flex items-center gap-3">
           <ConversionBadge status={state.status} />
         </div>
       ))}

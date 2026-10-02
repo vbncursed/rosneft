@@ -100,9 +100,7 @@ describe("useUploadTerritory", () => {
     });
     expect(result.current.phase).toBe("finalizing");
 
-    await waitFor(() =>
-      expect(navigate).toHaveBeenCalledWith({ href: "/territories/refinery-block-c?jobId=job-1" }),
-    );
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ href: "/territories/refinery-block-c?jobId=job-1" }));
     expect(createTerritory).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Refinery Block C", sourceBlobHash: "h".repeat(64) }),
     );
@@ -150,9 +148,7 @@ describe("useUploadTerritory", () => {
     createTerritory.mockResolvedValue({ territory: { slug: "t", title: "T" }, job: { id: "j" } });
     const { result } = renderHook(() => useUploadTerritory(), { wrapper });
     act(() => result.current.onFiles([file()]));
-    act(() =>
-      result.current.onForm({ title: "T", description: " a scene ", panoramaUrl: " https://x/y " }),
-    );
+    act(() => result.current.onForm({ title: "T", description: " a scene ", panoramaUrl: " https://x/y " }));
     act(() => result.current.onSubmit());
     await waitFor(() => expect(navigate).toHaveBeenCalled());
     expect(createTerritory).toHaveBeenCalledWith(
@@ -196,9 +192,7 @@ describe("useUploadTerritory", () => {
   });
 
   it("clears the stale progress from a cancelled attempt before the retry reports its own", async () => {
-    let latestOnProgress:
-      | ((p: { bytes: number; total: number; chunk: number; chunks: number }) => void)
-      | undefined;
+    let latestOnProgress: ((p: { bytes: number; total: number; chunk: number; chunks: number }) => void) | undefined;
     runChunkedUpload.mockImplementation(
       (_file, opts) =>
         new Promise((_resolve, reject) => {

@@ -1,14 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { servicesOf } from "./service-health";
 
-const one = (label: string, v: number, labels: Record<string, string> = {}) => ({ label, points: [{ t: 1, v }], labels });
+const one = (label: string, v: number, labels: Record<string, string> = {}) => ({
+  label,
+  points: [{ t: 1, v }],
+  labels,
+});
 const run = (label: string, vs: number[]) => ({ label, points: vs.map((v, t) => ({ t, v })), labels: {} });
 
 describe("servicesOf", () => {
   it("names services from the up panel, reads state from up and errors, samples from the rate", () => {
     const out = servicesOf(
       [one("gateway", 1), one("audit", 0), one("catalog", 1), one("mesh-worker", 0), one("mesh-worker", 1)],
-      [run("gateway", Array.from({ length: 30 }, (_, i) => i)), run("catalog", [3, 4])],
+      [
+        run(
+          "gateway",
+          Array.from({ length: 30 }, (_, i) => i),
+        ),
+        run("catalog", [3, 4]),
+      ],
       [one("gateway", 1.2), one("catalog", 0.04), one("mesh-worker", 0)],
       [one("rosneft.catalog.v1.CatalogService", 0.024)],
     );

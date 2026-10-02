@@ -1,13 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { groupByModel } from "./groups";
 import { IDENTITY_TRANSFORM, type Placement } from "./placement";
-import {
-  eyeState,
-  groupPlacements,
-  matchesUserGroup,
-  userGroupKey,
-  userGroupLine,
-} from "./sections";
+import { eyeState, groupPlacements, matchesUserGroup, userGroupKey, userGroupLine } from "./sections";
 
 const p = (id: number, modelSlug: string, over: Partial<Placement> = {}): Placement => ({
   id,
@@ -65,9 +59,7 @@ describe("groupPlacements", () => {
   });
 
   it("lists under a model only what no group claims, and drops a model with nothing left", () => {
-    expect(sections.modelGroups.map((s) => [s.group.model.slug, s.shown.map((i) => i.id)])).toEqual([
-      ["tank", [2]],
-    ]);
+    expect(sections.modelGroups.map((s) => [s.group.model.slug, s.shown.map((i) => i.id)])).toEqual([["tank", [2]]]);
   });
 
   // G-3: the model's eye covers every placement of it, grouped ones too.

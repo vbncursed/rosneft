@@ -178,12 +178,7 @@ export function AuditPage({
           ))}
 
           {onLoadOlder ? (
-            <Button
-              shape="pill"
-              className="self-center"
-              onClick={onLoadOlder}
-              loading={loadingOlder}
-            >
+            <Button shape="pill" className="self-center" onClick={onLoadOlder} loading={loadingOlder}>
               Load older events
             </Button>
           ) : null}

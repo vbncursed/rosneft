@@ -9,12 +9,7 @@ import type { PeopleGroup } from "@/widgets/people-groups";
 
 const noop = () => {};
 
-const make = (
-  id: string,
-  username: string,
-  roles: string[],
-  over: Partial<User> = {},
-): User => ({
+const make = (id: string, username: string, roles: string[], over: Partial<User> = {}): User => ({
   id,
   username,
   email: `${username}@example.com`,
@@ -150,17 +145,11 @@ const everyone = GROUPS.flatMap((group) => group.people);
 function Live({ initialSelected }: { initialSelected: string | null }) {
   const [query, setQuery] = useState("2fa:off");
   const [selectedId, setSelectedId] = useState<string | null>(initialSelected);
-  const [roles, setRoles] = useState([
-    { slug: "field-operator", title: "field-operator" },
-  ]);
+  const [roles, setRoles] = useState([{ slug: "field-operator", title: "field-operator" }]);
 
-  const person = useMemo(
-    () => everyone.find((p) => p.user.id === selectedId) ?? null,
-    [selectedId],
-  );
+  const person = useMemo(() => everyone.find((p) => p.user.id === selectedId) ?? null, [selectedId]);
 
-  const weak =
-    person?.user.totpEnabled === false && person?.user.passkeyEnabled === false;
+  const weak = person?.user.totpEnabled === false && person?.user.passkeyEnabled === false;
 
   return (
     // The route applies the layout; the page renders only its own content.
@@ -189,23 +178,13 @@ function Live({ initialSelected }: { initialSelected: string | null }) {
             ],
             body: (
               <>
-                {weak ? (
-                  <Callout tone="bad">
-                    No 2FA and no passkey — password only.
-                  </Callout>
-                ) : null}
+                {weak ? <Callout tone="bad">No 2FA and no passkey — password only.</Callout> : null}
                 <div>
-                  <p className="m-0 mb-2.5 font-mono text-[9px] uppercase tracking-[0.2em] text-muted">
-                    Roles
-                  </p>
+                  <p className="m-0 mb-2.5 font-mono text-[9px] uppercase tracking-[0.2em] text-muted">Roles</p>
                   <RoleChips
                     roles={roles}
-                    onRemove={(slug) =>
-                      setRoles((r) => r.filter((role) => role.slug !== slug))
-                    }
-                    onAdd={() =>
-                      setRoles((r) => [...r, { slug: "guest", title: "guest" }])
-                    }
+                    onRemove={(slug) => setRoles((r) => r.filter((role) => role.slug !== slug))}
+                    onAdd={() => setRoles((r) => [...r, { slug: "guest", title: "guest" }])}
                   />
                 </div>
                 <div>

@@ -2,14 +2,7 @@ import { useId, useState } from "react";
 import type { Vec3 } from "@/entities/placement";
 import { Range } from "@/shared/ui/range";
 import { Vec3Field } from "@/shared/ui/vec3-field";
-import {
-  defaultLook,
-  POSITION_LABEL,
-  SET_DEFAULT_VIEW,
-  SET_FROM_CAMERA,
-  TITLE_LABEL,
-  YAW_LABEL,
-} from "../model/copy";
+import { defaultLook, POSITION_LABEL, SET_DEFAULT_VIEW, SET_FROM_CAMERA, TITLE_LABEL, YAW_LABEL } from "../model/copy";
 import { degToRad, radToDeg } from "../model/degrees";
 
 export type AnchorFieldsProps = {
@@ -96,14 +89,7 @@ export function AnchorFields({
             {SET_FROM_CAMERA}
           </button>
         </div>
-        <Vec3Field
-          layout="row"
-          label="Pos"
-          value={position}
-          onChange={onPosition}
-          disabled={disabled}
-          format={DP3}
-        />
+        <Vec3Field layout="row" label="Pos" value={position} onChange={onPosition} disabled={disabled} format={DP3} />
       </div>
 
       <div data-tour="panorama-yaw" className="flex flex-col gap-[7px]">

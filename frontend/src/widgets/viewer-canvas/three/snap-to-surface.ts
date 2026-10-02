@@ -24,6 +24,7 @@ export function raycastSurfaceY(target: Object3D, x: number, z: number): number 
   target.traverse((o) => {
     const m = o as Mesh;
     if (!m.isMesh) return;
+    // oxlint-disable-next-line typescript/unbound-method -- always invoked as fn.call(m, ...) on the mesh it came from
     const fn = (m.userData.origRaycast ?? m.raycast) as Mesh["raycast"];
     fn.call(m, raycaster, hits);
   });

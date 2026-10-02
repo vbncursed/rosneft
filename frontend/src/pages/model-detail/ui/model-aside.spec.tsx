@@ -53,10 +53,7 @@ describe("ModelAside", () => {
     render(<ModelAside {...props()} />);
     expect(screen.getByText("Artifacts")).toBeInTheDocument();
     expect(screen.getByText("3 LODs")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /valve-assembly-lod0\.glb/ })).toHaveAttribute(
-      "href",
-      "/api/assets/h0",
-    );
+    expect(screen.getByRole("link", { name: /valve-assembly-lod0\.glb/ })).toHaveAttribute("href", "/api/assets/h0");
     expect(screen.getByRole("link", { name: /valve-assembly-lod1\.glb/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /valve-assembly-lod2\.glb/ })).toBeInTheDocument();
   });
@@ -105,12 +102,15 @@ describe("ModelAside", () => {
   it("calls onRemoveThumbnail from the remove action", async () => {
     const onRemoveThumbnail = vi.fn();
     render(
-      <ModelAside
-        {...props({ canWrite: true, model: { ...MODEL, thumbnailBlobHash: "t" }, onRemoveThumbnail })}
-      />,
+      <ModelAside {...props({ canWrite: true, model: { ...MODEL, thumbnailBlobHash: "t" }, onRemoveThumbnail })} />,
     );
     await userEvent.click(screen.getByRole("button", { name: "remove" }));
     expect(onRemoveThumbnail).toHaveBeenCalled();
+  });
+
+  it("offers only the thumbnail types the server accepts", () => {
+    render(<ModelAside {...props({ canWrite: true })} />);
+    expect(screen.getByLabelText("Thumbnail file")).toHaveAttribute("accept", "image/jpeg,image/png,image/webp");
   });
 
   it("hands a picked file to onThumbnail through the hidden input", async () => {
@@ -124,6 +124,12 @@ describe("ModelAside", () => {
 
   it("presses its thumbnail actions on pointer-down", () => {
     render(<ModelAside {...props({ canWrite: true })} />);
-    expect(screen.getByRole("button", { name: "upload" })).toHaveClass("cursor-pointer", "transition-[scale]", "duration-150", "ease-out", "enabled:active:scale-95");
+    expect(screen.getByRole("button", { name: "upload" })).toHaveClass(
+      "cursor-pointer",
+      "transition-[scale]",
+      "duration-150",
+      "ease-out",
+      "enabled:active:scale-95",
+    );
   });
 });

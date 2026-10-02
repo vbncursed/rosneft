@@ -1,10 +1,25 @@
 export type Unit = "rps" | "cpm" | "percent" | "seconds" | "bytes" | "mbps" | "count";
 
 export type PanelId =
-  | "stat-rps" | "stat-errors" | "stat-p99" | "stat-queue" | "services-up"
-  | "red-rate" | "red-errors" | "red-latency" | "red-http"
-  | "domain-conversions" | "domain-conversion-p95" | "domain-queue" | "domain-upload" | "domain-auth" | "domain-twofa"
-  | "runtime-memory" | "runtime-goroutines" | "runtime-gc" | "runtime-fds"
+  | "stat-rps"
+  | "stat-errors"
+  | "stat-p99"
+  | "stat-queue"
+  | "services-up"
+  | "red-rate"
+  | "red-errors"
+  | "red-latency"
+  | "red-http"
+  | "domain-conversions"
+  | "domain-conversion-p95"
+  | "domain-queue"
+  | "domain-upload"
+  | "domain-auth"
+  | "domain-twofa"
+  | "runtime-memory"
+  | "runtime-goroutines"
+  | "runtime-gc"
+  | "runtime-fds"
   | "alerts";
 
 /**
@@ -43,7 +58,18 @@ export const STAT_IDS = ["stat-rps", "stat-errors", "stat-p99", "stat-queue"] as
 
 export const SECTIONS: { key: string; title: string; panelIds: PanelId[] }[] = [
   { key: "red", title: "Services (RED)", panelIds: ["red-rate", "red-errors", "red-latency", "red-http"] },
-  { key: "domain", title: "Domain", panelIds: ["domain-conversions", "domain-conversion-p95", "domain-queue", "domain-upload", "domain-auth", "domain-twofa"] },
+  {
+    key: "domain",
+    title: "Domain",
+    panelIds: [
+      "domain-conversions",
+      "domain-conversion-p95",
+      "domain-queue",
+      "domain-upload",
+      "domain-auth",
+      "domain-twofa",
+    ],
+  },
   { key: "go", title: "Go runtime", panelIds: ["runtime-memory", "runtime-goroutines", "runtime-gc", "runtime-fds"] },
 ];
 
@@ -61,12 +87,19 @@ const nonZero = (v: number) => (v > 0 && v < 0.05 ? "<0.1" : String(round(v)));
 export function formatValue(v: number | null, unit: Unit): string {
   if (v === null || !Number.isFinite(v)) return "—";
   switch (unit) {
-    case "rps": return `${nonZero(v)}/s`;
-    case "cpm": return `${round(v)}/min`;
-    case "percent": return `${nonZero(v * 100)}%`;
-    case "seconds": return v < 1 ? `${Math.round(v * 1000)}ms` : `${round(v)}s`;
-    case "bytes": return v >= 1024 ** 3 ? `${round(v / 1024 ** 3)} GB` : `${round(v / 1024 ** 2)} MB`;
-    case "mbps": return `${round1(v)} MB/s`;
-    case "count": return String(round(v));
+    case "rps":
+      return `${nonZero(v)}/s`;
+    case "cpm":
+      return `${round(v)}/min`;
+    case "percent":
+      return `${nonZero(v * 100)}%`;
+    case "seconds":
+      return v < 1 ? `${Math.round(v * 1000)}ms` : `${round(v)}s`;
+    case "bytes":
+      return v >= 1024 ** 3 ? `${round(v / 1024 ** 3)} GB` : `${round(v / 1024 ** 2)} MB`;
+    case "mbps":
+      return `${round1(v)} MB/s`;
+    case "count":
+      return String(round(v));
   }
 }

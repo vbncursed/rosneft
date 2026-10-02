@@ -37,12 +37,7 @@ export function ConsoleShell() {
     // adds nothing to the accessibility tree.
     <div role="presentation" onClickCapture={onClickCapture}>
       <OfflineBanner />
-      <ConsoleLayout
-        items={consoleNav(me)}
-        active={activeSection(pathname)}
-        backHref="/"
-        viewer={viewerOf(me)}
-      >
+      <ConsoleLayout items={consoleNav(me)} active={activeSection(pathname)} backHref="/" viewer={viewerOf(me)}>
         <Outlet />
       </ConsoleLayout>
       <Toaster />

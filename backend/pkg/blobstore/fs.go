@@ -31,7 +31,7 @@ func NewFS(root string) (*FS, error) {
 	if root == "" {
 		return nil, errors.New("blobstore: empty root")
 	}
-	if err := os.MkdirAll(root, 0o755); err != nil {
+	if err := os.MkdirAll(root, 0o750); err != nil {
 		return nil, fmt.Errorf("blobstore.NewFS: %w", err)
 	}
 	return &FS{root: root}, nil
@@ -73,12 +73,12 @@ func (f *FS) Put(ctx context.Context, hash, contentType string, r io.Reader) (Bl
 	if err != nil {
 		return Blob{}, err
 	}
-	if err := os.MkdirAll(filepath.Dir(data), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(data), 0o750); err != nil {
 		return Blob{}, fmt.Errorf("blobstore: mkdir: %w", err)
 	}
 
 	tmp := data + ".tmp"
-	out, err := os.Create(tmp)
+	out, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600) //nolint:gosec // G304: tmp is data+".tmp", and data comes from paths(), whose hash passed validateHash (hex only)
 	if err != nil {
 		return Blob{}, fmt.Errorf("blobstore: create tmp: %w", err)
 	}
@@ -104,7 +104,7 @@ func (f *FS) Put(ctx context.Context, hash, contentType string, r io.Reader) (Bl
 	if err != nil {
 		return blob, fmt.Errorf("blobstore: marshal meta: %w", err)
 	}
-	if err := os.WriteFile(meta, metaBytes, 0o644); err != nil {
+	if err := os.WriteFile(meta, metaBytes, 0o600); err != nil {
 		return blob, fmt.Errorf("blobstore: write meta: %w", err)
 	}
 	return blob, nil
@@ -117,7 +117,7 @@ func (f *FS) Get(ctx context.Context, hash string) (io.ReadCloser, Blob, error) 
 		return nil, Blob{}, err
 	}
 	data, _, _ := f.paths(hash)
-	rc, err := os.Open(data)
+	rc, err := os.Open(data) //nolint:gosec // G304: data comes from paths(), whose hash passed validateHash (hex only)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, Blob{}, ErrNotFound
@@ -136,7 +136,7 @@ func (f *FS) Stat(ctx context.Context, hash string) (Blob, error) {
 	if err != nil {
 		return Blob{}, err
 	}
-	b, err := os.ReadFile(meta)
+	b, err := os.ReadFile(meta) //nolint:gosec // G304: meta comes from paths(), whose hash passed validateHash (hex only)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return Blob{}, ErrNotFound

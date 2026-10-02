@@ -28,7 +28,7 @@ describe("useMarkerSwitch", () => {
   });
 
   // A browser that hid the markers before the third state keeps its choice.
-  it("reads a browser's old \"hidden\" as Off", () => {
+  it('reads a browser\'s old "hidden" as Off', () => {
     localStorage.setItem(KEY, "hidden");
     expect(renderHook(() => useMarkerSwitch()).result.current.mode).toBe("off");
   });

@@ -15,5 +15,4 @@ export const createPanorama = async (slug: string, body: PanoramaCreate): Promis
 export const updatePanorama = async (slug: string, id: number, body: PanoramaUpdate): Promise<Panorama> =>
   toPanorama(await httpPut<PanoramaDto>(`${base(slug)}/${id}`, body));
 
-export const deletePanorama = (slug: string, id: number): Promise<void> =>
-  httpDelete(`${base(slug)}/${id}`);
+export const deletePanorama = (slug: string, id: number): Promise<void> => httpDelete(`${base(slug)}/${id}`);

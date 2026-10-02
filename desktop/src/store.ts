@@ -9,17 +9,26 @@ import { atomicWrite } from "./atomic-write";
 import { isHash, isUserId } from "./validate";
 
 export type SnapshotMeta = { status: number; headers: [string, string][] };
-export type Pin = { slug: string; title: string; hashes: string[]; bytes: number; savedAt: string; syncedAt: string | null };
+export type Pin = {
+  slug: string;
+  title: string;
+  hashes: string[];
+  bytes: number;
+  savedAt: string;
+  syncedAt: string | null;
+};
 export type BlobFile = { hash: string; size: number; mtimeMs: number };
+
+const totalSize = (list: BlobFile[]) => list.reduce((n, f) => n + f.size, 0);
 
 /**
  * Least-recently-*modified* first, never a pinned file. Not LRU: a cache hit
  * reads the file and leaves its mtime alone; a real LRU would need a side-index.
  */
 export function pickVictims(files: BlobFile[], pinned: ReadonlySet<string>, limit: number): string[] {
-  let total = files.reduce((n, f) => n + f.size, 0);
+  let total = totalSize(files);
   const victims: string[] = [];
-  const candidates = files.filter((f) => !pinned.has(f.hash)).sort((a, b) => a.mtimeMs - b.mtimeMs);
+  const candidates = files.filter((f) => !pinned.has(f.hash)).toSorted((a, b) => a.mtimeMs - b.mtimeMs);
   for (const f of candidates) {
     if (total <= limit) break;
     victims.push(f.hash);
@@ -67,7 +76,10 @@ export class Store {
       const data = await readFile(this.snapshotFile(user, key));
       const metaEnd = 4 + data.readUInt32BE(0);
       if (metaEnd > data.length) return null;
-      return { meta: JSON.parse(data.subarray(4, metaEnd).toString("utf8")) as SnapshotMeta, body: data.subarray(metaEnd) };
+      return {
+        meta: JSON.parse(data.subarray(4, metaEnd).toString("utf8")) as SnapshotMeta,
+        body: data.subarray(metaEnd),
+      };
     } catch {
       return null;
     }
@@ -78,6 +90,10 @@ export class Store {
     const head = Buffer.alloc(4);
     head.writeUInt32BE(json.length);
     await atomicWrite(this.snapshotFile(user, key), Buffer.concat([head, json, body]), this.tmpFile());
+  }
+
+  async removeSnapshot(user: string, key: string): Promise<void> {
+    await rm(this.snapshotFile(user, key), { force: true });
   }
 
   async blob(user: string, hash: string): Promise<{ path: string; size: number; type: string } | null> {
@@ -91,7 +107,13 @@ export class Store {
   }
 
   /** Streams into tmp/, checks the bytes hash to `hash`, renames into blobs/. Throws on any failure; nothing is left behind. */
-  async writeBlob(user: string, hash: string, type: string, body: ReadableStream<Uint8Array>, signal?: AbortSignal): Promise<number> {
+  async writeBlob(
+    user: string,
+    hash: string,
+    type: string,
+    body: ReadableStream<Uint8Array>,
+    signal?: AbortSignal,
+  ): Promise<number> {
     const dest = this.blobPath(user, hash);
     const tmp = this.tmpFile();
     const digest = createHash("sha256");
@@ -155,7 +177,10 @@ export class Store {
   removeUnpinned(user: string, hashes: Iterable<string>): Promise<void> {
     return this.serialised(async () => {
       const held = new Set((await this.readPins(user)).flatMap((p) => p.hashes));
-      await this.removeBlobs(user, [...hashes].filter((h) => !held.has(h)));
+      await this.removeBlobs(
+        user,
+        [...hashes].filter((h) => !held.has(h)),
+      );
     });
   }
 
@@ -188,8 +213,7 @@ export class Store {
   async usage(user: string): Promise<{ used: number; pinned: number }> {
     const [files, pins] = await Promise.all([this.blobFiles(user), this.readPins(user)]);
     const pinned = new Set(pins.flatMap((p) => p.hashes));
-    const sum = (list: BlobFile[]) => list.reduce((n, f) => n + f.size, 0);
-    return { used: sum(files), pinned: sum(files.filter((f) => pinned.has(f.hash))) };
+    return { used: totalSize(files), pinned: totalSize(files.filter((f) => pinned.has(f.hash))) };
   }
 
   evict(user: string, limit: number): Promise<void> {

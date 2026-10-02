@@ -21,9 +21,7 @@ export function ActivityRow({ entry, now, className }: ActivityRowProps) {
         <p className="m-0 truncate font-mono text-xs">{entry.action}</p>
         {summary ? <p className="m-0 mt-1 font-mono text-[10px] text-muted">{summary}</p> : null}
       </div>
-      <span className="shrink-0 whitespace-nowrap font-mono text-[10px] text-muted">
-        {relativeAt(entry.at, now)}
-      </span>
+      <span className="shrink-0 whitespace-nowrap font-mono text-[10px] text-muted">{relativeAt(entry.at, now)}</span>
     </li>
   );
 }

@@ -36,20 +36,21 @@ function FakeViewer() {
       <div className="flex min-h-0 flex-1">
         <div className="flex flex-col gap-2 border-r border-line p-2.5">
           {(["reset-camera", "measure"] as const).map((id) => (
-            <span
-              key={id}
-              data-tour={id}
-              className="size-7 rounded-control border border-line-2 bg-panel-2"
-            />
+            <span key={id} data-tour={id} className="size-7 rounded-control border border-line-2 bg-panel-2" />
           ))}
         </div>
         <div className="flex-1 bg-panel-2" />
         <aside className="flex w-[300px] flex-col gap-3 border-l border-line bg-panel p-3.5">
           <div data-tour="overlays-tabs" className="flex gap-2">
-            <span className="rounded-control-sm border border-accent-line bg-accent-soft px-3 py-1.5 text-xs text-accent">View</span>
+            <span className="rounded-control-sm border border-accent-line bg-accent-soft px-3 py-1.5 text-xs text-accent">
+              View
+            </span>
             <span className="rounded-control-sm border border-line-2 px-3 py-1.5 text-xs text-muted">Placements</span>
           </div>
-          <span data-tour="add-object" className="rounded-control-sm border border-line-2 bg-panel-2 px-3 py-1.5 text-center text-xs text-fg">
+          <span
+            data-tour="add-object"
+            className="rounded-control-sm border border-line-2 bg-panel-2 px-3 py-1.5 text-center text-xs text-fg"
+          >
             ＋ Add object
           </span>
           <div data-tour="objects-list" className="flex flex-col gap-1.5">

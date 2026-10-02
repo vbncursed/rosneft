@@ -11,15 +11,7 @@ export type CardProps = HTMLAttributes<HTMLDivElement> & {
   padded?: boolean;
 };
 
-export function Card({
-  title,
-  actions,
-  overline,
-  padded = true,
-  className,
-  children,
-  ...rest
-}: CardProps) {
+export function Card({ title, actions, overline, padded = true, className, children, ...rest }: CardProps) {
   return (
     <div
       className={cx(

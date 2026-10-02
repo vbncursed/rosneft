@@ -37,7 +37,10 @@ export function Dropdown<T extends string>({
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
-  const selectedIndex = Math.max(0, options.findIndex((o) => o.value === value));
+  const selectedIndex = Math.max(
+    0,
+    options.findIndex((o) => o.value === value),
+  );
   const [active, setActive] = useState(selectedIndex);
 
   useDismiss(root, open, () => setOpen(false));
@@ -92,18 +95,12 @@ export function Dropdown<T extends string>({
         onKeyDown={onKeyDown}
         className={cx(
           "flex w-full items-center justify-between gap-2.5 border bg-panel-2 px-3 py-2.5 text-[13px] transition-[color,background-color,border-color,scale] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent enabled:active:scale-[0.99]",
-          disabled
-            ? "cursor-not-allowed border-line text-dim opacity-55"
-            : "cursor-pointer text-fg",
+          disabled ? "cursor-not-allowed border-line text-dim opacity-55" : "cursor-pointer text-fg",
           open ? "rounded-t-control border-accent" : "rounded-control",
           !open && !disabled && "border-line-2",
         )}
       >
-        {label ? (
-          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
-            {label}
-          </span>
-        ) : null}
+        {label ? <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">{label}</span> : null}
         <span className="flex-1 text-left">{selected?.label}</span>
         <span
           aria-hidden="true"
@@ -150,9 +147,7 @@ export function Dropdown<T extends string>({
                   {isSelected ? <Icon name="check" size={12} /> : null}
                 </span>
                 <span className="flex-1">{option.label}</span>
-                {option.hint ? (
-                  <span className="font-mono text-[10px] text-dim">{option.hint}</span>
-                ) : null}
+                {option.hint ? <span className="font-mono text-[10px] text-dim">{option.hint}</span> : null}
               </li>
             );
           })}

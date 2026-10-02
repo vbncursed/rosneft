@@ -1,12 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
-import {
-  BackSide,
-  RepeatWrapping,
-  SRGBColorSpace,
-  Texture,
-  type Mesh,
-  type MeshBasicMaterial,
-} from "three";
+import { BackSide, RepeatWrapping, SRGBColorSpace, Texture, type Mesh, type MeshBasicMaterial } from "three";
 import type { Panorama } from "@/entities/panorama";
 
 interface PanoramaSphereProps {
@@ -80,6 +73,7 @@ export default function PanoramaSphere({ panorama, bitmap, opacity = 1 }: Panora
   // that rAF is not guaranteed — one frame could still draw the stale program.
   useLayoutEffect(() => {
     if (materialRef.current) materialRef.current.needsUpdate = true;
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- trigger, not input: three re-checks material.version, so flipping `transparent` needs needsUpdate on the render ghosting changes
   }, [ghosting]);
 
   useEffect(() => {

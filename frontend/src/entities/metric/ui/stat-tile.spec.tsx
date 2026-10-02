@@ -32,9 +32,7 @@ describe("StatTile", () => {
 
 describe("StatTile · console variant", () => {
   it("shows a hint under the number when given one", () => {
-    render(
-      <StatTile label="Accounts" state={{ kind: "value", value: "26" }} hint="24 active · 2 frozen" />,
-    );
+    render(<StatTile label="Accounts" state={{ kind: "value", value: "26" }} hint="24 active · 2 frozen" />);
     expect(screen.getByText("24 active · 2 frozen")).toBeInTheDocument();
   });
 
@@ -44,9 +42,7 @@ describe("StatTile · console variant", () => {
   });
 
   it("takes the tone it is told for a settled value", () => {
-    const { rerender } = render(
-      <StatTile label="Needs attention" state={{ kind: "value", value: "5" }} tone="bad" />,
-    );
+    const { rerender } = render(<StatTile label="Needs attention" state={{ kind: "value", value: "5" }} tone="bad" />);
     expect(screen.getByText("Needs attention: 5").parentElement!.className).toContain("text-bad");
 
     rerender(<StatTile label="Accounts" state={{ kind: "value", value: "26" }} tone="fg" />);
@@ -72,9 +68,7 @@ describe("StatTile · console variant", () => {
 
 describe("StatTile · bare", () => {
   it("drops the frame so a caller can group several in one panel", () => {
-    const { container } = render(
-      <StatTile bare label="Today" state={{ kind: "value", value: "312" }} />,
-    );
+    const { container } = render(<StatTile bare label="Today" state={{ kind: "value", value: "312" }} />);
     const cls = container.firstElementChild!.className;
     expect(cls).not.toContain("border-line");
     expect(cls).not.toContain("bg-panel");
@@ -98,9 +92,7 @@ describe("StatTile · delta", () => {
     );
     expect(screen.getByText("−12%").className).toContain("text-ok");
 
-    rerender(
-      <StatTile label="Error rate" state={{ kind: "value", value: "0.82%" }} delta="+0.3" deltaTone="bad" />,
-    );
+    rerender(<StatTile label="Error rate" state={{ kind: "value", value: "0.82%" }} delta="+0.3" deltaTone="bad" />);
     expect(screen.getByText("+0.3").className).toContain("text-bad");
   });
 

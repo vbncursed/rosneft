@@ -20,13 +20,7 @@ const mount = async (over: Partial<Parameters<typeof PanoramaDragController>[0]>
   const onEnd = vi.fn();
   const renderer = await ReactThreeTestRenderer.create(
     <WithControls controls={controls}>
-      <PanoramaDragController
-        dragging
-        territoryRef={territoryRef}
-        onMove={onMove}
-        onEnd={onEnd}
-        {...over}
-      />
+      <PanoramaDragController dragging territoryRef={territoryRef} onMove={onMove} onEnd={onEnd} {...over} />
     </WithControls>,
   );
   return { renderer, controls, territoryRef, onMove, onEnd };
@@ -37,7 +31,7 @@ describe("PanoramaDragController", () => {
     const { renderer, controls } = await mount();
     expect(controls.enabled).toBe(false);
     await ReactThreeTestRenderer.act(async () => {
-      renderer.unmount();
+      await renderer.unmount();
     });
     expect(controls.enabled).toBe(true);
   });
@@ -52,7 +46,12 @@ describe("PanoramaDragController", () => {
     });
     const renderer = await ReactThreeTestRenderer.create(
       <WithControls controls={controls} probe={probe}>
-        <PanoramaDragController dragging={false} territoryRef={{ current: fakeScene() }} onMove={vi.fn()} onEnd={vi.fn()} />
+        <PanoramaDragController
+          dragging={false}
+          territoryRef={{ current: fakeScene() }}
+          onMove={vi.fn()}
+          onEnd={vi.fn()}
+        />
       </WithControls>,
     );
     const before = probe.camera!.position.toArray();
@@ -101,14 +100,9 @@ describe("PanoramaDragController", () => {
   it("stops listening once the drag is over", async () => {
     const { renderer, onEnd, onMove, territoryRef } = await mount();
     await ReactThreeTestRenderer.act(async () => {
-      renderer.update(
+      await renderer.update(
         <WithControls controls={fakeControls()}>
-          <PanoramaDragController
-            dragging={false}
-            territoryRef={territoryRef}
-            onMove={onMove}
-            onEnd={onEnd}
-          />
+          <PanoramaDragController dragging={false} territoryRef={territoryRef} onMove={onMove} onEnd={onEnd} />
         </WithControls>,
       );
     });

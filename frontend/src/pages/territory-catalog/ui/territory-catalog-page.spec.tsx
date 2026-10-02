@@ -49,9 +49,7 @@ describe("TerritoryCatalogPage", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Scenes to walk through" })).toBeInTheDocument();
     expect(screen.getByText("Territory catalog")).toBeInTheDocument();
     expect(
-      screen.getByText(
-        "Sites you have access to. Open one to inspect it in 3D, measure distances and place models.",
-      ),
+      screen.getByText("Sites you have access to. Open one to inspect it in 3D, measure distances and place models."),
     ).toBeInTheDocument();
     // Home is above the catalog now, and every catalog page offers the way back.
     expect(screen.getByRole("link", { name: "← Home" })).toHaveAttribute("href", "/");
@@ -102,18 +100,15 @@ describe("TerritoryCatalogPage", () => {
 
   it("draws the running progress bar and its stage for the converting card", () => {
     render(<TerritoryCatalogPage {...props()} />);
-    expect(screen.getByRole("progressbar", { name: "Compressing textures" })).toHaveAttribute(
-      "aria-valuenow",
-      "62",
-    );
+    expect(screen.getByRole("progressbar", { name: "Compressing textures" })).toHaveAttribute("aria-valuenow", "62");
   });
 
   it("names Replace source and Delete controls after their card, uniquely", async () => {
     const onReplace = vi.fn();
     const onDelete = vi.fn();
     render(<TerritoryCatalogPage {...props({ onReplace, onDelete })} />);
-    expect(screen.getAllByRole("button", { name: /^Replace source of /})).toHaveLength(2);
-    expect(screen.getAllByRole("button", { name: /^Delete /})).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: /^Replace source of / })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: /^Delete / })).toHaveLength(2);
     await userEvent.click(screen.getByRole("button", { name: "Replace source of North Ridge Pad" }));
     expect(onReplace).toHaveBeenCalledWith("north-ridge-pad");
     await userEvent.click(screen.getByRole("button", { name: "Delete Terminal Yard 4" }));
@@ -122,20 +117,20 @@ describe("TerritoryCatalogPage", () => {
 
   it("hides the overlay actions without the matching grant", () => {
     render(<TerritoryCatalogPage {...props({ canReplace: false, canDelete: false })} />);
-    expect(screen.queryByRole("button", { name: /^Replace source of /})).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^Delete /})).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Replace source of / })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Delete / })).not.toBeInTheDocument();
   });
 
   it("draws Replace source alone for a viewer who may not delete", () => {
     render(<TerritoryCatalogPage {...props({ canReplace: true, canDelete: false })} />);
-    expect(screen.getAllByRole("button", { name: /^Replace source of /})).toHaveLength(2);
-    expect(screen.queryByRole("button", { name: /^Delete /})).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /^Replace source of / })).toHaveLength(2);
+    expect(screen.queryByRole("button", { name: /^Delete / })).not.toBeInTheDocument();
   });
 
   it("draws Delete alone for a viewer who may not replace", () => {
     render(<TerritoryCatalogPage {...props({ canReplace: false, canDelete: true })} />);
-    expect(screen.queryByRole("button", { name: /^Replace source of /})).not.toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: /^Delete /})).toHaveLength(2);
+    expect(screen.queryByRole("button", { name: /^Replace source of / })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /^Delete / })).toHaveLength(2);
   });
 
   it("hides the theme-adjacent Upload action and the footer CTA for a reader who may not upload", () => {
@@ -196,7 +191,7 @@ describe("TerritoryCatalogPage preload", () => {
     render(
       <TerritoryCatalogPage
         {...props()}
-        offlineControl={(card) => <button type="button">{`offline ${card.slug}`}</button>}
+        offlineControl={(territory) => <button type="button">{`offline ${territory.slug}`}</button>}
         unavailable={(slug) => slug === "north-ridge-pad"}
       />,
     );

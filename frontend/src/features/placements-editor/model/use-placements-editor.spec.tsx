@@ -77,7 +77,7 @@ beforeEach(() => {
 describe("usePlacementsEditor", () => {
   it("creates N instances in one batch, in a row along X at the real-world scale, and resolves to the last id", async () => {
     vi.mocked(createPlacements).mockImplementation(async (_slug, items) =>
-      items.map((body, i) => ({ ...placement(100 + i), ...body }) as Placement),
+      items.map((body, i) => ({ ...placement(100 + i), ...body })),
     );
     const { result } = editor();
 
@@ -190,7 +190,7 @@ describe("usePlacementsEditor", () => {
   describe("idempotency key", () => {
     const keyOf = (call: number) => vi.mocked(createPlacements).mock.calls[call][2];
     const echo = async (_slug: string, items: { modelSlug: string }[]) =>
-      items.map((body, i) => ({ ...placement(200 + i), ...body }) as Placement);
+      items.map((body, i) => ({ ...placement(200 + i), ...body }));
 
     it("sends a fresh key with each action", async () => {
       vi.mocked(createPlacements).mockImplementation(echo);
@@ -266,7 +266,7 @@ describe("usePlacementsEditor", () => {
 
   it("create sends visiblePanoramaIds from the editor's panoramaIds param", async () => {
     vi.mocked(createPlacements).mockImplementation(async (_slug, items) =>
-      items.map((body) => ({ ...placement(1), ...body }) as Placement),
+      items.map((body) => ({ ...placement(1), ...body })),
     );
     const { result } = editor([], [1, 2]);
 
@@ -279,7 +279,7 @@ describe("usePlacementsEditor", () => {
 
   it("create sends an empty visiblePanoramaIds when none are given", async () => {
     vi.mocked(createPlacements).mockImplementation(async (_slug, items) =>
-      items.map((body) => ({ ...placement(1), ...body }) as Placement),
+      items.map((body) => ({ ...placement(1), ...body })),
     );
     const { result } = editor([], []);
 
@@ -338,9 +338,7 @@ describe("usePlacementsEditor", () => {
 
   it("remove drops the row and clears its pending mark", async () => {
     let release!: () => void;
-    vi.mocked(deletePlacement).mockImplementation(
-      () => new Promise<void>((res) => (release = () => res())),
-    );
+    vi.mocked(deletePlacement).mockImplementation(() => new Promise<void>((res) => (release = () => res())));
     const { result } = editor([placement(1), placement(2)]);
 
     let done!: Promise<void>;
@@ -359,7 +357,7 @@ describe("usePlacementsEditor", () => {
   });
   it("places into the group it is given, and keeps a group-less place free of one", async () => {
     vi.mocked(createPlacements).mockImplementation(async (_slug, items) =>
-      items.map((body, i) => ({ ...placement(100 + i), ...body, groupId: body.groupId ?? null }) as Placement),
+      items.map((body, i) => ({ ...placement(100 + i), ...body, groupId: body.groupId ?? null })),
     );
     const { result } = editor();
     await act(async () => {
@@ -377,7 +375,9 @@ describe("usePlacementsEditor", () => {
   // The key names one placing action; the same model and count into another
   // group is another action and must not replay the first one's rows.
   it("mints a new idempotency key when a failed batch is retried into another group", async () => {
-    vi.mocked(createPlacements).mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValue([placement(1)]);
+    vi.mocked(createPlacements)
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockResolvedValue([placement(1)]);
     const { result } = editor();
     await act(async () => {
       await result.current.s.create("tank", 1, 5);

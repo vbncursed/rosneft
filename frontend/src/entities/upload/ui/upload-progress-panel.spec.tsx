@@ -34,7 +34,11 @@ describe("UploadProgressPanel", () => {
     render(
       <UploadProgressPanel
         busy
-        progress={{ value: 64, header: "64% · 1.4 GB / 2.2 GB · ~3 min", stats: ["chunk 197 / 308", "8 MB chunks", "23 MB/s", "resumable"] }}
+        progress={{
+          value: 64,
+          header: "64% · 1.4 GB / 2.2 GB · ~3 min",
+          stats: ["chunk 197 / 308", "8 MB chunks", "23 MB/s", "resumable"],
+        }}
         canSubmit={false}
         submitLabel="Upload territory"
         onSubmit={vi.fn()}
@@ -80,9 +84,7 @@ describe("UploadProgressPanel", () => {
   });
 
   it("renders no Cancel button when onCancel is omitted, even while busy", () => {
-    render(
-      <UploadProgressPanel busy canSubmit={false} submitLabel="Upload territory" onSubmit={vi.fn()} />,
-    );
+    render(<UploadProgressPanel busy canSubmit={false} submitLabel="Upload territory" onSubmit={vi.fn()} />);
     expect(screen.getByRole("button", { name: "Uploading…" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
   });

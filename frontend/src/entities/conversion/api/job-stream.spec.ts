@@ -25,7 +25,14 @@ class FakeSource {
   }
 }
 
-const RUNNING = JSON.stringify({ id: "j1", kind: "territory", slug: "t", status: "running", progress: 0.58, stage: "lod-1" });
+const RUNNING = JSON.stringify({
+  id: "j1",
+  kind: "territory",
+  slug: "t",
+  status: "running",
+  progress: 0.58,
+  stage: "lod-1",
+});
 const FAILED = JSON.stringify({ id: "j1", kind: "territory", slug: "t", status: "failed", errorMessage: "boom" });
 
 const last = () => FakeSource.instances.at(-1)!;
@@ -42,7 +49,14 @@ describe("openJobStream", () => {
     openJobStream("j 1", { onJob, onEnd: vi.fn() });
     expect(last().url).toBe("/api/jobs/j%201/events");
     last().frame("job", RUNNING);
-    expect(onJob).toHaveBeenCalledWith({ kind: "territory", slug: "t", status: "running", progress: 0.58, stage: "lod-1", errorMessage: null });
+    expect(onJob).toHaveBeenCalledWith({
+      kind: "territory",
+      slug: "t",
+      status: "running",
+      progress: 0.58,
+      stage: "lod-1",
+      errorMessage: null,
+    });
   });
 
   it("closes itself after a terminal frame, reporting finished", () => {

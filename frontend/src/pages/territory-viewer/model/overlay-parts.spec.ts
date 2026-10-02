@@ -18,21 +18,13 @@ describe("the overlay part shapes", () => {
   });
 
   it("carries each upload form whole, so the one dialog can be built from either", () => {
-    expectTypeOf<PanoramaParts["upload"]["form"]["upload"]>().toEqualTypeOf<
-      UploadModalProps["upload"]
-    >();
-    expectTypeOf<DocumentParts["upload"]["form"]["upload"]>().toEqualTypeOf<
-      UploadModalProps["upload"]
-    >();
+    expectTypeOf<PanoramaParts["upload"]["form"]["upload"]>().toEqualTypeOf<UploadModalProps["upload"]>();
+    expectTypeOf<DocumentParts["upload"]["form"]["upload"]>().toEqualTypeOf<UploadModalProps["upload"]>();
   });
 
   it("describes the sphere exactly as the canvas asks for it", () => {
-    expectTypeOf<PanoramaParts["texture"]["bitmap"]>().toEqualTypeOf<
-      ViewerCanvasProps["panoramaBitmap"]
-    >();
-    expectTypeOf<PanoramaParts["texture"]["status"]>().toEqualTypeOf<
-      ViewerCanvasProps["panoramaStatus"]
-    >();
+    expectTypeOf<PanoramaParts["texture"]["bitmap"]>().toEqualTypeOf<ViewerCanvasProps["panoramaBitmap"]>();
+    expectTypeOf<PanoramaParts["texture"]["status"]>().toEqualTypeOf<ViewerCanvasProps["panoramaStatus"]>();
     expectTypeOf<PanoramaParts["list"]>().toEqualTypeOf<ViewerCanvasProps["panoramas"]>();
   });
 });

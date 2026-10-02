@@ -2,7 +2,9 @@ import { act, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useModalDialog } from "./use-modal-dialog";
 
-function Probe({ open, onClose = () => {} }: { open: boolean; onClose?: () => void }) {
+const noop = () => {};
+
+function Probe({ open, onClose = noop }: { open: boolean; onClose?: () => void }) {
   const { ref, shown } = useModalDialog(open, onClose);
   return (
     <dialog ref={ref} data-testid="dialog">

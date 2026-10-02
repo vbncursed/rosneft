@@ -72,6 +72,7 @@ function GltfPrimitive({
       // unlocks ~100x faster raycasts on the territory mesh — vital for
       // per-frame snap-to-surface during a placement drag.
       if (!m.geometry.boundsTree) m.geometry.computeBoundsTree();
+      // oxlint-disable-next-line typescript/unbound-method -- the saved method is restored onto the same mesh (m.raycast = orig), so `this` stays m
       if (!m.userData.origRaycast) m.userData.origRaycast = m.raycast;
       const orig = m.userData.origRaycast as Mesh["raycast"];
       m.raycast = raycastable ? orig : noopRaycast;
@@ -108,14 +109,7 @@ function GltfPrimitive({
 // drei's loader reports no progress — the page's chip needs bytes. The blob
 // URL that download mints is what both the warmer and the primitive parse, so
 // the bytes travel once.
-export default function GltfModel({
-  lods,
-  targetLod,
-  retryVersion,
-  raycastable,
-  groupRef,
-  onReport,
-}: GltfModelProps) {
+export default function GltfModel({ lods, targetLod, retryVersion, raycastable, groupRef, onReport }: GltfModelProps) {
   // The wrapper is what Auto measures: groupRef is the caller's, and optional.
   const own = useRef<Group>(null);
   const level = useAutoLod(own, lods, targetLod);
@@ -255,17 +249,9 @@ export default function GltfModel({
   if (!lod.url) return null;
   return (
     <group ref={own}>
-      <LodErrorBoundary
-        resetKey={`${lod.url}#${retryVersion}`}
-        onError={(err) => lod.onShownFailed(statusOf(err))}
-      >
+      <LodErrorBoundary resetKey={`${lod.url}#${retryVersion}`} onError={(err) => lod.onShownFailed(statusOf(err))}>
         <Suspense fallback={null}>
-          <GltfPrimitive
-            url={lod.url}
-            raycastable={raycastable}
-            groupRef={groupRef}
-            onDrawn={setDrawnUrl}
-          />
+          <GltfPrimitive url={lod.url} raycastable={raycastable} groupRef={groupRef} onDrawn={setDrawnUrl} />
         </Suspense>
       </LodErrorBoundary>
       {warmUrl ? <LodWarmer url={warmUrl} onReady={lod.onWarmReady} /> : null}

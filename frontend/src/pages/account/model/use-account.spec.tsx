@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { setCsrfToken } from "@/shared/api";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useAccount, type AccountState } from "./use-account";
@@ -53,12 +53,12 @@ const auditCursorPage = (cursor: number | null) => {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
-let fetchMock: ReturnType<typeof vi.fn>;
+let fetchMock: Mock<(url: string, init?: RequestInit) => Promise<Response>>;
 let client: QueryClient;
 let twoFactorStatus = 200;
 let passkeysStatus = 200;
 /** What /api/audit/mine answers for a cursor. Reassigned by the paging cases. */
-let auditPage: (cursor: number | null) => unknown | Promise<unknown>;
+let auditPage: (cursor: number | null) => unknown;
 
 const wrapper = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -70,13 +70,12 @@ const ready = (result: { current: AccountState }): Ready => {
   return result.current;
 };
 
-const fetchCalls = (path: string) =>
-  fetchMock.mock.calls.filter(([url]) => new URL(url as string, "http://x").pathname === path);
+const fetchCalls = (path: string) => fetchMock.mock.calls.filter(([url]) => new URL(url, "http://x").pathname === path);
 
 /** The cursor of every /api/audit/mine call, in order — null for the first page. */
 const cursorsAsked = () =>
   fetchCalls("/api/audit/mine").map(([url]) => {
-    const raw = new URL(url as string, "http://x").searchParams.get("cursor");
+    const raw = new URL(url, "http://x").searchParams.get("cursor");
     return raw === null ? null : Number(raw);
   });
 
@@ -93,9 +92,7 @@ beforeEach(() => {
       return twoFactorStatus === 200 ? json(TWO_FACTOR) : json({ message: "boom" }, twoFactorStatus);
     }
     if (path === "/api/auth/passkey/credentials") {
-      return passkeysStatus === 200
-        ? json({ credentials: PASSKEYS })
-        : json({ message: "boom" }, passkeysStatus);
+      return passkeysStatus === 200 ? json({ credentials: PASSKEYS }) : json({ message: "boom" }, passkeysStatus);
     }
     if (path === "/api/auth/me/password") return json(undefined, 204);
     if (path === "/api/audit/mine") {
@@ -213,11 +210,11 @@ describe("useAccount", () => {
   it("changes the password and toasts success", async () => {
     const { result } = renderHook(() => ({ s: useAccount(), notices: useNotices() }), { wrapper });
     await waitFor(() => expect(result.current.s.phase).toBe("ready"));
-    const ready = result.current.s;
-    if (ready.phase !== "ready") throw new Error("unreachable");
+    const account = result.current.s;
+    if (account.phase !== "ready") throw new Error("unreachable");
 
     await act(async () => {
-      await ready.onChangePassword("old-pass", "new-pass");
+      await account.onChangePassword("old-pass", "new-pass");
     });
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/auth/me/password"),
@@ -238,12 +235,12 @@ describe("useAccount", () => {
     });
     const { result } = renderHook(() => ({ s: useAccount(), notices: useNotices() }), { wrapper });
     await waitFor(() => expect(result.current.s.phase).toBe("ready"));
-    const ready = result.current.s;
-    if (ready.phase !== "ready") throw new Error("unreachable");
+    const account = result.current.s;
+    if (account.phase !== "ready") throw new Error("unreachable");
 
     const invalidate = vi.spyOn(client, "invalidateQueries");
     await act(async () => {
-      await ready.onChangePassword("wrong", "new-pass").catch(() => {});
+      await account.onChangePassword("wrong", "new-pass").catch(() => {});
     });
     await waitFor(() => expect(result.current.notices).toHaveLength(1));
     expect(result.current.notices[0]?.tone).toBe("error");
@@ -323,9 +320,7 @@ describe("useAccount", () => {
     await waitFor(() => expect(ready(result).activity).toHaveLength(6));
 
     act(() => ready(result).onPage(4));
-    await waitFor(() =>
-      expect(ready(result).activity!.map((e) => e.id)).toEqual([42, 41, 40, 39, 38, 37]),
-    );
+    await waitFor(() => expect(ready(result).activity!.map((e) => e.id)).toEqual([42, 41, 40, 39, 38, 37]));
     expect(cursorsAsked()).toEqual([null, 55, 49, 43]);
     expect(ready(result).activityBusy).toBe(false);
   });
@@ -483,12 +478,12 @@ describe("useAccount", () => {
   it("invalidates both the 2FA status and the principal after a disable", async () => {
     const { result } = renderHook(() => ({ s: useAccount(), notices: useNotices() }), { wrapper });
     await waitFor(() => expect(result.current.s.phase).toBe("ready"));
-    const ready = result.current.s;
-    if (ready.phase !== "ready") throw new Error("unreachable");
+    const account = result.current.s;
+    if (account.phase !== "ready") throw new Error("unreachable");
 
     const invalidate = vi.spyOn(client, "invalidateQueries");
     await act(async () => {
-      await ready.onDisable2FA("123456");
+      await account.onDisable2FA("123456");
     });
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/auth/2fa/disable"),
@@ -508,13 +503,13 @@ describe("useAccount", () => {
   it("leaves both caches alone and toasts the gateway's message when the disable is refused", async () => {
     const { result } = renderHook(() => ({ s: useAccount(), notices: useNotices() }), { wrapper });
     await waitFor(() => expect(result.current.s.phase).toBe("ready"));
-    const ready = result.current.s;
-    if (ready.phase !== "ready") throw new Error("unreachable");
+    const account = result.current.s;
+    if (account.phase !== "ready") throw new Error("unreachable");
 
     fetchMock.mockImplementationOnce(async () => json({ message: "invalid 2fa code" }, 400));
     const invalidate = vi.spyOn(client, "invalidateQueries");
     await act(async () => {
-      await ready.onDisable2FA("000000").catch(() => {});
+      await account.onDisable2FA("000000").catch(() => {});
     });
     const keys = invalidate.mock.calls.map(([arg]) => (arg as { queryKey: unknown }).queryKey);
     expect(keys).not.toContainEqual(["two-factor"]);
@@ -533,11 +528,11 @@ describe("useAccount", () => {
     it("re-asks for the journal when it succeeds", async () => {
       const { result } = renderHook(() => useAccount(), { wrapper });
       await waitFor(() => expect(result.current.phase).toBe("ready"));
-      const ready = result.current as Ready;
+      const account = result.current as Ready;
 
       const invalidate = vi.spyOn(client, "invalidateQueries");
       await act(async () => {
-        await run(ready).catch(() => {});
+        await run(account).catch(() => {});
       });
       const keys = invalidate.mock.calls.map(([arg]) => (arg as { queryKey: unknown }).queryKey);
       expect(keys).toContainEqual(["audit", "mine"]);
@@ -546,12 +541,12 @@ describe("useAccount", () => {
     it("re-asks for the journal when it is refused, because the refusal is journalled too", async () => {
       const { result } = renderHook(() => useAccount(), { wrapper });
       await waitFor(() => expect(result.current.phase).toBe("ready"));
-      const ready = result.current as Ready;
+      const account = result.current as Ready;
 
       fetchMock.mockImplementationOnce(async () => json({ message: "refused" }, 400));
       const invalidate = vi.spyOn(client, "invalidateQueries");
       await act(async () => {
-        await run(ready).catch(() => {});
+        await run(account).catch(() => {});
       });
       const keys = invalidate.mock.calls.map(([arg]) => (arg as { queryKey: unknown }).queryKey);
       expect(keys).toContainEqual(["audit", "mine"]);
@@ -561,12 +556,12 @@ describe("useAccount", () => {
   it("removes a passkey with the credential it was handed and refreshes the list", async () => {
     const { result } = renderHook(() => ({ s: useAccount(), notices: useNotices() }), { wrapper });
     await waitFor(() => expect(result.current.s.phase).toBe("ready"));
-    const ready = result.current.s;
-    if (ready.phase !== "ready") throw new Error("unreachable");
+    const account = result.current.s;
+    if (account.phase !== "ready") throw new Error("unreachable");
 
     const invalidate = vi.spyOn(client, "invalidateQueries");
     await act(async () => {
-      await ready.onRemovePasskey("p-1", { code: "123456" });
+      await account.onRemovePasskey("p-1", { code: "123456" });
     });
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/auth/passkey/credentials/p-1"),

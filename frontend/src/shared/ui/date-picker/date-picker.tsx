@@ -3,20 +3,11 @@ import { clsx as cx } from "clsx";
 import { useDismiss } from "@/shared/lib/use-dismiss";
 import { Icon } from "@/shared/ui/icon";
 import { Tooltip } from "@/shared/ui/tooltip";
-import {
-  WEEKDAYS,
-  dayLabel,
-  monthGrid,
-  monthLabel,
-  parseIso,
-  shiftMonth,
-  toIso,
-  type IsoDate,
-} from "./calendar";
+import { WEEKDAYS, dayLabel, monthGrid, monthLabel, parseIso, shiftMonth, toIso, type IsoDate } from "./calendar";
 
 export type DatePickerProps = {
   /** "YYYY-MM-DD", or "" for no date chosen. */
-  value: IsoDate | "";
+  value: IsoDate;
   onChange: (value: IsoDate) => void;
   label: string;
   /** Marked with a ring; defaults to the real today. */
@@ -86,9 +77,7 @@ export function DatePicker({
         }}
         className={cx(
           "flex w-full items-center justify-between gap-3 rounded-control border bg-panel-2 px-3 py-2.5 font-mono text-[13px] transition-[color,background-color,border-color,scale] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent enabled:active:scale-[0.99]",
-          disabled
-            ? "cursor-not-allowed border-line text-dim opacity-55"
-            : "cursor-pointer border-line-2 text-fg",
+          disabled ? "cursor-not-allowed border-line text-dim opacity-55" : "cursor-pointer border-line-2 text-fg",
           open && "border-accent",
         )}
       >

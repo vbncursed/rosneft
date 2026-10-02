@@ -21,10 +21,12 @@ const RULER: Chain[] = [
   },
 ];
 
+const NO_CHAINS: Chain[] = [];
+
 type CanvasProps = { chains?: Chain[]; showMeasurements?: boolean; measuring?: boolean };
 
 // This is the surface the theme's background colour is measured against.
-const Canvas = ({ chains = [], showMeasurements = true, measuring = false }: CanvasProps) => (
+const Canvas = ({ chains = NO_CHAINS, showMeasurements = true, measuring = false }: CanvasProps) => (
   <div className="h-[700px] w-full">
     <Suspense fallback={null}>
       <ViewerCanvas

@@ -4,19 +4,8 @@ import { computeUnitRatio } from "@/entities/measurement";
 import { pickLod, getSceneBundle, sceneQuery, toSceneViewModel } from "@/entities/scene";
 import { getMe, meQuery } from "@/entities/user";
 import { viewerError } from "@/features/lod";
-import {
-  measureSummary,
-  notSaved,
-  useMeasurementSwitch,
-  useMeasurementSync,
-} from "@/features/measure";
-import {
-  PANORAMA_TOUR,
-  PANORAMA_TOUR_STEPS,
-  useTour,
-  VIEWER_TOUR,
-  VIEWER_TOUR_STEPS,
-} from "@/features/onboarding";
+import { measureSummary, notSaved, useMeasurementSwitch, useMeasurementSync } from "@/features/measure";
+import { PANORAMA_TOUR, PANORAMA_TOUR_STEPS, useTour, VIEWER_TOUR, VIEWER_TOUR_STEPS } from "@/features/onboarding";
 import { useViewerMode } from "@/features/viewer-mode";
 import { HttpError, messageOf } from "@/shared/api";
 import { useMediaQuery } from "@/shared/lib/use-media-query";

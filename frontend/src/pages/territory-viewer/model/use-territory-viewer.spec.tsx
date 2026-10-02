@@ -206,7 +206,10 @@ describe("useTerritoryViewer", () => {
   // a relative URL, and the error state that set arrived a few microtasks after
   // the entering act had closed. Here the bytes are simply still on the wire.
   beforeEach(() => {
-    vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(() => {})));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise<Response>(() => {})),
+    );
   });
   afterEach(() => vi.unstubAllGlobals());
 
@@ -385,9 +388,7 @@ describe("useTerritoryViewer", () => {
   describe("measuring", () => {
     const measureAndFinish = (r: ReturnType<typeof cold>) => {
       // The chip speaks only over a drawn level.
-      act(() =>
-        now(r).canvas.onLod({ shown: 0, target: 0, percent: null, progressText: null, failure: null }),
-      );
+      act(() => now(r).canvas.onLod({ shown: 0, target: 0, percent: null, progressText: null, failure: null }));
       act(() => now(r).overlays.onMeasure());
       act(() => now(r).canvas.onMeasurePoint({ x: 0, y: 0, z: 0 }));
       act(() => now(r).canvas.onMeasurePoint({ x: 0, y: 0, z: 1 }));
@@ -745,9 +746,7 @@ describe("useTerritoryViewer", () => {
     });
 
     it("stays shut for a reader who has already seen it", async () => {
-      getMe.mockResolvedValue(
-        principal({ isOwner: true, onboardingToursSeen: ["viewer", "panorama"] }),
-      );
+      getMe.mockResolvedValue(principal({ isOwner: true, onboardingToursSeen: ["viewer", "panorama"] }));
       const r = mount();
       const state = await ready(r);
       act(() => state.panel!.viewTab.panoramas.onEnter(1));

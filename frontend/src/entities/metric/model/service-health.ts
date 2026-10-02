@@ -26,11 +26,13 @@ export function servicesOf(
     const rps = last(byLabel(rate, name));
     const err = last(byLabel(errors, name));
     const lat = last(latency.find((s) => matchesService(s.label, name)));
-    const state = !isUp ? "down" : err !== null && err > 0 ? "degraded" : "up";
+    const state = isUp ? (err !== null && err > 0 ? "degraded" : "up") : "down";
     return {
       name,
       state,
-      meta: isUp ? `${formatValue(rps, "rps")} · ${formatValue(err, "rps").replace("/s", "")} errors/s` : "scrape failed",
+      meta: isUp
+        ? `${formatValue(rps, "rps")} · ${formatValue(err, "rps").replace("/s", "")} errors/s`
+        : "scrape failed",
       samples: isUp ? (byLabel(rate, name)?.points ?? []).slice(-SAMPLES).map((p) => p.v) : [],
       latency: isUp ? formatValue(lat, "seconds") : "—",
       errors: isUp ? formatValue(err, "rps") : "—",

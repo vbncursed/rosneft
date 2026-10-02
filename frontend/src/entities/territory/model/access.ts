@@ -53,5 +53,4 @@ export function grantAction(grant: AccessGrant): "remove" | "pinned" | "locked" 
 }
 
 /** Whether the panel needs to explain why some rows cannot be revoked. */
-export const hasInheritedGrants = (grants: AccessGrant[]) =>
-  grants.some((grant) => grant.via === "role");
+export const hasInheritedGrants = (grants: AccessGrant[]) => grants.some((grant) => grant.via === "role");

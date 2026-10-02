@@ -39,7 +39,7 @@ jobs:
 
       - run: yarn install --frozen-lockfile
 
-      # tsc -b --noEmit && oxlint.
+      # tsc -b --noEmit && oxlint --type-aware && oxfmt --check.
       - run: yarn lint
 
       # vitest with coverage thresholds (90/85/90/90 in vite.config.ts) — it

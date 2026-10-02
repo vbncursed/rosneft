@@ -15,15 +15,10 @@ export function AccountHeader({ me, onSignOut, signingOut }: AccountHeaderProps)
   return (
     <div className="flex flex-wrap items-start justify-between gap-5">
       <div className="min-w-0">
-        <a
-          href="/"
-          className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted no-underline hover:text-fg"
-        >
+        <a href="/" className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted no-underline hover:text-fg">
           ← Home
         </a>
-        <p className="m-0 mt-4 font-mono text-[10px] uppercase tracking-[0.24em] text-accent">
-          Account
-        </p>
+        <p className="m-0 mt-4 font-mono text-[10px] uppercase tracking-[0.24em] text-accent">Account</p>
         <div className="mt-3 flex flex-wrap items-center gap-[13px]">
           <Avatar name={me.username} variant="soft" size={44} />
           <div className="min-w-0">

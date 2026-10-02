@@ -67,14 +67,11 @@ export function useHome(): HomeState {
   const allTerritories = territories.data ?? [];
   const allModels = models.data ?? [];
   const allJobs = jobs.data ?? [];
-  const jobOf = (kind: TargetJob["kind"], slug: string) =>
-    allJobs.find((j) => j.kind === kind && j.slug === slug);
+  const jobOf = (kind: TargetJob["kind"], slug: string) => allJobs.find((j) => j.kind === kind && j.slug === slug);
   const canUploadTerritory = can(me, "territory:create");
   const canUploadModel = can(me, "model:write");
   const empty = viewerEmpty(allTerritories.length, canUploadTerritory, canUploadModel);
-  const modelCards = recent(allModels, MODEL_CARDS).map((m) =>
-    toModelCard(m, m.lods ?? [], jobOf("model", m.slug)),
-  );
+  const modelCards = recent(allModels, MODEL_CARDS).map((m) => toModelCard(m, m.lods ?? [], jobOf("model", m.slug)));
   const title = titleOf(allTerritories, allModels);
 
   return {
@@ -85,9 +82,7 @@ export function useHome(): HomeState {
     jobs: sortJobs(allJobs).map((j) => toJobCard(j, title)),
     jobsMeta: jobsMeta(allJobs),
     territories: {
-      cards: shown.map((t) =>
-        bareCard(toTerritoryCard(t, t.lods ?? [], jobOf("territory", t.slug))),
-      ),
+      cards: shown.map((t) => bareCard(toTerritoryCard(t, t.lods ?? [], jobOf("territory", t.slug)))),
       total: allTerritories.length,
       meta: territoriesMeta(shown.length, allTerritories.length, empty),
       viewerEmpty: empty,

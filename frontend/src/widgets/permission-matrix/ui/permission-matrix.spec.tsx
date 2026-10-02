@@ -48,7 +48,9 @@ describe("PermissionMatrix", () => {
     );
 
     // Disabled, so never focused: the reason is in the name, not only the tooltip.
-    const locked = screen.getByRole("button", { name: "territory:delete — you cannot grant a permission you do not have" });
+    const locked = screen.getByRole("button", {
+      name: "territory:delete — you cannot grant a permission you do not have",
+    });
     expect(locked).toBeDisabled();
     expect(locked).not.toHaveAttribute("title");
     expect(hoverTip(locked.parentElement!)).toHaveTextContent("You cannot grant a permission you do not have");
@@ -69,7 +71,9 @@ describe("PermissionMatrix", () => {
         grantable={new Set(["territory:read"])}
       />,
     );
-    const chip = screen.getByRole("button", { name: "territory:delete — you cannot grant a permission you do not have" });
+    const chip = screen.getByRole("button", {
+      name: "territory:delete — you cannot grant a permission you do not have",
+    });
     expect(chip).toHaveAttribute("aria-pressed", "true");
     expect(chip).toBeDisabled();
     expect(chip).toHaveClass("border-dashed", "border-accent", "bg-accent-soft", "text-accent");
@@ -102,10 +106,7 @@ describe("PermissionMatrix", () => {
 
   it("still reports what a read-only role holds", () => {
     render(<PermissionMatrix all={ALL} granted={["territory:read"]} onToggle={() => {}} readOnly />);
-    expect(screen.getByRole("button", { name: "territory:read" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    expect(screen.getByRole("button", { name: "territory:read" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("tells a granted chip from an absent one on a read-only role, beyond colour", () => {
@@ -181,8 +182,12 @@ describe("PermissionMatrix · naming", () => {
   it("presses a chip it can toggle on pointer-down", () => {
     render(<PermissionMatrix all={ALL} granted={[]} onToggle={() => {}} />);
     const chip = screen.getAllByRole("button")[0];
-    expect(chip).toHaveClass("transition-[color,background-color,border-color,scale]", "duration-150", "ease-out", "enabled:active:scale-[0.97]");
+    expect(chip).toHaveClass(
+      "transition-[color,background-color,border-color,scale]",
+      "duration-150",
+      "ease-out",
+      "enabled:active:scale-[0.97]",
+    );
     expect(chip).not.toHaveClass("transition-colors");
   });
 });
-

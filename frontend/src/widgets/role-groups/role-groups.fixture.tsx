@@ -59,14 +59,7 @@ const GROUPS: RoleGroup[] = [
 
 function Live() {
   const [selected, setSelected] = useState<string | null>("field-operator");
-  return (
-    <RoleGroups
-      groups={GROUPS}
-      totalPermissions={15}
-      selectedSlug={selected}
-      onSelect={setSelected}
-    />
-  );
+  return <RoleGroups groups={GROUPS} totalPermissions={15} selectedSlug={selected} onSelect={setSelected} />;
 }
 
 export default {

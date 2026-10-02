@@ -92,17 +92,13 @@ describe("RolesScreen", () => {
 
   it("says the roles are unavailable, in the gateway's own words", () => {
     showing({ status: "unavailable", roles: [], error: "You don't have permission to do this" });
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Roles are unavailable: You don't have permission to do this",
-    );
+    expect(screen.getByRole("alert")).toHaveTextContent("Roles are unavailable: You don't have permission to do this");
     expect(screen.queryByRole("heading", { name: "Roles & Permissions" })).not.toBeInTheDocument();
   });
 
   it("draws the roles in their two groups once they are loaded", () => {
     showing();
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Roles & Permissions" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Roles & Permissions" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "System roles" })).toBeInTheDocument();
     expect(screen.getByRole("article", { name: "Operations" })).toBeInTheDocument();
   });
@@ -110,13 +106,11 @@ describe("RolesScreen", () => {
   // The count is unknown, so the card says so instead of printing a zero.
   it("counts the holders of a role from the people the container read", () => {
     showing();
-    expect(within(screen.getByRole("article", { name: "Operations" })).getByText("1 user"))
-      .toBeInTheDocument();
+    expect(within(screen.getByRole("article", { name: "Operations" })).getByText("1 user")).toBeInTheDocument();
 
     cleanup();
     showing({ users: null });
-    expect(within(screen.getByRole("article", { name: "Operations" })).getByText("— users"))
-      .toBeInTheDocument();
+    expect(within(screen.getByRole("article", { name: "Operations" })).getByText("— users")).toBeInTheDocument();
   });
 
   it("narrows the list by the filter the container holds", () => {
@@ -143,9 +137,7 @@ describe("RolesScreen", () => {
 
   it("says a system role is read-only rather than only greying it out", () => {
     showing({ selected: GUEST, draft: { title: "Guest", granted: [] } });
-    expect(
-      screen.getByText("System roles are defined by migrations and cannot be edited here."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("System roles are defined by migrations and cannot be edited here.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Save permissions" })).not.toBeInTheDocument();
   });
 
@@ -251,9 +243,7 @@ describe("RolesScreen", () => {
     expect(screen.queryByRole("button", { name: "Save permissions" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Reset" })).not.toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Role name" })).toHaveAttribute("readonly");
-    expect(
-      screen.getByText("You can view roles here, but changing one needs roles:manage."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("You can view roles here, but changing one needs roles:manage.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete role" })).not.toBeInTheDocument();
   });
 

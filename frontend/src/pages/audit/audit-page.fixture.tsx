@@ -104,10 +104,7 @@ function Live({ initialSelected }: { initialSelected: number | null }) {
   const [range, setRange] = useState<string | null>("last 7 days");
   const [selectedId, setSelectedId] = useState<number | null>(initialSelected);
 
-  const found = useMemo(
-    () => everyone.find((e) => e.entry.id === selectedId) ?? null,
-    [selectedId],
-  );
+  const found = useMemo(() => everyone.find((e) => e.entry.id === selectedId) ?? null, [selectedId]);
 
   return (
     <ConsoleLayout

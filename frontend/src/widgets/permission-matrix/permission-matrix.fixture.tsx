@@ -21,10 +21,14 @@ function Live() {
     <PermissionMatrix
       all={ALL}
       granted={granted}
-      grantable={new Set(ALL.map((p) => p.slug).filter((s) => !s.endsWith(":assign") && !s.startsWith("users:freeze") && s !== "users:delete"))}
-      onToggle={(slug) =>
-        setGranted((g) => (g.includes(slug) ? g.filter((s) => s !== slug) : [...g, slug]))
+      grantable={
+        new Set(
+          ALL.map((p) => p.slug).filter(
+            (s) => !s.endsWith(":assign") && !s.startsWith("users:freeze") && s !== "users:delete",
+          ),
+        )
       }
+      onToggle={(slug) => setGranted((g) => (g.includes(slug) ? g.filter((s) => s !== slug) : [...g, slug]))}
     />
   );
 }
@@ -47,7 +51,9 @@ export default {
       <PermissionMatrix
         all={ALL}
         granted={["territory:read", "territory:assign", "users:read", "users:freeze"]}
-        grantable={new Set(["territory:read", "territory:write", "territory:delete", "users:read", "users:write", "audit:read"])}
+        grantable={
+          new Set(["territory:read", "territory:write", "territory:delete", "users:read", "users:write", "audit:read"])
+        }
         onToggle={() => {}}
       />
     </div>

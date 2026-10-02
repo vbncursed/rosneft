@@ -18,9 +18,7 @@ export function AlertsCard({ alerts }: AlertsCardProps) {
         {alerts.length === 0 ? (
           <p className="m-0 text-xs text-muted">All clear. No active alerts.</p>
         ) : (
-          alerts.map((alert) => (
-            <AlertRow key={alert.id} name={alert.name} severity={alert.severity} />
-          ))
+          alerts.map((alert) => <AlertRow key={alert.id} name={alert.name} severity={alert.severity} />)
         )}
       </div>
     </Card>

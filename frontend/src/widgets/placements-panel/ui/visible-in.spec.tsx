@@ -58,12 +58,7 @@ describe("VisibleIn", () => {
 
   it("disables every checkbox while pending", () => {
     render(
-      <VisibleIn
-        placement={{ id: 3, visiblePanoramaIds: [] }}
-        panoramas={PANORAMAS}
-        pending
-        onToggle={vi.fn()}
-      />,
+      <VisibleIn placement={{ id: 3, visiblePanoramaIds: [] }} panoramas={PANORAMAS} pending onToggle={vi.fn()} />,
     );
     expect(screen.getByRole("checkbox", { name: "Control room, north door" })).toBeDisabled();
     expect(screen.getByRole("checkbox", { name: "Tank yard, west gate" })).toBeDisabled();

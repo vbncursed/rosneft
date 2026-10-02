@@ -36,7 +36,10 @@ const isShown = (object: Object3D) => {
  * starts over; the same hashes in another order are the same chain.
  */
 export function useAutoLod(object: RefObject<Object3D | null>, chain: LodArtifact[], requested: LodChoice): number {
-  const key = chain.map((a) => a.hash).toSorted().join(" ");
+  const key = chain
+    .map((a) => a.hash)
+    .toSorted()
+    .join(" ");
   const coarsest = pickCoarsest(chain)?.lod ?? 0;
   const [held, setHeld] = useState({ key, best: coarsest });
   const base = held.key === key ? held.best : coarsest;
@@ -62,16 +65,16 @@ export function useAutoLod(object: RefObject<Object3D | null>, chain: LodArtifac
       const o = object.current;
       const sphere = o && isShown(o) ? boundsOf(o) : null;
       if (!sphere) return false;
-      const { chain, camera, height } = view.current;
-      const cam = camera as PerspectiveCamera;
+      const seen = view.current;
+      const cam = seen.camera as PerspectiveCamera;
       if (!cam.isPerspectiveCamera) return true;
       const area = projectedArea({
         radius: sphere.radius,
         distance: cam.position.distanceTo(sphere.center),
         fovDeg: cam.fov,
-        heightPx: height,
+        heightPx: seen.height,
       });
-      const lod = autoLod(chain, area);
+      const lod = autoLod(seen.chain, area);
       if (lod !== null) setHeld((h) => (h.key === key && lod < h.best ? { key, best: lod } : h));
       return true;
     });

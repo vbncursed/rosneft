@@ -8,18 +8,40 @@ linters:
   default: standard
   enable:
     - bodyclose
+    - contextcheck
+    - copyloopvar
     - errcheck
+    - errchkjson
     - errname
+    - errorlint
+    - exhaustive
     - gocritic
+    - gosec
     - govet
+    - intrange
     - misspell
+    - modernize
     - nilerr
+    - nilnil
+    - noctx
+    - nolintlint
     - prealloc
+    - protogetter
     - revive
     - staticcheck
+    - testifylint
+    - unparam
     - unused
+    - usestdlibvars
 
   settings:
+    exhaustive:
+      # A switch with a default branch has chosen what every other value does.
+      default-signifies-exhaustive: true
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+      allow-unused: false
     revive:
       rules:
         - name: var-naming
@@ -27,6 +49,51 @@ linters:
           disabled: true
         - name: exported
           disabled: true
+
+  exclusions:
+    rules:
+      # G115 (integer overflow on conversion) is switched off only where the
+      # value cannot leave its range, and each directory has its own reason.
+      # It stays ON in gateway-service/internal/transport: that is where
+      # request integers arrive without a validator (a negative `lod` once
+      # wrapped to 4294967295 there), so a cast in that tree is justified on
+      # its own line with `//nolint:gosec // G115: <bound>`.
+      # The patterns are unanchored on purpose: paths are matched relative to
+      # wherever the config lives, and the linter runs per module.
+      # catalog/content gRPC: row counts and rows-affected from SQL are never
+      # negative, and bulk requests carry at most 1000 ids.
+      - path: services/(catalog|content)-service/internal/transport/grpcapi/
+        text: G115
+        linters: [gosec]
+      # The same row counts, converted back for the catalog proto.
+      - path: services/gateway-service/internal/clients/catalog/
+        text: G115
+        linters: [gosec]
+      # Page size is clamped to 1..200 before int32(len(rows)).
+      - path: services/audit-service/internal/service/
+        text: G115
+        linters: [gosec]
+      # len() of the stored argon2 hash, which Hash writes at 32 bytes.
+      - path: services/auth-service/internal/password/
+        text: G115
+        linters: [gosec]
+      # sign_count is only ever written from a uint32.
+      - path: services/passkey-service/internal/storage/credentials/
+        text: G115
+        linters: [gosec]
+      # glTF accessor counts are > 0 (the decoder rejects the rest); OBJ
+      # indices are range-checked against the vertex count, and a count past
+      # 2^32 vertices would be about 48 GiB of positions against the worker's
+      # 5 GB memory limit; the archive is also capped at 8 GiB extracted.
+      - path: services/mesh-service/internal/converter/
+        text: G115
+        linters: [gosec]
+      # Test cookies, credential fixtures and fixture paths are not exposure;
+      # a test's http.Get needs no cancellation.
+      - path: _test\.go
+        linters:
+          - gosec
+          - noctx
 
 formatters:
   enable:

@@ -1,11 +1,15 @@
 #!/bin/sh
-# Installed by `make -C backend hooks` (sets core.hooksPath=.githooks).
-# Runs the Go quality gate only when the commit touches Go code.
-# Bypass once with: git commit --no-verify
+# Installed by `make -C backend hooks` (sets core.hooksPath=.githooks for the
+# whole repo). Runs each package's gate only when the commit touches it; tests
+# for frontend and desktop stay in CI. Bypass once with: git commit --no-verify
 
 set -e
 
-git diff --cached --name-only --diff-filter=ACMR \
-	| grep -qE '^backend/.*\.(go|mod|sum)$' || exit 0
+root=$(git rev-parse --show-toplevel)
+staged=$(git diff --cached --name-only --diff-filter=ACMRD)
 
-exec make -C "$(git rev-parse --show-toplevel)/backend" check
+touches() { printf '%s\n' "$staged" | grep -qE "$1"; }
+
+if touches '^frontend/'; then yarn --cwd "$root/frontend" lint; fi
+if touches '^desktop/'; then make -C "$root/desktop" typecheck lint fmt-check; fi
+if touches '^backend/.*\.(go|mod|sum)$'; then make -C "$root/backend" check; fi

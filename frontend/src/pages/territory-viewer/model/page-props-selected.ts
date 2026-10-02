@@ -1,8 +1,4 @@
-import {
-  instanceName,
-  type ModelGroup,
-  type ResolvedPlacement,
-} from "@/entities/placement";
+import { instanceName, type ModelGroup, type ResolvedPlacement } from "@/entities/placement";
 import { groupDigits, type SceneViewModel } from "@/entities/scene";
 import type { Detail } from "@/shared/ui/detail-list";
 import type { PlacementVisibility, SelectedBlockProps } from "@/widgets/placements-panel";
@@ -70,10 +66,7 @@ export function selectedBlock(
  * question is which captures mark this object, not what is on screen now. With
  * no captures at all there is nothing to ask.
  */
-export function visibilityBlock(
-  p: PageParts,
-  selected: ResolvedPlacement | null,
-): PlacementVisibility | null {
+export function visibilityBlock(p: PageParts, selected: ResolvedPlacement | null): PlacementVisibility | null {
   // Gated on `placement:write` (spec §1): a reader who cannot change a
   // placement is handed no control, rather than one whose every click the
   // gateway refuses.

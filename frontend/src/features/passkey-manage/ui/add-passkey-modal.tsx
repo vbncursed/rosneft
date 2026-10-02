@@ -1,11 +1,5 @@
 import { useState } from "react";
-import {
-  beginRegistration,
-  createCredential,
-  finishRegistration,
-  isCancelled,
-  type Passkey,
-} from "@/entities/passkey";
+import { beginRegistration, createCredential, finishRegistration, isCancelled, type Passkey } from "@/entities/passkey";
 import { messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
 import { Button } from "@/shared/ui/button";
@@ -98,9 +92,7 @@ export function AddPasskeyModal({ open, onClose, onAdded, initialStep = "name" }
             </span>
             <div className="min-w-0">
               <p className="m-0 text-[13px] font-medium">Waiting for your device…</p>
-              <p className="m-0 mt-1 font-mono text-[11px] text-muted">
-                Touch ID · Windows Hello · security key
-              </p>
+              <p className="m-0 mt-1 font-mono text-[11px] text-muted">Touch ID · Windows Hello · security key</p>
             </div>
           </div>
           <p className="m-0 text-xs leading-[1.5] text-muted">

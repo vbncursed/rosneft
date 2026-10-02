@@ -38,3 +38,31 @@ func (s *UploadsSuite) TestAbortSucceedsWith204() {
 	_, is204 := resp.(AbortUpload204Response)
 	assert.Assert(s.T(), is204, "got %T", resp)
 }
+
+type initiateStub struct{ Service }
+
+func (initiateStub) InitiateUpload(_ context.Context, size int64, _ string) (domain.UploadSession, error) {
+	return domain.UploadSession{ID: "u1", Size: size}, nil
+}
+
+// upload-service stores the normalised type, so the session echoes that value
+// and not whatever the client sent.
+func (s *UploadsSuite) TestInitiateEchoesTheNormalisedContentType() {
+	tests := []struct{ name, sent, want string }{
+		{"off the allow-list", "image/svg+xml", "application/octet-stream"},
+		{"case and parameters", "Application/PDF; x=y", "application/pdf"},
+	}
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			resp, err := New(initiateStub{}).InitiateUpload(s.T().Context(), InitiateUploadRequestObject{
+				Body: &InitiateUploadJSONRequestBody{Size: 1, ContentType: &tt.sent},
+			})
+
+			assert.NilError(s.T(), err)
+			created, ok := resp.(InitiateUpload201JSONResponse)
+			assert.Assert(s.T(), ok, "got %T", resp)
+			assert.Assert(s.T(), created.ContentType != nil)
+			assert.Equal(s.T(), *created.ContentType, tt.want)
+		})
+	}
+}

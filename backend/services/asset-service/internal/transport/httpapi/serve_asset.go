@@ -33,6 +33,11 @@ func (h *Handler) serveAsset(w http.ResponseWriter, r *http.Request) {
 	etag := `"` + blob.Hash + `"`
 	w.Header().Set("ETag", etag)
 	w.Header().Set("Content-Type", blob.ContentType)
+	// Blobs are user uploads served from the app origin: sandbox + nosniff keep a
+	// text/html or svg upload from running as a script (the desktop shell sends
+	// the same pair, byte for byte).
+	w.Header().Set("Content-Security-Policy", "sandbox; default-src 'none'")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	// Content-addressed: blob never changes for a given hash, so cache forever.
 	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 

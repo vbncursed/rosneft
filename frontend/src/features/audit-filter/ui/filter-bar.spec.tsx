@@ -20,10 +20,7 @@ const field = () => screen.getByRole("textbox", { name: "Filter events" });
 describe("FilterBar", () => {
   it("shows the syntax it expects as a placeholder", () => {
     render(<Harness />);
-    expect(field()).toHaveAttribute(
-      "placeholder",
-      "filter: entity:territory actor:a.ivanova failed:true",
-    );
+    expect(field()).toHaveAttribute("placeholder", "filter: entity:territory actor:a.ivanova failed:true");
   });
 
   it("reports what is typed", async () => {
@@ -79,11 +76,7 @@ describe("FilterBar", () => {
 describe("FilterBar · chips the parser does not own", () => {
   it("shows an extra chip alongside the parsed ones", () => {
     render(
-      <FilterBar
-        query="entity:territory"
-        onChange={vi.fn()}
-        extra={[{ label: "last 7 days", onRemove: vi.fn() }]}
-      />,
+      <FilterBar query="entity:territory" onChange={vi.fn()} extra={[{ label: "last 7 days", onRemove: vi.fn() }]} />,
     );
     expect(screen.getByText("entity:territory")).toBeInTheDocument();
     expect(screen.getByText("last 7 days")).toBeInTheDocument();
@@ -92,9 +85,7 @@ describe("FilterBar · chips the parser does not own", () => {
   it("removes an extra chip through its own handler, leaving the query alone", async () => {
     const onRemove = vi.fn();
     const onChange = vi.fn();
-    render(
-      <FilterBar query="entity:territory" onChange={onChange} extra={[{ label: "last 7 days", onRemove }]} />,
-    );
+    render(<FilterBar query="entity:territory" onChange={onChange} extra={[{ label: "last 7 days", onRemove }]} />);
     await userEvent.click(screen.getByRole("button", { name: "Remove filter last 7 days" }));
     expect(onRemove).toHaveBeenCalledOnce();
     expect(onChange).not.toHaveBeenCalled();
@@ -112,7 +103,12 @@ describe("FilterBar · chips the parser does not own", () => {
     const box = field().parentElement!;
     expect(box).toHaveClass("focus-within:border-accent");
     expect(box.className).not.toMatch(/\btransition/);
-    expect(screen.getByRole("button", { name: "Remove filter entity:territory" })).toHaveClass("transition-[color,scale]", "duration-150", "ease-out", "active:scale-95");
+    expect(screen.getByRole("button", { name: "Remove filter entity:territory" })).toHaveClass(
+      "transition-[color,scale]",
+      "duration-150",
+      "ease-out",
+      "active:scale-95",
+    );
   });
 });
 
@@ -135,7 +131,9 @@ describe("FilterBar · remove marks", () => {
 
 describe("FilterBar · tooltip", () => {
   it("names each chip's remove button in a tooltip", () => {
-    render(<FilterBar query="entity:territory" onChange={vi.fn()} extra={[{ label: "last 7 days", onRemove: vi.fn() }]} />);
+    render(
+      <FilterBar query="entity:territory" onChange={vi.fn()} extra={[{ label: "last 7 days", onRemove: vi.fn() }]} />,
+    );
     const parsed = screen.getByRole("button", { name: "Remove filter entity:territory" });
     expect(hoverTip(parsed)).toHaveTextContent("Remove filter entity:territory");
     fireEvent.pointerLeave(parsed, { pointerType: "mouse" });

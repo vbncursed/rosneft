@@ -14,11 +14,7 @@ const nameOf = (users: Map<string, User>, id: string) => users.get(id)?.username
 const people = (n: number) => (n === 0 ? "owner only" : n === 1 ? "1 person" : `${n} people`);
 
 /** A row of the access list. Visibility is read off the admins: anyone assigned, or nobody. */
-export function toTerritoryAccess(
-  territory: Territory,
-  userIds: string[],
-  users: User[],
-): TerritoryAccess {
+export function toTerritoryAccess(territory: Territory, userIds: string[], users: User[]): TerritoryAccess {
   const known = byId(users);
   const date = shortDate(territory.updatedAt);
   return {
@@ -52,11 +48,7 @@ export function grantsOf(userIds: string[], users: User[]): AccessGrant[] {
  * matches nothing rather than everything: silently ignoring a typo would show
  * the full list and look like the filter simply did not work.
  */
-export function matchesAccess(
-  item: TerritoryAccess,
-  grants: AccessGrant[],
-  query: string,
-): boolean {
+export function matchesAccess(item: TerritoryAccess, grants: AccessGrant[], query: string): boolean {
   for (const { key, value } of parseFilters(query)) {
     if (key === "visibility") {
       if (item.visibility !== value) return false;
@@ -93,10 +85,7 @@ export function mixOf(items: TerritoryAccess[]): TerritoryAccessPageProps["mix"]
   };
 }
 
-export function statsOf(
-  items: TerritoryAccess[],
-  adminsBySlug: Record<string, string[]>,
-): AccessPageStat[] {
+export function statsOf(items: TerritoryAccess[], adminsBySlug: Record<string, string[]>): AccessPageStat[] {
   const shared = items.filter((t) => t.visibility === "assigned").length;
   const distinct = new Set(Object.values(adminsBySlug).flat()).size;
   return [
@@ -106,8 +95,7 @@ export function statsOf(
   ];
 }
 
-export const sameSet = (a: string[], b: string[]): boolean =>
-  a.length === b.length && a.every((x) => b.includes(x));
+export const sameSet = (a: string[], b: string[]): boolean => a.length === b.length && a.every((x) => b.includes(x));
 
 /**
  * The roles whose own id keys `territory_assignments`. auth-service's
@@ -130,10 +118,7 @@ export function candidatesOf(users: User[], draftIds: string[]): PersonOption[] 
   return users
     .filter(
       (u) =>
-        u.status === "active" &&
-        !u.isOwner &&
-        !taken.has(u.id) &&
-        u.roleSlugs.some((slug) => SELF_KEYED.has(slug)),
+        u.status === "active" && !u.isOwner && !taken.has(u.id) && u.roleSlugs.some((slug) => SELF_KEYED.has(slug)),
     )
     .map((u) => {
       const first = u.roleSlugs[0];

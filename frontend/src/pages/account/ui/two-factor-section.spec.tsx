@@ -66,10 +66,7 @@ describe("TwoFactorSection · off", () => {
   it("offers enrolment and none of the enabled shape's controls", () => {
     render(<TwoFactorSection {...props({ status: OFF })} />);
     expect(screen.getByText("off")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Enable two-factor" })).toHaveAttribute(
-      "href",
-      "/account/two-factor",
-    );
+    expect(screen.getByRole("link", { name: "Enable two-factor" })).toHaveAttribute("href", "/account/two-factor");
     expect(screen.queryByText("Authenticator")).not.toBeInTheDocument();
     expect(screen.queryByText("Recovery codes")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Disable 2FA" })).not.toBeInTheDocument();
@@ -131,6 +128,11 @@ describe("TwoFactorSection · loading", () => {
 
   it("presses its link actions on pointer-down", () => {
     render(<TwoFactorSection {...props({ status: OFF })} />);
-    expect(screen.getByRole("link", { name: "Enable two-factor" })).toHaveClass("transition-[color,background-color,border-color,scale]", "duration-150", "ease-out", "active:scale-[0.97]");
+    expect(screen.getByRole("link", { name: "Enable two-factor" })).toHaveClass(
+      "transition-[color,background-color,border-color,scale]",
+      "duration-150",
+      "ease-out",
+      "active:scale-[0.97]",
+    );
   });
 });

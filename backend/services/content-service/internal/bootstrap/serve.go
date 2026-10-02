@@ -45,7 +45,7 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 		return fmt.Errorf("blob store: %w", err)
 	}
 	content := InitService(pool, blobs)
-	grpcSrv, healthSrv := InitGRPCServer(grpcapi.New(content), logger)
+	grpcSrv, healthSrv := InitGRPCServer(grpcapi.New(content), logger) //nolint:contextcheck // false positive: the recovery stream interceptor takes its context from the stream (ss.Context()) per request, not from this bootstrap ctx
 	// Rows older than the thumbnail column, and any whose create-time
 	// thumbnail failed. One at a time, for as long as the process lives.
 	go content.BackfillThumbnails(rootCtx)
@@ -58,7 +58,7 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 		Logger:  logger,
 	})
 
-	lis, err := net.Listen("tcp", cfg.GRPCAddr)
+	lis, err := (&net.ListenConfig{}).Listen(rootCtx, "tcp", cfg.GRPCAddr)
 	if err != nil {
 		return fmt.Errorf("listen %s: %w", cfg.GRPCAddr, err)
 	}

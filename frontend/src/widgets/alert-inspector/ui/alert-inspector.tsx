@@ -87,9 +87,7 @@ export function AlertInspector({
       <div className="flex flex-col gap-4.5 p-4.5">
         {alert.series ? (
           <div>
-            <p className="m-0 mb-2.5 font-mono text-[9px] uppercase tracking-[0.2em] text-muted">
-              {chartLabel}
-            </p>
+            <p className="m-0 mb-2.5 font-mono text-[9px] uppercase tracking-[0.2em] text-muted">{chartLabel}</p>
             <div className="relative">
               <LineChart series={[alert.series]} label={chartLabel} height={96} />
               {alert.threshold ? (
@@ -117,19 +115,13 @@ export function AlertInspector({
 
         {contributors.length > 0 ? (
           <div>
-            <p className="m-0 mb-2.5 font-mono text-[9px] uppercase tracking-[0.2em] text-muted">
-              Top contributors
-            </p>
+            <p className="m-0 mb-2.5 font-mono text-[9px] uppercase tracking-[0.2em] text-muted">Top contributors</p>
             <div className="flex flex-col gap-2.5">
               {contributors.map((contributor) => (
                 <div key={contributor.path}>
                   <div className="flex items-baseline justify-between gap-2.5">
-                    <span className="truncate font-mono text-[11px] text-fg">
-                      {contributor.path}
-                    </span>
-                    <span
-                      className={cx("font-mono text-[11px]", TEXT[contributor.tone ?? "bad"])}
-                    >
+                    <span className="truncate font-mono text-[11px] text-fg">{contributor.path}</span>
+                    <span className={cx("font-mono text-[11px]", TEXT[contributor.tone ?? "bad"])}>
                       {contributor.value}
                     </span>
                   </div>
@@ -156,12 +148,7 @@ export function AlertInspector({
                   </Button>
                 ) : null}
                 {onOpenInAudit ? (
-                  <Button
-                    size="sm"
-                    variant="accent"
-                    className="flex-1 justify-center"
-                    onClick={onOpenInAudit}
-                  >
+                  <Button size="sm" variant="accent" className="flex-1 justify-center" onClick={onOpenInAudit}>
                     Open in audit
                   </Button>
                 ) : null}

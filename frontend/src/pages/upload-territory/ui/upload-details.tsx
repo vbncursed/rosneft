@@ -16,12 +16,7 @@ export function UploadDetails({ form, onForm, slug }: UploadDetailsProps) {
       <SectionHeading title="Details" count="slug is generated from the title" />
 
       <div>
-        <TextField
-          label="Title"
-          required
-          value={form.title}
-          onChange={(e) => onForm({ title: e.target.value })}
-        />
+        <TextField label="Title" required value={form.title} onChange={(e) => onForm({ title: e.target.value })} />
         {slug ? (
           <p className="mt-[7px] flex gap-[7px] font-mono text-[11px]">
             <span className="text-dim">slug</span>

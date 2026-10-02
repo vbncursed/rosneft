@@ -65,23 +65,13 @@ export function Tabs<T extends string>({
     const direction = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
     if (!direction) return;
     event.preventDefault();
-    const next = nextEnabled(
-      tabs.length,
-      index,
-      direction,
-      (i) => Boolean(tabs[i].disabled),
-      true,
-    );
+    const next = nextEnabled(tabs.length, index, direction, (i) => Boolean(tabs[i].disabled), true);
     onChange(tabs[next].value);
     buttons.current[next]?.focus();
   };
 
   return (
-    <div
-      role="tablist"
-      aria-label={ariaLabel}
-      className={cx(style.list, className)}
-    >
+    <div role="tablist" aria-label={ariaLabel} className={cx(style.list, className)}>
       {tabs.map((tab, index) => {
         const active = tab.value === value;
         return (
@@ -99,10 +89,7 @@ export function Tabs<T extends string>({
             tabIndex={active ? 0 : -1}
             onClick={() => onChange(tab.value)}
             onKeyDown={(e) => onKeyDown(index, e)}
-            className={cx(
-              style.tab,
-              tab.disabled ? style.disabled : active ? style.active : style.idle,
-            )}
+            className={cx(style.tab, tab.disabled ? style.disabled : active ? style.active : style.idle)}
           >
             {tab.label}
           </button>

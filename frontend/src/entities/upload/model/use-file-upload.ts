@@ -58,7 +58,7 @@ export function useFileUpload({ sniff, refusal, headBytes = 8, uploadingLabel }:
 
   const cancel = () => controller.current?.abort();
 
-  const run = async <T,>(work: (blob: FinalizedBlob, file: File) => Promise<T>): Promise<T | null> => {
+  const run = async <T>(work: (blob: FinalizedBlob, file: File) => Promise<T>): Promise<T | null> => {
     const file = picked.current;
     if (!file) return null;
     const ac = new AbortController();

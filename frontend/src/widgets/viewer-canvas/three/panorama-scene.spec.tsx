@@ -14,15 +14,7 @@ vi.mock("./panorama-rig", () => ({
     createElement("group", { name: "PanoramaRig", userData: { id: panorama.id } }),
 }));
 vi.mock("./panorama-loading-overlay", () => ({
-  default: ({
-    progress,
-    leaving,
-    onLeft,
-  }: {
-    progress: number | null;
-    leaving: boolean;
-    onLeft: () => void;
-  }) =>
+  default: ({ progress, leaving, onLeft }: { progress: number | null; leaving: boolean; onLeft: () => void }) =>
     createElement("group", {
       name: "PanoramaLoadingOverlay",
       userData: { progress, leaving, onLeft },
@@ -102,11 +94,9 @@ const scene = (over: Partial<Props> = {}) => (
 
 const mount = (over: Partial<Props> = {}) => ReactThreeTestRenderer.create(scene(over));
 
-const named = (r: Awaited<ReturnType<typeof mount>>, name: string) =>
-  r.scene.findAll((n) => n.instance.name === name);
+const named = (r: Awaited<ReturnType<typeof mount>>, name: string) => r.scene.findAll((n) => n.instance.name === name);
 
-const spheres = (r: Awaited<ReturnType<typeof mount>>) =>
-  r.scene.findAll((n) => (n.instance as Mesh).isMesh === true);
+const spheres = (r: Awaited<ReturnType<typeof mount>>) => r.scene.findAll((n) => (n.instance as Mesh).isMesh);
 
 const ready = { activePanorama: PANO, bitmap: fakeBitmap(), status: "ready" as const };
 
@@ -263,7 +253,9 @@ describe("PanoramaScene", () => {
   });
 
   it("draws the anchors without titles in Points only", async () => {
-    expect(named(await mount({ markerNames: false }), "PanoramaMarkersLayer")[0].instance.userData.showTitles).toBe(false);
+    expect(named(await mount({ markerNames: false }), "PanoramaMarkersLayer")[0].instance.userData.showTitles).toBe(
+      false,
+    );
     expect(named(await mount(), "PanoramaMarkersLayer")[0].instance.userData.showTitles).toBe(true);
   });
 

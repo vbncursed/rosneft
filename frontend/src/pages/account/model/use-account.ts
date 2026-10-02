@@ -51,8 +51,7 @@ export function useAccount(): AccountState {
   // reports it. They have to agree — the frame between the click and the effect
   // holds an empty slice with no request in flight yet, and a `busy` that only
   // watched the query flashed "this page could not be loaded" on every jump.
-  const walking =
-    rowsNeeded(shownPage) > loaded.length && activity.hasNextPage && !activity.isFetchNextPageError;
+  const walking = rowsNeeded(shownPage) > loaded.length && activity.hasNextPage && !activity.isFetchNextPageError;
   useEffect(() => {
     if (walking && !activity.isFetching) void activity.fetchNextPage();
   }, [walking, activity]);

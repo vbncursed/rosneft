@@ -83,11 +83,18 @@ describe("progressCard", () => {
   it("names the stage and the percent while running", () => {
     expect(progressCard("running", job())).toEqual({ title: "Building LOD 1", detail: "58%", value: 58 });
     expect(progressCard("running", job({ progress: 0 }))).toEqual({ title: "Building LOD 1", detail: "0%", value: 0 });
-    expect(progressCard("running", job({ progress: 1 }))).toEqual({ title: "Building LOD 1", detail: "100%", value: 100 });
+    expect(progressCard("running", job({ progress: 1 }))).toEqual({
+      title: "Building LOD 1",
+      detail: "100%",
+      value: 100,
+    });
   });
 
   it("keeps the stage but drops the bar when progress is unreported", () => {
-    expect(progressCard("running", job({ progress: null }))).toEqual({ title: "Building LOD 1", detail: "no progress reported" });
+    expect(progressCard("running", job({ progress: null }))).toEqual({
+      title: "Building LOD 1",
+      detail: "no progress reported",
+    });
     expect(progressCard("running", job({ progress: null, stage: null })).title).toBe("Starting");
   });
 

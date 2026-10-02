@@ -15,12 +15,7 @@ const SKIN: Record<AlertSeverity, string> = {
 /** Severity always ships with its word, never as colour alone. */
 export function AlertRow({ name, severity }: AlertRowProps) {
   return (
-    <div
-      className={cx(
-        "flex items-center justify-between gap-3 rounded-control border px-3 py-2",
-        SKIN[severity],
-      )}
-    >
+    <div className={cx("flex items-center justify-between gap-3 rounded-control border px-3 py-2", SKIN[severity])}>
       <span className="text-xs">{name}</span>
       <span className="font-mono text-[9px] uppercase tracking-[0.2em]">{severity}</span>
     </div>

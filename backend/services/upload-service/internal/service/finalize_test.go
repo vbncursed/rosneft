@@ -37,19 +37,25 @@ func (s *FinalizeSuite) SetupTest() {
 	s.ctx = s.T().Context()
 }
 
+// yieldedHash and yieldedSize are what finalizeYields publishes.
+const (
+	yieldedHash = "cafef00d"
+	yieldedSize = 5
+)
+
 // completeSession answers GetStatus with a finished 5-byte session of author.
 func (s *FinalizeSuite) completeSession() {
-	stubSession(s.ctx, s.store, "sess-1", author, 5, 5)
+	stubSession(s.ctx, s.store, author, 5, 5)
 }
 
 // finalizeYields stubs store.Finalize to invoke the publish callback (the only
 // way to exercise the blobs.Put wiring — putBlob is a func arg, unmatchable).
-func (s *FinalizeSuite) finalizeYields(hash string, size int64) {
+func (s *FinalizeSuite) finalizeYields() {
 	s.store.FinalizeMock.Set(func(ctx context.Context, _ string, putBlob func(context.Context, string, io.Reader) error) (string, int64, error) {
-		if err := putBlob(ctx, hash, bytes.NewReader(nil)); err != nil {
+		if err := putBlob(ctx, yieldedHash, bytes.NewReader(nil)); err != nil {
 			return "", 0, err
 		}
-		return hash, size, nil
+		return yieldedHash, yieldedSize, nil
 	})
 }
 
@@ -66,18 +72,18 @@ func (s *FinalizeSuite) TestRejectsUnknownID() {
 
 func (s *FinalizeSuite) TestRejectsIncompleteSession() {
 	// Declared 5 bytes, nothing written → Finalize must refuse a partial blob.
-	stubSession(s.ctx, s.store, "sess-1", author, 5, 0)
-	_, err := s.svc.Finalize(s.ctx, author, "sess-1")
+	stubSession(s.ctx, s.store, author, 5, 0)
+	_, err := s.svc.Finalize(s.ctx, author, sessionID)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *FinalizeSuite) TestSucceedsOnCompleteSession() {
 	s.completeSession()
-	s.finalizeYields("cafef00d", 5)
+	s.finalizeYields()
 	s.blobs.PutMock.Return(blobstore.Blob{Hash: "cafef00d"}, nil)
 	s.store.RecordUploadMock.Expect(s.ctx, "cafef00d", author).Return(nil)
 
-	out, err := s.svc.Finalize(s.ctx, author, "sess-1")
+	out, err := s.svc.Finalize(s.ctx, author, sessionID)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), out.Hash, "cafef00d")
 	assert.Equal(s.T(), out.Size, int64(5))
@@ -85,23 +91,23 @@ func (s *FinalizeSuite) TestSucceedsOnCompleteSession() {
 
 func (s *FinalizeSuite) TestForwardsContentTypeToBlobStore() {
 	s.completeSession()
-	s.finalizeYields("cafef00d", 5)
+	s.finalizeYields()
 	s.blobs.PutMock.Inspect(func(_ context.Context, hash, contentType string, _ io.Reader) {
 		assert.Equal(s.T(), hash, "cafef00d")
 		assert.Equal(s.T(), contentType, "application/zip")
 	}).Return(blobstore.Blob{}, nil)
 	s.store.RecordUploadMock.Return(nil)
 
-	_, err := s.svc.Finalize(s.ctx, author, "sess-1")
+	_, err := s.svc.Finalize(s.ctx, author, sessionID)
 	assert.NilError(s.T(), err)
 }
 
 func (s *FinalizeSuite) TestPropagatesBlobStoreError() {
 	s.completeSession()
-	s.finalizeYields("cafef00d", 5)
+	s.finalizeYields()
 	s.blobs.PutMock.Return(blobstore.Blob{}, errors.New("blob store down"))
 
-	_, err := s.svc.Finalize(s.ctx, author, "sess-1")
+	_, err := s.svc.Finalize(s.ctx, author, sessionID)
 	assert.ErrorContains(s.T(), err, "blob store down")
 }
 
@@ -109,7 +115,7 @@ func (s *FinalizeSuite) TestPropagatesBlobStoreError() {
 // hash the stranger could then claim as their own upload.
 func (s *FinalizeSuite) TestRefusesAnotherAuthorsSession() {
 	s.completeSession()
-	_, err := s.svc.Finalize(s.ctx, stranger, "sess-1")
+	_, err := s.svc.Finalize(s.ctx, stranger, sessionID)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrSessionNotFound))
 }
 
@@ -117,10 +123,10 @@ func (s *FinalizeSuite) TestRefusesAnotherAuthorsSession() {
 // what later lets the author, and only the author, attach the hash to a row.
 func (s *FinalizeSuite) TestFailsWhenTheUploadCannotBeRecorded() {
 	s.completeSession()
-	s.finalizeYields("cafef00d", 5)
+	s.finalizeYields()
 	s.blobs.PutMock.Return(blobstore.Blob{}, nil)
 	s.store.RecordUploadMock.Return(errors.New("disk full"))
 
-	_, err := s.svc.Finalize(s.ctx, author, "sess-1")
+	_, err := s.svc.Finalize(s.ctx, author, sessionID)
 	assert.ErrorContains(s.T(), err, "disk full")
 }

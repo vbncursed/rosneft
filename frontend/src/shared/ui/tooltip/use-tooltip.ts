@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useRef, useState, type FocusEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FocusEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent,
+} from "react";
 
 export const OPEN_DELAY = 500;
 export const WARM_WINDOW = 300;

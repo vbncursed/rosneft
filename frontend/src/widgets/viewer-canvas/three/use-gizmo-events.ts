@@ -1,10 +1,7 @@
 import { type RefObject, useCallback, useEffect, useRef } from "react";
 import type { Object3D } from "three";
 import { useThree } from "@react-three/fiber";
-import type {
-  OrbitControls as OrbitControlsImpl,
-  TransformControls as TransformControlsImpl,
-} from "three-stdlib";
+import type { OrbitControls as OrbitControlsImpl, TransformControls as TransformControlsImpl } from "three-stdlib";
 import type { GizmoMode } from "@/features/viewer-mode";
 import type { PlacementTransform } from "@/entities/placement";
 import { holdStill } from "./stop-coast";
@@ -28,7 +25,7 @@ interface TransformEmitter {
 }
 
 function asEmitter(tc: TransformControlsImpl): TransformEmitter {
-  return tc as unknown as TransformEmitter;
+  return tc;
 }
 
 interface UseGizmoEventsParams {

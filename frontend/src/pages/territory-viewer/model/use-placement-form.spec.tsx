@@ -199,9 +199,7 @@ describe("usePlacementForm", () => {
     await act(async () => result.current.form?.onSave());
 
     expect(update).not.toHaveBeenCalled();
-    expect(sent).toEqual([
-      { position: MOVED, rotation: TANK.rotation, scale: TANK.scale, label: "Tank 4" },
-    ]);
+    expect(sent).toEqual([{ position: MOVED, rotation: TANK.rotation, scale: TANK.scale, label: "Tank 4" }]);
   });
 
   it("sends the typed numbers on an edit too — the cells are not read-only any more", async () => {

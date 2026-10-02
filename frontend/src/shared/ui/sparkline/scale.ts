@@ -13,11 +13,7 @@ export type Bar = {
  * sparkline answers "what shape was this", not "what value was that" — the
  * caller prints the number it wants read.
  */
-export function toBars(
-  values: number[],
-  dimFrom?: number,
-  highlight: "peak" | "last" = "peak",
-): Bar[] {
+export function toBars(values: number[], dimFrom?: number, highlight: "peak" | "last" = "peak"): Bar[] {
   const max = Math.max(0, ...values);
   const peakIndex = highlight === "last" ? values.length - 1 : values.indexOf(max);
 

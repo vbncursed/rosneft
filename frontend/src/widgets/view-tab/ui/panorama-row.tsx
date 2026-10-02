@@ -71,7 +71,16 @@ function Thumb({ url }: { url: string }) {
 }
 
 /** One panorama: its eye, its photo, its title, the way into or out of it, then move and edit. */
-export function PanoramaRow({ row, onEnter, onExit, onEdit, phaseHidden = false, pending = false, onHide, onMove }: PanoramaRowProps) {
+export function PanoramaRow({
+  row,
+  onEnter,
+  onExit,
+  onEdit,
+  phaseHidden = false,
+  pending = false,
+  onHide,
+  onMove,
+}: PanoramaRowProps) {
   const { id, title, thumbUrl, active, calibrated, canEdit, editing, phase, hidden } = row;
   // Two rows both reading "Show in this panorama" are one control to a screen
   // reader. The visible words stay first, so WCAG 2.5.3 still holds.
@@ -100,7 +109,13 @@ export function PanoramaRow({ row, onEnter, onExit, onEdit, phaseHidden = false,
         />
       ) : null}
 
-      <span className={cx(THUMB, active ? "border-accent-line text-accent" : "border-line-2 text-dim", dimmed && "opacity-55")}>
+      <span
+        className={cx(
+          THUMB,
+          active ? "border-accent-line text-accent" : "border-line-2 text-dim",
+          dimmed && "opacity-55",
+        )}
+      >
         {thumbUrl ? <Thumb key={thumbUrl} url={thumbUrl} /> : <Icon name="panorama" size={16} />}
       </span>
 

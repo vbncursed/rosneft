@@ -10,9 +10,26 @@ describe("panel catalogue", () => {
   it("covers every id the gateway registers, once", () => {
     const ids = Object.keys(PANELS).sort();
     expect(ids).toEqual([
-      "alerts", "domain-auth", "domain-conversion-p95", "domain-conversions", "domain-queue", "domain-twofa", "domain-upload",
-      "red-errors", "red-http", "red-latency", "red-rate", "runtime-fds", "runtime-gc", "runtime-goroutines", "runtime-memory",
-      "services-up", "stat-errors", "stat-p99", "stat-queue", "stat-rps",
+      "alerts",
+      "domain-auth",
+      "domain-conversion-p95",
+      "domain-conversions",
+      "domain-queue",
+      "domain-twofa",
+      "domain-upload",
+      "red-errors",
+      "red-http",
+      "red-latency",
+      "red-rate",
+      "runtime-fds",
+      "runtime-gc",
+      "runtime-goroutines",
+      "runtime-memory",
+      "services-up",
+      "stat-errors",
+      "stat-p99",
+      "stat-queue",
+      "stat-rps",
     ]);
     const inSections = SECTIONS.flatMap((s) => s.panelIds);
     expect(new Set(inSections).size).toBe(inSections.length);

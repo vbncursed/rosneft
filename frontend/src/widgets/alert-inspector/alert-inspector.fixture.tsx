@@ -3,9 +3,7 @@ import { AlertInspector, type FiringAlert } from "./ui/alert-inspector";
 const noop = () => {};
 
 const wave = (n: number, base: number, amp: number, seed: number, drift = 0) =>
-  Array.from({ length: n }, (_, i) =>
-    Math.max(0, base + Math.sin((i + seed) * 0.7) * amp + (i / n) * drift),
-  );
+  Array.from({ length: n }, (_, i) => Math.max(0, base + Math.sin((i + seed) * 0.7) * amp + (i / n) * drift));
 
 const ALERT: FiringAlert = {
   name: "HighErrorRate",
@@ -29,19 +27,19 @@ const ALERT: FiringAlert = {
 export default {
   firing: (
     <div className="max-w-sm p-6">
-      <AlertInspector
-        alert={ALERT}
-        onClose={noop}
-        onSilence={noop}
-        onOpenInAudit={noop}
-        onCopyPromQl={noop}
-      />
+      <AlertInspector alert={ALERT} onClose={noop} onSilence={noop} onOpenInAudit={noop} onCopyPromQl={noop} />
     </div>
   ),
   noThreshold: (
     <div className="max-w-sm p-6">
       <AlertInspector
-        alert={{ ...ALERT, name: "QueueBacklog", meta: "mesh-worker · severity: warning", threshold: undefined, contributors: [] }}
+        alert={{
+          ...ALERT,
+          name: "QueueBacklog",
+          meta: "mesh-worker · severity: warning",
+          threshold: undefined,
+          contributors: [],
+        }}
         onClose={noop}
         onSilence={noop}
         onOpenInAudit={noop}

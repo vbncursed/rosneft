@@ -117,6 +117,9 @@ func (s *Server) ListTerritoryArtifacts(ctx context.Context, req ListTerritoryAr
 }
 
 func (s *Server) GetTerritoryArtifact(ctx context.Context, req GetTerritoryArtifactRequestObject) (GetTerritoryArtifactResponseObject, error) {
+	if req.Lod < 0 {
+		return GetTerritoryArtifact404JSONResponse{NotFoundJSONResponse: notFoundResp(domain.ErrArtifactNotFound)}, nil
+	}
 	a, err := s.svc.GetTerritoryArtifact(ctx, req.Slug, uint32(req.Lod))
 	switch {
 	case isNotFound(err):

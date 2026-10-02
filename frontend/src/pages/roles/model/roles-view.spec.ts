@@ -75,30 +75,25 @@ describe("withUserCounts", () => {
 
   // The gateway already answered null; nothing here invents a number for it.
   it("leaves every count unknown when the people are not readable", () => {
-    expect(withUserCounts([role(), role({ slug: "guest" })], null).map((r) => r.users)).toEqual([
-      null,
-      null,
-    ]);
+    expect(withUserCounts([role(), role({ slug: "guest" })], null).map((r) => r.users)).toEqual([null, null]);
   });
 });
 
 describe("roleChips", () => {
   it("collapses a wholly-held group into one strong chip", () => {
-    expect(roleChips(role({ permissionSlugs: ["users:read", "users:write"] }), PERMISSIONS)).toEqual(
-      [{ label: "users.*", tone: "strong" }],
-    );
-  });
-
-  it("names each grant when only part of a group is held", () => {
-    expect(roleChips(role({ permissionSlugs: ["users:read"] }), PERMISSIONS)).toEqual([
-      { label: "users.read" },
+    expect(roleChips(role({ permissionSlugs: ["users:read", "users:write"] }), PERMISSIONS)).toEqual([
+      { label: "users.*", tone: "strong" },
     ]);
   });
 
+  it("names each grant when only part of a group is held", () => {
+    expect(roleChips(role({ permissionSlugs: ["users:read"] }), PERMISSIONS)).toEqual([{ label: "users.read" }]);
+  });
+
   it("locks a grant this actor may not hand out", () => {
-    expect(
-      roleChips(role({ permissionSlugs: ["users:read"] }), PERMISSIONS, new Set(["users:write"])),
-    ).toEqual([{ label: "users.read", tone: "locked" }]);
+    expect(roleChips(role({ permissionSlugs: ["users:read"] }), PERMISSIONS, new Set(["users:write"]))).toEqual([
+      { label: "users.read", tone: "locked" },
+    ]);
   });
 
   it("shows at most three", () => {
@@ -127,9 +122,7 @@ describe("groupRoles", () => {
   });
 
   it("counts one custom role in the singular", () => {
-    expect(groupRoles([role()], null, PERMISSIONS, undefined, clean)[1].note).toBe(
-      "1 role · editable",
-    );
+    expect(groupRoles([role()], null, PERMISSIONS, undefined, clean)[1].note).toBe("1 role · editable");
   });
 
   // The tag is the only thing on the card that says the draft is unsaved.
@@ -158,7 +151,11 @@ describe("groupRoles", () => {
   });
 
   it("stacks the live holders' faces, and none at all when they are unknown", () => {
-    const users = [user(), user({ id: "u-2", username: "b.petrov" }), user({ id: "u-3", username: "gone", status: "deleted" })];
+    const users = [
+      user(),
+      user({ id: "u-2", username: "b.petrov" }),
+      user({ id: "u-3", username: "gone", status: "deleted" }),
+    ];
     expect(groupRoles([role()], users, PERMISSIONS, undefined, clean)[1].roles[0].faces).toEqual([
       "a.ivanova",
       "b.petrov",

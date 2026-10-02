@@ -17,27 +17,14 @@ export type FieldProps = {
 };
 
 /** Wraps a control with the design's overline label and its hint/error line. */
-export function Field({
-  id,
-  label,
-  labelAction,
-  hint,
-  error,
-  required,
-  disabled,
-  className,
-  children,
-}: FieldProps) {
+export function Field({ id, label, labelAction, hint, error, required, disabled, className, children }: FieldProps) {
   return (
     <div className={cx("flex flex-col", className)}>
       {label ? (
         <div className="flex items-center justify-between gap-2">
           <label
             htmlFor={id}
-            className={cx(
-              "font-mono text-[10px] uppercase tracking-[0.18em]",
-              disabled ? "text-dim" : "text-muted",
-            )}
+            className={cx("font-mono text-[10px] uppercase tracking-[0.18em]", disabled ? "text-dim" : "text-muted")}
           >
             {label}
             {required ? <span aria-hidden="true"> *</span> : null}
@@ -60,4 +47,3 @@ export function Field({
     </div>
   );
 }
-

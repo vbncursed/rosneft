@@ -18,7 +18,7 @@ import (
 // absent for a related reason: it hands out a secret but changes no state, so
 // there is nothing to record until enable or disable. A password change is
 // listed for its failures alone (see triggerRecordsSuccess).
-var authAuditActions = map[string]string{
+var authAuditActions = map[string]string{ //nolint:gosec // G101: route-to-audit-action names, not credentials
 	"POST /api/auth/login":                      "auth.login",
 	"POST /api/auth/login/2fa":                  "auth.login_2fa",
 	"POST /api/auth/passkey/login/finish":       "auth.login_passkey",

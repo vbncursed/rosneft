@@ -45,15 +45,11 @@ describe("EventCard", () => {
 
   it("spells the kind out in the accessible name, not just in the glyph", () => {
     render(<EventCard entry={entry({ action: "placement.insert" })} summary="placed" />);
-    expect(
-      screen.getByRole("article", { name: "placement.insert, created Refinery Block C" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("article", { name: "placement.insert, created Refinery Block C" })).toBeInTheDocument();
   });
 
   it("colours the rail and the ring by kind", () => {
-    const { container, rerender } = render(
-      <EventCard entry={entry({ action: "placement.insert" })} summary="s" />,
-    );
+    const { container, rerender } = render(<EventCard entry={entry({ action: "placement.insert" })} summary="s" />);
     expect(container.querySelector("span[aria-hidden]")!.className).toContain("bg-ok");
 
     rerender(<EventCard entry={entry({ action: "model.delete" })} summary="s" />);

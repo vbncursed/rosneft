@@ -12,7 +12,13 @@ vi.mock("../model/use-territory-conversion", () => ({ useTerritoryConversion }))
 vi.mock("@tanstack/react-router", () => ({ useParams: () => useParams(), useSearch: () => useSearch() }));
 
 const TERRITORY = { slug: "t", title: "Tenant A", sourceBlobHash: "a".repeat(64), placementCount: 0 };
-const READY: TerritoryConversionState = { status: "ready", territory: TERRITORY, phase: "queued", job: null, hasLod0: false };
+const READY: TerritoryConversionState = {
+  status: "ready",
+  territory: TERRITORY,
+  phase: "queued",
+  job: null,
+  hasLod0: false,
+};
 
 describe("TerritoryConversionScreen", () => {
   it("hands the slug and the jobId from the URL to the hook", () => {
@@ -36,9 +42,7 @@ describe("TerritoryConversionScreen", () => {
 
     useTerritoryConversion.mockReturnValue({ status: "missing" });
     rerender(<TerritoryConversionScreen />);
-    expect(
-      screen.getByRole("heading", { level: 1, name: "No territory at this address" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "No territory at this address" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Browse territories" })).toHaveAttribute("href", "/territories");
 
     useTerritoryConversion.mockReturnValue({ status: "unavailable", error: "gateway down" });

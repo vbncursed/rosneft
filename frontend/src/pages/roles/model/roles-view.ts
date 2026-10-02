@@ -49,11 +49,7 @@ const MAX_CHIPS = 3;
 const MAX_FACES = 4;
 
 /** `group.*` for a whole group held, else one chip per grant; locked when not grantable. */
-export function roleChips(
-  role: Role,
-  all: Permission[],
-  grantable?: Set<string>,
-): RoleCardChip[] {
+export function roleChips(role: Role, all: Permission[], grantable?: Set<string>): RoleCardChip[] {
   const held = new Set(role.permissionSlugs);
   const chips: RoleCardChip[] = [];
   for (const group of groupPermissions(all)) {
@@ -139,11 +135,7 @@ export function distributionOf(
   return { label: "People by role", detail: `${people.length} accounts`, segments };
 }
 
-export function statsOf(
-  roles: Role[],
-  permissions: Permission[],
-  users: User[] | null,
-): RolesPageStat[] {
+export function statsOf(roles: Role[], permissions: Permission[], users: User[] | null): RolesPageStat[] {
   const system = roles.filter((r) => r.kind === "system").length;
   const groups = groupPermissions(permissions).length;
   const owners = users ? String(live(users).filter((u) => u.isOwner).length) : "—";

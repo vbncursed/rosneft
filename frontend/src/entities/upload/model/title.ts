@@ -1,5 +1,5 @@
 /** Strips a trailing .zip (case-insensitive) and surrounding whitespace, for a starting title guess. */
-export const deriveTitle = (fileName: string): string => fileName.replace(/\s*\.zip\s*$/i, "").trim();
+export const deriveTitle = (fileName: string): string => fileName.replace(/\s*\.zip\s*$/iu, "").trim();
 
 /**
  * A client-side slug guess for the form's live preview; the catalog derives
@@ -12,6 +12,6 @@ export const slugPreview = (title: string): string =>
   title
     .toLowerCase()
     .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/[\u0300-\u036f]/gu, "")
+    .replace(/[^a-z0-9]+/gu, "-")
+    .replace(/^-+|-+$/gu, "");

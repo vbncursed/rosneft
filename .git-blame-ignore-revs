@@ -1,0 +1,4 @@
+# One-shot oxfmt reformat commits. Enable locally with:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+1cd2b7b12902022ceb48f6b1be642d767c8efe02
+231e7dc83b9df928940142c7afbfe34899f9e41e

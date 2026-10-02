@@ -8,7 +8,7 @@ describe("toRole", () => {
       title: "Company Owner",
       isSystem: true,
       permissionSlugs: ["users:read", "users:write"],
-    } as never);
+    });
     expect(r).toEqual({
       slug: "admin",
       title: "Company Owner",
@@ -21,7 +21,7 @@ describe("toRole", () => {
   });
 
   it("dates nothing on a custom role and tolerates absent fields", () => {
-    const r = toRole({ slug: "ops", title: "Ops", isSystem: false } as never);
+    const r = toRole({ slug: "ops", title: "Ops", isSystem: false });
     expect(r.kind).toBe("custom");
     expect(r.permissionSlugs).toEqual([]);
     expect(r.updated).toBe("");

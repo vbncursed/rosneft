@@ -62,7 +62,7 @@ vuln: ## govulncheck per module (needs network for the vuln DB)
 		(cd $$mod && govulncheck ./...) || exit 1; \
 	done
 
-hooks: ## Point git at .githooks/ so pre-commit runs `make check`
+hooks: ## Point git at .githooks/ (pre-commit gates backend, frontend, desktop)
 	git -C .. config core.hooksPath .githooks
 	@echo "==> hooks installed (bypass a single commit with: git commit --no-verify)"
 

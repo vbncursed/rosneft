@@ -12,7 +12,7 @@ export type FilterChip = {
  */
 export function parseFilters(query: string): FilterChip[] {
   return query
-    .split(/\s+/)
+    .split(/\s+/u)
     .filter(Boolean)
     .flatMap((token) => {
       const colon = token.indexOf(":");
@@ -24,7 +24,7 @@ export function parseFilters(query: string): FilterChip[] {
 /** Removes one token, leaving the rest of the query as it was. */
 export function removeToken(query: string, token: string): string {
   return query
-    .split(/\s+/)
+    .split(/\s+/u)
     .filter((part) => part && part !== token)
     .join(" ");
 }
@@ -38,7 +38,7 @@ export function removeToken(query: string, token: string): string {
 export function freeText(query: string): string {
   const tokens = new Set(parseFilters(query).map((filter) => filter.token));
   return query
-    .split(/\s+/)
+    .split(/\s+/u)
     .filter((part) => part && !tokens.has(part))
     .join(" ");
 }

@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -42,10 +44,12 @@ describe("DocumentWindow", () => {
 
   it("points the pdf.js frame at the document's own asset by default", () => {
     render(<DocumentWindow {...props({ frameSrc: undefined })} />);
-    expect(screen.getByTitle(FILE)).toHaveAttribute(
-      "src",
-      "/pdfjs/web/viewer.html?file=%2Fapi%2Fassets%2Fh",
-    );
+    expect(screen.getByTitle(FILE)).toHaveAttribute("src", "/pdfjs/web/viewer.html?file=%2Fapi%2Fassets%2Fh");
+  });
+
+  it("carries no sandbox: pdf.js needs scripts plus the page's origin, which would make the attribute decorative", () => {
+    render(<DocumentWindow {...props()} />);
+    expect(screen.getByTitle(FILE)).not.toHaveAttribute("sandbox");
   });
 
   it("is a pip window named by the file, with the handle, the grip, and its actions", async () => {
@@ -136,5 +140,25 @@ describe("DocumentWindow · tooltips", () => {
   ])("names %#: %s as a short tooltip", (p, name, tip) => {
     render(<DocumentWindow {...p} />);
     expect(hoverTip(screen.getByRole("button", { name }))?.textContent).toBe(tip);
+  });
+});
+
+describe("pdf.js sandbox", () => {
+  it("is vendored at the base the absence check below uses, so that check cannot pass vacuously", () => {
+    expect(existsSync(resolve(process.cwd(), "public/pdfjs/build/pdf.mjs"))).toBe(true);
+  });
+
+  it("is locked from this page: viewer.mjs announces webviewerloaded on the parent document", () => {
+    const set = vi.fn();
+    render(<DocumentWindow {...props()} />);
+    document.dispatchEvent(
+      new CustomEvent("webviewerloaded", { detail: { source: { PDFViewerApplicationOptions: { set } } } }),
+    );
+    expect(set).toHaveBeenCalledWith("enableScripting", false);
+  });
+
+  it("stays unvendored: the iframe has no sandbox, so PDF JavaScript is inert only while pdf.sandbox.mjs is absent", () => {
+    const sandbox = resolve(process.cwd(), "public/pdfjs/build/pdf.sandbox.mjs");
+    expect(existsSync(sandbox)).toBe(false);
   });
 });

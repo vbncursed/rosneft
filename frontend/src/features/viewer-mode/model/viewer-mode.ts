@@ -86,9 +86,7 @@ export function viewerModeReducer(state: ViewerModeState, action: ViewerModeActi
       return state.view.kind === "scene" ? state : { ...state, view: SCENE };
     case "toggleMove":
       if (state.view.kind === "panorama") return state;
-      return state.move
-        ? { ...state, move: false }
-        : { ...state, move: true, mode: "orbit", selectedId: null };
+      return state.move ? { ...state, move: false } : { ...state, move: true, mode: "orbit", selectedId: null };
     case "exitMove":
       return state.move ? { ...state, move: false } : state;
     case "startEdit":

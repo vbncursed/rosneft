@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CatalogShellRoute } from "./catalog-shell-route";
 
 const { useQuery, useOfflineUser } = vi.hoisted(() => ({ useQuery: vi.fn(), useOfflineUser: vi.fn() }));
-vi.mock("@tanstack/react-query", async (real) => ({ ...(await real<typeof import("@tanstack/react-query")>()), useQuery }));
+vi.mock("@tanstack/react-query", async (real) => ({
+  ...(await real<typeof import("@tanstack/react-query")>()),
+  useQuery,
+}));
 vi.mock("@/features/offline-save", () => ({ useOfflineUser }));
 vi.mock("@/widgets/catalog-shell", () => ({ CatalogShell: () => <p>shell</p> }));
 vi.mock("@/widgets/offline-banner", () => ({ OfflineBanner: () => null }));

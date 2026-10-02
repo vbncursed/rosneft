@@ -1,10 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import {
-  deletePanorama,
-  updatePanorama,
-  type Panorama,
-  type PanoramaUpdate,
-} from "@/entities/panorama";
+import { deletePanorama, updatePanorama, type Panorama, type PanoramaUpdate } from "@/entities/panorama";
 import { messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
 
@@ -73,7 +68,13 @@ export function usePanoramaList({ slug, initial, onChanged }: PanoramaListParams
           setPanoramas((prev) =>
             prev.map((p) =>
               p.id === id
-                ? { ...p, title: current.title, position: current.position, yawOffset: current.yawOffset, defaultYaw: current.defaultYaw }
+                ? {
+                    ...p,
+                    title: current.title,
+                    position: current.position,
+                    yawOffset: current.yawOffset,
+                    defaultYaw: current.defaultYaw,
+                  }
                 : p,
             ),
           );
@@ -110,6 +111,7 @@ export function usePanoramaList({ slug, initial, onChanged }: PanoramaListParams
         setPendingId(null);
       }
     },
+    // oxlint-disable-next-line react/memo-dependencies -- false positive: oxlint does not see the onChanged call inside finally; removing the dep would make the callback stale
     [slug, onChanged],
   );
 

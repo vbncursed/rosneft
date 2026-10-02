@@ -60,13 +60,7 @@ function summarise(series: Series[], label: string, format?: (v: number) => stri
   return `${label}: ${parts.join(", ")}`;
 }
 
-export function LineChart({
-  series,
-  label,
-  format,
-  height = DEFAULT_GEOMETRY.height,
-  className,
-}: LineChartProps) {
+export function LineChart({ series, label, format, height = DEFAULT_GEOMETRY.height, className }: LineChartProps) {
   const geo = { ...DEFAULT_GEOMETRY, height };
   const max = sharedMax(series);
   // A single series is filled; several would obscure one another, so they stay
@@ -77,24 +71,18 @@ export function LineChart({
     <div
       role="img"
       aria-label={summarise(series, label, format)}
-      className={cx(
-        "relative overflow-hidden rounded-[9px] border border-line bg-panel-2",
-        className,
-      )}
+      className={cx("relative overflow-hidden rounded-[9px] border border-line bg-panel-2", className)}
       style={{
         height,
         backgroundImage: "linear-gradient(var(--grid) 1px, transparent 1px)",
         backgroundSize: "100% 22px",
       }}
     >
-      <svg
-        viewBox={`0 0 ${geo.width} ${geo.height}`}
-        preserveAspectRatio="none"
-        className="absolute inset-0 size-full"
-      >
+      <svg viewBox={`0 0 ${geo.width} ${geo.height}`} preserveAspectRatio="none" className="absolute inset-0 size-full">
         {filled
           ? series.map((s, i) => (
               <path
+                // oxlint-disable-next-line react/no-array-index-key -- series are fixed-order and two may share a label
                 key={`area-${i}`}
                 d={toAreaPath(s.values, max, geo)}
                 fill={FILL[toneOf(s, i)]}
@@ -105,6 +93,7 @@ export function LineChart({
 
         {series.map((s, i) => (
           <path
+            // oxlint-disable-next-line react/no-array-index-key -- series are fixed-order and two may share a label
             key={`line-${i}`}
             d={toLinePath(s.values, max, geo)}
             fill="none"
@@ -130,15 +119,9 @@ export function ChartLegend({ series, className }: ChartLegendProps) {
   return (
     <div className={cx("flex flex-wrap gap-3", className)}>
       {series.map((s, i) => (
-        <span
-          key={i}
-          className="flex items-center gap-1.5 font-mono text-[10px] text-muted"
-        >
-          <span
-            aria-hidden="true"
-            className="h-0.5 w-3"
-            style={{ background: STROKE[toneOf(s, i)] }}
-          />
+        // oxlint-disable-next-line react/no-array-index-key -- series are fixed-order and two may share a label
+        <span key={i} className="flex items-center gap-1.5 font-mono text-[10px] text-muted">
+          <span aria-hidden="true" className="h-0.5 w-3" style={{ background: STROKE[toneOf(s, i)] }} />
           {s.label}
         </span>
       ))}

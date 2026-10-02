@@ -1,11 +1,28 @@
 import { useState, type ReactNode } from "react";
-import { groupByModel, groupPlacements, IDENTITY_TRANSFORM, type Placement, type PlacementGroup, type PlacementSections, type PlacementTransform } from "@/entities/placement";
+import {
+  groupByModel,
+  groupPlacements,
+  IDENTITY_TRANSFORM,
+  type Placement,
+  type PlacementGroup,
+  type PlacementSections,
+  type PlacementTransform,
+} from "@/entities/placement";
 import type { GizmoMode } from "@/features/viewer-mode";
 import { PlacementsPanel, type PlacementVisibility } from "./ui/placements-panel";
 import type { SelectedBlockProps } from "./ui/selected-block";
 
 const make = (id: number, modelSlug: string, label = "", over: Partial<Placement> = {}): Placement => ({
-  id, territorySlug: "refinery-block-c", modelSlug, label, updatedAt: "", visiblePanoramaIds: [], hidden: false, groupId: null, ...IDENTITY_TRANSFORM, ...over,
+  id,
+  territorySlug: "refinery-block-c",
+  modelSlug,
+  label,
+  updatedAt: "",
+  visiblePanoramaIds: [],
+  hidden: false,
+  groupId: null,
+  ...IDENTITY_TRANSFORM,
+  ...over,
 });
 const OPTIONS = [
   { slug: "pipe-rack-12", title: "pipe-rack-12" },
@@ -15,10 +32,20 @@ const OPTIONS = [
 const sectionsOf = (placements: Placement[], groups: PlacementGroup[] = []): PlacementSections =>
   groupPlacements(groupByModel(placements, OPTIONS), groups);
 
-const SECTIONS = sectionsOf([make(11, "pipe-rack-12", "west run"), make(1, "storage-tank-500"), make(2, "storage-tank-500", "north row"), make(3, "storage-tank-500")]);
+const SECTIONS = sectionsOf([
+  make(11, "pipe-rack-12", "west run"),
+  make(1, "storage-tank-500"),
+  make(2, "storage-tank-500", "north row"),
+  make(3, "storage-tank-500"),
+]);
 const RU_SECTIONS = sectionsOf([make(4, "nasos-nm-1250"), make(5, "nasos-nm-1250")]);
 const GROUPED = sectionsOf(
-  [make(11, "pipe-rack-12", "west run", { groupId: 1 }), make(1, "storage-tank-500", "", { groupId: 1, hidden: true }), make(2, "storage-tank-500", "north row"), make(3, "storage-tank-500", "", { hidden: true })],
+  [
+    make(11, "pipe-rack-12", "west run", { groupId: 1 }),
+    make(1, "storage-tank-500", "", { groupId: 1, hidden: true }),
+    make(2, "storage-tank-500", "north row"),
+    make(3, "storage-tank-500", "", { hidden: true }),
+  ],
   [
     { id: 1, title: "West yard", hidden: false },
     { id: 2, title: "Spare parts", hidden: false },
@@ -41,10 +68,7 @@ const COMPACT_TRANSFORM: PlacementTransform = {
 function Body({ width = 320, children }: { width?: number; children: ReactNode }) {
   return (
     <div className="p-6">
-      <div
-        style={{ width }}
-        className="rounded-card border border-line bg-panel p-3.5 shadow-elevation"
-      >
+      <div style={{ width }} className="rounded-card border border-line bg-panel p-3.5 shadow-elevation">
         {children}
       </div>
     </div>
@@ -93,7 +117,13 @@ function Live({
         onSetHidden={() => {}}
         onMoveToGroup={() => {}}
         onAddToGroup={() => {}}
-        groupActions={{ busy: false, onCreate: async () => true, onRename: async () => true, onDelete: () => {}, onSetHidden: () => {} }}
+        groupActions={{
+          busy: false,
+          onCreate: async () => true,
+          onRename: async () => true,
+          onDelete: () => {},
+          onSetHidden: () => {},
+        }}
         selected={selected ? { ...selected, gizmo, onGizmo: setGizmo, snap, onSnap: setSnap } : null}
         visibility={
           visibility
@@ -182,9 +212,7 @@ function Form({
 }
 
 export default {
-  editor: (
-    <Form kind="edit" name="storage-tank-500 #2" selectedId={2} start={TRANSFORM} initialLabel="north row" />
-  ),
+  editor: <Form kind="edit" name="storage-tank-500 #2" selectedId={2} start={TRANSFORM} initialLabel="north row" />,
   guest: (
     <Live
       grants={GUEST}
@@ -200,11 +228,7 @@ export default {
   ),
   "no-delete": <Live grants={NO_DELETE} />,
   "visible-in": (
-    <Live
-      grants={NO_DELETE}
-      selectedId={2}
-      visibility={{ panoramas: PANORAMAS, visiblePanoramaIds: [1] }}
-    />
+    <Live grants={NO_DELETE} selectedId={2} visibility={{ panoramas: PANORAMAS, visiblePanoramaIds: [1] }} />
   ),
   empty: <Live grants={EDITOR} sections={{ userGroups: [], modelGroups: [] }} />,
   form: <Form kind="new" />,

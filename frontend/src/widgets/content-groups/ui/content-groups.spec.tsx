@@ -44,10 +44,7 @@ describe("ContentGroups", () => {
 
   it("marks the selected row", () => {
     render(<ContentGroups groups={GROUPS} selectedSlug="north-ridge-pad" />);
-    expect(screen.getByRole("article", { name: "North Ridge Pad" })).toHaveAttribute(
-      "aria-current",
-      "true",
-    );
+    expect(screen.getByRole("article", { name: "North Ridge Pad" })).toHaveAttribute("aria-current", "true");
   });
 
   it("reports a selection with the whole item", async () => {
@@ -87,9 +84,7 @@ describe("ContentGroups", () => {
 
   it("says what the drop target actually does — it opens a form, it takes no drop", () => {
     render(<ContentGroups groups={GROUPS} onDropZoneClick={vi.fn()} />);
-    expect(
-      screen.getByRole("button", { name: "Upload an OBJ or GLB — opens the upload form" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Upload an OBJ or GLB — opens the upload form" })).toBeInTheDocument();
   });
 
   it("keeps the drop target available even when the filter matched nothing", async () => {

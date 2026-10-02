@@ -26,7 +26,10 @@ describe("viewerModeReducer", () => {
 
   it("selecting leaves measure and place mode; a null select only clears", () => {
     expect(reduce(measuring, { type: "select", id: 3 })).toEqual({ ...INITIAL_VIEWER_MODE, selectedId: 3 });
-    expect(reduce({ ...INITIAL_VIEWER_MODE, mode: "place" }, { type: "select", id: 3 })).toEqual({ ...INITIAL_VIEWER_MODE, selectedId: 3 });
+    expect(reduce({ ...INITIAL_VIEWER_MODE, mode: "place" }, { type: "select", id: 3 })).toEqual({
+      ...INITIAL_VIEWER_MODE,
+      selectedId: 3,
+    });
     expect(reduce(selected, { type: "select", id: null })).toEqual(INITIAL_VIEWER_MODE);
   });
 
@@ -47,12 +50,17 @@ describe("viewerModeReducer", () => {
     expect(reduce(measuring, { type: "escape", chainOpen: true })).toBe(measuring);
   });
   it("escape: a selection clears before the mode changes", () => {
-    expect(reduce({ ...measuring, selectedId: 2 }, { type: "escape", chainOpen: false })).toEqual({ ...measuring, selectedId: null });
+    expect(reduce({ ...measuring, selectedId: 2 }, { type: "escape", chainOpen: false })).toEqual({
+      ...measuring,
+      selectedId: null,
+    });
     expect(reduce(selected, { type: "escape", chainOpen: false })).toEqual(INITIAL_VIEWER_MODE);
   });
   it("escape: with nothing selected the mode returns to orbit", () => {
     expect(reduce(measuring, { type: "escape", chainOpen: false })).toEqual(INITIAL_VIEWER_MODE);
-    expect(reduce({ ...INITIAL_VIEWER_MODE, mode: "place" }, { type: "escape", chainOpen: false })).toEqual(INITIAL_VIEWER_MODE);
+    expect(reduce({ ...INITIAL_VIEWER_MODE, mode: "place" }, { type: "escape", chainOpen: false })).toEqual(
+      INITIAL_VIEWER_MODE,
+    );
     expect(reduce(INITIAL_VIEWER_MODE, { type: "escape", chainOpen: false })).toBe(INITIAL_VIEWER_MODE);
   });
 });
@@ -67,12 +75,18 @@ describe("the view, move and the editing target", () => {
   });
 
   it("entering a panorama leaves place and measure and move, keeps the selection", () => {
-    const s = reduce({ ...INITIAL_VIEWER_MODE, mode: "measure", move: true, selectedId: 4 }, { type: "enterPanorama", id: 3 });
+    const s = reduce(
+      { ...INITIAL_VIEWER_MODE, mode: "measure", move: true, selectedId: 4 },
+      { type: "enterPanorama", id: 3 },
+    );
     expect(s).toMatchObject({ mode: "orbit", move: false, selectedId: 4, view: { kind: "panorama", id: 3 } });
   });
 
   it("exiting returns to the scene and touches nothing else", () => {
-    expect(reduce({ ...inPano, selectedId: 4 }, { type: "exitPanorama" })).toMatchObject({ view: { kind: "scene" }, selectedId: 4 });
+    expect(reduce({ ...inPano, selectedId: 4 }, { type: "exitPanorama" })).toMatchObject({
+      view: { kind: "scene" },
+      selectedId: 4,
+    });
   });
 
   it("place cannot be entered inside a panorama", () => {

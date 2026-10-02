@@ -15,9 +15,7 @@ describe("modelPath", () => {
 
 describe("thumbnailUrl", () => {
   it("points at the asset route when there is a thumbnail", () => {
-    expect(thumbnailUrl({ ...model, thumbnailBlobHash: "deadbeef" })).toBe(
-      "/api/assets/deadbeef",
-    );
+    expect(thumbnailUrl({ ...model, thumbnailBlobHash: "deadbeef" })).toBe("/api/assets/deadbeef");
   });
 
   it("returns null when the hash is missing or empty", () => {

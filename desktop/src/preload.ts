@@ -3,7 +3,8 @@ import type { Invoke, Push } from "./ipc-contract";
 
 // Sandboxed preload: one file, `electron` the only runtime import. main.ts hands
 // over what it decided through additionalArguments.
-const arg = (name: string): string => process.argv.find((a) => a.startsWith(`--andrey-${name}=`))?.slice(`--andrey-${name}=`.length) ?? "";
+const arg = (name: string): string =>
+  process.argv.find((a) => a.startsWith(`--andrey-${name}=`))?.slice(`--andrey-${name}=`.length) ?? "";
 
 const invoke = <C extends keyof Invoke>(channel: C, ...args: Invoke[C]["args"]): Promise<Invoke[C]["result"]> =>
   ipcRenderer.invoke(channel, ...args) as Promise<Invoke[C]["result"]>;
@@ -26,7 +27,10 @@ if (location.origin === arg("origin") && window === window.top) {
         pushed = true;
         cb(online);
       });
-      void invoke("connectivity:get").then((online) => pushed || cb(online), () => {});
+      void invoke("connectivity:get").then(
+        (online) => pushed || cb(online),
+        () => {},
+      );
       return stop;
     },
     offline: {

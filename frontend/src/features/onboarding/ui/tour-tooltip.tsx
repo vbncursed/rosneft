@@ -15,16 +15,7 @@ export type TourTooltipProps = {
 
 // The tour's card, to the mock's own geometry: 320 wide, radius 12, panel
 // ground, 16 of padding, 10 between blocks.
-export function TourTooltip({
-  step,
-  total,
-  title,
-  body,
-  onNext,
-  onBack,
-  onSkip,
-  nextRef,
-}: TourTooltipProps) {
+export function TourTooltip({ step, total, title, body, onNext, onBack, onSkip, nextRef }: TourTooltipProps) {
   const first = step === 1;
   const last = step === total;
 

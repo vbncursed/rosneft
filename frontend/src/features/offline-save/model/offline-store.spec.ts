@@ -2,7 +2,15 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import type { DesktopBridge, OfflineProgress } from "@/shared/lib/desktop";
-import { offlineActions, resetOfflineStore, syncOfflineUser, useOfflineState, useOfflineTerritory, useOfflineUser, useSavedTerritories } from "./offline-store";
+import {
+  offlineActions,
+  resetOfflineStore,
+  syncOfflineUser,
+  useOfflineState,
+  useOfflineTerritory,
+  useOfflineUser,
+  useSavedTerritories,
+} from "./offline-store";
 
 const saved = { slug: "a", title: "A", bytes: 10, savedAt: "t", syncedAt: "t" };
 
@@ -46,6 +54,27 @@ describe("offline store", () => {
     act(() => b.push({ slug: "b", state: "failed", done: 0, total: 0, error: "network" }));
     expect(result.current.progress?.error).toBe("network");
   });
+  it("a gone copy is announced by title, left out of progress and the list is re-read", async () => {
+    const b = bridge();
+    const { result } = renderHook(() => ({ o: useOfflineTerritory("a"), n: useNotices() }));
+    await waitFor(() => expect(result.current.o.saved).toEqual(saved));
+    b.offline.list.mockResolvedValue([]);
+    act(() => b.push({ slug: "a", state: "gone", done: 0, total: 0 }));
+    expect(result.current.n.map((n) => n.message)).toEqual([
+      "\u201cA\u201d is no longer available and was removed from this device",
+    ]);
+    expect(result.current.o.progress).toBeUndefined();
+    await waitFor(() => expect(result.current.o.saved).toBeUndefined());
+  });
+  it("a gone copy not in the list is announced by its slug", () => {
+    const b = bridge();
+    const { result } = renderHook(() => useNotices());
+    renderHook(() => useOfflineState());
+    act(() => b.push({ slug: "zz", state: "gone", done: 0, total: 0 }));
+    expect(result.current.map((n) => n.message)).toEqual([
+      "\u201czz\u201d is no longer available and was removed from this device",
+    ]);
+  });
   it("passes actions to the shell", async () => {
     const b = bridge();
     offlineActions.save("a");
@@ -60,7 +89,9 @@ describe("offline store", () => {
     b.offline.remove.mockRejectedValue(new Error("EBUSY"));
     const { result } = renderHook(() => useNotices());
     await expect(offlineActions.remove("a")).resolves.toBeUndefined();
-    expect(result.current.map((n) => n.message)).toEqual(["Could not remove the territory from this device: Something went wrong. Try again."]);
+    expect(result.current.map((n) => n.message)).toEqual([
+      "Could not remove the territory from this device: Something went wrong. Try again.",
+    ]);
   });
   it("survives a list that fails after a removal", async () => {
     const b = bridge();
@@ -78,7 +109,9 @@ describe("offline store", () => {
   });
   it("re-reads when the signed-in user changes, and the previous user's list is gone at once", async () => {
     const b = bridge();
-    const { result, rerender } = renderHook(({ id }) => ({ list: useSavedTerritories(), user: useOfflineUser(id) }), { initialProps: { id: "u1" } });
+    const { result, rerender } = renderHook(({ id }) => ({ list: useSavedTerritories(), user: useOfflineUser(id) }), {
+      initialProps: { id: "u1" },
+    });
     await waitFor(() => expect(result.current.list.map((t) => t.slug)).toEqual(["a"]));
     let answer!: (v: unknown[]) => void;
     b.offline.list.mockImplementation(() => new Promise((r) => (answer = r as typeof answer)));
@@ -86,6 +119,28 @@ describe("offline store", () => {
     expect(result.current.list).toEqual([]);
     await act(async () => answer([{ ...saved, slug: "z" }]));
     expect(result.current.list.map((t) => t.slug)).toEqual(["z"]);
+  });
+  it("a gone push carrying a title right after syncOfflineUser announces the title, not the slug", () => {
+    const b = bridge();
+    const { result } = renderHook(() => useNotices());
+    syncOfflineUser("u");
+    act(() => b.push({ slug: "zz", state: "gone", done: 0, total: 0, title: "Zed" }));
+    expect(result.current.map((n) => n.message)).toEqual([
+      "\u201cZed\u201d is no longer available and was removed from this device",
+    ]);
+  });
+  it("a gone copy is announced even when only the shell sync is mounted", async () => {
+    const b = bridge();
+    syncOfflineUser("u");
+    await waitFor(() => expect(b.offline.list).toHaveBeenCalled());
+    await waitFor(() => expect(b.offline.onProgress).toHaveBeenCalled());
+    const calls = b.offline.list.mock.calls.length;
+    const { result } = renderHook(() => useNotices());
+    act(() => b.push({ slug: "zz", state: "gone", done: 0, total: 0 }));
+    expect(result.current.map((n) => n.message)).toEqual([
+      "“zz” is no longer available and was removed from this device",
+    ]);
+    await waitFor(() => expect(b.offline.list.mock.calls.length).toBeGreaterThan(calls));
   });
   it("a list that answers after the account changed is dropped", async () => {
     const b = bridge();
@@ -96,7 +151,7 @@ describe("offline store", () => {
     syncOfflineUser("u2");
     await act(async () => {
       answers.at(-1)!([{ ...saved, slug: "new" }]);
-      answers[0]!([{ ...saved, slug: "old" }]);
+      answers[0]([{ ...saved, slug: "old" }]);
     });
     expect(result.current.map((t) => t.slug)).toEqual(["new"]);
   });

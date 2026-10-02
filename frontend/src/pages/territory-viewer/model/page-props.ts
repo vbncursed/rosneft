@@ -1,12 +1,6 @@
 import { canEditSaved, computeUnitRatio } from "@/entities/measurement";
 import { groupByModel } from "@/entities/placement";
-import {
-  documentProps,
-  loadingLevel,
-  panoramaCanvasProps,
-  uploadProps,
-  viewTabProps,
-} from "./page-props-b";
+import { documentProps, loadingLevel, panoramaCanvasProps, uploadProps, viewTabProps } from "./page-props-b";
 import { memoLast } from "./memo-last";
 import { placementsPanelProps } from "./page-props-placements";
 import { loadingChip, measuringView, modeChip, stripItems } from "./strip-and-chips";
@@ -147,13 +141,9 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
               measure: measure.summary,
               view: mode.view,
               move: mode.move,
-              calibrating: p.panoramas.calibration.active
-                ? (p.panoramas.editing?.title ?? null)
-                : null,
+              calibrating: p.panoramas.calibration.active ? (p.panoramas.editing?.title ?? null) : null,
             }),
-      loading: loading
-        ? { chip: loadingChip(loading), percent: loading.percent, target: loading.target }
-        : null,
+      loading: loading ? { chip: loadingChip(loading), percent: loading.percent, target: loading.target } : null,
       measuring: mode.mode === "measure" ? measuringView(p) : null,
       // Inside a capture the camera is in a photograph and the level behind it
       // cannot be chosen; under an open document the picker would sit beneath

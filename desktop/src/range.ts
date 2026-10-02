@@ -7,7 +7,7 @@ export type ByteRange = { start: number; end: number };
  */
 export function parseRange(header: string | null, size: number): ByteRange | null | "unsatisfiable" {
   if (!header) return null;
-  const m = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
+  const m = /^bytes=(\d*)-(\d*)$/u.exec(header.trim());
   if (!m) return null;
   const [, a = "", b = ""] = m;
   if (a === "" && b === "") return null;

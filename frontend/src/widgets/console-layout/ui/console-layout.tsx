@@ -20,13 +20,7 @@ export type ConsoleLayoutProps = {
  * Below lg the column is a strip above the content — at 400px a fixed 236px
  * column left the page 164px and scrolled it sideways.
  */
-export function ConsoleLayout({
-  items,
-  active,
-  backHref,
-  viewer,
-  children,
-}: ConsoleLayoutProps) {
+export function ConsoleLayout({ items, active, backHref, viewer, children }: ConsoleLayoutProps) {
   return (
     <div className="grid min-h-[calc(100dvh-var(--offline-h))] grid-cols-1 bg-bg text-fg lg:grid-cols-[236px_minmax(0,1fr)]">
       <ConsoleSidebar items={items} active={active} backHref={backHref} viewer={viewer} />

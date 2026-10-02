@@ -20,16 +20,26 @@ export default {
         <Button disabled>Disabled</Button>
       </Row>
       <Row label="Sizes & content">
-        <Button variant="primary" size="sm">Small</Button>
-        <Button variant="primary" size="md">Medium</Button>
-        <Button variant="primary" size="lg">Large</Button>
+        <Button variant="primary" size="sm">
+          Small
+        </Button>
+        <Button variant="primary" size="md">
+          Medium
+        </Button>
+        <Button variant="primary" size="lg">
+          Large
+        </Button>
         <Button>
           <Icon name="cube" size={14} />
           With icon
         </Button>
         <Button loading>Loading…</Button>
-        <Button shape="icon" aria-label="Help">?</Button>
-        <Button shape="icon" size="xs" aria-label="Close"><Icon name="close" size={12} /></Button>
+        <Button shape="icon" aria-label="Help">
+          ?
+        </Button>
+        <Button shape="icon" size="xs" aria-label="Close">
+          <Icon name="close" size={12} />
+        </Button>
         <Button>
           Measure
           <kbd className="rounded border border-line-2 px-1.5 font-mono text-[10px] text-muted">M</kbd>
@@ -39,10 +49,20 @@ export default {
   ),
   pills: (
     <div className="flex flex-wrap items-center gap-2.5 rounded-card border border-line bg-panel p-6">
-      <Button shape="pill" variant="ghost"><Icon name="plus" size={14} />Upload</Button>
-      <Button shape="pill" variant="primary"><Icon name="plus" size={14} />New user</Button>
-      <Button shape="pill" variant="danger">Delete</Button>
-      <Button shape="pill" variant="link">← Back to site</Button>
+      <Button shape="pill" variant="ghost">
+        <Icon name="plus" size={14} />
+        Upload
+      </Button>
+      <Button shape="pill" variant="primary">
+        <Icon name="plus" size={14} />
+        New user
+      </Button>
+      <Button shape="pill" variant="danger">
+        Delete
+      </Button>
+      <Button shape="pill" variant="link">
+        ← Back to site
+      </Button>
     </div>
   ),
 };

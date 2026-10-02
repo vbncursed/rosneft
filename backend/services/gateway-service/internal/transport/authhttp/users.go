@@ -13,7 +13,7 @@ func (h *Handlers) listUsers(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, h.usersJSON(r.Context(), list))
+	writeJSON(w, r, http.StatusOK, h.usersJSON(r.Context(), list))
 }
 
 func (h *Handlers) createUser(w http.ResponseWriter, r *http.Request) {
@@ -29,7 +29,7 @@ func (h *Handlers) createUser(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, h.userJSON(r.Context(), u))
+	writeJSON(w, r, http.StatusCreated, h.userJSON(r.Context(), u))
 }
 
 func (h *Handlers) getUser(w http.ResponseWriter, r *http.Request) {
@@ -38,7 +38,7 @@ func (h *Handlers) getUser(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, h.userJSON(r.Context(), u))
+	writeJSON(w, r, http.StatusOK, h.userJSON(r.Context(), u))
 }
 
 func (h *Handlers) updateUser(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +54,7 @@ func (h *Handlers) updateUser(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, h.userJSON(r.Context(), u))
+	writeJSON(w, r, http.StatusOK, h.userJSON(r.Context(), u))
 }
 
 func (h *Handlers) freezeUser(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +63,7 @@ func (h *Handlers) freezeUser(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, h.userJSON(r.Context(), u))
+	writeJSON(w, r, http.StatusOK, h.userJSON(r.Context(), u))
 }
 
 func (h *Handlers) unfreezeUser(w http.ResponseWriter, r *http.Request) {
@@ -72,7 +72,7 @@ func (h *Handlers) unfreezeUser(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, h.userJSON(r.Context(), u))
+	writeJSON(w, r, http.StatusOK, h.userJSON(r.Context(), u))
 }
 
 func (h *Handlers) requireUser2FA(w http.ResponseWriter, r *http.Request) {
@@ -89,7 +89,7 @@ func (h *Handlers) setUser2FARequired(w http.ResponseWriter, r *http.Request, re
 		fail(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, h.userJSON(r.Context(), u))
+	writeJSON(w, r, http.StatusOK, h.userJSON(r.Context(), u))
 }
 
 func (h *Handlers) softDeleteUser(w http.ResponseWriter, r *http.Request) {
@@ -106,7 +106,7 @@ func (h *Handlers) restoreUser(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, h.userJSON(r.Context(), u))
+	writeJSON(w, r, http.StatusOK, h.userJSON(r.Context(), u))
 }
 
 func (h *Handlers) setUserOwner(w http.ResponseWriter, r *http.Request) {
@@ -119,7 +119,7 @@ func (h *Handlers) setUserOwner(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, h.userJSON(r.Context(), u))
+	writeJSON(w, r, http.StatusOK, h.userJSON(r.Context(), u))
 }
 
 func (h *Handlers) setUserPassword(w http.ResponseWriter, r *http.Request) {

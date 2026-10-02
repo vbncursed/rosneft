@@ -45,10 +45,7 @@ describe("AccessGroups", () => {
 
   it("marks the selected row", () => {
     render(<AccessGroups groups={GROUPS} selectedSlug="north-ridge-pad" onManage={vi.fn()} />);
-    expect(screen.getByRole("article", { name: "North Ridge Pad" })).toHaveAttribute(
-      "aria-current",
-      "true",
-    );
+    expect(screen.getByRole("article", { name: "North Ridge Pad" })).toHaveAttribute("aria-current", "true");
   });
 
   it("opens the manager with the whole territory", async () => {
@@ -76,9 +73,7 @@ describe("AccessGroups", () => {
   });
 
   it("drops the loosen-the-filter line when the caller worded the empty list itself", () => {
-    render(
-      <AccessGroups groups={[]} onManage={vi.fn()} emptyHint="No territories yet — upload one to start." />,
-    );
+    render(<AccessGroups groups={[]} onManage={vi.fn()} emptyHint="No territories yet — upload one to start." />);
     expect(screen.getByText("No territories yet — upload one to start.")).toBeInTheDocument();
     expect(screen.queryByText(/Loosen the filter/)).not.toBeInTheDocument();
   });

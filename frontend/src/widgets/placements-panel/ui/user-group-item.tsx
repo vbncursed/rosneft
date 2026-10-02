@@ -135,7 +135,14 @@ export function UserGroupItem({ section, ctx, onAdd, actions }: UserGroupItemPro
       {open ? (
         <ul role="list" className="m-0 mt-1.5 flex list-none flex-col gap-1.5 p-0">
           {members.map(({ model, instance }) => (
-            <InstanceItem key={instance.id} model={model} instance={instance} ctx={ctx} showModel groupHidden={group.hidden} />
+            <InstanceItem
+              key={instance.id}
+              model={model}
+              instance={instance}
+              ctx={ctx}
+              showModel
+              groupHidden={group.hidden}
+            />
           ))}
           {onAdd ? (
             <li className="ml-3">

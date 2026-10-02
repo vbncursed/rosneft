@@ -111,9 +111,7 @@ describe("useTwoFactor", () => {
   it("treats a 409 as any other failure — nothing sends it", async () => {
     setup2FA.mockRejectedValue(new HttpError(409, null, "conflict"));
     const { result } = renderHook(() => useTwoFactor("enable"), { wrapper });
-    await waitFor(() =>
-      expect(result.current.setupError).toEqual({ message: "conflict", retryable: true }),
-    );
+    await waitFor(() => expect(result.current.setupError).toEqual({ message: "conflict", retryable: true }));
   });
 
   // Not the confirm field's error: nothing is wrong with a code nobody typed,
@@ -191,9 +189,7 @@ describe("useTwoFactor", () => {
     act(() => result.current.onConfirm());
 
     await waitFor(() =>
-      expect(result.current.error).toBe(
-        "Invalid code — check your device clock and try the next one.",
-      ),
+      expect(result.current.error).toBe("Invalid code — check your device clock and try the next one."),
     );
     expect(result.current.stage).toBe("confirm");
     expect(result.current.codes).toEqual([]);

@@ -59,20 +59,15 @@ export function useContent(): ContentState {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [pending, setPending] = useState<ContentItem | null>(null);
 
-  const jobOf = (kind: ContentKind, slug: string) =>
-    jobs.data?.find((j) => j.kind === kind && j.slug === slug);
+  const jobOf = (kind: ContentKind, slug: string) => jobs.data?.find((j) => j.kind === kind && j.slug === slug);
   const entityOf = (kind: ContentKind, slug: string) =>
-    kind === "territory"
-      ? territories.data?.find((t) => t.slug === slug)
-      : models.data?.find((m) => m.slug === slug);
+    kind === "territory" ? territories.data?.find((t) => t.slug === slug) : models.data?.find((m) => m.slug === slug);
   const artifactsOf = (kind: ContentKind, slug: string) => entityOf(kind, slug)?.lods ?? [];
 
   const listed = territories.data && models.data;
   const items = listed
     ? [
-        ...territories.data.map((t) =>
-          toContentItem("territory", t, t.lods ?? [], jobOf("territory", t.slug)),
-        ),
+        ...territories.data.map((t) => toContentItem("territory", t, t.lods ?? [], jobOf("territory", t.slug))),
         ...models.data.map((m) => toContentItem("model", m, m.lods ?? [], jobOf("model", m.slug))),
       ]
     : null;

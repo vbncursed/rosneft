@@ -92,10 +92,7 @@ describe("ViewerOverlays · the tool rail", () => {
     ]);
     // The lit tile is not a pressed toggle unless it names a mode.
     expect(screen.getByRole("button", { name: "Reset camera" })).not.toHaveAttribute("aria-pressed");
-    expect(screen.getByRole("button", { name: "Measure" })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
+    expect(screen.getByRole("button", { name: "Measure" })).toHaveAttribute("aria-pressed", "false");
   });
 
   // The key used to live in the name ("Measure (M)"); it is the tooltip's
@@ -111,20 +108,12 @@ describe("ViewerOverlays · the tool rail", () => {
     render(
       <ViewerOverlays
         {...props({
-          tools: props().tools.map((t) =>
-            t.key === "panoramas" ? { ...t, state: "active" as const } : t,
-          ),
+          tools: props().tools.map((t) => (t.key === "panoramas" ? { ...t, state: "active" as const } : t)),
         })}
       />,
     );
-    expect(screen.getByRole("button", { name: "Panoramas" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    expect(screen.getByRole("button", { name: "Documents" })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
+    expect(screen.getByRole("button", { name: "Panoramas" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Documents" })).toHaveAttribute("aria-pressed", "false");
   });
 
   it("reveals each overlay section from its own tile", async () => {
@@ -144,9 +133,7 @@ describe("ViewerOverlays · the tool rail", () => {
       ["measure", "Measure"],
       ["add-object", "Add objects"],
     ] as const) {
-      expect(container.querySelector(`[data-tour="${anchor}"]`)).toBe(
-        screen.getByRole("button", { name }),
-      );
+      expect(container.querySelector(`[data-tour="${anchor}"]`)).toBe(screen.getByRole("button", { name }));
     }
   });
 
@@ -165,9 +152,7 @@ describe("ViewerOverlays · the tool rail", () => {
   it("does not fire an inert tile", async () => {
     const onReset = vi.fn();
     render(
-      <ViewerOverlays
-        {...props({ onReset, tools: props().tools.map((t) => ({ ...t, state: "inert" as const })) })}
-      />,
+      <ViewerOverlays {...props({ onReset, tools: props().tools.map((t) => ({ ...t, state: "inert" as const })) })} />,
     );
     await userEvent.click(screen.getByRole("button", { name: "Reset camera" }));
     expect(onReset).not.toHaveBeenCalled();
@@ -211,22 +196,14 @@ describe("ViewerOverlays · what the pointer is doing", () => {
     );
     expect(screen.getByText("Loading model")).toBeInTheDocument();
     expect(screen.getByText("coarse LOD 2 shown · LOD 0 62% · 6.1 / 9.8 MB")).toBeInTheDocument();
-    expect(screen.getByRole("progressbar", { name: "Loading LOD 0" })).toHaveAttribute(
-      "aria-valuenow",
-      "62",
-    );
+    expect(screen.getByRole("progressbar", { name: "Loading LOD 0" })).toHaveAttribute("aria-valuenow", "62");
     // Fixed-width digits: the chip does not breathe with every chunk.
     expect(screen.getByText("coarse LOD 2 shown · LOD 0 62% · 6.1 / 9.8 MB")).toHaveClass("tabular-nums");
   });
 
   it("fills the progress line by scale, linearly, and holds it still under reduced motion", () => {
-    render(
-      <ViewerOverlays
-        {...props({ chip: null, loading: { chip: "LOD 0 62%", percent: 62, target: 0 } })}
-      />,
-    );
-    const fill = screen.getByRole("progressbar", { name: "Loading LOD 0" })
-      .firstElementChild as HTMLElement;
+    render(<ViewerOverlays {...props({ chip: null, loading: { chip: "LOD 0 62%", percent: 62, target: 0 } })} />);
+    const fill = screen.getByRole("progressbar", { name: "Loading LOD 0" }).firstElementChild as HTMLElement;
     expect(fill.style.transform).toBe("scaleX(0.62)");
     expect(fill.style.width).toBe("");
     expect(fill).toHaveClass("origin-left", "ease-linear", "motion-reduce:transition-none");
@@ -298,11 +275,7 @@ describe("ViewerOverlays · the strip, the switcher and the hints", () => {
   });
 
   it("reports rather than alerts when the strip states an absence", () => {
-    render(
-      <ViewerOverlays
-        {...props({ strip: { items: ["no geometry loaded"], tone: "bad", accentLast: false } })}
-      />,
-    );
+    render(<ViewerOverlays {...props({ strip: { items: ["no geometry loaded"], tone: "bad", accentLast: false } })} />);
     expect(screen.getByRole("status", { name: "Scene stats" })).toBeInTheDocument();
     // The error card is the page's one alert; the strip is context for it.
     expect(screen.queryAllByRole("alert")).toHaveLength(0);
@@ -348,10 +321,7 @@ describe("ViewerOverlays · the strip, the switcher and the hints", () => {
     // Exact text: a substring match passed while the Esc keycap and its label
     // both said "Esc", so the chip read "Esc Esc exit / deselect".
     const hints = screen.getByRole("note", { name: "Keyboard hints" });
-    expect([...hints.children].map((c) => c.textContent)).toEqual([
-      "Mmeasure",
-      "Escexit / deselect",
-    ]);
+    expect([...hints.children].map((c) => c.textContent)).toEqual(["Mmeasure", "Escexit / deselect"]);
   });
 });
 
@@ -385,19 +355,13 @@ describe("ViewerOverlays · the error card", () => {
 describe("ViewerOverlays · inside a panorama", () => {
   it("offers the way back to the 3D scene under the chip", async () => {
     const switchTo3d = vi.fn();
-    render(
-      <ViewerOverlays
-        {...props({ chip: { text: "panorama · drag to look around", kbd: "P" }, switchTo3d })}
-      />,
-    );
+    render(<ViewerOverlays {...props({ chip: { text: "panorama · drag to look around", kbd: "P" }, switchTo3d })} />);
     await userEvent.click(screen.getByRole("button", { name: "Switch to 3D view" }));
     expect(switchTo3d).toHaveBeenCalledOnce();
   });
 
   it("names the key that cycles the captures on the chip itself", () => {
-    render(
-      <ViewerOverlays {...props({ chip: { text: "panorama · drag to look around", kbd: "P" } })} />,
-    );
+    render(<ViewerOverlays {...props({ chip: { text: "panorama · drag to look around", kbd: "P" } })} />);
     const chip = screen.getByRole("status", { name: "Pointer mode" });
     expect(chip).toHaveTextContent("panorama · drag to look around");
     expect(chip.querySelector("kbd")).toHaveTextContent("P");

@@ -14,8 +14,7 @@ export const NO_DELETE_FOOTER = "Deleting placements needs the placement:delete 
 
 export const VISIBLE_IN = "Visible in";
 
-export const VISIBLE_IN_NOTE =
-  "Hidden objects stay in the 3D scene; only the panorama markers are dropped.";
+export const VISIBLE_IN_NOTE = "Hidden objects stay in the 3D scene; only the panorama markers are dropped.";
 
 export const NEW_GROUP = "New group";
 

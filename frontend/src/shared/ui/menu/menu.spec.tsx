@@ -32,9 +32,7 @@ describe("Menu", () => {
 
   it("runs the chosen action and closes", async () => {
     const onSelect = vi.fn();
-    render(
-      <Menu trigger="⋮" triggerLabel="Row actions" items={items([{ onSelect }])} />,
-    );
+    render(<Menu trigger="⋮" triggerLabel="Row actions" items={items([{ onSelect }])} />);
     await userEvent.click(trigger());
     await userEvent.click(screen.getByRole("menuitem", { name: "Edit roles" }));
 
@@ -50,13 +48,7 @@ describe("Menu", () => {
   });
 
   it("walks the actions with the arrow keys, skipping disabled ones", async () => {
-    render(
-      <Menu
-        trigger="⋮"
-        triggerLabel="Row actions"
-        items={items([{}, { disabled: true }])}
-      />,
-    );
+    render(<Menu trigger="⋮" triggerLabel="Row actions" items={items([{}, { disabled: true }])} />);
     trigger().focus();
     await userEvent.keyboard("{ArrowDown}{ArrowDown}");
     expect(screen.getByRole("menuitem", { name: "Freeze" })).toHaveFocus();
@@ -67,13 +59,7 @@ describe("Menu", () => {
 
   it("never runs a disabled action", async () => {
     const onSelect = vi.fn();
-    render(
-      <Menu
-        trigger="⋮"
-        triggerLabel="Row actions"
-        items={items([{}, {}, {}, { onSelect, disabled: true }])}
-      />,
-    );
+    render(<Menu trigger="⋮" triggerLabel="Row actions" items={items([{}, {}, {}, { onSelect, disabled: true }])} />);
     await userEvent.click(trigger());
     await userEvent.click(screen.getByRole("menuitem", { name: "Delete" }));
     expect(onSelect).not.toHaveBeenCalled();
@@ -243,13 +229,13 @@ describe("Menu · ids and a disabled trigger", () => {
 
   it("does not open from a disabled trigger", async () => {
     render(<Menu triggerLabel="Row actions" trigger="…" items={[{ label: "Rename", onSelect: vi.fn() }]} disabled />);
-    const trigger = screen.getByRole("button", { name: "Row actions" });
-    expect(trigger).toBeDisabled();
-    expect(trigger.classList).toContain("disabled:opacity-45");
+    const button = screen.getByRole("button", { name: "Row actions" });
+    expect(button).toBeDisabled();
+    expect(button.classList).toContain("disabled:opacity-45");
     // A greyed trigger must not brighten under the pointer as if it answered.
-    expect(trigger).toHaveClass("enabled:hover:text-fg");
-    expect(trigger).not.toHaveClass("hover:text-fg");
-    await userEvent.click(trigger);
+    expect(button).toHaveClass("enabled:hover:text-fg");
+    expect(button).not.toHaveClass("hover:text-fg");
+    await userEvent.click(button);
     expect(screen.queryByRole("menu")).toBeNull();
   });
 });

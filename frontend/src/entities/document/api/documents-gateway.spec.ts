@@ -5,7 +5,13 @@ vi.mock("@/shared/api", () => http);
 
 const { listDocuments, createDocument, deleteDocument } = await import("./documents-gateway");
 
-const DTO = { id: 7, territorySlug: "t", title: "Plot plan.pdf", sourceBlobHash: "h", createdAt: "2026-09-14T10:00:00Z" };
+const DTO = {
+  id: 7,
+  territorySlug: "t",
+  title: "Plot plan.pdf",
+  sourceBlobHash: "h",
+  createdAt: "2026-09-14T10:00:00Z",
+};
 
 describe("documents gateway", () => {
   beforeEach(() => Object.values(http).forEach((f) => f.mockReset()));

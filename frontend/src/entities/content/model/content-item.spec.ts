@@ -121,9 +121,12 @@ describe("conversionStatusOf", () => {
 
 describe("pipelineCounts", () => {
   it("splits the catalog by conversion state", () => {
-    expect(
-      pipelineCounts([item(), item({ status: "converting" }), item({ status: "failed" }), item()]),
-    ).toEqual({ ready: 2, pending: 0, converting: 1, failed: 1 });
+    expect(pipelineCounts([item(), item({ status: "converting" }), item({ status: "failed" }), item()])).toEqual({
+      ready: 2,
+      pending: 0,
+      converting: 1,
+      failed: 1,
+    });
   });
 
   it("counts an empty catalog as zero everywhere", () => {

@@ -30,10 +30,7 @@ describe("ServiceHealthList", () => {
 
   it("marks the selected service", () => {
     render(<ServiceHealthList services={SERVICES} selectedName="gateway" />);
-    expect(screen.getByRole("article", { name: "gateway" })).toHaveAttribute(
-      "aria-current",
-      "true",
-    );
+    expect(screen.getByRole("article", { name: "gateway" })).toHaveAttribute("aria-current", "true");
   });
 
   it("reports a selection by name", async () => {

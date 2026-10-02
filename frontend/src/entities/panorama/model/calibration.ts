@@ -17,19 +17,12 @@ export function clampOpacity(o: number): number {
 }
 
 // nudgePosition returns a copy of pos with one axis shifted by delta.
-export function nudgePosition(
-  pos: Vec3,
-  axis: "x" | "y" | "z",
-  delta: number,
-): Vec3 {
+export function nudgePosition(pos: Vec3, axis: "x" | "y" | "z", delta: number): Vec3 {
   return { ...pos, [axis]: pos[axis] + delta };
 }
 
 // applyCalibration overlays a draft (position + yaw) onto a panorama,
 // producing the panorama as it should render while calibrating.
-export function applyCalibration(
-  base: Panorama,
-  draft: CalibrationDraft,
-): Panorama {
+export function applyCalibration(base: Panorama, draft: CalibrationDraft): Panorama {
   return { ...base, position: draft.position, yawOffset: draft.yawOffset };
 }

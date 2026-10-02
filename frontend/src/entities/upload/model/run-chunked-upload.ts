@@ -18,10 +18,7 @@ export type RunChunkedUploadOpts = {
  * Aborting via `signal` between chunks rejects rather than sending a doomed
  * PATCH; callers wire onStage/onProgress to their own UI.
  */
-export async function runChunkedUpload(
-  file: File,
-  opts: RunChunkedUploadOpts = {},
-): Promise<FinalizedBlob> {
+export async function runChunkedUpload(file: File, opts: RunChunkedUploadOpts = {}): Promise<FinalizedBlob> {
   const { onStage, onProgress, signal } = opts;
   onStage?.("initiating");
   const session = await initiateUpload(file.size, file.type || "application/zip");
@@ -34,6 +31,7 @@ export async function runChunkedUpload(
     while (offset < total) {
       if (signal?.aborted) throw new Error("upload aborted");
       const slice = file.slice(offset, Math.min(offset + CHUNK_SIZE, total));
+      // oxlint-disable-next-line eslint/no-await-in-loop -- the next chunk starts at the offset the gateway just returned; parallel PATCHes would corrupt the upload
       offset = await appendChunk(session.id, offset, slice, signal);
       onProgress?.({ bytes: offset, total, chunk: Math.ceil(offset / CHUNK_SIZE), chunks });
     }

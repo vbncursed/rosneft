@@ -62,12 +62,7 @@ const BOUNCE_WINDOW_MS = 10_000;
  * reads it live, so a lifted requirement would otherwise loop gate → home →
  * 403 → gate until that cache expires.
  */
-export function gateExit(
-  me: Principal,
-  stage: "done" | undefined,
-  bouncedAt: number | null,
-  now: number,
-): "/" | null {
+export function gateExit(me: Principal, stage: "done" | undefined, bouncedAt: number | null, now: number): "/" | null {
   if (me.totpRequired && me.totpEnabled !== true) return null;
   if (stage === "done") return me.totpEnabled === true ? null : "/";
   const sinceBounce = bouncedAt === null ? -1 : now - bouncedAt;
@@ -167,9 +162,9 @@ export const CATALOG_PATHS = [
   ENROLLMENT_PATH,
 ] as const;
 
-const MODEL_PAGE = /^\/models\/[^/]+$/;
-const TERRITORY_PAGE = /^\/territories\/[^/]+$/;
-const REPLACE_FORM = /^\/territories\/[^/]+\/replace$/;
+const MODEL_PAGE = /^\/models\/[^/]+$/u;
+const TERRITORY_PAGE = /^\/territories\/[^/]+$/u;
+const REPLACE_FORM = /^\/territories\/[^/]+\/replace$/u;
 
 /**
  * A territory's own page, by pathname alone — what the catalog shell reads to

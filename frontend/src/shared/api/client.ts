@@ -13,12 +13,10 @@ const ENROLLMENT_REQUIRED = "twofa_enrollment_required";
  * `headers`: extra request headers, e.g. a batch's `Idempotency-Key`. */
 export type SendOpts = { credentialed?: boolean; headers?: Record<string, string> };
 
-async function send<T>(
-  path: string,
-  init: RequestInit,
-  parse: "json" | "blob" | "none",
-  opts?: SendOpts,
-): Promise<T> {
+/** `headers` is a plain record: every caller here builds one, and spreading a `Headers` or an array would lose them. */
+type Init = Omit<RequestInit, "headers"> & { headers?: Record<string, string> };
+
+async function send<T>(path: string, init: Init, parse: "json" | "blob" | "none", opts?: SendOpts): Promise<T> {
   // No Authorization header: the session is an httpOnly cookie, and the SPA is
   // single-origin with the API in both dev and prod, so the browser attaches it
   // to every request here without being asked.
@@ -62,19 +60,13 @@ async function send<T>(
     // like the 401 bounce above: the cached principal is stale, and the load
     // drops it. Never from the gate itself — it would reload onto itself.
     // The recorded time tells the gate not to send it straight back home.
-    if (
-      res.status === 403 &&
-      body?.code === ENROLLMENT_REQUIRED &&
-      location.pathname !== ENROLLMENT_PATH
-    ) {
+    if (res.status === 403 && body?.code === ENROLLMENT_REQUIRED && location.pathname !== ENROLLMENT_PATH) {
       markEnrollBounce();
       location.assign(ENROLLMENT_PATH);
     }
     const detail = body?.message ?? (body as { error?: string } | null)?.error;
     const fallback =
-      res.status === 403
-        ? "You don't have permission to do this"
-        : res.statusText || `Request failed (${res.status})`;
+      res.status === 403 ? "You don't have permission to do this" : res.statusText || `Request failed (${res.status})`;
     throw new HttpError(res.status, body, detail || fallback);
   }
   if (parse === "blob") return (await res.blob()) as T;

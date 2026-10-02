@@ -40,9 +40,7 @@ export function TerritoryViewerPage({
     <>
       <ViewerHeader {...header} />
 
-      <div
-        className={`relative min-h-0 flex-1 bg-panel ${overlaysWidthClass(panel?.collapsed ?? true)}`}
-      >
+      <div className={`relative min-h-0 flex-1 bg-panel ${overlaysWidthClass(panel?.collapsed ?? true)}`}>
         <Suspense
           fallback={
             <div className={CENTRED}>

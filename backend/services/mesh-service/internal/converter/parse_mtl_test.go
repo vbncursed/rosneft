@@ -1,11 +1,14 @@
 package converter
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
 	"gotest.tools/v3/assert"
+
+	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 )
 
 type ParseMTLSuite struct{ suite.Suite }
@@ -64,4 +67,11 @@ func (s *ParseMTLSuite) TestEmpty() {
 	mats, err := parseMTL(strings.NewReader(""))
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(mats), 0)
+}
+
+func TestParseMTLFailuresAreBadSource(t *testing.T) {
+	for _, mtl := range []string{"newmtl a\nKd 1 x 1\n", "newmtl a\nd high\n", "newmtl a\nTr high\n"} {
+		_, err := parseMTL(strings.NewReader(mtl))
+		assert.Assert(t, errors.Is(err, domain.ErrBadSource), "%q: got %v", mtl, err)
+	}
 }

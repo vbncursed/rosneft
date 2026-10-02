@@ -21,9 +21,7 @@ const props = (over: Partial<ContentPageProps> = {}): ContentPageProps => ({
       key: "attention",
       label: "Needs attention",
       note: "3 items",
-      items: [
-        item("terminal-yard-4", "Terminal Yard 4", { status: "converting", progress: 62, stage: "textures" }),
-      ],
+      items: [item("terminal-yard-4", "Terminal Yard 4", { status: "converting", progress: 62, stage: "textures" })],
     },
     {
       key: "territories",
@@ -117,9 +115,7 @@ describe("ContentPage", () => {
 
   it("opens the inspector on the selected item", () => {
     render(<ContentPage {...props({ selectedSlug: "terminal-yard-4", inspected: inspected() })} />);
-    expect(
-      screen.getByRole("complementary", { name: "Content: Terminal Yard 4" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "Content: Terminal Yard 4" })).toBeInTheDocument();
     // Fades in (tens of opens a session: opacity only, no movement); leaves at once.
     expect(screen.getByRole("complementary").parentElement).toHaveClass(
       "starting:opacity-0",
@@ -180,11 +176,7 @@ describe("ContentPage", () => {
   });
 
   it("hides every management control from a reader who may not manage content", () => {
-    render(
-      <ContentPage
-        {...props({ canManage: false, selectedSlug: "terminal-yard-4", inspected: inspected() })}
-      />,
-    );
+    render(<ContentPage {...props({ canManage: false, selectedSlug: "terminal-yard-4", inspected: inspected() })} />);
     expect(screen.queryAllByRole("button", { name: /^New (model|territory)$/ })).toHaveLength(0);
     expect(screen.queryByRole("button", { name: /Upload an OBJ/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
@@ -207,9 +199,7 @@ describe("ContentPage", () => {
 
   it("builds row actions per item", () => {
     render(
-      <ContentPage
-        {...props({ renderRowActions: (i) => <button type="button">{`More: ${i.title}`}</button> })}
-      />,
+      <ContentPage {...props({ renderRowActions: (i) => <button type="button">{`More: ${i.title}`}</button> })} />,
     );
     expect(screen.getByRole("button", { name: "More: North Ridge Pad" })).toBeInTheDocument();
   });

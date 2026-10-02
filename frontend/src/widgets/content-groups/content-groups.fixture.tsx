@@ -19,8 +19,21 @@ const GROUPS: ContentGroup[] = [
     label: "Needs attention",
     note: "3 items",
     items: [
-      item("terminal-yard-4", "Terminal Yard 4", { status: "converting", progress: 62, stage: "textures", lods: "LOD 0-1", size: "760 MB" }),
-      item("pipe-rack-b7", "Pipe Rack B7", { kind: "model", status: "converting", progress: 18, stage: "parsing", lods: "—", size: "1.1 GB" }),
+      item("terminal-yard-4", "Terminal Yard 4", {
+        status: "converting",
+        progress: 62,
+        stage: "textures",
+        lods: "LOD 0-1",
+        size: "760 MB",
+      }),
+      item("pipe-rack-b7", "Pipe Rack B7", {
+        kind: "model",
+        status: "converting",
+        progress: 18,
+        stage: "parsing",
+        lods: "—",
+        size: "1.1 GB",
+      }),
       item("flare-stack", "Flare Stack", { kind: "model", status: "failed", lods: "—", size: "—" }),
     ],
   },
@@ -28,7 +41,10 @@ const GROUPS: ContentGroup[] = [
     key: "territories",
     label: "Territories",
     note: "12 items · 11 ready",
-    items: [item("north-ridge-pad", "North Ridge Pad"), item("refinery-block-c", "Refinery Block C", { size: "1.2 GB" })],
+    items: [
+      item("north-ridge-pad", "North Ridge Pad"),
+      item("refinery-block-c", "Refinery Block C", { size: "1.2 GB" }),
+    ],
   },
 ];
 

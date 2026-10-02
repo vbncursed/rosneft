@@ -22,7 +22,7 @@ func (h *Handlers) me(w http.ResponseWriter, r *http.Request) {
 	out := userToJSON(u, totp, nil)
 	// The SPA's only way back to a token after a page reload.
 	out.CSRFToken = h.CSRFToken(sessionToken(r))
-	writeJSON(w, http.StatusOK, out)
+	writeJSON(w, r, http.StatusOK, out)
 }
 
 func (h *Handlers) changePassword(w http.ResponseWriter, r *http.Request) {

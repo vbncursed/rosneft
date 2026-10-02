@@ -46,9 +46,10 @@ describe("ContentRow", () => {
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
 
     rerender(<ContentRow item={item({ status: "converting", progress: 62, stage: "textures" })} />);
-    expect(
-      screen.getByRole("progressbar", { name: "North Ridge Pad conversion" }),
-    ).toHaveAttribute("aria-valuenow", "62");
+    expect(screen.getByRole("progressbar", { name: "North Ridge Pad conversion" })).toHaveAttribute(
+      "aria-valuenow",
+      "62",
+    );
     expect(screen.getByText("textures")).toBeInTheDocument();
   });
 

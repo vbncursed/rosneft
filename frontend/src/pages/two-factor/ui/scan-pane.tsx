@@ -23,9 +23,7 @@ export function ScanPane({ secret, otpauthUrl }: ScanPaneProps) {
 
   return (
     <div className="flex flex-col items-center gap-4 border-b border-line bg-panel-2 p-[26px] text-center sm:border-b-0 sm:border-r">
-      <p className="m-0 self-start font-mono text-[9px] uppercase tracking-[0.2em] text-muted">
-        Step 1 · scan
-      </p>
+      <p className="m-0 self-start font-mono text-[9px] uppercase tracking-[0.2em] text-muted">Step 1 · scan</p>
 
       <div className="flex size-[172px] items-center justify-center rounded-[12px] border border-line-2 bg-panel">
         {otpauthUrl ? (
@@ -65,9 +63,7 @@ export function ScanPane({ secret, otpauthUrl }: ScanPaneProps) {
 
         {shown ? (
           <div className="flex items-center gap-2 rounded-[9px] border border-line-2 bg-panel px-[11px] py-[9px]">
-            <code className="min-w-0 flex-1 break-all text-left font-mono text-[11px] text-fg">
-              {secret}
-            </code>
+            <code className="min-w-0 flex-1 break-all text-left font-mono text-[11px] text-fg">{secret}</code>
             <button
               type="button"
               onClick={copy}

@@ -7,8 +7,34 @@ import { basePageParts, IDLE_DOCUMENTS, IDLE_PANORAMAS } from "../territory-view
 import { pageProps, type PageHandlers, type PageParts } from "./page-props";
 import type { Grants } from "./viewer-view";
 
-const OWNER: Grants = { create: true, write: true, delete: true, replace: true, panoramaCreate: true, panoramaWrite: true, panoramaDelete: true, documentWrite: true, documentDelete: true, measureCreate: true, measureWrite: true, measureDelete: true };
-const GUEST: Grants = { create: false, write: false, delete: false, replace: false, panoramaCreate: false, panoramaWrite: false, panoramaDelete: false, documentWrite: false, documentDelete: false, measureCreate: false, measureWrite: false, measureDelete: false };
+const OWNER: Grants = {
+  create: true,
+  write: true,
+  delete: true,
+  replace: true,
+  panoramaCreate: true,
+  panoramaWrite: true,
+  panoramaDelete: true,
+  documentWrite: true,
+  documentDelete: true,
+  measureCreate: true,
+  measureWrite: true,
+  measureDelete: true,
+};
+const GUEST: Grants = {
+  create: false,
+  write: false,
+  delete: false,
+  replace: false,
+  panoramaCreate: false,
+  panoramaWrite: false,
+  panoramaDelete: false,
+  documentWrite: false,
+  documentDelete: false,
+  measureCreate: false,
+  measureWrite: false,
+  measureDelete: false,
+};
 
 const TANK: ResolvedPlacement = {
   id: 4,
@@ -353,7 +379,13 @@ describe("pageProps · overlays", () => {
 });
 
 describe("pageProps · saved measurements", () => {
-  const line = { points: [{ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }], closed: false };
+  const line = {
+    points: [
+      { x: 0, y: 0, z: 0 },
+      { x: 1, y: 0, z: 0 },
+    ],
+    closed: false,
+  };
   const SAVED: Chain = { id: 1, ...line, serverId: 7, sync: "saved" };
   const LOCAL: Chain = { id: 3, ...line, sync: "local" };
   const measuring = (over: Partial<PageParts>) => {
@@ -401,7 +433,12 @@ describe("pageProps · saved measurements", () => {
     const { overlays } = pageProps({
       ...p,
       mode: { ...p.mode, mode: "measure" },
-      measure: { ...parts().measure, chains: [LOCAL], activeChainId: null, summary: { segments: 1, total: "2.00 m", unsaved: true } },
+      measure: {
+        ...parts().measure,
+        chains: [LOCAL],
+        activeChainId: null,
+        summary: { segments: 1, total: "2.00 m", unsaved: true },
+      },
     });
     expect(overlays.chip?.text).toBe("measure · 1 segment · 2.00 m total · not saved");
   });
@@ -419,9 +456,10 @@ describe("pageProps · a failed mesh", () => {
     const props = pageProps(parts(FAILURE));
     // Panoramas and Documents survive a failed mesh: both are served straight
     // from BlobStore and neither needs a scene to be read.
-    expect(
-      props.overlays.tools.filter((t) => t.state !== "inert").map((t) => t.key),
-    ).toEqual(["panoramas", "documents"]);
+    expect(props.overlays.tools.filter((t) => t.state !== "inert").map((t) => t.key)).toEqual([
+      "panoramas",
+      "documents",
+    ]);
     expect(props.overlays.switcher).toBeNull();
     expect(props.panel).toBeNull();
   });
@@ -580,9 +618,7 @@ describe("pageProps · picker, tour and the loading gate", () => {
 describe("pageProps · the LOD switcher goes where the level cannot be chosen", () => {
   it("draws none inside a capture: the camera is in a photo, not on the mesh", () => {
     const p = parts();
-    expect(
-      pageProps({ ...p, mode: { ...p.mode, view: { kind: "panorama", id: 1 } } }).overlays.switcher,
-    ).toBeNull();
+    expect(pageProps({ ...p, mode: { ...p.mode, view: { kind: "panorama", id: 1 } } }).overlays.switcher).toBeNull();
   });
 
   it("draws none under an open document window", () => {
@@ -594,9 +630,7 @@ describe("pageProps · the LOD switcher goes where the level cannot be chosen", 
       sourceBlobHash: "d7",
       createdAt: "2026-09-01T00:00:00Z",
     };
-    expect(
-      pageProps({ ...p, documents: { ...p.documents, list: [active], active } }).overlays.switcher,
-    ).toBeNull();
+    expect(pageProps({ ...p, documents: { ...p.documents, list: [active], active } }).overlays.switcher).toBeNull();
   });
 
   it("draws it in the 3D scene with nothing over it", () => {

@@ -29,7 +29,7 @@ func (h *Handlers) login(w http.ResponseWriter, r *http.Request) {
 		h.recordLogin(r, "auth.login", token)
 		h.setSession(w, token, persist(req.Remember))
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
+	writeJSON(w, r, http.StatusOK, map[string]any{
 		"token": token, "twoFactorRequired": twoFA, "challengeToken": challenge,
 		// Empty on the 2FA path: there is no session yet to derive one from.
 		"csrfToken": h.CSRFToken(token),
@@ -56,7 +56,7 @@ func (h *Handlers) login2FA(w http.ResponseWriter, r *http.Request) {
 	}
 	h.recordLogin(r, "auth.login_2fa", token)
 	h.setSession(w, token, persist(req.Remember))
-	writeJSON(w, http.StatusOK, map[string]any{"token": token, "csrfToken": h.CSRFToken(token)})
+	writeJSON(w, r, http.StatusOK, map[string]any{"token": token, "csrfToken": h.CSRFToken(token)})
 }
 
 // persist reads the optional remember field: absent means the persistent

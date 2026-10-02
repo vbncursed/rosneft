@@ -22,7 +22,10 @@ function AddRoleWithOptions() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button onClick={() => setOpen(true)}><Icon name="plus" size={14} />add role</Button>
+      <Button onClick={() => setOpen(true)}>
+        <Icon name="plus" size={14} />
+        add role
+      </Button>
       {open && (
         <AddRoleDialog
           open={open}
@@ -42,10 +45,11 @@ function AddRoleExhausted() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button onClick={() => setOpen(true)}><Icon name="plus" size={14} />add role (none left)</Button>
-      {open && (
-        <AddRoleDialog open={open} options={[]} onClose={() => setOpen(false)} onAdd={() => {}} />
-      )}
+      <Button onClick={() => setOpen(true)}>
+        <Icon name="plus" size={14} />
+        add role (none left)
+      </Button>
+      {open && <AddRoleDialog open={open} options={[]} onClose={() => setOpen(false)} onAdd={() => {}} />}
     </>
   );
 }
@@ -53,12 +57,7 @@ function AddRoleExhausted() {
 export default (
   <div className="flex max-w-md flex-col gap-4 rounded-card border border-line bg-panel p-6">
     <Live />
-    <RoleChips
-      roles={[{ slug: "admin", title: "Company Owner" }]}
-      onRemove={() => {}}
-      onAdd={() => {}}
-      readOnly
-    />
+    <RoleChips roles={[{ slug: "admin", title: "Company Owner" }]} onRemove={() => {}} onAdd={() => {}} readOnly />
     <div className="flex gap-3">
       <AddRoleWithOptions />
       <AddRoleExhausted />

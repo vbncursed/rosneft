@@ -43,9 +43,7 @@ describe("syncPlan — finishing a chain", () => {
     ["exit", { type: "exit" }],
     ["toggle off", { type: "toggle" }],
   ] as const)("%s creates a finished two-point chain", (_, action) => {
-    expect(plan(clicks(0, 1), action)).toEqual([
-      { kind: "create", id: 1, points: two, closed: false },
-    ]);
+    expect(plan(clicks(0, 1), action)).toEqual([{ kind: "create", id: 1, points: two, closed: false }]);
   });
 
   it("a click that closes the loop creates a closed chain", () => {
@@ -91,9 +89,7 @@ describe("syncPlan — removing and cutting", () => {
 
   it("cutting the first segment of a saved two-point chain deletes it", () => {
     const before = stored([0, 1]);
-    expect(plan(before, cut(0))).toEqual([
-      { kind: "delete", id: 1, serverId: 7, chain: before.chains[0] },
-    ]);
+    expect(plan(before, cut(0))).toEqual([{ kind: "delete", id: 1, serverId: 7, chain: before.chains[0] }]);
   });
 
   it.each([
@@ -221,7 +217,13 @@ describe("canEditSaved", () => {
 });
 
 describe("canRemove", () => {
-  const chain = (over: Partial<Chain>): Chain => ({ id: 1, points: [p(0), p(1)], closed: false, sync: "local", ...over });
+  const chain = (over: Partial<Chain>): Chain => ({
+    id: 1,
+    points: [p(0), p(1)],
+    closed: false,
+    sync: "local",
+    ...over,
+  });
   it.each([
     ["a local chain, for anyone", chain({}), false, true],
     ["a chain whose create failed, for anyone", chain({ sync: "failed" }), false, true],

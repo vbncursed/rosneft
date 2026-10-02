@@ -45,9 +45,7 @@ export function useTerritoryCatalog(): TerritoryCatalogState {
 
   const jobOf = (slug: string) => jobs.data?.find((j) => j.kind === "territory" && j.slug === slug);
 
-  const cards = territories.data
-    ? territories.data.map((t) => toTerritoryCard(t, t.lods ?? [], jobOf(t.slug)))
-    : null;
+  const cards = territories.data ? territories.data.map((t) => toTerritoryCard(t, t.lods ?? [], jobOf(t.slug))) : null;
 
   const removal = useMutation({
     mutationFn: (slug: string) => deleteTerritory(slug),

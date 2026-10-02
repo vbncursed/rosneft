@@ -81,9 +81,7 @@ export function useUploadModels(): UploadModelsState {
   };
 
   async function run() {
-    const ids = rowsRef.current
-      .filter((r) => r.status === "queued" || r.status === "failed")
-      .map((r) => r.id);
+    const ids = rowsRef.current.filter((r) => r.status === "queued" || r.status === "failed").map((r) => r.id);
     const created: { slug: string; jobId: string }[] = [];
     // A cancel means "stop and leave the queue as it is" — even a row or two
     // already created must not trigger the finish-line redirect.
@@ -104,6 +102,7 @@ export function useUploadModels(): UploadModelsState {
       patchRow(id, { status: "uploading", error: undefined, progress: 0 });
 
       try {
+        // oxlint-disable-next-line eslint/no-await-in-loop -- rows go one at a time on purpose: one connection, one progress card, a cancel stops the next row
         const finalized = await runChunkedUpload(row.file, {
           signal: ac.signal,
           onStage: (stage) => {
@@ -119,9 +118,11 @@ export function useUploadModels(): UploadModelsState {
         patchRow(id, { status: "creating" });
         let thumbnailBlobHash: string | undefined;
         if (row.thumbnail) {
+          // oxlint-disable-next-line eslint/no-await-in-loop -- the thumbnail follows its model file within the same row
           const thumb = await runChunkedUpload(row.thumbnail, { signal: ac.signal });
           thumbnailBlobHash = thumb.hash;
         }
+        // oxlint-disable-next-line eslint/no-await-in-loop -- needs the blob hashes the uploads above just returned
         const { model, job } = await createModel({
           title: row.title.trim(),
           sourceBlobHash: finalized.hash,

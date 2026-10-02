@@ -14,11 +14,15 @@ import (
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 )
 
-func writeJSON(w http.ResponseWriter, code int, body any) {
+func writeJSON(w http.ResponseWriter, r *http.Request, code int, body any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	if body != nil {
-		_ = json.NewEncoder(w).Encode(body)
+		if err := json.NewEncoder(w).Encode(body); err != nil {
+			// Headers are out; the body cannot be redone, only reported,
+			// on the request's own log line.
+			slogchi.AddCustomAttributes(r, slog.String("error", err.Error()))
+		}
 	}
 }
 

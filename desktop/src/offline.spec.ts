@@ -29,8 +29,10 @@ const scene: SceneLike = {
 function server(opts: { blob?: (hash: string, signal?: AbortSignal) => Promise<Response> } = {}) {
   return vi.fn(async (url: string, signal?: AbortSignal) => {
     const p = new URL(url).pathname;
-    if (p.endsWith("/scene")) return new Response(JSON.stringify(scene), { headers: { "content-type": "application/json" } });
-    if (p.startsWith("/api/territories/")) return new Response(JSON.stringify(scene.territory), { headers: { "content-type": "application/json" } });
+    if (p.endsWith("/scene"))
+      return new Response(JSON.stringify(scene), { headers: { "content-type": "application/json" } });
+    if (p.startsWith("/api/territories/"))
+      return new Response(JSON.stringify(scene.territory), { headers: { "content-type": "application/json" } });
     const hash = p.split("/").pop()!;
     if (opts.blob) return opts.blob(hash, signal);
     const name = BLOBS.find((b) => sha(b) === hash)!;
@@ -45,9 +47,25 @@ async function harness(fetch = server(), user: string | null = A) {
   const store = new Store(path.join(root, "cache"));
   await store.init();
   const events: Progress[] = [];
-  const saver = new OfflineSaver({ origin: ORIGIN, fetch, store, settings, emit: (p) => events.push(p), now: () => new Date("2026-10-01T10:00:00Z") });
+  const saver = new OfflineSaver({
+    origin: ORIGIN,
+    fetch,
+    store,
+    settings,
+    emit: (p) => events.push(p),
+    now: () => new Date("2026-10-01T10:00:00Z"),
+  });
   return { saver, store, events, fetch, root, settings };
 }
+type Harness = Awaited<ReturnType<typeof harness>>;
+const answering = (h: Harness, status: number, suffix: string) => {
+  const real = h.fetch.getMockImplementation()!;
+  h.fetch.mockImplementation(async (url, signal) =>
+    new URL(url).pathname.endsWith(suffix) ? new Response("", { status }) : real(url, signal),
+  );
+};
+const snap = (h: Harness, key: string) => h.store.readSnapshot(A, key);
+
 const last = (events: Progress[]) => events[events.length - 1];
 const B = "1c6f9b4d-2a3e-4d6c-8b8f-4e3d2c1b0a90";
 const nameOf = (hash: string) => BLOBS.find((b) => sha(b) === hash)!;
@@ -62,7 +80,7 @@ afterEach(() => vi.restoreAllMocks());
 
 describe("sceneHashes", () => {
   it("takes every LOD, the placed models, panoramas and documents — not unused models", () => {
-    expect(sceneHashes(scene).sort()).toEqual(Object.values(H).sort());
+    expect(sceneHashes(scene).toSorted()).toEqual(Object.values(H).toSorted());
   });
   it("drops anything that is not a hash", () => {
     expect(sceneHashes({ ...scene, documents: [{ sourceBlobHash: "../x" }] })).not.toContain("../x");
@@ -76,26 +94,34 @@ describe("OfflineSaver", () => {
     expect(last(h.events)).toEqual({ slug: "ust-kut", state: "saved", done: 5, total: 5 });
     for (const hash of Object.values(H)) expect(await h.store.blob(A, hash)).not.toBeNull();
     expect(await h.saver.list()).toEqual([
-      { slug: "ust-kut", title: "Ust-Kut", bytes: BLOBS.join("").length, savedAt: "2026-10-01T10:00:00.000Z", syncedAt: "2026-10-01T10:00:00.000Z" },
+      {
+        slug: "ust-kut",
+        title: "Ust-Kut",
+        bytes: BLOBS.join("").length,
+        savedAt: "2026-10-01T10:00:00.000Z",
+        syncedAt: "2026-10-01T10:00:00.000Z",
+      },
     ]);
   });
 
   it("a second save joins the first", async () => {
     const h = await harness();
     await Promise.all([h.saver.save("ust-kut"), h.saver.save("ust-kut")]);
-    expect(h.fetch.mock.calls.filter(([u]) => String(u).endsWith("/scene"))).toHaveLength(1);
+    expect(h.fetch.mock.calls.filter(([u]) => u.endsWith("/scene"))).toHaveLength(1);
   });
 
   it("cancel mid-download leaves no pin and no temp files", async () => {
     let release!: () => void;
     const gate = new Promise<void>((r) => (release = r));
-    const h = await harness(server({
-      blob: async (_hash, signal) => {
-        await gate;
-        signal?.throwIfAborted();
-        return new Response("never");
-      },
-    }));
+    const h = await harness(
+      server({
+        blob: async (_hash, signal) => {
+          await gate;
+          signal?.throwIfAborted();
+          return new Response("never");
+        },
+      }),
+    );
     const first = h.saver.save("ust-kut");
     await vi.waitFor(() => expect(h.events.some((e) => e.state === "saving")).toBe(true));
     h.saver.cancel("ust-kut");
@@ -115,7 +141,13 @@ describe("OfflineSaver", () => {
   });
 
   it("a dropped connection reports network", async () => {
-    const h = await harness(server({ blob: async () => { throw new TypeError("net::ERR_INTERNET_DISCONNECTED"); } }));
+    const h = await harness(
+      server({
+        blob: async () => {
+          throw new TypeError("net::ERR_INTERNET_DISCONNECTED");
+        },
+      }),
+    );
     await h.saver.save("ust-kut");
     expect(last(h.events)).toMatchObject({ state: "failed", error: "network" });
   });
@@ -129,7 +161,10 @@ describe("OfflineSaver", () => {
   it("remove deletes blobs no other pin needs and keeps shared ones", async () => {
     const h = await harness();
     await h.saver.save("ust-kut");
-    await h.store.updatePins(A, (pins) => [...pins, { slug: "other", title: "Other", hashes: [H.pump!], bytes: 4, savedAt: "t", syncedAt: "t" }]);
+    await h.store.updatePins(A, (pins) => [
+      ...pins,
+      { slug: "other", title: "Other", hashes: [H.pump!], bytes: 4, savedAt: "t", syncedAt: "t" },
+    ]);
     await h.saver.remove("ust-kut");
     expect(await h.store.blob(A, H.pump!)).not.toBeNull();
     expect(await h.store.blob(A, H["terrain-lod0"]!)).toBeNull();
@@ -201,13 +236,18 @@ describe("OfflineSaver", () => {
   it("runs two saves at once; a third waits queued, and a cancelled queued save frees nothing", async () => {
     const { gate, release } = gated();
     const h = await harness(server({ blob: async (hash) => (await gate, new Response(nameOf(hash))) }));
-    const scenes = () => h.fetch.mock.calls.filter(([u]) => String(u).endsWith("/scene")).length;
+    const scenes = () => h.fetch.mock.calls.filter(([u]) => u.endsWith("/scene")).length;
     const all = ["a", "b", "c", "d"].map((s) => h.saver.save(s));
     await vi.waitFor(() => expect(scenes()).toBe(2));
     await sleep(20);
     expect(scenes()).toBe(2);
     expect(h.events.filter((e) => e.state === "queued")).toHaveLength(4);
-    expect(h.events.filter((e) => e.state === "saving").map((e) => e.slug).sort()).toEqual(["a", "b"]);
+    expect(
+      h.events
+        .filter((e) => e.state === "saving")
+        .map((e) => e.slug)
+        .toSorted(),
+    ).toEqual(["a", "b"]);
     h.saver.cancel("c");
     release();
     await Promise.all(all);
@@ -222,7 +262,8 @@ describe("OfflineSaver", () => {
     const h = await harness();
     const real = h.fetch.getMockImplementation()!;
     h.fetch.mockImplementation(async (url, signal) => {
-      if (url.includes("/api/assets/") && pinsAtFirstBlob === undefined) pinsAtFirstBlob = (await h.store.readPins(A)).map((p) => p.slug);
+      if (url.includes("/api/assets/") && pinsAtFirstBlob === undefined)
+        pinsAtFirstBlob = (await h.store.readPins(A)).map((p) => p.slug);
       return real(url, signal);
     });
     await h.saver.save("ust-kut");
@@ -246,15 +287,144 @@ describe("OfflineSaver", () => {
     for (const hash of Object.values(H)) expect(await h.store.blob(A, hash)).not.toBeNull();
   });
 
+  describe("a resync that finds the territory gone", () => {
+    it.each([
+      ["scene", "/scene"],
+      ["territory", "/ust-kut"],
+    ])("a 404 on the %s drops the pin, its blobs and snapshots, and emits gone", async (_n, suffix) => {
+      const h = await harness();
+      await h.saver.save("ust-kut");
+      h.events.length = 0;
+      answering(h, 404, suffix);
+      await h.saver.resyncAll();
+      await vi.waitFor(() => expect(h.events).toHaveLength(1));
+      expect(h.events[0]).toEqual({ slug: "ust-kut", state: "gone", done: 0, total: 0, title: "Ust-Kut" });
+      expect(await h.saver.list()).toEqual([]);
+      for (const hash of Object.values(H)) expect(await h.store.blob(A, hash)).toBeNull();
+      expect(await snap(h, "/api/territories/ust-kut")).toBeNull();
+      expect(await snap(h, "/api/territories/ust-kut/scene")).toBeNull();
+    });
+
+    it.each([
+      [401, "signed-out"],
+      [503, "failed"],
+    ])("a %i keeps the copy and reports %s", async (status, error) => {
+      const h = await harness();
+      await h.saver.save("ust-kut");
+      const before = await h.saver.list();
+      answering(h, status, "/scene");
+      await h.saver.save("ust-kut");
+      expect(last(h.events)).toMatchObject({ state: "failed", error });
+      expect(await h.saver.list()).toEqual(before);
+      expect(await h.store.blob(A, H.pump!)).not.toBeNull();
+      expect(await snap(h, "/api/territories/ust-kut/scene")).not.toBeNull();
+    });
+
+    it("a network error keeps the copy", async () => {
+      const h = await harness();
+      await h.saver.save("ust-kut");
+      const before = await h.saver.list();
+      h.fetch.mockImplementation(async () => {
+        throw new TypeError("net::ERR_INTERNET_DISCONNECTED");
+      });
+      await h.saver.save("ust-kut");
+      expect(last(h.events)).toMatchObject({ state: "failed", error: "network" });
+      expect(await h.saver.list()).toEqual(before);
+    });
+
+    it("a 404 on a blob keeps the copy", async () => {
+      const h = await harness();
+      await h.saver.save("ust-kut");
+      const before = await h.saver.list();
+      const real = h.fetch.getMockImplementation()!;
+      const grown = { ...scene, panoramas: [...scene.panoramas!, { sourceBlobHash: sha("pano2") }] };
+      h.fetch.mockImplementation(async (url, signal) => {
+        if (url.endsWith("/scene")) return new Response(JSON.stringify(grown));
+        if (url.endsWith(sha("pano2"))) return new Response("", { status: 404 });
+        return real(url, signal);
+      });
+      await h.saver.save("ust-kut");
+      expect(last(h.events)).toMatchObject({ state: "failed" });
+      expect(await h.saver.list()).toEqual(before);
+      expect(await h.store.blob(A, H.pump!)).not.toBeNull();
+    });
+
+    it("a 404 that arrives after cancelAll keeps the copy", async () => {
+      const h = await harness();
+      await h.saver.save("ust-kut");
+      const before = await h.saver.list();
+      h.fetch.mockImplementation(async () => {
+        h.saver.cancelAll();
+        return new Response("", { status: 404 });
+      });
+      await h.saver.save("ust-kut");
+      expect(last(h.events)).toMatchObject({ state: "cancelled" });
+      expect(await h.saver.list()).toEqual(before);
+      expect(await h.store.blob(A, H.pump!)).not.toBeNull();
+    });
+
+    it("a 404 that arrives after the user changed keeps the first user's copy", async () => {
+      const h = await harness();
+      await h.saver.save("ust-kut");
+      h.fetch.mockImplementation(async () => {
+        await h.settings.update({ userId: B });
+        return new Response("", { status: 404 });
+      });
+      await h.saver.save("ust-kut");
+      expect(last(h.events)).toMatchObject({ state: "cancelled" });
+      expect((await h.store.readPins(A)).map((p) => p.slug)).toEqual(["ust-kut"]);
+      expect(await h.store.blob(A, H.pump!)).not.toBeNull();
+    });
+
+    it("still reports gone when a snapshot cannot be removed", async () => {
+      const h = await harness();
+      await h.saver.save("ust-kut");
+      vi.spyOn(h.store, "removeSnapshot").mockRejectedValue(new Error("EPERM"));
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      answering(h, 404, "/scene");
+      await h.saver.save("ust-kut");
+      expect(last(h.events)).toMatchObject({ state: "gone" });
+      expect(await h.saver.list()).toEqual([]);
+      expect(warn).toHaveBeenCalled();
+    });
+
+    it("a blob another pinned territory holds survives", async () => {
+      const h = await harness();
+      await h.saver.save("ust-kut");
+      await h.store.updatePins(A, (all) => [
+        ...all,
+        { slug: "other", title: "Other", hashes: [H.pump!], bytes: 4, savedAt: "t", syncedAt: "t" },
+      ]);
+      answering(h, 404, "/scene");
+      await h.saver.save("ust-kut");
+      expect(last(h.events)).toMatchObject({ state: "gone" });
+      expect(await h.store.blob(A, H.pump!)).not.toBeNull();
+      expect(await h.store.blob(A, H.pano!)).toBeNull();
+      expect((await h.store.readPins(A)).map((p) => p.slug)).toEqual(["other"]);
+    });
+
+    it("a first save (no syncedAt) that gets 404 fails as before and removes nothing else", async () => {
+      const h = await harness();
+      answering(h, 404, "/scene");
+      await h.saver.save("ust-kut");
+      expect(last(h.events)).toMatchObject({ state: "failed", error: "failed" });
+      expect(h.events.some((e) => e.state === "gone")).toBe(false);
+    });
+  });
+
   it("resyncAll saves every pin again", async () => {
     const h = await harness();
     await h.saver.save("a");
     await h.saver.save("b");
-    const scenes = () => h.fetch.mock.calls.filter(([u]) => String(u).endsWith("/scene"));
+    const scenes = () => h.fetch.mock.calls.filter(([u]) => u.endsWith("/scene"));
     expect(scenes()).toHaveLength(2);
     await h.saver.resyncAll();
     await vi.waitFor(() => expect(h.events.filter((e) => e.state === "saved")).toHaveLength(4));
-    expect(scenes().map(([u]) => new URL(String(u)).pathname.split("/")[3]).sort()).toEqual(["a", "a", "b", "b"]);
+    expect(
+      scenes()
+        .map(([u]) => new URL(u).pathname.split("/")[3])
+        .toSorted((a, b) => (a ?? "").localeCompare(b ?? "")),
+    ).toEqual(["a", "a", "b", "b"]);
   });
 
   it("resyncAll is silent: only the final saved, no queued/saving", async () => {
@@ -296,7 +466,7 @@ describe("OfflineSaver", () => {
     h.saver.cancel("c");
     await queued;
     expect(last(h.events.filter((e) => e.slug === "c"))?.state).toBe("cancelled");
-    expect(h.fetch.mock.calls.some(([u]) => String(u).includes("/c/"))).toBe(false);
+    expect(h.fetch.mock.calls.some(([u]) => u.includes("/c/"))).toBe(false);
     release();
     await Promise.all(running);
     await h.saver.save("d");
@@ -305,7 +475,9 @@ describe("OfflineSaver", () => {
 
   it("sums unequal blob sizes exactly when downloads finish out of order", async () => {
     const delay: Record<string, number> = { "terrain-lod0": 40, "terrain-lod1": 10, pump: 30, pano: 0, pdf: 20 };
-    const h = await harness(server({ blob: async (hash) => (await sleep(delay[nameOf(hash)]!), new Response(nameOf(hash))) }));
+    const h = await harness(
+      server({ blob: async (hash) => (await sleep(delay[nameOf(hash)]!), new Response(nameOf(hash))) }),
+    );
     await h.saver.save("ust-kut");
     expect((await h.saver.list())[0]?.bytes).toBe(BLOBS.join("").length);
   });
@@ -329,7 +501,10 @@ describe("OfflineSaver", () => {
       if (first) {
         first = false;
         // A concurrent save pins the pump after remove's unpin, before remove deletes.
-        await real(user, (all) => [...all, { slug: "other", title: "o", hashes: [H.pump!], bytes: 0, savedAt: "t", syncedAt: "t" }]);
+        await real(user, (all) => [
+          ...all,
+          { slug: "other", title: "o", hashes: [H.pump!], bytes: 0, savedAt: "t", syncedAt: "t" },
+        ]);
       }
       return pins;
     });
@@ -340,13 +515,15 @@ describe("OfflineSaver", () => {
 
   it("cancelAll stops every running and queued save", async () => {
     const { gate, release } = gated();
-    const h = await harness(server({ blob: async (_hash, signal) => (await gate, signal?.throwIfAborted(), new Response("never")) }));
+    const h = await harness(
+      server({ blob: async (_hash, signal) => (await gate, signal?.throwIfAborted(), new Response("never")) }),
+    );
     const runs = ["a", "b", "c"].map((slug) => h.saver.save(slug));
     await vi.waitFor(() => expect(h.events.some((e) => e.state === "saving")).toBe(true));
     h.saver.cancelAll();
     release();
     await Promise.all(runs);
-    for (const slug of ["a", "b", "c"]) expect(h.events.filter((e) => e.slug === slug).pop()?.state).toBe("cancelled");
+    for (const slug of ["a", "b", "c"]) expect(h.events.findLast((e) => e.slug === slug)?.state).toBe("cancelled");
     expect(await h.store.readPins(A)).toEqual([]);
   });
 
@@ -381,7 +558,7 @@ describe("OfflineSaver", () => {
     await Promise.all(first);
     await queued;
     expect(last(h.events.filter((e) => e.slug === "c"))?.state).toBe("cancelled");
-    expect(h.fetch.mock.calls.filter(([u]) => String(u).includes("/territories/c/"))).toHaveLength(0);
+    expect(h.fetch.mock.calls.filter(([u]) => u.includes("/territories/c/"))).toHaveLength(0);
     expect(await h.store.readPins(B)).toEqual([]);
   });
 });

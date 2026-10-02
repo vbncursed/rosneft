@@ -58,9 +58,10 @@ describe("AlertInspector", () => {
   it("ranks the contributors, each with a share of the worst", () => {
     render(<AlertInspector {...props()} />);
     expect(screen.getByText("GET /api/territories/:slug")).toBeInTheDocument();
-    expect(
-      screen.getByRole("progressbar", { name: "GET /api/territories/:slug share" }),
-    ).toHaveAttribute("aria-valuenow", "100");
+    expect(screen.getByRole("progressbar", { name: "GET /api/territories/:slug share" })).toHaveAttribute(
+      "aria-valuenow",
+      "100",
+    );
   });
 
   it("shows no contributor block when there are none", () => {

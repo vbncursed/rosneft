@@ -2,7 +2,11 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const state = vi.hoisted(() => ({ value: {} as { saved?: unknown; progress?: unknown }, desktop: true as boolean, online: true as boolean }));
+const state = vi.hoisted(() => ({
+  value: {} as { saved?: unknown; progress?: unknown },
+  desktop: true as boolean,
+  online: true as boolean,
+}));
 const actions = vi.hoisted(() => ({ save: vi.fn(), cancel: vi.fn(), remove: vi.fn(async () => {}) }));
 vi.mock("../model/offline-store", () => ({ useOfflineTerritory: () => state.value, offlineActions: actions }));
 vi.mock("@/shared/lib/use-online", () => ({ useOnline: () => state.online }));
@@ -61,7 +65,9 @@ describe("OfflineToggle", () => {
   it("names a retry as a retry on the compact control", async () => {
     state.value = { progress: { slug: "a", state: "failed", done: 0, total: 0, error: "network" } };
     render(<OfflineToggle slug="a" title="Ust-Kut" compact />);
-    await userEvent.click(screen.getByRole("button", { name: "Retry saving Ust-Kut — Couldn't save — the connection dropped" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Retry saving Ust-Kut — Couldn't save — the connection dropped" }),
+    );
     expect(actions.save).toHaveBeenCalledWith("a");
   });
   describe("offline", () => {

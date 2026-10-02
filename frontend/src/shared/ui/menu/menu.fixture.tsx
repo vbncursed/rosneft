@@ -31,7 +31,9 @@ export default {
             <p className="m-0 text-[13px] font-semibold">a.ivanova</p>
             <p className="m-0 mt-0.5 text-[11px] text-muted">a.ivanova@example.com</p>
             <p className="m-0 mt-2">
-              <Badge tone="accent" size="sm">Company Owner</Badge>
+              <Badge tone="accent" size="sm">
+                Company Owner
+              </Badge>
             </p>
           </>
         }

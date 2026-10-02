@@ -71,9 +71,7 @@ export function PageHeader({
         )}
         {meta ? <p className="m-0 mt-2 font-mono text-[11px] text-muted">{meta}</p> : null}
         {description ? (
-          <p className={cx("m-0 mt-2 text-[13px] text-muted", DESCRIPTION_WIDTH[size])}>
-            {description}
-          </p>
+          <p className={cx("m-0 mt-2 text-[13px] text-muted", DESCRIPTION_WIDTH[size])}>{description}</p>
         ) : null}
       </div>
       {action}

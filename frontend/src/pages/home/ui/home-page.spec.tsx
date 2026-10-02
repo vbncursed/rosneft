@@ -64,7 +64,12 @@ const base: HomePageProps = {
   models: { cards: [model("valve-assembly")], total: 1, meta: "1 in the library" },
   console: [
     { label: "Users", href: "/console/users", hint: { kind: "count", text: "12 users" }, locked: false },
-    { label: "Metrics", href: "/console/metrics", hint: { kind: "static", text: "conversion health and alerts" }, locked: true },
+    {
+      label: "Metrics",
+      href: "/console/metrics",
+      hint: { kind: "static", text: "conversion health and alerts" },
+      locked: true,
+    },
   ],
   activity: [entry(1, "auth.login")],
   activityLoading: false,
@@ -75,15 +80,13 @@ const base: HomePageProps = {
 const page = (over: Partial<HomePageProps> = {}) => render(<HomePage {...base} {...over} />);
 
 beforeEach(() => {
-  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false } as MediaQueryList));
+  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false }));
 });
 
 describe("HomePage", () => {
   it("titles the page and prints the header meta", () => {
     page();
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Territories and models" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Territories and models" })).toBeInTheDocument();
     expect(screen.getByText("Andrey Viewer")).toBeInTheDocument();
     expect(screen.getByText("4 territories · 57 models · 1 converting")).toBeInTheDocument();
   });
@@ -126,14 +129,8 @@ describe("HomePage", () => {
 
   it("offers See all wherever a section has anything to see", () => {
     const { rerender } = page();
-    expect(screen.getByRole("link", { name: "See all 1 territories →" })).toHaveAttribute(
-      "href",
-      "/territories",
-    );
-    expect(screen.getByRole("link", { name: "See all 1 models →" })).toHaveAttribute(
-      "href",
-      "/models",
-    );
+    expect(screen.getByRole("link", { name: "See all 1 territories →" })).toHaveAttribute("href", "/territories");
+    expect(screen.getByRole("link", { name: "See all 1 models →" })).toHaveAttribute("href", "/models");
 
     rerender(
       <HomePage
@@ -159,10 +156,7 @@ describe("HomePage", () => {
   it("draws a locked console card as no link at all", () => {
     page();
     expect(screen.getByRole("link", { name: /Users/ })).toHaveAttribute("href", "/console/users");
-    expect(screen.getByText("Metrics").closest("[aria-disabled]")).toHaveAttribute(
-      "aria-disabled",
-      "true",
-    );
+    expect(screen.getByText("Metrics").closest("[aria-disabled]")).toHaveAttribute("aria-disabled", "true");
   });
 
   it("keeps loading, unavailable and answered activity apart", () => {
@@ -181,10 +175,7 @@ describe("HomePage", () => {
       jobs: [job(), job({ kind: "model", slug: "valve", title: "Valve", href: "/models/valve" })],
       jobsMeta: "2 jobs · updates by itself",
       territories: {
-        cards: [
-          { ...territory("refinery-block-c"), title: "Refinery Block C" },
-          territory("north-ridge-pad"),
-        ],
+        cards: [{ ...territory("refinery-block-c"), title: "Refinery Block C" }, territory("north-ridge-pad")],
         total: 2,
         meta: "showing 2 of 2",
         viewerEmpty: false,

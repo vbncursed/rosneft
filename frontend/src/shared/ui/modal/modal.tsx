@@ -105,9 +105,7 @@ export function Modal({
             </h2>
           )}
 
-          {description ? (
-            <p className="m-0 text-[13px] leading-[1.55] text-muted">{description}</p>
-          ) : null}
+          {description ? <p className="m-0 text-[13px] leading-[1.55] text-muted">{description}</p> : null}
 
           {children}
 

@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import type { ConsoleNavItem } from "@/widgets/console-nav";
 import { useConsoleCounters } from "./use-console-counters";
 
@@ -25,11 +25,11 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
 let client: QueryClient;
-let fetchMock: ReturnType<typeof vi.fn>;
+let fetchMock: Mock<(url: string, init?: RequestInit) => Promise<Response>>;
 const wrapper = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={client}>{children}</QueryClientProvider>
 );
-const urls = () => fetchMock.mock.calls.map(([u]) => String(u));
+const urls = () => fetchMock.mock.calls.map(([u]) => u);
 
 beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -43,9 +43,7 @@ afterEach(() => vi.unstubAllGlobals());
 describe("useConsoleCounters", () => {
   it("counts every open card off one summary call", async () => {
     const { result } = renderHook(() => useConsoleCounters(ITEMS), { wrapper });
-    await waitFor(() =>
-      expect(Object.values(result.current).every((h) => h.kind === "count")).toBe(true),
-    );
+    await waitFor(() => expect(Object.values(result.current).every((h) => h.kind === "count")).toBe(true));
     expect(result.current.users.text).toBe("2 users · 1 frozen");
     expect(result.current.roles.text).toBe("2 roles · 3 permissions");
     expect(result.current.content.text).toBe("2 territories · 1 model");
@@ -57,9 +55,7 @@ describe("useConsoleCounters", () => {
   });
 
   it("answers a locked card's static line whatever the summary holds", async () => {
-    const locked = ITEMS.map((i) =>
-      i.key === "users" || i.key === "metrics" ? { ...i, disabled: true } : i,
-    );
+    const locked = ITEMS.map((i) => (i.key === "users" || i.key === "metrics" ? { ...i, disabled: true } : i));
     const { result } = renderHook(() => useConsoleCounters(locked), { wrapper });
     await waitFor(() => expect(result.current.roles.kind).toBe("count"));
     expect(result.current.users).toEqual({ kind: "static", text: "people and roles" });
@@ -67,10 +63,7 @@ describe("useConsoleCounters", () => {
   });
 
   it("asks nothing when every card is locked", async () => {
-    const { result } = renderHook(
-      () => useConsoleCounters(ITEMS.map((i) => ({ ...i, disabled: true }))),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useConsoleCounters(ITEMS.map((i) => ({ ...i, disabled: true }))), { wrapper });
     // A query fires its fetch after mount; asserting synchronously would pass
     // even with the gate gone. Let the effects and a macrotask run first.
     await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
@@ -82,9 +75,7 @@ describe("useConsoleCounters", () => {
     fetchMock.mockImplementation(async () => json({ code: "internal", message: "down" }, 500));
     const { result } = renderHook(() => useConsoleCounters(ITEMS.slice(0, 1)), { wrapper });
     expect(result.current.users).toEqual({ kind: "static", text: "people and roles" });
-    await waitFor(() =>
-      expect(result.current.users).toEqual({ kind: "unavailable", text: "count unavailable" }),
-    );
+    await waitFor(() => expect(result.current.users).toEqual({ kind: "unavailable", text: "count unavailable" }));
   });
 
   // A source that failed is null for its card only; a card the gateway left
@@ -99,10 +90,7 @@ describe("useConsoleCounters", () => {
 
   it("reads zero grants as a count, not as not-yet", async () => {
     fetchMock.mockImplementation(async () => json({ access: 0 }));
-    const { result } = renderHook(
-      () => useConsoleCounters(ITEMS.filter((i) => i.key === "access")),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useConsoleCounters(ITEMS.filter((i) => i.key === "access")), { wrapper });
     await waitFor(() => expect(result.current.access).toEqual({ kind: "count", text: "0 grants" }));
   });
 });

@@ -15,6 +15,8 @@ import (
 // IS the LOD level the catalog should record. When no ratios are configured
 // or no simplifier is wired, returns just LOD0.
 //
+// root is the extraction directory of the whole upload; see Convert.
+//
 // Every LOD — including LOD0 — is derived from the same uncompressed GLB,
 // never from LOD0's compressed bytes: gltfpack cannot decode Basis Universal
 // textures, so simplifying the compressed artifact would leave every LOD
@@ -23,8 +25,8 @@ import (
 // Every LOD carries its own vertex/face counts, read back from its own
 // produced GLB, and LOD 0's source-unit bounding box (simplification never
 // moves the mesh, so every LOD shares it).
-func (c *Converter) ConvertLODs(ctx context.Context, sourcePath string) ([]domain.ConversionResult, error) {
-	raw, err := c.convertRaw(ctx, sourcePath)
+func (c *Converter) ConvertLODs(ctx context.Context, root, sourcePath string) ([]domain.ConversionResult, error) {
+	raw, err := c.convertRaw(ctx, root, sourcePath)
 	if err != nil {
 		return nil, err
 	}

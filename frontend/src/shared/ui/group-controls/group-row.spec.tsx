@@ -35,7 +35,16 @@ describe("GroupRow", () => {
   it("draws its actions beside the disclosure, not inside it", async () => {
     const onToggle = vi.fn();
     const onEye = vi.fn();
-    render(row({ onToggle, actions: <button type="button" onClick={onEye}>eye</button> }));
+    render(
+      row({
+        onToggle,
+        actions: (
+          <button type="button" onClick={onEye}>
+            eye
+          </button>
+        ),
+      }),
+    );
     const eye = screen.getByRole("button", { name: "eye" });
     expect(screen.getByRole("button", { name: "storage-tank-500" })).not.toContainElement(eye);
     await userEvent.click(eye);
@@ -48,6 +57,11 @@ describe("GroupRow", () => {
     const disclosure = screen.getByRole("button", { name: "storage-tank-500" });
     expect(disclosure).not.toHaveClass("transition-colors");
     expect(disclosure).toHaveClass("active:scale-[0.99]");
-    expect(disclosure.querySelector("svg")!).toHaveClass("transition-transform", "ease-out", "motion-reduce:transition-none", "rotate-90");
+    expect(disclosure.querySelector("svg")!).toHaveClass(
+      "transition-transform",
+      "ease-out",
+      "motion-reduce:transition-none",
+      "rotate-90",
+    );
   });
 });

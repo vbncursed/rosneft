@@ -44,11 +44,7 @@ export async function login(
 // Step two: exchange the TOTP/recovery code + challenge for a session. The
 // response body still carries a token for non-browser clients; this one ignores
 // it and rides the cookie the same response set.
-export async function verifyTwoFactor(
-  challengeToken: string,
-  code: string,
-  remember: boolean,
-): Promise<void> {
+export async function verifyTwoFactor(challengeToken: string, code: string, remember: boolean): Promise<void> {
   const r = await httpPost<{ token: string; csrfToken: string }>(
     "/api/auth/login/2fa",
     { challengeToken, code, remember },
