@@ -18,7 +18,10 @@ func writeJSON(w http.ResponseWriter, code int, body any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	if body != nil {
-		_ = json.NewEncoder(w).Encode(body)
+		if err := json.NewEncoder(w).Encode(body); err != nil {
+			// Headers are out; the body cannot be redone, only reported.
+			slog.Warn("write response body", "error", err)
+		}
 	}
 }
 

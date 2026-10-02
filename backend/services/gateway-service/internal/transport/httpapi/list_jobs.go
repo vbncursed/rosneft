@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
@@ -77,7 +78,10 @@ func writeJobs(w http.ResponseWriter, jobs []domain.Job) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
-	_ = json.NewEncoder(w).Encode(resp)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		// Headers are out; the body cannot be redone, only reported.
+		slog.Warn("write jobs body", "error", err)
+	}
 }
 
 // writeInternal is internalResp for the handlers outside the strict layer.

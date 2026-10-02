@@ -102,9 +102,9 @@ func (m *Mesh) liveJob(ctx context.Context, kind domain.Kind, slug string) (*dom
 		if j.Status == domain.JobStatusPending || j.Status == domain.JobStatusRunning {
 			return &j, nil
 		}
-		return nil, nil
+		return nil, nil //nolint:nilnil // nil job means no live job for the target; the caller then enqueues
 	}
-	return nil, nil
+	return nil, nil //nolint:nilnil // nil job means no live job for the target; the caller then enqueues
 }
 
 // queued reports whether j is waiting in the stream, not abandoned: Pending,

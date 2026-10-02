@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"maps"
 	"net/http"
 	"sync"
@@ -180,5 +181,8 @@ func evalProbes(ctx context.Context, probes map[string]Probe) map[string]error {
 func writeJSON(w http.ResponseWriter, status int, body any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(body)
+	if err := json.NewEncoder(w).Encode(body); err != nil {
+		// Headers are out; the body cannot be redone, only reported.
+		slog.Warn("write health body", "error", err)
+	}
 }

@@ -125,9 +125,10 @@ func streamJob(
 			return
 		}
 	} else if errors.Is(err, domain.ErrJobNotFound) {
-		body, _ := json.Marshal(apperr.Body{Code: apperr.SlugNotFound, Message: "job not found"})
-		writeNamedEvent(w, "error", string(body))
-		flusher.Flush()
+		if body, err := json.Marshal(apperr.Body{Code: apperr.SlugNotFound, Message: "job not found"}); err == nil {
+			writeNamedEvent(w, "error", string(body))
+			flusher.Flush()
+		}
 		return
 	}
 

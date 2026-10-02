@@ -61,7 +61,7 @@ type line struct {
 // than silently witness into a directory nobody backs up.
 func Open(path string) (*Writer, error) {
 	if path == "" {
-		return nil, nil
+		return nil, nil //nolint:nilnil // documented: no path means witnessing is off, and a nil *Writer is a working no-op
 	}
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
