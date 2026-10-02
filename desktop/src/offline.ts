@@ -138,13 +138,15 @@ export class OfflineSaver {
     if (removed) await this.d.store.removeUnpinned(user, removed.hashes);
   }
 
-  /** Access is gone: drop the copy and what the offline shell would still replay of it. */
+  /** Access is gone: drop the copy, then what the offline shell would still replay of it. Snapshot failures are logged only: the copy is gone either way. */
   private async drop(user: string, slug: string): Promise<void> {
     this.still(user);
     await this.unpin(user, slug);
     await Promise.all(
       [`/api/territories/${slug}`, `/api/territories/${slug}/scene`].map((key) =>
-        this.d.store.removeSnapshot(user, key),
+        this.d.store
+          .removeSnapshot(user, key)
+          .catch((e: unknown) => console.warn("offline: snapshot not removed", key, e)),
       ),
     );
   }
@@ -284,7 +286,8 @@ export class OfflineSaver {
           await this.drop(user, slug);
           return this.d.emit({ slug, state: "gone", done: 0, total: 0 });
         } catch (dropErr) {
-          if (!(dropErr instanceof SessionChanged)) console.warn("offline: could not drop", slug, dropErr);
+          if (dropErr instanceof SessionChanged) return emit({ slug, state: "cancelled", done: 0, total: 0 });
+          console.warn("offline: could not drop", slug, dropErr);
         }
       }
       if (signal.aborted || err instanceof SessionChanged) emit({ slug, state: "cancelled", done: 0, total: 0 });

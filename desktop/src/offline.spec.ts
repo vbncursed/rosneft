@@ -308,13 +308,13 @@ describe("OfflineSaver", () => {
     it.each([
       [401, "signed-out"],
       [503, "failed"],
-    ])("a %i keeps the copy", async (status, _e) => {
+    ])("a %i keeps the copy and reports %s", async (status, error) => {
       const h = await harness();
       await h.saver.save("ust-kut");
       const before = await h.saver.list();
       answering(h, status, "/scene");
       await h.saver.save("ust-kut");
-      expect(last(h.events)).toMatchObject({ state: "failed" });
+      expect(last(h.events)).toMatchObject({ state: "failed", error });
       expect(await h.saver.list()).toEqual(before);
       expect(await h.store.blob(A, H.pump!)).not.toBeNull();
       expect(await snap(h, "/api/territories/ust-kut/scene")).not.toBeNull();
@@ -332,12 +332,60 @@ describe("OfflineSaver", () => {
       expect(await h.saver.list()).toEqual(before);
     });
 
-    it("a 401 reports signed-out", async () => {
+    it("a 404 on a blob keeps the copy", async () => {
       const h = await harness();
       await h.saver.save("ust-kut");
-      answering(h, 401, "/scene");
+      const before = await h.saver.list();
+      const real = h.fetch.getMockImplementation()!;
+      const grown = { ...scene, panoramas: [...scene.panoramas!, { sourceBlobHash: sha("pano2") }] };
+      h.fetch.mockImplementation(async (url, signal) => {
+        if (url.endsWith("/scene")) return new Response(JSON.stringify(grown));
+        if (url.endsWith(sha("pano2"))) return new Response("", { status: 404 });
+        return real(url, signal);
+      });
       await h.saver.save("ust-kut");
-      expect(last(h.events)).toMatchObject({ state: "failed", error: "signed-out" });
+      expect(last(h.events)).toMatchObject({ state: "failed" });
+      expect(await h.saver.list()).toEqual(before);
+      expect(await h.store.blob(A, H.pump!)).not.toBeNull();
+    });
+
+    it("a 404 that arrives after cancelAll keeps the copy", async () => {
+      const h = await harness();
+      await h.saver.save("ust-kut");
+      const before = await h.saver.list();
+      h.fetch.mockImplementation(async () => {
+        h.saver.cancelAll();
+        return new Response("", { status: 404 });
+      });
+      await h.saver.save("ust-kut");
+      expect(last(h.events)).toMatchObject({ state: "cancelled" });
+      expect(await h.saver.list()).toEqual(before);
+      expect(await h.store.blob(A, H.pump!)).not.toBeNull();
+    });
+
+    it("a 404 that arrives after the user changed keeps the first user's copy", async () => {
+      const h = await harness();
+      await h.saver.save("ust-kut");
+      h.fetch.mockImplementation(async () => {
+        await h.settings.update({ userId: B });
+        return new Response("", { status: 404 });
+      });
+      await h.saver.save("ust-kut");
+      expect(last(h.events)).toMatchObject({ state: "cancelled" });
+      expect((await h.store.readPins(A)).map((p) => p.slug)).toEqual(["ust-kut"]);
+      expect(await h.store.blob(A, H.pump!)).not.toBeNull();
+    });
+
+    it("still reports gone when a snapshot cannot be removed", async () => {
+      const h = await harness();
+      await h.saver.save("ust-kut");
+      vi.spyOn(h.store, "removeSnapshot").mockRejectedValue(new Error("EPERM"));
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      answering(h, 404, "/scene");
+      await h.saver.save("ust-kut");
+      expect(last(h.events)).toMatchObject({ state: "gone" });
+      expect(await h.saver.list()).toEqual([]);
+      expect(warn).toHaveBeenCalled();
     });
 
     it("a blob another pinned territory holds survives", async () => {
