@@ -53,7 +53,7 @@ Three layers, all on disk under the profile's `cache/`:
    refresh keeps the current generation; old ones are swept. With no network
    the app boots and serves any route from the current generation.
 2. **Snapshots** — the last good answer of a fixed whitelist of `GET /api`
-   routes (`auth/me`, `territories`, one territory, its `scene`, `models`).
+   routes (`auth/me`, `territories`, one territory, its `scene`, `models`, `jobs`).
    Nothing with a query string is stored. A 502, 503, 504 or 520-527 from the
    server counts as "unreachable": the saved copy is served and the app reads
    as offline; with no copy the answer passes through. Any other status is the
@@ -90,12 +90,23 @@ in at all.
 **A dev run does not touch the Keychain for cookies.** `make dev` has no fuses,
 so its cookies are plaintext in its own `-dev` profile.
 
-**On macOS a release asks for Keychain access again after every update.** It
-encrypts cookies with a key kept in the keychain ("Andrey Safe Storage"). The ACL
-authorises the *binary that asked*, and releases are only ad-hoc signed, so their
-identity is the cdhash, which changes with every build. **Always Allow** lasts
-until the next update. That is the OS working as designed, not something the
-shell can code around.
+**On macOS a release asks for Keychain access once, not after every update.**
+It encrypts cookies with a key kept in the keychain ("Andrey Safe Storage"). The
+ACL authorises the *binary that asked*, identified by its designated requirement.
+An ad-hoc signature makes that the cdhash, which changes with every build; a
+release signed with one stable self-signed certificate makes it "certificate leaf
+= that certificate", the same in every build, so **Always Allow** survives
+updates. A build made without the certificate (a fork's PR, a local `make build`)
+is ad-hoc signed and asks again.
+
+The certificate lives in `~/.andrey-signing/` on the maintainer's machine (`.p12`,
+its password, and a one-line base64 of the `.p12`). **Back it up.** Lose it and
+the next certificate has a new identity: one extra Keychain prompt after that
+update, then stable again. CI reads it from two repository secrets,
+`MAC_CSC_LINK` (the base64 line) and `MAC_CSC_KEY_PASSWORD`, on the macOS job
+only; `mac.sign` in `electron-builder.yml` (`src/signing.ts`) imports it into a
+throwaway keychain. Without the secrets the build falls back to ad-hoc. It is not
+an Apple certificate, so Gatekeeper still needs the `xattr` step below.
 
 ## Passkeys
 
@@ -120,9 +131,10 @@ published by pushing a `desktop-v*` tag whose version matches `package.json`
 git tag desktop-v0.3.0 && git push origin desktop-v0.3.0
 ```
 
-Builds are **not code-signed**, and every OS will object. Only macOS carries an
-ad-hoc signature, which Apple Silicon needs to run an arm64 binary at all; it is
-not a Developer ID.
+Builds are **not Apple- or Microsoft-signed**, and every OS will object. macOS
+builds carry a self-signed certificate (an ad-hoc signature when built without
+it), which Apple Silicon needs to run an arm64 binary at all; it is not a
+Developer ID.
 
 - **macOS**: `Andrey-*-macos-arm64` for Apple Silicon, `Andrey-*-macos-x64`
   for Intel, each as `.dmg` and `.zip`.
@@ -132,9 +144,9 @@ not a Developer ID.
      or try to open the app once, then go to System Settings, Privacy &
      Security, and press *Open Anyway* (it appears only after that blocked
      attempt and stays for about an hour).
-  3. On first launch, and after every update, macOS asks for the Keychain item
-     "Andrey Safe Storage". Allow it (*Always Allow*); it holds the key that
-     encrypts your sign-in cookie.
+  3. On first launch macOS asks for the Keychain item "Andrey Safe Storage".
+     Allow it (*Always Allow*); it holds the key that encrypts your sign-in
+     cookie. Updates do not ask again.
 - **Windows**: `Andrey-*-windows-x64-setup.exe` or
   `Andrey-*-windows-x64-portable.exe`. SmartScreen says "Windows protected your
   PC": press *More info*, then *Run anyway*. The portable `.exe` needs no
