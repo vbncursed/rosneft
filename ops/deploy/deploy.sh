@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2329,SC2012 # steps run through run()/step(); names are ours
 # Server-side deploy. Runs ON THE PRODUCTION HOST as the forced command of the
-# CD ssh key (see docs/superpowers/specs/2026-10-02-cd-design.md §2-3), with
+# CD ssh key (see docs/superpowers/specs/2026-10-02-cd-design.md §2-3; authorized_keys
+# `command=` points at /usr/local/sbin/andrey-deploy, a copy this script refreshes
+# from the checkout after every successful deploy, so it never lives inside the
+# tree it rewrites), with
 # "<sha> <actor>" in $1 $2 or $SSH_ORIGINAL_COMMAND and the GHCR token on the
 # first line of stdin (images are private; empty token = use existing docker
 # credentials, for a manual run on the server). Exit: 0 ok, 1 failed (rolled back,
-# or nothing to roll back to), 2 bad SHA, 3 rollback failed too, 4 lock timeout.
+# nothing to roll back to, or aborted before the first `compose up`), 2 bad SHA, 3 rollback failed too, 4 lock timeout.
 # DRY_RUN=1 logs every step and changes nothing. Every path is overridable
 # (ANDREY_*) so deploy_test.sh can run the real script against stubs.
 set -euo pipefail
@@ -61,6 +64,8 @@ LOCK=${ANDREY_LOCK:-/run/andrey-deploy.lock}
 LOCK_WAIT=${ANDREY_LOCK_WAIT:-600}
 CHECK_TIMEOUT=${ANDREY_CHECK_TIMEOUT:-120}
 CHECK_INTERVAL=${ANDREY_CHECK_INTERVAL:-5}
+SELF_INSTALL=${ANDREY_SELF:-/usr/local/sbin/andrey-deploy}
+UPPED=""
 FRONT_IMAGE=ghcr.io/vbncursed/andrey-frontend
 DC=(docker compose -p andrey --project-directory "$ROOT")
 FAIL_REASON=""
@@ -111,7 +116,8 @@ backup() {
 extract_front() { # <sha> <dest dir> [deploy|rollback]
   local cid policy=missing # docker's default; rollback must never reach the registry
   [[ ${3:-deploy} == deploy ]] || policy=never
-  cid=$(docker create --pull="$policy" "$FRONT_IMAGE:$1") || return 1
+  # The image is FROM scratch with no CMD: create refuses without a command. It is never run.
+  cid=$(docker create --pull="$policy" "$FRONT_IMAGE:$1" /nonexistent) || return 1
   docker cp "$cid:/dist/." "$2" || { docker rm "$cid" >/dev/null; return 1; }
   docker rm "$cid" >/dev/null
 }
@@ -189,6 +195,7 @@ apply() { # <sha> [rollback]
     flags+=(--pull never)
     upflags=("${flags[@]}" --remove-orphans)
   fi
+  UPPED=1 # from here a failure leaves the running stack changed
   step "compose up failed" "${DC[@]}" up -d "${upflags[@]}" || return 1
   # Audit triggers register only at audit's boot, so it restarts after the rest is up.
   wait_for compose_healthy || { FAIL_REASON="containers not healthy before audit restart"; return 1; }
@@ -205,7 +212,7 @@ check_once() { # <manifest-id>
   [[ $code == 200 ]] || { FAIL_REASON="GET / answered ${code:-nothing}"; return 1; }
   code=$(http_code "$ORIGIN/api/auth/me")
   [[ $code == 401 ]] || { FAIL_REASON="GET /api/auth/me answered ${code:-nothing}, expected 401"; return 1; }
-  live=$(curl -fsS --max-time 10 -H 'Cache-Control: no-cache' "$ORIGIN/shell-manifest.json" 2>/dev/null | manifest_id || true)
+  live=$(curl -fsS --max-time 10 -H 'Cache-Control: no-cache' "$ORIGIN/shell-manifest.json?v=$SHA" 2>/dev/null | manifest_id || true)
   [[ -n $1 && $live == "$1" ]] || { FAIL_REASON="shell-manifest id is '$live', expected '$1'"; return 1; }
 }
 
@@ -232,7 +239,7 @@ success_text() {
   if [[ -z ${DRY_RUN:-} ]]; then
     services=$("${DC[@]}" ps --format json | grep -c . || true)
     if [[ -n $PREV ]]; then
-      migrations=$(git -C "$ROOT" diff --name-only "$PREV" "$SHA" -- 'backend/services/*/internal/migrate/migrations/*.sql' | tr '\n' ' ' || true)
+      migrations=$(git -C "$ROOT" diff --diff-filter=A --name-only "$PREV" "$SHA" -- 'backend/services/*/internal/migrate/migrations/*.sql' | tr '\n' ' ' || true)
     fi
   fi
   echo "deploy ${SHA:0:7} ok ($services services running; new migrations: ${migrations:-none})"
@@ -273,11 +280,23 @@ main() {
 
   if deploy "$SHA"; then
     run write_deployed
+    # A failed refresh must not fail a deploy that is already live.
+    run install -m0755 "$ROOT/ops/deploy/deploy.sh" "$SELF_INSTALL" || log "forced command refresh failed"
     notify "$(success_text)"
     run prune_images
     exit 0
   fi
   local reason=$FAIL_REASON
+  if [[ -z $UPPED ]]; then
+    # Nothing is running differently. The checkout is the only change: put it back.
+    [[ -z $PREV ]] || git -C "$ROOT" checkout --detach "$PREV" >/dev/null 2>&1 || true
+    notify "deploy $s7 aborted before any change: $reason"
+    exit 1
+  fi
+  if [[ $PREV == "$SHA" ]]; then
+    notify "deploy $s7 failed ($reason); it is the running version, nothing to roll back to"
+    exit 1
+  fi
   [[ -n $PREV ]] || { notify "deploy $s7 failed ($reason); no previous deploy to roll back to"; exit 1; }
   if rollback "$PREV"; then
     notify "deploy $s7 rolled back to $p7: $reason"

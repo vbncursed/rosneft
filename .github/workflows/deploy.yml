@@ -91,6 +91,22 @@ jobs:
           tags: ghcr.io/vbncursed/andrey-${{ matrix.svc }}:${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.svc }}
           cache-to: type=gha,scope=${{ matrix.svc }},mode=max
+      # The frontend image is FROM scratch with no CMD; the server extracts it with
+      # `docker create <image> <dummy>` + `docker cp`. Prove that works on what was
+      # just pushed (load and push cannot be combined, so pull it back).
+      - name: smoke-test frontend extraction
+        if: matrix.svc == 'frontend'
+        env:
+          IMAGE: ghcr.io/vbncursed/andrey-frontend:${{ github.sha }}
+        run: |
+          docker pull "$IMAGE"
+          out=$(mktemp -d)
+          cid=$(docker create "$IMAGE" /nonexistent)
+          trap 'docker rm "$cid" >/dev/null' EXIT
+          for f in index.html shell-manifest.json; do
+            docker cp "$cid:/dist/$f" "$out/$f"
+            [[ -s $out/$f ]] || { echo "::error::$f missing from the image"; exit 1; }
+          done
 
   deploy:
     needs: images

@@ -84,17 +84,21 @@ TOKEN="tok-s3cret-$$"
 cat > "$BIN/docker" <<'STUB'
 #!/usr/bin/env bash
 echo "docker $*" >> "$CALLS"
+# STUB_OFFLINE_AFTER=<sha>: the network is gone once <sha> has been checked out (the rollback)
+offline_now() { [[ -n ${STUB_OFFLINE_AFTER:-} ]] && grep -q "checkout --detach $STUB_OFFLINE_AFTER" "$CALLS"; }
 case "$1" in
   compose)
     case "$*" in
-      *" pull"*) sleep "${STUB_SLOW:-0}"; [[ -z ${STUB_PULL_FAIL:-} ]] || exit 1 ;;
+      *" pull"*) sleep "${STUB_SLOW:-0}"; [[ -z ${STUB_PULL_FAIL:-} ]] || exit 1; ! offline_now || exit 1 ;;
       *" up "*) [[ " $* " != *" --remove-orphans "* ]] || touch "$WORK/orphan_gone"; [[ ${ANDREY_TAG:-} != "${STUB_UP_FAIL_TAG:-x}" ]] || exit 1 ;;
       *" ps "*) for s in gateway auth; do printf '{"Service":"%s","State":"running","Health":"healthy"}\n' "$s"; done
         if [[ -n ${STUB_ORPHAN:-} && ! -f $WORK/orphan_gone ]]; then printf '{"Service":"newsvc","State":"exited","Health":""}\n'; fi ;;
     esac ;;
   exec) [[ -z ${STUB_PGDUMP_FAIL:-} ]] || exit 1; echo "SELECT 1;" ;;
-  login) cat > "$WORK/login_stdin"; [[ -z ${STUB_LOGIN_FAIL:-} ]] || exit 1 ;;
-  create) img=${*: -1}; [[ ${img##*:} != "${STUB_CREATE_FAIL_TAG:-x}" ]] || exit 1; echo "cid-${img##*:}" ;;
+  login) cat > "$WORK/login_stdin"; [[ -z ${STUB_LOGIN_FAIL:-} ]] || exit 1; ! offline_now || exit 1 ;;
+  create) # like the real daemon, a CMD-less image needs a command argument
+    [[ ${*: -1} == /nonexistent ]] || { echo "Error response from daemon: no command specified" >&2; exit 1; }
+    img=${*: -2:1}; [[ ${img##*:} != "${STUB_CREATE_FAIL_TAG:-x}" ]] || exit 1; echo "cid-${img##*:}" ;;
   cp)
     id=${2#cid-}; id=${id%%:*}
     mkdir -p "$3/assets"
@@ -108,6 +112,7 @@ cat > "$BIN/git" <<'STUB'
 #!/usr/bin/env bash
 echo "git $*" >> "$CALLS"
 [[ $3 != fetch || -z ${STUB_FETCH_FAIL:-} ]] || exit 1
+[[ $3 != fetch || -z ${STUB_OFFLINE_AFTER:-} ]] || ! grep -q "checkout --detach $STUB_OFFLINE_AFTER" "$CALLS" || exit 1
 [[ $3 != diff ]] || printf '%s\n' ${STUB_MIGRATIONS:-}
 exit 0
 STUB
@@ -119,7 +124,7 @@ live=$(sed -n 's/.*"id":"\([^"]*\)".*/\1/p' "$ANDREY_WWW/shell-manifest.json" 2>
 case "$url" in
   *api.telegram.org*) [[ -z ${STUB_TG_FAIL:-} ]] || exit 22 ;;
   */api/auth/me) printf 401 ;;
-  */shell-manifest.json)
+  */shell-manifest.json*)
     if [[ -n $STUB_BROKEN_RE && $live =~ $STUB_BROKEN_RE ]]; then echo '{"id":"stale"}'; else echo "{\"id\":\"$live\"}"; fi ;;
   *) printf 200 ;;
 esac
@@ -148,13 +153,14 @@ export PATH="$BIN:$PATH" CALLS WORK
 # Fresh directories and stub knobs for one scenario.
 fresh() {
   rm -rf "$WORK/s"; mkdir -p "$WORK/s"/{root,www,state,logs,backups,secrets,tmp}
+  mkdir -p "$WORK/s/root/ops/deploy"; echo "# checkout copy" > "$WORK/s/root/ops/deploy/deploy.sh"
   echo "bot-token" > "$WORK/s/secrets/telegram_bot_token"; echo "42" > "$WORK/s/secrets/telegram_chat_id"
   : > "$CALLS"; rm -f "$WORK/login_stdin" "$WORK/orphan_gone"
   export ANDREY_ROOT="$WORK/s/root" ANDREY_WWW="$WORK/s/www" ANDREY_STATE="$WORK/s/state" \
     ANDREY_LOGS="$WORK/s/logs" ANDREY_BACKUPS="$WORK/s/backups" ANDREY_SECRETS="$WORK/s/secrets" \
     ANDREY_ORIGIN="https://x.test" ANDREY_LOCK="$WORK/s/lock" ANDREY_CHECK_TIMEOUT=0 ANDREY_CHECK_INTERVAL=0 \
-    TMPDIR="$WORK/s/tmp" STUB_OLD="$SHA1" STUB_NEW="$SHA2" STUB_BROKEN_RE=""
-  unset STUB_ORPHAN STUB_SLOW STUB_PULL_FAIL STUB_UP_FAIL_TAG STUB_LOGIN_FAIL STUB_CREATE_FAIL_TAG STUB_FETCH_FAIL STUB_CP_FAIL_TAG ANDREY_LOCK_WAIT DRY_RUN STUB_LOCK_HELD STUB_PGDUMP_FAIL STUB_MIGRATIONS STUB_TG_FAIL SSH_ORIGINAL_COMMAND || true
+    ANDREY_SELF="$WORK/s/andrey-deploy" TMPDIR="$WORK/s/tmp" STUB_OLD="$SHA1" STUB_NEW="$SHA2" STUB_BROKEN_RE=""
+  unset STUB_ORPHAN STUB_SLOW STUB_PULL_FAIL STUB_UP_FAIL_TAG STUB_LOGIN_FAIL STUB_CREATE_FAIL_TAG STUB_FETCH_FAIL STUB_CP_FAIL_TAG ANDREY_LOCK_WAIT DRY_RUN STUB_LOCK_HELD STUB_PGDUMP_FAIL STUB_MIGRATIONS STUB_TG_FAIL STUB_OFFLINE_AFTER SSH_ORIGINAL_COMMAND || true
 }
 
 # deploy.sh with $TOKEN on stdin; sets $out, $rc, $log. The command substitution
@@ -200,6 +206,10 @@ ok "frontend extracted without following image modes" calls_have 'tar -C .* -x -
 no "temp frontend dir removed" compgen -G "$WORK/s/tmp/andrey-front.*"
 ok "flock waits 600 s by default" calls_have "^flock -w 600 9"
 ok "success notice names the migration" calls_have "00003_x.sql"
+ok "migrations list only added files" calls_have 'git .*diff --diff-filter=A --name-only'
+ok "manifest check bypasses the CDN cache" calls_have "shell-manifest.json?v=$SHA2"
+ok "docker create gets a dummy command" calls_have "^docker create --pull=missing .*:$SHA2 /nonexistent$"
+ok "forced command refreshed from the checkout" cmp -s "$ANDREY_ROOT/ops/deploy/deploy.sh" "$ANDREY_SELF"
 ok "image older than the last deploys pruned" calls_have "rmi ghcr.io/vbncursed/andrey-gateway:$SHA3"
 no "current image kept" calls_have "rmi .*$SHA2"
 
@@ -217,15 +227,38 @@ ok "notice names rollback and the failing check" calls_have "text=deploy ${SHA2:
 ok "rollback never pulls: --pull never on up and docker create" in_order "$(sed -n "/checkout --detach $SHA1/,\$p" "$CALLS")" "up -d --no-build --pull never --remove-orphans" "force-recreate --no-build --pull never" "docker create --pull=never"
 no "forward calls carry neither flag" grep -q -e '--pull never' -e '--pull=never' -e '--remove-orphans' <(sed -n "/checkout --detach $SHA2/,/checkout --detach $SHA1/p" "$CALLS" | grep -v '^git')
 no "nothing pruned after a failure" grep -q '^+ prune_images' <<<"$log"
+no "rollback never refreshes the forced command" [ -e "$ANDREY_SELF" ]
+ok "rollback's docker create also gets the dummy command" calls_have "^docker create --pull=never .*:$SHA1 /nonexistent$"
+
+echo "=== 6f. pre-up failures abort without rollback ==="
+for knob in FETCH LOGIN PULL; do
+  fresh
+  echo "$SHA1" > "$ANDREY_ROOT/.deployed"
+  export "STUB_${knob}_FAIL=1"
+  go "$SHA2" vbncursed
+  [[ $rc -eq 1 ]] || { echo "$out"; fail "$knob: exit $rc, want 1"; }
+  ok "$knob: notice says aborted before any change" calls_have "text=deploy ${SHA2:0:7} aborted before any change: "
+  no "$knob: nothing was brought up" calls_have ' up -d'
+  no "$knob: no rollback" grep -q 'rolling back' <<<"$log"
+  ok "$knob: previous checkout restored" [ "$(grep -c "checkout --detach $SHA1" "$CALLS")" -eq 1 ]
+  ok "$knob: .deployed unchanged" [ "$(deployed)" = "$SHA1" ]
+done
+
+echo "=== 6g. redeploying the running sha never rolls back to itself ==="
+fresh
+echo "$SHA2" > "$ANDREY_ROOT/.deployed"
+export STUB_BROKEN_RE="$SHA2"
+go "$SHA2" vbncursed
+ok "exit 1" [ "$rc" -eq 1 ]
+no "no rollback" grep -q 'rolling back' <<<"$log"
+ok "notice says so" calls_have "text=deploy ${SHA2:0:7} failed"
 
 echo "=== 6b. rollback is offline: it never fetches, logs in or pulls ==="
 for knob in PULL LOGIN FETCH UP EXTRACT CP; do
   fresh
   echo "$SHA1" > "$ANDREY_ROOT/.deployed"
   case $knob in
-    PULL) export STUB_PULL_FAIL=1 ;;
-    LOGIN) export STUB_LOGIN_FAIL=1 ;;
-    FETCH) export STUB_FETCH_FAIL=1 ;;
+    PULL|LOGIN|FETCH) export STUB_OFFLINE_AFTER="$SHA1" STUB_BROKEN_RE="$SHA2" ;;
     UP) export STUB_UP_FAIL_TAG="$SHA2" ;;
     EXTRACT) export STUB_CREATE_FAIL_TAG="$SHA2" ;;
     CP) export STUB_CP_FAIL_TAG="$SHA2" ;;
