@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LoginPage, type LoginPageProps } from "./login-page";
@@ -96,7 +96,7 @@ describe("LoginPage", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("Invalid username or password.");
     await userEvent.click(screen.getByRole("button", { name: "Dismiss" }));
-    expect(onDismissError).toHaveBeenCalledOnce();
+    await waitFor(() => expect(onDismissError).toHaveBeenCalledOnce());
   });
 
   it("stays quiet when nothing failed", () => {
