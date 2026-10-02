@@ -192,7 +192,6 @@ describe("useLogin", () => {
       expect(startSession).toHaveBeenCalledWith("csrf-1");
     });
 
-    // Closing the OS dialog is a choice, not an error.
     it("points to the password when the navigation after a passkey sign-in fails", async () => {
       ceremony();
       navigate.mockRejectedValue(new Error("Could not open the page."));
@@ -203,6 +202,7 @@ describe("useLogin", () => {
       await waitFor(() => expect(result.current.error).toMatch(/password/u));
     });
 
+    // Closing the OS dialog is a choice, not an error.
     it("says nothing when the user cancels the system prompt", async () => {
       ceremony();
       vi.mocked(getCredential).mockRejectedValue(new DOMException("x", "NotAllowedError"));

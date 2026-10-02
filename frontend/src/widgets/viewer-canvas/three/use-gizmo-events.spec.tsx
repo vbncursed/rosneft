@@ -59,7 +59,7 @@ function Harness({
   const camera = useThree((s) => s.camera);
   useLayoutEffect(() => {
     // The probe is the spec's own object, handed in to be filled.
-    // oxlint-disable-next-line react/immutability
+    // oxlint-disable-next-line react/immutability -- the probe is the spec's own object, handed in to be filled
     if (probe) probe.camera = camera;
     set({ controls: orbit as unknown as OrbitControlsImpl });
   }, [set, orbit, probe, camera]);

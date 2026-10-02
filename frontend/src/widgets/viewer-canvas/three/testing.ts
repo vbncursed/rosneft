@@ -133,7 +133,7 @@ export function WithControls({
     // The probe is the spec's own object, handed in to be filled: the rule
     // cannot see that, and a callback would only move the same write one
     // frame out into every spec that mounts this.
-    // oxlint-disable-next-line react/immutability
+    // oxlint-disable-next-line react/immutability -- the probe is the spec's own object, handed in to be filled; a callback would only move the same write one frame out
     if (probe) probe.camera = camera;
     set({ controls: controls as EventDispatcher });
   }, [set, camera, controls, probe]);

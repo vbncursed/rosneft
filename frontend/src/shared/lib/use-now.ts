@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 /**
- * The current time, read once per render pass and refreshed every `everyMs`
+ * The current time, read at mount and refreshed every `everyMs`
  * (default 30 s), so every row of a list is measured against one instant and
  * a screen left open still crosses midnight. Not a call to `new Date()` in
  * render, which is impure.

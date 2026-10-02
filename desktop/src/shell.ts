@@ -140,7 +140,7 @@ export class Shell {
     for (const name of await readdir(this.root)) {
       if (name === keep || name === "current") continue;
       // Windows refuses to delete a file a page is still reading; the next refresh retries.
-      // oxlint-disable-next-line no-await-in-loop -- one generation at a time keeps Windows file-lock retries from piling up
+      // oxlint-disable-next-line no-await-in-loop -- best-effort cleanup of old generations; sequential keeps it simple
       await rm(path.join(this.root, name), { recursive: true, force: true }).catch(() => undefined);
     }
   }
