@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -32,6 +33,8 @@ type ProcessJobSuite struct {
 	// calls records HoldTarget and SaveJob in the order they happen.
 	calls   []string
 	holdErr error
+	// convRoot and convObj are what the stubbed converter was last handed.
+	convRoot, convObj string
 }
 
 func TestProcessJobSuite(t *testing.T) { suite.Run(t, new(ProcessJobSuite)) }
@@ -96,7 +99,10 @@ func (s *ProcessJobSuite) stubConversion() {
 	s.blobs.GetMock.Set(func(context.Context, string) (io.ReadCloser, blobstore.Blob, error) {
 		return io.NopCloser(bytes.NewReader(objZip(s.T()))), blobstore.Blob{}, nil
 	})
-	s.converter.ConvertLODsMock.Return([]domain.ConversionResult{{ArtifactHash: "lod0"}}, nil)
+	s.converter.ConvertLODsMock.Set(func(_ context.Context, root, obj string) ([]domain.ConversionResult, error) {
+		s.convRoot, s.convObj = root, obj
+		return []domain.ConversionResult{{ArtifactHash: "lod0"}}, nil
+	})
 	s.blobs.PutMock.Return(blobstore.Blob{}, nil)
 	s.catalog.RegisterArtifactMock.Return(nil)
 	s.queue.UnlockTargetMock.Return(nil)
@@ -258,4 +264,18 @@ func (s *ProcessJobSuite) TestRunningClearsAStaleFailureKind() {
 	_ = s.svc.ProcessJob(s.ctx, "job-1")
 
 	assert.Assert(s.T(), !s.saved[0].FailedOnSource, "the Running write kept the old kind")
+}
+
+// The extraction directory is the converter's root: an MTL or texture may sit
+// anywhere inside it, so it must be handed over, not left for the converter to
+// guess from the OBJ's own folder.
+func (s *ProcessJobSuite) TestConverterGetsTheExtractionDirAsRoot() {
+	s.stubConversion()
+	s.stubSourceHashes("h1")
+
+	assert.NilError(s.T(), s.svc.ProcessJob(s.ctx, "job-1"))
+
+	rel, err := filepath.Rel(s.convRoot, s.convObj)
+	assert.NilError(s.T(), err)
+	assert.Assert(s.T(), s.convRoot != "" && filepath.IsLocal(rel), "root %q, obj %q", s.convRoot, s.convObj)
 }

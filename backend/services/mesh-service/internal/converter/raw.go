@@ -27,7 +27,7 @@ type rawGLB struct {
 // convertRaw runs the pure conversion pipeline: parse OBJ, normalize
 // (Z-up→Y-up, center, scale to maxDim=2), resolve materials, emit GLB. No
 // external binary is involved, so the result is deterministic.
-func (c *Converter) convertRaw(ctx context.Context, sourcePath string) (rawGLB, error) {
+func (c *Converter) convertRaw(ctx context.Context, root, sourcePath string) (rawGLB, error) {
 	if err := ctx.Err(); err != nil {
 		return rawGLB{}, err
 	}
@@ -49,7 +49,7 @@ func (c *Converter) convertRaw(ctx context.Context, sourcePath string) (rawGLB, 
 	report(ctx, "encoding", 0.45)
 	origMin, origMax := normalize(src.positions)
 
-	materials := buildGLMaterials(ctx, src, sourcePath)
+	materials := buildGLMaterials(ctx, src, root, sourcePath)
 
 	body, err := writeGLB(src.positions, src.uvs, src.groups, materials)
 	if err != nil {

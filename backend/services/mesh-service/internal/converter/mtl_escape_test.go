@@ -79,10 +79,3 @@ func TestLoadTextureRefusesASymlinkOutOfTheRoot(t *testing.T) {
 
 	assert.Assert(t, got == nil)
 }
-
-func TestSourceRootFallsBackToTheOBJDirectory(t *testing.T) {
-	assert.Equal(t, sourceRoot(t.Context(), "/w/model"), "/w/model")
-	ctx := WithSourceRoot(t.Context(), "/w")
-	assert.Equal(t, sourceRoot(ctx, "/w/model"), "/w")
-	assert.Equal(t, sourceRoot(ctx, "/elsewhere"), "/elsewhere")
-}

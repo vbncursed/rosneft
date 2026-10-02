@@ -52,7 +52,7 @@ func (s *ConvertLODsSuite) SetupTest() {
 func (s *ConvertLODsSuite) TestNoCompressor_returnsLOD0Only() {
 	c := &Converter{lodRatios: []float64{0.5}}
 
-	out, err := c.ConvertLODs(s.T().Context(), s.objPath)
+	out, err := c.ConvertLODs(s.T().Context(), filepath.Dir(s.objPath), s.objPath)
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(out), 1)
@@ -68,7 +68,7 @@ func (s *ConvertLODsSuite) TestAppendsForEachRatio() {
 	}
 	c := &Converter{compressor: pp, lodRatios: []float64{0.5, 0.25}}
 
-	out, err := c.ConvertLODs(s.T().Context(), s.objPath)
+	out, err := c.ConvertLODs(s.T().Context(), filepath.Dir(s.objPath), s.objPath)
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(out), 3)
@@ -87,7 +87,7 @@ func (s *ConvertLODsSuite) TestPerLODErrorTolerated() {
 	}
 	c := &Converter{compressor: pp, lodRatios: []float64{0.5, 0.25}}
 
-	out, err := c.ConvertLODs(s.T().Context(), s.objPath)
+	out, err := c.ConvertLODs(s.T().Context(), filepath.Dir(s.objPath), s.objPath)
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(out), 2) // LOD0 + LOD1; LOD2 dropped
@@ -110,7 +110,7 @@ func (s *ConvertLODsSuite) TestSimplifiesRawNotCompressed() {
 	}
 	c := &Converter{compressor: pp, lodRatios: []float64{0.5, 0.25}}
 
-	out, err := c.ConvertLODs(s.T().Context(), s.objPath)
+	out, err := c.ConvertLODs(s.T().Context(), filepath.Dir(s.objPath), s.objPath)
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), string(out[0].Content), "COMPRESSED")
@@ -132,7 +132,7 @@ func (s *ConvertLODsSuite) TestLODsCarryTheirOwnCountsAndLOD0Bbox() {
 		},
 	}
 
-	out, err := c.ConvertLODs(s.T().Context(), s.objPath)
+	out, err := c.ConvertLODs(s.T().Context(), filepath.Dir(s.objPath), s.objPath)
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(out), 2)
@@ -152,7 +152,7 @@ func (s *ConvertLODsSuite) TestLODWithUnreadableBytesKeepsZeroCounts() {
 		},
 	}
 
-	out, err := c.ConvertLODs(s.T().Context(), s.objPath)
+	out, err := c.ConvertLODs(s.T().Context(), filepath.Dir(s.objPath), s.objPath)
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(out), 2)

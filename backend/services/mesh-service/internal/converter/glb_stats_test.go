@@ -43,7 +43,7 @@ func writeOneTriangleGLB(t *testing.T) []byte {
 	assert.NilError(t, os.WriteFile(path, []byte(obj), 0o600))
 
 	c := &Converter{}
-	raw, err := c.convertRaw(t.Context(), path)
+	raw, err := c.convertRaw(t.Context(), dir, path)
 	assert.NilError(t, err)
 	return raw.content
 }

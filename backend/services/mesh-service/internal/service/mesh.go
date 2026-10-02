@@ -62,10 +62,11 @@ type Catalog interface {
 
 // Converter turns a source mesh on disk into one or more ConversionResults
 // — one per LOD level, ordered LOD0 → LODN. The worker hands a path to the
-// extracted .obj file; the converter resolves the OBJ's mtllib and texture
-// references relative to that file's directory.
+// extracted .obj file and the directory the whole archive was extracted to;
+// the converter resolves the OBJ's mtllib and texture references relative to
+// that file's directory, and refuses any that leave root.
 type Converter interface {
-	ConvertLODs(ctx context.Context, sourcePath string) ([]domain.ConversionResult, error)
+	ConvertLODs(ctx context.Context, root, sourcePath string) ([]domain.ConversionResult, error)
 }
 
 // BlobStore is what the worker writes converted artifacts to and reads
