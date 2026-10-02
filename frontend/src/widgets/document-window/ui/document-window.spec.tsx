@@ -144,6 +144,19 @@ describe("DocumentWindow · tooltips", () => {
 });
 
 describe("pdf.js sandbox", () => {
+  it("is vendored at the base the absence check below uses, so that check cannot pass vacuously", () => {
+    expect(existsSync(resolve(process.cwd(), "public/pdfjs/build/pdf.mjs"))).toBe(true);
+  });
+
+  it("is locked from this page: viewer.mjs announces webviewerloaded on the parent document", () => {
+    const set = vi.fn();
+    render(<DocumentWindow {...props()} />);
+    document.dispatchEvent(
+      new CustomEvent("webviewerloaded", { detail: { source: { PDFViewerApplicationOptions: { set } } } }),
+    );
+    expect(set).toHaveBeenCalledWith("enableScripting", false);
+  });
+
   it("stays unvendored: the iframe has no sandbox, so PDF JavaScript is inert only while pdf.sandbox.mjs is absent", () => {
     const sandbox = resolve(process.cwd(), "public/pdfjs/build/pdf.sandbox.mjs");
     expect(existsSync(sandbox)).toBe(false);
