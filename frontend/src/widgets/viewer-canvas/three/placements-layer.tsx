@@ -77,6 +77,7 @@ export default function PlacementsLayer({
     const tc = tcRef.current;
     if (!tc) return;
     return patchScaleGizmo(tc);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- trigger, not input: the gizmo mounts fresh with `target`, so it is patched again whenever the target changes
   }, [target]);
 
   // Hidden placements are not drawn anywhere (G-1); inside a panorama the
@@ -90,6 +91,7 @@ export default function PlacementsLayer({
   // next pointer event. A mount does invalidate, so only the shrink needed it.
   useEffect(() => {
     invalidate();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- trigger, not input: drawnKey names the drawn set, and a change to it needs a frame under frameloop="demand"
   }, [drawnKey, invalidate]);
   const gizmo = canEdit && !measureMode && selectedId != null && target !== null;
   // Without a gizmo — a guest, or an editor measuring — the selection would

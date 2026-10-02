@@ -18,6 +18,7 @@ export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
         {items.map((item, index) => {
           const last = index === items.length - 1;
           return (
+            // oxlint-disable-next-line react/no-array-index-key -- a trail is a short fixed-order path with no id of its own and never reorders
             <li key={index} className="flex items-center gap-2">
               {item.href && !last ? (
                 <a

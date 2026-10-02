@@ -46,6 +46,7 @@ export function useDocumentList({ slug, initial, onChanged }: DocumentListParams
         setPendingId(null);
       }
     },
+    // oxlint-disable-next-line react/memo-dependencies -- false positive: onChanged is called in the finally block, and react-hooks/exhaustive-deps requires it; dropping it would capture a stale callback
     [slug, onChanged],
   );
 

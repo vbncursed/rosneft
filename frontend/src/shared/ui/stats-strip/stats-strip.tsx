@@ -39,6 +39,7 @@ export function StatsStrip({
         const tint =
           i === last && accentLast ? "text-accent" : i === 0 ? (tone === "bad" ? "text-bad" : "text-fg") : undefined;
         return (
+          // oxlint-disable-next-line react/no-array-index-key -- values may repeat and the position carries meaning (first and last are toned)
           <span key={`${i}-${item}`} className={tint}>
             {item}
           </span>

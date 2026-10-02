@@ -1,6 +1,7 @@
 import { ActivityRow, type AuditEntry } from "@/entities/audit";
 import { Callout } from "@/shared/ui/callout";
 import { EmptyState } from "@/shared/ui/card";
+import { useNow } from "@/shared/lib/use-now";
 import { SectionHeading } from "@/shared/ui/section-heading";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { TrailingLink } from "./trailing-link";
@@ -14,7 +15,7 @@ export type ActivitySectionProps = {
 /** The reader's own journal, four rows deep. */
 export function ActivitySection({ entries, loading }: ActivitySectionProps) {
   // One reading for the whole list, so two rows a millisecond apart cannot straddle midnight.
-  const now = new Date();
+  const now = useNow();
   const body = loading ? (
     <div role="status" aria-busy="true" aria-label="Loading your activity" className="flex flex-col gap-2 p-[17px]">
       <Skeleton height="16px" width="40%" />

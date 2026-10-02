@@ -56,6 +56,7 @@ export function Sparkline({
       >
         {bars.map((bar, index) => (
           <span
+            // oxlint-disable-next-line react/no-array-index-key -- a bar is a time bucket identified by its position; the series never reorders
             key={index}
             style={{ height: `${bar.heightPct}%` }}
             className={cx(

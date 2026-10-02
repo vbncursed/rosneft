@@ -80,6 +80,7 @@ export function TourOverlay({ tour }: { tour: Tour }) {
   useLayoutEffect(() => {
     const measured = cardRef.current?.offsetHeight;
     if (measured) setHeight(measured);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- trigger, not input: each step has its own body, so the card is measured again whenever the step changes
   }, [step]);
 
   // Anchored but not yet measured: the card is still at the previous step's

@@ -27,11 +27,13 @@ const TONE: Record<DiffKind, { border: string; text: string }> = {
   changed: { border: "border-l-accent", text: "text-accent" },
 };
 
+const NONE: never[] = [];
+
 export function RecordInspector({
   entry,
   refs,
   recordId,
-  details = [],
+  details = NONE,
   onCopyJson,
   onClose,
   onOpenEntity,

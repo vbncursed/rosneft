@@ -5,7 +5,9 @@ import { describe, expect, it, vi } from "vitest";
 import { Vec3Field } from "./vec3-field";
 import type { Vec3 } from "./vec3";
 
-function Harness({ initial = { x: 12.4, y: 0, z: -3.1 } }: { initial?: Vec3 }) {
+const START: Vec3 = { x: 12.4, y: 0, z: -3.1 };
+
+function Harness({ initial = START }: { initial?: Vec3 }) {
   const [value, setValue] = useState(initial);
   return (
     <>

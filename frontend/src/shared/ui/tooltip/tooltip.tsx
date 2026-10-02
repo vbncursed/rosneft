@@ -81,6 +81,7 @@ export function Tooltip({ label, shortcut, side = "top", children }: TooltipProp
     if (entered.current) return;
     entered.current = true;
     if (!instant) driftIn(tip.current, placed.side);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- trigger, not input: a changed label or shortcut changes the tip's size, so it is placed again
   }, [open, instant, side, label, shortcut]);
 
   const own = child.props["aria-describedby"];

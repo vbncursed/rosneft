@@ -24,6 +24,7 @@ export const ViewerCanvas = memo(function ViewerCanvas(props: ViewerCanvasProps)
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setColors(readSceneColors(document.documentElement));
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- trigger, not input: theme is only the signal that useTheme restyled <html>; the tokens are read from the DOM
   }, [theme]);
   return <SceneCanvas {...props} colors={colors} />;
 });

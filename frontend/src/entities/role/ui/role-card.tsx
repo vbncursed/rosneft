@@ -40,14 +40,16 @@ const CHIP: Record<RoleChipTone, { tone: "neutral" | "accent" | "dim"; fill: "so
   locked: { tone: "dim", fill: "outline" },
 };
 
+const NONE: never[] = [];
+
 export function RoleCard({
   role,
   totalPermissions,
   tone = "neutral",
   tag,
   tagTone = "dim",
-  chips = [],
-  faces = [],
+  chips = NONE,
+  faces = NONE,
   selected = false,
   onSelect,
 }: RoleCardProps) {

@@ -15,6 +15,7 @@ export function Checklist({ items, label, className }: ChecklistProps) {
   return (
     <ul aria-label={label ?? "Checklist"} className={cx("m-0 flex list-none flex-col gap-2 p-0", className)}>
       {items.map((item, index) => (
+        // oxlint-disable-next-line react/no-array-index-key -- requirements are fixed-order and two may share a label
         <li key={index} className="flex items-start gap-[9px]">
           <Icon
             name={item.ok ? "check" : "minus"}

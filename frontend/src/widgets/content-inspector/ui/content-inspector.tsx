@@ -32,10 +32,12 @@ export type ContentInspectorProps = {
   canManage?: boolean;
 };
 
+const NONE: never[] = [];
+
 export function ContentInspector({
   item,
-  details = [],
-  stages = [],
+  details = NONE,
+  stages = NONE,
   conversionNote,
   onClose,
   onReplaceSource,

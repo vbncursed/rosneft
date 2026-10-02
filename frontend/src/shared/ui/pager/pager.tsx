@@ -21,9 +21,10 @@ export function Pager({ page, pageCount, onPage, busy = false, label = "Pages" }
       <Button size="sm" disabled={busy || page <= 1} onClick={() => onPage(page - 1)}>
         Prev
       </Button>
-      {pageList(page, pageCount).map((item, i) =>
+      {pageList(page, pageCount).map((item, i, list) =>
         item === "gap" ? (
-          <span key={`gap-${i}`} aria-hidden="true" className={cx(CHIP, "text-muted")}>
+          // A gap always sits right before the page that ends it.
+          <span key={`gap-before-${list[i + 1]}`} aria-hidden="true" className={cx(CHIP, "text-muted")}>
             …
           </span>
         ) : (

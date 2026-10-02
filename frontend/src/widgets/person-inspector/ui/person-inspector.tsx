@@ -30,9 +30,11 @@ const STATUS_TONE = {
   deleted: "dim",
 } as const;
 
+const NONE: never[] = [];
+
 export function PersonInspector({
   user,
-  details = [],
+  details = NONE,
   onClose,
   onResetPassword,
   onRequire2fa,

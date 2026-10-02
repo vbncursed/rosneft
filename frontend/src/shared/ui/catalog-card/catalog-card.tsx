@@ -185,6 +185,7 @@ export function CatalogCard({
             {shownChips.map((chip, index) => {
               const { tone: chipTone, fill } = CHIP[chip.tone];
               return (
+                // oxlint-disable-next-line react/no-array-index-key -- chips are a fixed-order projection of the card and labels may repeat
                 <Badge key={`${chip.label}-${index}`} tone={chipTone} fill={fill} shape="chip">
                   {chip.label}
                 </Badge>

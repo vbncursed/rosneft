@@ -81,7 +81,7 @@ export function usePipWindow(inset = 14, area?: RefObject<HTMLElement | null>) {
     window.addEventListener("pointercancel", onUp);
   };
 
-  useEffect(() => () => stop.current?.(), []);
+  useEffect(() => () => stop.current?.(), [stop]);
 
   // A shrunk area — the browser window, or the Overlays panel unfolding into
   // it — can leave the window partly or fully outside; re-run the move clamp

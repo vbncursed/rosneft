@@ -25,12 +25,14 @@ export type FilterBarProps = {
 
 const DEFAULT_PLACEHOLDER = "filter: entity:territory actor:a.ivanova failed:true";
 
+const NONE: never[] = [];
+
 export function FilterBar({
   query,
   onChange,
   placeholder = DEFAULT_PLACEHOLDER,
   label = "Filter events",
-  extra = [],
+  extra = NONE,
   className,
 }: FilterBarProps) {
   const input = useRef<HTMLInputElement>(null);

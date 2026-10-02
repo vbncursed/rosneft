@@ -107,6 +107,7 @@ export default function CameraRig({ resetVersion, playing, onPlayStop, sceneRef 
     controls.reset();
     controls.update();
     invalidate();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- trigger, not input: resetVersion is a counter whose every bump is one Reset
   }, [resetVersion, invalidate]);
 
   // Play. Our own frame loop moves the camera, since frameloop="demand" draws

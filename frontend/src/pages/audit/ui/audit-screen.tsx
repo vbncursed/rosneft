@@ -1,4 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
+import { useNow } from "@/shared/lib/use-now";
 import { Callout } from "@/shared/ui/callout";
 import { DatePicker } from "@/shared/ui/date-picker";
 import { PageSkeleton } from "@/shared/ui/skeleton";
@@ -12,6 +13,7 @@ const CAPTION = "shrink-0 font-mono text-[9px] uppercase tracking-[0.18em] text-
 export function AuditScreen() {
   const s = useAudit();
   const navigate = useNavigate();
+  const now = useNow();
 
   if (s.status === "loading") {
     return <PageSkeleton shape="journal" label="Loading journal" />;
@@ -20,7 +22,6 @@ export function AuditScreen() {
     return <Callout tone="bad">The journal is unavailable: {s.error}</Callout>;
   }
 
-  const now = new Date();
   const refused = !!s.unknownActor || s.backwardsRange;
   const days = refused ? [] : groupByDay(s.entries, now);
   const href = s.selected ? entityHref(s.selected) : null;

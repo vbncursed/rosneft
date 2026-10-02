@@ -159,6 +159,7 @@ export function useLodDownload(artifact: LodArtifact | null, drawn: string | nul
     URL.revokeObjectURL(heldRef.current.blobUrl);
     heldRef.current = null;
     setHeld(null);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- trigger, not input: held changing from one blob to another leaves heldOffScreen true, and the new blob must still be released
   }, [heldOffScreen, held]);
 
   // Declared after the download so its cleanup runs after that one on

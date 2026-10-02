@@ -20,6 +20,7 @@ export function StageList({ stages, label = "Conversion stages", activeTone, cla
       {stages.map((stage, index) => {
         const { dot, text } = toneClasses(stage.state, activeTone);
         return (
+          // oxlint-disable-next-line react/no-array-index-key -- stages are a fixed-order pipeline and two may share a label
           <li key={index} className={cx("flex gap-2.5", anyHint ? "items-start" : "items-center")}>
             {/* The dot repeats what the text tone already says, for a glance. */}
             <span aria-hidden="true" className={cx("size-[7px] shrink-0 rounded-full", dot, anyHint && "mt-[5px]")} />
