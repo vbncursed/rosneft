@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -138,5 +140,12 @@ describe("DocumentWindow · tooltips", () => {
   ])("names %#: %s as a short tooltip", (p, name, tip) => {
     render(<DocumentWindow {...p} />);
     expect(hoverTip(screen.getByRole("button", { name }))?.textContent).toBe(tip);
+  });
+});
+
+describe("pdf.js sandbox", () => {
+  it("stays unvendored: the iframe has no sandbox, so PDF JavaScript is inert only while pdf.sandbox.mjs is absent", () => {
+    const sandbox = resolve(process.cwd(), "public/pdfjs/build/pdf.sandbox.mjs");
+    expect(existsSync(sandbox)).toBe(false);
   });
 });

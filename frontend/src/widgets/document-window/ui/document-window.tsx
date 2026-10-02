@@ -95,7 +95,7 @@ export function DocumentWindow({
             No sandbox: pdf.js needs scripts and, to fetch the session-gated /api/assets blob, the page's own origin,
             and allow-scripts + allow-same-origin on a same-origin document is no isolation. What binds viewer.html is
             pdf.js's own <meta> CSP (default-src 'none'; script-src 'self' 'wasm-unsafe-eval') plus withCsp in desktop;
-            PDF JavaScript cannot run (build/pdf.sandbox.mjs is not vendored); the file is validated same-origin.
+            PDF JavaScript cannot run (build/pdf.sandbox.mjs is not vendored; document-window.spec.tsx guards it); the file is validated same-origin.
           */}
           {/* oxlint-disable-next-line react/iframe-missing-sandbox -- same-origin pdf.js, bound by its meta CSP, not a sandbox */}
           <iframe title={file} src={src} className="size-full border-0" />
