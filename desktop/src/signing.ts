@@ -13,7 +13,7 @@ export const SIGNING_CN = "Andrey Self-Signed Code Signing";
  */
 export function pickIdentity(findIdentityOutput: string): string | null {
   for (const line of findIdentityOutput.split("\n")) {
-    const m = /\b([0-9A-F]{40})\b\s+"([^"]*)"/.exec(line);
+    const m = /\b([0-9A-F]{40})\b\s+"([^"]*)"/u.exec(line);
     if (m && m[2] === SIGNING_CN) return m[1] ?? null;
   }
   return null;
@@ -21,13 +21,15 @@ export function pickIdentity(findIdentityOutput: string): string | null {
 
 /** The paths of `security list-keychains` output, one quoted path per line. */
 export function parseKeychains(listOutput: string): string[] {
-  return [...listOutput.matchAll(/"([^"]+)"/g)].map((m) => m[1] ?? "").filter(Boolean);
+  return [...listOutput.matchAll(/"([^"]+)"/gu)].map((m) => m[1] ?? "").filter(Boolean);
 }
 
 type FileOptions = Record<string, unknown>;
 type SignOptions = { identity?: string; keychain?: string; optionsForFile?: (file: string) => FileOptions };
 
 const security = (...args: string[]) => execFileSync("/usr/bin/security", args, { encoding: "utf8" });
+
+const noop = () => {};
 
 /**
  * electron-builder's `mac.sign` hook (yml: identity "-" keeps the ad-hoc path
@@ -50,7 +52,7 @@ export async function sign(opts: SignOptions): Promise<void> {
   const dir = mkdtempSync(join(tmpdir(), "andrey-sign-"));
   const keychain = join(dir, "sign.keychain");
   const pass = randomBytes(24).toString("base64");
-  let restore = () => {};
+  let restore = noop;
   try {
     writeFileSync(join(dir, "cert.p12"), Buffer.from(p12, "base64"));
     security("create-keychain", "-p", pass, keychain);

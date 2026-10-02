@@ -71,7 +71,7 @@ afterEach(() => vi.restoreAllMocks());
 
 describe("sceneHashes", () => {
   it("takes every LOD, the placed models, panoramas and documents — not unused models", () => {
-    expect(sceneHashes(scene).sort()).toEqual(Object.values(H).sort());
+    expect(sceneHashes(scene).toSorted()).toEqual(Object.values(H).toSorted());
   });
   it("drops anything that is not a hash", () => {
     expect(sceneHashes({ ...scene, documents: [{ sourceBlobHash: "../x" }] })).not.toContain("../x");
@@ -98,7 +98,7 @@ describe("OfflineSaver", () => {
   it("a second save joins the first", async () => {
     const h = await harness();
     await Promise.all([h.saver.save("ust-kut"), h.saver.save("ust-kut")]);
-    expect(h.fetch.mock.calls.filter(([u]) => String(u).endsWith("/scene"))).toHaveLength(1);
+    expect(h.fetch.mock.calls.filter(([u]) => u.endsWith("/scene"))).toHaveLength(1);
   });
 
   it("cancel mid-download leaves no pin and no temp files", async () => {
@@ -227,7 +227,7 @@ describe("OfflineSaver", () => {
   it("runs two saves at once; a third waits queued, and a cancelled queued save frees nothing", async () => {
     const { gate, release } = gated();
     const h = await harness(server({ blob: async (hash) => (await gate, new Response(nameOf(hash))) }));
-    const scenes = () => h.fetch.mock.calls.filter(([u]) => String(u).endsWith("/scene")).length;
+    const scenes = () => h.fetch.mock.calls.filter(([u]) => u.endsWith("/scene")).length;
     const all = ["a", "b", "c", "d"].map((s) => h.saver.save(s));
     await vi.waitFor(() => expect(scenes()).toBe(2));
     await sleep(20);
@@ -237,7 +237,7 @@ describe("OfflineSaver", () => {
       h.events
         .filter((e) => e.state === "saving")
         .map((e) => e.slug)
-        .sort(),
+        .toSorted(),
     ).toEqual(["a", "b"]);
     h.saver.cancel("c");
     release();
@@ -282,14 +282,14 @@ describe("OfflineSaver", () => {
     const h = await harness();
     await h.saver.save("a");
     await h.saver.save("b");
-    const scenes = () => h.fetch.mock.calls.filter(([u]) => String(u).endsWith("/scene"));
+    const scenes = () => h.fetch.mock.calls.filter(([u]) => u.endsWith("/scene"));
     expect(scenes()).toHaveLength(2);
     await h.saver.resyncAll();
     await vi.waitFor(() => expect(h.events.filter((e) => e.state === "saved")).toHaveLength(4));
     expect(
       scenes()
-        .map(([u]) => new URL(String(u)).pathname.split("/")[3])
-        .sort(),
+        .map(([u]) => new URL(u).pathname.split("/")[3])
+        .toSorted((a, b) => (a ?? "").localeCompare(b ?? "")),
     ).toEqual(["a", "a", "b", "b"]);
   });
 
@@ -332,7 +332,7 @@ describe("OfflineSaver", () => {
     h.saver.cancel("c");
     await queued;
     expect(last(h.events.filter((e) => e.slug === "c"))?.state).toBe("cancelled");
-    expect(h.fetch.mock.calls.some(([u]) => String(u).includes("/c/"))).toBe(false);
+    expect(h.fetch.mock.calls.some(([u]) => u.includes("/c/"))).toBe(false);
     release();
     await Promise.all(running);
     await h.saver.save("d");
@@ -389,7 +389,7 @@ describe("OfflineSaver", () => {
     h.saver.cancelAll();
     release();
     await Promise.all(runs);
-    for (const slug of ["a", "b", "c"]) expect(h.events.filter((e) => e.slug === slug).pop()?.state).toBe("cancelled");
+    for (const slug of ["a", "b", "c"]) expect(h.events.findLast((e) => e.slug === slug)?.state).toBe("cancelled");
     expect(await h.store.readPins(A)).toEqual([]);
   });
 
@@ -424,7 +424,7 @@ describe("OfflineSaver", () => {
     await Promise.all(first);
     await queued;
     expect(last(h.events.filter((e) => e.slug === "c"))?.state).toBe("cancelled");
-    expect(h.fetch.mock.calls.filter(([u]) => String(u).includes("/territories/c/"))).toHaveLength(0);
+    expect(h.fetch.mock.calls.filter(([u]) => u.includes("/territories/c/"))).toHaveLength(0);
     expect(await h.store.readPins(B)).toEqual([]);
   });
 });

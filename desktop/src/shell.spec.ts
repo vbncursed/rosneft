@@ -15,7 +15,7 @@ function server(files: Record<string, string>, manifestId: string) {
     if (p === "/shell-manifest.json") {
       return json({
         id: manifestId,
-        files: Object.entries(files).map(([path, body]) => ({ path, size: body.length })),
+        files: Object.entries(files).map(([file, body]) => ({ path: file, size: body.length })),
       });
     }
     const body = files[p];
@@ -144,7 +144,7 @@ describe("Shell", () => {
     await new Shell(dir, ORIGIN, server({ "/index.html": "<v1>" }, ID1)).refresh();
     const html = vi.fn(async () => new Response("<html>", { headers: { "content-type": "text/html" } }));
     await new Shell(dir, ORIGIN, html).refresh();
-    expect(readdirSync(dir).sort()).toEqual([ID1, "current"]);
+    expect(readdirSync(dir).toSorted()).toEqual([ID1, "current"]);
   });
 
   it("a short file keeps the current generation", async () => {
@@ -167,7 +167,7 @@ describe("Shell", () => {
     await s.refresh();
     mkdirSync(path.join(dir, ID2));
     await s.refresh();
-    expect(readdirSync(dir).sort()).toEqual([ID1, "current"]);
+    expect(readdirSync(dir).toSorted()).toEqual([ID1, "current"]);
   });
 
   it("re-downloads when the current generation lost its index.html", async () => {
@@ -183,7 +183,7 @@ describe("Shell", () => {
     const fetch = server({ "/index.html": "<html>" }, ID1);
     const shell = new Shell(root(), ORIGIN, fetch);
     await Promise.all([shell.refresh(), shell.refresh()]);
-    expect(fetch.mock.calls.filter(([u]) => String(u).endsWith("/shell-manifest.json"))).toHaveLength(1);
+    expect(fetch.mock.calls.filter(([u]) => u.endsWith("/shell-manifest.json"))).toHaveLength(1);
   });
 
   it("has nothing to serve before the first generation", async () => {

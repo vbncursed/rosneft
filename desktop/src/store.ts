@@ -19,14 +19,16 @@ export type Pin = {
 };
 export type BlobFile = { hash: string; size: number; mtimeMs: number };
 
+const totalSize = (list: BlobFile[]) => list.reduce((n, f) => n + f.size, 0);
+
 /**
  * Least-recently-*modified* first, never a pinned file. Not LRU: a cache hit
  * reads the file and leaves its mtime alone; a real LRU would need a side-index.
  */
 export function pickVictims(files: BlobFile[], pinned: ReadonlySet<string>, limit: number): string[] {
-  let total = files.reduce((n, f) => n + f.size, 0);
+  let total = totalSize(files);
   const victims: string[] = [];
-  const candidates = files.filter((f) => !pinned.has(f.hash)).sort((a, b) => a.mtimeMs - b.mtimeMs);
+  const candidates = files.filter((f) => !pinned.has(f.hash)).toSorted((a, b) => a.mtimeMs - b.mtimeMs);
   for (const f of candidates) {
     if (total <= limit) break;
     victims.push(f.hash);
@@ -207,8 +209,7 @@ export class Store {
   async usage(user: string): Promise<{ used: number; pinned: number }> {
     const [files, pins] = await Promise.all([this.blobFiles(user), this.readPins(user)]);
     const pinned = new Set(pins.flatMap((p) => p.hashes));
-    const sum = (list: BlobFile[]) => list.reduce((n, f) => n + f.size, 0);
-    return { used: sum(files), pinned: sum(files.filter((f) => pinned.has(f.hash))) };
+    return { used: totalSize(files), pinned: totalSize(files.filter((f) => pinned.has(f.hash))) };
   }
 
   evict(user: string, limit: number): Promise<void> {

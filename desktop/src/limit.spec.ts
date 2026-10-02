@@ -13,7 +13,7 @@ describe("eachLimit", () => {
       seen.push(n);
       inFlight -= 1;
     });
-    expect(seen.sort()).toEqual([1, 2, 3, 4, 5]);
+    expect(seen.toSorted((a, b) => a - b)).toEqual([1, 2, 3, 4, 5]);
     expect(peak).toBe(2);
   });
   it("rejects with the first failure", async () => {

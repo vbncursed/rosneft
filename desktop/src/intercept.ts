@@ -65,6 +65,7 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
     void (async () => {
       do {
         state.again = false;
+        // oxlint-disable-next-line no-await-in-loop -- a rerun must start after the previous evict finished (one eviction per user at a time)
         await d.store.evict(user, d.settings.value.limit).catch(warn);
       } while (state.again);
       evicting.delete(user);

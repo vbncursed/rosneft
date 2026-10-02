@@ -15,6 +15,7 @@ const B = "1c6f9b4d-2a3e-4d6c-8b8f-4e3d2c1b0a9f";
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 const req = (p: string, init?: RequestInit) => new Request(`${ORIGIN}${p}`, init);
 const me = (id: string) => new Response(JSON.stringify({ id }), { headers: { "content-type": "application/json" } });
+const noop = () => undefined;
 const offline = () => Promise.reject(new TypeError("net::ERR_INTERNET_DISCONNECTED"));
 
 async function harness(
@@ -30,7 +31,7 @@ async function harness(
   const shell = new Shell(path.join(root, "cache", "shell"), ORIGIN, async (url) => {
     const p = new URL(url).pathname;
     if (p === "/shell-manifest.json") {
-      const files = Object.entries(shellFiles).map(([path, body]) => ({ path, size: body.length }));
+      const files = Object.entries(shellFiles).map(([file, body]) => ({ path: file, size: body.length }));
       return Object.keys(shellFiles).length
         ? new Response(JSON.stringify({ id: "a".repeat(32), files }), {
             headers: { "content-type": "application/json" },
@@ -300,7 +301,7 @@ describe("createHandler", () => {
 
 describe("createHandler isolation", () => {
   it("a stale /api/auth/me cannot hand the cache back to the previous user", async () => {
-    let release: (r: Response) => void = () => undefined;
+    let release: (r: Response) => void = noop;
     const h = await harness((r) => {
       const p = new URL(r.url).pathname;
       if (p === "/api/auth/login") return Promise.resolve(new Response("{}"));

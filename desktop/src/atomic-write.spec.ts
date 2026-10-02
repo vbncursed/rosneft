@@ -17,7 +17,7 @@ describe("atomicWrite", () => {
     const d = dir();
     const tmp = path.join(d, "stage");
     await atomicWrite(path.join(d, "x"), "1", tmp);
-    expect(readdirSync(d).sort()).toEqual(["x"]);
+    expect(readdirSync(d).toSorted()).toEqual(["x"]);
   });
   it("removes its tmp file when the rename fails", async () => {
     const d = dir();

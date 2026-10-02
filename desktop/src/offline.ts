@@ -20,9 +20,9 @@ export function sceneHashes(scene: SceneLike): string[] {
   const all = [
     scene.artifact?.hash,
     ...(scene.artifact?.artifacts ?? []).map((a) => a.hash),
-    ...scene.modelOptions
-      .filter((m) => placed.has(m.slug))
-      .flatMap((m) => [m.thumbnailBlobHash, ...m.artifacts.map((a) => a.hash)]),
+    ...scene.modelOptions.flatMap((m) =>
+      placed.has(m.slug) ? [m.thumbnailBlobHash, ...m.artifacts.map((a) => a.hash)] : [],
+    ),
     ...(scene.panoramas ?? []).flatMap((p) => [p.sourceBlobHash, p.thumbnailBlobHash]),
     ...(scene.documents ?? []).map((d) => d.sourceBlobHash),
   ];
@@ -50,7 +50,7 @@ class SessionChanged extends Error {}
 function reasonOf(err: unknown): SaveError {
   if (err instanceof SaveFailure) return err.reason;
   if ((err as { code?: unknown })?.code === "ENOSPC") return "no-space";
-  if (String((err as Error)?.message).includes("net::ERR")) return "network";
+  if (String((err as { message?: unknown })?.message).includes("net::ERR")) return "network";
   return "failed";
 }
 
@@ -237,7 +237,7 @@ export class OfflineSaver {
             user,
             hash,
             res.headers.get("content-type") ?? "application/octet-stream",
-            res.body as ReadableStream<Uint8Array>,
+            res.body,
             signal,
           );
           bytes += size;

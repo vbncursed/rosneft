@@ -76,7 +76,7 @@ async function start(): Promise<void> {
       bypassCustomProtocolHandlers: true,
       credentials: "include",
       ...(input instanceof Request && input.body ? { duplex: "half" } : {}),
-    } as RequestInit);
+    });
 
   const shellCache = new Shell(path.join(data, "cache", "shell"), ORIGIN, (url) => network(url, { cache: "no-store" }));
   const saver = new OfflineSaver({
@@ -114,9 +114,7 @@ async function start(): Promise<void> {
   win = createWindow(PASSKEYS[process.platform] ?? false);
 }
 
-if (!app.requestSingleInstanceLock()) {
-  app.quit();
-} else {
+if (app.requestSingleInstanceLock()) {
   app.on("second-instance", () => {
     if (!win) return;
     if (win.isMinimized()) win.restore();
@@ -130,4 +128,6 @@ if (!app.requestSingleInstanceLock()) {
       dialog.showErrorBox("Andrey could not start", String(err));
       app.exit(1);
     });
+} else {
+  app.quit();
 }

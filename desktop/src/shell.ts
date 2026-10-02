@@ -9,8 +9,8 @@ import { eachLimit } from "./limit";
 
 export type ShellManifest = { id: string; files: { path: string; size: number }[] };
 
-const ID = /^[0-9a-f]{16,64}$/;
-const SAFE_PATH = /^\/(?:[A-Za-z0-9_.@+~-]+\/)*[A-Za-z0-9_.@+~-]+$/;
+const ID = /^[0-9a-f]{16,64}$/u;
+const SAFE_PATH = /^\/(?:[A-Za-z0-9_.@+~-]+\/)*[A-Za-z0-9_.@+~-]+$/u;
 const safe = (p: string): boolean => SAFE_PATH.test(p) && !p.split("/").some((s) => s === ".." || s === ".");
 
 /** null for anything that is not a manifest; unsafe entries are skipped with a warning rather than failing the lot. */
@@ -140,6 +140,7 @@ export class Shell {
     for (const name of await readdir(this.root)) {
       if (name === keep || name === "current") continue;
       // Windows refuses to delete a file a page is still reading; the next refresh retries.
+      // oxlint-disable-next-line no-await-in-loop -- one generation at a time keeps Windows file-lock retries from piling up
       await rm(path.join(this.root, name), { recursive: true, force: true }).catch(() => undefined);
     }
   }

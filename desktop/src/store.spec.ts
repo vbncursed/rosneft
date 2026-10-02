@@ -52,7 +52,7 @@ describe("Store", () => {
 
   it("a body that does not hash to its name is refused and leaves nothing behind", async () => {
     const h = sha("hello");
-    await expect(store.writeBlob(A, h, "x", body("tampered"))).rejects.toThrow(/did not hash/);
+    await expect(store.writeBlob(A, h, "x", body("tampered"))).rejects.toThrow(/did not hash/u);
     expect(await store.blob(A, h)).toBeNull();
     expect(readdirSync(path.join(root, "tmp"))).toEqual([]);
   });
@@ -84,8 +84,8 @@ describe("Store", () => {
   });
 
   it("refuses a user id or hash that could leave its directory", async () => {
-    await expect(store.blob("../x", sha("a"))).rejects.toThrow(/refusing user/);
-    await expect(store.blob(A, "../../etc/passwd")).rejects.toThrow(/refusing hash/);
+    await expect(store.blob("../x", sha("a"))).rejects.toThrow(/refusing user/u);
+    await expect(store.blob(A, "../../etc/passwd")).rejects.toThrow(/refusing hash/u);
   });
 
   it("clears tmp/ on init", async () => {
@@ -112,7 +112,7 @@ describe("Store", () => {
       store.updatePins(A, (p) => [...p, pin("one", [])]),
       store.updatePins(A, (p) => [...p, pin("two", [])]),
     ]);
-    expect((await store.readPins(A)).map((p) => p.slug).sort()).toEqual(["one", "two"]);
+    expect((await store.readPins(A)).map((p) => p.slug).toSorted()).toEqual(["one", "two"]);
   });
 
   it("a failed rename leaves no orphan .type and nothing in tmp/", async () => {

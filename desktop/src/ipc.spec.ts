@@ -54,7 +54,7 @@ describe("senderAllowed", () => {
 describe("registerIpc", () => {
   it("registers every channel of the contract", async () => {
     const s = await setup();
-    expect([...s.registered.keys()].sort()).toEqual([
+    expect([...s.registered.keys()].toSorted()).toEqual([
       "connectivity:get",
       "offline:cancel",
       "offline:list",
@@ -69,16 +69,16 @@ describe("registerIpc", () => {
   it("refuses a call from a frame, even a same-origin one", async () => {
     const s = await setup();
     const iframe = { url: `${ORIGIN}/pdfjs/web/viewer.html`, parent: s.main, detached: false };
-    await expect(s.call("offline:save", s.event(iframe), "ust-kut")).rejects.toThrow(/refused/);
+    await expect(s.call("offline:save", s.event(iframe), "ust-kut")).rejects.toThrow(/refused/u);
     expect(s.saver.save).not.toHaveBeenCalled();
   });
 
   it("refuses an off-origin main frame, a detached one and a destroyed one", async () => {
     const s = await setup();
     const evil = { url: "https://evil.example/", parent: null, detached: false };
-    await expect(s.call("offline:save", s.event(evil), "ust-kut")).rejects.toThrow(/refused/);
-    await expect(s.call("offline:save", s.event({ ...s.main, detached: true }), "ust-kut")).rejects.toThrow(/refused/);
-    await expect(s.call("offline:save", s.event(null), "ust-kut")).rejects.toThrow(/refused/);
+    await expect(s.call("offline:save", s.event(evil), "ust-kut")).rejects.toThrow(/refused/u);
+    await expect(s.call("offline:save", s.event({ ...s.main, detached: true }), "ust-kut")).rejects.toThrow(/refused/u);
+    await expect(s.call("offline:save", s.event(null), "ust-kut")).rejects.toThrow(/refused/u);
     expect(s.saver.save).not.toHaveBeenCalled();
   });
 
@@ -87,14 +87,14 @@ describe("registerIpc", () => {
     expect(await s.call("connectivity:get", s.event())).toBe(false);
     s.online.value = true;
     expect(await s.call("connectivity:get", s.event())).toBe(true);
-    await expect(s.call("connectivity:get", s.event(), 1)).rejects.toThrow(/arguments/);
+    await expect(s.call("connectivity:get", s.event(), 1)).rejects.toThrow(/arguments/u);
   });
 
   it("checks the arguments of cancel and remove and forwards good ones", async () => {
     const s = await setup();
     for (const c of ["offline:cancel", "offline:remove"]) {
-      await expect(s.call(c, s.event(), "../x")).rejects.toThrow(/arguments/);
-      await expect(s.call(c, s.event())).rejects.toThrow(/arguments/);
+      await expect(s.call(c, s.event(), "../x")).rejects.toThrow(/arguments/u);
+      await expect(s.call(c, s.event())).rejects.toThrow(/arguments/u);
     }
     await s.call("offline:cancel", s.event(), "ust-kut");
     await s.call("offline:remove", s.event(), "ust-kut");
@@ -107,18 +107,18 @@ describe("registerIpc", () => {
     const evict = vi.spyOn(s.store, "evict");
     await s.call("storage:clear", s.event());
     expect(evict).toHaveBeenCalledWith(A, 0);
-    await expect(s.call("storage:clear", s.event(), 1)).rejects.toThrow(/arguments/);
+    await expect(s.call("storage:clear", s.event(), 1)).rejects.toThrow(/arguments/u);
   });
 
   it("refuses a slug that is not one", async () => {
     const s = await setup();
-    await expect(s.call("offline:save", s.event(), "../../etc")).rejects.toThrow(/arguments/);
-    await expect(s.call("offline:save", s.event())).rejects.toThrow(/arguments/);
+    await expect(s.call("offline:save", s.event(), "../../etc")).rejects.toThrow(/arguments/u);
+    await expect(s.call("offline:save", s.event())).rejects.toThrow(/arguments/u);
   });
 
   it("refuses a limit outside the list", async () => {
     const s = await setup();
-    await expect(s.call("storage:set-limit", s.event(), 123)).rejects.toThrow(/arguments/);
+    await expect(s.call("storage:set-limit", s.event(), 123)).rejects.toThrow(/arguments/u);
     await s.call("storage:set-limit", s.event(), LIMITS[0]);
     expect(s.settings.value.limit).toBe(LIMITS[0]);
   });
