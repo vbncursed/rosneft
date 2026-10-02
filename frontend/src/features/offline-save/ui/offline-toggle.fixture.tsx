@@ -16,8 +16,21 @@ const noop = () => {};
 // The real control, one state each, with no shell behind it.
 export default {
   ...Object.fromEntries(
-    Object.entries(views).map(([name, view]) => [name, <div key={name} className="p-6"><OfflineControl view={view} title="Ust-Kut" onAct={noop} /></div>]),
+    Object.entries(views).map(([name, view]) => [
+      name,
+      <div key={name} className="p-6">
+        <OfflineControl view={view} title="Ust-Kut" onAct={noop} />
+      </div>,
+    ]),
   ),
-  "compact idle": <div className="p-6"><OfflineControl view={views.idle} title="Ust-Kut" onAct={noop} compact /></div>,
-  "compact saved": <div className="p-6"><OfflineControl view={views.saved} title="Ust-Kut" onAct={noop} compact /></div>,
+  "compact idle": (
+    <div className="p-6">
+      <OfflineControl view={views.idle} title="Ust-Kut" onAct={noop} compact />
+    </div>
+  ),
+  "compact saved": (
+    <div className="p-6">
+      <OfflineControl view={views.saved} title="Ust-Kut" onAct={noop} compact />
+    </div>
+  ),
 };

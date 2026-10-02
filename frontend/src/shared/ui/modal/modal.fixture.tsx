@@ -108,8 +108,8 @@ function Unavailable() {
         footer={<Button onClick={() => setOpen(false)}>Close</Button>}
       >
         <Callout tone="warn">
-          The gateway derives the required factor server-side, so removal would be refused whichever
-          field we collected. Nothing was sent.
+          The gateway derives the required factor server-side, so removal would be refused whichever field we collected.
+          Nothing was sent.
         </Callout>
       </Modal>
     </>

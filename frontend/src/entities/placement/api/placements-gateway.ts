@@ -17,18 +17,18 @@ export async function createPlacements(
   items: PlacementCreate[],
   idempotencyKey: string,
 ): Promise<Placement[]> {
-  const created = await httpPost<PlacementDto[]>(`${base(territorySlug)}/batch`, { items }, {
-    headers: { "Idempotency-Key": idempotencyKey },
-  });
+  const created = await httpPost<PlacementDto[]>(
+    `${base(territorySlug)}/batch`,
+    { items },
+    {
+      headers: { "Idempotency-Key": idempotencyKey },
+    },
+  );
   return created.map(toPlacement);
 }
 
 /** The PUT carries the whole transform plus the label — a partial body would blank the rest. */
-export async function updatePlacement(
-  territorySlug: string,
-  id: number,
-  body: PlacementUpdate,
-): Promise<Placement> {
+export async function updatePlacement(territorySlug: string, id: number, body: PlacementUpdate): Promise<Placement> {
   return toPlacement(await httpPut<PlacementDto>(`${base(territorySlug)}/${id}`, body));
 }
 
@@ -42,9 +42,7 @@ export async function setPlacementVisibility(
   id: number,
   panoramaIds: number[],
 ): Promise<Placement> {
-  return toPlacement(
-    await httpPut<PlacementDto>(`${base(territorySlug)}/${id}/visibility`, { panoramaIds }),
-  );
+  return toPlacement(await httpPut<PlacementDto>(`${base(territorySlug)}/${id}/visibility`, { panoramaIds }));
 }
 
 type UpdatedDto = components["schemas"]["PlacementsUpdated"];

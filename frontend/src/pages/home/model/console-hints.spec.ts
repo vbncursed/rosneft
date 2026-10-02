@@ -25,13 +25,31 @@ describe("console hints", () => {
     expect(auditHint(250)).toBe("250 events · 24h");
   });
   it("answers static while locked or loading, unavailable when failed, and the count otherwise", () => {
-    expect(hintOf("users", { locked: true, loading: false, failed: false }, "12 users")).toEqual({ kind: "static", text: "people and roles" });
-    expect(hintOf("users", { locked: false, loading: true, failed: false }, null)).toEqual({ kind: "static", text: "people and roles" });
-    expect(hintOf("users", { locked: false, loading: false, failed: true }, null)).toEqual({ kind: "unavailable", text: "count unavailable" });
-    expect(hintOf("users", { locked: false, loading: false, failed: false }, "12 users")).toEqual({ kind: "count", text: "12 users" });
+    expect(hintOf("users", { locked: true, loading: false, failed: false }, "12 users")).toEqual({
+      kind: "static",
+      text: "people and roles",
+    });
+    expect(hintOf("users", { locked: false, loading: true, failed: false }, null)).toEqual({
+      kind: "static",
+      text: "people and roles",
+    });
+    expect(hintOf("users", { locked: false, loading: false, failed: true }, null)).toEqual({
+      kind: "unavailable",
+      text: "count unavailable",
+    });
+    expect(hintOf("users", { locked: false, loading: false, failed: false }, "12 users")).toEqual({
+      kind: "count",
+      text: "12 users",
+    });
     // An answered query that still could not be counted is unavailable, not blank.
-    expect(hintOf("users", { locked: false, loading: false, failed: false }, null)).toEqual({ kind: "unavailable", text: "count unavailable" });
+    expect(hintOf("users", { locked: false, loading: false, failed: false }, null)).toEqual({
+      kind: "unavailable",
+      text: "count unavailable",
+    });
     // A key Home has no static line for says nothing rather than "undefined".
-    expect(hintOf("tasks", { locked: true, loading: false, failed: false }, null)).toEqual({ kind: "static", text: "" });
+    expect(hintOf("tasks", { locked: true, loading: false, failed: false }, null)).toEqual({
+      kind: "static",
+      text: "",
+    });
   });
 });

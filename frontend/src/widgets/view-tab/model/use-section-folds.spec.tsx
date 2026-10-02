@@ -11,8 +11,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const mount = (forced = NONE) =>
-  renderHook((f: typeof NONE) => useSectionFolds(f), { initialProps: forced });
+const mount = (forced = NONE) => renderHook((f: typeof NONE) => useSectionFolds(f), { initialProps: forced });
 
 describe("useSectionFolds", () => {
   it("starts with both lists folded", () => {

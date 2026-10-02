@@ -38,7 +38,10 @@ export function GroupRow({ title, line, expanded, holdsSelection, onToggle, acti
         <Icon
           name="chevron-right"
           size={12}
-          className={cx("shrink-0 text-muted transition-transform duration-150 ease-out motion-reduce:transition-none", expanded && "rotate-90")}
+          className={cx(
+            "shrink-0 text-muted transition-transform duration-150 ease-out motion-reduce:transition-none",
+            expanded && "rotate-90",
+          )}
         />
       </button>
       {actions}

@@ -58,7 +58,16 @@ const bundle: SceneBundle = {
   modelOptions: [{ slug: "tank", title: "storage-tank-500", chain: [{ lod: 0, hash: "m0", size: 5 }] }],
   panoramas: [panorama],
   documents: [document],
-  measurements: [{ serverId: 5, points: [{ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }], closed: false }],
+  measurements: [
+    {
+      serverId: 5,
+      points: [
+        { x: 0, y: 0, z: 0 },
+        { x: 1, y: 0, z: 0 },
+      ],
+      closed: false,
+    },
+  ],
   placementGroups: [],
   phaseHidden: { prior: false, current: false, post: false },
 };

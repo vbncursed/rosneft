@@ -93,9 +93,7 @@ beforeEach(() => {
       return twoFactorStatus === 200 ? json(TWO_FACTOR) : json({ message: "boom" }, twoFactorStatus);
     }
     if (path === "/api/auth/passkey/credentials") {
-      return passkeysStatus === 200
-        ? json({ credentials: PASSKEYS })
-        : json({ message: "boom" }, passkeysStatus);
+      return passkeysStatus === 200 ? json({ credentials: PASSKEYS }) : json({ message: "boom" }, passkeysStatus);
     }
     if (path === "/api/auth/me/password") return json(undefined, 204);
     if (path === "/api/audit/mine") {
@@ -323,9 +321,7 @@ describe("useAccount", () => {
     await waitFor(() => expect(ready(result).activity).toHaveLength(6));
 
     act(() => ready(result).onPage(4));
-    await waitFor(() =>
-      expect(ready(result).activity!.map((e) => e.id)).toEqual([42, 41, 40, 39, 38, 37]),
-    );
+    await waitFor(() => expect(ready(result).activity!.map((e) => e.id)).toEqual([42, 41, 40, 39, 38, 37]));
     expect(cursorsAsked()).toEqual([null, 55, 49, 43]);
     expect(ready(result).activityBusy).toBe(false);
   });

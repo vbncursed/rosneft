@@ -12,5 +12,4 @@ export const listDocuments = async (slug: string): Promise<Document[]> =>
 export const createDocument = async (slug: string, body: DocumentCreate): Promise<Document> =>
   toDocument(await httpPost<DocumentDto>(base(slug), body));
 
-export const deleteDocument = (slug: string, id: number): Promise<void> =>
-  httpDelete(`${base(slug)}/${id}`);
+export const deleteDocument = (slug: string, id: number): Promise<void> => httpDelete(`${base(slug)}/${id}`);

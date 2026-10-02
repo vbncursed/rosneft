@@ -42,10 +42,7 @@ describe("DocumentWindow", () => {
 
   it("points the pdf.js frame at the document's own asset by default", () => {
     render(<DocumentWindow {...props({ frameSrc: undefined })} />);
-    expect(screen.getByTitle(FILE)).toHaveAttribute(
-      "src",
-      "/pdfjs/web/viewer.html?file=%2Fapi%2Fassets%2Fh",
-    );
+    expect(screen.getByTitle(FILE)).toHaveAttribute("src", "/pdfjs/web/viewer.html?file=%2Fapi%2Fassets%2Fh");
   });
 
   it("is a pip window named by the file, with the handle, the grip, and its actions", async () => {

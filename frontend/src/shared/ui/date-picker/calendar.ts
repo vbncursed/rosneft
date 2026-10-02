@@ -7,8 +7,7 @@ export type Day = { iso: IsoDate; day: number; inMonth: boolean };
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-export const toIso = (year: number, month: number, day: number): IsoDate =>
-  `${year}-${pad(month + 1)}-${pad(day)}`;
+export const toIso = (year: number, month: number, day: number): IsoDate => `${year}-${pad(month + 1)}-${pad(day)}`;
 
 /**
  * Splits an ISO date into its parts. Deliberately not `new Date(iso)`: that
@@ -25,8 +24,7 @@ export function parseIso(iso: string): { year: number; month: number; day: numbe
 export const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
 
 /** Monday-based column of a date, 0..6 — the design's week starts on Monday. */
-const mondayIndex = (year: number, month: number, day: number) =>
-  (new Date(year, month, day).getDay() + 6) % 7;
+const mondayIndex = (year: number, month: number, day: number) => (new Date(year, month, day).getDay() + 6) % 7;
 
 /**
  * Whole weeks covering `month`, padded with the neighbouring months' days so
@@ -54,8 +52,18 @@ export function shiftMonth(year: number, month: number, by: number) {
 }
 
 const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 export const monthLabel = (year: number, month: number) => `${MONTHS[month]} ${year}`;

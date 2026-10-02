@@ -59,8 +59,7 @@ export function useBulkWrites({ slug, setPlacements, onChanged }: BulkWritesPara
   );
 
   const moveToGroup = useCallback(
-    (ids: number[], groupId: number | null) =>
-      write(ids, () => setPlacementsGroup(slug, ids, groupId), { groupId }),
+    (ids: number[], groupId: number | null) => write(ids, () => setPlacementsGroup(slug, ids, groupId), { groupId }),
     [write, slug],
   );
 

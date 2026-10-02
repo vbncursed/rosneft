@@ -32,4 +32,5 @@ declare global {
   }
 }
 
-export const desktopBridge = (): DesktopBridge | undefined => (typeof window === "undefined" ? undefined : window.desktop);
+export const desktopBridge = (): DesktopBridge | undefined =>
+  typeof window === "undefined" ? undefined : window.desktop;

@@ -32,9 +32,7 @@ describe("systemTheme", () => {
 });
 
 const themeColors = () =>
-  [...document.head.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')].map(
-    (m) => m.content,
-  );
+  [...document.head.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')].map((m) => m.content);
 
 function addThemeColorMeta() {
   document.head.innerHTML =

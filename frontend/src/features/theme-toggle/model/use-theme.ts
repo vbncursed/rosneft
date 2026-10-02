@@ -42,11 +42,9 @@ const getSnapshot = () => current;
 const CHROME: Record<Theme, string> = { dark: "#0e0f11", light: "#f5f4f1" };
 
 function paintChrome(theme: Theme) {
-  document.head
-    .querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
-    .forEach((meta) => {
-      meta.content = CHROME[theme];
-    });
+  document.head.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((meta) => {
+    meta.content = CHROME[theme];
+  });
 }
 
 function toggle() {

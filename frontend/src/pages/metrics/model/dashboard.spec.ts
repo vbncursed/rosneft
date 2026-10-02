@@ -183,9 +183,7 @@ describe("panelEntry", () => {
     expect(panelEntry("red-rate", { kind: "value", series: [series(path, 3)] }).series[0].label).toBe(
       "Catalog.ListTerritories",
     );
-    expect(
-      panelEntry("runtime-memory", { kind: "value", series: [series(path, 3)] }).series[0].label,
-    ).toBe(path);
+    expect(panelEntry("runtime-memory", { kind: "value", series: [series(path, 3)] }).series[0].label).toBe(path);
   });
 
   it("fills a rate panel's gap with zero — no traffic is a zero, not a missed scrape", () => {

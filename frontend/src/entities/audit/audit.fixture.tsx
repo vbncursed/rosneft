@@ -60,15 +60,36 @@ const KINDS: { entry: AuditEntry; summary: string }[] = [
     summary: "4 fields changed",
   },
   {
-    entry: { ...ENTRIES[0], id: 11, action: "placement.insert", entityLabel: "Storage Tank 500", at: "2026-09-01T08:52:00Z" },
+    entry: {
+      ...ENTRIES[0],
+      id: 11,
+      action: "placement.insert",
+      entityLabel: "Storage Tank 500",
+      at: "2026-09-01T08:52:00Z",
+    },
     summary: "placed at 12.4 / 0.0 / −3.1",
   },
   {
-    entry: { ...ENTRIES[0], id: 12, action: "model.delete", entityLabel: "Pipe Segment 12", at: "2026-09-01T07:58:00Z" },
+    entry: {
+      ...ENTRIES[0],
+      id: 12,
+      action: "model.delete",
+      entityLabel: "Pipe Segment 12",
+      at: "2026-09-01T07:58:00Z",
+    },
     summary: "soft-deleted · 3 placements detached",
   },
   {
-    entry: { ...ENTRIES[0], id: 13, action: "auth.login", entityLabel: "session started", actorId: "", actorLogin: "", result: "failed", at: "2026-09-01T07:40:00Z" },
+    entry: {
+      ...ENTRIES[0],
+      id: 13,
+      action: "auth.login",
+      entityLabel: "session started",
+      actorId: "",
+      actorLogin: "",
+      result: "failed",
+      at: "2026-09-01T07:40:00Z",
+    },
     summary: "passkey · Chrome on macOS",
   },
 ];

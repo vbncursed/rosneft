@@ -31,9 +31,7 @@ const job = (over: Partial<TargetJob> = {}): TargetJob => ({
 
 describe("toModelCard", () => {
   it("is ready with a thumbnail, a size chip and the plural in-use trailing", () => {
-    expect(
-      toModelCard(model({ thumbnailBlobHash: "b".repeat(64) }), ARTIFACTS),
-    ).toEqual({
+    expect(toModelCard(model({ thumbnailBlobHash: "b".repeat(64) }), ARTIFACTS)).toEqual({
       slug: "pump-jack-unit",
       title: "Pump Jack Unit",
       status: "ready",

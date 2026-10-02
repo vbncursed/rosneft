@@ -20,15 +20,7 @@ export type ErrorStateProps = {
   className?: string;
 };
 
-export function ErrorState({
-  title,
-  detail,
-  action,
-  size = "md",
-  icon,
-  footer,
-  className,
-}: ErrorStateProps) {
+export function ErrorState({ title, detail, action, size = "md", icon, footer, className }: ErrorStateProps) {
   if (size === "lg") {
     return (
       <div
@@ -44,9 +36,7 @@ export function ErrorState({
           </span>
         ) : null}
         <p className="m-0 text-lg font-semibold tracking-[-0.015em] text-fg">{title}</p>
-        {detail ? (
-          <p className="m-0 max-w-[44ch] text-[13px] leading-[1.6] text-muted">{detail}</p>
-        ) : null}
+        {detail ? <p className="m-0 max-w-[44ch] text-[13px] leading-[1.6] text-muted">{detail}</p> : null}
         {action ? <div className="flex flex-wrap items-center justify-center gap-[9px]">{action}</div> : null}
         {footer ? <p className="m-0 font-mono text-[10px] text-dim">{footer}</p> : null}
       </div>

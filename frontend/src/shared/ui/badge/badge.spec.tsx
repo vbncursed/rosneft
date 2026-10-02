@@ -9,10 +9,18 @@ describe("Badge", () => {
   });
 
   it("tints the ground only when filled soft", () => {
-    const { rerender } = render(<Badge tone="ok" fill="soft">yes</Badge>);
+    const { rerender } = render(
+      <Badge tone="ok" fill="soft">
+        yes
+      </Badge>,
+    );
     expect(screen.getByText("yes").className).toContain("bg-ok-soft");
 
-    rerender(<Badge tone="ok" fill="outline">yes</Badge>);
+    rerender(
+      <Badge tone="ok" fill="outline">
+        yes
+      </Badge>,
+    );
     expect(screen.getByText("yes").className).toContain("bg-transparent");
     expect(screen.getByText("yes").className).not.toContain("bg-ok-soft");
   });
@@ -39,10 +47,18 @@ describe("Badge", () => {
   });
 
   it("writes a filled neutral chip in the foreground ink, an outlined one muted", () => {
-    const { rerender } = render(<Badge tone="neutral" fill="soft">Field Operator</Badge>);
+    const { rerender } = render(
+      <Badge tone="neutral" fill="soft">
+        Field Operator
+      </Badge>,
+    );
     expect(screen.getByText("Field Operator").className).toContain("text-fg");
 
-    rerender(<Badge tone="neutral" fill="outline">Company Owner</Badge>);
+    rerender(
+      <Badge tone="neutral" fill="outline">
+        Company Owner
+      </Badge>,
+    );
     expect(screen.getByText("Company Owner").className).toContain("text-muted");
   });
 

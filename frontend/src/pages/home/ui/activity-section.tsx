@@ -16,12 +16,7 @@ export function ActivitySection({ entries, loading }: ActivitySectionProps) {
   // One reading for the whole list, so two rows a millisecond apart cannot straddle midnight.
   const now = new Date();
   const body = loading ? (
-    <div
-      role="status"
-      aria-busy="true"
-      aria-label="Loading your activity"
-      className="flex flex-col gap-2 p-[17px]"
-    >
+    <div role="status" aria-busy="true" aria-label="Loading your activity" className="flex flex-col gap-2 p-[17px]">
       <Skeleton height="16px" width="40%" />
       <Skeleton height="16px" width="55%" />
     </div>
@@ -48,11 +43,7 @@ export function ActivitySection({ entries, loading }: ActivitySectionProps) {
       {entries !== null && !loading && entries.length === 0 ? (
         // Its own dashed card, never inside the bordered container — an
         // override class on EmptyState would be a clsx collision.
-        <EmptyState
-          layout="start"
-          title="No activity yet"
-          description="Your actions will show up here."
-        />
+        <EmptyState layout="start" title="No activity yet" description="Your actions will show up here." />
       ) : (
         <div className="overflow-hidden rounded-[12px] border border-line bg-panel">{body}</div>
       )}

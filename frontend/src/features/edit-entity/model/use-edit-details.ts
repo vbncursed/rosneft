@@ -42,7 +42,11 @@ async function writeBack(client: QueryClient, kind: EntityKind, saved: Details) 
   await mergeInto<Details>(client, [kind, saved.slug], (old) => old && merge(old));
   await mergeInto<Details[]>(client, [LIST_KEY[kind]], (old) => old?.map(merge));
   if (kind === "territory") {
-    await mergeInto<SceneCopy>(client, ["scene", saved.slug], (old) => old && { ...old, territory: merge(old.territory) });
+    await mergeInto<SceneCopy>(
+      client,
+      ["scene", saved.slug],
+      (old) => old && { ...old, territory: merge(old.territory) },
+    );
     return;
   }
   const rename = <T extends { slug: string; title: string }>(o: T): T =>
@@ -50,7 +54,9 @@ async function writeBack(client: QueryClient, kind: EntityKind, saved: Details) 
   for (const [queryKey] of client.getQueriesData<SceneCopy>({ queryKey: ["scene"] })) {
     // undefined leaves a bundle that does not offer the model untouched.
     await mergeInto<SceneCopy>(client, [...queryKey], (old) =>
-      old?.modelOptions?.some((o) => o.slug === saved.slug) ? { ...old, modelOptions: old.modelOptions.map(rename) } : undefined,
+      old?.modelOptions?.some((o) => o.slug === saved.slug)
+        ? { ...old, modelOptions: old.modelOptions.map(rename) }
+        : undefined,
     );
   }
 }

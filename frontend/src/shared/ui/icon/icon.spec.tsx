@@ -47,11 +47,20 @@ describe("Icon", () => {
     }
   });
 
-  it.each(["panorama", "file", "maximize", "minimize", "grip", "arrow-up", "close", "reset", "documents", "help", "chevron-down"] as const)(
-    "draws the %s glyph",
-    (name) => {
-      const { container } = render(<Icon name={name} />);
-      expect(container.querySelector("svg")).not.toBeNull();
-    },
-  );
+  it.each([
+    "panorama",
+    "file",
+    "maximize",
+    "minimize",
+    "grip",
+    "arrow-up",
+    "close",
+    "reset",
+    "documents",
+    "help",
+    "chevron-down",
+  ] as const)("draws the %s glyph", (name) => {
+    const { container } = render(<Icon name={name} />);
+    expect(container.querySelector("svg")).not.toBeNull();
+  });
 });

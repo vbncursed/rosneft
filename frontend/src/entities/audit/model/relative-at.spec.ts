@@ -35,8 +35,7 @@ const entry = (over: Partial<AuditEntry> = {}): AuditEntry => ({
 
 describe("summaryOf", () => {
   it("names what was touched", () => {
-    expect(summaryOf(entry({ action: "territory.update", entityLabel: "Refinery Block C" })))
-      .toBe("Refinery Block C");
+    expect(summaryOf(entry({ action: "territory.update", entityLabel: "Refinery Block C" }))).toBe("Refinery Block C");
   });
 
   it("names a measurement, which has no label, by its id", () => {
@@ -71,43 +70,34 @@ describe("summaryOf", () => {
   // name at fifty rows of "auth.login · session" — a word the reader cannot
   // use and did not ask for. Nothing usable means no second line at all.
   it("says nothing when the row carries nothing a person can use", () => {
+    expect(summaryOf(entry({ action: "auth.login", entity: "session", entityId: "", entityLabel: "" }))).toBe("");
     expect(
-      summaryOf(entry({ action: "auth.login", entity: "session", entityId: "", entityLabel: "" })),
-    ).toBe("");
-    expect(
-      summaryOf(
-        entry({ action: "auth.passkey_register", entity: "session", entityId: "", entityLabel: "" }),
-      ),
+      summaryOf(entry({ action: "auth.passkey_register", entity: "session", entityId: "", entityLabel: "" })),
     ).toBe("");
     // Not only auth rows: a user_role insert is written the same way.
-    expect(
-      summaryOf(entry({ action: "user_role.insert", entity: "user_role", entityId: "", entityLabel: "" })),
-    ).toBe("");
+    expect(summaryOf(entry({ action: "user_role.insert", entity: "user_role", entityId: "", entityLabel: "" }))).toBe(
+      "",
+    );
   });
 
   // Still worth a line when it failed — that is the one thing the row says
   // beyond its action, and the console prints it too.
   it("still says a bare row failed", () => {
     expect(
-      summaryOf(
-        entry({ action: "auth.password_change", entity: "session", entityLabel: "", result: "failed" }),
-      ),
+      summaryOf(entry({ action: "auth.password_change", entity: "session", entityLabel: "", result: "failed" })),
     ).toBe("failed");
   });
 
   // The catalog rows do label themselves — territory.insert carries the slug
   // in entityLabel, model.insert the model's slug.
   it("names a labelled row as the gateway labelled it", () => {
-    expect(
-      summaryOf(
-        entry({ action: "territory.insert", entity: "territory", entityLabel: "dji-wp-46-cut" }),
-      ),
-    ).toBe("dji-wp-46-cut");
+    expect(summaryOf(entry({ action: "territory.insert", entity: "territory", entityLabel: "dji-wp-46-cut" }))).toBe(
+      "dji-wp-46-cut",
+    );
   });
 
   it("says a failed action failed, because the row is otherwise identical to a successful one", () => {
-    expect(summaryOf(entry({ entityLabel: "Refinery Block C", result: "failed" })))
-      .toBe("Refinery Block C · failed");
+    expect(summaryOf(entry({ entityLabel: "Refinery Block C", result: "failed" }))).toBe("Refinery Block C · failed");
   });
 });
 

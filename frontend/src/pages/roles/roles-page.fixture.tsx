@@ -55,11 +55,7 @@ const GROUPS: RoleGroup[] = [
         role: role("company-owner", "Company Owner", "system", 12, 3, "immutable"),
         tone: "warn",
         tag: "system",
-        chips: [
-          { label: "territory.*" },
-          { label: "users.*" },
-          { label: "audit.read", tone: "locked" },
-        ],
+        chips: [{ label: "territory.*" }, { label: "users.*" }, { label: "audit.read", tone: "locked" }],
         faces: ["a.ivanova", "s.volkov", "m.orlova"],
       },
       {
@@ -81,11 +77,7 @@ const GROUPS: RoleGroup[] = [
         tone: "accent",
         tag: "editing",
         tagTone: "accent",
-        chips: [
-          { label: "territory.write" },
-          { label: "placement.write" },
-          { label: "users.write", tone: "locked" },
-        ],
+        chips: [{ label: "territory.write" }, { label: "placement.write" }, { label: "users.write", tone: "locked" }],
         faces: ["d.smirnov", "k.petrov", "i.lebedev"],
       },
       {
@@ -151,10 +143,7 @@ function Live({ initialSelected }: { initialSelected: string | null }) {
   const [granted, setGranted] = useState<string[]>(INITIAL[initialSelected ?? "guest"] ?? []);
   const [dirty, setDirty] = useState(false);
 
-  const entry = useMemo(
-    () => everyRole.find((r) => r.role.slug === selectedSlug) ?? null,
-    [selectedSlug],
-  );
+  const entry = useMemo(() => everyRole.find((r) => r.role.slug === selectedSlug) ?? null, [selectedSlug]);
 
   const select = (slug: string) => {
     setSelectedSlug(slug);

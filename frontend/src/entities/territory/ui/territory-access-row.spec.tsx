@@ -24,9 +24,7 @@ describe("TerritoryAccessRow", () => {
   });
 
   it("colours the rail by visibility", () => {
-    const { container, rerender } = render(
-      <TerritoryAccessRow territory={territory()} onManage={() => {}} />,
-    );
+    const { container, rerender } = render(<TerritoryAccessRow territory={territory()} onManage={() => {}} />);
     expect(container.querySelector("span[aria-hidden]")!.className).toContain("bg-accent");
 
     rerender(<TerritoryAccessRow territory={territory({ visibility: "company" })} onManage={() => {}} />);
@@ -48,9 +46,7 @@ describe("TerritoryAccessRow", () => {
   });
 
   it("marks the selected row as current and brightens its rail", () => {
-    const { container, rerender } = render(
-      <TerritoryAccessRow territory={territory()} onManage={() => {}} />,
-    );
+    const { container, rerender } = render(<TerritoryAccessRow territory={territory()} onManage={() => {}} />);
     expect(container.querySelector("span[aria-hidden]")!.className).toContain("opacity-50");
 
     rerender(<TerritoryAccessRow territory={territory()} selected onManage={() => {}} />);
@@ -62,9 +58,7 @@ describe("TerritoryAccessRow", () => {
     const onManage = vi.fn();
     render(<TerritoryAccessRow territory={territory()} onManage={onManage} />);
 
-    await userEvent.click(
-      screen.getByRole("button", { name: "Manage access to Refinery Block C" }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: "Manage access to Refinery Block C" }));
     await userEvent.click(screen.getByRole("article", { name: "Refinery Block C" }));
     expect(onManage).toHaveBeenCalledTimes(2);
   });

@@ -41,33 +41,27 @@ describe("TwoFactorPage", () => {
     expect(screen.getByRole("link", { name: "← Overview" })).toHaveAttribute("href", "/two-factor-required");
     unmount();
 
-    render(
-      <TwoFactorPage {...base} exit={exit} setupError={{ message: "provisioning is down", retryable: true }} />,
-    );
-    expect(screen.getByRole("link", { name: "Back to the overview" })).toHaveAttribute(
-      "href",
-      "/two-factor-required",
-    );
+    render(<TwoFactorPage {...base} exit={exit} setupError={{ message: "provisioning is down", retryable: true }} />);
+    expect(screen.getByRole("link", { name: "Back to the overview" })).toHaveAttribute("href", "/two-factor-required");
   });
 
   // Nothing is scanned when the app is already paired, and the heading has to
   // say what this run actually does rather than offering to enable it again.
   it("regenerating drops the scan pane and names its own job", () => {
     render(<TwoFactorPage {...base} flow="regenerate" />);
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Replace your recovery codes" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Replace your recovery codes" })).toBeInTheDocument();
     expect(screen.queryByText("Step 1 · scan")).not.toBeInTheDocument();
     expect(screen.getByText("Step 1 · confirm")).toBeInTheDocument();
   });
 
   it("shows the enable flow as three chips and the regenerate flow as two", () => {
     const { unmount } = render(<TwoFactorPage {...base} />);
-    expect(screen.getAllByRole("listitem").slice(0, 3).map((li) => li.textContent)).toEqual([
-      "1 · scan",
-      "2 · confirm",
-      "3 · save codes",
-    ]);
+    expect(
+      screen
+        .getAllByRole("listitem")
+        .slice(0, 3)
+        .map((li) => li.textContent),
+    ).toEqual(["1 · scan", "2 · confirm", "3 · save codes"]);
     unmount();
 
     render(<TwoFactorPage {...base} flow="regenerate" />);
@@ -79,9 +73,7 @@ describe("TwoFactorPage", () => {
   // while the codes are being read off it.
   it("feeds the chips the stage that is on screen", () => {
     render(<TwoFactorPage {...base} stage="codes" codes={CODES} />);
-    const chips = within(screen.getByRole("list", { name: "Two-factor progress" })).getAllByRole(
-      "listitem",
-    );
+    const chips = within(screen.getByRole("list", { name: "Two-factor progress" })).getAllByRole("listitem");
     expect(chips.map((c) => c.getAttribute("aria-current"))).toEqual([null, null, "step"]);
     expect(chips[2]).toHaveTextContent("3 · save codes");
     expect(chips[0]).toHaveTextContent("completed");
@@ -89,9 +81,7 @@ describe("TwoFactorPage", () => {
 
   it("hands the ten issued codes over, under the name they belong to", () => {
     render(<TwoFactorPage {...base} stage="codes" codes={CODES} />);
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Save your recovery codes" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Save your recovery codes" })).toBeInTheDocument();
     expect(screen.getByText("Two-factor is on for t.throwaway")).toBeInTheDocument();
     for (const code of CODES) expect(screen.getByText(code)).toBeInTheDocument();
     expect(
@@ -129,10 +119,7 @@ describe("TwoFactorPage", () => {
     expect(screen.getByText(ALREADY_ON)).toBeInTheDocument();
     expect(screen.queryByText("Step 1 · scan")).not.toBeInTheDocument();
     expect(screen.queryByText("Step 2 · confirm")).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to your account" })).toHaveAttribute(
-      "href",
-      "/account",
-    );
+    expect(screen.getByRole("link", { name: "Back to your account" })).toHaveAttribute("href", "/account");
     expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
   });
 
@@ -178,11 +165,7 @@ describe("TwoFactorPage", () => {
   it("replaces the panes when setup itself failed, and offers a retry", async () => {
     const onRetry = vi.fn();
     render(
-      <TwoFactorPage
-        {...base}
-        setupError={{ message: "provisioning is down", retryable: true }}
-        onRetry={onRetry}
-      />,
+      <TwoFactorPage {...base} setupError={{ message: "provisioning is down", retryable: true }} onRetry={onRetry} />,
     );
     expect(screen.getByText("provisioning is down")).toBeInTheDocument();
     expect(screen.queryByText("Step 1 · scan")).not.toBeInTheDocument();
@@ -203,9 +186,7 @@ describe("TwoFactorPage", () => {
   // Only the 409/422 is terminal. A refused code belongs in the pane, beside the
   // field that has to be retyped.
   it("keeps the panes for a refused code", () => {
-    render(
-      <TwoFactorPage {...base} error="Invalid code — check your device clock and try the next one." />,
-    );
+    render(<TwoFactorPage {...base} error="Invalid code — check your device clock and try the next one." />);
     expect(screen.getByText("Step 2 · confirm")).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("Invalid code");
   });

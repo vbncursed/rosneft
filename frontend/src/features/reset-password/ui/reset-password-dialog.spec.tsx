@@ -53,9 +53,7 @@ describe("ResetPasswordDialog", () => {
       </>,
     );
     await userEvent.click(screen.getByRole("button", { name: "Generate" }));
-    expect(
-      await screen.findByText("Could not copy — select it and copy by hand"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Could not copy — select it and copy by hand")).toBeInTheDocument();
   });
 
   it("copies the password on Copy and says so", async () => {
@@ -79,9 +77,7 @@ describe("ResetPasswordDialog", () => {
       </>,
     );
     await userEvent.click(screen.getByRole("button", { name: "Copy password" }));
-    expect(
-      await screen.findByText("Could not copy — select it and copy by hand"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Could not copy — select it and copy by hand")).toBeInTheDocument();
   });
 
   it("submits the typed password, not the generated one", async () => {

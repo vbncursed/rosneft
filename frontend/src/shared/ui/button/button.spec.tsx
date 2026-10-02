@@ -32,7 +32,11 @@ describe("Button", () => {
 
   it("blocks clicks while loading and marks itself busy", async () => {
     const onClick = vi.fn();
-    render(<Button loading onClick={onClick}>Uploading</Button>);
+    render(
+      <Button loading onClick={onClick}>
+        Uploading
+      </Button>,
+    );
 
     const btn = screen.getByRole("button", { name: /Uploading/ });
     expect(btn).toBeDisabled();
@@ -93,7 +97,11 @@ describe("Button", () => {
 
   it("blocks clicks while disabled", async () => {
     const onClick = vi.fn();
-    render(<Button disabled onClick={onClick}>Delete</Button>);
+    render(
+      <Button disabled onClick={onClick}>
+        Delete
+      </Button>,
+    );
     await userEvent.click(screen.getByRole("button", { name: "Delete" }));
     expect(onClick).not.toHaveBeenCalled();
   });

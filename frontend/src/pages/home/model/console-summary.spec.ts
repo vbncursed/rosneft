@@ -18,11 +18,12 @@ describe("consoleSummaryQuery", () => {
 
   it("reads GET /api/console/summary with the zone in minutes east of UTC", async () => {
     inMoscow();
-    const fetchMock = vi.fn(async (_url: string) =>
-      new Response(JSON.stringify({ access: 3 }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
+    const fetchMock = vi.fn(
+      async (_url: string) =>
+        new Response(JSON.stringify({ access: 3 }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
     );
     vi.stubGlobal("fetch", fetchMock);
     const run = consoleSummaryQuery().queryFn as () => Promise<unknown>;

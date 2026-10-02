@@ -29,9 +29,15 @@ function CreateUser() {
         <TextField label="username" placeholder="username" />
         <TextField label="email" placeholder="email" />
         <div className="flex flex-wrap gap-1.5">
-          <Badge tone="accent" shape="tag" className="tracking-normal">Field Operator</Badge>
-          <Badge tone="neutral" fill="outline" shape="tag" className="tracking-normal">Guest</Badge>
-          <Badge tone="neutral" fill="outline" shape="tag" className="tracking-normal">People &amp; Roles</Badge>
+          <Badge tone="accent" shape="tag" className="tracking-normal">
+            Field Operator
+          </Badge>
+          <Badge tone="neutral" fill="outline" shape="tag" className="tracking-normal">
+            Guest
+          </Badge>
+          <Badge tone="neutral" fill="outline" shape="tag" className="tracking-normal">
+            People &amp; Roles
+          </Badge>
         </div>
       </Drawer>
     </>

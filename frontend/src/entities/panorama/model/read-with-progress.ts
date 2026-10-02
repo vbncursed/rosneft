@@ -3,10 +3,7 @@
 // which emits no byte progress — streaming the body ourselves is the only way
 // to surface a real percentage. Progress is 0–100 when Content-Length is
 // known, or a single null (indeterminate) when the server didn't send it.
-export async function readWithProgress(
-  res: Response,
-  onProgress: (p: number | null) => void,
-): Promise<Blob> {
+export async function readWithProgress(res: Response, onProgress: (p: number | null) => void): Promise<Blob> {
   // Read Content-Length before getReader() — getReader() locks the body, so
   // the res.blob() fallback below would throw "Body already read" if we
   // grabbed the reader unconditionally.

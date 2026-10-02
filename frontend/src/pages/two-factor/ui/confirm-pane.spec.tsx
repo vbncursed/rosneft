@@ -56,9 +56,7 @@ describe("ConfirmPane", () => {
 
   it("announces a refused code rather than only tinting the field", () => {
     render(<ConfirmPane {...props} error="Invalid code — check your device clock and try the next one." />);
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Invalid code — check your device clock and try the next one.",
-    );
+    expect(screen.getByRole("alert")).toHaveTextContent("Invalid code — check your device clock and try the next one.");
   });
 
   it("shows no alert when nothing has failed", () => {
@@ -84,9 +82,7 @@ describe("ConfirmPane", () => {
     expect(
       screen.getByText("The secret is generated server-side and only stored once you confirm a code."),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText("Disabling 2FA later also asks for a code from your authenticator."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Disabling 2FA later also asks for a code from your authenticator.")).toBeInTheDocument();
   });
 
   // Regenerating generates no secret, so the note about one would be false.

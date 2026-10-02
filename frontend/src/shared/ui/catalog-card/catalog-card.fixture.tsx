@@ -48,12 +48,7 @@ export default {
         onOpen={() => {}}
         actions={
           <>
-            <Button
-              shape="icon"
-              size="sm"
-              variant="secondary"
-              aria-label="Replace source of Well Cluster 9"
-            >
+            <Button shape="icon" size="sm" variant="secondary" aria-label="Replace source of Well Cluster 9">
               <Icon name="refresh" size={14} />
             </Button>
             <Button shape="icon" size="sm" variant="secondary" aria-label="Delete Well Cluster 9">

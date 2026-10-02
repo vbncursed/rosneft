@@ -42,12 +42,7 @@ const setOrbit = (controls: OrbitControlsImpl | null, enabled: boolean) => {
 //     off the mesh) leaves the marker where it was; Y stays editable by hand.
 //   - The drag must end even when the pointer is released off the mesh, hence
 //     window rather than a mesh handler.
-export default function PanoramaDragController({
-  dragging,
-  territoryRef,
-  onMove,
-  onEnd,
-}: PanoramaDragControllerProps) {
+export default function PanoramaDragController({ dragging, territoryRef, onMove, onEnd }: PanoramaDragControllerProps) {
   const controls = useThree((s) => s.controls as OrbitControlsImpl | null);
   const camera = useThree((s) => s.camera);
   // R3F's own canvas rect, kept current by its resize observer. Read from the

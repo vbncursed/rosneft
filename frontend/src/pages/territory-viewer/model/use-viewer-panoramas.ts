@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ALL_PHASES_SHOWN, isPanoramaShown, type Panorama, type PanoramaUpdate, type PhaseHidden, type SourceBbox } from "@/entities/panorama";
+import {
+  ALL_PHASES_SHOWN,
+  isPanoramaShown,
+  type Panorama,
+  type PanoramaUpdate,
+  type PhaseHidden,
+  type SourceBbox,
+} from "@/entities/panorama";
 import type { Vec3 } from "@/entities/placement";
 import {
   NUDGE_STEPS,
@@ -125,10 +132,7 @@ export function useViewerPanoramas({
   // 3D view an open alignment still needs its equirect — it is the ghosted
   // backdrop the anchor is lined up against — and there is no active capture
   // out there to key it on.
-  const texture = usePanoramaTexture(
-    (view.active ?? calibration.effective)?.sourceBlobHash ?? null,
-    decode,
-  );
+  const texture = usePanoramaTexture((view.active ?? calibration.effective)?.sourceBlobHash ?? null, decode);
   const markers = useMarkerSwitch();
   const link = useTerritoryLink(slug, externalUrl, onChanged);
 

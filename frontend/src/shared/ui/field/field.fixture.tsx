@@ -21,7 +21,12 @@ export default (
     </Field>
 
     <Field id="f-bare">
-      <input id="f-bare" aria-label="No label" placeholder="no label at all" className={controlClass({ spaced: false })} />
+      <input
+        id="f-bare"
+        aria-label="No label"
+        placeholder="no label at all"
+        className={controlClass({ spaced: false })}
+      />
     </Field>
   </div>
 );

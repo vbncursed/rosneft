@@ -30,13 +30,7 @@ const PIP_INSET = 14;
  * derives `active` by id against the live list, so the row disappearing is the
  * window disappearing, with no effect in between.
  */
-export function useViewerDocuments({
-  slug,
-  initial,
-  onChanged,
-  reveal,
-  onOpen,
-}: ViewerDocumentsParams): DocumentParts {
+export function useViewerDocuments({ slug, initial, onChanged, reveal, onOpen }: ViewerDocumentsParams): DocumentParts {
   const list = useDocumentList({ slug, initial, onChanged });
   // Its members are `useCallback`s; the object around them is new every
   // render, and depending on it would hand the window a fresh `onDelete`

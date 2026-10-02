@@ -20,7 +20,13 @@ vi.mock("@/entities/territory", async (importOriginal) => ({
   updateTerritory,
 }));
 
-const MODEL = { slug: "valve", title: "Valve", description: "Gate valve.", sourceBlobHash: "a".repeat(64), usageCount: 0 };
+const MODEL = {
+  slug: "valve",
+  title: "Valve",
+  description: "Gate valve.",
+  sourceBlobHash: "a".repeat(64),
+  usageCount: 0,
+};
 const TERRITORY = { slug: "yard", title: "Yard", sourceBlobHash: "h", placementCount: 0 };
 
 let client: QueryClient;
@@ -39,7 +45,14 @@ const open = (over: Partial<EditDetailsDialogProps> = {}) => {
   const onClose = vi.fn();
   render(
     <QueryClientProvider client={client}>
-      <EditDetailsDialog kind="model" slug="valve" title="Valve" description="Gate valve." onClose={onClose} {...over} />
+      <EditDetailsDialog
+        kind="model"
+        slug="valve"
+        title="Valve"
+        description="Gate valve."
+        onClose={onClose}
+        {...over}
+      />
       <Toasts />
     </QueryClientProvider>,
   );
@@ -129,7 +142,9 @@ describe("EditDetailsDialog", () => {
 
     expect(updateTerritory).toHaveBeenCalledWith("yard", { title: "North yard" });
     await waitFor(() =>
-      expect(client.getQueryData<{ territory: { title: string } }>(["scene", "yard"])!.territory.title).toBe("North yard"),
+      expect(client.getQueryData<{ territory: { title: string } }>(["scene", "yard"])!.territory.title).toBe(
+        "North yard",
+      ),
     );
     expect(client.getQueryData(["territory", "yard"])).toMatchObject({ title: "North yard" });
     expect(client.getQueryData(["territories"])).toMatchObject([{ title: "North yard" }]);

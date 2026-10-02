@@ -5,20 +5,12 @@ import { PageHeader } from "./page-header";
 describe("PageHeader", () => {
   it("names the page with a single top-level heading", () => {
     render(<PageHeader eyebrow="Territory catalog" title="Scenes to walk through" />);
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Scenes to walk through" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Scenes to walk through" })).toBeInTheDocument();
     expect(screen.getByText("Territory catalog")).toBeInTheDocument();
   });
 
   it("offers the way back up when there is one", () => {
-    render(
-      <PageHeader
-        eyebrow="Territory catalog"
-        title="Scenes"
-        back={{ label: "← Home", href: "/" }}
-      />,
-    );
+    render(<PageHeader eyebrow="Territory catalog" title="Scenes" back={{ label: "← Home", href: "/" }} />);
     expect(screen.getByRole("link", { name: "← Home" })).toHaveAttribute("href", "/");
   });
 
@@ -28,13 +20,7 @@ describe("PageHeader", () => {
   });
 
   it("hosts the page's primary action", () => {
-    render(
-      <PageHeader
-        eyebrow="Territory catalog"
-        title="Scenes"
-        action={<button type="button">+ Upload</button>}
-      />,
-    );
+    render(<PageHeader eyebrow="Territory catalog" title="Scenes" action={<button type="button">+ Upload</button>} />);
     expect(screen.getByRole("button", { name: "+ Upload" })).toBeInTheDocument();
   });
 
@@ -91,9 +77,7 @@ describe("PageHeader · description", () => {
         description="Territories, models and their conversion artifacts."
       />,
     );
-    expect(
-      screen.getByText("Territories, models and their conversion artifacts."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Territories, models and their conversion artifacts.")).toBeInTheDocument();
   });
 
   it("says nothing extra when there is nothing to add", () => {

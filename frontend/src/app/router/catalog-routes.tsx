@@ -78,8 +78,7 @@ export const territoryRoute = createRoute({
   // and the cost is the poll instead of the stream.
   validateSearch: (search: Record<string, unknown>): { jobId?: string } =>
     typeof search.jobId === "string" && search.jobId !== "" ? { jobId: search.jobId } : {},
-  loader: ({ context, params }) =>
-    context.queryClient.ensureQueryData(sceneQuery(params.slug)).catch(() => undefined),
+  loader: ({ context, params }) => context.queryClient.ensureQueryData(sceneQuery(params.slug)).catch(() => undefined),
   component: TerritoryRoute,
 });
 

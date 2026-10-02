@@ -189,9 +189,7 @@ describe("usePanoramaList", () => {
     });
     await waitFor(() => expect(result.current.s.pendingId).toBe(1));
 
-    act(() =>
-      result.current.s.setPanoramas((prev) => prev.map((p) => ({ ...p, hidden: true, phase: "post" }))),
-    );
+    act(() => result.current.s.setPanoramas((prev) => prev.map((p) => ({ ...p, hidden: true, phase: "post" }))));
 
     await act(async () => {
       resolveUpdate(panorama(1, { title: "Renamed", updatedAt: "t1" }));

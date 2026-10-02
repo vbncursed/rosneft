@@ -36,9 +36,7 @@ export function Sparkline({
     <div className={className}>
       {showHeader ? (
         <div className="flex items-baseline justify-between gap-3">
-          <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted">
-            {label}
-          </span>
+          <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted">{label}</span>
           {detail ? <span className="font-mono text-[11px] text-muted">{detail}</span> : null}
         </div>
       ) : null}

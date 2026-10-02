@@ -23,10 +23,22 @@ const actions = (over: Partial<GroupActions> = {}): GroupActions => ({
   ...over,
 });
 
-const mount = (over: { c?: ReturnType<typeof ctx>; a?: GroupActions; onAdd?: ((id: number) => void) | null; section?: UserGroupSection } = {}) =>
+const mount = (
+  over: {
+    c?: ReturnType<typeof ctx>;
+    a?: GroupActions;
+    onAdd?: ((id: number) => void) | null;
+    section?: UserGroupSection;
+  } = {},
+) =>
   render(
     <ul>
-      <UserGroupItem section={over.section ?? SECTION} ctx={over.c ?? ctx({ expanded: "group:4" })} onAdd={over.onAdd === undefined ? vi.fn() : over.onAdd} actions={over.a ?? actions()} />
+      <UserGroupItem
+        section={over.section ?? SECTION}
+        ctx={over.c ?? ctx({ expanded: "group:4" })}
+        onAdd={over.onAdd === undefined ? vi.fn() : over.onAdd}
+        actions={over.a ?? actions()}
+      />
     </ul>,
   );
 
@@ -34,7 +46,9 @@ describe("UserGroupItem", () => {
   it("names the group, counts its objects and lists them with their model's numbers", () => {
     mount();
     expect(screen.getByRole("button", { name: "East yard" })).toHaveTextContent("2 objects");
-    expect(screen.getByRole("button", { name: "storage-tank-500 #3 · hidden" })).toHaveTextContent(/^storage-tank-500 #3$/);
+    expect(screen.getByRole("button", { name: "storage-tank-500 #3 · hidden" })).toHaveTextContent(
+      /^storage-tank-500 #3$/,
+    );
   });
 
   // D6: the eye is the group's own flag, not the aggregate of its members.
@@ -124,7 +138,12 @@ describe("UserGroupItem", () => {
     // P3: the parent reports the write in flight; the save cannot fire twice.
     rerender(
       <ul>
-        <UserGroupItem section={SECTION} ctx={ctx({ expanded: "group:4" })} onAdd={vi.fn()} actions={{ ...a, busy: true }} />
+        <UserGroupItem
+          section={SECTION}
+          ctx={ctx({ expanded: "group:4" })}
+          onAdd={vi.fn()}
+          actions={{ ...a, busy: true }}
+        />
       </ul>,
     );
     expect(screen.getByRole("button", { name: "Save group title" })).toBeDisabled();

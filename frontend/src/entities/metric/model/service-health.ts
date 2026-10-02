@@ -30,7 +30,9 @@ export function servicesOf(
     return {
       name,
       state,
-      meta: isUp ? `${formatValue(rps, "rps")} · ${formatValue(err, "rps").replace("/s", "")} errors/s` : "scrape failed",
+      meta: isUp
+        ? `${formatValue(rps, "rps")} · ${formatValue(err, "rps").replace("/s", "")} errors/s`
+        : "scrape failed",
       samples: isUp ? (byLabel(rate, name)?.points ?? []).slice(-SAMPLES).map((p) => p.v) : [],
       latency: isUp ? formatValue(lat, "seconds") : "—",
       errors: isUp ? formatValue(err, "rps") : "—",

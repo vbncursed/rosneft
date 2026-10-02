@@ -2,14 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Callout } from "@/shared/ui/callout";
 import { DatePicker } from "@/shared/ui/date-picker";
 import { PageSkeleton } from "@/shared/ui/skeleton";
-import {
-  activityOf,
-  countersOf,
-  entityHref,
-  groupByDay,
-  inspectorDetails,
-  rangeChip,
-} from "../model/journal";
+import { activityOf, countersOf, entityHref, groupByDay, inspectorDetails, rangeChip } from "../model/journal";
 import { useAudit } from "../model/use-audit";
 import { AuditPage } from "./audit-page";
 
@@ -21,9 +14,7 @@ export function AuditScreen() {
   const navigate = useNavigate();
 
   if (s.status === "loading") {
-    return (
-      <PageSkeleton shape="journal" label="Loading journal" />
-    );
+    return <PageSkeleton shape="journal" label="Loading journal" />;
   }
   if (s.status === "unavailable" || !s.window) {
     return <Callout tone="bad">The journal is unavailable: {s.error}</Callout>;
@@ -71,12 +62,7 @@ export function AuditScreen() {
             align="end"
           />
           <span className={CAPTION}>To</span>
-          <DatePicker
-            label="To"
-            value={s.range.to}
-            onChange={(to) => s.setRange({ ...s.range, to })}
-            align="end"
-          />
+          <DatePicker label="To" value={s.range.to} onChange={(to) => s.setRange({ ...s.range, to })} align="end" />
         </>
       }
       selectedId={s.selected?.id ?? null}

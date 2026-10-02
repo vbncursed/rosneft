@@ -34,9 +34,7 @@ describe("parseFilters", () => {
 
 describe("removeToken", () => {
   it("drops the named token and leaves the rest", () => {
-    expect(removeToken("entity:territory actor:x failed:true", "actor:x")).toBe(
-      "entity:territory failed:true",
-    );
+    expect(removeToken("entity:territory actor:x failed:true", "actor:x")).toBe("entity:territory failed:true");
   });
 
   it("leaves a query that does not contain the token alone", () => {

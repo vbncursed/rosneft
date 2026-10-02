@@ -3,10 +3,7 @@
  * things: one is "we have not heard back yet", the other is "we asked and
  * could not get it". Collapsing them hides an outage behind a spinner.
  */
-export type MetricState =
-  | { kind: "loading" }
-  | { kind: "value"; value: string }
-  | { kind: "unavailable" };
+export type MetricState = { kind: "loading" } | { kind: "value"; value: string } | { kind: "unavailable" };
 
 /** What the tile prints. The glyphs come from the design system's Data section. */
 export function readout(state: MetricState): string {

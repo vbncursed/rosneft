@@ -193,9 +193,7 @@ describe("AnchorCard", () => {
     await userEvent.click(screen.getByRole("button", { name: DELETE_PANORAMA }));
     expect(onDelete).not.toHaveBeenCalled();
     const dialog = screen.getByRole("dialog");
-    expect(
-      within(dialog).getByText("Delete panorama Control room, north door?"),
-    ).toBeInTheDocument();
+    expect(within(dialog).getByText("Delete panorama Control room, north door?")).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole("button", { name: DELETE_PANORAMA }));
     expect(onDelete).toHaveBeenCalledOnce();
   });

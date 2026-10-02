@@ -44,9 +44,7 @@ describe("toModel", () => {
   // key must default to 0, read as "used nowhere", not as an unanswered field.
   it("defaults a missing usageCount to 0, and keeps a present one", () => {
     expect(toModel({ slug: "m", title: "M", sourceBlobHash: "a".repeat(64) }).usageCount).toBe(0);
-    expect(
-      toModel({ slug: "m", title: "M", sourceBlobHash: "a".repeat(64), usageCount: 3 }).usageCount,
-    ).toBe(3);
+    expect(toModel({ slug: "m", title: "M", sourceBlobHash: "a".repeat(64), usageCount: 3 }).usageCount).toBe(3);
   });
 
   it("keeps the list payload's LODs, and leaves them out when the answer has none", () => {

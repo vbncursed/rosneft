@@ -49,9 +49,10 @@ describe("RoleInspector", () => {
   it("meters how much of the set is granted", () => {
     render(<RoleInspector {...props()} />);
     expect(screen.getByText("2 / 4")).toBeInTheDocument();
-    expect(
-      screen.getByRole("progressbar", { name: "Field Operator permissions granted" }),
-    ).toHaveAttribute("aria-valuenow", "50");
+    expect(screen.getByRole("progressbar", { name: "Field Operator permissions granted" })).toHaveAttribute(
+      "aria-valuenow",
+      "50",
+    );
   });
 
   it("renames as you type", async () => {
@@ -72,9 +73,7 @@ describe("RoleInspector", () => {
     const { rerender } = render(<RoleInspector {...props()} />);
     expect(screen.queryByText(/Locked chips need Root/)).not.toBeInTheDocument();
 
-    rerender(
-      <RoleInspector {...props({ grantable: new Set(["territory:read", "territory:write"]) })} />,
-    );
+    rerender(<RoleInspector {...props({ grantable: new Set(["territory:read", "territory:write"]) })} />);
     expect(screen.getByText(/Locked chips need Root/)).toBeInTheDocument();
   });
 
@@ -102,9 +101,7 @@ describe("RoleInspector", () => {
   // Not "this role is immutable" — the role is fine, the reader lacks a grant.
   it("says why it is read-only, and does not blame the role", () => {
     render(<RoleInspector {...props({ readOnly: true })} />);
-    expect(
-      screen.getByText("You can view roles here, but changing one needs roles:manage."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("You can view roles here, but changing one needs roles:manage.")).toBeInTheDocument();
     expect(screen.queryByText(/System roles are defined by migrations/)).not.toBeInTheDocument();
   });
 
@@ -116,9 +113,7 @@ describe("RoleInspector", () => {
 
   it("cannot toggle a system role's permissions", async () => {
     const onToggle = vi.fn();
-    render(
-      <RoleInspector {...props({ role: role({ kind: "system" }), onToggle })} />,
-    );
+    render(<RoleInspector {...props({ role: role({ kind: "system" }), onToggle })} />);
     await userEvent.click(screen.getByRole("button", { name: "territory:write" }));
     expect(onToggle).not.toHaveBeenCalled();
   });
@@ -164,14 +159,8 @@ describe("RoleInspector", () => {
   // the whole resulting set and PUT replaces it — so a role that already holds
   // one cannot be saved at all, and pressing Save would only earn a 403.
   it("refuses the save and says why when the role holds a grant the actor lacks", () => {
-    render(
-      <RoleInspector
-        {...props({ dirty: true, saveBlocked: "This role holds permissions you can't grant." })}
-      />,
-    );
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "This role holds permissions you can't grant.",
-    );
+    render(<RoleInspector {...props({ dirty: true, saveBlocked: "This role holds permissions you can't grant." })} />);
+    expect(screen.getByRole("alert")).toHaveTextContent("This role holds permissions you can't grant.");
     expect(screen.getByRole("button", { name: "Save permissions" })).toBeDisabled();
     // Reset still works: dropping the edits is always allowed.
     expect(screen.getByRole("button", { name: "Reset" })).toBeEnabled();

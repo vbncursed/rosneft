@@ -10,8 +10,7 @@ export type ArtifactRowProps = {
   className?: string;
 };
 
-const ROW =
-  "flex items-center gap-[11px] rounded-[9px] border bg-panel-2 px-3 py-2.5 text-fg no-underline";
+const ROW = "flex items-center gap-[11px] rounded-[9px] border bg-panel-2 px-3 py-2.5 text-fg no-underline";
 
 /** One converted LOD as the gallery's "Artifact row" draws it — a tag, the file, a meta line and its size. */
 export function ArtifactRow({ tag, file, meta, size, href, className }: ArtifactRowProps) {

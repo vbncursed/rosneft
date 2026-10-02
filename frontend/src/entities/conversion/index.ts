@@ -10,14 +10,7 @@ export {
   type StageState,
 } from "./model/status";
 export { stageLabel } from "./model/stage-label";
-export {
-  jobPhrase,
-  sortJobs,
-  toJobCard,
-  type JobCardModel,
-  type JobCardStatus,
-  type TitleOf,
-} from "./model/job-card";
+export { jobPhrase, sortJobs, toJobCard, type JobCardModel, type JobCardStatus, type TitleOf } from "./model/job-card";
 export {
   PIPELINE,
   pipelineMeta,
@@ -26,13 +19,7 @@ export {
   type PipelinePhase,
   type PipelineStep,
 } from "./model/pipeline";
-export {
-  isLive,
-  pollInterval,
-  type TargetJob,
-  type TargetJobStatus,
-  type TargetKind,
-} from "./model/target-job";
+export { isLive, pollInterval, type TargetJob, type TargetJobStatus, type TargetKind } from "./model/target-job";
 export { listJobs } from "./api/jobs-gateway";
 export { jobsQuery } from "./api/jobs-query";
 export { openJobStream, type JobStreamHandlers, type StreamEnd } from "./api/job-stream";

@@ -23,12 +23,7 @@ const FILTER_MISS = {
   description: "Loosen the filter to see more territories.",
 };
 
-export function AccessGroups({
-  groups,
-  selectedSlug = null,
-  onManage,
-  emptyHint,
-}: AccessGroupsProps) {
+export function AccessGroups({ groups, selectedSlug = null, onManage, emptyHint }: AccessGroupsProps) {
   const populated = groups.filter((group) => group.territories.length > 0);
 
   if (populated.length === 0) {

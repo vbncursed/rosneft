@@ -17,20 +17,10 @@ export type EventTimelineProps = {
   onSelect?: (id: number) => void;
 };
 
-export function EventTimeline({
-  day,
-  events,
-  total,
-  selectedId = null,
-  onSelect,
-}: EventTimelineProps) {
+export function EventTimeline({ day, events, total, selectedId = null, onSelect }: EventTimelineProps) {
   return (
     <section aria-label={day} className="flex flex-col gap-3">
-      <SectionHeading
-        title={day}
-        count={total === undefined ? undefined : `${total} events`}
-        className="pb-1 pt-0.5"
-      />
+      <SectionHeading title={day} count={total === undefined ? undefined : `${total} events`} className="pb-1 pt-0.5" />
 
       {events.length === 0 ? (
         <p className="m-0 rounded-control border border-dashed border-line-2 px-3 py-[9px] text-[11px] text-muted">

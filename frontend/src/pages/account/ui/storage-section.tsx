@@ -45,12 +45,22 @@ function UsageReadout({ usage, failed }: { usage: StorageUsage | null; failed: b
   return failed ? (
     <Callout tone="warn">Storage usage unavailable</Callout>
   ) : (
-    <p role="status" className="m-0 text-[13px] text-muted">Reading storage…</p>
+    <p role="status" className="m-0 text-[13px] text-muted">
+      Reading storage…
+    </p>
   );
 }
 
 /** This device's offline copy: how much it takes, what is saved, the limit. Desktop shell only. */
-export function StorageSection({ usage, usageFailed, savedLoaded, saved, onLimit, onClear, onRemove }: StorageSectionProps) {
+export function StorageSection({
+  usage,
+  usageFailed,
+  savedLoaded,
+  saved,
+  onLimit,
+  onClear,
+  onRemove,
+}: StorageSectionProps) {
   const [confirming, setConfirming] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [removing, setRemoving] = useState<SavedTerritory | null>(null);
@@ -78,7 +88,9 @@ export function StorageSection({ usage, usageFailed, savedLoaded, saved, onLimit
       />
 
       {!savedLoaded ? (
-        <p role="status" className="m-0 text-[13px] text-muted">Reading saved territories…</p>
+        <p role="status" className="m-0 text-[13px] text-muted">
+          Reading saved territories…
+        </p>
       ) : saved.length === 0 ? (
         <p className="m-0 text-[13px] text-muted">Nothing saved on this device yet.</p>
       ) : (

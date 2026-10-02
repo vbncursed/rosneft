@@ -29,15 +29,11 @@ describe("measurementsCount", () => {
 
 describe("insideFooter", () => {
   it("spells the mock's two, and agrees the verbs", () => {
-    expect(insideFooter(2)).toBe(
-      "Two placements fall inside this panorama and are marked on the photo.",
-    );
+    expect(insideFooter(2)).toBe("Two placements fall inside this panorama and are marked on the photo.");
   });
 
   it("puts a single placement in the singular", () => {
-    expect(insideFooter(1)).toBe(
-      "One placement falls inside this panorama and is marked on the photo.",
-    );
+    expect(insideFooter(1)).toBe("One placement falls inside this panorama and is marked on the photo.");
   });
 
   it("says none rather than counting to zero", () => {
@@ -47,12 +43,8 @@ describe("insideFooter", () => {
   });
 
   it("spells up to nine and digits the rest", () => {
-    expect(insideFooter(9)).toBe(
-      "Nine placements fall inside this panorama and are marked on the photo.",
-    );
-    expect(insideFooter(10)).toBe(
-      "10 placements fall inside this panorama and are marked on the photo.",
-    );
+    expect(insideFooter(9)).toBe("Nine placements fall inside this panorama and are marked on the photo.");
+    expect(insideFooter(10)).toBe("10 placements fall inside this panorama and are marked on the photo.");
   });
 });
 
@@ -70,9 +62,7 @@ describe("defaultLook", () => {
 
 describe("deletePanoramaTitle", () => {
   it("names the panorama it is about to delete", () => {
-    expect(deletePanoramaTitle("Control room, north door")).toBe(
-      "Delete panorama Control room, north door?",
-    );
+    expect(deletePanoramaTitle("Control room, north door")).toBe("Delete panorama Control room, north door?");
   });
 });
 

@@ -4,8 +4,5 @@
 const PDF_SIGNATURE = [0x25, 0x50, 0x44, 0x46, 0x2d];
 
 export function isPdfSignature(bytes: Uint8Array): boolean {
-  return (
-    bytes.length >= PDF_SIGNATURE.length &&
-    PDF_SIGNATURE.every((byte, i) => bytes[i] === byte)
-  );
+  return bytes.length >= PDF_SIGNATURE.length && PDF_SIGNATURE.every((byte, i) => bytes[i] === byte);
 }

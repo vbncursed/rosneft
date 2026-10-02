@@ -14,13 +14,7 @@ export type ConsoleSidebarProps = {
   mark?: string;
 };
 
-export function ConsoleSidebar({
-  items,
-  active,
-  backHref,
-  viewer,
-  mark = "A",
-}: ConsoleSidebarProps) {
+export function ConsoleSidebar({ items, active, backHref, viewer, mark = "A" }: ConsoleSidebarProps) {
   return (
     // Not an <aside>: the column is the console's primary navigation, and the
     // <nav> inside already carries that landmark. A second complementary
@@ -42,9 +36,7 @@ export function ConsoleSidebar({
           >
             {mark}
           </span>
-          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted">
-            Console
-          </span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted">Console</span>
         </div>
 
         <ConsoleNav
@@ -65,12 +57,8 @@ export function ConsoleSidebar({
           >
             <Avatar name={viewer.username} size={32} />
             <div className="min-w-0 flex-1">
-              <p className="m-0 truncate text-xs font-medium text-fg">
-                {viewer.username}
-              </p>
-              <p className="m-0 mt-px truncate text-[10px] text-dim">
-                {viewer.roleTitle}
-              </p>
+              <p className="m-0 truncate text-xs font-medium text-fg">{viewer.username}</p>
+              <p className="m-0 mt-px truncate text-[10px] text-dim">{viewer.roleTitle}</p>
             </div>
           </a>
         </div>

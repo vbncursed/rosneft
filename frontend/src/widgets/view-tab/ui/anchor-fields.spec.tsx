@@ -20,8 +20,7 @@ const PROPS: AnchorFieldsProps = {
   disabled: false,
 };
 
-const fields = (over: Partial<AnchorFieldsProps> = {}) =>
-  render(<AnchorFields {...PROPS} {...over} />);
+const fields = (over: Partial<AnchorFieldsProps> = {}) => render(<AnchorFields {...PROPS} {...over} />);
 
 describe("AnchorFields", () => {
   it("seeds the title from the panorama", () => {

@@ -22,9 +22,7 @@ export function TerritoryCatalogScreen() {
   const inShell = desktopBridge() !== undefined;
 
   if (s.status === "loading") {
-    return (
-      <PageSkeleton shape="catalog" label="Loading territories" />
-    );
+    return <PageSkeleton shape="catalog" label="Loading territories" />;
   }
   if (s.status === "unavailable" || !s.cards) {
     return <Callout tone="bad">Territories are unavailable: {s.error}</Callout>;
@@ -53,9 +51,7 @@ export function TerritoryCatalogScreen() {
         onDelete={s.ask}
         offlineControl={inShell ? (card) => <OfflineToggle compact slug={card.slug} title={card.title} /> : undefined}
         unavailable={(slug) => !online && offline.loaded && !offline.saved.has(slug)}
-        {...(s.cards.length === 0
-          ? { emptyHint: "No territories yet — upload one to get started." }
-          : {})}
+        {...(s.cards.length === 0 ? { emptyHint: "No territories yet — upload one to get started." } : {})}
       />
 
       {s.pending ? (

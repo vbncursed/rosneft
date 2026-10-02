@@ -10,9 +10,7 @@ const SERIES: Series[] = [
 describe("LineChart", () => {
   it("summarises the latest reading of each series for a reader who cannot see it", () => {
     render(<LineChart series={SERIES} label="Request latency" format={(v) => `${v} ms`} />);
-    expect(
-      screen.getByRole("img", { name: "Request latency: p95 30 ms, p99 60 ms" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Request latency: p95 30 ms, p99 60 ms" })).toBeInTheDocument();
   });
 
   it("speaks the reading the way the panel prints it, given a formatter", () => {
@@ -47,9 +45,7 @@ describe("LineChart", () => {
   });
 
   it("fills a lone series, and leaves several as lines so they do not hide each other", () => {
-    const { container, rerender } = render(
-      <LineChart series={[SERIES[0]]} label="l" />,
-    );
+    const { container, rerender } = render(<LineChart series={[SERIES[0]]} label="l" />);
     expect(container.querySelectorAll("path[stroke='none']")).toHaveLength(1);
 
     rerender(<LineChart series={SERIES} label="l" />);
@@ -84,9 +80,7 @@ describe("LineChart", () => {
   });
 
   it("dashes a reference series and draws it thinner", () => {
-    const { container } = render(
-      <LineChart series={[{ label: "p50", values: [1, 2], dashed: true }]} label="l" />,
-    );
+    const { container } = render(<LineChart series={[{ label: "p50", values: [1, 2], dashed: true }]} label="l" />);
     const line = container.querySelector("path[stroke]:not([stroke='none'])")!;
     expect(line.getAttribute("stroke-dasharray")).toBe("4 4");
     expect(line.getAttribute("stroke-width")).toBe("1.3");
@@ -94,10 +88,7 @@ describe("LineChart", () => {
 
   it("keeps the stroke width constant however the chart is stretched", () => {
     const { container } = render(<LineChart series={SERIES} label="l" />);
-    expect(container.querySelector("path[stroke]")).toHaveAttribute(
-      "vector-effect",
-      "non-scaling-stroke",
-    );
+    expect(container.querySelector("path[stroke]")).toHaveAttribute("vector-effect", "non-scaling-stroke");
   });
 });
 
@@ -110,7 +101,14 @@ describe("ChartLegend", () => {
 
   it("names both replicas when two series share a label", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    render(<ChartLegend series={[{ label: "mesh-worker", values: [1] }, { label: "mesh-worker", values: [2] }]} />);
+    render(
+      <ChartLegend
+        series={[
+          { label: "mesh-worker", values: [1] },
+          { label: "mesh-worker", values: [2] },
+        ]}
+      />,
+    );
     expect(screen.getAllByText("mesh-worker")).toHaveLength(2);
     expect(spy).not.toHaveBeenCalled();
     spy.mockRestore();

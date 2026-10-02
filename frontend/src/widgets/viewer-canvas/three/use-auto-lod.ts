@@ -36,7 +36,10 @@ const isShown = (object: Object3D) => {
  * starts over; the same hashes in another order are the same chain.
  */
 export function useAutoLod(object: RefObject<Object3D | null>, chain: LodArtifact[], requested: LodChoice): number {
-  const key = chain.map((a) => a.hash).toSorted().join(" ");
+  const key = chain
+    .map((a) => a.hash)
+    .toSorted()
+    .join(" ");
   const coarsest = pickCoarsest(chain)?.lod ?? 0;
   const [held, setHeld] = useState({ key, best: coarsest });
   const base = held.key === key ? held.best : coarsest;

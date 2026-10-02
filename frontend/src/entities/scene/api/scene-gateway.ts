@@ -58,9 +58,7 @@ const toArtifact = (a: ArtifactDto): SceneArtifact => ({
   bboxMin: a.bboxMin ?? ZERO,
   bboxMax: a.bboxMax ?? ZERO,
   // An older gateway answers without the chain; the artifact is then its own one-entry chain.
-  chain: a.artifacts ?? [
-    { lod: a.lod, hash: a.hash, size: a.size, vertices: a.vertices, faces: a.faces },
-  ],
+  chain: a.artifacts ?? [{ lod: a.lod, hash: a.hash, size: a.size, vertices: a.vertices, faces: a.faces }],
 });
 
 const toOption = (o: OptionDto): ModelOption => ({

@@ -20,13 +20,7 @@ const STATUS_DOT = {
 } as const;
 
 /** A person as a card — the grid form of the users table. */
-export function PersonCard({
-  user,
-  selected = false,
-  onSelect,
-  territories,
-  lastSeen,
-}: PersonCardProps) {
+export function PersonCard({ user, selected = false, onSelect, territories, lastSeen }: PersonCardProps) {
   const weakAuth = user.totpEnabled === false && user.passkeyEnabled === false;
 
   return (
@@ -56,12 +50,7 @@ export function PersonCard({
 
       <div className="mt-3 flex flex-wrap gap-1.5">
         {user.roleSlugs.map((slug) => (
-          <Badge
-            key={slug}
-            shape="chip"
-            tone={user.isOwner ? "accent" : "neutral"}
-            fill="soft"
-          >
+          <Badge key={slug} shape="chip" tone={user.isOwner ? "accent" : "neutral"} fill="soft">
             {roleTitle(user, slug)}
           </Badge>
         ))}

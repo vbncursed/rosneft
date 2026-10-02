@@ -96,11 +96,7 @@ export function currentRowStages(row: QueueRow): ConversionStage[] {
 export type CurrentStats = { chunk: string; speed: string; thumbnail?: string };
 
 /** The current row's key/value grid: chunk count, instantaneous speed, and the thumbnail state. */
-export function currentStats(
-  progress: UploadProgress,
-  samples: UploadSample[],
-  hasThumbnail: boolean,
-): CurrentStats {
+export function currentStats(progress: UploadProgress, samples: UploadSample[], hasThumbnail: boolean): CurrentStats {
   const { bytesPerSecond } = uploadStats(samples, progress.total);
   return {
     chunk: `${progress.chunk} / ${progress.chunks}`,

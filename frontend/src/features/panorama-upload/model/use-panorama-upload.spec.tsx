@@ -5,15 +5,16 @@ import { HttpError } from "@/shared/api";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { usePanoramaUpload } from "./use-panorama-upload";
 
-const { createPanorama, exifScenePosition, initiateUpload, appendChunk, finalizeUpload, abortUpload } =
-  vi.hoisted(() => ({
+const { createPanorama, exifScenePosition, initiateUpload, appendChunk, finalizeUpload, abortUpload } = vi.hoisted(
+  () => ({
     createPanorama: vi.fn(),
     exifScenePosition: vi.fn(),
     initiateUpload: vi.fn(),
     appendChunk: vi.fn(),
     finalizeUpload: vi.fn(),
     abortUpload: vi.fn(),
-  }));
+  }),
+);
 
 vi.mock("@/entities/panorama", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -77,9 +78,7 @@ beforeEach(() => {
   createPanorama.mockReset().mockResolvedValue(CREATED);
   exifScenePosition.mockReset().mockResolvedValue({ position: POSITION });
   initiateUpload.mockReset().mockResolvedValue({ id: "u1", size: 12, offset: 0 });
-  appendChunk
-    .mockReset()
-    .mockImplementation((_id: string, _offset: number, chunk: Blob) => _offset + chunk.size);
+  appendChunk.mockReset().mockImplementation((_id: string, _offset: number, chunk: Blob) => _offset + chunk.size);
   finalizeUpload.mockReset().mockResolvedValue({ hash: "abc", size: 12 });
   abortUpload.mockReset().mockResolvedValue(undefined);
   onCreated = vi.fn();
@@ -153,10 +152,7 @@ describe("usePanoramaUpload", () => {
       await result.current.p.submit();
     });
 
-    expect(createPanorama).toHaveBeenCalledWith(
-      "refinery-block-c",
-      expect.objectContaining({ phase: "current" }),
-    );
+    expect(createPanorama).toHaveBeenCalledWith("refinery-block-c", expect.objectContaining({ phase: "current" }));
   });
 
   it("resets the phase to prior once the create lands, so the next photo does not inherit it", async () => {
@@ -249,9 +245,7 @@ describe("usePanoramaUpload", () => {
 
   it("reads EXIF in the upload line, because that is what this file's bytes are for", async () => {
     let releaseChunk!: (offset: number) => void;
-    appendChunk.mockImplementation(
-      () => new Promise<number>((resolve) => (releaseChunk = resolve)),
-    );
+    appendChunk.mockImplementation(() => new Promise<number>((resolve) => (releaseChunk = resolve)));
     const { result } = await ready();
 
     act(() => void result.current.p.submit());

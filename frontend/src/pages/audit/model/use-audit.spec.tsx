@@ -157,9 +157,7 @@ describe("useAudit", () => {
     await waitFor(() => expect(result.current.status).toBe("ready"));
 
     act(() => result.current.setRange({ from: "2026-09-01", to: "" }));
-    await waitFor(() =>
-      expect(journalCalls().at(-1)).toContain("from=2026-09-01T00%3A00%3A00Z"),
-    );
+    await waitFor(() => expect(journalCalls().at(-1)).toContain("from=2026-09-01T00%3A00%3A00Z"));
     expect(journalCalls().at(-1)).not.toContain("to=");
 
     act(() => result.current.setQuery("to:2026-09-02"));
@@ -211,9 +209,7 @@ describe("useAudit", () => {
 
     csvStatus = 403;
     act(() => result.current.s.exportCsv());
-    await waitFor(() =>
-      expect(result.current.notices[0]?.message).toBe("You don't have permission to do this"),
-    );
+    await waitFor(() => expect(result.current.notices[0]?.message).toBe("You don't have permission to do this"));
     expect(result.current.notices[0]?.tone).toBe("error");
     expect(saveBlob).toHaveBeenCalledOnce();
   });

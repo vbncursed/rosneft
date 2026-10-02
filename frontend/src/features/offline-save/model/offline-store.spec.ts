@@ -2,7 +2,15 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import type { DesktopBridge, OfflineProgress } from "@/shared/lib/desktop";
-import { offlineActions, resetOfflineStore, syncOfflineUser, useOfflineState, useOfflineTerritory, useOfflineUser, useSavedTerritories } from "./offline-store";
+import {
+  offlineActions,
+  resetOfflineStore,
+  syncOfflineUser,
+  useOfflineState,
+  useOfflineTerritory,
+  useOfflineUser,
+  useSavedTerritories,
+} from "./offline-store";
 
 const saved = { slug: "a", title: "A", bytes: 10, savedAt: "t", syncedAt: "t" };
 
@@ -60,7 +68,9 @@ describe("offline store", () => {
     b.offline.remove.mockRejectedValue(new Error("EBUSY"));
     const { result } = renderHook(() => useNotices());
     await expect(offlineActions.remove("a")).resolves.toBeUndefined();
-    expect(result.current.map((n) => n.message)).toEqual(["Could not remove the territory from this device: Something went wrong. Try again."]);
+    expect(result.current.map((n) => n.message)).toEqual([
+      "Could not remove the territory from this device: Something went wrong. Try again.",
+    ]);
   });
   it("survives a list that fails after a removal", async () => {
     const b = bridge();
@@ -78,7 +88,9 @@ describe("offline store", () => {
   });
   it("re-reads when the signed-in user changes, and the previous user's list is gone at once", async () => {
     const b = bridge();
-    const { result, rerender } = renderHook(({ id }) => ({ list: useSavedTerritories(), user: useOfflineUser(id) }), { initialProps: { id: "u1" } });
+    const { result, rerender } = renderHook(({ id }) => ({ list: useSavedTerritories(), user: useOfflineUser(id) }), {
+      initialProps: { id: "u1" },
+    });
     await waitFor(() => expect(result.current.list.map((t) => t.slug)).toEqual(["a"]));
     let answer!: (v: unknown[]) => void;
     b.offline.list.mockImplementation(() => new Promise((r) => (answer = r as typeof answer)));

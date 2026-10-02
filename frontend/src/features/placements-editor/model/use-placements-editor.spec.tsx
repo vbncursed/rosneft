@@ -338,9 +338,7 @@ describe("usePlacementsEditor", () => {
 
   it("remove drops the row and clears its pending mark", async () => {
     let release!: () => void;
-    vi.mocked(deletePlacement).mockImplementation(
-      () => new Promise<void>((res) => (release = () => res())),
-    );
+    vi.mocked(deletePlacement).mockImplementation(() => new Promise<void>((res) => (release = () => res())));
     const { result } = editor([placement(1), placement(2)]);
 
     let done!: Promise<void>;
@@ -377,7 +375,9 @@ describe("usePlacementsEditor", () => {
   // The key names one placing action; the same model and count into another
   // group is another action and must not replay the first one's rows.
   it("mints a new idempotency key when a failed batch is retried into another group", async () => {
-    vi.mocked(createPlacements).mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValue([placement(1)]);
+    vi.mocked(createPlacements)
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockResolvedValue([placement(1)]);
     const { result } = editor();
     await act(async () => {
       await result.current.s.create("tank", 1, 5);

@@ -63,9 +63,10 @@ describe("parseAuditFilters", () => {
     expect(parseAuditFilters("", ACTORS, { from: "2026-09-01", to: "" }).filters).toEqual({
       from: "2026-09-01T00:00:00Z",
     });
-    expect(
-      parseAuditFilters("to:2026-09-03", ACTORS, { from: "2026-09-01", to: "2026-09-02" }).filters,
-    ).toEqual({ from: "2026-09-01T00:00:00Z", to: "2026-09-03T23:59:59Z" });
+    expect(parseAuditFilters("to:2026-09-03", ACTORS, { from: "2026-09-01", to: "2026-09-02" }).filters).toEqual({
+      from: "2026-09-01T00:00:00Z",
+      to: "2026-09-03T23:59:59Z",
+    });
   });
 });
 
@@ -187,9 +188,7 @@ describe("inspectorDetails and entityHref", () => {
       { label: "Territory", value: "yard" },
       { label: "Result", value: "failed", tone: "bad" },
     ]);
-    expect(
-      inspectorDetails(entry({ actorId: "", actorLogin: "", companyId: "", companyLogin: "" })),
-    ).toMatchObject([
+    expect(inspectorDetails(entry({ actorId: "", actorLogin: "", companyId: "", companyLogin: "" }))).toMatchObject([
       { value: "system" },
       {},
       { value: "—", tone: "dim" },

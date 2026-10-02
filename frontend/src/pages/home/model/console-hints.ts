@@ -38,8 +38,7 @@ export function hintOf(
   state: { locked: boolean; loading: boolean; failed: boolean },
   count: string | null,
 ): ConsoleHint {
-  if (state.locked || state.loading)
-    return { kind: "static", text: STATIC_HINTS[key as ConsoleKey] ?? "" };
+  if (state.locked || state.loading) return { kind: "static", text: STATIC_HINTS[key as ConsoleKey] ?? "" };
   if (state.failed || count === null) return { kind: "unavailable", text: "count unavailable" };
   return { kind: "count", text: count };
 }

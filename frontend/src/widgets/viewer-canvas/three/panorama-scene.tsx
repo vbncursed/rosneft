@@ -81,13 +81,7 @@ export default function PanoramaScene({
       {/* The backdrop is reported too: a multi-megabyte equirect takes seconds,
           and `Calibrate (overlay)` with no signal at all reads as a button that
           did nothing. */}
-      {cover ? (
-        <PanoramaLoadingOverlay
-          progress={progress}
-          leaving={!loading}
-          onLeft={() => setCover(false)}
-        />
-      ) : null}
+      {cover ? <PanoramaLoadingOverlay progress={progress} leaving={!loading} onLeft={() => setCover(false)} /> : null}
 
       {sphere && status === "ready" && bitmap ? (
         <PanoramaSphere panorama={sphere} bitmap={bitmap} opacity={opacity} />
@@ -96,9 +90,7 @@ export default function PanoramaScene({
       {/* The rig teleports the eye onto the anchor, so it follows the capture
           the reader is *in* — never the ghost. Calibrating from the 3D view
           keeps the free camera, which is the whole point of doing it there. */}
-      {activePanorama && status === "ready" && bitmap ? (
-        <PanoramaRig panorama={activePanorama} />
-      ) : null}
+      {activePanorama && status === "ready" && bitmap ? <PanoramaRig panorama={activePanorama} /> : null}
 
       {/* Anchors belong to the 3D view only: inside a panorama the reader is
           standing on one of them — including the one being aligned, where the

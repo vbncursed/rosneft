@@ -14,7 +14,9 @@ describe("useOnline", () => {
   });
   it("follows the shell's connectivity reports", async () => {
     let report: (online: boolean) => void = () => {};
-    window.desktop = { onConnectivity: (cb: (o: boolean) => void) => ((report = cb), () => {}) } as unknown as DesktopBridge;
+    window.desktop = {
+      onConnectivity: (cb: (o: boolean) => void) => ((report = cb), () => {}),
+    } as unknown as DesktopBridge;
     const { useOnline } = await import("./use-online");
     const { result } = renderHook(() => useOnline());
     act(() => report(false));

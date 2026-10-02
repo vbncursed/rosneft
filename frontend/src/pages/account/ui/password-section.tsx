@@ -34,10 +34,7 @@ export function PasswordSection({ busy, onSubmit }: PasswordSectionProps) {
 
   return (
     <Card padded={false} className="flex flex-col gap-4 p-[22px]">
-      <SectionHeading
-        title="Password"
-        count="current password required · new one is validated as you type"
-      />
+      <SectionHeading title="Password" count="current password required · new one is validated as you type" />
       <form onSubmit={submit} className="flex flex-col gap-4">
         <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
           <PasswordField

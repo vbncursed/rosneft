@@ -15,8 +15,18 @@ function fakeFile(name: string, size: number): File {
 const THUMB = fakeFile("thumb.png", 40_000);
 
 const MIXED_ROWS: QueueRow[] = [
-  { ...makeRow(fakeFile("pump-jack-unit.zip", 38 * 1024 * 1024)), title: "Pump Jack Unit", status: "done", thumbnail: THUMB },
-  { ...makeRow(fakeFile("storage-tank-500.zip", 96 * 1024 * 1024)), title: "Storage Tank 500", status: "done", thumbnail: THUMB },
+  {
+    ...makeRow(fakeFile("pump-jack-unit.zip", 38 * 1024 * 1024)),
+    title: "Pump Jack Unit",
+    status: "done",
+    thumbnail: THUMB,
+  },
+  {
+    ...makeRow(fakeFile("storage-tank-500.zip", 96 * 1024 * 1024)),
+    title: "Storage Tank 500",
+    status: "done",
+    thumbnail: THUMB,
+  },
   {
     ...makeRow(fakeFile("valve-assembly.zip", 184 * 1024 * 1024)),
     title: "Valve Assembly",

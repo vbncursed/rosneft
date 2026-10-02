@@ -44,11 +44,7 @@ export function RecoveryCodes({ codes, onConfirm }: RecoveryCodesProps) {
         <Button shape="pill" size="sm" onClick={copy}>
           {copied ? "Copied" : "Copy all"}
         </Button>
-        <Button
-          shape="pill"
-          size="sm"
-          onClick={() => downloadText("recovery-codes.txt", codesAsText(codes))}
-        >
+        <Button shape="pill" size="sm" onClick={() => downloadText("recovery-codes.txt", codesAsText(codes))}>
           Download .txt
         </Button>
         <Button shape="pill" size="sm" variant="success" onClick={onConfirm}>

@@ -12,16 +12,18 @@ describe("DetailList", () => {
         ]}
       />,
     );
-    expect([...container.querySelectorAll("dt")].map((d) => d.textContent)).toEqual([
-      "actor",
-      "ip",
-    ]);
+    expect([...container.querySelectorAll("dt")].map((d) => d.textContent)).toEqual(["actor", "ip"]);
     expect(screen.getByText("10.42.0.18")).toBeInTheDocument();
   });
 
   it("keeps the order it was given", () => {
     const { container } = render(
-      <DetailList items={[{ label: "z", value: "1" }, { label: "a", value: "2" }]} />,
+      <DetailList
+        items={[
+          { label: "z", value: "1" },
+          { label: "a", value: "2" },
+        ]}
+      />,
     );
     expect([...container.querySelectorAll("dt")].map((d) => d.textContent)).toEqual(["z", "a"]);
   });

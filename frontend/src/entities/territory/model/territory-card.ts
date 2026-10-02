@@ -36,11 +36,7 @@ const sizeChip = (artifacts: LodSummary[]): CatalogChip => ({
 });
 
 /** Maps a territory plus its LODs and (maybe) live job onto one catalog card. */
-export function toTerritoryCard(
-  t: Territory,
-  artifacts: LodSummary[],
-  job?: TargetJob,
-): TerritoryCardModel {
+export function toTerritoryCard(t: Territory, artifacts: LodSummary[], job?: TargetJob): TerritoryCardModel {
   const status = conversionStatusOf(artifacts.length > 0, job);
   const panorama = Boolean(t.externalPanoramaUrl);
 

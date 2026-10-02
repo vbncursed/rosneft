@@ -88,9 +88,7 @@ describe("CreateUserDialog", () => {
     await userEvent.type(screen.getByLabelText(/^Password/), "S3cret!!");
     await userEvent.click(screen.getByRole("button", { name: "Create user" }));
 
-    expect(onCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ roleSlugs: [] }),
-    );
+    expect(onCreate).toHaveBeenCalledWith(expect.objectContaining({ roleSlugs: [] }));
   });
 
   it("shows the confirm button loading while busy", () => {
@@ -123,9 +121,7 @@ describe("CreateUserDialog", () => {
       </>,
     );
     await userEvent.click(screen.getByRole("button", { name: "Generate" }));
-    expect(
-      await screen.findByText("Could not copy — select it and copy by hand"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Could not copy — select it and copy by hand")).toBeInTheDocument();
   });
 
   it("refuses a weak typed password before the gateway does", async () => {

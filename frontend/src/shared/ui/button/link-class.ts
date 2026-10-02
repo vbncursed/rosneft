@@ -16,5 +16,4 @@ const PRIMARY = `${CONTROL} border-accent bg-accent font-semibold text-accent-fg
 const SECONDARY = `${CONTROL} border-line-2 bg-panel-2 font-medium text-fg hover:border-accent-line`;
 
 /** The class list for an `<a>` that has to read as a button. */
-export const linkButtonClass = (variant: LinkButtonVariant): string =>
-  variant === "primary" ? PRIMARY : SECONDARY;
+export const linkButtonClass = (variant: LinkButtonVariant): string => (variant === "primary" ? PRIMARY : SECONDARY);

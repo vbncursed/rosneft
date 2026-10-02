@@ -58,8 +58,6 @@ export function toSceneViewModel(bundle: SceneBundle): SceneViewModel | null {
     documents,
     measurements,
     sourceBbox:
-      isZero(artifact.bboxMin) && isZero(artifact.bboxMax)
-        ? null
-        : { min: artifact.bboxMin, max: artifact.bboxMax },
+      isZero(artifact.bboxMin) && isZero(artifact.bboxMax) ? null : { min: artifact.bboxMin, max: artifact.bboxMax },
   };
 }

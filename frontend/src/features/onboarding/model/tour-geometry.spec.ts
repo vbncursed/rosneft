@@ -73,7 +73,12 @@ describe("dimStyle and haloStyle", () => {
   });
 
   it("rings the anchor 6 px out on every side", () => {
-    expect(haloStyle({ top: 10, left: 20, width: 30, height: 40 })).toEqual({ top: 4, left: 14, width: 42, height: 52 });
+    expect(haloStyle({ top: 10, left: 20, width: 30, height: 40 })).toEqual({
+      top: 4,
+      left: 14,
+      width: 42,
+      height: 52,
+    });
   });
 });
 

@@ -8,13 +8,7 @@ describe("ReplaceAside", () => {
     render(<ReplaceAside stages={stagesFor("idle", null)} />);
     expect(screen.getByText("After the upload")).toBeInTheDocument();
     expect(screen.getByText("Re-convert in place")).toBeInTheDocument();
-    for (const label of [
-      "Chunked upload",
-      "Finalize blob",
-      "Parse OBJ + MTL",
-      "Rebuild LOD 0-2",
-      "Swap in viewer",
-    ]) {
+    for (const label of ["Chunked upload", "Finalize blob", "Parse OBJ + MTL", "Rebuild LOD 0-2", "Swap in viewer"]) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
   });

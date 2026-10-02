@@ -38,7 +38,9 @@ function useAnchorRect(selector: string, reveal: boolean): { rect: Rect | null; 
       const now = el ? visibleRect(el) : null;
       if (first) at = now;
       const moved =
-        !!now && !!at && (now.top !== at.top || now.left !== at.left || now.width !== at.width || now.height !== at.height);
+        !!now &&
+        !!at &&
+        (now.top !== at.top || now.left !== at.left || now.width !== at.width || now.height !== at.height);
       setAnchor((prev) => ({ rect: now, tracking: !first && (prev.tracking || moved) }));
     };
     const follow = () => measure(false);
@@ -105,16 +107,16 @@ export function TourOverlay({ tour }: { tour: Tour }) {
     if (!step) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Tab") return;
-      const buttons = [
-        ...(cardRef.current?.querySelectorAll<HTMLButtonElement>("button:not([disabled])") ?? []),
-      ];
+      const buttons = [...(cardRef.current?.querySelectorAll<HTMLButtonElement>("button:not([disabled])") ?? [])];
       if (buttons.length === 0) return;
       const at = buttons.indexOf(document.activeElement as HTMLButtonElement);
       // Focus outside the card enters it at whichever end the reader is heading
       // for, rather than jumping to the middle.
       const to =
         at === -1
-          ? (event.shiftKey ? buttons.length - 1 : 0)
+          ? event.shiftKey
+            ? buttons.length - 1
+            : 0
           : (at + (event.shiftKey ? -1 : 1) + buttons.length) % buttons.length;
       buttons[to].focus();
       event.preventDefault();

@@ -27,12 +27,7 @@ describe("ModelPicker", () => {
 
   it("takes the caller's wording for an empty list", () => {
     render(
-      <ModelPicker
-        models={[]}
-        selectedSlug={null}
-        onSelect={() => {}}
-        emptyCopy="Nothing matches your search."
-      />,
+      <ModelPicker models={[]} selectedSlug={null} onSelect={() => {}} emptyCopy="Nothing matches your search." />,
     );
     expect(screen.getByText("Nothing matches your search.")).toBeInTheDocument();
   });
@@ -46,10 +41,7 @@ describe("ModelPicker", () => {
 
   it("marks the selected model", () => {
     render(<ModelPicker models={MODELS} selectedSlug="pump-jack" onSelect={() => {}} />);
-    expect(screen.getByRole("button", { name: /Pump Jack/ })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    expect(screen.getByRole("button", { name: /Pump Jack/ })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("refuses a model that cannot be placed yet", async () => {
@@ -88,16 +80,12 @@ describe("ModelPicker", () => {
   });
 
   it("passes the thumb shape through to its cards", () => {
-    render(
-      <ModelPicker models={MODELS} selectedSlug={null} onSelect={() => {}} thumb="band" />,
-    );
+    render(<ModelPicker models={MODELS} selectedSlug={null} onSelect={() => {}} thumb="band" />);
     expect(document.querySelector("button > span")!.className).toContain("h-[74px]");
   });
 
   it("draws four columns when the caller asks for them", () => {
-    const { rerender } = render(
-      <ModelPicker models={MODELS} selectedSlug={null} onSelect={() => {}} />,
-    );
+    const { rerender } = render(<ModelPicker models={MODELS} selectedSlug={null} onSelect={() => {}} />);
     expect(screen.getByRole("list", { name: "Models" }).className).toContain("grid-cols-3");
 
     rerender(<ModelPicker models={MODELS} selectedSlug={null} onSelect={() => {}} columns={4} />);

@@ -95,9 +95,7 @@ export function DocumentWindow({
         </ViewportWindow>
       </div>
 
-      {mode === "collapsed" && showPill ? (
-        <CollapsedPill file={file} onShow={() => onWindow("pip")} />
-      ) : null}
+      {mode === "collapsed" && showPill ? <CollapsedPill file={file} onShow={() => onWindow("pip")} /> : null}
 
       <ConfirmDialog
         open={confirmOpen}

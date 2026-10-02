@@ -2,11 +2,7 @@ import { useState } from "react";
 import { ContentRow } from "./ui/content-row";
 import type { ContentItem } from "./model/content-item";
 
-const item = (
-  slug: string,
-  title: string,
-  over: Partial<ContentItem> = {},
-): ContentItem => ({
+const item = (slug: string, title: string, over: Partial<ContentItem> = {}): ContentItem => ({
   kind: "territory",
   slug,
   title,

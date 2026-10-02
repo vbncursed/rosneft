@@ -1,10 +1,31 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_SCALE, groupByModel, groupLine, instanceLine, instanceName, matchesObjects, realWorldScale } from "./groups";
+import {
+  DEFAULT_SCALE,
+  groupByModel,
+  groupLine,
+  instanceLine,
+  instanceName,
+  matchesObjects,
+  realWorldScale,
+} from "./groups";
 import { IDENTITY_TRANSFORM, type Placement } from "./placement";
 
-const p = (id: number, modelSlug: string, label = "", over: Partial<Placement> = {}): Placement =>
-  ({ id, territorySlug: "t", modelSlug, label, updatedAt: "", visiblePanoramaIds: [], hidden: false, groupId: null, ...IDENTITY_TRANSFORM, ...over });
-const options = [{ slug: "tank", title: "storage-tank-500" }, { slug: "pump", title: "Насос НМ-1250" }];
+const p = (id: number, modelSlug: string, label = "", over: Partial<Placement> = {}): Placement => ({
+  id,
+  territorySlug: "t",
+  modelSlug,
+  label,
+  updatedAt: "",
+  visiblePanoramaIds: [],
+  hidden: false,
+  groupId: null,
+  ...IDENTITY_TRANSFORM,
+  ...over,
+});
+const options = [
+  { slug: "tank", title: "storage-tank-500" },
+  { slug: "pump", title: "Насос НМ-1250" },
+];
 
 describe("groupByModel", () => {
   it("groups by model, titles sorted, instances numbered by id order", () => {

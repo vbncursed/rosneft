@@ -18,9 +18,7 @@ import type { ViewerCanvasProps } from "./props";
  */
 export const ViewerCanvas = memo(function ViewerCanvas(props: ViewerCanvasProps) {
   const { theme } = useTheme();
-  const [colors, setColors] = useState<SceneColors>(() =>
-    readSceneColors(document.documentElement),
-  );
+  const [colors, setColors] = useState<SceneColors>(() => readSceneColors(document.documentElement));
   // The tokens live on <html>, which useTheme's own effect restyles — there is
   // nothing to derive during render, only a DOM to re-read afterwards.
   useEffect(() => {

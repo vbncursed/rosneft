@@ -139,12 +139,7 @@ describe("Modal", () => {
 
   it("hosts extra controls between the description and the footer", async () => {
     render(
-      <Modal
-        open
-        onClose={() => {}}
-        title="Remove passkey"
-        description="Enter your account password."
-      >
+      <Modal open onClose={() => {}} title="Remove passkey" description="Enter your account password.">
         <input aria-label="Password" type="password" />
       </Modal>,
     );
@@ -191,7 +186,13 @@ describe("Modal · native cancel", () => {
 describe("Modal · warning tone", () => {
   it("paints the warning tone on the box and the overline", async () => {
     render(
-      <Modal open onClose={() => {}} tone="warning" overline="Remove passkey · blocked" title="Two-factor status unavailable" />,
+      <Modal
+        open
+        onClose={() => {}}
+        tone="warning"
+        overline="Remove passkey · blocked"
+        title="Two-factor status unavailable"
+      />,
     );
     const dialog = screen.getByRole("dialog", { hidden: true });
     expect(dialog.className).toContain("border-warn");

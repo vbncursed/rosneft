@@ -22,9 +22,7 @@ export function ViewerError({ copy, onRetry, onCoarse }: ViewerErrorProps) {
           <Button variant="primary" onClick={onRetry}>
             Try again
           </Button>
-          {onCoarse && copy.coarseLabel ? (
-            <Button onClick={onCoarse}>{copy.coarseLabel}</Button>
-          ) : null}
+          {onCoarse && copy.coarseLabel ? <Button onClick={onCoarse}>{copy.coarseLabel}</Button> : null}
         </>
       }
     />

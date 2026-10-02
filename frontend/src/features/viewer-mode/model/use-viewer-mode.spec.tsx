@@ -2,7 +2,10 @@ import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useViewerMode } from "./use-viewer-mode";
 
-const press = (key: string) => act(() => { window.dispatchEvent(new KeyboardEvent("keydown", { key })); });
+const press = (key: string) =>
+  act(() => {
+    window.dispatchEvent(new KeyboardEvent("keydown", { key }));
+  });
 const noop = () => {};
 
 describe("useViewerMode", () => {
@@ -125,7 +128,9 @@ describe("useViewerMode", () => {
     );
     const input = document.createElement("input");
     document.body.append(input);
-    act(() => { input.dispatchEvent(new KeyboardEvent("keydown", { key: "m", bubbles: true })); });
+    act(() => {
+      input.dispatchEvent(new KeyboardEvent("keydown", { key: "m", bubbles: true }));
+    });
     expect(result.current.state.mode).toBe("orbit");
     input.remove();
   });

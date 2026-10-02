@@ -49,8 +49,8 @@ export function RemovePasskeyModal({
         footer={<Button onClick={onClose}>Close</Button>}
       >
         <Callout tone="warn" size="lg">
-          The gateway derives the required factor server-side, so removal would be refused whichever
-          field we collected. Nothing was sent.
+          The gateway derives the required factor server-side, so removal would be refused whichever field we collected.
+          Nothing was sent.
         </Callout>
       </Modal>
     );
@@ -95,13 +95,7 @@ export function RemovePasskeyModal({
           />
         ) : (
           <>
-            <OtpInput
-              value={otp}
-              onChange={setOtp}
-              length={OTP_LENGTH}
-              disabled={busy}
-              label="Authenticator code"
-            />
+            <OtpInput value={otp} onChange={setOtp} length={OTP_LENGTH} disabled={busy} label="Authenticator code" />
             <button
               type="button"
               onClick={() => setUseRecovery(true)}

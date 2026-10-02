@@ -31,9 +31,7 @@ const job = (over: Partial<TargetJob> = {}): TargetJob => ({
 
 describe("toTerritoryCard", () => {
   it("is ready with placements, size and a panorama chip when one is set", () => {
-    expect(
-      toTerritoryCard(territory({ externalPanoramaUrl: "https://tour.example/x" }), ARTIFACTS),
-    ).toEqual({
+    expect(toTerritoryCard(territory({ externalPanoramaUrl: "https://tour.example/x" }), ARTIFACTS)).toEqual({
       slug: "north-ridge-pad",
       title: "North Ridge Pad",
       description: undefined,
@@ -102,8 +100,6 @@ describe("toTerritoryCard", () => {
   });
 
   it("carries the description through untouched", () => {
-    expect(toTerritoryCard(territory({ description: "Wellhead cluster." }), []).description).toBe(
-      "Wellhead cluster.",
-    );
+    expect(toTerritoryCard(territory({ description: "Wellhead cluster." }), []).description).toBe("Wellhead cluster.");
   });
 });

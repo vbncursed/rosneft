@@ -42,9 +42,7 @@ const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 /** The third segment of the meta line: what the worker is doing, or where it stopped. */
 export function jobPhrase(job: TargetJob): string {
   if (job.status === "failed") {
-    return job.stage
-      ? `stopped while ${lowerFirst(stageLabel(job.stage))}`
-      : "stopped before the first report";
+    return job.stage ? `stopped while ${lowerFirst(stageLabel(job.stage))}` : "stopped before the first report";
   }
   if (job.status === "pending") return "waiting for a worker";
   return job.stage ? lowerFirst(stageLabel(job.stage)) : "waiting for a report";

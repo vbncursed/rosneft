@@ -9,16 +9,8 @@
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 
 export function isEquirectImageSignature(bytes: Uint8Array): boolean {
-  if (
-    bytes.length >= 3 &&
-    bytes[0] === 0xff &&
-    bytes[1] === 0xd8 &&
-    bytes[2] === 0xff
-  ) {
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
     return true;
   }
-  return (
-    bytes.length >= PNG_SIGNATURE.length &&
-    PNG_SIGNATURE.every((byte, i) => bytes[i] === byte)
-  );
+  return bytes.length >= PNG_SIGNATURE.length && PNG_SIGNATURE.every((byte, i) => bytes[i] === byte);
 }

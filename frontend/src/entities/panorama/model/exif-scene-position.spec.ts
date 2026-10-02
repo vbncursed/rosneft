@@ -25,8 +25,7 @@ function file(bytes: Uint8Array) {
 }
 
 vi.mock("./exif-gps", () => ({
-  readExifGps: (bytes: Uint8Array) =>
-    bytes.length && bytes[0] === 0xff ? { lat: 0, lon: 3, alt: 25 } : null,
+  readExifGps: (bytes: Uint8Array) => (bytes.length && bytes[0] === 0xff ? { lat: 0, lon: 3, alt: 25 } : null),
 }));
 
 const WITH_GPS = Uint8Array.from([0xff, 0xd8, 0xff, 0x00]);

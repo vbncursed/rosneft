@@ -6,16 +6,15 @@ import { HttpError } from "@/shared/api";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useModelDetail } from "./use-model-detail";
 
-const { getModel, updateModel, deleteModel, listArtifacts, listJobs, runChunkedUpload, navigate } =
-  vi.hoisted(() => ({
-    getModel: vi.fn(),
-    updateModel: vi.fn(),
-    deleteModel: vi.fn(),
-    listArtifacts: vi.fn(),
-    listJobs: vi.fn(),
-    runChunkedUpload: vi.fn(),
-    navigate: vi.fn(),
-  }));
+const { getModel, updateModel, deleteModel, listArtifacts, listJobs, runChunkedUpload, navigate } = vi.hoisted(() => ({
+  getModel: vi.fn(),
+  updateModel: vi.fn(),
+  deleteModel: vi.fn(),
+  listArtifacts: vi.fn(),
+  listJobs: vi.fn(),
+  runChunkedUpload: vi.fn(),
+  navigate: vi.fn(),
+}));
 vi.mock("@/entities/model", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getModel,
@@ -154,7 +153,10 @@ describe("useModelDetail", () => {
   it("uploads a chosen thumbnail through runChunkedUpload, then patches the model", async () => {
     let resolveUpload: ((r: { hash: string; size: number }) => void) | undefined;
     runChunkedUpload.mockImplementation(
-      () => new Promise((resolve) => { resolveUpload = resolve; }),
+      () =>
+        new Promise((resolve) => {
+          resolveUpload = resolve;
+        }),
     );
     const { result } = renderHook(() => useModelDetail("valve"), { wrapper });
     await waitFor(() => expect(result.current.phase).toBe("ready"));

@@ -61,10 +61,7 @@ describe("ExternalLink", () => {
     expect(onSave).toHaveBeenCalledWith("https://tour.example/b");
     expect(screen.queryByLabelText("External tour URL")).not.toBeInTheDocument();
     view.rerender(<ExternalLink {...view.props} url="https://tour.example/b" />);
-    expect(screen.getByRole("link", { name: TOUR_LINK })).toHaveAttribute(
-      "href",
-      "https://tour.example/b",
-    );
+    expect(screen.getByRole("link", { name: TOUR_LINK })).toHaveAttribute("href", "https://tour.example/b");
   });
 
   it("keeps a refused save on screen with the draft", async () => {

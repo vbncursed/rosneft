@@ -66,7 +66,12 @@ function subscribe(listener: () => void): () => void {
   };
 }
 
-export const useOfflineState = (): State => useSyncExternalStore(subscribe, () => state, () => EMPTY);
+export const useOfflineState = (): State =>
+  useSyncExternalStore(
+    subscribe,
+    () => state,
+    () => EMPTY,
+  );
 
 export function useOfflineTerritory(slug: string): { saved?: SavedTerritory; progress?: OfflineProgress } {
   const s = useOfflineState();
@@ -77,11 +82,19 @@ export const useSavedTerritories = (): SavedTerritory[] => [...useOfflineState()
 
 export const offlineActions = {
   // An IPC rejection (shell restarting, handler threw) must not surface as an unhandled rejection.
-  save: (slug: string): void => void desktopBridge()?.offline.save(slug).catch(() => undefined),
-  cancel: (slug: string): void => void desktopBridge()?.offline.cancel(slug).catch(() => undefined),
+  save: (slug: string): void =>
+    void desktopBridge()
+      ?.offline.save(slug)
+      .catch(() => undefined),
+  cancel: (slug: string): void =>
+    void desktopBridge()
+      ?.offline.cancel(slug)
+      .catch(() => undefined),
   remove: async (slug: string): Promise<void> => {
     // The one place a refused removal is reported (viewer and Storage section alike).
-    await desktopBridge()?.offline.remove(slug).catch((err: unknown) => notify.error(`Could not remove the territory from this device: ${messageOf(err)}`));
+    await desktopBridge()
+      ?.offline.remove(slug)
+      .catch((err: unknown) => notify.error(`Could not remove the territory from this device: ${messageOf(err)}`));
     await reload().catch(() => undefined);
   },
 };

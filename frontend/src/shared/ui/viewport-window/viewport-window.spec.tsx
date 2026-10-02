@@ -11,7 +11,13 @@ describe("ViewportWindow", () => {
     const onMoveStart = vi.fn();
     const onResizeStart = vi.fn();
     render(
-      <ViewportWindow title="plan-sheet-03.pdf" geometry={GEO} actions={actions()} onMoveStart={onMoveStart} onResizeStart={onResizeStart}>
+      <ViewportWindow
+        title="plan-sheet-03.pdf"
+        geometry={GEO}
+        actions={actions()}
+        onMoveStart={onMoveStart}
+        onResizeStart={onResizeStart}
+      >
         <p>body</p>
       </ViewportWindow>,
     );
@@ -25,7 +31,11 @@ describe("ViewportWindow", () => {
   });
 
   it("fills the viewport when expanded — no handle, no grip", () => {
-    render(<ViewportWindow title="f.pdf" geometry={null} actions={actions()}><p>body</p></ViewportWindow>);
+    render(
+      <ViewportWindow title="f.pdf" geometry={null} actions={actions()}>
+        <p>body</p>
+      </ViewportWindow>,
+    );
     const win = screen.getByRole("dialog");
     expect(win.className).toContain("inset-3.5");
     expect(screen.queryByTestId("drag-handle")).toBeNull();
@@ -35,7 +45,11 @@ describe("ViewportWindow", () => {
   it("draws every action as a named icon button, bad ones in the bad tone", () => {
     const onClick = vi.fn();
     render(
-      <ViewportWindow title="f.pdf" geometry={GEO} actions={[{ name: "Delete f.pdf", icon: "trash", tone: "bad", onClick }]}>
+      <ViewportWindow
+        title="f.pdf"
+        geometry={GEO}
+        actions={[{ name: "Delete f.pdf", icon: "trash", tone: "bad", onClick }]}
+      >
         <p>body</p>
       </ViewportWindow>,
     );
@@ -46,16 +60,32 @@ describe("ViewportWindow", () => {
   });
 
   it("shields the body while dragging", () => {
-    const { rerender } = render(<ViewportWindow title="f.pdf" geometry={GEO} actions={[]}><p>body</p></ViewportWindow>);
+    const { rerender } = render(
+      <ViewportWindow title="f.pdf" geometry={GEO} actions={[]}>
+        <p>body</p>
+      </ViewportWindow>,
+    );
     expect(screen.queryByTestId("drag-shield")).toBeNull();
-    rerender(<ViewportWindow title="f.pdf" geometry={GEO} actions={[]} dragging><p>body</p></ViewportWindow>);
+    rerender(
+      <ViewportWindow title="f.pdf" geometry={GEO} actions={[]} dragging>
+        <p>body</p>
+      </ViewportWindow>,
+    );
     expect(screen.getByTestId("drag-shield")).toBeInTheDocument();
   });
 
   it("keeps the grabbing cursor over the whole window while a drag runs", () => {
-    const { rerender } = render(<ViewportWindow title="f.pdf" geometry={GEO} actions={[]}><p>body</p></ViewportWindow>);
+    const { rerender } = render(
+      <ViewportWindow title="f.pdf" geometry={GEO} actions={[]}>
+        <p>body</p>
+      </ViewportWindow>,
+    );
     expect(screen.getByRole("dialog")).not.toHaveClass("cursor-grabbing");
-    rerender(<ViewportWindow title="f.pdf" geometry={GEO} actions={[]} dragging><p>body</p></ViewportWindow>);
+    rerender(
+      <ViewportWindow title="f.pdf" geometry={GEO} actions={[]} dragging>
+        <p>body</p>
+      </ViewportWindow>,
+    );
     expect(screen.getByRole("dialog")).toHaveClass("cursor-grabbing");
   });
 
@@ -70,7 +100,11 @@ describe("ViewportWindow", () => {
   });
 
   it("presses its action buttons", () => {
-    render(<ViewportWindow title="f.pdf" geometry={GEO} actions={actions()}><p>body</p></ViewportWindow>);
+    render(
+      <ViewportWindow title="f.pdf" geometry={GEO} actions={actions()}>
+        <p>body</p>
+      </ViewportWindow>,
+    );
     expect(screen.getByRole("button", { name: "Exit document overlay" })).toHaveClass("active:scale-95", "ease-out");
   });
 });
@@ -102,15 +136,25 @@ describe("ViewportWindow · drag handle", () => {
 
 describe("ViewportWindow · tooltips", () => {
   it("names each action in a tooltip, not a native title", () => {
-    render(<ViewportWindow title="f.pdf" geometry={GEO} actions={actions()}><p>body</p></ViewportWindow>);
+    render(
+      <ViewportWindow title="f.pdf" geometry={GEO} actions={actions()}>
+        <p>body</p>
+      </ViewportWindow>,
+    );
     const exit = screen.getByRole("button", { name: "Exit document overlay" });
     expect(exit).not.toHaveAttribute("title");
     expect(hoverTip(exit)).toHaveTextContent("Exit document overlay");
   });
 
   it("shows an action's short tooltip when it has one, keeping its full name", () => {
-    const short = [{ name: "Expand plan-sheet-03.pdf", tooltip: "Expand", icon: "maximize" as const, onClick: vi.fn() }];
-    render(<ViewportWindow title="f.pdf" geometry={GEO} actions={short}><p>body</p></ViewportWindow>);
+    const short = [
+      { name: "Expand plan-sheet-03.pdf", tooltip: "Expand", icon: "maximize" as const, onClick: vi.fn() },
+    ];
+    render(
+      <ViewportWindow title="f.pdf" geometry={GEO} actions={short}>
+        <p>body</p>
+      </ViewportWindow>,
+    );
     const expand = screen.getByRole("button", { name: "Expand plan-sheet-03.pdf" });
     expect(hoverTip(expand)?.textContent).toBe("Expand");
   });

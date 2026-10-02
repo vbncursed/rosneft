@@ -168,16 +168,12 @@ describe("removeSegment", () => {
 
   it("a saved chain that loses its left part hands its server id to the right part", () => {
     const out = removeSegment(saved([p(0, 0, 0), p(1, 0, 0), p(2, 0, 0)]), 0, [10, 11]);
-    expect(out).toEqual([
-      { id: 11, serverId: 42, sync: "saved", closed: false, points: [p(1, 0, 0), p(2, 0, 0)] },
-    ]);
+    expect(out).toEqual([{ id: 11, serverId: 42, sync: "saved", closed: false, points: [p(1, 0, 0), p(2, 0, 0)] }]);
   });
 
   it("a saved chain losing its last segment keeps the server id on the left part", () => {
     const out = removeSegment(saved([p(0, 0, 0), p(1, 0, 0), p(2, 0, 0)]), 1, [10, 11]);
-    expect(out).toEqual([
-      { id: 10, serverId: 42, sync: "saved", closed: false, points: [p(0, 0, 0), p(1, 0, 0)] },
-    ]);
+    expect(out).toEqual([{ id: 10, serverId: 42, sync: "saved", closed: false, points: [p(0, 0, 0), p(1, 0, 0)] }]);
   });
 
   it("a saved two-point chain cut in its only segment leaves nothing", () => {

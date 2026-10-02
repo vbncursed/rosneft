@@ -105,9 +105,7 @@ describe("canRun", () => {
   });
 
   it("retries a failed row alongside a queued one", () => {
-    expect(canRun([row({ id: "1", status: "failed" }), row({ id: "2", status: "queued" })], false)).toBe(
-      true,
-    );
+    expect(canRun([row({ id: "1", status: "failed" }), row({ id: "2", status: "queued" })], false)).toBe(true);
   });
 
   it("is false when a queued row's title is blank", () => {
@@ -116,10 +114,7 @@ describe("canRun", () => {
 
   it("ignores a blank title on a row that already finished", () => {
     expect(
-      canRun(
-        [row({ id: "1", status: "done", title: "" }), row({ id: "2", status: "queued", title: "B" })],
-        false,
-      ),
+      canRun([row({ id: "1", status: "done", title: "" }), row({ id: "2", status: "queued", title: "B" })], false),
     ).toBe(true);
   });
 });

@@ -21,9 +21,7 @@ export function Checklist({ items, label, className }: ChecklistProps) {
             size={13}
             className={cx("mt-0.5 shrink-0", item.ok ? "text-ok" : "text-muted")}
           />
-          <span className={cx("text-xs leading-[1.45]", item.ok ? "text-fg" : "text-muted")}>
-            {item.label}
-          </span>
+          <span className={cx("text-xs leading-[1.45]", item.ok ? "text-fg" : "text-muted")}>{item.label}</span>
         </li>
       ))}
     </ul>

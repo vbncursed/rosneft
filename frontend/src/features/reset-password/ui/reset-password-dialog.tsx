@@ -40,9 +40,7 @@ export function ResetPasswordDialog({
 
   const copy = (text: string) =>
     void copyText(text).then((ok) =>
-      ok
-        ? notify.success("Password copied")
-        : notify.error("Could not copy — select it and copy by hand"),
+      ok ? notify.success("Password copied") : notify.error("Could not copy — select it and copy by hand"),
     );
 
   const submit = (event: FormEvent) => {

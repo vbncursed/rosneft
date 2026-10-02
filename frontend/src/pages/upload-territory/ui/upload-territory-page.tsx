@@ -57,11 +57,7 @@ export function UploadTerritoryPage({
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(420px,1fr)_minmax(300px,380px)]">
           <div className="flex flex-col gap-4">
             {file ? (
-              <FileCard
-                name={file.name}
-                meta={fileMeta(file)}
-                onReplace={phase === "picked" ? onReplace : undefined}
-              />
+              <FileCard name={file.name} meta={fileMeta(file)} onReplace={phase === "picked" ? onReplace : undefined} />
             ) : (
               <DropZone
                 label="Drop a ZIP here"

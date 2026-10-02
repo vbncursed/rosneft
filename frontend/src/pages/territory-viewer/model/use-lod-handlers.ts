@@ -51,11 +51,7 @@ export function useLodHandlers({ land }: LodHandlerDeps): LodHandlers {
         report: next,
         // A second failure of the same level is the same attempt still being
         // reported; a different hash is a new one and gets a new stamp.
-        failedAt: next.failure
-          ? prev.report.failure?.hash === next.failure.hash
-            ? prev.failedAt
-            : new Date()
-          : null,
+        failedAt: next.failure ? (prev.report.failure?.hash === next.failure.hash ? prev.failedAt : new Date()) : null,
       })),
     [],
   );

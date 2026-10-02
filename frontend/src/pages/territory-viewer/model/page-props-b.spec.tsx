@@ -7,12 +7,7 @@ import type { Panorama } from "@/entities/panorama";
 import { groupByModel, type ResolvedPlacement } from "@/entities/placement";
 import { insideFooter, LOADING_FOOTER } from "@/widgets/view-tab";
 import { basePageParts } from "../territory-viewer-page.fixture";
-import {
-  documentProps,
-  panoramaCanvasProps,
-  uploadProps,
-  viewTabProps,
-} from "./page-props-b";
+import { documentProps, panoramaCanvasProps, uploadProps, viewTabProps } from "./page-props-b";
 import type { PageParts } from "./viewer-props";
 
 const panorama = (id: number, over: Partial<Panorama> = {}): Panorama => ({
@@ -57,10 +52,7 @@ describe("viewTabProps · folds", () => {
 describe("viewTabProps · panoramas", () => {
   it("builds one row per capture: its thumbnail (never the original), whether it is entered, and whether it is calibrated", () => {
     const rows = viewTabProps(
-      withPanoramas([
-        panorama(1),
-        panorama(2, { position: { x: 0, y: 0, z: 0 }, thumbnailBlobHash: null }),
-      ]),
+      withPanoramas([panorama(1), panorama(2, { position: { x: 0, y: 0, z: 0 }, thumbnailBlobHash: null })]),
     ).panoramas.rows;
 
     expect(rows).toEqual([
@@ -212,9 +204,7 @@ describe("viewTabProps · documents and the footer", () => {
       rows: [{ id: 7, name: "Fire plan.pdf" }],
       canUpload: true,
     });
-    expect(
-      viewTabProps({ ...p, grants: { ...p.grants, documentWrite: false } }).documents.canUpload,
-    ).toBe(false);
+    expect(viewTabProps({ ...p, grants: { ...p.grants, documentWrite: false } }).documents.canUpload).toBe(false);
   });
 
   it("explains that both overlays stay clickable while a level downloads", () => {
@@ -232,9 +222,7 @@ describe("viewTabProps · documents and the footer", () => {
 
   it("counts the placements this panorama marks once the camera is inside it", () => {
     const p = withPanoramas([panorama(1)]);
-    const seen: ResolvedPlacement[] = p.placements.map((x, i) =>
-      i < 2 ? { ...x, visiblePanoramaIds: [1] } : x,
-    );
+    const seen: ResolvedPlacement[] = p.placements.map((x, i) => (i < 2 ? { ...x, visiblePanoramaIds: [1] } : x));
     expect(
       viewTabProps({
         ...p,
@@ -438,9 +426,7 @@ describe("documentProps", () => {
 
   it("refuses Delete to a reader without the grant", () => {
     const p = open("pip");
-    expect(
-      documentProps({ ...p, grants: { ...p.grants, documentDelete: false } }).window?.canDelete,
-    ).toBe(false);
+    expect(documentProps({ ...p, grants: { ...p.grants, documentDelete: false } }).window?.canDelete).toBe(false);
   });
 });
 

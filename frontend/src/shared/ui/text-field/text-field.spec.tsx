@@ -52,4 +52,3 @@ describe("TextField", () => {
     expect(screen.getByLabelText("One").id).not.toBe(screen.getByLabelText("Two").id);
   });
 });
-

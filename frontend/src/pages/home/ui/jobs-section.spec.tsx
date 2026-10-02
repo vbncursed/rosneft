@@ -23,19 +23,14 @@ describe("JobsSection", () => {
   it("lists one card per job under the heading and meta", () => {
     render(
       <JobsSection
-        jobs={[
-          card(),
-          card({ kind: "model", slug: "valve", title: "Valve", href: "/models/valve" }),
-        ]}
+        jobs={[card(), card({ kind: "model", slug: "valve", title: "Valve", href: "/models/valve" })]}
         meta="2 jobs · updates by itself"
       />,
     );
     expect(screen.getByRole("heading", { level: 2, name: "In progress" })).toBeInTheDocument();
     expect(screen.getByText("2 jobs · updates by itself")).toBeInTheDocument();
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
-    expect(
-      screen.getByRole("link", { name: "Open territory refinery-block-c" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open territory refinery-block-c" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open model valve" })).toBeInTheDocument();
   });
 });

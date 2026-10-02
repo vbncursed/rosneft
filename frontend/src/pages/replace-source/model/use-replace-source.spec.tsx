@@ -6,15 +6,13 @@ import type { SceneBundle } from "@/entities/scene";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useReplaceSource, type ReplaceSourceState } from "./use-replace-source";
 
-const { getTerritory, replaceTerritorySource, assetSize, runChunkedUpload, navigate } = vi.hoisted(
-  () => ({
-    getTerritory: vi.fn(),
-    replaceTerritorySource: vi.fn(),
-    assetSize: vi.fn(),
-    runChunkedUpload: vi.fn(),
-    navigate: vi.fn(),
-  }),
-);
+const { getTerritory, replaceTerritorySource, assetSize, runChunkedUpload, navigate } = vi.hoisted(() => ({
+  getTerritory: vi.fn(),
+  replaceTerritorySource: vi.fn(),
+  assetSize: vi.fn(),
+  runChunkedUpload: vi.fn(),
+  navigate: vi.fn(),
+}));
 vi.mock("@/entities/territory", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getTerritory,

@@ -68,8 +68,7 @@ afterEach(() => {
 });
 
 const listCalls = () =>
-  fetchMock.mock.calls.filter(([u, i]) => u === LIST && !(i as RequestInit | undefined)?.method)
-    .length;
+  fetchMock.mock.calls.filter(([u, i]) => u === LIST && !(i as RequestInit | undefined)?.method).length;
 
 describe("useUsers", () => {
   it("is loading, then ready with the people and roles", async () => {
@@ -140,9 +139,7 @@ describe("useUsers", () => {
     act(() => result.current.ask("delete"));
     act(() => result.current.dismiss());
     expect(result.current.pending).toBeNull();
-    expect(fetchMock.mock.calls.some(([, i]) => (i as RequestInit | undefined)?.method === "DELETE")).toBe(
-      false,
-    );
+    expect(fetchMock.mock.calls.some(([, i]) => (i as RequestInit | undefined)?.method === "DELETE")).toBe(false);
   });
 
   it("names every outcome it can report", async () => {
@@ -197,14 +194,9 @@ describe("useUsers", () => {
         if (url === "/api/auth/roles") return json([ROLE]);
         return json([USER]);
       });
-      const { result, unmount } = renderHook(
-        () => ({ users: useUsers(), notices: useNotices() }),
-        { wrapper },
-      );
+      const { result, unmount } = renderHook(() => ({ users: useUsers(), notices: useNotices() }), { wrapper });
       await waitFor(() => expect(result.current.users.status).toBe("ready"));
-      act(() =>
-        result.current.users.create({ email: "a@x", username: "a", password: "Passw0rd!", roleSlugs: [] }),
-      );
+      act(() => result.current.users.create({ email: "a@x", username: "a", password: "Passw0rd!", roleSlugs: [] }));
       await waitFor(() => expect(result.current.notices[0]?.tone).toBe("error"));
       expect(result.current.notices[0].message).toBe("That email or username is unavailable.");
       unmount();
@@ -247,17 +239,13 @@ describe("useUsers", () => {
     act(() => result.current.users.setAddingRole(true));
     // Nobody is open, so there is nothing to change.
     act(() => result.current.users.setRoles(["guest", "admin"]));
-    expect(fetchMock.mock.calls.some(([, i]) => (i as RequestInit | undefined)?.method === "PATCH")).toBe(
-      false,
-    );
+    expect(fetchMock.mock.calls.some(([, i]) => (i as RequestInit | undefined)?.method === "PATCH")).toBe(false);
 
     act(() => result.current.users.select("u-1"));
     act(() => result.current.users.setRoles(["guest", "admin"]));
     await waitFor(() => expect(result.current.notices[0]?.message).toBe("Roles updated"));
     expect(result.current.users.addingRole).toBe(false);
-    const patch = fetchMock.mock.calls.find(
-      ([, i]) => (i as RequestInit | undefined)?.method === "PATCH",
-    );
+    const patch = fetchMock.mock.calls.find(([, i]) => (i as RequestInit | undefined)?.method === "PATCH");
     expect(JSON.parse(String((patch![1] as RequestInit).body))).toEqual({
       roleSlugs: ["guest", "admin"],
     });
@@ -372,7 +360,10 @@ describe("useUsers", () => {
     // screen is gone nothing may keep them for the default five minutes.
     unmount();
     const holdsPassword = () =>
-      client.getMutationCache().getAll().some((m) => JSON.stringify(m.state.variables ?? null).includes("N3w-Passw0rd!"));
+      client
+        .getMutationCache()
+        .getAll()
+        .some((m) => JSON.stringify(m.state.variables ?? null).includes("N3w-Passw0rd!"));
     await waitFor(() => expect(holdsPassword()).toBe(false));
   });
 
@@ -395,9 +386,7 @@ describe("useUsers", () => {
   it("offers the Company Owner role for assignment to Root alone", async () => {
     const answer = fetchMock.getMockImplementation() as (url: string, init?: RequestInit) => Promise<Response>;
     fetchMock.mockImplementation(async (url: string, init?: RequestInit) =>
-      url === "/api/auth/roles"
-        ? json([{ ...ROLE, slug: "admin", title: "Company Owner" }, ROLE])
-        : answer(url, init),
+      url === "/api/auth/roles" ? json([{ ...ROLE, slug: "admin", title: "Company Owner" }, ROLE]) : answer(url, init),
     );
     const { result } = renderHook(() => useUsers(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
@@ -405,8 +394,6 @@ describe("useUsers", () => {
     expect(result.current.assignableRoles.map((r) => r.slug)).toEqual(["guest"]);
 
     act(() => client.setQueryData(["me"], { ...PRINCIPAL, isOwner: true }));
-    await waitFor(() =>
-      expect(result.current.assignableRoles.map((r) => r.slug)).toEqual(["admin", "guest"]),
-    );
+    await waitFor(() => expect(result.current.assignableRoles.map((r) => r.slug)).toEqual(["admin", "guest"]));
   });
 });

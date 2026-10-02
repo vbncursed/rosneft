@@ -16,13 +16,7 @@ export type RoleChipsProps = {
 };
 
 /** The role editor: what is granted, and a way to grant more. */
-export function RoleChips({
-  roles,
-  onRemove,
-  onAdd,
-  readOnly = false,
-  addLabel = "add role",
-}: RoleChipsProps) {
+export function RoleChips({ roles, onRemove, onAdd, readOnly = false, addLabel = "add role" }: RoleChipsProps) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {roles.map((role) => (
@@ -57,9 +51,7 @@ export function RoleChips({
         </button>
       )}
 
-      {roles.length === 0 && readOnly ? (
-        <p className="m-0 font-mono text-[11px] text-dim">No roles granted.</p>
-      ) : null}
+      {roles.length === 0 && readOnly ? <p className="m-0 font-mono text-[11px] text-dim">No roles granted.</p> : null}
     </div>
   );
 }

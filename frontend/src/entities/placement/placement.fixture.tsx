@@ -62,7 +62,9 @@ function Panel() {
             expanded={open === group.model.slug}
             holdsSelection={group.instances.some((i) => i.id === selected)}
             onToggle={() => setOpen((s) => (s === group.model.slug ? null : group.model.slug))}
-            actions={<EyeButton state={eyeState(group.instances)} subject={`every ${group.model.title}`} onToggle={noop} />}
+            actions={
+              <EyeButton state={eyeState(group.instances)} subject={`every ${group.model.title}`} onToggle={noop} />
+            }
           />
           {open === group.model.slug
             ? group.instances.map((i) => (
@@ -90,7 +92,13 @@ export default {
   panel: <Panel />,
   "group rows": (
     <Frame>
-      <GroupRow title="storage-tank-500" line={groupLine(TANKS, null)} expanded={false} holdsSelection={false} onToggle={noop} />
+      <GroupRow
+        title="storage-tank-500"
+        line={groupLine(TANKS, null)}
+        expanded={false}
+        holdsSelection={false}
+        onToggle={noop}
+      />
       <GroupRow
         title="storage-tank-500"
         line={groupLine(TANKS, 2)}

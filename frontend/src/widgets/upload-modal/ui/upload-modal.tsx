@@ -131,9 +131,7 @@ export function UploadModal({
           <UploadFileCard
             file={upload.file}
             glyph={copy.glyph}
-            {...(upload.stage === "uploading"
-              ? { progress: { percent: upload.percent, label: upload.label } }
-              : {})}
+            {...(upload.stage === "uploading" ? { progress: { percent: upload.percent, label: upload.label } } : {})}
             {...(upload.stage === "picked" ? { onReplace: onClear } : {})}
           />
         ) : (

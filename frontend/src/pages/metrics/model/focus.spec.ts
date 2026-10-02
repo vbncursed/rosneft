@@ -68,9 +68,7 @@ describe("focusSeries", () => {
 
 describe("shortGrpcLabel", () => {
   it("shortens a full method path", () => {
-    expect(shortGrpcLabel("/rosneft.catalog.v1.CatalogService/ListTerritories")).toBe(
-      "Catalog.ListTerritories",
-    );
+    expect(shortGrpcLabel("/rosneft.catalog.v1.CatalogService/ListTerritories")).toBe("Catalog.ListTerritories");
   });
 
   it("shortens the bare service name the latency panel actually groups by", () => {

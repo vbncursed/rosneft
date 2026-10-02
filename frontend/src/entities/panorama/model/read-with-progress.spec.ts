@@ -40,6 +40,9 @@ test("caps progress at 100 if the stream overruns Content-Length", async () => {
   const seen: (number | null)[] = [];
   await readWithProgress(streamResponse(chunks, 5), (p) => seen.push(p));
 
-  assert.ok(seen.every((p) => (p as number) <= 100), "progress never exceeds 100");
+  assert.ok(
+    seen.every((p) => (p as number) <= 100),
+    "progress never exceeds 100",
+  );
   assert.equal(seen.at(-1), 100);
 });

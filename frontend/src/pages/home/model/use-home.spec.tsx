@@ -95,9 +95,7 @@ describe("useHome", () => {
 
   it("reads a 403 on the feed as null, not as an empty history, and stays ready", async () => {
     fetchMock.mockImplementation(async (url: string) =>
-      url.startsWith("/api/audit/mine")
-        ? json({ code: "forbidden", message: "no" }, 403)
-        : ROUTER(url),
+      url.startsWith("/api/audit/mine") ? json({ code: "forbidden", message: "no" }, 403) : ROUTER(url),
     );
     const { result } = renderHook(() => useHome(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
@@ -124,9 +122,7 @@ describe("useHome", () => {
 
   it("is the viewer-empty page with nothing assigned and no upload right", async () => {
     client.setQueryData(["me"], { ...PRINCIPAL, permissions: ["territory:read"] });
-    fetchMock.mockImplementation(async (url: string) =>
-      url === "/api/territories" ? json([]) : ROUTER(url),
-    );
+    fetchMock.mockImplementation(async (url: string) => (url === "/api/territories" ? json([]) : ROUTER(url)));
     const { result } = renderHook(() => useHome(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
     expect(result.current.territories.viewerEmpty).toBe(true);
@@ -136,9 +132,7 @@ describe("useHome", () => {
   });
 
   it("is viewer-empty for a territory writer who may not create one", async () => {
-    fetchMock.mockImplementation(async (url: string) =>
-      url === "/api/territories" ? json([]) : ROUTER(url),
-    );
+    fetchMock.mockImplementation(async (url: string) => (url === "/api/territories" ? json([]) : ROUTER(url)));
     const { result } = renderHook(() => useHome(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
     expect(result.current.territories.viewerEmpty).toBe(true);
@@ -146,9 +140,7 @@ describe("useHome", () => {
 
   it("is not viewer-empty for Root, who may create a territory", async () => {
     client.setQueryData(["me"], { ...PRINCIPAL, permissions: [], isOwner: true });
-    fetchMock.mockImplementation(async (url: string) =>
-      url === "/api/territories" ? json([]) : ROUTER(url),
-    );
+    fetchMock.mockImplementation(async (url: string) => (url === "/api/territories" ? json([]) : ROUTER(url)));
     const { result } = renderHook(() => useHome(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
     expect(result.current.territories.viewerEmpty).toBe(false);
@@ -164,9 +156,7 @@ describe("useHome", () => {
   });
 
   it("re-reads the territory list once a shown territory's job leaves the live set", async () => {
-    JOBS = [
-      { id: "j1", kind: "territory", slug: "t5", status: "running", progress: 0.5, stage: "parsing" },
-    ];
+    JOBS = [{ id: "j1", kind: "territory", slug: "t5", status: "running", progress: 0.5, stage: "parsing" }];
     let listCalls = 0;
     fetchMock.mockImplementation(async (url: string) => {
       if (url === "/api/territories") {
@@ -186,9 +176,7 @@ describe("useHome", () => {
       await client.refetchQueries({ queryKey: ["jobs"] });
     });
     await waitFor(() => expect(listCalls).toBe(2));
-    await waitFor(() =>
-      expect(result.current.territories.cards[0]).toMatchObject({ slug: "t5", status: "ready" }),
-    );
+    await waitFor(() => expect(result.current.territories.cards[0]).toMatchObject({ slug: "t5", status: "ready" }));
     // Nothing reads a territory's artifacts any more; only a model page does.
     expect(spy).not.toHaveBeenCalledWith({ queryKey: ["artifacts", "territory", "t5"] });
   });

@@ -34,10 +34,16 @@ const ENTER_MS = 120;
 function driftIn(el: HTMLElement, side: Side) {
   const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   const from = still ? "0 0" : `0 ${side === "top" ? 2 : -2}px`;
-  el.animate?.([{ opacity: 0, translate: from }, { opacity: 1, translate: "0 0" }], {
-    duration: ENTER_MS,
-    easing: EASE_OUT,
-  });
+  el.animate?.(
+    [
+      { opacity: 0, translate: from },
+      { opacity: 1, translate: "0 0" },
+    ],
+    {
+      duration: ENTER_MS,
+      easing: EASE_OUT,
+    },
+  );
 }
 
 /**

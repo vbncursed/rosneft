@@ -76,8 +76,7 @@ const note = (items: ContentItem[]) => {
     .join(" · ");
 };
 
-const NEEDS_ATTENTION = (item: ContentItem) =>
-  item.status === "converting" || item.status === "failed";
+const NEEDS_ATTENTION = (item: ContentItem) => item.status === "converting" || item.status === "failed";
 
 const attentionNote = (items: ContentItem[]) => {
   const counts = pipelineCounts(items);
@@ -96,7 +95,9 @@ export function groupContent(items: ContentItem[]): ContentGroup[] {
   const territories = rest.filter((i) => i.kind === "territory");
   const models = rest.filter((i) => i.kind === "model");
   return [
-    ...(attention.length > 0 ? [{ key: "attention", label: "Needs attention", note: attentionNote(attention), items: attention }] : []),
+    ...(attention.length > 0
+      ? [{ key: "attention", label: "Needs attention", note: attentionNote(attention), items: attention }]
+      : []),
     { key: "territories", label: "Territories", note: note(territories), items: territories },
     { key: "models", label: "Models", note: note(models), items: models },
   ];

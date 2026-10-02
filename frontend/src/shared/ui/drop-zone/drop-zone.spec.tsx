@@ -218,7 +218,9 @@ describe("DropZone", () => {
       <DropZone label="Drop" hint="hint" buttonLabel="Choose files" accept=".zip" onFiles={vi.fn()} />,
     );
     const zone = () => (container.firstElementChild as HTMLElement).className.split(/\s+/);
-    expect(zone()).toEqual(expect.arrayContaining(["group", "hover:border-accent-line", "transition-colors", "duration-150"]));
+    expect(zone()).toEqual(
+      expect.arrayContaining(["group", "hover:border-accent-line", "transition-colors", "duration-150"]),
+    );
     expect(screen.getByText("Choose files").className).toContain("group-hover:bg-accent/20");
 
     rerender(<DropZone label="Drop" hint="hint" buttonLabel="Choose files" accept=".zip" onFiles={vi.fn()} disabled />);

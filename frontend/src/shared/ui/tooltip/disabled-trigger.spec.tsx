@@ -52,7 +52,14 @@ describe("Tooltip · a disabled, absolutely positioned trigger", () => {
           : this.getAttribute("role") === "tooltip"
             ? { top: 0, left: 0, width: 60, height: 20 }
             : { top: 0, left: 0, width: 0, height: 0 };
-      return { ...r, x: r.left, y: r.top, right: r.left + r.width, bottom: r.top + r.height, toJSON: () => r } as DOMRect;
+      return {
+        ...r,
+        x: r.left,
+        y: r.top,
+        right: r.left + r.width,
+        bottom: r.top + r.height,
+        toJSON: () => r,
+      } as DOMRect;
     });
     render(
       <Tooltip label="Reveal">

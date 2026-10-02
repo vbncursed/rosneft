@@ -62,11 +62,7 @@ function finish(
   };
 }
 
-function patchChain(
-  state: MeasurementState,
-  id: number,
-  patch: Partial<Chain>,
-): MeasurementState {
+function patchChain(state: MeasurementState, id: number, patch: Partial<Chain>): MeasurementState {
   if (!state.chains.some((c) => c.id === id)) return state;
   return {
     ...state,
@@ -90,10 +86,7 @@ function seed(state: MeasurementState, stored: StoredChain[]): MeasurementState 
   };
 }
 
-export function measurementReducer(
-  state: MeasurementState,
-  action: MeasurementAction,
-): MeasurementState {
+export function measurementReducer(state: MeasurementState, action: MeasurementAction): MeasurementState {
   switch (action.type) {
     case "click": {
       if (state.activeChainId == null) {
@@ -140,9 +133,7 @@ export function measurementReducer(
       return state.activeChainId == null ? state : { ...state, ...finish(state) };
 
     case "toggle":
-      return state.measureMode
-        ? { ...state, measureMode: false, ...finish(state) }
-        : { ...state, measureMode: true };
+      return state.measureMode ? { ...state, measureMode: false, ...finish(state) } : { ...state, measureMode: true };
 
     case "exit":
       return { ...state, measureMode: false, ...finish(state) };
@@ -159,8 +150,7 @@ export function measurementReducer(
       return {
         ...state,
         chains,
-        activeChainId:
-          state.activeChainId === action.chainId ? null : state.activeChainId,
+        activeChainId: state.activeChainId === action.chainId ? null : state.activeChainId,
       };
     }
 
@@ -169,9 +159,7 @@ export function measurementReducer(
       if (!target) return state;
       const newIds: [number, number] = [state.nextId, state.nextId + 1];
       const replacements = removeSegmentOp(target, action.segmentIndex, newIds);
-      const chains = state.chains.flatMap((c) =>
-        c.id === action.chainId ? replacements : [c],
-      );
+      const chains = state.chains.flatMap((c) => (c.id === action.chainId ? replacements : [c]));
       const ends = state.activeChainId === action.chainId ? finish(state, chains) : { chains };
       return {
         ...state,

@@ -1,10 +1,5 @@
 import type { ReactNode } from "react";
-import {
-  CredentialsForm,
-  TwoFactorForm,
-  type CredentialsFormProps,
-  type TwoFactorFormProps,
-} from "@/features/login";
+import { CredentialsForm, TwoFactorForm, type CredentialsFormProps, type TwoFactorFormProps } from "@/features/login";
 import { Toast } from "@/shared/ui/toast";
 import { AuthSteps } from "@/widgets/auth-steps";
 import { LoginIntro, type IntroPoint } from "@/widgets/login-intro";
@@ -54,15 +49,7 @@ const COPY = {
 // sends the reader looking for it.
 const PASSKEY_SUB = "Use your passkey, or sign in with a password.";
 
-export function LoginPage({
-  step,
-  intro,
-  credentials,
-  twoFactor,
-  error,
-  onDismissError,
-  footnote,
-}: LoginPageProps) {
+export function LoginPage({ step, intro, credentials, twoFactor, error, onDismissError, footnote }: LoginPageProps) {
   // The second step cannot be shown without the account it belongs to.
   const onTwoFactor = step === "two-factor" && twoFactor !== undefined;
   const copy = COPY[onTwoFactor ? "two-factor" : "credentials"];
@@ -94,18 +81,14 @@ export function LoginPage({
           <AuthSteps steps={STEPS} current={onTwoFactor ? "two-factor" : "credentials"} />
 
           <div>
-            <p className="m-0 font-mono text-[10px] uppercase tracking-[0.22em] text-accent">
-              {copy.eyebrow}
-            </p>
+            <p className="m-0 font-mono text-[10px] uppercase tracking-[0.22em] text-accent">{copy.eyebrow}</p>
             <h1 className="m-0 mt-[9px] text-[26px] font-bold tracking-[-0.02em]">{copy.heading}</h1>
             <p className="m-0 mt-[7px] text-[13px] leading-[1.55] text-muted">{sub}</p>
           </div>
 
           {onTwoFactor ? <TwoFactorForm {...twoFactor} /> : <CredentialsForm {...credentials} />}
 
-          {footnote ? (
-            <p className="m-0 mt-auto text-[11px] leading-[1.55] text-dim">{footnote}</p>
-          ) : null}
+          {footnote ? <p className="m-0 mt-auto text-[11px] leading-[1.55] text-dim">{footnote}</p> : null}
         </section>
       </div>
     </div>

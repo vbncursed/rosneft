@@ -134,7 +134,11 @@ describe("ViewTab", () => {
     const { props, container } = tab();
     expect(container.querySelector("[data-tour='toggle-markers']")).not.toBeNull();
     const group = screen.getByRole("radiogroup", { name: MARKERS_SWITCH });
-    expect(within(group).getAllByRole("radio").map((r) => r.textContent)).toEqual([MARKERS_ALL, MARKERS_POINTS, MARKERS_OFF]);
+    expect(
+      within(group)
+        .getAllByRole("radio")
+        .map((r) => r.textContent),
+    ).toEqual([MARKERS_ALL, MARKERS_POINTS, MARKERS_OFF]);
     expect(within(group).getByRole("radio", { name: MARKERS_ALL })).toBeChecked();
     await userEvent.click(within(group).getByRole("radio", { name: MARKERS_POINTS }));
     expect(props.panoramas.onMarkers).toHaveBeenCalledWith("points");

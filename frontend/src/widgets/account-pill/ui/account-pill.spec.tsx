@@ -42,10 +42,11 @@ describe("AccountPill", () => {
     const menu = screen.getByRole("menu", { name: "Account menu for a.ivanova" });
     expect(within(menu).getByText("a.ivanova")).toBeInTheDocument();
     expect(within(menu).getByText("Company Owner")).toBeInTheDocument();
-    expect(within(menu).getAllByRole("menuitem").map((i) => i.textContent)).toEqual([
-      "Account",
-      "Sign out",
-    ]);
+    expect(
+      within(menu)
+        .getAllByRole("menuitem")
+        .map((i) => i.textContent),
+    ).toEqual(["Account", "Sign out"]);
   });
 
   it("opens the account page from Account", async () => {

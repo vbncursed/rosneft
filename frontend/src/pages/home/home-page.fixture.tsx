@@ -38,20 +38,12 @@ const model = (slug: string, title: string, usageCount: number): ModelCardModel 
   size: "—",
   lods: "—",
   trailing:
-    usageCount > 0
-      ? { label: `in ${usageCount} territories`, tone: "accent" }
-      : { label: "unused", tone: "muted" },
+    usageCount > 0 ? { label: `in ${usageCount} territories`, tone: "accent" } : { label: "unused", tone: "muted" },
 });
 
 const ago = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString();
 
-const entry = (
-  id: number,
-  action: string,
-  at: string,
-  entityLabel = "",
-  territorySlug = "",
-): AuditEntry => ({
+const entry = (id: number, action: string, at: string, entityLabel = "", territorySlug = ""): AuditEntry => ({
   id,
   at,
   actorId: "u-1",

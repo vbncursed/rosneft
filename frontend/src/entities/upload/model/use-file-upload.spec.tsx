@@ -68,9 +68,7 @@ const upload = () =>
 
 beforeEach(() => {
   initiateUpload.mockReset().mockResolvedValue({ id: "u1", size: 20 * MB, offset: 0 });
-  appendChunk
-    .mockReset()
-    .mockImplementation((_id: string, _offset: number, slice: { end: number }) => slice.end);
+  appendChunk.mockReset().mockImplementation((_id: string, _offset: number, slice: { end: number }) => slice.end);
   finalizeUpload.mockReset().mockResolvedValue({ hash: "abc", size: 20 * MB });
   abortUpload.mockReset().mockResolvedValue(undefined);
   clearNotices();
@@ -143,9 +141,7 @@ describe("useFileUpload", () => {
 
   it("runs the caller's work once the bytes land, then returns to idle with its value", async () => {
     let finishWork!: (value: string) => void;
-    const work = vi.fn(
-      (): Promise<string> => new Promise((resolve) => (finishWork = resolve)),
-    );
+    const work = vi.fn((): Promise<string> => new Promise((resolve) => (finishWork = resolve)));
     const file = fakeFile(JPEG);
     const { result } = upload();
     await act(async () => {
@@ -268,8 +264,6 @@ describe("useFileUpload", () => {
     });
 
     expect(slice).toHaveBeenCalledWith(0, 5);
-    expect((result.current.state as Extract<FileUploadState, { stage: "picked" }>).stage).toBe(
-      "picked",
-    );
+    expect((result.current.state as Extract<FileUploadState, { stage: "picked" }>).stage).toBe("picked");
   });
 });

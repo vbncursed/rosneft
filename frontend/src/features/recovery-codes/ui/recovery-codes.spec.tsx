@@ -67,9 +67,7 @@ describe("RecoveryCodes", () => {
 
     expect(await screen.findByRole("button", { name: "Copy all" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Copied" })).not.toBeInTheDocument();
-    expect(
-      await screen.findByText("Could not copy — select it and copy by hand"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Could not copy — select it and copy by hand")).toBeInTheDocument();
   });
 
   it("hands the codes to the downloader under a named file", async () => {
@@ -78,10 +76,7 @@ describe("RecoveryCodes", () => {
 
     // What the download does with them is download.spec.ts's business; this
     // asserts the button reaches it with the right file.
-    expect(downloadText).toHaveBeenCalledWith(
-      "recovery-codes.txt",
-      "8k2fq-p1x7d\nm4wla-9zt3c\nqq08r-vb51n\n",
-    );
+    expect(downloadText).toHaveBeenCalledWith("recovery-codes.txt", "8k2fq-p1x7d\nm4wla-9zt3c\nqq08r-vb51n\n");
   });
 
   // The host draws the green card and the "Step N · save these recovery codes"

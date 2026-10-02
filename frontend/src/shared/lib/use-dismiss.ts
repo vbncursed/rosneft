@@ -5,11 +5,7 @@ import { useEscape } from "./use-escape";
  * Closes a popup on Escape or on a pointer landing outside it.
  * Shared by Dropdown, Menu and DatePicker so all three dismiss alike.
  */
-export function useDismiss(
-  ref: RefObject<HTMLElement | null>,
-  open: boolean,
-  onDismiss: () => void,
-) {
+export function useDismiss(ref: RefObject<HTMLElement | null>, open: boolean, onDismiss: () => void) {
   useEscape(open, onDismiss);
 
   useEffect(() => {

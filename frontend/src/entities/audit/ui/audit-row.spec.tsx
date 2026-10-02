@@ -43,9 +43,7 @@ describe("AuditRow", () => {
   });
 
   it("credits a system change rather than showing a blank actor", () => {
-    render(
-      <AuditRow entry={entry({ actorId: "", actorLogin: "" })} expanded={false} onToggle={() => {}} />,
-    );
+    render(<AuditRow entry={entry({ actorId: "", actorLogin: "" })} expanded={false} onToggle={() => {}} />);
     expect(screen.getByText("system")).toBeInTheDocument();
   });
 

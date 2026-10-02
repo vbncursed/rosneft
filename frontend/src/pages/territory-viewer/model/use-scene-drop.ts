@@ -28,7 +28,8 @@ export function useSceneDrop(client: QueryClient, slug: string): () => void {
     return () => {
       left.current = true;
       // take first, so a debt is paid even when this visit changed something too.
-      if (takeSceneDrop(client, slug) || changed.current) client.removeQueries({ queryKey: ["scene", slug], exact: true });
+      if (takeSceneDrop(client, slug) || changed.current)
+        client.removeQueries({ queryKey: ["scene", slug], exact: true });
     };
   }, [client, slug]);
   return onChanged;

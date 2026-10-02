@@ -28,10 +28,7 @@ export function usePanoramaView(panoramas: Panorama[], mode: PanoramaViewMode) {
   const { view, editingPanoramaId, enterPanorama, exitPanorama, startEdit, closeEdit } = mode;
   const activeId = view.kind === "panorama" ? view.id : null;
 
-  const active = useMemo(
-    () => panoramas.find((p) => p.id === activeId) ?? null,
-    [panoramas, activeId],
-  );
+  const active = useMemo(() => panoramas.find((p) => p.id === activeId) ?? null, [panoramas, activeId]);
   const editing = useMemo(
     () => panoramas.find((p) => p.id === editingPanoramaId) ?? null,
     [panoramas, editingPanoramaId],
@@ -80,9 +77,7 @@ export function usePanoramaView(panoramas: Panorama[], mode: PanoramaViewMode) {
 
   const index = useMemo(
     () => ({
-      current: editingPanoramaId === null
-        ? 0
-        : panoramas.findIndex((p) => p.id === editingPanoramaId) + 1,
+      current: editingPanoramaId === null ? 0 : panoramas.findIndex((p) => p.id === editingPanoramaId) + 1,
       total: panoramas.length,
     }),
     [panoramas, editingPanoramaId],

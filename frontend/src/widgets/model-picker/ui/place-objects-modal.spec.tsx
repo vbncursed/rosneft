@@ -31,9 +31,7 @@ describe("PlaceObjectsModal", () => {
       />,
     );
 
-    expect(
-      screen.getByRole("dialog", { name: "Add objects to Refinery Block C" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Add objects to Refinery Block C" })).toBeInTheDocument();
     // Binary MB to one decimal — the app's own formatBytes rounds 8_400_002 to
     // a flat "8 MB", which loses the difference between two LOD chains.
     expect(screen.getByText("3 LODs · 8.0 MB")).toBeInTheDocument();
@@ -71,9 +69,7 @@ describe("PlaceObjectsModal", () => {
     );
 
     await userEvent.click(screen.getByRole("button", { name: /storage-tank-500/ }));
-    await userEvent.click(
-      screen.getByRole("button", { name: "Increase storage-tank-500 quantity" }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: "Increase storage-tank-500 quantity" }));
     // The button reads `Place` whatever is picked: the count is in the stepper
     // beside it and the model on the card above, so the long name only made the
     // footer jump as the reader chose.
@@ -195,17 +191,12 @@ describe("PlaceObjectsModal", () => {
 
     await userEvent.type(screen.getByLabelText("Search the model library"), "tank");
     await userEvent.click(screen.getByRole("button", { name: /storage-tank-500/ }));
-    await userEvent.click(
-      screen.getByRole("button", { name: "Increase storage-tank-500 quantity" }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: "Increase storage-tank-500 quantity" }));
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
     await userEvent.click(screen.getByRole("button", { name: "Reopen" }));
 
     expect(screen.getByLabelText("Search the model library")).toHaveValue("");
-    expect(screen.getByRole("button", { name: /storage-tank-500/ })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
+    expect(screen.getByRole("button", { name: /storage-tank-500/ })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByRole("button", { name: /not-yet/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Place" })).toBeDisabled();
   });

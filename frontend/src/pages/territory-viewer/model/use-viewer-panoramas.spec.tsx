@@ -5,29 +5,28 @@ import type { PanoramaViewMode } from "@/features/panorama-view";
 import { useSectionFolds } from "@/widgets/view-tab";
 import { useViewerPanoramas } from "./use-viewer-panoramas";
 
-const { list, usePanoramaList, usePanoramaTexture, usePanoramaUpload, useTerritoryLink } =
-  vi.hoisted(() => {
-    const list = {
-      panoramas: [] as unknown[],
-      pendingId: null,
-      add: vi.fn(),
-      update: vi.fn(),
-      remove: vi.fn(),
-      setPanoramas: vi.fn(),
-    };
-    return {
-      list,
-      // A fresh object each render, exactly as the real hook returns one: the
-      // composite must depend on its stable members, not on the object.
-      usePanoramaList: vi.fn(() => ({ ...list })),
-      usePanoramaTexture: vi.fn(() => ({ bitmap: null, progress: null, status: "idle" })),
-      usePanoramaUpload: vi.fn((params: { onCreated: (p: never) => void }) => ({
-        params,
-        canSubmit: false,
-      })),
-      useTerritoryLink: vi.fn(() => ({ url: "", saving: false, save: vi.fn() })),
-    };
-  });
+const { list, usePanoramaList, usePanoramaTexture, usePanoramaUpload, useTerritoryLink } = vi.hoisted(() => {
+  const list = {
+    panoramas: [] as unknown[],
+    pendingId: null,
+    add: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+    setPanoramas: vi.fn(),
+  };
+  return {
+    list,
+    // A fresh object each render, exactly as the real hook returns one: the
+    // composite must depend on its stable members, not on the object.
+    usePanoramaList: vi.fn(() => ({ ...list })),
+    usePanoramaTexture: vi.fn(() => ({ bitmap: null, progress: null, status: "idle" })),
+    usePanoramaUpload: vi.fn((params: { onCreated: (p: never) => void }) => ({
+      params,
+      canSubmit: false,
+    })),
+    useTerritoryLink: vi.fn(() => ({ url: "", saving: false, save: vi.fn() })),
+  };
+});
 
 // The gateway-bound hooks are stubbed; the pure ones — the view, the
 // calibration draft, the marker drag — run for real, because what this hook
@@ -71,11 +70,7 @@ const modeStub = (over: Partial<PanoramaViewMode> = {}): PanoramaViewMode => ({
 const decode = vi.fn();
 const onChanged = vi.fn();
 
-const mount = (
-  mode = modeStub(),
-  moving = false,
-  extra: { canWrite?: boolean; phaseHidden?: PhaseHidden } = {},
-) =>
+const mount = (mode = modeStub(), moving = false, extra: { canWrite?: boolean; phaseHidden?: PhaseHidden } = {}) =>
   renderHook(
     (props: { mode: PanoramaViewMode; moving: boolean }) =>
       useViewerPanoramas({
@@ -351,13 +346,19 @@ describe("useViewerPanoramas", () => {
   // nor on the map, so P must not step into one either.
   it("steps a reader without panorama:write past hidden captures and hidden phases", () => {
     list.panoramas = [panorama(1), panorama(2, { hidden: true }), panorama(3, { phase: "post" })];
-    const { result } = mount(modeStub(), false, { canWrite: false, phaseHidden: { prior: false, current: false, post: true } });
+    const { result } = mount(modeStub(), false, {
+      canWrite: false,
+      phaseHidden: { prior: false, current: false, post: true },
+    });
     expect(result.current.index.total).toBe(1);
   });
 
   it("keeps every capture in an editor's reach, hidden or not", () => {
     list.panoramas = [panorama(1), panorama(2, { hidden: true }), panorama(3, { phase: "post" })];
-    const { result } = mount(modeStub(), false, { canWrite: true, phaseHidden: { prior: false, current: false, post: true } });
+    const { result } = mount(modeStub(), false, {
+      canWrite: true,
+      phaseHidden: { prior: false, current: false, post: true },
+    });
     expect(result.current.index.total).toBe(3);
   });
 

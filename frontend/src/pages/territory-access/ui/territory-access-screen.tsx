@@ -10,9 +10,7 @@ export function TerritoryAccessScreen() {
   const s = useTerritoryAccess();
 
   if (s.status === "loading") {
-    return (
-      <PageSkeleton shape="console" label="Loading territories" />
-    );
+    return <PageSkeleton shape="console" label="Loading territories" />;
   }
   if (s.status === "unavailable" || !s.territories) {
     return <Callout tone="bad">Territory access is unavailable: {s.error}</Callout>;
@@ -21,9 +19,7 @@ export function TerritoryAccessScreen() {
   const selected = s.selected;
   // Grouped inline, not memoised: `grantsOf` is a fresh closure on every
   // render of the container, so a useMemo keyed on it would never hit.
-  const groups = groupAccess(
-    s.territories.filter((t) => matchesAccess(t, s.grantsOf(t.slug), s.query)),
-  );
+  const groups = groupAccess(s.territories.filter((t) => matchesAccess(t, s.grantsOf(t.slug), s.query)));
 
   return (
     <>
@@ -50,19 +46,11 @@ export function TerritoryAccessScreen() {
         onCancel={s.cancel}
         onSave={s.save}
         canManage={s.canManage}
-        {...(s.territories.length === 0
-          ? { emptyHint: "No territories yet — upload one to start." }
-          : {})}
+        {...(s.territories.length === 0 ? { emptyHint: "No territories yet — upload one to start." } : {})}
       />
 
       {s.adding && selected ? (
-        <AddPersonDialog
-          open
-          options={s.candidates}
-          busy={s.saving}
-          onClose={() => s.setAdding(false)}
-          onAdd={s.add}
-        />
+        <AddPersonDialog open options={s.candidates} busy={s.saving} onClose={() => s.setAdding(false)} onAdd={s.add} />
       ) : null}
     </>
   );

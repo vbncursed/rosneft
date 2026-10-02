@@ -166,10 +166,10 @@ describe("useMetrics", () => {
   });
 
   it("does not carry one range's series into another", async () => {
-    const { result, rerender } = renderHook(
-      ({ range }: { range: MetricsRange }) => useMetrics(range),
-      { wrapper, initialProps: { range: "1h" as MetricsRange } },
-    );
+    const { result, rerender } = renderHook(({ range }: { range: MetricsRange }) => useMetrics(range), {
+      wrapper,
+      initialProps: { range: "1h" as MetricsRange },
+    });
     await waitFor(() => expect(result.current.results["red-rate"]?.kind).toBe("value"));
     failing.add("red-rate");
     rerender({ range: "6h" });
@@ -198,10 +198,10 @@ describe("useMetrics", () => {
   });
 
   it("re-queries every panel on a range change", async () => {
-    const { result, rerender } = renderHook(
-      ({ range }: { range: MetricsRange }) => useMetrics(range),
-      { wrapper, initialProps: { range: "1h" as MetricsRange } },
-    );
+    const { result, rerender } = renderHook(({ range }: { range: MetricsRange }) => useMetrics(range), {
+      wrapper,
+      initialProps: { range: "1h" as MetricsRange },
+    });
     await waitFor(() => expect(result.current.status).toBe("ready"));
     const asked = (range: string) =>
       new Set(

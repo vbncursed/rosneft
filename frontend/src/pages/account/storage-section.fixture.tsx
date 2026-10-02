@@ -9,8 +9,20 @@ const base: StorageSectionProps = {
   usageFailed: false,
   savedLoaded: true,
   saved: [
-    { slug: "ust-kut", title: "Ust-Kut", bytes: 2 * GIB, savedAt: "2026-09-30T08:00:00Z", syncedAt: "2026-10-01T08:00:00Z" },
-    { slug: "refinery-block-c", title: "Refinery block C", bytes: 1.2 * GIB, savedAt: "2026-09-12T10:30:00Z", syncedAt: "2026-09-12T10:30:00Z" },
+    {
+      slug: "ust-kut",
+      title: "Ust-Kut",
+      bytes: 2 * GIB,
+      savedAt: "2026-09-30T08:00:00Z",
+      syncedAt: "2026-10-01T08:00:00Z",
+    },
+    {
+      slug: "refinery-block-c",
+      title: "Refinery block C",
+      bytes: 1.2 * GIB,
+      savedAt: "2026-09-12T10:30:00Z",
+      syncedAt: "2026-09-12T10:30:00Z",
+    },
   ],
   onLimit: noop,
   onClear: noop,

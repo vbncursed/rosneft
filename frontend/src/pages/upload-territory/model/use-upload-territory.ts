@@ -3,13 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import type { ConversionStage } from "@/entities/conversion";
 import { createTerritory } from "@/entities/territory";
-import {
-  progressFor,
-  runChunkedUpload,
-  slugPreview,
-  type UploadProgress,
-  type UploadSample,
-} from "@/entities/upload";
+import { progressFor, runChunkedUpload, slugPreview, type UploadProgress, type UploadSample } from "@/entities/upload";
 import { meQuery } from "@/entities/user";
 import { messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";

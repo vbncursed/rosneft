@@ -25,10 +25,7 @@ describe("AddRoleDialog", () => {
     await userEvent.click(trigger);
     expect(screen.getByRole("option", { name: "field-operator" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "guest" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "field-operator" })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
+    expect(screen.getByRole("option", { name: "field-operator" })).toHaveAttribute("aria-selected", "true");
   });
 
   it("adds the picked role", async () => {

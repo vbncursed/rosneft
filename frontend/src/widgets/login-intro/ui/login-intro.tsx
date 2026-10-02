@@ -19,14 +19,7 @@ export type LoginIntroProps = {
 };
 
 /** The half of the sign-in card that says what the product is. */
-export function LoginIntro({
-  brand,
-  headline,
-  blurb,
-  points,
-  footnote,
-  mark = "A",
-}: LoginIntroProps) {
+export function LoginIntro({ brand, headline, blurb, points, footnote, mark = "A" }: LoginIntroProps) {
   return (
     <section aria-label="About this platform" className="flex h-full flex-col gap-[26px] p-8">
       <div className="flex items-center justify-between gap-3">
@@ -37,17 +30,13 @@ export function LoginIntro({
           >
             {mark}
           </span>
-          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted">
-            {brand}
-          </span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted">{brand}</span>
         </div>
         <ThemeToggle variant="compact" />
       </div>
 
       <div>
-        <h2 className="m-0 max-w-[22ch] text-[30px] font-bold leading-[1.1] tracking-[-0.025em] text-fg">
-          {headline}
-        </h2>
+        <h2 className="m-0 max-w-[22ch] text-[30px] font-bold leading-[1.1] tracking-[-0.025em] text-fg">{headline}</h2>
         <p className="m-0 mt-3.5 max-w-[44ch] text-sm leading-[1.6] text-muted">{blurb}</p>
       </div>
 
@@ -63,11 +52,7 @@ export function LoginIntro({
         ))}
       </ul>
 
-      {footnote ? (
-        <p className="m-0 mt-auto text-[11px] leading-[1.55] text-dim">
-          {footnote}
-        </p>
-      ) : null}
+      {footnote ? <p className="m-0 mt-auto text-[11px] leading-[1.55] text-dim">{footnote}</p> : null}
     </section>
   );
 }

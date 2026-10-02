@@ -12,7 +12,16 @@ import {
   unfreezeUser,
 } from "./users-gateway";
 
-const user = { id: "u-1", email: "a@x", username: "a", status: "active", roleSlugs: [], permissions: [], isOwner: false, totpRequired: false };
+const user = {
+  id: "u-1",
+  email: "a@x",
+  username: "a",
+  status: "active",
+  roleSlugs: [],
+  permissions: [],
+  isOwner: false,
+  totpRequired: false,
+};
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
@@ -42,7 +51,11 @@ describe("users gateway", () => {
 
   it("creates with the whole input and replaces roles with a PATCH", async () => {
     await createUser({ email: "b@x", username: "b", password: "pw", roleSlugs: ["guest"] });
-    expect(request()).toEqual({ url: "/api/auth/users", method: "POST", body: { email: "b@x", username: "b", password: "pw", roleSlugs: ["guest"] } });
+    expect(request()).toEqual({
+      url: "/api/auth/users",
+      method: "POST",
+      body: { email: "b@x", username: "b", password: "pw", roleSlugs: ["guest"] },
+    });
 
     await setUserRoles("u 1", ["admin"]);
     expect(request(1)).toEqual({ url: "/api/auth/users/u%201", method: "PATCH", body: { roleSlugs: ["admin"] } });

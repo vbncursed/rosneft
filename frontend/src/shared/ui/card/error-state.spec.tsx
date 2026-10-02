@@ -10,12 +10,7 @@ describe("ErrorState", () => {
   });
 
   it("carries the technical detail alongside the headline", () => {
-    render(
-      <ErrorState
-        title="Could not load the journal"
-        detail="HTTP 503 · audit-service unavailable"
-      />,
-    );
+    render(<ErrorState title="Could not load the journal" detail="HTTP 503 · audit-service unavailable" />);
     expect(screen.getByRole("alert")).toHaveTextContent("HTTP 503 · audit-service unavailable");
   });
 
@@ -49,9 +44,7 @@ describe("ErrorState", () => {
           title="The territory mesh could not be loaded"
           detail="Storage returned 502 for the LOD 1 mesh."
           footer="refinery-block-c-lod1.glb · last attempt 14:22"
-          action={
-            <button type="button">Try again</button>
-          }
+          action={<button type="button">Try again</button>}
         />,
       );
 
@@ -67,9 +60,7 @@ describe("ErrorState", () => {
 
     it("prints the footer line under the actions", () => {
       card();
-      expect(screen.getByRole("alert")).toHaveTextContent(
-        "refinery-block-c-lod1.glb · last attempt 14:22",
-      );
+      expect(screen.getByRole("alert")).toHaveTextContent("refinery-block-c-lod1.glb · last attempt 14:22");
     });
 
     it("keeps the action reachable", () => {

@@ -17,11 +17,7 @@ const RAIL = {
 } as const;
 
 /** One territory in the access list: who can open it, and a way in to change that. */
-export function TerritoryAccessRow({
-  territory,
-  selected = false,
-  onManage,
-}: TerritoryAccessRowProps) {
+export function TerritoryAccessRow({ territory, selected = false, onManage }: TerritoryAccessRowProps) {
   return (
     <article
       onClick={onManage}
@@ -34,18 +30,12 @@ export function TerritoryAccessRow({
     >
       <span
         aria-hidden="true"
-        className={cx(
-          "absolute inset-y-0 left-0 w-[3px]",
-          RAIL[territory.visibility],
-          !selected && "opacity-50",
-        )}
+        className={cx("absolute inset-y-0 left-0 w-[3px]", RAIL[territory.visibility], !selected && "opacity-50")}
       />
 
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className="min-w-0 truncate text-[13px] font-semibold text-fg">
-            {territory.title}
-          </span>
+          <span className="min-w-0 truncate text-[13px] font-semibold text-fg">{territory.title}</span>
           <Badge
             shape="tag"
             size="sm"
@@ -70,12 +60,7 @@ export function TerritoryAccessRow({
               className="-mr-1.5 text-[9px]"
             />
           ))}
-          <span
-            className={cx(
-              "w-[74px] font-mono text-[10px] text-dim",
-              territory.faces.length > 0 && "ml-2.5",
-            )}
-          >
+          <span className={cx("w-[74px] font-mono text-[10px] text-dim", territory.faces.length > 0 && "ml-2.5")}>
             {territory.peopleLabel}
           </span>
         </div>

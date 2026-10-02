@@ -15,8 +15,7 @@ const INTRO = {
   ],
 };
 
-const FOOTNOTE =
-  "Accounts are created by your company administrator. No access — contact your organisation owner.";
+const FOOTNOTE = "Accounts are created by your company administrator. No access — contact your organisation owner.";
 
 function Live({ initialStep, initialError }: { initialStep: LoginStep; initialError?: string }) {
   const [step, setStep] = useState<LoginStep>(initialStep);

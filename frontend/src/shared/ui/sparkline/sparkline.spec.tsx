@@ -13,9 +13,7 @@ describe("Sparkline", () => {
 
   it("summarises the shape for a reader who cannot see it", () => {
     render(<Sparkline values={VALUES} label="Events" />);
-    expect(
-      screen.getByRole("img", { name: "Events: 6 buckets, peak 52 events" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Events: 6 buckets, peak 52 events" })).toBeInTheDocument();
   });
 
   it("takes the unit it is given", () => {

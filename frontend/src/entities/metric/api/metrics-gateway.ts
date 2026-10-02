@@ -20,7 +20,5 @@ const toSeries = (s: SeriesDto): MetricSeries => ({
 export async function fetchPanels(panels: PanelId[], range: MetricsRange): Promise<PanelSeries> {
   const query = new URLSearchParams([...panels.map((p) => ["panel", p]), ["range", range]]);
   const body = await httpGet<PanelsDto>(`/api/metrics/query?${query.toString()}`);
-  return Object.fromEntries(
-    Object.entries(body ?? {}).map(([id, series]) => [id, (series ?? []).map(toSeries)]),
-  );
+  return Object.fromEntries(Object.entries(body ?? {}).map(([id, series]) => [id, (series ?? []).map(toSeries)]));
 }

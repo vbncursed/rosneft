@@ -31,9 +31,7 @@ describe("passkeyMeta", () => {
   });
 
   it("adds the last use only when there was one", () => {
-    expect(passkeyMeta({ ...key, lastUsedAt: "2026-09-07T18:02:00Z" })).toBe(
-      "Added 12.08.2026 · last used 07.09.2026",
-    );
+    expect(passkeyMeta({ ...key, lastUsedAt: "2026-09-07T18:02:00Z" })).toBe("Added 12.08.2026 · last used 07.09.2026");
   });
 
   it("says nothing it cannot read", () => {

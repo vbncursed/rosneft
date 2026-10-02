@@ -38,8 +38,7 @@ const TITLE: Record<string, { h1: string; lede: string }> = {
 
 const REGENERATE = "/account/two-factor?mode=regenerate";
 
-const titleFor = (flow: Flow, stage: Stage) =>
-  stage === "codes" ? TITLE.codes! : TITLE[`${flow}/confirm`]!;
+const titleFor = (flow: Flow, stage: Stage) => (stage === "codes" ? TITLE.codes! : TITLE[`${flow}/confirm`]!);
 
 /** The wizard, props only: both flows, both stages, and the dead end at 422. */
 export function TwoFactorPage(s: TwoFactorPageProps) {
@@ -58,9 +57,7 @@ export function TwoFactorPage(s: TwoFactorPageProps) {
           >
             ← {s.exit.short}
           </a>
-          <p className="m-0 mt-4 font-mono text-[10px] uppercase tracking-[0.24em] text-accent">
-            Two-factor
-          </p>
+          <p className="m-0 mt-4 font-mono text-[10px] uppercase tracking-[0.24em] text-accent">Two-factor</p>
           <h1 className="m-0 mt-2.5 text-[30px] font-bold tracking-[-0.025em]">{h1}</h1>
           <p className="m-0 mt-[9px] max-w-[56ch] text-[13px] leading-[1.6] text-muted">{lede}</p>
         </div>
@@ -108,28 +105,23 @@ export function TwoFactorPage(s: TwoFactorPageProps) {
             <p className="m-0 font-mono text-[9px] uppercase tracking-[0.2em] text-ok">
               Step {s.flow === "enable" ? 3 : 2} · save these recovery codes
             </p>
-            <p className="m-0 mt-[9px] text-[15px] font-semibold">
-              Two-factor is on for {s.username}
-            </p>
+            <p className="m-0 mt-[9px] text-[15px] font-semibold">Two-factor is on for {s.username}</p>
             <p className="m-0 mt-[5px] max-w-[60ch] text-xs leading-[1.55] text-fg">
-              Each code works once and gets you in when your authenticator is lost. They are shown
-              only now — regenerating replaces every one of them.
+              Each code works once and gets you in when your authenticator is lost. They are shown only now —
+              regenerating replaces every one of them.
             </p>
           </div>
           <div className="flex flex-col gap-4 px-[26px] py-[22px]">
             <RecoveryCodes codes={s.codes} onConfirm={s.onDone} />
             <Callout tone="warn" size="lg" icon="info">
-              Leaving this screen without saving them means your only way back in is an
-              administrator reset.
+              Leaving this screen without saving them means your only way back in is an administrator reset.
             </Callout>
           </div>
         </section>
       ) : (
         <section className="overflow-hidden rounded-[14px] border border-accent-line bg-panel shadow-elevation">
           <div className="grid [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
-            {s.flow === "enable" ? (
-              <ScanPane secret={s.secret} otpauthUrl={s.otpauthUrl} />
-            ) : null}
+            {s.flow === "enable" ? <ScanPane secret={s.secret} otpauthUrl={s.otpauthUrl} /> : null}
             <ConfirmPane
               flow={s.flow}
               code={s.code}

@@ -19,11 +19,7 @@ describe("groupOf / actionOf", () => {
 
 describe("groupPermissions", () => {
   it("collects permissions under their prefix", () => {
-    const groups = groupPermissions([
-      { slug: "territory:read" },
-      { slug: "users:read" },
-      { slug: "territory:write" },
-    ]);
+    const groups = groupPermissions([{ slug: "territory:read" }, { slug: "users:read" }, { slug: "territory:write" }]);
 
     expect(groups).toEqual([
       { name: "territory", permissions: [{ slug: "territory:read" }, { slug: "territory:write" }] },

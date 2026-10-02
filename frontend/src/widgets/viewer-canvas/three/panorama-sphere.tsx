@@ -1,12 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
-import {
-  BackSide,
-  RepeatWrapping,
-  SRGBColorSpace,
-  Texture,
-  type Mesh,
-  type MeshBasicMaterial,
-} from "three";
+import { BackSide, RepeatWrapping, SRGBColorSpace, Texture, type Mesh, type MeshBasicMaterial } from "three";
 import type { Panorama } from "@/entities/panorama";
 
 interface PanoramaSphereProps {

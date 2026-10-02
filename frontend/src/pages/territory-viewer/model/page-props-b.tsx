@@ -203,11 +203,7 @@ export function uploadProps(p: PageParts): UploadModalProps | null {
 }
 
 /** Everything the two dialogs share; only the kind and the GPS box differ. */
-const common = (
-  territoryTitle: string,
-  form: PageParts["documents"]["upload"]["form"],
-  onClose: () => void,
-) => ({
+const common = (territoryTitle: string, form: PageParts["documents"]["upload"]["form"], onClose: () => void) => ({
   open: true,
   territoryTitle,
   upload: form.upload,

@@ -12,8 +12,7 @@ const job = (over: Partial<TargetJob> = {}): TargetJob => ({
   ...over,
 });
 
-const titleOf = (_kind: string, slug: string) =>
-  slug === "refinery-block-c" ? "Refinery Block C" : undefined;
+const titleOf = (_kind: string, slug: string) => (slug === "refinery-block-c" ? "Refinery Block C" : undefined);
 
 describe("jobPhrase", () => {
   it("lowers the stage label's first letter and keeps LOD's case", () => {
@@ -26,18 +25,12 @@ describe("jobPhrase", () => {
   });
 
   it("waits for a worker while pending", () => {
-    expect(jobPhrase(job({ status: "pending", stage: null, progress: null }))).toBe(
-      "waiting for a worker",
-    );
+    expect(jobPhrase(job({ status: "pending", stage: null, progress: null }))).toBe("waiting for a worker");
   });
 
   it("says where a failure stopped, or that it stopped before the first report", () => {
-    expect(jobPhrase(job({ status: "failed", stage: "compressing" }))).toBe(
-      "stopped while compressing textures",
-    );
-    expect(jobPhrase(job({ status: "failed", stage: null }))).toBe(
-      "stopped before the first report",
-    );
+    expect(jobPhrase(job({ status: "failed", stage: "compressing" }))).toBe("stopped while compressing textures");
+    expect(jobPhrase(job({ status: "failed", stage: null }))).toBe("stopped before the first report");
   });
 });
 
@@ -72,9 +65,7 @@ describe("toJobCard", () => {
   });
 
   it("maps failed with the worker's message, or the fallback sentence for an empty one", () => {
-    expect(toJobCard(job({ status: "failed", errorMessage: "ktx2: bad" }), titleOf).error).toBe(
-      "ktx2: bad",
-    );
+    expect(toJobCard(job({ status: "failed", errorMessage: "ktx2: bad" }), titleOf).error).toBe("ktx2: bad");
     expect(toJobCard(job({ status: "failed", errorMessage: "" }), titleOf).error).toBe(
       "The worker reported no message.",
     );
@@ -93,12 +84,7 @@ describe("sortJobs", () => {
       job({ slug: "a", status: "failed" }),
       job({ slug: "m" }),
     ]);
-    expect(out.map((j) => `${j.status}:${j.slug}`)).toEqual([
-      "running:m",
-      "pending:b",
-      "failed:a",
-      "failed:z",
-    ]);
+    expect(out.map((j) => `${j.status}:${j.slug}`)).toEqual(["running:m", "pending:b", "failed:a", "failed:z"]);
   });
 
   it("does not mutate its input", () => {

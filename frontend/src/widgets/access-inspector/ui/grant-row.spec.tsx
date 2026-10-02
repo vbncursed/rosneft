@@ -73,6 +73,11 @@ describe("GrantRow", () => {
 
   it("presses its remove control on pointer-down, and only when it can act", () => {
     render(<GrantRow grant={grant()} onRemove={vi.fn()} />);
-    expect(screen.getByRole("button", { name: "Remove k.petrov's access" })).toHaveClass("transition-[color,border-color,scale]", "duration-150", "ease-out", "enabled:active:scale-[0.97]");
+    expect(screen.getByRole("button", { name: "Remove k.petrov's access" })).toHaveClass(
+      "transition-[color,border-color,scale]",
+      "duration-150",
+      "ease-out",
+      "enabled:active:scale-[0.97]",
+    );
   });
 });

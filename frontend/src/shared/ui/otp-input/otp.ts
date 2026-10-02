@@ -19,5 +19,4 @@ export function clearDigitAt(value: string, index: number, length: number): stri
   return setDigitAt(value, index, "", length);
 }
 
-export const isComplete = (value: string, length: number) =>
-  value.length === length && !value.includes(" ");
+export const isComplete = (value: string, length: number) => value.length === length && !value.includes(" ");

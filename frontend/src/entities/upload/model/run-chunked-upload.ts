@@ -18,10 +18,7 @@ export type RunChunkedUploadOpts = {
  * Aborting via `signal` between chunks rejects rather than sending a doomed
  * PATCH; callers wire onStage/onProgress to their own UI.
  */
-export async function runChunkedUpload(
-  file: File,
-  opts: RunChunkedUploadOpts = {},
-): Promise<FinalizedBlob> {
+export async function runChunkedUpload(file: File, opts: RunChunkedUploadOpts = {}): Promise<FinalizedBlob> {
   const { onStage, onProgress, signal } = opts;
   onStage?.("initiating");
   const session = await initiateUpload(file.size, file.type || "application/zip");

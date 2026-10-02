@@ -33,10 +33,7 @@ describe("ReplaceSourcePage", () => {
       screen.getByRole("heading", { level: 1, name: "Swap the 3D source of Refinery Block C" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Replace source", { selector: "p" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "← Territory catalog" })).toHaveAttribute(
-      "href",
-      "/territories",
-    );
+    expect(screen.getByRole("link", { name: "← Territory catalog" })).toHaveAttribute("href", "/territories");
     expect(
       screen.getByText(
         "Upload a new ZIP (OBJ + MTL + textures). The mesh re-converts in place and the territory keeps its identity — every placed object stays anchored. Use this for an updated scan of the same site.",

@@ -7,7 +7,15 @@ import { ErrorState } from "./error-state";
 
 export default (
   <div className="p-6 flex flex-col gap-4">
-    <Card title="Users" actions={<Button variant="primary" size="sm"><Icon name="plus" size={12} />New user</Button>}>
+    <Card
+      title="Users"
+      actions={
+        <Button variant="primary" size="sm">
+          <Icon name="plus" size={12} />
+          New user
+        </Button>
+      }
+    >
       <p className="m-0 text-[13px] text-muted">Table rows go here.</p>
     </Card>
     <Card overline="Progress · upload">
@@ -17,12 +25,14 @@ export default (
       <EmptyState
         title="Catalog is empty"
         description="Upload your first territory."
-        action={<Button variant="primary" size="sm"><Icon name="plus" size={12} />Upload</Button>}
+        action={
+          <Button variant="primary" size="sm">
+            <Icon name="plus" size={12} />
+            Upload
+          </Button>
+        }
       />
-      <ErrorState
-        title="Could not load the journal"
-        detail="HTTP 503 · audit-service unavailable"
-      />
+      <ErrorState title="Could not load the journal" detail="HTTP 503 · audit-service unavailable" />
       <Card>
         <p className="m-0 text-[13px] font-semibold">Loading interface…</p>
         <ProgressBar className="mt-2.5" value={45} />
@@ -48,7 +58,9 @@ export default (
       footer="refinery-block-c-lod1.glb · last attempt 14:22"
       action={
         <>
-          <Button variant="primary" size="sm">Try again</Button>
+          <Button variant="primary" size="sm">
+            Try again
+          </Button>
           <Button size="sm">Load coarse LOD 2 instead</Button>
         </>
       }

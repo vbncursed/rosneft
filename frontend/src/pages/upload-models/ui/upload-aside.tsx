@@ -42,9 +42,7 @@ export function UploadAside({ current, checks, failedNames }: UploadAsideProps) 
       ) : null}
 
       <div className="flex flex-col gap-3 rounded-card border border-line bg-panel p-[18px]">
-        <p className="m-0 font-mono text-[10px] uppercase tracking-[0.2em] text-muted">
-          Before you submit
-        </p>
+        <p className="m-0 font-mono text-[10px] uppercase tracking-[0.2em] text-muted">Before you submit</p>
         <Checklist items={checks} label="Before you submit" />
       </div>
 

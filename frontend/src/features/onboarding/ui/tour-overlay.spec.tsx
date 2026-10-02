@@ -123,7 +123,10 @@ describe("TourOverlay", () => {
       "starting:opacity-0",
       "motion-reduce:transition-opacity",
     );
-    expect(screen.getByTestId("tour-halo")).toHaveClass("transition-[top,left,width,height]", "motion-reduce:transition-none");
+    expect(screen.getByTestId("tour-halo")).toHaveClass(
+      "transition-[top,left,width,height]",
+      "motion-reduce:transition-none",
+    );
     expect(screen.getByTestId("tour-card")).toHaveClass(
       "transition-[opacity,translate]",
       "starting:opacity-0",
@@ -146,10 +149,7 @@ describe("TourOverlay", () => {
       render(<TourOverlay tour={tour()} />);
       const dialog = screen.getByRole("dialog", { name: "Tour step 3 of 8" });
       expect(dialog).toHaveAttribute("aria-modal", "true");
-      expect(screen.getByText(/Frame the whole territory again/)).toHaveAttribute(
-        "aria-live",
-        "polite",
-      );
+      expect(screen.getByText(/Frame the whole territory again/)).toHaveAttribute("aria-live", "polite");
     });
 
     it("puts focus on Next as soon as the step is up", () => {
@@ -218,7 +218,17 @@ describe("TourOverlay", () => {
     expect(screen.getByTestId("tour-halo")).toHaveStyle({ top: "194px" });
 
     el.getBoundingClientRect = () =>
-      ({ top: 50, left: 20, width: 30, height: 30, right: 50, bottom: 80, x: 20, y: 50, toJSON: () => ({}) }) as DOMRect;
+      ({
+        top: 50,
+        left: 20,
+        width: 30,
+        height: 30,
+        right: 50,
+        bottom: 80,
+        x: 20,
+        y: 50,
+        toJSON: () => ({}),
+      }) as DOMRect;
     fireEvent.scroll(window);
     expect(screen.getByTestId("tour-halo")).toHaveStyle({ top: "44px" });
   });
@@ -236,7 +246,17 @@ describe("TourOverlay", () => {
     expect(dim().style.transition).toBe("");
 
     el.getBoundingClientRect = () =>
-      ({ top: 50, left: 20, width: 30, height: 30, right: 50, bottom: 80, x: 20, y: 50, toJSON: () => ({}) }) as DOMRect;
+      ({
+        top: 50,
+        left: 20,
+        width: 30,
+        height: 30,
+        right: 50,
+        bottom: 80,
+        x: 20,
+        y: 50,
+        toJSON: () => ({}),
+      }) as DOMRect;
     fireEvent.scroll(window);
     expect(halo().style.transition).toBe("none");
     expect(dim().style.transition).toBe("none");
@@ -294,7 +314,17 @@ describe("TourOverlay", () => {
     const panel = document.createElement("div");
     panel.style.overflow = "auto";
     panel.getBoundingClientRect = () =>
-      ({ top: 100, left: 1000, width: 300, height: 400, right: 1300, bottom: 500, x: 1000, y: 100, toJSON: () => ({}) }) as DOMRect;
+      ({
+        top: 100,
+        left: 1000,
+        width: 300,
+        height: 400,
+        right: 1300,
+        bottom: 500,
+        x: 1000,
+        y: 100,
+        toJSON: () => ({}),
+      }) as DOMRect;
     document.body.append(panel);
     anchors.push(panel);
     // A list three times the panel's height, starting inside it.
@@ -368,7 +398,17 @@ describe("TourOverlay", () => {
     const panel = document.createElement("div");
     panel.style.overflow = "auto";
     panel.getBoundingClientRect = () =>
-      ({ top: 100, left: 600, width: 400, height: 600, right: 1000, bottom: 700, x: 600, y: 100, toJSON: () => ({}) }) as DOMRect;
+      ({
+        top: 100,
+        left: 600,
+        width: 400,
+        height: 600,
+        right: 1000,
+        bottom: 700,
+        x: 600,
+        y: 100,
+        toJSON: () => ({}),
+      }) as DOMRect;
     document.body.append(panel);
     anchors.push(panel);
     panel.append(anchor("toggle-markers", { top: 150, left: 960, width: 30, height: 30 }));
@@ -387,7 +427,17 @@ describe("TourOverlay", () => {
     const main = document.createElement("div");
     main.style.overflow = "hidden";
     main.getBoundingClientRect = () =>
-      ({ top: 0, left: 0, width: 1024, height: 768, right: 1024, bottom: 768, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
+      ({
+        top: 0,
+        left: 0,
+        width: 1024,
+        height: 768,
+        right: 1024,
+        bottom: 768,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      }) as DOMRect;
     document.body.append(main);
     anchors.push(main);
     main.append(anchor("reset-camera", { top: 300, left: 700, width: 280, height: 20 }));
@@ -407,7 +457,17 @@ describe("TourOverlay", () => {
     panel.style.scrollPaddingTop = "26px";
     Object.defineProperty(panel, "scrollTop", { value: scrollTop });
     panel.getBoundingClientRect = () =>
-      ({ top: 100, left: 600, width: 400, height: 600, right: 1000, bottom: 700, x: 600, y: 100, toJSON: () => ({}) }) as DOMRect;
+      ({
+        top: 100,
+        left: 600,
+        width: 400,
+        height: 600,
+        right: 1000,
+        bottom: 700,
+        x: 600,
+        y: 100,
+        toJSON: () => ({}),
+      }) as DOMRect;
     document.body.append(panel);
     anchors.push(panel);
     panel.append(anchor("panorama-picker", { top: 50, left: 610, width: 380, height: 1200 }));
@@ -421,7 +481,17 @@ describe("TourOverlay", () => {
     const panel = document.createElement("div");
     panel.style.overflow = "auto";
     panel.getBoundingClientRect = () =>
-      ({ top: 100, left: 1000, width: 300, height: 400, right: 1300, bottom: 500, x: 1000, y: 100, toJSON: () => ({}) }) as DOMRect;
+      ({
+        top: 100,
+        left: 1000,
+        width: 300,
+        height: 400,
+        right: 1300,
+        bottom: 500,
+        x: 1000,
+        y: 100,
+        toJSON: () => ({}),
+      }) as DOMRect;
     document.body.append(panel);
     anchors.push(panel);
     panel.append(anchor("toggle-markers", { top: 900, left: 1010, width: 280, height: 20 }));

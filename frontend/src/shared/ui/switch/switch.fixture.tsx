@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { Switch } from "./switch";
 
-const KBD_G = (
-  <kbd className="rounded-[4px] border border-line-2 px-[5px] py-px text-fg">G</kbd>
-);
+const KBD_G = <kbd className="rounded-[4px] border border-line-2 px-[5px] py-px text-fg">G</kbd>;
 
 function Live() {
   const [on, setOn] = useState(true);

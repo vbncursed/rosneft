@@ -33,8 +33,7 @@ export function CreateUserDialog({ open, roles, busy = false, onClose, onCreate 
   const complete = email.trim() !== "" && username.trim() !== "" && password !== "";
   const rule = validatePassword(password);
 
-  const toggle = (slug: string) =>
-    setPicked((p) => (p.includes(slug) ? p.filter((s) => s !== slug) : [...p, slug]));
+  const toggle = (slug: string) => setPicked((p) => (p.includes(slug) ? p.filter((s) => s !== slug) : [...p, slug]));
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -92,18 +91,14 @@ export function CreateUserDialog({ open, roles, busy = false, onClose, onCreate 
               setPassword(next);
               reveal();
               void copyText(next).then((ok) =>
-                ok
-                  ? notify.success("Password copied")
-                  : notify.error("Could not copy — select it and copy by hand"),
+                ok ? notify.success("Password copied") : notify.error("Could not copy — select it and copy by hand"),
               );
             },
           }}
         />
         {roles.length > 0 ? (
           <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-            <legend className="mb-1 font-mono text-[9px] uppercase tracking-[0.2em] text-muted">
-              Roles
-            </legend>
+            <legend className="mb-1 font-mono text-[9px] uppercase tracking-[0.2em] text-muted">Roles</legend>
             {roles.map((role) => (
               <Checkbox
                 key={role.slug}

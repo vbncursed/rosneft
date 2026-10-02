@@ -63,9 +63,7 @@ export function AccessInspector({
     >
       <div className="flex items-start justify-between gap-3 border-b border-line bg-accent-soft p-4.5">
         <div className="min-w-0">
-          <p className="m-0 font-mono text-[9px] uppercase tracking-[0.2em] text-accent">
-            Manage access
-          </p>
+          <p className="m-0 font-mono text-[9px] uppercase tracking-[0.2em] text-accent">Manage access</p>
           <p className="m-0 mt-2 truncate text-base font-semibold text-fg">{territory.title}</p>
           <p className="m-0 mt-[3px] truncate font-mono text-[11px] text-muted">{territory.slug}</p>
         </div>
@@ -83,9 +81,7 @@ export function AccessInspector({
 
       <div className="flex flex-col gap-4.5 p-4.5">
         <div>
-          <p className="m-0 mb-2.5 font-mono text-[9px] uppercase tracking-[0.2em] text-muted">
-            Visibility
-          </p>
+          <p className="m-0 mb-2.5 font-mono text-[9px] uppercase tracking-[0.2em] text-muted">Visibility</p>
           {onVisibilityChange ? (
             <RadioCards
               label="Visibility"
@@ -127,9 +123,7 @@ export function AccessInspector({
                   Nobody can open this territory yet.
                 </p>
               ) : (
-                grants.map((grant) => (
-                  <GrantRow key={grant.userId} grant={grant} onRemove={onRemoveGrant} />
-                ))
+                grants.map((grant) => <GrantRow key={grant.userId} grant={grant} onRemove={onRemoveGrant} />)
               )}
             </div>
           </div>
@@ -142,12 +136,7 @@ export function AccessInspector({
         ) : null}
 
         <div className="flex gap-2 border-t border-line pt-3.5">
-          <Button
-            size="sm"
-            className="flex-1 justify-center"
-            onClick={onCancel}
-            disabled={!dirty || saving}
-          >
+          <Button size="sm" className="flex-1 justify-center" onClick={onCancel} disabled={!dirty || saving}>
             Cancel
           </Button>
           <Button

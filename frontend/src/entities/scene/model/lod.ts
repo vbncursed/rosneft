@@ -39,10 +39,7 @@ export function pickLod(chain: LodArtifact[], preferred = 0): LodArtifact | null
  * the chain is empty.
  */
 export function pickCoarsest(chain: LodArtifact[]): LodArtifact | null {
-  return chain.reduce<LodArtifact | null>(
-    (best, a) => (best === null || a.lod > best.lod ? a : best),
-    null,
-  );
+  return chain.reduce<LodArtifact | null>((best, a) => (best === null || a.lod > best.lod ? a : best), null);
 }
 
 /**

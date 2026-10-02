@@ -9,8 +9,7 @@ export function validatePassword(v: string): string | null {
   if (n < PASSWORD_MIN || n > PASSWORD_MAX) {
     return `Password must be ${PASSWORD_MIN}–${PASSWORD_MAX} characters`;
   }
-  const ok =
-    /\p{Lu}/u.test(v) && /\p{Ll}/u.test(v) && /\p{Nd}/u.test(v) && /[^\p{Lu}\p{Ll}\p{Nd}]/u.test(v);
+  const ok = /\p{Lu}/u.test(v) && /\p{Ll}/u.test(v) && /\p{Nd}/u.test(v) && /[^\p{Lu}\p{Ll}\p{Nd}]/u.test(v);
   if (!ok) {
     return "Password needs an upper- and lower-case letter, a digit, and a special character";
   }

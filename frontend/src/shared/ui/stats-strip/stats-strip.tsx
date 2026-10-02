@@ -17,7 +17,13 @@ export type StatsStripProps = {
  * is the `alert`, and two alerts meant a screen reader read the strip and the
  * card back to back; the strip is context for the card, not a second warning.
  */
-export function StatsStrip({ items, tone = "neutral", accentLast = false, label = "Scene stats", className }: StatsStripProps) {
+export function StatsStrip({
+  items,
+  tone = "neutral",
+  accentLast = false,
+  label = "Scene stats",
+  className,
+}: StatsStripProps) {
   const last = items.length - 1;
   return (
     <div
@@ -31,13 +37,7 @@ export function StatsStrip({ items, tone = "neutral", accentLast = false, label 
     >
       {items.map((item, i) => {
         const tint =
-          i === last && accentLast
-            ? "text-accent"
-            : i === 0
-              ? tone === "bad"
-                ? "text-bad"
-                : "text-fg"
-              : undefined;
+          i === last && accentLast ? "text-accent" : i === 0 ? (tone === "bad" ? "text-bad" : "text-fg") : undefined;
         return (
           <span key={`${i}-${item}`} className={tint}>
             {item}

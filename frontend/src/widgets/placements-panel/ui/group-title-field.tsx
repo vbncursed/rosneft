@@ -18,7 +18,15 @@ export type GroupTitleFieldProps = {
 };
 
 /** A group title typed in place — New group's and Rename's one field. Enter saves, Escape leaves. */
-export function GroupTitleField({ label, submitLabel, initial = "", busy, compact, onSubmit, onCancel }: GroupTitleFieldProps) {
+export function GroupTitleField({
+  label,
+  submitLabel,
+  initial = "",
+  busy,
+  compact,
+  onSubmit,
+  onCancel,
+}: GroupTitleFieldProps) {
   const [title, setTitle] = useState(initial);
   const trimmed = title.trim();
   return (
@@ -41,7 +49,15 @@ export function GroupTitleField({ label, submitLabel, initial = "", busy, compac
         compact={compact}
         fieldClassName="min-w-0 flex-1"
       />
-      <Button shape="icon" size="xs" variant="primary" type="submit" aria-label={submitLabel} loading={busy} disabled={!trimmed}>
+      <Button
+        shape="icon"
+        size="xs"
+        variant="primary"
+        type="submit"
+        aria-label={submitLabel}
+        loading={busy}
+        disabled={!trimmed}
+      >
         <Icon name="check" size={12} />
       </Button>
       <Button shape="icon" size="xs" variant="ghost" aria-label="Cancel" onClick={onCancel}>

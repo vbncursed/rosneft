@@ -17,11 +17,7 @@ export async function createPlacementGroup(territorySlug: string, title: string)
   return toPlacementGroup(await httpPost<PlacementGroupDto>(base(territorySlug), { title }));
 }
 
-export async function renamePlacementGroup(
-  territorySlug: string,
-  id: number,
-  title: string,
-): Promise<PlacementGroup> {
+export async function renamePlacementGroup(territorySlug: string, id: number, title: string): Promise<PlacementGroup> {
   return toPlacementGroup(await httpPatch<PlacementGroupDto>(`${base(territorySlug)}/${id}`, { title }));
 }
 

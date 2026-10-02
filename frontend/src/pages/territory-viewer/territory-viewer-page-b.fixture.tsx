@@ -127,9 +127,7 @@ const uploading = (p: PageParts, state: FileUploadState | null): PageParts => {
       upload: {
         ...q.panoramas.upload,
         open: true,
-        form: state
-          ? { ...form, upload: state, title: "Pump house, south wall" }
-          : form,
+        form: state ? { ...form, upload: state, title: "Pump house, south wall" } : form,
       },
     },
   };

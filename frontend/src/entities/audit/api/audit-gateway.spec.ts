@@ -52,12 +52,17 @@ describe("audit gateway", () => {
 
   it("lists actors with an empty login for a deleted account", async () => {
     fetchMock.mockResolvedValueOnce(json([{ id: "u-1", login: "a.ivanova" }, { id: "u-2" }]));
-    await expect(listAuditActors()).resolves.toEqual([{ id: "u-1", login: "a.ivanova" }, { id: "u-2", login: "" }]);
+    await expect(listAuditActors()).resolves.toEqual([
+      { id: "u-1", login: "a.ivanova" },
+      { id: "u-2", login: "" },
+    ]);
     expect(request()).toEqual({ url: "/api/audit/actors", method: "GET" });
   });
 
   it("exports the same filters as CSV, never the cursor, and refuses with the status", async () => {
-    fetchMock.mockResolvedValueOnce(new Response("at,actor\n", { status: 200, headers: { "Content-Type": "text/csv" } }));
+    fetchMock.mockResolvedValueOnce(
+      new Response("at,actor\n", { status: 200, headers: { "Content-Type": "text/csv" } }),
+    );
     const blob = await exportAuditCsv({ entity: "model" });
     expect(request()).toEqual({ url: "/api/audit.csv?entity=model", method: "GET" });
     expect(await blob.text()).toBe("at,actor\n");

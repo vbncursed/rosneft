@@ -28,11 +28,7 @@ const seenThisSession = new Set<string>();
 // rule needs no permission checks here.
 //
 // `ready` gates the start: the viewer tour is ready once the scene is up.
-export function useTour(
-  id: string,
-  steps: TourStep[],
-  { seen, ready }: { seen: boolean; ready: boolean },
-): Tour {
+export function useTour(id: string, steps: TourStep[], { seen, ready }: { seen: boolean; ready: boolean }): Tour {
   const alreadySeen = seen || seenThisSession.has(id);
   const [state, setState] = useState<TourState>(() => (ready && !alreadySeen ? start(steps) : IDLE));
   const wasActive = useRef(false);

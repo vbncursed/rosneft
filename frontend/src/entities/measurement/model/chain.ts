@@ -115,11 +115,7 @@ export function decodeSegmentId(segmentId: number): {
 // or the reopened closed chain — keeps its `serverId`: it is the same row,
 // rewritten, and reads "saved". The other part is a new, local chain, and a
 // saved chain with no part left is gone.
-export function removeSegment(
-  chain: Chain,
-  segmentIndex: number,
-  nextIds: [number, number],
-): Chain[] {
+export function removeSegment(chain: Chain, segmentIndex: number, nextIds: [number, number]): Chain[] {
   const n = chain.points.length;
   if (segmentIndex < 0) return [chain];
 
@@ -129,10 +125,7 @@ export function removeSegment(
     // A closed chain's segment i goes from points[i] to points[(i+1)%n].
     // Removing segment i means points[i+1..n-1, 0..i] become the new
     // open chain — points[i+1] is the new start, points[i] is the new end.
-    const rotated = [
-      ...chain.points.slice(segmentIndex + 1),
-      ...chain.points.slice(0, segmentIndex + 1),
-    ];
+    const rotated = [...chain.points.slice(segmentIndex + 1), ...chain.points.slice(0, segmentIndex + 1)];
     return [{ ...survivorOf(chain), id: nextIds[0], points: rotated, closed: false }];
   }
 
@@ -148,7 +141,5 @@ export function removeSegment(
 }
 
 function survivorOf(chain: Chain): Pick<Chain, "serverId" | "sync"> {
-  return chain.serverId == null
-    ? { sync: "local" }
-    : { serverId: chain.serverId, sync: "saved" };
+  return chain.serverId == null ? { sync: "local" } : { serverId: chain.serverId, sync: "saved" };
 }

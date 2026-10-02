@@ -1,13 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { permissionsQuery, type Permission } from "@/entities/permission";
-import {
-  createRole,
-  deleteRole,
-  rolesQuery,
-  updateRole,
-  type Role,
-} from "@/entities/role";
+import { createRole, deleteRole, rolesQuery, updateRole, type Role } from "@/entities/role";
 import { meQuery, usersQuery, type User } from "@/entities/user";
 import { messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
@@ -78,12 +72,9 @@ export function useRoles(): RolesState {
   // the map holds only what somebody actually edited.
   const draft = selected ? (drafts[selected.slug] ?? saved(selected)) : null;
   const edit = (change: (d: Draft) => Draft) =>
-    selected &&
-    setDrafts((all) => ({ ...all, [selected.slug]: change(all[selected.slug] ?? saved(selected)) }));
+    selected && setDrafts((all) => ({ ...all, [selected.slug]: change(all[selected.slug] ?? saved(selected)) }));
   const dirty =
-    !!selected &&
-    !!draft &&
-    (draft.title !== selected.title || !sameSet(draft.granted, selected.permissionSlugs));
+    !!selected && !!draft && (draft.title !== selected.title || !sameSet(draft.granted, selected.permissionSlugs));
   const refresh = () => client.invalidateQueries({ queryKey: ["roles"] });
   const fail = (err: unknown) => notify.error(messageOf(err));
 
@@ -160,15 +151,12 @@ export function useRoles(): RolesState {
     toggle: (slug) =>
       edit((d) => ({
         ...d,
-        granted: d.granted.includes(slug)
-          ? d.granted.filter((s) => s !== slug)
-          : [...d.granted, slug],
+        granted: d.granted.includes(slug) ? d.granted.filter((s) => s !== slug) : [...d.granted, slug],
       })),
     rename: (title) => edit((d) => ({ ...d, title })),
     // Forgetting this role's draft is what makes it clean again; the others
     // are left alone.
-    reset: () =>
-      selected && setDrafts(({ [selected.slug]: _dropped, ...rest }) => rest),
+    reset: () => selected && setDrafts(({ [selected.slug]: _dropped, ...rest }) => rest),
     // Nothing changed, nothing to send — and nothing to report as saved.
     save: () => dirty && saving.mutate(),
     saving: saving.isPending,

@@ -1,7 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { PIPELINE, pipelineMeta, pipelineSteps, stepIndexOf } from "./pipeline";
 
-const TOKENS = ["fetching", "extracting", "parsing", "encoding", "compressing", "lod-0", "lod-1", "lod-2", "lod-7", "registering"];
+const TOKENS = [
+  "fetching",
+  "extracting",
+  "parsing",
+  "encoding",
+  "compressing",
+  "lod-0",
+  "lod-1",
+  "lod-2",
+  "lod-7",
+  "registering",
+];
 
 describe("stepIndexOf", () => {
   it("maps every worker token onto its step, every lod-N onto the LOD step", () => {

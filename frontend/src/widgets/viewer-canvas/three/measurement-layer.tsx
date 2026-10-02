@@ -73,8 +73,7 @@ function MeasurementLayerImpl({
             {chain.points.map((p, idx) => {
               // Active chain's first vertex (when there are at least
               // two points to close into a loop) becomes the closer.
-              const isCloser =
-                isActive && idx === 0 && chain.points.length >= 2 && !chain.closed;
+              const isCloser = isActive && idx === 0 && chain.points.length >= 2 && !chain.closed;
               return (
                 <PointMarker
                   key={idx}

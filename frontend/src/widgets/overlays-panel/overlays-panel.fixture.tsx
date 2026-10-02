@@ -31,13 +31,7 @@ function Stage({ children }: { children: ReactNode }) {
   return <div className="relative h-[700px] rounded-card bg-panel-2">{children}</div>;
 }
 
-function Live({
-  initial,
-  initialCollapsed = false,
-}: {
-  initial: OverlaysTab;
-  initialCollapsed?: boolean;
-}) {
+function Live({ initial, initialCollapsed = false }: { initial: OverlaysTab; initialCollapsed?: boolean }) {
   const [tab, setTab] = useState<OverlaysTab>(initial);
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   return (

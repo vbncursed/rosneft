@@ -18,15 +18,7 @@ const ROW: PanoramaRowView = {
 };
 
 const row = (over: Partial<PanoramaRowView> = {}, handlers: Partial<Parameters<typeof PanoramaRow>[0]> = {}) =>
-  render(
-    <PanoramaRow
-      row={{ ...ROW, ...over }}
-      onEnter={vi.fn()}
-      onExit={vi.fn()}
-      onEdit={vi.fn()}
-      {...handlers}
-    />,
-  );
+  render(<PanoramaRow row={{ ...ROW, ...over }} onEnter={vi.fn()} onExit={vi.fn()} onEdit={vi.fn()} {...handlers} />);
 
 describe("PanoramaRow", () => {
   it("shows the thumbnail at its own size, and does not pull it until it is looked at", () => {
@@ -92,9 +84,7 @@ describe("PanoramaRow", () => {
 
   it("points at no hint once the anchor is calibrated", () => {
     row();
-    expect(
-      screen.getByRole("button", { name: /Show in this panorama/ }).getAttribute("aria-describedby"),
-    ).toBeNull();
+    expect(screen.getByRole("button", { name: /Show in this panorama/ }).getAttribute("aria-describedby")).toBeNull();
   });
 
   it("enters a calibrated panorama by id", async () => {
@@ -106,9 +96,7 @@ describe("PanoramaRow", () => {
 
   it("names the enter button after its panorama, so two rows differ to a reader", () => {
     row();
-    expect(
-      screen.getByRole("button", { name: `${SHOW_IN}: Control room, north door` }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: `${SHOW_IN}: Control room, north door` })).toBeInTheDocument();
   });
 
   it("offers the way out of the active row, on the accent ground", async () => {
@@ -144,7 +132,15 @@ describe("PanoramaRow", () => {
     expect(eye).toHaveAttribute("aria-pressed", "false");
     await userEvent.click(eye);
     expect(onHide).toHaveBeenCalledWith(7, true);
-    rerender(<PanoramaRow row={{ ...ROW, canEdit: false }} onEnter={vi.fn()} onExit={vi.fn()} onEdit={vi.fn()} onHide={onHide} />);
+    rerender(
+      <PanoramaRow
+        row={{ ...ROW, canEdit: false }}
+        onEnter={vi.fn()}
+        onExit={vi.fn()}
+        onEdit={vi.fn()}
+        onHide={onHide}
+      />,
+    );
     expect(screen.queryByRole("button", { name: /^Hide panorama/ })).toBeNull();
   });
 
@@ -170,12 +166,23 @@ describe("PanoramaRow", () => {
     const { rerender } = row({ hidden: true });
     const note = screen.getByText(HIDDEN_NOTE);
     expect(note).toHaveClass("sr-only");
-    expect(screen.getByRole("button", { name: `${SHOW_IN}: Control room, north door` }).getAttribute("aria-describedby")).toBe(note.id);
+    expect(
+      screen.getByRole("button", { name: `${SHOW_IN}: Control room, north door` }).getAttribute("aria-describedby"),
+    ).toBe(note.id);
     rerender(
-      <PanoramaRow row={{ ...ROW, canEdit: true }} phaseHidden onEnter={vi.fn()} onExit={vi.fn()} onEdit={vi.fn()} onHide={vi.fn()} />,
+      <PanoramaRow
+        row={{ ...ROW, canEdit: true }}
+        phaseHidden
+        onEnter={vi.fn()}
+        onExit={vi.fn()}
+        onEdit={vi.fn()}
+        onHide={vi.fn()}
+      />,
     );
     const phaseNote = screen.getByText(HIDDEN_NOTE);
-    expect(screen.getByRole("button", { name: `${SHOW_IN}: Control room, north door` }).getAttribute("aria-describedby")).toBe(phaseNote.id);
+    expect(
+      screen.getByRole("button", { name: `${SHOW_IN}: Control room, north door` }).getAttribute("aria-describedby"),
+    ).toBe(phaseNote.id);
     expect(screen.getByRole("button", { name: /^Hide panorama/ })).toHaveAttribute("aria-pressed", "false");
   });
 

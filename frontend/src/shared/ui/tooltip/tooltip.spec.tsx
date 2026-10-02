@@ -43,7 +43,10 @@ function stubAnimate() {
 // jsdom lays nothing out: the trigger gets `box`, the tooltip 10 px per character.
 function stubRects(box: { top: number; left: number; width: number; height: number }) {
   vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
-    const r = this.getAttribute("role") === "tooltip" ? { ...box, width: (this.textContent?.length ?? 0) * 10, height: 20 } : box;
+    const r =
+      this.getAttribute("role") === "tooltip"
+        ? { ...box, width: (this.textContent?.length ?? 0) * 10, height: 20 }
+        : box;
     return { ...r, x: r.left, y: r.top, right: r.left + r.width, bottom: r.top + r.height, toJSON: () => r } as DOMRect;
   });
 }

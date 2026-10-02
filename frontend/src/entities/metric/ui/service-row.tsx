@@ -26,7 +26,11 @@ export function ServiceRow({ service, selected = false, onSelect }: ServiceRowPr
       aria-label={service.name}
       className={cx(
         "relative flex cursor-pointer items-center gap-3.5 overflow-hidden rounded-[11px] border py-3.5 pl-4.5 pr-4 transition-[color,background-color,border-color,scale] duration-150 ease-out active:scale-[0.99]",
-        down ? "border-bad bg-bad-soft" : selected ? "border-accent bg-accent-soft" : "border-line bg-panel hover:border-line-2",
+        down
+          ? "border-bad bg-bad-soft"
+          : selected
+            ? "border-accent bg-accent-soft"
+            : "border-line bg-panel hover:border-line-2",
       )}
     >
       <span aria-hidden="true" className={cx("absolute inset-y-0 left-0 w-[3px]", RAIL[service.state])} />
@@ -34,13 +38,7 @@ export function ServiceRow({ service, selected = false, onSelect }: ServiceRowPr
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-2.5">
           <span className="min-w-0 truncate font-mono text-[13px] text-fg">{service.name}</span>
-          <Badge
-            shape="tag"
-            size="sm"
-            fill="outline"
-            tone={SERVICE_TONE[service.state]}
-            className="tracking-[0.12em]"
-          >
+          <Badge shape="tag" size="sm" fill="outline" tone={SERVICE_TONE[service.state]} className="tracking-[0.12em]">
             {service.state}
           </Badge>
         </div>
@@ -59,12 +57,7 @@ export function ServiceRow({ service, selected = false, onSelect }: ServiceRowPr
       <div className="flex shrink-0 items-center gap-3.5">
         {/* A service that is not answering has no numbers worth reading; the
             dash is the honest reading, and it is dimmed rather than coloured. */}
-        <span
-          className={cx(
-            "w-14 text-right font-mono text-xs",
-            scraped ? "text-fg" : "text-dim",
-          )}
-        >
+        <span className={cx("w-14 text-right font-mono text-xs", scraped ? "text-fg" : "text-dim")}>
           {service.latency}
         </span>
         <span className="w-13 text-right font-mono text-[11px] text-dim">{service.errors}</span>

@@ -19,8 +19,7 @@ const PROPS: CalibrationCardProps = {
   onExit: vi.fn(),
 };
 
-const calibration = (over: Partial<CalibrationCardProps> = {}) =>
-  render(<CalibrationCard {...PROPS} {...over} />);
+const calibration = (over: Partial<CalibrationCardProps> = {}) => render(<CalibrationCard {...PROPS} {...over} />);
 
 describe("CalibrationCard", () => {
   it("prints the ghosted photo's opacity", () => {
@@ -93,10 +92,7 @@ describe("CalibrationCard", () => {
 
   it("presses the nudge arrows", () => {
     calibration();
-    expect(screen.getByRole("button", { name: "Increase X" })).toHaveClass(
-      "active:scale-[0.97]",
-      "ease-out",
-    );
+    expect(screen.getByRole("button", { name: "Increase X" })).toHaveClass("active:scale-[0.97]", "ease-out");
   });
 });
 

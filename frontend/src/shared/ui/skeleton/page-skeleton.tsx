@@ -31,9 +31,7 @@ const BODY: Record<PageSkeletonShape, () => ReactNode> = {
   // The console pages' own tile template: a wider first tile, one column below lg.
   console: () => (
     <>
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]">
-        {blocks(4, "126px")}
-      </div>
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]">{blocks(4, "126px")}</div>
       <Skeleton height="44px" rounded="md" />
       <div className="grid gap-3 md:grid-cols-2">{blocks(6, "96px")}</div>
     </>

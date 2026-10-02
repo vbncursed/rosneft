@@ -2,10 +2,7 @@ import { useThree } from "@react-three/fiber";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { useLayoutEffect, type RefObject } from "react";
 import { BoxGeometry, Mesh, MeshBasicMaterial, Object3D, Vector3, type Camera } from "three";
-import type {
-  OrbitControls as OrbitControlsImpl,
-  TransformControls as TransformControlsImpl,
-} from "three-stdlib";
+import type { OrbitControls as OrbitControlsImpl, TransformControls as TransformControlsImpl } from "three-stdlib";
 import { describe, expect, it, vi } from "vitest";
 import type { GizmoMode } from "@/features/viewer-mode";
 import { useGizmoEvents } from "./use-gizmo-events";
@@ -48,7 +45,16 @@ type FakeOrbit = {
   update?: () => void;
 };
 
-function Harness({ tc, target, selectedId = 5, mode = "translate", snapEnabled = false, onCommit = vi.fn(), orbit, probe }: Case) {
+function Harness({
+  tc,
+  target,
+  selectedId = 5,
+  mode = "translate",
+  snapEnabled = false,
+  onCommit = vi.fn(),
+  orbit,
+  probe,
+}: Case) {
   const set = useThree((s) => s.set);
   const camera = useThree((s) => s.camera);
   useLayoutEffect(() => {
@@ -103,7 +109,12 @@ describe("useGizmoEvents", () => {
       probe.camera!.position.x += 5;
       target.x += 5;
     });
-    const { orbit } = await mount({ tc, target: at(0, 5, 0), probe, orbit: { enabled: true, enableDamping: true, target, update } });
+    const { orbit } = await mount({
+      tc,
+      target: at(0, 5, 0),
+      probe,
+      orbit: { enabled: true, enableDamping: true, target, update },
+    });
     const before = probe.camera!.position.toArray();
     tc.emit("dragging-changed", { value: true });
     expect(orbit.update).toHaveBeenCalledOnce();

@@ -17,10 +17,7 @@ describe("ConsoleNav", () => {
 
   it("marks the open section as the current page", () => {
     render(<ConsoleNav items={ITEMS} active="roles" backHref="/" />);
-    expect(screen.getByRole("link", { name: "Roles & Permissions" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+    expect(screen.getByRole("link", { name: "Roles & Permissions" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "Users" })).not.toHaveAttribute("aria-current");
   });
 
@@ -32,10 +29,7 @@ describe("ConsoleNav", () => {
 
   it("offers the way back out", () => {
     render(<ConsoleNav items={ITEMS} active="users" backHref="/territories" />);
-    expect(screen.getByRole("link", { name: "← Back to site" })).toHaveAttribute(
-      "href",
-      "/territories",
-    );
+    expect(screen.getByRole("link", { name: "← Back to site" })).toHaveAttribute("href", "/territories");
   });
 
   it("takes a different label for the way back", () => {

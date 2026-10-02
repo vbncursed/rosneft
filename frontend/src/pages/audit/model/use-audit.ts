@@ -96,9 +96,7 @@ export function useAudit(): AuditState {
     entries,
     refs,
     actors: actors.data ?? [],
-    window: window.data
-      ? { entries: window.data.entries, capped: window.data.entries.length >= WINDOW_LIMIT }
-      : null,
+    window: window.data ? { entries: window.data.entries, capped: window.data.entries.length >= WINDOW_LIMIT } : null,
     query,
     setQuery,
     range,
@@ -108,11 +106,7 @@ export function useAudit(): AuditState {
     backwardsRange: backwards,
     selected,
     select: setSelectedId,
-    live:
-      (journal.data?.pages.length ?? 0) <= 1 &&
-      !journal.isPlaceholderData &&
-      unknownActor === null &&
-      !backwards,
+    live: (journal.data?.pages.length ?? 0) <= 1 && !journal.isPlaceholderData && unknownActor === null && !backwards,
     ...(journal.hasNextPage ? { loadOlder: () => void journal.fetchNextPage() } : {}),
     loadingOlder: journal.isFetchingNextPage,
     exportCsv: () => exporting.mutate(),

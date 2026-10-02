@@ -25,7 +25,10 @@ const me: Principal = {
 // their outlet. Every other request hangs, so no screen's query can fail.
 beforeEach(() => {
   markAuthed();
-  vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => new Promise(() => {})),
+  );
 });
 afterEach(() => {
   clearAuthed();
@@ -50,9 +53,7 @@ describe("router", () => {
   // second <main>, brand and theme toggle.
   it.each(["/console/nope", "/territories/a/b"])("renders the 404 bare at %s", async (path) => {
     renderAt(path);
-    expect(
-      await screen.findByRole("heading", { level: 1, name: "This page doesn't exist" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "This page doesn't exist" })).toBeInTheDocument();
     expect(screen.getAllByRole("main")).toHaveLength(1);
     expect(screen.getByRole("main")).toContainElement(screen.getByRole("heading", { level: 1 }));
   });
@@ -100,9 +101,7 @@ describe("router", () => {
 
     it("keeps an enrolled session on the done card", async () => {
       renderAt("/two-factor-required?stage=done");
-      expect(
-        await screen.findByRole("heading", { level: 1, name: "You're all set" }),
-      ).toBeInTheDocument();
+      expect(await screen.findByRole("heading", { level: 1, name: "You're all set" })).toBeInTheDocument();
     });
 
     // A session that owes a second factor can open nothing but the gate and the

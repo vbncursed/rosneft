@@ -11,11 +11,7 @@ import {
 } from "@/entities/measurement";
 import { HttpError, messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
-import {
-  useMeasurementTool,
-  type MeasurementIO,
-  type MeasurementTransition,
-} from "./use-measurement-tool";
+import { useMeasurementTool, type MeasurementIO, type MeasurementTransition } from "./use-measurement-tool";
 
 type Args = {
   slug: string;
@@ -34,8 +30,7 @@ const retry = (run: () => void) => ({ label: "Retry", run });
 const gone = (e: unknown) => e instanceof HttpError && e.status === 404;
 
 /** A save is repeated only for the chain it failed on, untouched since. */
-const stillFailed = (ctx: Ctx, id: number) =>
-  ctx.read().chains.find((c) => c.id === id)?.sync === "failed";
+const stillFailed = (ctx: Ctx, id: number) => ctx.read().chains.find((c) => c.id === id)?.sync === "failed";
 
 async function save(ctx: Ctx, op: Extract<SyncOp, { kind: "create" | "update" }>): Promise<void> {
   const { slug, dispatch } = ctx;
@@ -43,9 +38,7 @@ async function save(ctx: Ctx, op: Extract<SyncOp, { kind: "create" | "update" }>
   const body = { points: op.points, closed: op.closed };
   try {
     const row =
-      op.kind === "create"
-        ? await createMeasurement(slug, body)
-        : await updateMeasurement(slug, op.serverId, body);
+      op.kind === "create" ? await createMeasurement(slug, body) : await updateMeasurement(slug, op.serverId, body);
     dispatch({ type: "saved", id: op.id, serverId: row.serverId });
     ctx.onChanged();
   } catch (e) {

@@ -24,10 +24,7 @@ describe("PasswordField", () => {
     expect(toggle).toHaveAttribute("aria-pressed", "false");
 
     await userEvent.click(toggle);
-    expect(screen.getByRole("button", { name: "Hide password" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    expect(screen.getByRole("button", { name: "Hide password" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("keeps the typed value across a toggle", async () => {
@@ -49,11 +46,7 @@ describe("PasswordField", () => {
 
   it("hands the action a reveal callback that flips the input to text", async () => {
     render(
-      <PasswordField
-        label="Password"
-        defaultValue="x"
-        action={{ label: "Generate", onClick: (reveal) => reveal() }}
-      />,
+      <PasswordField label="Password" defaultValue="x" action={{ label: "Generate", onClick: (reveal) => reveal() }} />,
     );
     expect(input()).toHaveAttribute("type", "password");
 

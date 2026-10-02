@@ -30,17 +30,29 @@ function jpegWithGps(f: Fixture): Uint8Array {
   const entries: { tag: number; type: number; count: number; inline?: number; block?: number }[] = [];
 
   if (f.latRef !== undefined) entries.push({ tag: 0x0001, type: 2, count: 2, inline: f.latRef.charCodeAt(0) });
-  if (f.lat) { entries.push({ tag: 0x0002, type: 5, count: 3, block: blocks.length }); blocks.push(f.lat); }
+  if (f.lat) {
+    entries.push({ tag: 0x0002, type: 5, count: 3, block: blocks.length });
+    blocks.push(f.lat);
+  }
   if (f.lonRef !== undefined) entries.push({ tag: 0x0003, type: 2, count: 2, inline: f.lonRef.charCodeAt(0) });
-  if (f.lon) { entries.push({ tag: 0x0004, type: 5, count: 3, block: blocks.length }); blocks.push(f.lon); }
+  if (f.lon) {
+    entries.push({ tag: 0x0004, type: 5, count: 3, block: blocks.length });
+    blocks.push(f.lon);
+  }
   if (f.altRef !== undefined) entries.push({ tag: 0x0005, type: 1, count: 1, inline: f.altRef });
-  if (f.alt) { entries.push({ tag: 0x0006, type: 5, count: 1, block: blocks.length }); blocks.push([f.alt]); }
+  if (f.alt) {
+    entries.push({ tag: 0x0006, type: 5, count: 1, block: blocks.length });
+    blocks.push([f.alt]);
+  }
 
   const GPS_IFD = 26;
   const dataStart = GPS_IFD + 2 + entries.length * 12 + 4;
   const blockAt: number[] = [];
   let cursor = dataStart;
-  for (const b of blocks) { blockAt.push(cursor); cursor += b.length * 8; }
+  for (const b of blocks) {
+    blockAt.push(cursor);
+    cursor += b.length * 8;
+  }
 
   const tiff = new DataView(new ArrayBuffer(cursor));
   tiff.setUint16(0, le ? 0x4949 : 0x4d4d);
@@ -84,8 +96,10 @@ function jpegWithGps(f: Fixture): Uint8Array {
 }
 
 const MOSCOW: Fixture = {
-  lat: dms(55, 45, 21), latRef: "N",
-  lon: dms(37, 37, 4), lonRef: "E",
+  lat: dms(55, 45, 21),
+  latRef: "N",
+  lon: dms(37, 37, 4),
+  lonRef: "E",
 };
 
 test("reads latitude and longitude as decimal degrees", () => {
@@ -118,7 +132,16 @@ test("altitude reference 1 means below sea level", () => {
 });
 
 test("a zero denominator reads as 0 instead of Infinity or NaN", () => {
-  const fix = readExifGps(jpegWithGps({ ...MOSCOW, lat: [[55, 1], [45, 0], [0, 1]] }));
+  const fix = readExifGps(
+    jpegWithGps({
+      ...MOSCOW,
+      lat: [
+        [55, 1],
+        [45, 0],
+        [0, 1],
+      ],
+    }),
+  );
   assert.ok(fix !== null && Number.isFinite(fix.lat));
   assert.equal(fix.lat, 55);
 });

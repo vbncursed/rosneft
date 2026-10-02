@@ -23,5 +23,4 @@ export function lodLabel(artifacts: LodSummary[]): string {
   return lo === hi ? `LOD ${lo}` : `LOD ${lo}-${hi}`;
 }
 
-export const totalSize = (artifacts: LodSummary[]): number =>
-  artifacts.reduce((sum, a) => sum + a.size, 0);
+export const totalSize = (artifacts: LodSummary[]): number => artifacts.reduce((sum, a) => sum + a.size, 0);

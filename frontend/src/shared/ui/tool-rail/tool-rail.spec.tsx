@@ -6,9 +6,21 @@ import { ToolRail } from "./tool-rail";
 import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const tools = (onReset = vi.fn(), onMeasure = vi.fn()) => [
-  { key: "reset", glyph: <Icon name="reset" size={15} />, name: "Reset camera", state: "active" as const, onClick: onReset },
+  {
+    key: "reset",
+    glyph: <Icon name="reset" size={15} />,
+    name: "Reset camera",
+    state: "active" as const,
+    onClick: onReset,
+  },
   { key: "measure", glyph: <Icon name="ruler" size={15} />, name: "Measure", toggle: true, onClick: onMeasure },
-  { key: "tour", glyph: <Icon name="help" size={15} />, name: "Replay guided tour", state: "inert" as const, onClick: vi.fn() },
+  {
+    key: "tour",
+    glyph: <Icon name="help" size={15} />,
+    name: "Replay guided tour",
+    state: "inert" as const,
+    onClick: vi.fn(),
+  },
 ];
 
 describe("ToolRail", () => {
@@ -69,9 +81,7 @@ describe("ToolRail", () => {
         tools={[{ key: "measure", glyph: <Icon name="ruler" size={15} />, name: "Measure", dataTour: "measure" }]}
       />,
     );
-    expect(container.querySelector('[data-tour="measure"]')).toBe(
-      screen.getByRole("button", { name: "Measure" }),
-    );
+    expect(container.querySelector('[data-tour="measure"]')).toBe(screen.getByRole("button", { name: "Measure" }));
   });
 });
 

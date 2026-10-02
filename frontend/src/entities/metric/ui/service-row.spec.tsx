@@ -47,9 +47,7 @@ describe("ServiceRow", () => {
 
   it("shows recent throughput, with the newest sample accented", () => {
     render(<ServiceRow service={service()} />);
-    expect(
-      screen.getByRole("img", { name: /gateway throughput: 4 buckets, latest 30/ }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /gateway throughput: 4 buckets, latest 30/ })).toBeInTheDocument();
   });
 
   it("selects on click", async () => {

@@ -51,10 +51,8 @@ export const mustEnroll = (me: Principal | null | undefined): boolean =>
  * no-escalation rule so the matrix never offers a grant the gateway would
  * refuse: an owner may grant anything, everyone else exactly what they hold.
  */
-export const grantableSlugs = (
-  me: Principal | null,
-  permissions: readonly { slug: string }[],
-): Set<string> => new Set(permissions.map((p) => p.slug).filter((slug) => can(me, slug)));
+export const grantableSlugs = (me: Principal | null, permissions: readonly { slug: string }[]): Set<string> =>
+  new Set(permissions.map((p) => p.slug).filter((slug) => can(me, slug)));
 
 /**
  * The identity a screen shows for the signed-in reader: the console sidebar's

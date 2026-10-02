@@ -126,9 +126,7 @@ export function MetricsPage({
       <div
         className={cx(
           "grid gap-3",
-          budget
-            ? "lg:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,1fr))]"
-            : "sm:grid-cols-2 lg:grid-cols-4",
+          budget ? "lg:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,1fr))]" : "sm:grid-cols-2 lg:grid-cols-4",
         )}
       >
         {budget ? (
@@ -170,11 +168,7 @@ export function MetricsPage({
             onSelect={onSelectService}
             emptyHint={servicesHint}
           />
-          <MetricPanels
-            sections={sections}
-            selectedKey={selectedPanel}
-            onSelect={onSelectPanel}
-          />
+          <MetricPanels sections={sections} selectedKey={selectedPanel} onSelect={onSelectPanel} />
         </div>
 
         {alert ? (

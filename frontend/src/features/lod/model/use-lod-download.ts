@@ -71,44 +71,45 @@ export function useLodDownload(artifact: LodArtifact | null, drawn: string | nul
       heldRef.current = null;
       setHeld(null);
       setState({ hash, blobUrl: url, received: size, failed: null });
-    } else void (async () => {
-      try {
-        const res = await fetch(assetUrl(hash), {
-          signal: controller.signal,
-          credentials: "same-origin",
-        });
-        if (!res.ok || !res.body) {
-          setState({ ...IDLE, hash, failed: { status: res.status } });
-          return;
+    } else
+      void (async () => {
+        try {
+          const res = await fetch(assetUrl(hash), {
+            signal: controller.signal,
+            credentials: "same-origin",
+          });
+          if (!res.ok || !res.body) {
+            setState({ ...IDLE, hash, failed: { status: res.status } });
+            return;
+          }
+          const reader = res.body.getReader();
+          const chunks: BlobPart[] = [];
+          let received = 0;
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            // A fetch chunk is always ArrayBuffer-backed; its type says
+            // ArrayBufferLike, which also admits SharedArrayBuffer and so is not
+            // a BlobPart.
+            chunks.push(value as BlobPart);
+            received += value.byteLength;
+            setState({ hash, blobUrl: null, received, failed: null });
+          }
+          url = URL.createObjectURL(new Blob(chunks, { type: "model/gltf-binary" }));
+          // The cleanup can fire between the last read() and this line, and it
+          // sees `url` still null — so nothing but this branch would ever revoke
+          // the blob it just minted.
+          if (controller.signal.aborted) {
+            URL.revokeObjectURL(url);
+            return;
+          }
+          setState({ hash, blobUrl: url, received, failed: null });
+        } catch (err) {
+          if ((err as { name?: string }).name !== "AbortError") {
+            setState({ ...IDLE, hash, failed: { status: null } });
+          }
         }
-        const reader = res.body.getReader();
-        const chunks: BlobPart[] = [];
-        let received = 0;
-        for (;;) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          // A fetch chunk is always ArrayBuffer-backed; its type says
-          // ArrayBufferLike, which also admits SharedArrayBuffer and so is not
-          // a BlobPart.
-          chunks.push(value as BlobPart);
-          received += value.byteLength;
-          setState({ hash, blobUrl: null, received, failed: null });
-        }
-        url = URL.createObjectURL(new Blob(chunks, { type: "model/gltf-binary" }));
-        // The cleanup can fire between the last read() and this line, and it
-        // sees `url` still null — so nothing but this branch would ever revoke
-        // the blob it just minted.
-        if (controller.signal.aborted) {
-          URL.revokeObjectURL(url);
-          return;
-        }
-        setState({ hash, blobUrl: url, received, failed: null });
-      } catch (err) {
-        if ((err as { name?: string }).name !== "AbortError") {
-          setState({ ...IDLE, hash, failed: { status: null } });
-        }
-      }
-    })();
+      })();
     return () => {
       controller.abort();
       // One finished blob is kept past the change, and never the other one
@@ -132,9 +133,10 @@ export function useLodDownload(artifact: LodArtifact | null, drawn: string | nul
   // left is kept unless the held one is drawn. Without this the level on
   // screen would lose its url for that render and remount off the asset route.
   const heldDrawn = held !== null && drawn === held.blobUrl;
-  const leaving = !heldDrawn && state.hash !== hash && state.hash !== null && state.blobUrl
-    ? { hash: state.hash, blobUrl: state.blobUrl }
-    : null;
+  const leaving =
+    !heldDrawn && state.hash !== hash && state.hash !== null && state.blobUrl
+      ? { hash: state.hash, blobUrl: state.blobUrl }
+      : null;
   const kept = leaving ?? held;
   // A return to the kept level: the effect below adopts it, and until it has,
   // this render already reads as adopted — idle would report a 0 % download

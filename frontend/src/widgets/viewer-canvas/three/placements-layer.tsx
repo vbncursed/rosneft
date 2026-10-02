@@ -114,9 +114,7 @@ export default function PlacementsLayer({
       {/* In measure mode the gizmo is hidden — the user is picking points,
           not editing the placement. The selection survives the mode switch
           so coming back to translate/rotate/scale finds the same target. */}
-      {gizmo ? (
-        <TransformControls ref={tcRef} object={target} mode={mode} size={0.85} />
-      ) : null}
+      {gizmo ? <TransformControls ref={tcRef} object={target} mode={mode} size={0.85} /> : null}
       {/* A panorama has no panel and no gizmo, so the ring and its name are
           the whole affordance. The 3D view names nothing — the labels would
           crowd a scene that already has the object list beside it. */}

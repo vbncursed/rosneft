@@ -110,10 +110,7 @@ describe("groupContent", () => {
   });
 
   it("drops a state the group does not hold, and always keeps ready", () => {
-    const [territories, models] = groupContent([
-      item({ slug: "t1" }),
-      item({ slug: "t2", status: "pending" }),
-    ]);
+    const [territories, models] = groupContent([item({ slug: "t1" }), item({ slug: "t2", status: "pending" })]);
     expect(territories.note).toBe("1 ready · 1 pending");
     expect(models.note).toBe("0 ready");
   });
@@ -134,8 +131,12 @@ describe("pipelineOf and statsOf", () => {
     });
     // The tiles count the whole catalog — a failed row is lifted out of its
     // kind group on the list, but it is still a territory.
-    expect(statsOf([item(), ...Array.from({ length: 5 }, (_, i) =>
-      item({ slug: `f${i}`, status: "failed" as const }))], 0)[0].hint).toBe("1 ready · 5 failed");
+    expect(
+      statsOf(
+        [item(), ...Array.from({ length: 5 }, (_, i) => item({ slug: `f${i}`, status: "failed" as const }))],
+        0,
+      )[0].hint,
+    ).toBe("1 ready · 5 failed");
     expect(statsOf(items, 184 * 1024 ** 3)).toEqual([
       { label: "Territories", value: "1", hint: "1 ready" },
       { label: "Models", value: "1", hint: "0 ready · 1 pending" },
@@ -154,16 +155,12 @@ describe("inspectorDetails", () => {
       { label: "Size", value: "412 MB" },
       { label: "Updated", value: "31.08" },
     ]);
-    expect(
-      inspectorDetails(item({ status: "pending", lods: "—", size: "—" }), [], undefined, undefined),
-    ).toEqual(
-      [
-        { label: "Artifacts", value: "0", tone: "dim" },
-        { label: "LODs", value: "—", tone: "dim" },
-        { label: "Size", value: "—", tone: "dim" },
-        { label: "Updated", value: "—", tone: "dim" },
-      ],
-    );
+    expect(inspectorDetails(item({ status: "pending", lods: "—", size: "—" }), [], undefined, undefined)).toEqual([
+      { label: "Artifacts", value: "0", tone: "dim" },
+      { label: "LODs", value: "—", tone: "dim" },
+      { label: "Size", value: "—", tone: "dim" },
+      { label: "Updated", value: "—", tone: "dim" },
+    ]);
   });
 });
 
@@ -217,18 +214,16 @@ describe("toContentItem with a job", () => {
   });
 
   it("ignores a succeeded job — the artifacts decide", () => {
-    expect(toContentItem("territory", territory, [], { ...running, status: "succeeded" }).status).toBe(
-      "pending",
-    );
+    expect(toContentItem("territory", territory, [], { ...running, status: "succeeded" }).status).toBe("pending");
   });
 
   it("puts the worker's message in the inspector and a note above the bar", () => {
-    expect(
-      inspectorDetails(item({ status: "failed" }), ARTIFACTS, territory.updatedAt, failed)[0],
-    ).toEqual({ label: "Error", value: "OBJ parse error at line 84120", tone: "bad" });
-    expect(inspectorDetails(item(), ARTIFACTS, territory.updatedAt, undefined)[0].label).toBe(
-      "Artifacts",
-    );
+    expect(inspectorDetails(item({ status: "failed" }), ARTIFACTS, territory.updatedAt, failed)[0]).toEqual({
+      label: "Error",
+      value: "OBJ parse error at line 84120",
+      tone: "bad",
+    });
+    expect(inspectorDetails(item(), ARTIFACTS, territory.updatedAt, undefined)[0].label).toBe("Artifacts");
     expect(conversionNoteOf(running)).toBe("62% · textures");
     expect(conversionNoteOf({ ...running, progress: null, stage: null })).toBe("queued");
     expect(conversionNoteOf(failed)).toBeUndefined();

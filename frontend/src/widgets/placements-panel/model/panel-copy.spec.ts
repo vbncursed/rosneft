@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { DELETE_GROUP, footerFor, GUEST_FOOTER, NEW_GROUP, NO_DELETE_FOOTER, VISIBLE_IN, VISIBLE_IN_NOTE } from "./panel-copy";
+import {
+  DELETE_GROUP,
+  footerFor,
+  GUEST_FOOTER,
+  NEW_GROUP,
+  NO_DELETE_FOOTER,
+  VISIBLE_IN,
+  VISIBLE_IN_NOTE,
+} from "./panel-copy";
 
 describe("footerFor", () => {
   it("names the footer by what the grants leave out", () => {

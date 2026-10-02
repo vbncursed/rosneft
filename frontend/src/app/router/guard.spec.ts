@@ -67,9 +67,7 @@ describe("consoleLanding", () => {
 
   it("opens Content on either write grant", () => {
     expect(consoleLanding(principal({ permissions: ["model:write"] }))).toBe("/console/content");
-    expect(consoleLanding(principal({ permissions: ["territory:write"] }))).toBe(
-      "/console/content",
-    );
+    expect(consoleLanding(principal({ permissions: ["territory:write"] }))).toBe("/console/content");
   });
 
   it("lands an auditor on the journal", () => {
@@ -79,9 +77,7 @@ describe("consoleLanding", () => {
   // Metrics is owner-only and last, which is how a non-owner never lands there
   // and takes a 403 for it.
   it("never lands a non-owner on Metrics or Territory access", () => {
-    expect(consoleLanding(principal({ permissions: ["audit:read"] }))).not.toBe(
-      "/console/metrics",
-    );
+    expect(consoleLanding(principal({ permissions: ["audit:read"] }))).not.toBe("/console/metrics");
     expect(consoleLanding(principal({ permissions: ["audit:read"] }))).not.toBe("/console/access");
   });
 

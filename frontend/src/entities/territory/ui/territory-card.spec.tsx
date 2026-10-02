@@ -17,19 +17,31 @@ const card = (over: Partial<TerritoryCardModel> = {}): TerritoryCardModel => ({
 describe("TerritoryCard", () => {
   it("links the title to the href and names the article after the territory", () => {
     render(<TerritoryCard card={card()} href="/territories/north-ridge-pad" />);
-    expect(screen.getByRole("link", { name: "North Ridge Pad" })).toHaveAttribute("href", "/territories/north-ridge-pad");
+    expect(screen.getByRole("link", { name: "North Ridge Pad" })).toHaveAttribute(
+      "href",
+      "/territories/north-ridge-pad",
+    );
     expect(screen.getByRole("article", { name: "North Ridge Pad" })).toBeInTheDocument();
   });
 
   it("badges ready, converting and failed; a pending card wears no badge", () => {
     const { rerender } = render(<TerritoryCard card={card()} href="#" />);
     expect(screen.getByText("ready")).toBeInTheDocument();
-    rerender(<TerritoryCard card={card({ status: "converting", trailing: { label: "converting", tone: "muted" } })} href="#" />);
+    rerender(
+      <TerritoryCard
+        card={card({ status: "converting", trailing: { label: "converting", tone: "muted" } })}
+        href="#"
+      />,
+    );
     // The badge over the thumbnail and the trailing label both read "converting".
     expect(screen.getAllByText("converting")).toHaveLength(2);
-    rerender(<TerritoryCard card={card({ status: "failed", trailing: { label: "unavailable", tone: "muted" } })} href="#" />);
+    rerender(
+      <TerritoryCard card={card({ status: "failed", trailing: { label: "unavailable", tone: "muted" } })} href="#" />,
+    );
     expect(screen.getByText("failed")).toBeInTheDocument();
-    rerender(<TerritoryCard card={card({ status: "pending", trailing: { label: "pending", tone: "muted" } })} href="#" />);
+    rerender(
+      <TerritoryCard card={card({ status: "pending", trailing: { label: "pending", tone: "muted" } })} href="#" />,
+    );
     expect(screen.queryByText("ready")).not.toBeInTheDocument();
     expect(screen.queryByText("failed")).not.toBeInTheDocument();
   });
@@ -38,7 +50,16 @@ describe("TerritoryCard", () => {
     const onOpen = vi.fn();
     const onAct = vi.fn();
     render(
-      <TerritoryCard card={card()} href="#" onOpen={onOpen} actions={<button type="button" onClick={onAct}>Delete</button>} />,
+      <TerritoryCard
+        card={card()}
+        href="#"
+        onOpen={onOpen}
+        actions={
+          <button type="button" onClick={onAct}>
+            Delete
+          </button>
+        }
+      />,
     );
     await userEvent.click(screen.getByRole("button", { name: "Delete" }));
     expect(onAct).toHaveBeenCalledOnce();
@@ -61,7 +82,16 @@ describe("TerritoryCard", () => {
   });
 
   it("draws the progress bar and stage while converting", () => {
-    render(<TerritoryCard card={card({ status: "converting", progress: { value: 62, stage: "Compressing textures" }, trailing: { label: "converting", tone: "muted" } })} href="#" />);
+    render(
+      <TerritoryCard
+        card={card({
+          status: "converting",
+          progress: { value: 62, stage: "Compressing textures" },
+          trailing: { label: "converting", tone: "muted" },
+        })}
+        href="#"
+      />,
+    );
     expect(screen.getByRole("progressbar", { name: "Compressing textures" })).toHaveAttribute("aria-valuenow", "62");
   });
 

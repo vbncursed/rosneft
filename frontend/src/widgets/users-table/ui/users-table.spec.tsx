@@ -35,10 +35,7 @@ describe("UsersTable", () => {
 
   it("builds row actions per user", () => {
     render(
-      <UsersTable
-        users={USERS}
-        renderActions={(u) => <button type="button">{`Actions for ${u.username}`}</button>}
-      />,
+      <UsersTable users={USERS} renderActions={(u) => <button type="button">{`Actions for ${u.username}`}</button>} />,
     );
     expect(screen.getByRole("button", { name: "Actions for a.ivanova" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Actions for d.smirnov" })).toBeInTheDocument();

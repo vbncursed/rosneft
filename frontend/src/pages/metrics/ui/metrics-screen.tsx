@@ -37,9 +37,7 @@ export function MetricsScreen() {
   const s = useMetrics(range);
 
   if (s.status === "loading") {
-    return (
-      <PageSkeleton shape="console" label="Loading dashboard" />
-    );
+    return <PageSkeleton shape="console" label="Loading dashboard" />;
   }
   if (s.status === "unavailable") {
     return <Callout tone="bad">Metrics are unavailable: {s.error}</Callout>;
@@ -91,11 +89,7 @@ export function MetricsScreen() {
       firingCount={s.firingCount}
       alertsStale={isStale(s.results.alerts)}
       servicesHint={servicesHint(up)}
-      alert={
-        s.alertOpen && firing
-          ? { name: firing.name, meta: firing.meta, details: alertDetails(firing) }
-          : null
-      }
+      alert={s.alertOpen && firing ? { name: firing.name, meta: firing.meta, details: alertDetails(firing) } : null}
       onCloseAlert={() => s.setAlertOpen(false)}
     />
   );

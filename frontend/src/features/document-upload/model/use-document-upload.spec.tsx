@@ -5,15 +5,13 @@ import { HttpError } from "@/shared/api";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useDocumentUpload } from "./use-document-upload";
 
-const { createDocument, initiateUpload, appendChunk, finalizeUpload, abortUpload } = vi.hoisted(
-  () => ({
-    createDocument: vi.fn(),
-    initiateUpload: vi.fn(),
-    appendChunk: vi.fn(),
-    finalizeUpload: vi.fn(),
-    abortUpload: vi.fn(),
-  }),
-);
+const { createDocument, initiateUpload, appendChunk, finalizeUpload, abortUpload } = vi.hoisted(() => ({
+  createDocument: vi.fn(),
+  initiateUpload: vi.fn(),
+  appendChunk: vi.fn(),
+  finalizeUpload: vi.fn(),
+  abortUpload: vi.fn(),
+}));
 
 vi.mock("@/entities/document", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -61,9 +59,7 @@ async function ready() {
 beforeEach(() => {
   createDocument.mockReset().mockResolvedValue(CREATED);
   initiateUpload.mockReset().mockResolvedValue({ id: "u1", size: 12, offset: 0 });
-  appendChunk
-    .mockReset()
-    .mockImplementation((_id: string, offset: number, chunk: Blob) => offset + chunk.size);
+  appendChunk.mockReset().mockImplementation((_id: string, offset: number, chunk: Blob) => offset + chunk.size);
   finalizeUpload.mockReset().mockResolvedValue({ hash: "abc", size: 12 });
   abortUpload.mockReset().mockResolvedValue(undefined);
   onCreated = vi.fn();
@@ -121,9 +117,7 @@ describe("useDocumentUpload", () => {
 
   it("says plainly that bytes are travelling — a PDF has no EXIF to read", async () => {
     let releaseChunk!: (offset: number) => void;
-    appendChunk.mockImplementation(
-      () => new Promise<number>((resolve) => (releaseChunk = resolve)),
-    );
+    appendChunk.mockImplementation(() => new Promise<number>((resolve) => (releaseChunk = resolve)));
     const { result } = await ready();
 
     act(() => void result.current.d.submit());

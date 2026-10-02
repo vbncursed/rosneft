@@ -20,7 +20,13 @@ const PRINCIPAL = {
   isOwner: false,
   onboardingToursSeen: [],
 };
-const T1 = { slug: "t-1", title: "T 1", sourceBlobHash: "a".repeat(64), placementCount: 3, lods: [{ lod: 0, hash: "h", size: 1024 }] };
+const T1 = {
+  slug: "t-1",
+  title: "T 1",
+  sourceBlobHash: "a".repeat(64),
+  placementCount: 3,
+  lods: [{ lod: 0, hash: "h", size: 1024 }],
+};
 const T2 = { slug: "t-2", title: "T 2", sourceBlobHash: "b".repeat(64), placementCount: 0, lods: [] };
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -42,8 +48,7 @@ beforeEach(() => {
     const method = init?.method ?? "GET";
     if (url === "/api/territories" && method === "GET") return json([T1, T2]);
     if (url === "/api/jobs" && method === "GET") return json(JOBS);
-    if (url === "/api/territories/t-1" && method === "DELETE")
-      return new Response(null, { status: 204 });
+    if (url === "/api/territories/t-1" && method === "DELETE") return new Response(null, { status: 204 });
     if (url === "/api/territories/t-2" && method === "DELETE")
       return json({ code: "invalid_input", message: "Territory has dependent placements." }, 400);
     return json({ code: "forbidden", message: "You don't have permission to do this" }, 403);
@@ -69,9 +74,9 @@ describe("useTerritoryCatalog", () => {
   it("asks for the list once, never once per row", async () => {
     const { result } = renderHook(() => useTerritoryCatalog(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
-    expect(
-      fetchMock.mock.calls.map(([u]) => String(u)).filter((u) => u.startsWith("/api/territories")),
-    ).toEqual(["/api/territories"]);
+    expect(fetchMock.mock.calls.map(([u]) => String(u)).filter((u) => u.startsWith("/api/territories"))).toEqual([
+      "/api/territories",
+    ]);
   });
 
   it("knows the viewer's grants: write replaces a source but creates nothing", async () => {
@@ -107,17 +112,14 @@ describe("useTerritoryCatalog", () => {
     await waitFor(() => expect(result.current.s.status).toBe("ready"));
     act(() => result.current.s.ask("t-1"));
     expect(result.current.s.pending?.slug).toBe("t-1");
-    expect(
-      fetchMock.mock.calls.some(([, i]) => (i as RequestInit | undefined)?.method === "DELETE"),
-    ).toBe(false);
+    expect(fetchMock.mock.calls.some(([, i]) => (i as RequestInit | undefined)?.method === "DELETE")).toBe(false);
     act(() => result.current.s.confirm());
     await waitFor(() => expect(result.current.notices[0]?.message).toBe("Territory deleted"));
     expect(result.current.s.pending).toBeNull();
     await waitFor(() =>
       expect(
-        fetchMock.mock.calls.filter(
-          ([u, i]) => u === "/api/territories" && !(i as RequestInit | undefined)?.method,
-        ).length,
+        fetchMock.mock.calls.filter(([u, i]) => u === "/api/territories" && !(i as RequestInit | undefined)?.method)
+          .length,
       ).toBe(2),
     );
   });
@@ -144,9 +146,7 @@ describe("useTerritoryCatalog", () => {
     await waitFor(() => expect(result.current.s.status).toBe("ready"));
     act(() => result.current.s.ask("t-2"));
     act(() => result.current.s.confirm());
-    await waitFor(() =>
-      expect(result.current.notices[0]?.message).toBe("Territory has dependent placements."),
-    );
+    await waitFor(() => expect(result.current.notices[0]?.message).toBe("Territory has dependent placements."));
     expect(result.current.notices[0]?.tone).toBe("error");
     expect(result.current.s.pending).toBeNull();
     expect(result.current.s.cards?.some((c) => c.slug === "t-2")).toBe(true);
@@ -162,9 +162,7 @@ describe("useTerritoryCatalog", () => {
   });
 
   it("folds the live job into the row", async () => {
-    JOBS = [
-      { id: "j1", kind: "territory", slug: "t-1", status: "running", progress: 0.4, stage: "parsing" },
-    ];
+    JOBS = [{ id: "j1", kind: "territory", slug: "t-1", status: "running", progress: 0.4, stage: "parsing" }];
     const { result } = renderHook(() => useTerritoryCatalog(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
     expect(result.current.cards?.[0]).toMatchObject({ slug: "t-1", status: "converting" });
@@ -180,9 +178,7 @@ describe("useTerritoryCatalog", () => {
   });
 
   it("re-reads the list once a row's job stops being live, turning the card ready", async () => {
-    JOBS = [
-      { id: "j1", kind: "territory", slug: "t-1", status: "running", progress: 0.5, stage: "parsing" },
-    ];
+    JOBS = [{ id: "j1", kind: "territory", slug: "t-1", status: "running", progress: 0.5, stage: "parsing" }];
     let listCalls = 0;
     fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
       const method = init?.method ?? "GET";
@@ -205,9 +201,7 @@ describe("useTerritoryCatalog", () => {
       await client.refetchQueries({ queryKey: ["jobs"] });
     });
     await waitFor(() => expect(listCalls).toBe(2));
-    await waitFor(() =>
-      expect(result.current.cards?.[0]).toMatchObject({ slug: "t-1", status: "ready" }),
-    );
+    await waitFor(() => expect(result.current.cards?.[0]).toMatchObject({ slug: "t-1", status: "ready" }));
     // Nothing reads a territory's artifacts any more: the conversion page and
     // the viewer read the scene bundle, and the cards read the list.
     expect(spy).not.toHaveBeenCalledWith({ queryKey: ["artifacts", "territory", "t-1"] });

@@ -75,9 +75,7 @@ const managed = (over = {}) => ({
 describe("TerritoryAccessPage", () => {
   it("names the page with one h1", () => {
     render(<TerritoryAccessPage {...props()} />);
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Territory access" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Territory access" })).toBeInTheDocument();
     expect(screen.getByText("Owner only · who can open what")).toBeInTheDocument();
   });
 
@@ -103,9 +101,7 @@ describe("TerritoryAccessPage", () => {
   it("opens the manager with the whole territory", async () => {
     const onManage = vi.fn();
     render(<TerritoryAccessPage {...props({ onManage })} />);
-    await userEvent.click(
-      screen.getByRole("button", { name: "Manage access to Refinery Block C" }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: "Manage access to Refinery Block C" }));
     expect(onManage).toHaveBeenCalledWith(expect.objectContaining({ slug: "refinery-block-c" }));
   });
 
@@ -115,12 +111,8 @@ describe("TerritoryAccessPage", () => {
   });
 
   it("opens the manager on the selected territory", () => {
-    render(
-      <TerritoryAccessPage {...props({ selectedSlug: "refinery-block-c", managed: managed() })} />,
-    );
-    expect(
-      screen.getByRole("complementary", { name: "Access: Refinery Block C" }),
-    ).toBeInTheDocument();
+    render(<TerritoryAccessPage {...props({ selectedSlug: "refinery-block-c", managed: managed() })} />);
+    expect(screen.getByRole("complementary", { name: "Access: Refinery Block C" })).toBeInTheDocument();
     // Fades in (tens of opens a session: opacity only, no movement); leaves at once.
     expect(screen.getByRole("complementary").parentElement).toHaveClass(
       "starting:opacity-0",
@@ -133,9 +125,7 @@ describe("TerritoryAccessPage", () => {
   it("changes visibility through the manager", async () => {
     const onVisibilityChange = vi.fn();
     render(
-      <TerritoryAccessPage
-        {...props({ selectedSlug: "refinery-block-c", managed: managed(), onVisibilityChange })}
-      />,
+      <TerritoryAccessPage {...props({ selectedSlug: "refinery-block-c", managed: managed(), onVisibilityChange })} />,
     );
     await userEvent.click(screen.getByRole("radio", { name: /Whole company/ }));
     expect(onVisibilityChange).toHaveBeenCalledWith("company");
@@ -143,11 +133,7 @@ describe("TerritoryAccessPage", () => {
 
   it("revokes a direct grant", async () => {
     const onRemoveGrant = vi.fn();
-    render(
-      <TerritoryAccessPage
-        {...props({ selectedSlug: "refinery-block-c", managed: managed(), onRemoveGrant })}
-      />,
-    );
+    render(<TerritoryAccessPage {...props({ selectedSlug: "refinery-block-c", managed: managed(), onRemoveGrant })} />);
     await userEvent.click(screen.getByRole("button", { name: "Remove k.petrov's access" }));
     expect(onRemoveGrant).toHaveBeenCalledWith("u-3");
   });
@@ -197,8 +183,6 @@ describe("TerritoryAccessPage", () => {
 
   it("shows a chip for a key:value query", () => {
     render(<TerritoryAccessPage {...props({ query: "visibility:assigned" })} />);
-    expect(
-      screen.getByRole("button", { name: "Remove filter visibility:assigned" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Remove filter visibility:assigned" })).toBeInTheDocument();
   });
 });

@@ -6,14 +6,26 @@ import { GUEST_FOOTER, NO_DELETE_FOOTER } from "../model/panel-copy";
 import { PlacementsPanel, type PlacementsPanelProps } from "./placements-panel";
 
 const make = (id: number, modelSlug: string, label = "", over: Partial<Placement> = {}): Placement => ({
-  id, territorySlug: "t", modelSlug, label, updatedAt: "", visiblePanoramaIds: [], hidden: false, groupId: null, ...IDENTITY_TRANSFORM, ...over,
+  id,
+  territorySlug: "t",
+  modelSlug,
+  label,
+  updatedAt: "",
+  visiblePanoramaIds: [],
+  hidden: false,
+  groupId: null,
+  ...IDENTITY_TRANSFORM,
+  ...over,
 });
 const OPTIONS = [
   { slug: "pipe-rack-12", title: "pipe-rack-12" },
   { slug: "storage-tank-500", title: "storage-tank-500" },
 ];
 const SECTIONS = groupPlacements(
-  groupByModel([make(7, "pipe-rack-12", "west run"), make(1, "storage-tank-500"), make(2, "storage-tank-500", "north row")], OPTIONS),
+  groupByModel(
+    [make(7, "pipe-rack-12", "west run"), make(1, "storage-tank-500"), make(2, "storage-tank-500", "north row")],
+    OPTIONS,
+  ),
   [],
 );
 const EMPTY = { userGroups: [], modelGroups: [] };
@@ -59,10 +71,7 @@ describe("PlacementsPanel", () => {
   it("draws the search and one row per model, collapsed", () => {
     render(<PlacementsPanel {...base} />);
     expect(screen.getByRole("searchbox", { name: "Search objects" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "pipe-rack-12" })).toHaveAttribute(
-      "aria-expanded",
-      "false",
-    );
+    expect(screen.getByRole("button", { name: "pipe-rack-12" })).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByRole("button", { name: "storage-tank-500" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /storage-tank-500 #2/ })).toBeNull();
   });
@@ -75,9 +84,7 @@ describe("PlacementsPanel", () => {
 
     rerender(<PlacementsPanel {...base} expandedModel="storage-tank-500" />);
     expect(screen.getByRole("button", { name: "storage-tank-500 #1" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "storage-tank-500 #2 · north row" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "storage-tank-500 #2 · north row" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /pipe-rack-12 #1/ })).toBeNull();
   });
 
@@ -109,9 +116,7 @@ describe("PlacementsPanel", () => {
   });
 
   it("leaves an empty territory without a way forward when the reader cannot place", () => {
-    render(
-      <PlacementsPanel {...base} sections={EMPTY} grants={{ create: false, write: false, delete: false }} />,
-    );
+    render(<PlacementsPanel {...base} sections={EMPTY} grants={{ create: false, write: false, delete: false }} />);
     expect(screen.getByText("No objects placed yet")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Add objects to territory/ })).toBeNull();
   });
@@ -174,14 +179,7 @@ describe("PlacementsPanel", () => {
     };
 
     it("hangs the Visible in block under the selected instance's row, inside its group", () => {
-      render(
-        <PlacementsPanel
-          {...base}
-          expandedModel="storage-tank-500"
-          selectedId={2}
-          visibility={VISIBILITY}
-        />,
-      );
+      render(<PlacementsPanel {...base} expandedModel="storage-tank-500" selectedId={2} visibility={VISIBILITY} />);
       expect(screen.getByText("Visible in")).toBeInTheDocument();
       expect(screen.getByRole("checkbox", { name: "Control room, north door" })).toBeChecked();
       expect(screen.getByRole("checkbox", { name: "Tank yard, west gate" })).not.toBeChecked();
@@ -193,14 +191,7 @@ describe("PlacementsPanel", () => {
     });
 
     it("draws nothing under a row that is not the selection", () => {
-      render(
-        <PlacementsPanel
-          {...base}
-          expandedModel="storage-tank-500"
-          selectedId={null}
-          visibility={VISIBILITY}
-        />,
-      );
+      render(<PlacementsPanel {...base} expandedModel="storage-tank-500" selectedId={null} visibility={VISIBILITY} />);
       expect(screen.queryByText("Visible in")).toBeNull();
     });
 
@@ -246,7 +237,10 @@ describe("PlacementsPanel", () => {
 
   describe("groups", () => {
     const grouped = groupPlacements(
-      groupByModel([make(1, "storage-tank-500", "", { groupId: 5 }), make(2, "storage-tank-500"), make(7, "pipe-rack-12")], OPTIONS),
+      groupByModel(
+        [make(1, "storage-tank-500", "", { groupId: 5 }), make(2, "storage-tank-500"), make(7, "pipe-rack-12")],
+        OPTIONS,
+      ),
       [
         { id: 5, title: "West yard", hidden: false },
         { id: 6, title: "East yard", hidden: false },

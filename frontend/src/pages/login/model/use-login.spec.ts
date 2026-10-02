@@ -100,9 +100,7 @@ describe("useLogin", () => {
   });
 
   it("surfaces a wrong password without leaving the step", async () => {
-    vi.mocked(login).mockRejectedValue(
-      new HttpError(401, null, "Invalid username or password."),
-    );
+    vi.mocked(login).mockRejectedValue(new HttpError(401, null, "Invalid username or password."));
     const { result } = renderHook(() => useLogin());
 
     act(() => result.current.credentials.onSubmit());
@@ -153,9 +151,7 @@ describe("useLogin", () => {
 
     act(() => result.current.credentials.onSubmit());
 
-    await waitFor(() =>
-      expect(navigate).toHaveBeenCalledWith({ href: "/console/audit?actor=a.ivanova" }),
-    );
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ href: "/console/audit?actor=a.ivanova" }));
   });
 
   describe("passkey", () => {
@@ -204,9 +200,7 @@ describe("useLogin", () => {
 
       act(() => result.current.credentials.onPasskey!());
 
-      await waitFor(() =>
-        expect(result.current.error).toBe("Passkey sign-in failed. Try again or use your password."),
-      );
+      await waitFor(() => expect(result.current.error).toBe("Passkey sign-in failed. Try again or use your password."));
       expect(startSession).not.toHaveBeenCalled();
     });
 

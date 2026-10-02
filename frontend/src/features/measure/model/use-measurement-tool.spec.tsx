@@ -101,9 +101,7 @@ describe("useMeasurementTool", () => {
   it("seed draws the stored chains as saved", () => {
     const { result } = renderHook(() => useMeasurementTool());
     act(() => result.current.seed([{ serverId: 7, points: [p(0), p(1)], closed: false }]));
-    expect(result.current.chains).toEqual([
-      { id: 1, serverId: 7, points: [p(0), p(1)], closed: false, sync: "saved" },
-    ]);
+    expect(result.current.chains).toEqual([{ id: 1, serverId: 7, points: [p(0), p(1)], closed: false, sync: "saved" }]);
   });
 
   it("saving, saved and failed move a chain along", () => {

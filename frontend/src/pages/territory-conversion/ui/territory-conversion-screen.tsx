@@ -30,9 +30,7 @@ function conversionState(s: Exclude<TerritoryConversionState, { status: "missing
     return <Callout tone="bad">Territory unavailable: {s.error}</Callout>;
   }
 
-  return (
-    <TerritoryConversionPage territory={s.territory} phase={s.phase} job={s.job} hasLod0={s.hasLod0} />
-  );
+  return <TerritoryConversionPage territory={s.territory} phase={s.phase} job={s.job} hasLod0={s.hasLod0} />;
 }
 
 /**

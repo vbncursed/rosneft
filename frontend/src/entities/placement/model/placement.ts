@@ -50,7 +50,11 @@ export function isVisibleIn(placement: Placement, panoramaId: number | null): bo
  */
 // ponytail: scans the groups per placement, O(placements × groups) a render;
 // index them in a Map if a territory ever holds hundreds of groups.
-export const isShownIn = (placement: Placement, panoramaId: number | null, groups: readonly PlacementGroup[]): boolean =>
+export const isShownIn = (
+  placement: Placement,
+  panoramaId: number | null,
+  groups: readonly PlacementGroup[],
+): boolean =>
   !placement.hidden &&
   !groups.some((g) => g.hidden && g.id === placement.groupId) &&
   isVisibleIn(placement, panoramaId);

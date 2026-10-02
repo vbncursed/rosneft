@@ -6,15 +6,7 @@ import { Tooltip } from "@/shared/ui/tooltip";
 import { Range } from "@/shared/ui/range";
 import { Segmented } from "@/shared/ui/segmented";
 import { AXES } from "@/shared/ui/vec3-field";
-import {
-  EXIT,
-  NUDGE_LABEL,
-  nudgeLabel,
-  OPACITY_LABEL,
-  opacityPercent,
-  SAVE,
-  YAW_SHORT,
-} from "../model/copy";
+import { EXIT, NUDGE_LABEL, nudgeLabel, OPACITY_LABEL, opacityPercent, SAVE, YAW_SHORT } from "../model/copy";
 import { degToRad, printDegrees, radToDeg } from "../model/degrees";
 
 export type CalibrationCardProps = {
@@ -69,14 +61,7 @@ export function CalibrationCard({
           <span className={OVERLINE}>{OPACITY_LABEL}</span>
           <span className="font-mono text-[10px] text-fg">{opacityPercent(opacity)}</span>
         </div>
-        <Range
-          label={OPACITY_LABEL}
-          value={opacity}
-          min={0.15}
-          max={1}
-          step={0.05}
-          onChange={onOpacity}
-        />
+        <Range label={OPACITY_LABEL} value={opacity} min={0.15} max={1} step={0.05} onChange={onOpacity} />
       </div>
 
       <div className="flex flex-col gap-[7px]">

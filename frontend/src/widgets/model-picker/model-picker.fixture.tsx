@@ -12,8 +12,7 @@ const MODELS = [
   { model: model("flare-stack", "Flare"), unavailable: true, meta: "Not converted yet" },
 ];
 
-const lods = (sizes: number[]): ModelOption["chain"] =>
-  sizes.map((size, lod) => ({ lod, hash: `h${lod}`, size }));
+const lods = (sizes: number[]): ModelOption["chain"] => sizes.map((size, lod) => ({ lod, hash: `h${lod}`, size }));
 
 const OPTIONS: ModelOption[] = [
   { slug: "storage-tank-500", title: "storage-tank-500", chain: lods([8_400_000, 2_100_000, 900_000]) },

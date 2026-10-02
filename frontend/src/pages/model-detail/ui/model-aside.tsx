@@ -29,7 +29,12 @@ const CARD = "flex flex-col rounded-card border border-line bg-panel p-[18px]";
 const ACTION =
   "cursor-pointer font-mono text-[10px] uppercase tracking-[0.14em] text-accent transition-[scale] duration-150 ease-out enabled:active:scale-95";
 
-function ArtifactsCard({ model, status, artifacts, jobError }: Pick<ModelAsideProps, "model" | "status" | "artifacts" | "jobError">) {
+function ArtifactsCard({
+  model,
+  status,
+  artifacts,
+  jobError,
+}: Pick<ModelAsideProps, "model" | "status" | "artifacts" | "jobError">) {
   return (
     <div className={`${CARD} gap-3`}>
       <div className="flex items-baseline justify-between">

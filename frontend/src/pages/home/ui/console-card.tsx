@@ -11,9 +11,7 @@ export function ConsoleCard({ label, href, hint, locked }: ConsoleCardProps) {
   const body = (
     <>
       <div className="flex items-center justify-between gap-2.5">
-        <p className={cx("m-0 text-[13px] font-semibold", locked ? "text-muted" : "text-fg")}>
-          {label}
-        </p>
+        <p className={cx("m-0 text-[13px] font-semibold", locked ? "text-muted" : "text-fg")}>{label}</p>
         {locked ? (
           <Icon name="lock" size={13} title="No access" className="shrink-0 text-muted" />
         ) : (

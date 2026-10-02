@@ -45,24 +45,15 @@ describe("UploadModal", () => {
   it("asks for one equirect photo for the named territory", () => {
     draw();
 
-    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(
-      "Add a panorama to Refinery Block C",
-    );
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("Add a panorama to Refinery Block C");
     // The heading names the dialog, so the × sits beside it and not in it.
-    expect(
-      screen.getByRole("dialog", { name: "Add a panorama to Refinery Block C" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Add a panorama to Refinery Block C" })).toBeInTheDocument();
     const input = screen.getByLabelText("Drop one equirectangular photo here") as HTMLInputElement;
     expect(input.accept).toBe(".jpg,.jpeg,.png");
     expect(screen.getByText("JPG or PNG · 2:1 ratio · single file")).toBeInTheDocument();
     expect(screen.getByText("Choose file")).toBeInTheDocument();
-    expect(screen.getByLabelText("Title")).toHaveAttribute(
-      "placeholder",
-      "e.g. Pump house, south wall",
-    );
-    expect(
-      screen.getByRole("checkbox", { name: "Place from the photo's GPS when present" }),
-    ).toBeChecked();
+    expect(screen.getByLabelText("Title")).toHaveAttribute("placeholder", "e.g. Pump house, south wall");
+    expect(screen.getByRole("checkbox", { name: "Place from the photo's GPS when present" })).toBeChecked();
     expect(screen.getByRole("button", { name: "Upload panorama" })).toBeDisabled();
   });
 
@@ -74,9 +65,7 @@ describe("UploadModal", () => {
     const zone = screen.getByText("Choose file").closest("label")!;
     expect(zone).toHaveAttribute("autofocus");
     expect(screen.getByLabelText("Title")).not.toHaveAttribute("autofocus");
-    expect(screen.getByRole("button", { name: "Close panorama upload" })).not.toHaveAttribute(
-      "autofocus",
-    );
+    expect(screen.getByRole("button", { name: "Close panorama upload" })).not.toHaveAttribute("autofocus");
   });
 
   it("opens on the title once a file is already chosen", () => {
@@ -137,9 +126,7 @@ describe("UploadModal", () => {
   it("asks for one PDF, and nothing about GPS — a document has no anchor", () => {
     draw({ kind: "document", gps: undefined });
 
-    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(
-      "Add a document to Refinery Block C",
-    );
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("Add a document to Refinery Block C");
     const input = screen.getByLabelText("Drop one PDF here") as HTMLInputElement;
     expect(input.accept).toBe(".pdf");
     expect(screen.getByText("PDF · single file · shown as a viewport overlay")).toBeInTheDocument();
@@ -179,18 +166,13 @@ describe("UploadModal", () => {
       upload: { stage: "uploading", file: file(), percent: 38, label: "Reading EXIF · 38 %" },
     });
 
-    expect(screen.getByRole("progressbar", { name: "Reading EXIF · 38 %" })).toHaveAttribute(
-      "aria-valuenow",
-      "38",
-    );
+    expect(screen.getByRole("progressbar", { name: "Reading EXIF · 38 %" })).toHaveAttribute("aria-valuenow", "38");
     // Read-only, not disabled: a disabled field greys its value to the
     // placeholder's colour, and the reader cannot tell the title was kept.
     expect(screen.getByLabelText("Title")).not.toBeDisabled();
     expect(screen.getByLabelText("Title")).toHaveAttribute("readonly");
     expect(screen.getByLabelText("Title")).toHaveValue("Pump house, south wall");
-    expect(
-      screen.getByRole("checkbox", { name: "Place from the photo's GPS when present" }),
-    ).toBeDisabled();
+    expect(screen.getByRole("checkbox", { name: "Place from the photo's GPS when present" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Uploading…" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Replace" })).toBeNull();
 

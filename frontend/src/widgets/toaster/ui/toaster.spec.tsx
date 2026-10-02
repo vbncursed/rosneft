@@ -148,9 +148,7 @@ describe("Toaster", () => {
     });
 
     expect(screen.getByRole("alert")).toHaveTextContent("Cannot freeze the last admin.");
-    await userEvent.click(
-      screen.getByRole("button", { name: "Dismiss: Cannot freeze the last admin." }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: "Dismiss: Cannot freeze the last admin." }));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
@@ -241,9 +239,7 @@ describe("Toaster", () => {
     });
 
     expect(screen.getByRole("button", { name: "Dismiss: Saved" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Dismiss: Cannot freeze the last admin." }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Dismiss: Cannot freeze the last admin." })).toBeInTheDocument();
   });
 
   // A tab opened in the background fires no visibilitychange until it is

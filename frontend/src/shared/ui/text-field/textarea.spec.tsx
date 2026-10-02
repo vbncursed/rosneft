@@ -25,9 +25,7 @@ describe("Textarea", () => {
 
   it("describes itself with its hint", () => {
     render(<Textarea label="Description" hint="Markdown is not rendered" />);
-    expect(screen.getByLabelText("Description")).toHaveAccessibleDescription(
-      "Markdown is not rendered",
-    );
+    expect(screen.getByLabelText("Description")).toHaveAccessibleDescription("Markdown is not rendered");
   });
 
   it("marks itself invalid and announces the error", () => {

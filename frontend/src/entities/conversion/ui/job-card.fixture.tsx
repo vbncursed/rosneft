@@ -6,8 +6,7 @@ const TITLES: Record<string, string> = {
   "refinery-block-c": "Refinery Block C",
   "pipe-rack-b7": "Pipe Rack B7",
   "valve-cluster": "Valve cluster",
-  "north-field-survey-with-a-very-long-name":
-    "North field survey, west quadrant, photogrammetry pass two",
+  "north-field-survey-with-a-very-long-name": "North field survey, west quadrant, photogrammetry pass two",
 };
 
 const titleOf: TitleOf = (_kind, slug) => TITLES[slug];

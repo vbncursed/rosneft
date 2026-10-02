@@ -1,10 +1,5 @@
 import { useMemo, useState } from "react";
-import {
-  matchesFilters,
-  matchesText,
-  pipelineCounts,
-  type ContentItem,
-} from "@/entities/content";
+import { matchesFilters, matchesText, pipelineCounts, type ContentItem } from "@/entities/content";
 import { parseFilters, freeText } from "@/features/audit-filter";
 import { Icon } from "@/shared/ui/icon";
 import { Menu } from "@/shared/ui/menu";
@@ -32,22 +27,46 @@ const make = (
 
 const ITEMS: ContentItem[] = [
   make("territory", "terminal-yard-4", "Terminal Yard 4", {
-    status: "converting", progress: 62, stage: "textures",
-    meta: "terminal-yard-4 · job 8f21 · mesh-worker-2", lods: "LOD 0-1", size: "760 MB",
+    status: "converting",
+    progress: 62,
+    stage: "textures",
+    meta: "terminal-yard-4 · job 8f21 · mesh-worker-2",
+    lods: "LOD 0-1",
+    size: "760 MB",
   }),
   make("model", "pipe-rack-b7", "Pipe Rack B7", {
-    status: "converting", progress: 18, stage: "parsing",
-    meta: "pipe-rack-b7 · job 8f22 · queued 11 min", lods: "—", size: "1.1 GB",
+    status: "converting",
+    progress: 18,
+    stage: "parsing",
+    meta: "pipe-rack-b7 · job 8f22 · queued 11 min",
+    lods: "—",
+    size: "1.1 GB",
   }),
   make("model", "flare-stack", "Flare Stack", {
-    status: "failed", meta: "flare-stack · OBJ parse error at line 84120", lods: "—", size: "—",
+    status: "failed",
+    meta: "flare-stack · OBJ parse error at line 84120",
+    lods: "—",
+    size: "—",
   }),
   make("territory", "north-ridge-pad", "North Ridge Pad", { meta: "north-ridge-pad · upd. 31.08 · 3 placements" }),
-  make("territory", "refinery-block-c", "Refinery Block C", { meta: "refinery-block-c · upd. 29.08 · 14 placements", size: "1.2 GB" }),
-  make("territory", "tank-farm-south", "Tank Farm South", { meta: "tank-farm-south · upd. 26.08 · 8 placements", size: "689 MB" }),
+  make("territory", "refinery-block-c", "Refinery Block C", {
+    meta: "refinery-block-c · upd. 29.08 · 14 placements",
+    size: "1.2 GB",
+  }),
+  make("territory", "tank-farm-south", "Tank Farm South", {
+    meta: "tank-farm-south · upd. 26.08 · 8 placements",
+    size: "689 MB",
+  }),
   make("model", "pump-jack-unit", "Pump Jack Unit", { meta: "pump-jack-unit · used in 6 territories", size: "38 MB" }),
-  make("model", "storage-tank-500", "Storage Tank 500", { meta: "storage-tank-500 · used in 4 territories", size: "96 MB" }),
-  make("model", "valve-assembly", "Valve Assembly", { meta: "valve-assembly · used in 2 territories", lods: "LOD 0-1", size: "12 MB" }),
+  make("model", "storage-tank-500", "Storage Tank 500", {
+    meta: "storage-tank-500 · used in 4 territories",
+    size: "96 MB",
+  }),
+  make("model", "valve-assembly", "Valve Assembly", {
+    meta: "valve-assembly · used in 2 territories",
+    lods: "LOD 0-1",
+    size: "12 MB",
+  }),
 ];
 
 const STATS = [

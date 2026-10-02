@@ -52,9 +52,7 @@ describe("useLodHandlers", () => {
         failure: { hash: "h1", status: 502 },
       }),
     );
-    act(() =>
-      result.current.onLod({ shown: 0, target: 0, percent: 100, progressText: null, failure: null }),
-    );
+    act(() => result.current.onLod({ shown: 0, target: 0, percent: 100, progressText: null, failure: null }));
     expect(result.current.failedAt).toBeNull();
   });
 

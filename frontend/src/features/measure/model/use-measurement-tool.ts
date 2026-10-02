@@ -70,31 +70,18 @@ export function useMeasurementTool(onTransition?: MeasurementTransition) {
   const toggle = useCallback(() => dispatch({ type: "toggle" }), [dispatch]);
   const exit = useCallback(() => dispatch({ type: "exit" }), [dispatch]);
   // keepSaved: leave the chains the server holds (a reader's Clear).
-  const clear = useCallback(
-    (keepSaved: boolean) => dispatch({ type: "clear", keepSaved }),
-    [dispatch],
-  );
-  const removeChain = useCallback(
-    (chainId: number) => dispatch({ type: "removeChain", chainId }),
-    [dispatch],
-  );
+  const clear = useCallback((keepSaved: boolean) => dispatch({ type: "clear", keepSaved }), [dispatch]);
+  const removeChain = useCallback((chainId: number) => dispatch({ type: "removeChain", chainId }), [dispatch]);
   const removeSegment = useCallback(
-    (chainId: number, segmentIndex: number) =>
-      dispatch({ type: "removeSegment", chainId, segmentIndex }),
+    (chainId: number, segmentIndex: number) => dispatch({ type: "removeSegment", chainId, segmentIndex }),
     [dispatch],
   );
 
   // Where a chain stands with the server. The caller that talks to the
   // gateway reports through these; the hook itself sends nothing.
-  const seed = useCallback(
-    (chains: StoredChain[]) => dispatch({ type: "seed", chains }),
-    [dispatch],
-  );
+  const seed = useCallback((chains: StoredChain[]) => dispatch({ type: "seed", chains }), [dispatch]);
   const saving = useCallback((id: number) => dispatch({ type: "saving", id }), [dispatch]);
-  const saved = useCallback(
-    (id: number, serverId: number) => dispatch({ type: "saved", id, serverId }),
-    [dispatch],
-  );
+  const saved = useCallback((id: number, serverId: number) => dispatch({ type: "saved", id, serverId }), [dispatch]);
   const failed = useCallback((id: number) => dispatch({ type: "failed", id }), [dispatch]);
   const restore = useCallback((chain: Chain) => dispatch({ type: "restore", chain }), [dispatch]);
 

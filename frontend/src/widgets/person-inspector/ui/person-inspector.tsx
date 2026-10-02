@@ -78,24 +78,14 @@ export function PersonInspector({
                 Reset password
               </Button>
             ) : null}
-            <Button
-              size="sm"
-              variant="accent"
-              className="flex-1 justify-center"
-              onClick={onRequire2fa}
-            >
+            <Button size="sm" variant="accent" className="flex-1 justify-center" onClick={onRequire2fa}>
               {user.totpRequired ? "Stop requiring 2FA" : "Require 2FA"}
             </Button>
           </div>
           <div className="flex gap-2">
             {/* A deleted account cannot be frozen; restoring it is the only way back. */}
             {user.status === "deleted" ? null : (
-              <Button
-                size="sm"
-                variant="warning"
-                className="flex-1 justify-center"
-                onClick={onFreeze}
-              >
+              <Button size="sm" variant="warning" className="flex-1 justify-center" onClick={onFreeze}>
                 {user.status === "frozen" ? "Unfreeze" : "Freeze"}
               </Button>
             )}

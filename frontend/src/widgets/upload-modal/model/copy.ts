@@ -4,8 +4,7 @@ import { formatBytes } from "@/shared/lib/format-bytes";
 export type UploadKind = "panorama" | "document";
 
 /** The dialog's heading: what is being added, and what it joins. */
-export const modalTitle = (kind: UploadKind, territoryTitle: string) =>
-  `Add a ${kind} to ${territoryTitle}`;
+export const modalTitle = (kind: UploadKind, territoryTitle: string) => `Add a ${kind} to ${territoryTitle}`;
 
 /** The close button names the upload it abandons, not the window. */
 export const closeTitle = (kind: UploadKind) => `Close ${kind} upload`;

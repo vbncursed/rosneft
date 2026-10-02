@@ -17,19 +17,17 @@ describe("useOverlaysPanel", () => {
   });
 
   it("switches to placements when a placement is selected", () => {
-    const { result, rerender } = renderHook(
-      ({ id }: { id: number | null }) => useOverlaysPanel(id, undefined, false),
-      { initialProps: { id: null as number | null } },
-    );
+    const { result, rerender } = renderHook(({ id }: { id: number | null }) => useOverlaysPanel(id, undefined, false), {
+      initialProps: { id: null as number | null },
+    });
     rerender({ id: 7 });
     expect(result.current.tab).toBe("placements");
   });
 
   it("stays where it is when the selection clears", () => {
-    const { result, rerender } = renderHook(
-      ({ id }: { id: number | null }) => useOverlaysPanel(id, undefined, false),
-      { initialProps: { id: 7 as number | null } },
-    );
+    const { result, rerender } = renderHook(({ id }: { id: number | null }) => useOverlaysPanel(id, undefined, false), {
+      initialProps: { id: 7 as number | null },
+    });
     act(() => {
       result.current.setTab("view");
     });

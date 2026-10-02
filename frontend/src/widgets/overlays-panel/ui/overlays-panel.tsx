@@ -89,9 +89,7 @@ export function OverlaysPanel({
           className={`${EDGES} ${ENTERING} flex w-[320px] max-[1281px]:w-[300px] flex-col overflow-hidden rounded-card border border-line bg-panel shadow-elevation`}
         >
           <div className="flex items-center justify-between gap-2.5 border-b border-line px-3.5 py-[13px]">
-            <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted">
-              Overlays
-            </span>
+            <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted">Overlays</span>
             <Tooltip label="Collapse Overlays panel">
               <button
                 type="button"

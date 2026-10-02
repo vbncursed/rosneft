@@ -33,5 +33,3 @@ describe("Card", () => {
     expect(container.firstElementChild!.className).not.toContain("p-5");
   });
 });
-
-

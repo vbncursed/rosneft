@@ -22,15 +22,10 @@ export function StageList({ stages, label = "Conversion stages", activeTone, cla
         return (
           <li key={index} className={cx("flex gap-2.5", anyHint ? "items-start" : "items-center")}>
             {/* The dot repeats what the text tone already says, for a glance. */}
-            <span
-              aria-hidden="true"
-              className={cx("size-[7px] shrink-0 rounded-full", dot, anyHint && "mt-[5px]")}
-            />
+            <span aria-hidden="true" className={cx("size-[7px] shrink-0 rounded-full", dot, anyHint && "mt-[5px]")} />
             <div className="min-w-0 flex-1">
               <span className={cx("font-mono text-[11px]", text)}>{stage.label}</span>
-              {stage.hint ? (
-                <p className="mt-[3px] text-[11px] leading-[1.45] text-muted">{stage.hint}</p>
-              ) : null}
+              {stage.hint ? <p className="mt-[3px] text-[11px] leading-[1.45] text-muted">{stage.hint}</p> : null}
             </div>
             <span className="shrink-0 font-mono text-[10px] text-dim">{stage.time}</span>
           </li>

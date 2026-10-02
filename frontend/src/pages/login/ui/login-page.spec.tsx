@@ -57,9 +57,7 @@ describe("LoginPage", () => {
     const { rerender } = render(<LoginPage {...props()} />);
     expect(screen.queryByText(/Use your passkey/)).not.toBeInTheDocument();
 
-    rerender(
-      <LoginPage {...props({ credentials: { ...credentials(), onPasskey: vi.fn() } })} />,
-    );
+    rerender(<LoginPage {...props({ credentials: { ...credentials(), onPasskey: vi.fn() } })} />);
     expect(screen.getByText(/Use your passkey/)).toBeInTheDocument();
   });
 

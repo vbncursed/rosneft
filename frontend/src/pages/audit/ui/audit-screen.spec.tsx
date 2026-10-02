@@ -120,9 +120,7 @@ describe("AuditScreen", () => {
     expect(heading.compareDocumentPosition(from) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // Pinned to the filter row itself, not merely somewhere after the
     // heading — without coupling to the row's DOM shape.
-    expect(within(screen.getByRole("group", { name: "Filters" })).getByRole("button", { name: "From" })).toBe(
-      from,
-    );
+    expect(within(screen.getByRole("group", { name: "Filters" })).getByRole("button", { name: "From" })).toBe(from);
   });
 
   it("puts an empty-result sentence below the heading, not above the page", () => {
@@ -145,9 +143,7 @@ describe("AuditScreen", () => {
     expect(screen.getByRole("button", { name: "To" })).toHaveTextContent("yyyy-mm-dd");
     unmount();
 
-    useAudit.mockReturnValue(
-      state({ range: { from: "2026-08-24", to: "2026-08-18" }, setRange }),
-    );
+    useAudit.mockReturnValue(state({ range: { from: "2026-08-24", to: "2026-08-18" }, setRange }));
     render(<AuditScreen />);
     expect(screen.getByRole("button", { name: "From" })).toHaveTextContent("2026-08-24");
 
@@ -165,9 +161,7 @@ describe("AuditScreen", () => {
 
   it("words the picked range as one chip, whose × clears both dates", async () => {
     const setRange = vi.fn();
-    useAudit.mockReturnValue(
-      state({ range: { from: "2026-09-01", to: "2026-09-02" }, setRange }),
-    );
+    useAudit.mockReturnValue(state({ range: { from: "2026-09-01", to: "2026-09-02" }, setRange }));
     render(<AuditScreen />);
     expect(screen.getByText("1 Sep – 2 Sep")).toBeInTheDocument();
 

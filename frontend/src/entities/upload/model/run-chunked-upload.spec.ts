@@ -66,9 +66,7 @@ describe("runChunkedUpload", () => {
       ac.abort();
       return (slice as { end: number }).end;
     });
-    await expect(
-      runChunkedUpload(fakeFile(20 * MB), { signal: ac.signal }),
-    ).rejects.toThrow("upload aborted");
+    await expect(runChunkedUpload(fakeFile(20 * MB), { signal: ac.signal })).rejects.toThrow("upload aborted");
     expect(appendChunk).toHaveBeenCalledTimes(1);
     expect(finalizeUpload).not.toHaveBeenCalled();
     expect(abortUpload).toHaveBeenCalledTimes(1);
@@ -84,9 +82,7 @@ describe("runChunkedUpload", () => {
   it("rejects immediately for a signal that is already aborted", async () => {
     const ac = new AbortController();
     ac.abort();
-    await expect(
-      runChunkedUpload(fakeFile(20 * MB), { signal: ac.signal }),
-    ).rejects.toThrow("upload aborted");
+    await expect(runChunkedUpload(fakeFile(20 * MB), { signal: ac.signal })).rejects.toThrow("upload aborted");
     expect(appendChunk).not.toHaveBeenCalled();
     expect(finalizeUpload).not.toHaveBeenCalled();
   });
@@ -97,9 +93,7 @@ describe("runChunkedUpload", () => {
       ac.abort();
       return (slice as { end: number }).end;
     });
-    await expect(
-      runChunkedUpload(fakeFile(CHUNK), { signal: ac.signal }),
-    ).rejects.toThrow("upload aborted");
+    await expect(runChunkedUpload(fakeFile(CHUNK), { signal: ac.signal })).rejects.toThrow("upload aborted");
     expect(appendChunk).toHaveBeenCalledTimes(1);
     expect(finalizeUpload).not.toHaveBeenCalled();
   });

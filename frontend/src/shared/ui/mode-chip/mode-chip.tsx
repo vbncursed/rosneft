@@ -42,7 +42,13 @@ export function ModeChip({ children, tone = "accent", icon, spinning = false, la
       )}
     >
       {icon ? (
-        <Icon name={icon} size={12} className={spinning ? "animate-spin [animation-duration:700ms] motion-reduce:[animation-duration:2s]" : undefined} />
+        <Icon
+          name={icon}
+          size={12}
+          className={
+            spinning ? "animate-spin [animation-duration:700ms] motion-reduce:[animation-duration:2s]" : undefined
+          }
+        />
       ) : null}
       {children}
       {kbd ? <kbd className="rounded-[4px] border border-accent-line px-[5px] py-px">{kbd}</kbd> : null}

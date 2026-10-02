@@ -5,7 +5,10 @@ import { ConversionActions, FAILED_NOTE } from "./conversion-actions";
 describe("ConversionActions", () => {
   it("offers a new source and the catalog after a failure, plus the viewer only when one exists", () => {
     const { rerender } = render(<ConversionActions phase="failed" slug="a b" hasLod0={false} />);
-    expect(screen.getByRole("link", { name: "Upload a new source" })).toHaveAttribute("href", "/territories/a%20b/replace");
+    expect(screen.getByRole("link", { name: "Upload a new source" })).toHaveAttribute(
+      "href",
+      "/territories/a%20b/replace",
+    );
     expect(screen.getByRole("link", { name: "Back to catalog" })).toHaveAttribute("href", "/territories");
     expect(screen.queryByRole("link", { name: "Open the current viewer" })).not.toBeInTheDocument();
     expect(screen.getByText(FAILED_NOTE)).toBeInTheDocument();

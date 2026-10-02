@@ -117,9 +117,48 @@ export const IDLE_DOCUMENTS: DocumentParts = {
   },
 };
 
-const OWNER: Grants = { create: true, write: true, delete: true, replace: true, panoramaCreate: true, panoramaWrite: true, panoramaDelete: true, documentWrite: true, documentDelete: true, measureCreate: true, measureWrite: true, measureDelete: true };
-export const GUEST: Grants = { create: false, write: false, delete: false, replace: false, panoramaCreate: false, panoramaWrite: false, panoramaDelete: false, documentWrite: false, documentDelete: false, measureCreate: false, measureWrite: false, measureDelete: false };
-export const NO_DELETE: Grants = { create: true, write: true, delete: false, replace: true, panoramaCreate: true, panoramaWrite: true, panoramaDelete: false, documentWrite: true, documentDelete: false, measureCreate: true, measureWrite: true, measureDelete: false };
+const OWNER: Grants = {
+  create: true,
+  write: true,
+  delete: true,
+  replace: true,
+  panoramaCreate: true,
+  panoramaWrite: true,
+  panoramaDelete: true,
+  documentWrite: true,
+  documentDelete: true,
+  measureCreate: true,
+  measureWrite: true,
+  measureDelete: true,
+};
+export const GUEST: Grants = {
+  create: false,
+  write: false,
+  delete: false,
+  replace: false,
+  panoramaCreate: false,
+  panoramaWrite: false,
+  panoramaDelete: false,
+  documentWrite: false,
+  documentDelete: false,
+  measureCreate: false,
+  measureWrite: false,
+  measureDelete: false,
+};
+export const NO_DELETE: Grants = {
+  create: true,
+  write: true,
+  delete: false,
+  replace: true,
+  panoramaCreate: true,
+  panoramaWrite: true,
+  panoramaDelete: false,
+  documentWrite: true,
+  documentDelete: false,
+  measureCreate: true,
+  measureWrite: true,
+  measureDelete: false,
+};
 
 const at = (id: number, modelSlug: string, x: number): ResolvedPlacement => ({
   id,
@@ -169,8 +208,25 @@ const VM: SceneViewModel = {
 };
 
 const CHAINS: Chain[] = [
-  { id: 1, points: [{ x: -0.4, y: 0.1, z: 0.2 }, { x: 0.3, y: 0.1, z: 0.2 }], closed: false, sync: "saved", serverId: 1 },
-  { id: 2, points: [{ x: 0.1, y: 0.1, z: -0.5 }, { x: 0.1, y: 0.1, z: 0.1 }], closed: false, sync: "local" },
+  {
+    id: 1,
+    points: [
+      { x: -0.4, y: 0.1, z: 0.2 },
+      { x: 0.3, y: 0.1, z: 0.2 },
+    ],
+    closed: false,
+    sync: "saved",
+    serverId: 1,
+  },
+  {
+    id: 2,
+    points: [
+      { x: 0.1, y: 0.1, z: -0.5 },
+      { x: 0.1, y: 0.1, z: 0.1 },
+    ],
+    closed: false,
+    sync: "local",
+  },
 ];
 
 const IDLE_TOUR: Tour = {
@@ -211,7 +267,14 @@ export const basePageParts = (): PageParts => ({
   placements: PLACEMENTS,
   pendingIds: [],
   placing: null,
-  placementGroups: { list: [], busy: false, create: async () => true, rename: async () => true, remove: noop, setHidden: async () => true },
+  placementGroups: {
+    list: [],
+    busy: false,
+    create: async () => true,
+    rename: async () => true,
+    remove: noop,
+    setHidden: async () => true,
+  },
   form: null,
   tour: IDLE_TOUR,
   panoramaTour: IDLE_TOUR,
@@ -242,8 +305,7 @@ export const basePageParts = (): PageParts => ({
 });
 
 /** A whole page from one set of overrides — every state below is one call. */
-export const viewerState = (edit: (p: PageParts) => PageParts = (p) => p) =>
-  pageProps(edit(basePageParts()));
+export const viewerState = (edit: (p: PageParts) => PageParts = (p) => p) => pageProps(edit(basePageParts()));
 
 export const page = (edit?: (p: PageParts) => PageParts) => (
   <CatalogShell layout="viewport">
@@ -295,7 +357,12 @@ export default {
     ...p,
     mode: { ...p.mode, mode: "measure" },
     panel: { tab: "view", collapsed: false },
-    measure: { ...p.measure, chains: CHAINS, activeChainId: 2, summary: { segments: 2, total: "20.55 m", unsaved: false } },
+    measure: {
+      ...p.measure,
+      chains: CHAINS,
+      activeChainId: 2,
+      summary: { segments: 2, total: "20.55 m", unsaved: false },
+    },
   })),
 
   "5 guest": page((p) => ({ ...p, grants: GUEST })),
@@ -305,7 +372,12 @@ export default {
     view: {
       ...p.view,
       report: { shown: null, target: 1, percent: null, progressText: null, failure: { hash: "h1", status: 502 } },
-      error: { lod: 1, status: 502, file: "refinery-block-c-lod1.glb", coarser: { lod: 2, hash: "h2", size: 2_400_000 } },
+      error: {
+        lod: 1,
+        status: 502,
+        file: "refinery-block-c-lod1.glb",
+        coarser: { lod: 2, hash: "h2", size: 2_400_000 },
+      },
     },
   })),
 
@@ -313,9 +385,7 @@ export default {
 
   "7b groups, one hidden": page((p) => ({
     ...p,
-    placements: p.placements.map((x) =>
-      x.id === 3 ? { ...x, hidden: true } : x.id === 4 ? { ...x, groupId: 1 } : x,
-    ),
+    placements: p.placements.map((x) => (x.id === 3 ? { ...x, hidden: true } : x.id === 4 ? { ...x, groupId: 1 } : x)),
     placementGroups: { ...p.placementGroups, list: [{ id: 1, title: "Valve bank", hidden: false }] },
     view: { ...p.view, expandedModel: "storage-tank-500" },
   })),

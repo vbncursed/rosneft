@@ -81,9 +81,7 @@ export function useUploadModels(): UploadModelsState {
   };
 
   async function run() {
-    const ids = rowsRef.current
-      .filter((r) => r.status === "queued" || r.status === "failed")
-      .map((r) => r.id);
+    const ids = rowsRef.current.filter((r) => r.status === "queued" || r.status === "failed").map((r) => r.id);
     const created: { slug: string; jobId: string }[] = [];
     // A cancel means "stop and leave the queue as it is" — even a row or two
     // already created must not trigger the finish-line redirect.

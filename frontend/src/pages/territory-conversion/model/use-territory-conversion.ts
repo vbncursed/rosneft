@@ -6,13 +6,7 @@ import { getSceneBundle, sceneQuery, sceneReady } from "@/entities/scene";
 import { territoryPath } from "@/entities/territory";
 import { HttpError, messageOf } from "@/shared/api";
 import { unanswered } from "@/shared/lib/unanswered";
-import {
-  jobsPoll,
-  phaseOf,
-  shouldOpenViewer,
-  type Phase,
-  type TerritoryConversionPageProps,
-} from "./conversion-view";
+import { jobsPoll, phaseOf, shouldOpenViewer, type Phase, type TerritoryConversionPageProps } from "./conversion-view";
 
 export type TerritoryConversionState =
   | { status: "loading" }

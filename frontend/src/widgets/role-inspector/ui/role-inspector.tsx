@@ -129,13 +129,7 @@ export function RoleInspector({
           />
         </div>
 
-        <PermissionMatrix
-          all={all}
-          granted={granted}
-          onToggle={onToggle}
-          grantable={grantable}
-          readOnly={locked}
-        />
+        <PermissionMatrix all={all} granted={granted} onToggle={onToggle} grantable={grantable} readOnly={locked} />
 
         {/* The blocked-save callout already says a grant is out of reach, in
             stronger words — two notices about the same chips is one too many. */}
@@ -167,12 +161,7 @@ export function RoleInspector({
                   Delete role
                 </Button>
               ) : null}
-              <Button
-                size="sm"
-                className="flex-1 justify-center"
-                onClick={onReset}
-                disabled={!dirty || saving}
-              >
+              <Button size="sm" className="flex-1 justify-center" onClick={onReset} disabled={!dirty || saving}>
                 Reset
               </Button>
               <Button

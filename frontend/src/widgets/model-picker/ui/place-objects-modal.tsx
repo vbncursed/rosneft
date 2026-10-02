@@ -93,9 +93,7 @@ function PlaceObjectsBody({
       footer={
         <div className="flex w-full items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">
-              Quantity
-            </span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">Quantity</span>
             {/* The stepper sits in the footer, per the viewer mock; the
                 card-level one is the model page's. Its buttons read
                 "Decrease storage-tank-500 quantity" rather than the mock's

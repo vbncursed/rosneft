@@ -122,16 +122,12 @@ describe("GltfModel", () => {
 
     // The blob the streamed download minted is what the warmer parses, so the
     // bytes travel once.
-    await eventually(() =>
-      expect(vi.mocked(drei.useGLTF).mock.calls.map((c) => c[0])).toContain("blob:fine"),
-    );
+    await eventually(() => expect(vi.mocked(drei.useGLTF).mock.calls.map((c) => c[0])).toContain("blob:fine"));
     // The first level reported is the coarse one standing in for the target;
     // the last one, after the warmer says the blob parsed, is the target itself.
     const levels = onReport.mock.calls.map((c) => c[0] as LodReport).filter((r) => r.shown !== null);
     expect(levels[0]).toMatchObject({ shown: 2, target: 0 });
-    await eventually(() =>
-      expect((onReport.mock.lastCall![0] as LodReport).shown).toBe(0),
-    );
+    await eventually(() => expect((onReport.mock.lastCall![0] as LodReport).shown).toBe(0));
   });
 
   it("keeps the coarse level on screen on the way back to a level that left it, and counts the new download from 0 (0 → 2 → 0)", async () => {
@@ -151,10 +147,11 @@ describe("GltfModel", () => {
     let calls = 0;
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () =>
-        new Response(streamOf([new Uint8Array(4), new Uint8Array(6)], ++calls === 2 ? gate : undefined), {
-          status: 200,
-        }),
+      vi.fn(
+        async () =>
+          new Response(streamOf([new Uint8Array(4), new Uint8Array(6)], ++calls === 2 ? gate : undefined), {
+            status: 200,
+          }),
       ),
     );
     const minted = ["blob:fine", "blob:fine2"];
@@ -197,10 +194,11 @@ describe("GltfModel", () => {
     });
     vi.stubGlobal(
       "fetch",
-      vi.fn(async (url: string) =>
-        new Response(streamOf([new Uint8Array(4), new Uint8Array(6)], url.endsWith("/fine") ? gate : undefined), {
-          status: 200,
-        }),
+      vi.fn(
+        async (url: string) =>
+          new Response(streamOf([new Uint8Array(4), new Uint8Array(6)], url.endsWith("/fine") ? gate : undefined), {
+            status: 200,
+          }),
       ),
     );
     const minted = ["blob:mid", "blob:fine"];
@@ -235,7 +233,10 @@ describe("GltfModel", () => {
     // swap does — not a frame without a mesh.)
     expect(reports().map((rep) => rep.shown)).not.toContain(2);
     // Held, not re-fetched: nothing went back to the asset route for LOD 1.
-    const parsed = vi.mocked(drei.useGLTF).mock.calls.slice(parsedFrom).map((c) => String(c[0]));
+    const parsed = vi
+      .mocked(drei.useGLTF)
+      .mock.calls.slice(parsedFrom)
+      .map((c) => String(c[0]));
     expect(parsed).not.toContain("/api/assets/mid");
     expect(parsed).not.toContain("/api/assets/coarse");
     // With LOD 0 on screen nothing can draw LOD 1 again: its blob and parsed
@@ -275,7 +276,10 @@ describe("GltfModel", () => {
     await r.update(model({ onReport, targetLod: 0 }));
     await eventually(() => expect(last()).toMatchObject({ shown: 0, target: 0 }));
     expect(fetch).toHaveBeenCalledTimes(2);
-    const parsed = vi.mocked(drei.useGLTF).mock.calls.slice(parsedFrom).map((c) => String(c[0]));
+    const parsed = vi
+      .mocked(drei.useGLTF)
+      .mock.calls.slice(parsedFrom)
+      .map((c) => String(c[0]));
     expect(parsed).not.toContain("blob:fine");
     expect(vi.mocked(drei.useGLTF).mock.lastCall![0]).toBe("blob:fine2");
     expect(URL.revokeObjectURL).not.toHaveBeenCalledWith("blob:fine2");
@@ -332,9 +336,7 @@ describe("GltfModel", () => {
     const from = onReport.mock.calls.length;
 
     await r.update(model({ onReport, targetLod: 0, lods }));
-    await eventually(() =>
-      expect(vi.mocked(drei.useGLTF).mock.calls.map((c) => c[0])).toContain("blob:fine"),
-    );
+    await eventually(() => expect(vi.mocked(drei.useGLTF).mock.calls.map((c) => c[0])).toContain("blob:fine"));
     await r.update(model({ onReport, targetLod: 1, lods }));
     await eventually(() => expect(last()).toMatchObject({ shown: 1, target: 1, percent: null }));
     await waitInAct(SETTLE_MS);
@@ -383,7 +385,10 @@ describe("GltfModel", () => {
     const from = onReport.mock.calls.length;
     await r.update(model({ onReport, targetLod: 1, lods }));
     await eventually(() => expect(last()).toMatchObject({ shown: 1, target: 1 }));
-    const parsed = vi.mocked(drei.useGLTF).mock.calls.slice(parsedFrom).map((c) => String(c[0]));
+    const parsed = vi
+      .mocked(drei.useGLTF)
+      .mock.calls.slice(parsedFrom)
+      .map((c) => String(c[0]));
     expect(parsed).not.toContain("/api/assets/mid");
     const shown = onReport.mock.calls.slice(from).map((c) => (c[0] as LodReport).shown);
     // The coarsest comes up (a stale hold never showed it: it suspended on the
@@ -429,7 +434,10 @@ describe("GltfModel", () => {
     expect(midFetches).toHaveLength(1);
     expect(onReport.mock.calls.slice(from).map((c) => (c[0] as LodReport).shown)).not.toContain(null);
     expect(last()).toMatchObject({ shown: 1, target: 1 });
-    const parsed = vi.mocked(drei.useGLTF).mock.calls.slice(parsedFrom).map((c) => String(c[0]));
+    const parsed = vi
+      .mocked(drei.useGLTF)
+      .mock.calls.slice(parsedFrom)
+      .map((c) => String(c[0]));
     expect(parsed.every((u) => u === "blob:mid")).toBe(true);
     expect(URL.revokeObjectURL).not.toHaveBeenCalledWith("blob:mid");
   });
@@ -497,9 +505,7 @@ describe("GltfModel", () => {
     expect(onReport.mock.calls[0][0]).toMatchObject({ shown: null, target: 0 });
 
     arrive();
-    await eventually(() =>
-      expect(onReport.mock.calls.map((c) => (c[0] as LodReport).shown)).toContain(2),
-    );
+    await eventually(() => expect(onReport.mock.calls.map((c) => (c[0] as LodReport).shown)).toContain(2));
   });
 
   it("stops calling a level shown once its mesh is gone again (a retry that suspends)", async () => {
@@ -545,9 +551,7 @@ describe("GltfModel", () => {
 
     release();
     await eventually(() => {
-      const withText = onReport.mock.calls
-        .map((c) => c[0] as LodReport)
-        .filter((r) => r.progressText !== null);
+      const withText = onReport.mock.calls.map((c) => c[0] as LodReport).filter((r) => r.progressText !== null);
       expect(withText.at(-1)!.percent).toBe(100);
       expect(withText.at(-1)!.progressText).toBe("0.0 / 0.0 MB");
     });
@@ -655,9 +659,7 @@ describe("GltfModel", () => {
     // page setting state from the report would then never stop.
     stubDownload();
     const calls: LodReport[] = [];
-    const r = await create(
-      model({ onReport: (report) => calls.push(report) }),
-    );
+    const r = await create(model({ onReport: (report) => calls.push(report) }));
     await eventually(() => expect(calls.at(-1)!.shown).toBe(0));
     const settled = calls.length;
 
@@ -683,9 +685,7 @@ describe("GltfModel", () => {
     const drei = await import("@react-three/drei");
     vi.mocked(drei.useGLTF.clear).mockClear();
     const r = await create(model());
-    await eventually(() =>
-      expect(vi.mocked(drei.useGLTF).mock.calls.map((c) => c[0])).toContain("blob:fine"),
-    );
+    await eventually(() => expect(vi.mocked(drei.useGLTF).mock.calls.map((c) => c[0])).toContain("blob:fine"));
     await r.unmount();
     expect(drei.useGLTF.clear).toHaveBeenCalledWith("blob:fine");
   });

@@ -36,16 +36,14 @@ describe("inspectorValue", () => {
   });
 
   it("writes structures and nulls without losing them", () => {
-    expect(
-      inspectorValue({ field: "ids", before: [4, 7], after: [4], kind: "changed" }),
-    ).toBe("[4,7] → [4]");
-    expect(
-      inspectorValue({ field: "label", before: null, after: "x", kind: "changed" }),
-    ).toBe('null → "x"');
+    expect(inspectorValue({ field: "ids", before: [4, 7], after: [4], kind: "changed" })).toBe("[4,7] → [4]");
+    expect(inspectorValue({ field: "label", before: null, after: "x", kind: "changed" })).toBe('null → "x"');
   });
   it("names an id the refs know on either side of the arrow", () => {
     const refs = { "role_id:1": "Editor", "role_id:2": "Viewer" };
-    expect(inspectorValue({ field: "role_id", before: "1", after: "2", kind: "changed" }, refs)).toBe("Editor → Viewer");
+    expect(inspectorValue({ field: "role_id", before: "1", after: "2", kind: "changed" }, refs)).toBe(
+      "Editor → Viewer",
+    );
     expect(inspectorValue({ field: "role_id", before: undefined, after: "9", kind: "added" }, refs)).toBe('+ "9"');
   });
 });

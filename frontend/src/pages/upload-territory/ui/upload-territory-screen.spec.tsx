@@ -32,7 +32,12 @@ describe("UploadTerritoryScreen", () => {
 
   it("shows the picked file from the hook", () => {
     useUploadTerritory.mockReturnValue(
-      state({ phase: "picked", file: new File(["x"], "a.zip"), form: { title: "A", description: "", panoramaUrl: "" }, slug: "a" }),
+      state({
+        phase: "picked",
+        file: new File(["x"], "a.zip"),
+        form: { title: "A", description: "", panoramaUrl: "" },
+        slug: "a",
+      }),
     );
     render(<UploadTerritoryScreen />);
     expect(screen.getByText("a.zip")).toBeInTheDocument();

@@ -11,12 +11,11 @@ const SKIN: Record<JobCardStatus, { card: string; rail: string; link: string }> 
   failed: { card: "border-bad bg-bad-soft", rail: "bg-bad", link: "text-bad" },
 };
 
-const BADGE: Record<JobCardStatus, { tone: "warn" | "neutral" | "bad"; fill: "soft" | "outline" }> =
-  {
-    converting: { tone: "warn", fill: "soft" },
-    queued: { tone: "neutral", fill: "outline" },
-    failed: { tone: "bad", fill: "soft" },
-  };
+const BADGE: Record<JobCardStatus, { tone: "warn" | "neutral" | "bad"; fill: "soft" | "outline" }> = {
+  converting: { tone: "warn", fill: "soft" },
+  queued: { tone: "neutral", fill: "outline" },
+  failed: { tone: "bad", fill: "soft" },
+};
 
 /** One conversion in the In-progress strip: a railed card with the status word, the meta line, and the bar or the failure. */
 export function JobCard({ card }: JobCardProps) {
@@ -24,10 +23,7 @@ export function JobCard({ card }: JobCardProps) {
   return (
     <article
       aria-label={`Conversion of ${card.title}`}
-      className={cx(
-        "relative overflow-hidden rounded-[12px] border py-[15px] pl-5 pr-[17px]",
-        skin.card,
-      )}
+      className={cx("relative overflow-hidden rounded-[12px] border py-[15px] pl-5 pr-[17px]", skin.card)}
     >
       <span aria-hidden="true" className={cx("absolute inset-y-0 left-0 w-[3px]", skin.rail)} />
       <div className="flex flex-wrap items-start justify-between gap-3">

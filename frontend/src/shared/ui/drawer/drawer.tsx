@@ -15,15 +15,7 @@ export type DrawerProps = {
 };
 
 /** A side panel on the same native <dialog> the Modal uses, so it traps focus. */
-export function Drawer({
-  open,
-  onClose,
-  title,
-  footer,
-  side = "right",
-  children,
-  className,
-}: DrawerProps) {
+export function Drawer({ open, onClose, title, footer, side = "right", children, className }: DrawerProps) {
   const { ref, shown } = useModalDialog(open, onClose);
   const titleId = useId();
 

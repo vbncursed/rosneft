@@ -51,8 +51,7 @@ const wrapper = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={client}>{children}</QueryClientProvider>
 );
 
-const seat = (principal: Partial<typeof PRINCIPAL> = {}) =>
-  client.setQueryData(["me"], { ...PRINCIPAL, ...principal });
+const seat = (principal: Partial<typeof PRINCIPAL> = {}) => client.setQueryData(["me"], { ...PRINCIPAL, ...principal });
 
 beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -63,8 +62,7 @@ beforeEach(() => {
   clearNotices();
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const method = init?.method ?? "GET";
-    if (url === "/api/auth/roles" && method === "GET")
-      return json(created ? [GUEST, OPS, created] : [GUEST, OPS]);
+    if (url === "/api/auth/roles" && method === "GET") return json(created ? [GUEST, OPS, created] : [GUEST, OPS]);
     if (url === "/api/auth/permissions") return json(PERMISSIONS);
     if (url.startsWith("/api/auth/users") && method === "GET") return json([USER]);
     if (method === "POST" && url === "/api/auth/roles") {
@@ -210,9 +208,7 @@ describe("useRoles", () => {
     act(() => result.current.roles.save());
     await waitFor(() => expect(result.current.notices[0]?.message).toBe("Role saved"));
 
-    const patches = fetchMock.mock.calls.filter(
-      ([, i]) => (i as RequestInit | undefined)?.method === "PATCH",
-    );
+    const patches = fetchMock.mock.calls.filter(([, i]) => (i as RequestInit | undefined)?.method === "PATCH");
     expect(patches).toHaveLength(1);
     expect(String(patches[0][0])).toBe("/api/auth/roles/ops");
     expect(JSON.parse(String((patches[0][1] as RequestInit).body))).toEqual({

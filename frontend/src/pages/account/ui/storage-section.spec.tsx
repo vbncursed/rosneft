@@ -9,7 +9,13 @@ const props = {
   usageFailed: false,
   savedLoaded: true,
   saved: [
-    { slug: "ust-kut", title: "Ust-Kut", bytes: 2 * GIB, savedAt: "2026-09-30T08:00:00Z", syncedAt: "2026-10-01T08:00:00Z" },
+    {
+      slug: "ust-kut",
+      title: "Ust-Kut",
+      bytes: 2 * GIB,
+      savedAt: "2026-09-30T08:00:00Z",
+      syncedAt: "2026-10-01T08:00:00Z",
+    },
   ],
   onLimit: vi.fn(async () => {}),
   onClear: vi.fn(async () => {}),

@@ -28,7 +28,10 @@ describe("useLodDownload", () => {
   });
 
   it("reports the status of a refused download", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 502 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(null, { status: 502 })),
+    );
     const { result } = renderHook(() => useLodDownload({ lod: 0, hash: "a", size: 5 }));
     await waitFor(() => expect(result.current.failed).toEqual({ status: 502 }));
   });
@@ -109,7 +112,10 @@ describe("useLodDownload", () => {
   // finished blob is still held. Fetching it again kept two copies of the same
   // level alive (blob, drei's parsed scene) and paid for the bytes twice.
   it("adopts the held blob on a return to its level: no fetch, no revoke, nothing held", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf([new Uint8Array(5)]), { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(streamOf([new Uint8Array(5)]), { status: 200 })),
+    );
     const revoke = vi.fn();
     vi.stubGlobal("URL", { ...URL, createObjectURL: vi.fn(() => "blob:a"), revokeObjectURL: revoke });
     const a = { lod: 0, hash: "a", size: 5 };
@@ -129,7 +135,10 @@ describe("useLodDownload", () => {
   // Until the adoption effect committed, the return read as idle for one
   // render, and the page's chip showed "0 %" against a download never started.
   it("reads a return to the held level as adopted from its very first render", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf([new Uint8Array(5)]), { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(streamOf([new Uint8Array(5)]), { status: 200 })),
+    );
     vi.stubGlobal("URL", { ...URL, createObjectURL: vi.fn(() => "blob:a"), revokeObjectURL: vi.fn() });
     const a = { lod: 0, hash: "a", size: 5 };
     const seen: LodDownload[] = [];
@@ -157,7 +166,10 @@ describe("useLodDownload", () => {
   // LOD 1 held on screen, LOD 0 downloaded but not drawn yet, and the target
   // goes back to 1: revoking the held blob there killed the drawn mesh.
   it("leaving a finished level while the held one is drawn revokes the finished one and keeps the drawn one", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf([new Uint8Array(2)]), { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(streamOf([new Uint8Array(2)]), { status: 200 })),
+    );
     const minted = ["blob:a", "blob:b"];
     const revoke = vi.fn();
     vi.stubGlobal("URL", { createObjectURL: vi.fn(() => minted.shift()), revokeObjectURL: revoke });
@@ -177,7 +189,10 @@ describe("useLodDownload", () => {
   });
 
   it("adopts under StrictMode's double effects too, and still revokes the blob on unmount", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf([new Uint8Array(5)]), { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(streamOf([new Uint8Array(5)]), { status: 200 })),
+    );
     const revoke = vi.fn();
     // Distinct urls: StrictMode's first, aborted download mints and revokes a
     // blob of its own, and that one must not be mistaken for the kept one.
@@ -201,7 +216,10 @@ describe("useLodDownload", () => {
   });
 
   it("a return to a level that is neither current nor held starts from nothing", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf([new Uint8Array(2)]), { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(streamOf([new Uint8Array(2)]), { status: 200 })),
+    );
     const minted = ["blob:a", "blob:b", "blob:c", "blob:a2"];
     const revoke = vi.fn();
     vi.stubGlobal("URL", { createObjectURL: vi.fn(() => minted.shift()), revokeObjectURL: revoke });
@@ -232,7 +250,10 @@ describe("useLodDownload", () => {
   // LOD 1's blob and parsed scene sat in memory for the whole session once
   // Auto had LOD 0 on screen, though nothing could draw LOD 1 again.
   it("releases the held blob once the level it downloads is on screen", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf([new Uint8Array(2)]), { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(streamOf([new Uint8Array(2)]), { status: 200 })),
+    );
     const minted = ["blob:a", "blob:b"];
     const revoke = vi.fn();
     vi.stubGlobal("URL", { createObjectURL: vi.fn(() => minted.shift()), revokeObjectURL: revoke });
@@ -256,7 +277,10 @@ describe("useLodDownload", () => {
   // level was ever drawn, and LOD 0's blob and parsed scene stayed for the
   // rest of the visit.
   it("releases the held blob once the coarsest level, drawn by its asset route, is on screen", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf([new Uint8Array(2)]), { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(streamOf([new Uint8Array(2)]), { status: 200 })),
+    );
     const minted = ["blob:a", "blob:a2"];
     const revoke = vi.fn();
     vi.stubGlobal("URL", { createObjectURL: vi.fn(() => minted.shift()), revokeObjectURL: revoke });
@@ -312,7 +336,10 @@ describe("useLodDownload", () => {
   // blob has to outlive the level change, or the page falls back to the
   // coarsest for the whole download.
   it("keeps the previous finished level's blob as held, and revokes it once replaced or unmounted", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf([new Uint8Array(2)]), { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(streamOf([new Uint8Array(2)]), { status: 200 })),
+    );
     const minted = ["blob:a", "blob:b", "blob:c"];
     const revoke = vi.fn();
     vi.stubGlobal("URL", { createObjectURL: vi.fn(() => minted.shift()), revokeObjectURL: revoke });

@@ -35,11 +35,7 @@ export function MetricPanels({
     <div className="flex flex-col gap-4">
       {populated.map((section) => (
         <section key={section.key} aria-label={section.title}>
-          <SectionHeading
-            title={section.title}
-            count={plural(section.panels.length)}
-            className="pb-3 pt-0.5"
-          />
+          <SectionHeading title={section.title} count={plural(section.panels.length)} className="pb-3 pt-0.5" />
           <div className="grid gap-2.5 md:grid-cols-2">
             {section.panels.map(({ key, ...panel }) => (
               <MetricPanel

@@ -29,9 +29,9 @@ describe("isScraped", () => {
 
 describe("healthSummary", () => {
   it("counts the services and calls out what is down", () => {
-    expect(
-      healthSummary([service(), service({ state: "down" }), service({ state: "degraded" })]),
-    ).toBe("3 services · 1 down");
+    expect(healthSummary([service(), service({ state: "down" }), service({ state: "degraded" })])).toBe(
+      "3 services · 1 down",
+    );
   });
 
   it("says nothing about outages when there are none", () => {

@@ -12,7 +12,11 @@ const panel = (key: string, title: string) => ({
 });
 
 const SECTIONS: MetricSection[] = [
-  { key: "traffic", title: "Traffic & latency", panels: [panel("latency", "Request latency"), panel("rps", "Requests")] },
+  {
+    key: "traffic",
+    title: "Traffic & latency",
+    panels: [panel("latency", "Request latency"), panel("rps", "Requests")],
+  },
   { key: "domain", title: "Domain", panels: [panel("conv", "Conversions")] },
 ];
 
@@ -36,10 +40,7 @@ describe("MetricPanels", () => {
 
   it("marks the selected panel", () => {
     render(<MetricPanels sections={SECTIONS} selectedKey="rps" />);
-    expect(screen.getByRole("article", { name: "Requests" })).toHaveAttribute(
-      "aria-current",
-      "true",
-    );
+    expect(screen.getByRole("article", { name: "Requests" })).toHaveAttribute("aria-current", "true");
   });
 
   it("reports a selection by key", async () => {

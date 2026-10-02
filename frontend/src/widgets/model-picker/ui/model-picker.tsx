@@ -47,10 +47,7 @@ export function ModelPicker({
       aria-label="Models"
       // Spelled out per branch: Tailwind scans for literal class names, so a
       // template literal would compile to nothing.
-      className={cx(
-        "m-0 grid list-none gap-2.5 p-0",
-        columns === 4 ? "grid-cols-4" : "grid-cols-3",
-      )}
+      className={cx("m-0 grid list-none gap-2.5 p-0", columns === 4 ? "grid-cols-4" : "grid-cols-3")}
     >
       {models.map(({ model, unavailable, meta }) => (
         <li key={model.slug}>
@@ -62,9 +59,7 @@ export function ModelPicker({
             meta={meta}
             thumb={thumb}
             quantity={quantities?.[model.slug]}
-            onQuantityChange={
-              onQuantityChange ? (quantity) => onQuantityChange(model.slug, quantity) : undefined
-            }
+            onQuantityChange={onQuantityChange ? (quantity) => onQuantityChange(model.slug, quantity) : undefined}
           />
         </li>
       ))}

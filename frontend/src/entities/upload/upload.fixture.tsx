@@ -5,13 +5,7 @@ const noop = () => {};
 export default {
   idle: (
     <div className="max-w-md p-6">
-      <UploadProgressPanel
-        busy={false}
-        canSubmit
-        submitLabel="Replace source"
-        onSubmit={noop}
-        onCancel={noop}
-      />
+      <UploadProgressPanel busy={false} canSubmit submitLabel="Replace source" onSubmit={noop} onCancel={noop} />
     </div>
   ),
   busy: (

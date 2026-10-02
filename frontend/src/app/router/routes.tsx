@@ -1,10 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
-import {
-  createRootRouteWithContext,
-  createRoute,
-  Outlet,
-  redirect,
-} from "@tanstack/react-router";
+import { createRootRouteWithContext, createRoute, Outlet, redirect } from "@tanstack/react-router";
 import { isRange } from "@/entities/metric";
 import { meQuery } from "@/entities/user";
 import { AuditScreen } from "@/pages/audit";
@@ -18,14 +13,7 @@ import { enrollBouncedAt, ENROLLMENT_PATH, isAuthed } from "@/shared/session";
 import { ConsoleShell } from "./console-shell";
 import { LoginRouteComponent } from "./login-route";
 import { NoConsoleAccess } from "./fallbacks";
-import {
-  consoleLanding,
-  enrollmentRedirect,
-  gateExit,
-  redirectTarget,
-  screenAllowed,
-  type ConsolePath,
-} from "./guard";
+import { consoleLanding, enrollmentRedirect, gateExit, redirectTarget, screenAllowed, type ConsolePath } from "./guard";
 
 // One loader for every screen: the console gate is an OR over several grants,
 // so a screen must ask for its own. /console's landing never picks a screen

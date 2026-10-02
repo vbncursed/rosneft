@@ -36,9 +36,7 @@ describe("AccountHeader", () => {
   });
 
   it("shows the avatar, username and email · role line", () => {
-    render(
-      <AccountHeader me={me({ roleSlugs: ["admin"], roleTitles: { admin: "Company Owner" } })} />,
-    );
+    render(<AccountHeader me={me({ roleSlugs: ["admin"], roleTitles: { admin: "Company Owner" } })} />);
     expect(screen.getByRole("img", { name: "a.ivanova" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "a.ivanova" })).toBeInTheDocument();
     expect(screen.getByText("a.ivanova@example.com · Company Owner")).toBeInTheDocument();

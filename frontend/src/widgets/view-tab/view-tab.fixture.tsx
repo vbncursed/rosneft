@@ -19,11 +19,7 @@ const FULL_DETAILS: Detail[] = [
 ];
 
 // Inside a panorama the mesh counts are not what the reader is looking at.
-const PANORAMA_DETAILS: Detail[] = [
-  FULL_DETAILS[0],
-  FULL_DETAILS[1],
-  FULL_DETAILS[4],
-];
+const PANORAMA_DETAILS: Detail[] = [FULL_DETAILS[0], FULL_DETAILS[1], FULL_DETAILS[4]];
 
 const BLANK = { thumbUrl: null, active: false, canEdit: false, editing: false, phase: "prior" as const, hidden: false };
 
@@ -98,7 +94,8 @@ function Live({
             canWrite,
             pendingIds: [],
             pendingPhases: [],
-            onSetHidden: (ids, hidden) => setLive((prev) => prev.map((r) => (ids.includes(r.id) ? { ...r, hidden } : r))),
+            onSetHidden: (ids, hidden) =>
+              setLive((prev) => prev.map((r) => (ids.includes(r.id) ? { ...r, hidden } : r))),
             onMove: async (ids, phase) => {
               setLive((prev) => prev.map((r) => (ids.includes(r.id) ? { ...r, phase } : r)));
               return true;

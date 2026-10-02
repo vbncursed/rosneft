@@ -65,8 +65,7 @@ beforeEach(() => {
     if (url === "/api/territories") return json([T1, T2]);
     if (url.startsWith("/api/auth/users")) return json(USERS);
     if (url === "/api/territory-admins" && method === "GET") return json({ "t-1": ["u-1"], "t-2": null });
-    if (url === "/api/territories/t-1/admins" && method === "PUT")
-      return new Response(null, { status: 204 });
+    if (url === "/api/territories/t-1/admins" && method === "PUT") return new Response(null, { status: 204 });
     return json({ code: "forbidden", message: "You don't have permission to do this" }, 403);
   });
   vi.stubGlobal("fetch", fetchMock);

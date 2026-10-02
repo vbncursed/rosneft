@@ -24,12 +24,35 @@ const t = (
 
 const TERRITORIES: TerritoryAccess[] = [
   t("refinery-block-c", "Refinery Block C", "assigned", { faces: ["a.ivanova", "m.orlova", "k.petrov"] }),
-  t("terminal-yard-4", "Terminal Yard 4", "assigned", { meta: "terminal-yard-4 · converting · job 8f21", faces: ["d.smirnov"], peopleLabel: "1 person" }),
-  t("well-cluster-9", "Well Cluster 9", "assigned", { meta: "well-cluster-9 · 6 placements · upd. 25.08", faces: ["d.smirnov", "i.lebedev"], peopleLabel: "2 people" }),
-  t("north-ridge-pad", "North Ridge Pad", "company", { meta: "north-ridge-pad · 3 placements · upd. 31.08", faces: ["a.ivanova", "d.smirnov", "k.petrov"], peopleLabel: "26 accounts" }),
-  t("tank-farm-south", "Tank Farm South", "company", { meta: "tank-farm-south · 8 placements · upd. 26.08", peopleLabel: "26 accounts" }),
-  t("pipe-rack-b7", "Pipe Rack B7", "private", { meta: "pipe-rack-b7 · converting · job 8f22", faces: ["a.ivanova"], peopleLabel: "owner only" }),
-  t("draft-site-01", "Draft Site 01", "private", { meta: "draft-site-01 · no placements yet", faces: ["a.ivanova"], peopleLabel: "owner only" }),
+  t("terminal-yard-4", "Terminal Yard 4", "assigned", {
+    meta: "terminal-yard-4 · converting · job 8f21",
+    faces: ["d.smirnov"],
+    peopleLabel: "1 person",
+  }),
+  t("well-cluster-9", "Well Cluster 9", "assigned", {
+    meta: "well-cluster-9 · 6 placements · upd. 25.08",
+    faces: ["d.smirnov", "i.lebedev"],
+    peopleLabel: "2 people",
+  }),
+  t("north-ridge-pad", "North Ridge Pad", "company", {
+    meta: "north-ridge-pad · 3 placements · upd. 31.08",
+    faces: ["a.ivanova", "d.smirnov", "k.petrov"],
+    peopleLabel: "26 accounts",
+  }),
+  t("tank-farm-south", "Tank Farm South", "company", {
+    meta: "tank-farm-south · 8 placements · upd. 26.08",
+    peopleLabel: "26 accounts",
+  }),
+  t("pipe-rack-b7", "Pipe Rack B7", "private", {
+    meta: "pipe-rack-b7 · converting · job 8f22",
+    faces: ["a.ivanova"],
+    peopleLabel: "owner only",
+  }),
+  t("draft-site-01", "Draft Site 01", "private", {
+    meta: "draft-site-01 · no placements yet",
+    faces: ["a.ivanova"],
+    peopleLabel: "owner only",
+  }),
 ];
 
 const GRANTS: AccessGrant[] = [
@@ -81,9 +104,7 @@ function Live({ initialSelected }: { initialSelected: string | null }) {
 
   const visible = useMemo(() => {
     const filters = parseFilters(query);
-    return TERRITORIES.filter((x) =>
-      filters.every((f) => (f.key === "visibility" ? x.visibility === f.value : true)),
-    );
+    return TERRITORIES.filter((x) => filters.every((f) => (f.key === "visibility" ? x.visibility === f.value : true)));
   }, [query]);
 
   const selected = TERRITORIES.find((x) => x.slug === selectedSlug) ?? null;

@@ -71,7 +71,11 @@ describe("placement groups gateway", () => {
 
   it("PUTs a group's own flag to its hidden route and maps the answer", async () => {
     fetchMock.mockResolvedValueOnce(json({ ...DTO, hidden: true }));
-    await expect(setPlacementGroupHidden("north", 3, true)).resolves.toEqual({ id: 3, title: "Tank farm", hidden: true });
+    await expect(setPlacementGroupHidden("north", 3, true)).resolves.toEqual({
+      id: 3,
+      title: "Tank farm",
+      hidden: true,
+    });
     expect(request()).toEqual({
       url: "/api/territories/north/placement-groups/3/hidden",
       method: "PUT",

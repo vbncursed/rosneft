@@ -30,21 +30,24 @@ const make = (
 
 const EVENTS = [
   { entry: make(1, "territory.update", "Refinery Block C", "09:14", "a.ivanova"), summary: "4 fields changed" },
-  { entry: make(2, "placement.insert", "Storage Tank 500", "08:52", "d.smirnov"), summary: "placed at 12.4 / 0.0 / −3.1" },
-  { entry: make(3, "model.delete", "Pipe Segment 12", "07:58", "a.ivanova"), summary: "soft-deleted · 3 placements detached" },
-  { entry: make(4, "auth.login", "session started", "07:40", "system", "failed"), summary: "passkey · Chrome on macOS" },
+  {
+    entry: make(2, "placement.insert", "Storage Tank 500", "08:52", "d.smirnov"),
+    summary: "placed at 12.4 / 0.0 / −3.1",
+  },
+  {
+    entry: make(3, "model.delete", "Pipe Segment 12", "07:58", "a.ivanova"),
+    summary: "soft-deleted · 3 placements detached",
+  },
+  {
+    entry: make(4, "auth.login", "session started", "07:40", "system", "failed"),
+    summary: "passkey · Chrome on macOS",
+  },
 ];
 
 function Live() {
   const [selected, setSelected] = useState<number | null>(1);
   return (
-    <EventTimeline
-      day="Today · 1 September"
-      total={312}
-      events={EVENTS}
-      selectedId={selected}
-      onSelect={setSelected}
-    />
+    <EventTimeline day="Today · 1 September" total={312} events={EVENTS} selectedId={selected} onSelect={setSelected} />
   );
 }
 

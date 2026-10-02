@@ -14,11 +14,46 @@ const wave = (n: number, base: number, amp: number, seed: number, drift = 0) =>
   );
 
 const SERVICES: ServiceHealth[] = [
-  { name: "gateway", state: "degraded", meta: "5xx 0.82% · 142 rps · 3 replicas", latency: "18ms", errors: "1.2/s", samples: wave(18, 120, 24, 1, 20) },
-  { name: "auth-service", state: "up", meta: "logins 12/min · 2FA 8/min", latency: "24ms", errors: "0.1/s", samples: wave(18, 40, 8, 5) },
-  { name: "mesh-worker", state: "degraded", meta: "2 jobs running · queue 3", latency: "1.4s", errors: "0.3/s", samples: wave(18, 18, 6, 9, 4) },
-  { name: "audit-service", state: "down", meta: "scrape failed · last seen 2h ago", latency: "—", errors: "—", samples: wave(18, 4, 3, 2, -3) },
-  { name: "object-storage", state: "up", meta: "24.6 MB/s upload · 184 GB used", latency: "31ms", errors: "0/s", samples: wave(18, 60, 14, 7) },
+  {
+    name: "gateway",
+    state: "degraded",
+    meta: "5xx 0.82% · 142 rps · 3 replicas",
+    latency: "18ms",
+    errors: "1.2/s",
+    samples: wave(18, 120, 24, 1, 20),
+  },
+  {
+    name: "auth-service",
+    state: "up",
+    meta: "logins 12/min · 2FA 8/min",
+    latency: "24ms",
+    errors: "0.1/s",
+    samples: wave(18, 40, 8, 5),
+  },
+  {
+    name: "mesh-worker",
+    state: "degraded",
+    meta: "2 jobs running · queue 3",
+    latency: "1.4s",
+    errors: "0.3/s",
+    samples: wave(18, 18, 6, 9, 4),
+  },
+  {
+    name: "audit-service",
+    state: "down",
+    meta: "scrape failed · last seen 2h ago",
+    latency: "—",
+    errors: "—",
+    samples: wave(18, 4, 3, 2, -3),
+  },
+  {
+    name: "object-storage",
+    state: "up",
+    meta: "24.6 MB/s upload · 184 GB used",
+    latency: "31ms",
+    errors: "0/s",
+    samples: wave(18, 60, 14, 7),
+  },
 ];
 
 const SECTIONS: MetricSection[] = [
@@ -26,63 +61,129 @@ const SECTIONS: MetricSection[] = [
     key: "traffic",
     title: "Traffic & latency",
     panels: [
-      { key: "latency", title: "Request latency", meta: "p50 / p95 / p99 · ms", last: "452ms", lastTone: "accent", unit: "seconds",
+      {
+        key: "latency",
+        title: "Request latency",
+        meta: "p50 / p95 / p99 · ms",
+        last: "452ms",
+        lastTone: "accent",
+        unit: "seconds",
         // Values are seconds, matching the unit above, so the spoken summary
         // ("92ms") agrees with what the eye sees.
         series: [
           { label: "p50", values: wave(24, 0.092, 0.01, 2), tone: "muted", dashed: true },
           { label: "p95", values: wave(24, 0.25, 0.05, 3) },
           { label: "p99", values: wave(24, 0.46, 0.09, 4, -0.04), tone: "bad" },
-        ] },
-      { key: "protocol", title: "Requests by protocol", meta: "rps · http vs grpc", last: "142/s",
+        ],
+      },
+      {
+        key: "protocol",
+        title: "Requests by protocol",
+        meta: "rps · http vs grpc",
+        last: "142/s",
         series: [
           { label: "http", values: wave(24, 96, 18, 1, 14) },
           { label: "grpc", values: wave(24, 46, 10, 6), tone: "ok" },
-        ] },
-      { key: "errors", title: "Errors by service", meta: "rps · 5xx", last: "1.6/s", lastTone: "bad",
+        ],
+      },
+      {
+        key: "errors",
+        title: "Errors by service",
+        meta: "rps · 5xx",
+        last: "1.6/s",
+        lastTone: "bad",
         series: [
           { label: "gateway", values: wave(24, 0.9, 0.4, 3, 0.5), tone: "bad" },
           { label: "mesh", values: wave(24, 0.3, 0.2, 8), tone: "warn" },
-        ] },
-      { key: "sessions", title: "Active sessions", meta: "count · viewer", last: "37",
-        series: [{ label: "sessions", values: wave(24, 32, 6, 5, 6) }] },
+        ],
+      },
+      {
+        key: "sessions",
+        title: "Active sessions",
+        meta: "count · viewer",
+        last: "37",
+        series: [{ label: "sessions", values: wave(24, 32, 6, 5, 6) }],
+      },
     ],
   },
   {
     key: "domain",
     title: "Domain",
     panels: [
-      { key: "conversions", title: "Conversions by status", meta: "cpm · done vs failed", last: "6/min",
+      {
+        key: "conversions",
+        title: "Conversions by status",
+        meta: "cpm · done vs failed",
+        last: "6/min",
         series: [
           { label: "done", values: wave(24, 5, 2, 1), tone: "ok" },
           { label: "failed", values: wave(24, 0.7, 0.5, 8), tone: "bad" },
-        ] },
-      { key: "duration", title: "Conversion duration p95", meta: "seconds · mesh-worker", last: "184s", lastTone: "accent",
-        series: [{ label: "p95", values: wave(24, 180, 42, 3, 24) }] },
-      { key: "queue", title: "Queue depth", meta: "count · mesh-worker", last: "3", lastTone: "warn",
-        series: [{ label: "depth", values: wave(24, 2.4, 1.4, 5, 1.2), tone: "warn" }] },
-      { key: "logins", title: "Logins by status", meta: "cpm · ok vs denied", last: "12/min",
+        ],
+      },
+      {
+        key: "duration",
+        title: "Conversion duration p95",
+        meta: "seconds · mesh-worker",
+        last: "184s",
+        lastTone: "accent",
+        series: [{ label: "p95", values: wave(24, 180, 42, 3, 24) }],
+      },
+      {
+        key: "queue",
+        title: "Queue depth",
+        meta: "count · mesh-worker",
+        last: "3",
+        lastTone: "warn",
+        series: [{ label: "depth", values: wave(24, 2.4, 1.4, 5, 1.2), tone: "warn" }],
+      },
+      {
+        key: "logins",
+        title: "Logins by status",
+        meta: "cpm · ok vs denied",
+        last: "12/min",
         series: [
           { label: "ok", values: wave(24, 11, 4, 4), tone: "ok" },
           { label: "denied", values: wave(24, 1.4, 1, 9), tone: "bad" },
-        ] },
+        ],
+      },
     ],
   },
   {
     key: "go",
     title: "Go runtime",
     panels: [
-      { key: "memory", title: "Resident memory", meta: "bytes · by service", last: "1.4 GB",
+      {
+        key: "memory",
+        title: "Resident memory",
+        meta: "bytes · by service",
+        last: "1.4 GB",
         series: [
           { label: "gateway", values: wave(24, 1.35, 0.12, 1, 0.1) },
           { label: "mesh", values: wave(24, 0.82, 0.2, 7), tone: "muted" },
-        ] },
-      { key: "goroutines", title: "Goroutines", meta: "count · gateway", last: "412",
-        series: [{ label: "goroutines", values: wave(24, 390, 40, 3, 30) }] },
-      { key: "gc", title: "GC pause (max)", meta: "seconds · gateway", last: "8ms", lastTone: "accent",
-        series: [{ label: "pause", values: wave(24, 0.008, 0.003, 5) }] },
-      { key: "fds", title: "Open file descriptors", meta: "count · by service", last: "268",
-        series: [{ label: "fds", values: wave(24, 250, 30, 2, 24) }] },
+        ],
+      },
+      {
+        key: "goroutines",
+        title: "Goroutines",
+        meta: "count · gateway",
+        last: "412",
+        series: [{ label: "goroutines", values: wave(24, 390, 40, 3, 30) }],
+      },
+      {
+        key: "gc",
+        title: "GC pause (max)",
+        meta: "seconds · gateway",
+        last: "8ms",
+        lastTone: "accent",
+        series: [{ label: "pause", values: wave(24, 0.008, 0.003, 5) }],
+      },
+      {
+        key: "fds",
+        title: "Open file descriptors",
+        meta: "count · by service",
+        last: "268",
+        series: [{ label: "fds", values: wave(24, 250, 30, 2, 24) }],
+      },
     ],
   },
 ];
@@ -124,9 +225,7 @@ function Live({ withAlert }: { withAlert: boolean }) {
 
   const services = useMemo(() => {
     const filters = parseFilters(query);
-    return SERVICES.filter((s) =>
-      filters.every((f) => (f.key === "service" ? s.name.includes(f.value) : true)),
-    );
+    return SERVICES.filter((s) => filters.every((f) => (f.key === "service" ? s.name.includes(f.value) : true)));
   }, [query]);
 
   return (
@@ -150,9 +249,29 @@ function Live({ withAlert }: { withAlert: boolean }) {
           ],
         }}
         stats={[
-          { label: "Requests", state: { kind: "value", value: "142/s" }, hint: "per second · all HTTP", delta: "+8%", deltaTone: "ok" },
-          { label: "Errors", state: { kind: "value", value: "0.82%" }, hint: "5xx share of HTTP", tone: "bad", delta: "+0.3", deltaTone: "bad" },
-          { label: "p99", state: { kind: "value", value: "452ms" }, hint: "gRPC handling", tone: "accent", delta: "−12%", deltaTone: "ok" },
+          {
+            label: "Requests",
+            state: { kind: "value", value: "142/s" },
+            hint: "per second · all HTTP",
+            delta: "+8%",
+            deltaTone: "ok",
+          },
+          {
+            label: "Errors",
+            state: { kind: "value", value: "0.82%" },
+            hint: "5xx share of HTTP",
+            tone: "bad",
+            delta: "+0.3",
+            deltaTone: "bad",
+          },
+          {
+            label: "p99",
+            state: { kind: "value", value: "452ms" },
+            hint: "gRPC handling",
+            tone: "accent",
+            delta: "−12%",
+            deltaTone: "ok",
+          },
           { label: "Queue", state: { kind: "unavailable" }, hint: "conversion jobs waiting" },
         ]}
         range={range}

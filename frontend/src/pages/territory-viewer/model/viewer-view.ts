@@ -27,8 +27,7 @@ export const GUEST_SENTENCE = "You can look, measure and open documents.";
 export const ERROR_TITLE = "The territory mesh could not be loaded";
 
 /** Both bodies end the same way: the failure is the download, not the scene. */
-const ERROR_TAIL =
-  "The scene, placements and documents are intact — only the artifact download failed.";
+const ERROR_TAIL = "The scene, placements and documents are intact — only the artifact download failed.";
 
 /**
  * Every grant the viewer's chrome turns on. The first four are the placement
@@ -77,9 +76,7 @@ export const measureGrants = (g: Grants) => ({
 
 /** The Clear question (spec M-4); `count` is the saved chains, the only ones it cannot take back. */
 export const clearTitle = (count: number) =>
-  count === 1
-    ? "Delete 1 measurement on this territory?"
-    : `Delete all ${count} measurements on this territory?`;
+  count === 1 ? "Delete 1 measurement on this territory?" : `Delete all ${count} measurements on this territory?`;
 
 export type HeaderPill = { tone: "ok" | "accent" | "neutral" | "bad"; label: string };
 
@@ -125,8 +122,7 @@ export function headerPills(a: {
 }
 
 /** The mono line under the title: which territory, how many levels, in what units. */
-export const headerMeta = (slug: string, lods: number, units: string) =>
-  `${slug} · ${lods} LODs · ${units}`;
+export const headerMeta = (slug: string, lods: number, units: string) => `${slug} · ${lods} LODs · ${units}`;
 
 export type RailTool = "reset" | "play" | "measure" | "add" | "panoramas" | "documents" | "tour";
 export type RailToolState = { key: RailTool; state: "active" | "idle" | "inert" };
@@ -186,12 +182,7 @@ export function railTools(a: RailInputs): RailToolState[] {
 
 const NEEDS_MESH: RailTool[] = ["play", "measure", "add"];
 
-function stateOf(
-  key: RailTool,
-  activeKey: RailTool | null,
-  inside: boolean,
-  a: RailInputs,
-): RailToolState["state"] {
+function stateOf(key: RailTool, activeKey: RailTool | null, inside: boolean, a: RailInputs): RailToolState["state"] {
   // The two overlay tiles are never inert — see the note above.
   if (key === "panoramas" || key === "documents") return key === activeKey ? "active" : "idle";
   if (!a.geometry) return "inert";
@@ -208,8 +199,7 @@ export type ErrorCopy = {
   coarseLabel: string | null;
 };
 
-const clock = (at: Date) =>
-  `${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`;
+const clock = (at: Date) => `${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`;
 
 /**
  * The error card's words. Every fact comes from the level that actually failed

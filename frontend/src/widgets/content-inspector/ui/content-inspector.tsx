@@ -87,12 +87,8 @@ export function ContentInspector({
         {converting ? (
           <div>
             <div className="flex items-baseline justify-between gap-3">
-              <p className="m-0 font-mono text-[9px] uppercase tracking-[0.2em] text-muted">
-                Conversion
-              </p>
-              {conversionNote ? (
-                <p className="m-0 font-mono text-[11px] text-warn">{conversionNote}</p>
-              ) : null}
+              <p className="m-0 font-mono text-[9px] uppercase tracking-[0.2em] text-muted">Conversion</p>
+              {conversionNote ? <p className="m-0 font-mono text-[11px] text-warn">{conversionNote}</p> : null}
             </div>
             <ProgressBar
               className="mt-2.5"
@@ -126,22 +122,12 @@ export function ContentInspector({
             </div>
             <div className="flex gap-2">
               {onCancelJob ? (
-                <Button
-                  size="sm"
-                  variant="warning"
-                  className="flex-1 justify-center"
-                  onClick={onCancelJob}
-                >
+                <Button size="sm" variant="warning" className="flex-1 justify-center" onClick={onCancelJob}>
                   Cancel job
                 </Button>
               ) : null}
               {onDelete ? (
-                <Button
-                  size="sm"
-                  variant="danger"
-                  className="flex-1 justify-center"
-                  onClick={onDelete}
-                >
+                <Button size="sm" variant="danger" className="flex-1 justify-center" onClick={onDelete}>
                   Delete
                 </Button>
               ) : null}

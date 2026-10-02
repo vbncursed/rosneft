@@ -26,8 +26,7 @@ export type ConversionJob = {
 export const JOB_TONE = { queued: "neutral", running: "warn", failed: "bad" } as const;
 
 /** A failed job's bar is full: it got as far as it is going to get. */
-export const jobProgress = (job: ConversionJob) =>
-  job.state === "failed" ? 100 : job.progress;
+export const jobProgress = (job: ConversionJob) => (job.state === "failed" ? 100 : job.progress);
 
 /** One step of the pipeline, as the inspector and the conversion page list them. */
 export type StageState = "done" | "active" | "failed" | "pending";

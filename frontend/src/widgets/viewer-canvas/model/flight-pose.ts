@@ -164,10 +164,7 @@ function rise(f: Flight, k: number): FlightPose {
   const top = new Vector3().setFromSphericalCoords(f.distance, TOP, f.heading).add(f.center);
   const lookFrom = f.fromTarget.clone().sub(start);
   const reach = MathUtils.lerp(lookFrom.length(), f.distance, k);
-  const swing = new Quaternion().setFromUnitVectors(
-    lookFrom.normalize(),
-    f.center.clone().sub(top).normalize(),
-  );
+  const swing = new Quaternion().setFromUnitVectors(lookFrom.normalize(), f.center.clone().sub(top).normalize());
   const look = lookFrom.applyQuaternion(new Quaternion().slerp(swing, k));
   return { position, target: look.multiplyScalar(reach).add(position), phase: "rise" };
 }

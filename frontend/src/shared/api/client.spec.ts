@@ -36,12 +36,10 @@ describe("http client", () => {
     vi.stubGlobal("fetch", f);
 
     await httpPost("/api/x", {});
-    expect(((f.mock.calls[0][1] as RequestInit).headers as Record<string, string>)["X-CSRF-Token"])
-      .toBe("csrf-1");
+    expect(((f.mock.calls[0][1] as RequestInit).headers as Record<string, string>)["X-CSRF-Token"]).toBe("csrf-1");
 
     await httpGet("/api/x");
-    expect(((f.mock.calls[1][1] as RequestInit).headers as Record<string, string>)["X-CSRF-Token"])
-      .toBeUndefined();
+    expect(((f.mock.calls[1][1] as RequestInit).headers as Record<string, string>)["X-CSRF-Token"]).toBeUndefined();
     clearCsrfToken();
   });
 
@@ -123,9 +121,11 @@ describe("http client", () => {
   it("sends a session that must enroll to the gate on its 403", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        jsonResponse(403, { code: "twofa_enrollment_required", message: "enroll a second factor to continue" }),
-      ),
+      vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse(403, { code: "twofa_enrollment_required", message: "enroll a second factor to continue" }),
+        ),
     );
     await expect(httpGet("/api/territories")).rejects.toBeInstanceOf(HttpError);
     expect(assign).toHaveBeenCalledWith("/two-factor-required");
@@ -165,9 +165,7 @@ describe("http client", () => {
   it("fetches a blob through the same base URL and 401 bounce as JSON", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
-    fetchMock.mockResolvedValueOnce(
-      new Response("a,b\n", { status: 200, headers: { "Content-Type": "text/csv" } }),
-    );
+    fetchMock.mockResolvedValueOnce(new Response("a,b\n", { status: 200, headers: { "Content-Type": "text/csv" } }));
     const blob = await httpGetBlob("/api/audit.csv");
     expect(await blob.text()).toBe("a,b\n");
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -193,9 +191,9 @@ describe("http client", () => {
   });
 
   it("HEADs a path and hands back the response headers", async () => {
-    const fetchMock = vi.fn().mockResolvedValueOnce(
-      new Response(null, { status: 200, headers: { "Content-Length": "1234" } }),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 200, headers: { "Content-Length": "1234" } }));
     vi.stubGlobal("fetch", fetchMock);
 
     const headers = await httpHead("/api/assets/abc");

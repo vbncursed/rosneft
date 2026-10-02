@@ -59,12 +59,7 @@ const STAGE = {
  * the theme toggle and a static identity chip. No account menu: its Account
  * item leads to a page the gateway refuses until enrolment is done.
  */
-export function TwoFactorRequiredPage({
-  stage,
-  username,
-  onSignOut,
-  signingOut,
-}: TwoFactorRequiredPageProps) {
+export function TwoFactorRequiredPage({ stage, username, onSignOut, signingOut }: TwoFactorRequiredPageProps) {
   const s = STAGE[stage];
   return (
     <div className="flex min-h-dvh flex-col gap-10 bg-bg px-4 pb-14 pt-8 text-fg sm:px-8">
@@ -76,19 +71,11 @@ export function TwoFactorRequiredPage({
       </StandaloneHeader>
       <main className="flex flex-1 items-center justify-center">
         <section
-          className={cx(
-            "w-full max-w-[560px] overflow-hidden rounded-2xl border bg-panel shadow-elevation",
-            s.card,
-          )}
+          className={cx("w-full max-w-[560px] overflow-hidden rounded-2xl border bg-panel shadow-elevation", s.card)}
         >
           <div className={cx("flex flex-col gap-3.5", s.head)}>
             <div className="flex items-center gap-2.5">
-              <span
-                className={cx(
-                  "flex size-[38px] items-center justify-center rounded-control-lg border",
-                  s.tile,
-                )}
-              >
+              <span className={cx("flex size-[38px] items-center justify-center rounded-control-lg border", s.tile)}>
                 <Icon name={s.icon} size={18} />
               </span>
               {stage === "gate" ? (
@@ -101,9 +88,7 @@ export function TwoFactorRequiredPage({
                 </Badge>
               )}
             </div>
-            <h1 className="m-0 mt-1 text-[28px] font-bold leading-[1.1] tracking-[-0.025em] text-balance">
-              {s.title}
-            </h1>
+            <h1 className="m-0 mt-1 text-[28px] font-bold leading-[1.1] tracking-[-0.025em] text-balance">{s.title}</h1>
             <p className="m-0 max-w-[50ch] text-sm leading-[1.6] text-pretty text-muted">{s.body}</p>
           </div>
           {stage === "gate" && (

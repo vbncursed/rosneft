@@ -21,8 +21,7 @@ export const createUser = async (input: NewUser): Promise<User> =>
 export const setUserRoles = async (id: string, roleSlugs: string[]): Promise<User> =>
   toUser(await httpPatch<AuthUserDto>(at(id), { roleSlugs }));
 
-export const freezeUser = async (id: string): Promise<User> =>
-  toUser(await httpPost<AuthUserDto>(`${at(id)}/freeze`));
+export const freezeUser = async (id: string): Promise<User> => toUser(await httpPost<AuthUserDto>(`${at(id)}/freeze`));
 
 export const unfreezeUser = async (id: string): Promise<User> =>
   toUser(await httpPost<AuthUserDto>(`${at(id)}/unfreeze`));

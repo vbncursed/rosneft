@@ -16,13 +16,7 @@ const GEO = { x: 300, y: 100, w: 560, h: 400 };
 const pip = { geo: GEO, dragging: false, startMove: () => {}, startResize: () => {} };
 
 /** A 1200×700 relative box standing in for the viewer scene the window floats above. */
-function Stage({
-  initial,
-  canDelete = true,
-}: {
-  initial: DocumentWindowProps["window"];
-  canDelete?: boolean;
-}) {
+function Stage({ initial, canDelete = true }: { initial: DocumentWindowProps["window"]; canDelete?: boolean }) {
   const [mode, setMode] = useState(initial);
   return (
     <div className="relative h-[700px] w-[1200px] bg-bg">

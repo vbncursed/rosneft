@@ -73,9 +73,7 @@ export function useTwoFactor(flow: Flow): TwoFactorState {
       .then(setSecret)
       .catch((err: unknown) =>
         setSetupError(
-          alreadyOn(err)
-            ? { message: ALREADY_ON, retryable: false }
-            : { message: messageOf(err), retryable: true },
+          alreadyOn(err) ? { message: ALREADY_ON, retryable: false } : { message: messageOf(err), retryable: true },
         ),
       );
   }, []);
@@ -85,16 +83,14 @@ export function useTwoFactor(flow: Flow): TwoFactorState {
   }, [flow, provision]);
 
   const confirm = useMutation({
-    mutationFn: (value: string) =>
-      flow === "enable" ? enable2FA(value) : regenerateRecoveryCodes(value),
+    mutationFn: (value: string) => (flow === "enable" ? enable2FA(value) : regenerateRecoveryCodes(value)),
     onSuccess: (issued) => {
       setCodes(issued);
       setStage("codes");
       setError(null);
       // Enrolled now, whatever a failed refetch leaves behind: done()'s
       // fallback reads this principal, and a stale one reopens the gate.
-      if (flow === "enable")
-        client.setQueryData(meQuery.queryKey, (old) => old && { ...old, totpEnabled: true });
+      if (flow === "enable") client.setQueryData(meQuery.queryKey, (old) => old && { ...old, totpEnabled: true });
       void client.invalidateQueries({ queryKey: ["two-factor"] });
       void client.invalidateQueries({ queryKey: ["me"] });
     },

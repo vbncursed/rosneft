@@ -32,10 +32,7 @@ describe("UploadTerritoryPage", () => {
     render(<UploadTerritoryPage {...props()} />);
     expect(screen.getByRole("heading", { level: 1, name: "New territory" })).toBeInTheDocument();
     expect(screen.getByText("Upload · single territory")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "← Territory catalog" })).toHaveAttribute(
-      "href",
-      "/territories",
-    );
+    expect(screen.getByRole("link", { name: "← Territory catalog" })).toHaveAttribute("href", "/territories");
     expect(
       screen.getByText(
         "One ZIP per territory: OBJ + MTL + textures. Uploads in 8 MB chunks and resumes after a network drop.",
@@ -87,7 +84,11 @@ describe("UploadTerritoryPage", () => {
         {...props({
           phase: "uploading",
           file: new File(["x"], "a.zip"),
-          progress: { value: 64, header: "64% · 1.4 GB / 2.2 GB · ~3 min", stats: ["chunk 1 / 2", "8 MB chunks", "1 MB/s", "resumable"] },
+          progress: {
+            value: 64,
+            header: "64% · 1.4 GB / 2.2 GB · ~3 min",
+            stats: ["chunk 1 / 2", "8 MB chunks", "1 MB/s", "resumable"],
+          },
         })}
       />,
     );

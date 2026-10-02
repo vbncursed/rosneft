@@ -5,7 +5,12 @@ import { Tooltip, type TooltipProps } from "./tooltip";
 const TILE =
   "flex size-[30px] items-center justify-center rounded-[7px] border border-line bg-panel-2 text-muted enabled:hover:text-fg disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
-function Tile({ icon, label, disabled, ...tip }: Omit<TooltipProps, "children"> & { icon: IconName; disabled?: boolean }) {
+function Tile({
+  icon,
+  label,
+  disabled,
+  ...tip
+}: Omit<TooltipProps, "children"> & { icon: IconName; disabled?: boolean }) {
   return (
     <Tooltip label={label} {...tip}>
       <button type="button" aria-label={label} className={TILE} disabled={disabled}>
@@ -23,7 +28,13 @@ function EdgeToggle() {
   return (
     <div className="flex justify-end p-6 pt-12">
       <Tooltip label={label}>
-        <button type="button" aria-label={label} aria-pressed={locked} className={TILE} onClick={() => setLocked((l) => !l)}>
+        <button
+          type="button"
+          aria-label={label}
+          aria-pressed={locked}
+          className={TILE}
+          onClick={() => setLocked((l) => !l)}
+        >
           <Icon name="lock" size={15} />
         </button>
       </Tooltip>
@@ -76,10 +87,18 @@ export default {
   // Each corner forces a flip (top row) or a clamp (every one of them).
   edges: (
     <div className="relative h-dvh w-full">
-      <div className="absolute left-0 top-0"><Tile icon="pencil" label="Top left flips below" /></div>
-      <div className="absolute right-0 top-0"><Tile icon="cube" label="Top right flips below" /></div>
-      <div className="absolute bottom-0 left-0"><Tile icon="download" label="Bottom left" side="bottom" /></div>
-      <div className="absolute bottom-0 right-0"><Tile icon="upload" label="Bottom right" side="bottom" shortcut="U" /></div>
+      <div className="absolute left-0 top-0">
+        <Tile icon="pencil" label="Top left flips below" />
+      </div>
+      <div className="absolute right-0 top-0">
+        <Tile icon="cube" label="Top right flips below" />
+      </div>
+      <div className="absolute bottom-0 left-0">
+        <Tile icon="download" label="Bottom left" side="bottom" />
+      </div>
+      <div className="absolute bottom-0 right-0">
+        <Tile icon="upload" label="Bottom right" side="bottom" shortcut="U" />
+      </div>
     </div>
   ),
 };

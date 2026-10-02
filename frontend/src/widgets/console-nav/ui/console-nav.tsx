@@ -17,13 +17,7 @@ export type ConsoleNavProps = {
   className?: string;
 };
 
-export function ConsoleNav({
-  items,
-  active,
-  backHref,
-  backLabel = "← Back to site",
-  className,
-}: ConsoleNavProps) {
+export function ConsoleNav({ items, active, backHref, backLabel = "← Back to site", className }: ConsoleNavProps) {
   return (
     <nav
       aria-label="Console"
@@ -53,9 +47,7 @@ export function ConsoleNav({
             aria-current={item.key === active ? "page" : undefined}
             className={cx(
               "shrink-0 whitespace-nowrap rounded-[7px] px-2.5 py-[7px] text-[13px] no-underline transition-colors duration-150",
-              item.key === active
-                ? "bg-accent-soft font-semibold text-accent"
-                : "text-muted hover:text-fg",
+              item.key === active ? "bg-accent-soft font-semibold text-accent" : "text-muted hover:text-fg",
             )}
           >
             {item.label}

@@ -12,7 +12,9 @@ function Demo({ options }: { options: typeof OPTIONS }) {
   return (
     <div className="p-6">
       <Button onClick={() => setOpen(true)}>Add person</Button>
-      {open ? <AddPersonDialog open options={options} onClose={() => setOpen(false)} onAdd={() => setOpen(false)} /> : null}
+      {open ? (
+        <AddPersonDialog open options={options} onClose={() => setOpen(false)} onAdd={() => setOpen(false)} />
+      ) : null}
     </div>
   );
 }

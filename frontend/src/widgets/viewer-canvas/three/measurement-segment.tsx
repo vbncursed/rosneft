@@ -35,10 +35,7 @@ function MeasurementSegmentImpl({
   // measurement.id encodes (chainId, segmentIndex) — see entities/measurement.
   // Decoding here keeps the presentation layer's contract simple: it
   // gets a Measurement and knows how to talk back.
-  const { chainId, segmentIndex } = useMemo(
-    () => decodeSegmentId(measurement.id),
-    [measurement.id],
-  );
+  const { chainId, segmentIndex } = useMemo(() => decodeSegmentId(measurement.id), [measurement.id]);
 
   const { points, midpoint, distance } = useMemo(() => {
     const a = new Vector3(measurement.a.x, measurement.a.y, measurement.a.z);
@@ -50,15 +47,9 @@ function MeasurementSegmentImpl({
     };
   }, [measurement.a, measurement.b]);
 
-  const label = useMemo(
-    () => formatDistance(distance * unitRatio, unitRatio),
-    [distance, unitRatio],
-  );
+  const label = useMemo(() => formatDistance(distance * unitRatio, unitRatio), [distance, unitRatio]);
 
-  const labelPos = useMemo<[number, number, number]>(
-    () => [midpoint.x, midpoint.y, midpoint.z],
-    [midpoint],
-  );
+  const labelPos = useMemo<[number, number, number]>(() => [midpoint.x, midpoint.y, midpoint.z], [midpoint]);
 
   const handleRemoveSegment = useCallback(
     (event: React.MouseEvent) => {

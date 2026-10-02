@@ -19,9 +19,7 @@ const user = (over: Partial<User> = {}): User => ({
 });
 
 const card = (over: Partial<User> = {}, props = {}) =>
-  render(
-    <PersonCard user={user(over)} territories="3 territories" lastSeen="yesterday 18:02" {...props} />,
-  );
+  render(<PersonCard user={user(over)} territories="3 territories" lastSeen="yesterday 18:02" {...props} />);
 
 describe("PersonCard", () => {
   it("shows who the person is and when they were last seen", () => {

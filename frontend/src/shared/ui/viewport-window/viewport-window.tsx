@@ -34,7 +34,16 @@ const ACTION =
  * when `geometry` is null. It knows nothing about what it holds; the document
  * window puts the pdf.js frame in it.
  */
-export function ViewportWindow({ title, geometry, actions, onMoveStart, onResizeStart, dragging = false, children, className }: ViewportWindowProps) {
+export function ViewportWindow({
+  title,
+  geometry,
+  actions,
+  onMoveStart,
+  onResizeStart,
+  dragging = false,
+  children,
+  className,
+}: ViewportWindowProps) {
   const floating = geometry !== null;
   return (
     <section
@@ -69,7 +78,12 @@ export function ViewportWindow({ title, geometry, actions, onMoveStart, onResize
               type="button"
               aria-label={a.name}
               onClick={a.onClick}
-              className={cx(ACTION, a.tone === "bad" ? "border-bad bg-bad-soft text-bad" : "border-line-2 bg-panel text-fg hover:border-accent-line")}
+              className={cx(
+                ACTION,
+                a.tone === "bad"
+                  ? "border-bad bg-bad-soft text-bad"
+                  : "border-line-2 bg-panel text-fg hover:border-accent-line",
+              )}
             >
               <Icon name={a.icon} size={12} />
             </button>

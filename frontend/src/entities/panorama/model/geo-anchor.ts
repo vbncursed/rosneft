@@ -47,17 +47,12 @@ function wgs84ToUtm(lat: number, lon: number, zone: number): Utm {
   const m =
     WGS84_A *
     ((1 - E2 / 4 - (3 * E2 ** 2) / 64 - (5 * E2 ** 3) / 256) * phi -
-      ((3 * E2) / 8 + (3 * E2 ** 2) / 32 + (45 * E2 ** 3) / 1024) *
-        Math.sin(2 * phi) +
+      ((3 * E2) / 8 + (3 * E2 ** 2) / 32 + (45 * E2 ** 3) / 1024) * Math.sin(2 * phi) +
       ((15 * E2 ** 2) / 256 + (45 * E2 ** 3) / 1024) * Math.sin(4 * phi) -
       ((35 * E2 ** 3) / 3072) * Math.sin(6 * phi));
   const easting =
     FALSE_EASTING +
-    K0 *
-      n *
-      (a +
-        ((1 - t + c) * a ** 3) / 6 +
-        ((5 - 18 * t + t ** 2 + 72 * c - 58 * EP2) * a ** 5) / 120);
+    K0 * n * (a + ((1 - t + c) * a ** 3) / 6 + ((5 - 18 * t + t ** 2 + 72 * c - 58 * EP2) * a ** 5) / 120);
   let northing =
     K0 *
     (m +
@@ -75,10 +70,7 @@ function wgs84ToUtm(lat: number, lon: number, zone: number): Utm {
 // model footprint (wrong CRS, distant photo, etc.). Mirrors the converter's
 // normalize(): center on the bbox midpoint, scale so the largest axis spans
 // 2 units. Altitude drives y; when absent, y falls back to the bbox center.
-export function gpsToScenePosition(
-  fix: GpsFix,
-  bbox: SourceBbox,
-): Vec3 | null {
+export function gpsToScenePosition(fix: GpsFix, bbox: SourceBbox): Vec3 | null {
   const { easting, northing } = wgs84ToUtm(fix.lat, fix.lon, utmZone(fix.lon));
   const sx = easting;
   const sz = -northing;
@@ -88,11 +80,7 @@ export function gpsToScenePosition(
   const cx = (bbox.min.x + bbox.max.x) / 2;
   const cy = (bbox.min.y + bbox.max.y) / 2;
   const cz = (bbox.min.z + bbox.max.z) / 2;
-  const maxDim = Math.max(
-    bbox.max.x - bbox.min.x,
-    bbox.max.y - bbox.min.y,
-    bbox.max.z - bbox.min.z,
-  );
+  const maxDim = Math.max(bbox.max.x - bbox.min.x, bbox.max.y - bbox.min.y, bbox.max.z - bbox.min.z);
   if (maxDim <= 0) return null;
   const scale = 2 / maxDim;
   const sy = fix.alt ?? cy;

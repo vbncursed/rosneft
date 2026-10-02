@@ -20,8 +20,7 @@ import { ContentPage } from "./content-page";
 const DESCRIPTION = {
   territory:
     "The territory, its placements, panoramas and documents are removed. Converted artifacts stay until nothing references them.",
-  model:
-    "The model is removed from the library. The gateway refuses while any territory still places it.",
+  model: "The model is removed from the library. The gateway refuses while any territory still places it.",
 } as const;
 
 /** Maps the container onto the page and draws the confirm dialog beside it. */
@@ -30,9 +29,7 @@ export function ContentScreen() {
   const navigate = useNavigate();
 
   if (s.status === "loading") {
-    return (
-      <PageSkeleton shape="console" label="Loading content" />
-    );
+    return <PageSkeleton shape="console" label="Loading content" />;
   }
   if (s.status === "unavailable" || !s.items) {
     return <Callout tone="bad">Content is unavailable: {s.error}</Callout>;
@@ -92,9 +89,7 @@ export function ContentScreen() {
         {...(s.canManage ? { renderRowActions: rowActions } : {})}
         // v2 owns every href this screen builds; a full navigation would
         // reload the app and throw the query cache away.
-        onUploadTerritory={
-          s.canCreateTerritory ? () => void navigate({ to: "/territories/new" }) : undefined
-        }
+        onUploadTerritory={s.canCreateTerritory ? () => void navigate({ to: "/territories/new" }) : undefined}
         onUploadModel={() => void navigate({ to: "/models/new" })}
         onReplaceSource={replace ? () => void navigate({ href: replace }) : undefined}
         onOpenInViewer={() => selected && void navigate({ href: contentPath(selected) })}

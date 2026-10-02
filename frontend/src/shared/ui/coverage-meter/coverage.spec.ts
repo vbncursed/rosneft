@@ -40,8 +40,8 @@ describe("coverageSummary", () => {
 
   it("says so when there is nobody to count", () => {
     expect(coverageSummary("2FA coverage", [])).toBe("2FA coverage: nothing to show");
-    expect(
-      coverageSummary("2FA coverage", [{ tone: "ok", value: 0, label: "covered" }]),
-    ).toBe("2FA coverage: nothing to show");
+    expect(coverageSummary("2FA coverage", [{ tone: "ok", value: 0, label: "covered" }])).toBe(
+      "2FA coverage: nothing to show",
+    );
   });
 });

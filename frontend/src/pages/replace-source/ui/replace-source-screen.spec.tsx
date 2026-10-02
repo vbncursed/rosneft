@@ -38,15 +38,15 @@ describe("ReplaceSourceScreen", () => {
     useReplaceSource.mockReturnValue({ status: "loading" });
     render(<ReplaceSourceScreen />);
     // Shaped like the form it stands in for: the card beside its aside.
-    expect(screen.getByRole("status", { name: "Loading territory" }).querySelector('[style*="height: 360px"]')).not.toBeNull();
+    expect(
+      screen.getByRole("status", { name: "Loading territory" }).querySelector('[style*="height: 360px"]'),
+    ).not.toBeNull();
   });
 
   it("says the territory was not found, with a way back", () => {
     useReplaceSource.mockReturnValue({ status: "missing" });
     render(<ReplaceSourceScreen />);
-    expect(
-      screen.getByRole("heading", { level: 1, name: "No territory at this address" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "No territory at this address" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Browse territories" })).toHaveAttribute("href", "/territories");
   });
 

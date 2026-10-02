@@ -18,7 +18,14 @@ export type UploadProgressPanelProps = {
 
 /** The bar-and-stats panel while bytes are moving, plus the submit/cancel row underneath. */
 export function UploadProgressPanel({
-  busy, progress, canSubmit, submitLabel, busyLabel = "Uploading…", cancelLabel = "Cancel", onSubmit, onCancel,
+  busy,
+  progress,
+  canSubmit,
+  submitLabel,
+  busyLabel = "Uploading…",
+  cancelLabel = "Cancel",
+  onSubmit,
+  onCancel,
 }: UploadProgressPanelProps) {
   return (
     <div className="flex flex-col gap-3.5">
@@ -30,7 +37,9 @@ export function UploadProgressPanel({
           </div>
           <ProgressBar value={progress.value} tone="accent" ariaLabel="Upload progress" />
           <div className="flex flex-wrap gap-[18px] font-mono text-[10px] text-muted">
-            {progress.stats.map((s) => <span key={s}>{s}</span>)}
+            {progress.stats.map((s) => (
+              <span key={s}>{s}</span>
+            ))}
           </div>
         </div>
       ) : null}
@@ -38,7 +47,11 @@ export function UploadProgressPanel({
         <Button variant="primary" loading={busy} disabled={!busy && !canSubmit} onClick={onSubmit}>
           {busy ? busyLabel : submitLabel}
         </Button>
-        {busy && onCancel ? <Button variant="secondary" onClick={onCancel}>{cancelLabel}</Button> : null}
+        {busy && onCancel ? (
+          <Button variant="secondary" onClick={onCancel}>
+            {cancelLabel}
+          </Button>
+        ) : null}
       </div>
     </div>
   );

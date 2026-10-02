@@ -91,6 +91,11 @@ describe("ScanPane", () => {
   it("presses its copy button on pointer-down", async () => {
     render(<ScanPane secret={SECRET} otpauthUrl={URL} />);
     await userEvent.click(screen.getByRole("button", { name: /Show manual key/ }));
-    expect(screen.getByRole("button", { name: "Copy" })).toHaveClass("transition-[border-color,scale]", "duration-150", "ease-out", "active:scale-[0.97]");
+    expect(screen.getByRole("button", { name: "Copy" })).toHaveClass(
+      "transition-[border-color,scale]",
+      "duration-150",
+      "ease-out",
+      "active:scale-[0.97]",
+    );
   });
 });

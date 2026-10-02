@@ -29,9 +29,7 @@ const props = (over: Partial<ContentInspectorProps> = {}): ContentInspectorProps
 describe("ContentInspector", () => {
   it("is a region named after the item", () => {
     render(<ContentInspector {...props()} />);
-    expect(
-      screen.getByRole("complementary", { name: "Content: Terminal Yard 4" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "Content: Terminal Yard 4" })).toBeInTheDocument();
     expect(screen.getByText("terminal-yard-4 · territory")).toBeInTheDocument();
   });
 
@@ -42,9 +40,10 @@ describe("ContentInspector", () => {
 
   it("reports conversion progress and its note while converting", () => {
     render(<ContentInspector {...props({ conversionNote: "62% · ~4 min" })} />);
-    expect(
-      screen.getByRole("progressbar", { name: "Terminal Yard 4 conversion" }),
-    ).toHaveAttribute("aria-valuenow", "62");
+    expect(screen.getByRole("progressbar", { name: "Terminal Yard 4 conversion" })).toHaveAttribute(
+      "aria-valuenow",
+      "62",
+    );
     expect(screen.getByText("62% · ~4 min")).toBeInTheDocument();
   });
 
@@ -93,14 +92,10 @@ describe("ContentInspector", () => {
   });
 
   it("lets `openable` decide the viewer button when the route has resolved it", () => {
-    const { rerender } = render(
-      <ContentInspector {...props({ item: item({ status: "failed" }), openable: true })} />,
-    );
+    const { rerender } = render(<ContentInspector {...props({ item: item({ status: "failed" }), openable: true })} />);
     expect(screen.getByRole("button", { name: "Open in viewer" })).toBeEnabled();
 
-    rerender(
-      <ContentInspector {...props({ item: item({ status: "pending" }), openable: false })} />,
-    );
+    rerender(<ContentInspector {...props({ item: item({ status: "pending" }), openable: false })} />);
     expect(screen.getByRole("button", { name: "Open in viewer" })).toBeDisabled();
   });
 

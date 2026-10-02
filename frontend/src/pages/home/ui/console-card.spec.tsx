@@ -5,12 +5,7 @@ import { ConsoleCard } from "./console-card";
 describe("ConsoleCard", () => {
   it("is a link with the label and the count when open", () => {
     render(
-      <ConsoleCard
-        label="Users"
-        href="/console/users"
-        hint={{ kind: "count", text: "12 users" }}
-        locked={false}
-      />,
+      <ConsoleCard label="Users" href="/console/users" hint={{ kind: "count", text: "12 users" }} locked={false} />,
     );
     expect(screen.getByRole("link", { name: /Users/ })).toHaveAttribute("href", "/console/users");
     expect(screen.getByText("12 users")).toBeInTheDocument();
@@ -27,10 +22,7 @@ describe("ConsoleCard", () => {
     );
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
     expect(screen.getByRole("img", { name: "No access" })).toBeInTheDocument();
-    expect(screen.getByText("Metrics").closest("[aria-disabled]")).toHaveAttribute(
-      "aria-disabled",
-      "true",
-    );
+    expect(screen.getByText("Metrics").closest("[aria-disabled]")).toHaveAttribute("aria-disabled", "true");
     expect(screen.getByText("conversion health and alerts")).toBeInTheDocument();
   });
 
@@ -48,7 +40,14 @@ describe("ConsoleCard", () => {
 
   // Answers the press, not only the release; the hover border eases with it.
   it("presses on pointer-down", () => {
-    render(<ConsoleCard label="Users" href="/console/users" hint={{ kind: "count", text: "12 users" }} locked={false} />);
-    expect(screen.getByRole("link", { name: /Users/ })).toHaveClass("transition-[border-color,scale]", "duration-150", "ease-out", "active:scale-[0.99]");
+    render(
+      <ConsoleCard label="Users" href="/console/users" hint={{ kind: "count", text: "12 users" }} locked={false} />,
+    );
+    expect(screen.getByRole("link", { name: /Users/ })).toHaveClass(
+      "transition-[border-color,scale]",
+      "duration-150",
+      "ease-out",
+      "active:scale-[0.99]",
+    );
   });
 });

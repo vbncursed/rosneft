@@ -37,9 +37,7 @@ export function RolesScreen() {
   );
 
   if (s.status === "loading") {
-    return (
-      <PageSkeleton shape="console" label="Loading roles" />
-    );
+    return <PageSkeleton shape="console" label="Loading roles" />;
   }
   if (s.status === "unavailable") {
     return <Callout tone="bad">Roles are unavailable: {s.error}</Callout>;
@@ -47,8 +45,7 @@ export function RolesScreen() {
 
   const selected = s.selected && counted.find((r) => r.slug === s.selected?.slug);
   // A reader has no Save to block, and its own notice already says why.
-  const blocked =
-    s.canManage && selected && unsaveable(selected, s.grantable).length > 0 ? SAVE_BLOCKED : undefined;
+  const blocked = s.canManage && selected && unsaveable(selected, s.grantable).length > 0 ? SAVE_BLOCKED : undefined;
 
   return (
     <>

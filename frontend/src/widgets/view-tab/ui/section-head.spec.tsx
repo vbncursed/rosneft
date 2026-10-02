@@ -67,9 +67,7 @@ describe("SectionHead", () => {
     });
 
     it("turns the chevron a quarter when open, without motion for reduced-motion readers", () => {
-      const { container, rerender } = render(
-        <SectionHead overline="Panoramas" count="2" fold={fold(false)} />,
-      );
+      const { container, rerender } = render(<SectionHead overline="Panoramas" count="2" fold={fold(false)} />);
       const chevron = container.querySelector("svg")!;
       expect(chevron).not.toHaveClass("rotate-90");
       expect(chevron).toHaveClass("duration-150", "ease-out", "motion-reduce:transition-none");
@@ -108,9 +106,7 @@ describe("SectionHead", () => {
     });
 
     it("brightens on hover only while the reader can press it", () => {
-      const { container, rerender } = render(
-        <SectionHead overline="Panoramas" count="2" fold={fold(true)} />,
-      );
+      const { container, rerender } = render(<SectionHead overline="Panoramas" count="2" fold={fold(true)} />);
       const chevron = container.querySelector("svg")!;
       expect(screen.getByText("Panoramas")).toHaveClass("group-hover:text-fg");
       expect(chevron).toHaveClass("group-hover:text-fg");

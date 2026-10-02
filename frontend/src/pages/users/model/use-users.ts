@@ -22,13 +22,7 @@ import { can } from "@/shared/session";
 import { assignableRoles, canResetPassword } from "./people";
 import { putUser } from "./put-user";
 
-export type ActionKind =
-  | "freeze"
-  | "unfreeze"
-  | "delete"
-  | "restore"
-  | "require-2fa"
-  | "unrequire-2fa";
+export type ActionKind = "freeze" | "unfreeze" | "delete" | "restore" | "require-2fa" | "unrequire-2fa";
 export type PendingAction = { kind: ActionKind; user: User };
 
 const DONE: Record<ActionKind, string> = {
@@ -138,13 +132,11 @@ export function useUsers(): UsersState {
       setSelectedId(user.id);
       void putUser(client, user);
     },
-    onError: (err) =>
-      err instanceof HttpError && err.status === 409 ? notify.error(LOGIN_TAKEN) : fail(err),
+    onError: (err) => (err instanceof HttpError && err.status === 409 ? notify.error(LOGIN_TAKEN) : fail(err)),
   });
 
   const roleChange = useMutation({
-    mutationFn: ({ id, roleSlugs }: { id: string; roleSlugs: string[] }) =>
-      setUserRoles(id, roleSlugs),
+    mutationFn: ({ id, roleSlugs }: { id: string; roleSlugs: string[] }) => setUserRoles(id, roleSlugs),
     onSuccess: (user) => {
       notify.success("Roles updated");
       setAddingRole(false);
@@ -161,8 +153,7 @@ export function useUsers(): UsersState {
   // itself (`resetDone`); closing it forgets the finished mutation.
   const reset = useMutation({
     gcTime: 0,
-    mutationFn: ({ id, password }: { id: string; password: string }) =>
-      setUserPassword(id, password),
+    mutationFn: ({ id, password }: { id: string; password: string }) => setUserPassword(id, password),
     onError: fail,
   });
 
@@ -179,8 +170,7 @@ export function useUsers(): UsersState {
     // Loading wins while anything is outstanding: a refusal on one query and a
     // wait on the other is still one answer away, and flashing an outage page
     // before the list lands says the screen is broken when it is only slow.
-    status:
-      users.isPending || roles.isPending ? "loading" : failed ? "unavailable" : "ready",
+    status: users.isPending || roles.isPending ? "loading" : failed ? "unavailable" : "ready",
     error: failed ? messageOf(failed) : null,
     users: users.data ?? null,
     roles: roles.data ?? [],

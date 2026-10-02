@@ -54,9 +54,7 @@ export function Pipeline({ steps, label = "Conversion pipeline", className }: Pi
               )}
             />
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-[9px]">
-              <p className={cx("m-0 text-[13px]", step.state === "pending" ? "text-muted" : "text-fg")}>
-                {step.label}
-              </p>
+              <p className={cx("m-0 text-[13px]", step.state === "pending" ? "text-muted" : "text-fg")}>{step.label}</p>
               {badge ? (
                 <span
                   className={cx(

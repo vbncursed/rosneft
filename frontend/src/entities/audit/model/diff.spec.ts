@@ -18,14 +18,11 @@ describe("diffRows", () => {
   });
 
   it("skips fields that did not move", () => {
-    expect(diffRows({ a: 1, b: 2 }, { a: 1, b: 3 })).toEqual([
-      { field: "b", before: 2, after: 3, kind: "changed" },
-    ]);
+    expect(diffRows({ a: 1, b: 2 }, { a: 1, b: 3 })).toEqual([{ field: "b", before: 2, after: 3, kind: "changed" }]);
   });
 
   it("ignores the timestamps that move on every write", () => {
-    expect(diffRows({ created_at: "x", updated_at: "y" }, { created_at: "a", updated_at: "b" }))
-      .toEqual([]);
+    expect(diffRows({ created_at: "x", updated_at: "y" }, { created_at: "a", updated_at: "b" })).toEqual([]);
   });
 
   it("compares structurally, so an equal nested transform is not a change", () => {
@@ -53,12 +50,8 @@ describe("diffRows", () => {
   });
 
   it("treats a null snapshot as a creation or a deletion", () => {
-    expect(diffRows(null, { slug: "t" })).toEqual([
-      { field: "slug", before: undefined, after: "t", kind: "added" },
-    ]);
-    expect(diffRows({ slug: "t" }, null)).toEqual([
-      { field: "slug", before: "t", after: undefined, kind: "removed" },
-    ]);
+    expect(diffRows(null, { slug: "t" })).toEqual([{ field: "slug", before: undefined, after: "t", kind: "added" }]);
+    expect(diffRows({ slug: "t" }, null)).toEqual([{ field: "slug", before: "t", after: undefined, kind: "removed" }]);
     expect(diffRows(null, null)).toEqual([]);
   });
 

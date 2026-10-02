@@ -25,12 +25,7 @@ describe("DiffView", () => {
   });
 
   it("colours the field name by what happened to it", () => {
-    render(
-      <DiffView
-        before={{ removed_field: 1, changed_field: 1 }}
-        after={{ changed_field: 2, added_field: 1 }}
-      />,
-    );
+    render(<DiffView before={{ removed_field: 1, changed_field: 1 }} after={{ changed_field: 2, added_field: 1 }} />);
     expect(screen.getByText("added_field")).toHaveClass("text-ok");
     expect(screen.getByText("removed_field")).toHaveClass("text-bad");
     expect(screen.getByText("changed_field")).toHaveClass("text-accent");

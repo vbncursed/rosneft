@@ -2,7 +2,6 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { Avatar } from "./avatar";
 
-
 describe("Avatar", () => {
   it("announces the full name, not the initials", () => {
     render(<Avatar name="a.ivanova" />);

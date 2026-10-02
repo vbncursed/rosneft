@@ -55,11 +55,14 @@ export const lineColors: string[] = [];
  */
 export async function mockDrei(orig: () => Promise<unknown>) {
   const real = (await orig()) as Record<string, unknown>;
-  const useGLTF = Object.assign(vi.fn(() => ({ scene: fakeScene() })), {
-    preload: vi.fn(),
-    setDecoderPath: vi.fn(),
-    clear: vi.fn(),
-  });
+  const useGLTF = Object.assign(
+    vi.fn(() => ({ scene: fakeScene() })),
+    {
+      preload: vi.fn(),
+      setDecoderPath: vi.fn(),
+      clear: vi.fn(),
+    },
+  );
   return {
     ...real,
     useGLTF,
@@ -72,8 +75,7 @@ export async function mockDrei(orig: () => Promise<unknown>) {
       adaptiveDprProps.push(p);
       return null;
     },
-    Bounds: ({ children }: { children: ReactNode }) =>
-      createElement("group", { name: "Bounds" }, children),
+    Bounds: ({ children }: { children: ReactNode }) => createElement("group", { name: "Bounds" }, children),
     useBounds: () => boundsStub,
     TransformControls: ({ mode }: { mode: string }) =>
       createElement("group", { name: "TransformControls", userData: { gizmoMode: mode } }),

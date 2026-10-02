@@ -19,13 +19,7 @@ export type RadioCardsProps<T extends string> = {
 };
 
 /** A choice where each option needs a sentence — bigger than a segmented control. */
-export function RadioCards<T extends string>({
-  options,
-  value,
-  onChange,
-  label,
-  className,
-}: RadioCardsProps<T>) {
+export function RadioCards<T extends string>({ options, value, onChange, label, className }: RadioCardsProps<T>) {
   const name = useId();
 
   return (
@@ -63,9 +57,7 @@ export function RadioCards<T extends string>({
             />
             <span className="min-w-0 flex-1">
               <span className="block text-xs font-semibold text-fg">{option.title}</span>
-              <span className="mt-[3px] block text-[11px] leading-[1.45] text-muted">
-                {option.hint}
-              </span>
+              <span className="mt-[3px] block text-[11px] leading-[1.45] text-muted">{option.hint}</span>
             </span>
           </label>
         );

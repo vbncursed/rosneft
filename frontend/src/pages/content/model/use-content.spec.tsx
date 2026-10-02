@@ -49,8 +49,7 @@ beforeEach(() => {
     if (url === "/api/territories" && method === "GET") return json([TERRITORY]);
     if (url === "/api/models" && method === "GET") return json([MODEL]);
     if (url === "/api/jobs" && method === "GET") return json(JOBS);
-    if (url === "/api/territories/t-1" && method === "DELETE")
-      return new Response(null, { status: 204 });
+    if (url === "/api/territories/t-1" && method === "DELETE") return new Response(null, { status: 204 });
     if (url === "/api/models/m-1" && method === "DELETE")
       return json({ code: "invalid_input", message: "Model is placed in 2 territories." }, 400);
     return json({ code: "forbidden", message: "You don't have permission to do this" }, 403);
@@ -124,18 +123,15 @@ describe("useContent", () => {
     act(() => result.current.s.select("territory", "t-1"));
     act(() => result.current.s.ask());
     expect(result.current.s.pending?.slug).toBe("t-1");
-    expect(
-      fetchMock.mock.calls.some(([, i]) => (i as RequestInit | undefined)?.method === "DELETE"),
-    ).toBe(false);
+    expect(fetchMock.mock.calls.some(([, i]) => (i as RequestInit | undefined)?.method === "DELETE")).toBe(false);
     act(() => result.current.s.confirm());
     await waitFor(() => expect(result.current.notices[0]?.message).toBe("Territory deleted"));
     expect(result.current.s.selected).toBeNull();
     expect(result.current.s.pending).toBeNull();
     await waitFor(() =>
       expect(
-        fetchMock.mock.calls.filter(
-          ([u, i]) => u === "/api/territories" && !(i as RequestInit | undefined)?.method,
-        ).length,
+        fetchMock.mock.calls.filter(([u, i]) => u === "/api/territories" && !(i as RequestInit | undefined)?.method)
+          .length,
       ).toBe(2),
     );
   });
@@ -160,9 +156,7 @@ describe("useContent", () => {
     act(() => result.current.s.select("model", "m-1"));
     act(() => result.current.s.ask());
     act(() => result.current.s.confirm());
-    await waitFor(() =>
-      expect(result.current.notices[0]?.message).toBe("Model is placed in 2 territories."),
-    );
+    await waitFor(() => expect(result.current.notices[0]?.message).toBe("Model is placed in 2 territories."));
     expect(result.current.notices[0]?.tone).toBe("error");
   });
 
@@ -176,9 +170,7 @@ describe("useContent", () => {
   });
 
   it("folds the live job into the row and exposes it for the inspector", async () => {
-    JOBS = [
-      { id: "j1", kind: "territory", slug: "t-1", status: "running", progress: 0.4, stage: "parsing" },
-    ];
+    JOBS = [{ id: "j1", kind: "territory", slug: "t-1", status: "running", progress: 0.4, stage: "parsing" }];
     const { result } = renderHook(() => useContent(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
     expect(result.current.items?.[0]).toMatchObject({

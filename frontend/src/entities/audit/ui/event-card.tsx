@@ -75,9 +75,7 @@ export function EventCard({ entry, summary, selected = false, onSelect }: EventC
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 flex-wrap items-center gap-2.5">
           <span className="whitespace-nowrap font-mono text-xs text-accent">{entry.action}</span>
-          <span className="min-w-0 truncate text-[13px] font-medium text-fg">
-            {entityName(entry)}
-          </span>
+          <span className="min-w-0 truncate text-[13px] font-medium text-fg">{entityName(entry)}</span>
           {failed ? (
             <Badge tone="bad" shape="tag" size="sm" className="tracking-[0.1em]">
               failed
@@ -101,9 +99,7 @@ export function EventCard({ entry, summary, selected = false, onSelect }: EventC
             {actorName(entry)}
           </span>
         </div>
-        <span className="w-11 shrink-0 text-right font-mono text-[11px] text-dim">
-          {formatAt(entry.at).slice(11)}
-        </span>
+        <span className="w-11 shrink-0 text-right font-mono text-[11px] text-dim">{formatAt(entry.at).slice(11)}</span>
       </div>
     </article>
   );

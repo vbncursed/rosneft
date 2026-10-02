@@ -35,7 +35,15 @@ export function Checkbox({ label, id, className, tone = "default", labelClassNam
         aria-hidden="true"
         className="flex size-[17px] shrink-0 items-center justify-center rounded-[5px] border border-line-2 bg-panel-2 text-transparent transition-colors duration-150 peer-checked:border-accent peer-checked:bg-accent peer-checked:text-accent-fg peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent peer-disabled:peer-checked:border-line-2 peer-disabled:peer-checked:bg-line-2"
       >
-        <svg viewBox="0 0 12 12" className="size-3" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          viewBox="0 0 12 12"
+          className="size-3"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="M2.5 6.3 4.8 8.6 9.5 3.6" />
         </svg>
       </span>

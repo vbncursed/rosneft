@@ -72,18 +72,12 @@ export function Vec3Field({
         aria-labelledby={groupId}
         className={cx("grid grid-cols-[auto_repeat(3,1fr)] items-center gap-2", className)}
       >
-        <span
-          id={groupId}
-          className="min-w-[26px] font-mono text-[9px] uppercase tracking-[0.12em] text-muted"
-        >
+        <span id={groupId} className="min-w-[26px] font-mono text-[9px] uppercase tracking-[0.12em] text-muted">
           {label}
         </span>
         {AXES.map((axis) =>
           readOnly ? (
-            <span
-              key={axis}
-              className={cx(ROW_CELL, "min-w-0 truncate", tone === "muted" ? "text-muted" : "text-fg")}
-            >
+            <span key={axis} className={cx(ROW_CELL, "min-w-0 truncate", tone === "muted" ? "text-muted" : "text-fg")}>
               {format(value[axis])}
             </span>
           ) : (

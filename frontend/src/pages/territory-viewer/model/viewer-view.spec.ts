@@ -19,9 +19,48 @@ import {
 const SCENE: ViewerView = { kind: "scene" };
 const INSIDE: ViewerView = { kind: "panorama", id: 7 };
 
-const OWNER: Grants = { create: true, write: true, delete: true, replace: true, panoramaCreate: true, panoramaWrite: true, panoramaDelete: true, documentWrite: true, documentDelete: true, measureCreate: true, measureWrite: true, measureDelete: true };
-const EDITOR: Grants = { create: true, write: true, delete: false, replace: false, panoramaCreate: true, panoramaWrite: true, panoramaDelete: false, documentWrite: true, documentDelete: false, measureCreate: true, measureWrite: false, measureDelete: false };
-const GUEST: Grants = { create: false, write: false, delete: false, replace: false, panoramaCreate: false, panoramaWrite: false, panoramaDelete: false, documentWrite: false, documentDelete: false, measureCreate: false, measureWrite: false, measureDelete: false };
+const OWNER: Grants = {
+  create: true,
+  write: true,
+  delete: true,
+  replace: true,
+  panoramaCreate: true,
+  panoramaWrite: true,
+  panoramaDelete: true,
+  documentWrite: true,
+  documentDelete: true,
+  measureCreate: true,
+  measureWrite: true,
+  measureDelete: true,
+};
+const EDITOR: Grants = {
+  create: true,
+  write: true,
+  delete: false,
+  replace: false,
+  panoramaCreate: true,
+  panoramaWrite: true,
+  panoramaDelete: false,
+  documentWrite: true,
+  documentDelete: false,
+  measureCreate: true,
+  measureWrite: false,
+  measureDelete: false,
+};
+const GUEST: Grants = {
+  create: false,
+  write: false,
+  delete: false,
+  replace: false,
+  panoramaCreate: false,
+  panoramaWrite: false,
+  panoramaDelete: false,
+  documentWrite: false,
+  documentDelete: false,
+  measureCreate: false,
+  measureWrite: false,
+  measureDelete: false,
+};
 
 const pills = (over: Partial<Parameters<typeof headerPills>[0]> = {}) =>
   headerPills({
@@ -265,9 +304,7 @@ describe("errorCopy", () => {
   });
 
   it("pads the clock to two digits", () => {
-    expect(errorCopy(base, new Date(2026, 8, 9, 9, 5)).footer).toBe(
-      "refinery-block-c-lod1.glb · last attempt 09:05",
-    );
+    expect(errorCopy(base, new Date(2026, 8, 9, 9, 5)).footer).toBe("refinery-block-c-lod1.glb · last attempt 09:05");
   });
 });
 

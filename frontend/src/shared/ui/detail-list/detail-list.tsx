@@ -29,12 +29,7 @@ export function DetailList({ items, className }: DetailListProps) {
   if (items.length === 0) return null;
 
   return (
-    <dl
-      className={cx(
-        "m-0 grid grid-cols-[auto_1fr] gap-x-3.5 gap-y-2 font-mono text-[11px]",
-        className,
-      )}
-    >
+    <dl className={cx("m-0 grid grid-cols-[auto_1fr] gap-x-3.5 gap-y-2 font-mono text-[11px]", className)}>
       {items.map((item) => (
         <Fragment key={item.label}>
           <dt className="text-dim">{item.label}</dt>

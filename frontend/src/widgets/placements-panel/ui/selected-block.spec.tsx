@@ -41,10 +41,7 @@ describe("SelectedBlock", () => {
     expect(screen.getByRole("group", { name: "Rot" })).toHaveTextContent("90°");
     await userEvent.click(screen.getByRole("radio", { name: "Scale (S)" }));
     expect(onGizmo).toHaveBeenCalledWith("scale");
-    expect(screen.getByRole("switch", { name: "Snap to surface" })).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
+    expect(screen.getByRole("switch", { name: "Snap to surface" })).toHaveAttribute("aria-checked", "true");
   });
 
   it("drops the key parentheses when compact", () => {
@@ -73,9 +70,7 @@ describe("SelectedBlock", () => {
     expect(screen.getByRole("textbox", { name: "Scl x" })).toHaveValue("1.000");
     await userEvent.clear(screen.getByLabelText("Rot y"));
     await userEvent.type(screen.getByLabelText("Rot y"), "180");
-    expect(onTransform).toHaveBeenLastCalledWith(
-      expect.objectContaining({ rotation: { x: 0, y: Math.PI, z: 0 } }),
-    );
+    expect(onTransform).toHaveBeenLastCalledWith(expect.objectContaining({ rotation: { x: 0, y: Math.PI, z: 0 } }));
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(onSave).toHaveBeenCalledOnce();
   });
@@ -85,28 +80,20 @@ describe("SelectedBlock", () => {
     render(<SelectedBlock {...base} form={{ ...form, onTransform }} />);
     // The boxes print three places and select them on focus: typing replaces.
     await userEvent.type(screen.getByLabelText("Pos y"), "5");
-    expect(onTransform).toHaveBeenLastCalledWith(
-      expect.objectContaining({ position: { x: 12.4, y: 5, z: -8.25 } }),
-    );
+    expect(onTransform).toHaveBeenLastCalledWith(expect.objectContaining({ position: { x: 12.4, y: 5, z: -8.25 } }));
     await userEvent.type(screen.getByLabelText("Scl x"), "2");
-    expect(onTransform).toHaveBeenLastCalledWith(
-      expect.objectContaining({ scale: { x: 2, y: 1, z: 1 } }),
-    );
+    expect(onTransform).toHaveBeenLastCalledWith(expect.objectContaining({ scale: { x: 2, y: 1, z: 1 } }));
   });
 
   it("an edit form takes the numbers too, under a plain overline", async () => {
     // Save sends what was typed here, so the cells take typing exactly as the
     // create form's do; only the word for what is happening differs.
     const onTransform = vi.fn();
-    render(
-      <SelectedBlock {...base} form={{ ...form, kind: "edit", label: "Tank 4", onTransform }} />,
-    );
+    render(<SelectedBlock {...base} form={{ ...form, kind: "edit", label: "Tank 4", onTransform }} />);
     expect(screen.getByText("Selected")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Label" })).toHaveValue("Tank 4");
     await userEvent.type(screen.getByLabelText("Pos y"), "5");
-    expect(onTransform).toHaveBeenLastCalledWith(
-      expect.objectContaining({ position: { x: 12.4, y: 5, z: -8.25 } }),
-    );
+    expect(onTransform).toHaveBeenLastCalledWith(expect.objectContaining({ position: { x: 12.4, y: 5, z: -8.25 } }));
     expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
   });
 

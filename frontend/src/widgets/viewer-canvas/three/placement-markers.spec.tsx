@@ -41,9 +41,7 @@ describe("PlacementMarkers", () => {
   });
 
   it("is a passive overlay — the ring never eats a click meant for the object", () => {
-    const { container } = render(
-      <PlacementMarkers placements={[fakePlacement(1)]} labels={{ 1: "a" }} />,
-    );
+    const { container } = render(<PlacementMarkers placements={[fakePlacement(1)]} labels={{ 1: "a" }} />);
     expect(screen.queryByRole("button")).toBeNull();
     expect(container.firstElementChild?.className).toContain("pointer-events-none");
   });

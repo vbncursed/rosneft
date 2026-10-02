@@ -34,9 +34,7 @@ describe("upload gateway", () => {
   });
 
   it("appends a chunk with the offset header, octet-stream, and the CSRF token", async () => {
-    fetchMock.mockResolvedValueOnce(
-      new Response(null, { status: 204, headers: { "Upload-Offset": "16" } }),
-    );
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204, headers: { "Upload-Offset": "16" } }));
     const next = await appendChunk("u1", 0, new Blob(["x"]));
     const req = request();
     expect(req.url).toBe("/api/uploads/u1");

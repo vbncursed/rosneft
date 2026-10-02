@@ -9,8 +9,7 @@ const SRC = join(import.meta.dirname);
 const EXEMPT = new Set(EXEMPT_MODULES);
 
 const isBarrel = (file: string) => basename(file) === "index.ts";
-const isTestOrFixture = (file: string) =>
-  /\.(spec|fixture)\.tsx?$/.test(file) || file.endsWith("architecture.spec.ts");
+const isTestOrFixture = (file: string) => /\.(spec|fixture)\.tsx?$/.test(file) || file.endsWith("architecture.spec.ts");
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
@@ -51,9 +50,7 @@ describe("every slice with a component carries a Cosmos fixture", () => {
   // A slice is the directory that owns a component: shared/ui/button,
   // entities/territory, and so on. Anything rendering JSX must be browsable.
   const componentDirs = [
-    ...new Set(
-      sources.filter((f) => extname(f) === ".tsx").map((f) => f.slice(0, f.lastIndexOf("/"))),
-    ),
+    ...new Set(sources.filter((f) => extname(f) === ".tsx").map((f) => f.slice(0, f.lastIndexOf("/")))),
   ];
 
   const sliceOf = (dir: string) => {
@@ -91,9 +88,7 @@ describe("layer dependencies point inward only", () => {
     const layer = layerOf(file);
     if (!layer) return;
 
-    const imports = [...readFileSync(file, "utf8").matchAll(/from\s+"@\/([a-z-]+)\//g)].map(
-      (m) => m[1],
-    );
+    const imports = [...readFileSync(file, "utf8").matchAll(/from\s+"@\/([a-z-]+)\//g)].map((m) => m[1]);
 
     for (const imported of imports) {
       if (!ORDER.includes(imported)) continue;

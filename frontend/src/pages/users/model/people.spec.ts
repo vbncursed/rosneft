@@ -85,9 +85,7 @@ describe("groupPeople", () => {
 
   it("files someone whose only role no longer exists under No role", () => {
     const groups = groupPeople([make("u-1", "ghost", ["deleted-role"])], [role("guest", "Guest")]);
-    expect(groups.find((g) => g.key === "none")?.people.map((p) => p.user.username)).toEqual([
-      "ghost",
-    ]);
+    expect(groups.find((g) => g.key === "none")?.people.map((p) => p.user.username)).toEqual(["ghost"]);
   });
 });
 
@@ -138,9 +136,7 @@ describe("coverageOf and statsOf", () => {
 
 describe("inspectorDetails", () => {
   it("reads the three facts the account carries", () => {
-    const d = inspectorDetails(
-      make("1", "a", [], { totpEnabled: null, passkeyEnabled: true, totpRequired: true }),
-    );
+    const d = inspectorDetails(make("1", "a", [], { totpEnabled: null, passkeyEnabled: true, totpRequired: true }));
     expect(d.map((x) => [x.label, x.value])).toEqual([
       ["2FA", "—"],
       ["passkey", "Yes"],

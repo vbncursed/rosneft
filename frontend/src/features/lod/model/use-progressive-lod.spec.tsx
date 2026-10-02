@@ -31,7 +31,12 @@ describe("useProgressiveLod", () => {
     });
     act(() => result.current.onWarmReady());
     expect(result.current.shown?.lod).toBe(0);
-    rerender({ c: [{ lod: 0, hash: "x", size: 3 }, { lod: 2, hash: "z", size: 1 }] });
+    rerender({
+      c: [
+        { lod: 0, hash: "x", size: 3 },
+        { lod: 2, hash: "z", size: 1 },
+      ],
+    });
     expect(result.current.shown?.hash).toBe("z");
     expect(result.current.warmUrl).toContain("/api/assets/x");
   });

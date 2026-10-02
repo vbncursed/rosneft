@@ -38,9 +38,7 @@ describe("ViewerError", () => {
   });
 
   it("offers only the retry when the failed level is the coarsest there is", () => {
-    render(
-      <ViewerError copy={{ ...COPY, coarseLabel: null }} onRetry={vi.fn()} onCoarse={null} />,
-    );
+    render(<ViewerError copy={{ ...COPY, coarseLabel: null }} onRetry={vi.fn()} onCoarse={null} />);
     expect(screen.getAllByRole("button")).toHaveLength(1);
   });
 });
