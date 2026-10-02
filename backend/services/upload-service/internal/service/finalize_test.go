@@ -73,7 +73,7 @@ func (s *FinalizeSuite) TestRejectsUnknownID() {
 func (s *FinalizeSuite) TestRejectsIncompleteSession() {
 	// Declared 5 bytes, nothing written → Finalize must refuse a partial blob.
 	stubSession(s.ctx, s.store, author, 5, 0)
-	_, err := s.svc.Finalize(s.ctx, author, "sess-1")
+	_, err := s.svc.Finalize(s.ctx, author, sessionID)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
@@ -83,7 +83,7 @@ func (s *FinalizeSuite) TestSucceedsOnCompleteSession() {
 	s.blobs.PutMock.Return(blobstore.Blob{Hash: "cafef00d"}, nil)
 	s.store.RecordUploadMock.Expect(s.ctx, "cafef00d", author).Return(nil)
 
-	out, err := s.svc.Finalize(s.ctx, author, "sess-1")
+	out, err := s.svc.Finalize(s.ctx, author, sessionID)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), out.Hash, "cafef00d")
 	assert.Equal(s.T(), out.Size, int64(5))
@@ -98,7 +98,7 @@ func (s *FinalizeSuite) TestForwardsContentTypeToBlobStore() {
 	}).Return(blobstore.Blob{}, nil)
 	s.store.RecordUploadMock.Return(nil)
 
-	_, err := s.svc.Finalize(s.ctx, author, "sess-1")
+	_, err := s.svc.Finalize(s.ctx, author, sessionID)
 	assert.NilError(s.T(), err)
 }
 
@@ -107,7 +107,7 @@ func (s *FinalizeSuite) TestPropagatesBlobStoreError() {
 	s.finalizeYields()
 	s.blobs.PutMock.Return(blobstore.Blob{}, errors.New("blob store down"))
 
-	_, err := s.svc.Finalize(s.ctx, author, "sess-1")
+	_, err := s.svc.Finalize(s.ctx, author, sessionID)
 	assert.ErrorContains(s.T(), err, "blob store down")
 }
 
@@ -115,7 +115,7 @@ func (s *FinalizeSuite) TestPropagatesBlobStoreError() {
 // hash the stranger could then claim as their own upload.
 func (s *FinalizeSuite) TestRefusesAnotherAuthorsSession() {
 	s.completeSession()
-	_, err := s.svc.Finalize(s.ctx, stranger, "sess-1")
+	_, err := s.svc.Finalize(s.ctx, stranger, sessionID)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrSessionNotFound))
 }
 
@@ -127,6 +127,6 @@ func (s *FinalizeSuite) TestFailsWhenTheUploadCannotBeRecorded() {
 	s.blobs.PutMock.Return(blobstore.Blob{}, nil)
 	s.store.RecordUploadMock.Return(errors.New("disk full"))
 
-	_, err := s.svc.Finalize(s.ctx, author, "sess-1")
+	_, err := s.svc.Finalize(s.ctx, author, sessionID)
 	assert.ErrorContains(s.T(), err, "disk full")
 }

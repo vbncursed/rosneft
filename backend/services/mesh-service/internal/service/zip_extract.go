@@ -19,6 +19,8 @@ import (
 // side needs its own cap. 8 GiB is four times the upload cap, ample for
 // OBJ+textures, and fits the worker's work dir: no tmpfs is mounted, so it is
 // the container layer on the 119 GB prod disk, not RAM (mesh-worker is 5g).
+// The entry limit counts every entry, including the __MACOSX/AppleDouble ones
+// that are skipped, so a Finder-made zip counts roughly double its real files.
 const (
 	maxExtractBytes   int64 = 8 << 30
 	maxExtractEntries       = 10_000
@@ -70,6 +72,20 @@ func findFirstOBJ(dir string) (string, error) {
 	return found, nil
 }
 
+// formatBytes renders n for the job error users see: whole GiB/MiB/KiB when n
+// is an exact multiple, plain bytes otherwise.
+func formatBytes(n int64) string {
+	for _, u := range []struct {
+		size int64
+		name string
+	}{{1 << 30, "GiB"}, {1 << 20, "MiB"}, {1 << 10, "KiB"}} {
+		if n%u.size == 0 {
+			return fmt.Sprintf("%d %s", n/u.size, u.name)
+		}
+	}
+	return fmt.Sprintf("%d bytes", n)
+}
+
 // extractZip writes every file in zr under dir, rejecting entries whose path
 // would escape via "..". A symlink entry is written as a regular file holding
 // its target path and is never followed, so it cannot reach outside dir. The
@@ -90,11 +106,10 @@ func extractZip(zr *zip.Reader, dir string, maxBytes int64, maxEntries int) erro
 		if isAppleDoubleEntry(f.Name) {
 			continue
 		}
-		clean := filepath.Clean(f.Name)
-		if strings.HasPrefix(clean, "..") || filepath.IsAbs(clean) {
+		if !filepath.IsLocal(f.Name) {
 			return fmt.Errorf("zip entry escapes target: %q", f.Name)
 		}
-		dst := filepath.Join(dir, clean)
+		dst := filepath.Join(dir, f.Name) //nolint:gosec // G305: f.Name passed filepath.IsLocal above
 		if f.FileInfo().IsDir() {
 			if err := os.MkdirAll(dst, 0o750); err != nil {
 				return err
@@ -107,7 +122,7 @@ func extractZip(zr *zip.Reader, dir string, maxBytes int64, maxEntries int) erro
 		n, err := writeZipEntry(f, dst, remaining)
 		if err != nil {
 			if errors.Is(err, domain.ErrInvalidInput) {
-				return fmt.Errorf("%w: archive expands past %d bytes", domain.ErrInvalidInput, maxBytes)
+				return fmt.Errorf("%w: archive expands past %s", domain.ErrInvalidInput, formatBytes(maxBytes))
 			}
 			return err
 		}
@@ -137,7 +152,7 @@ func writeZipEntry(f *zip.File, dst string, limit int64) (int64, error) {
 	}
 	defer func() { _ = rc.Close() }()
 
-	w, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600) //nolint:gosec // G304: dst is dir joined with an entry name that passed the ".."/absolute check in extractZip
+	w, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600) //nolint:gosec // G304: dst is dir joined with an entry name that passed the filepath.IsLocal check in extractZip
 	if err != nil {
 		return 0, err
 	}

@@ -94,3 +94,47 @@ func TestExtractZip_EntryCountAtLimitSucceeds(t *testing.T) {
 
 	assert.NilError(t, extractZip(buildZip(t, files), t.TempDir(), 1<<20, 3))
 }
+
+func TestExtractZip_EntryNames(t *testing.T) {
+	tests := []struct {
+		name    string
+		entry   string
+		refused bool
+	}{
+		{"dot-dot prefix in a name is local", "..foo/x.obj", false},
+		{"parent traversal", "../x.obj", true},
+		{"nested traversal", "a/../../x.obj", true},
+		{"absolute", "/etc/x.obj", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			err := extractZip(buildZip(t, map[string][]byte{tt.entry: []byte("x")}), dir, 1<<20, 10)
+			if tt.refused {
+				assert.ErrorContains(t, err, "escapes target")
+				return
+			}
+			assert.NilError(t, err)
+			_, statErr := os.Stat(filepath.Join(dir, tt.entry))
+			assert.NilError(t, statErr)
+		})
+	}
+}
+
+func TestFormatBytes(t *testing.T) {
+	tests := []struct {
+		n    int64
+		want string
+	}{
+		{8 << 30, "8 GiB"},
+		{3 << 20, "3 MiB"},
+		{2 << 10, "2 KiB"},
+		{1023, "1023 bytes"},
+		{(1 << 30) + 1, "1073741825 bytes"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			assert.Equal(t, formatBytes(tt.n), tt.want)
+		})
+	}
+}
