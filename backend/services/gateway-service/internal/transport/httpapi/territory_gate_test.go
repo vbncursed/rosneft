@@ -1,13 +1,17 @@
 package httpapi
 
 import (
+	"bytes"
 	"context"
+	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	slogchi "github.com/samber/slog-chi"
 	"github.com/stretchr/testify/suite"
 	"gotest.tools/v3/assert"
 
@@ -27,6 +31,9 @@ import (
 // reasoning about.
 type TerritoryGateSuite struct {
 	suite.Suite
+	// logger, when set, is mounted as the request logger so a test can read what
+	// the gate put on the log line.
+	logger *slog.Logger
 }
 
 func TestTerritoryGateSuite(t *testing.T) { suite.Run(t, new(TerritoryGateSuite)) }
@@ -43,6 +50,9 @@ type gateCase struct {
 func (s *TerritoryGateSuite) router(svc Service, sc gateCase) http.Handler {
 	srv := New(svc)
 	r := chi.NewRouter()
+	if s.logger != nil {
+		r.Use(slogchi.New(s.logger))
+	}
 	r.Group(func(api chi.Router) {
 		api.Use(func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -54,6 +64,7 @@ func (s *TerritoryGateSuite) router(svc Service, sc gateCase) http.Handler {
 		api.Get("/api/territories/{slug}/placements", ok)
 		api.Put("/api/territories/{slug}/placements/{id}", ok)
 		api.Get("/api/territories/{slug}/documents", ok)
+		api.Get("/api/territories/{slug}/scene", ok)
 		api.Get("/api/territories/{slug}", ok)
 		api.Post("/api/territories", ok)
 		api.Get("/api/models", ok)
@@ -98,6 +109,26 @@ func (s *TerritoryGateSuite) TestScopedCallerIsRefusedAnotherTenantsTerritory() 
 		// indistinguishable from a genuinely missing slug too.
 		assert.Assert(s.T(), strings.Contains(rec.Body.String(), "not_found"), rec.Body.String())
 	}
+}
+
+// A catalog that is down is neither "yours" nor "missing". Answering 404 would
+// tell a desktop resyncing right after a backend restart that its saved
+// territories are gone, and it would delete them. The body keeps the 5xx rule
+// (no internal text); the detail goes on the request's log line.
+func (s *TerritoryGateSuite) TestCatalogFailureAnswers503WithoutLeakingTheError() {
+	svc := gateServiceStub{territory: func(context.Context, string, string) error {
+		return errors.New("catalog.GetTerritory: dial tcp 10.0.0.7:9001: connection refused")
+	}}
+	var logs bytes.Buffer
+	s.logger = slog.New(slog.NewJSONHandler(&logs, nil))
+	h := s.router(svc, gateCase{adminID: "admin-1"})
+
+	rec := s.do(h, http.MethodGet, "/api/territories/mine/scene")
+
+	assert.Equal(s.T(), rec.Code, http.StatusServiceUnavailable)
+	assert.Assert(s.T(), !strings.Contains(rec.Body.String(), "10.0.0.7"), rec.Body.String())
+	assert.Assert(s.T(), strings.Contains(rec.Body.String(), `"code":"internal"`), rec.Body.String())
+	assert.Assert(s.T(), strings.Contains(logs.String(), "connection refused"), logs.String())
 }
 
 func (s *TerritoryGateSuite) TestRootSkipsTheLookupEntirely() {

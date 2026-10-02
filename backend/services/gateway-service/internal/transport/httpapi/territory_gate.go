@@ -1,10 +1,12 @@
 package httpapi
 
 import (
+	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	slogchi "github.com/samber/slog-chi"
 
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
@@ -23,6 +25,8 @@ const territoryScopedPrefix = "/api/territories/{slug}"
 // It answers 404, never 403: a 403 confirms the territory exists, and to another
 // tenant it must not. The body matches a genuinely missing slug for the same
 // reason.
+//
+// A catalog failure answers 503, not 404: see the lookup below.
 //
 // MUST be mounted after RequirePermissionForRoute — the permission check touches
 // no network, so a caller heading for a 403 should not first buy a catalog round
@@ -52,7 +56,15 @@ func (s *Server) RequireTerritoryAccess(next http.Handler) http.Handler {
 			return
 		}
 		if _, err := s.svc.GetTerritory(ctx, chi.URLParam(r, "slug"), scopeAdminID); err != nil {
-			writeTerritoryMissing(w)
+			if isNotFound(err) {
+				writeTerritoryMissing(w)
+				return
+			}
+			// A catalog failure is neither "yours" nor "missing": a 404 here would
+			// make a desktop resyncing after a backend restart delete its offline
+			// copies. Same answer as RequireBlobAccess; the cause goes on the log line.
+			slogchi.AddContextAttributes(ctx, slog.String("error", errMsg(err)))
+			apperr.Write(w, http.StatusServiceUnavailable, apperr.SlugInternal, apperr.InternalMessage)
 			return
 		}
 		next.ServeHTTP(w, r)
