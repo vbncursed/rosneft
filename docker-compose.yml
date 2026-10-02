@@ -343,8 +343,10 @@ services:
       # pre-creates as nonroot:nonroot), so the worker writes without
       # the bind-mount root-owned-mountpoint problem. Source archives
       # uploaded via /api/uploads land here as content-addressed blobs;
-      # the worker fetches them by hash, extracts to a tmpfs working
-      # dir, and writes the converted GLBs back to the same store.
+      # the worker fetches them by hash, extracts to a temp dir on the
+      # container's own disk (no tmpfs is mounted; the extraction cap is
+      # sized for disk, not RAM), and writes the converted GLBs back
+      # to the same store.
       - blob-data:/var/blob
 
   asset:
