@@ -57,6 +57,15 @@ async function harness(fetch = server(), user: string | null = A) {
   });
   return { saver, store, events, fetch, root, settings };
 }
+type Harness = Awaited<ReturnType<typeof harness>>;
+const answering = (h: Harness, status: number, suffix: string) => {
+  const real = h.fetch.getMockImplementation()!;
+  h.fetch.mockImplementation(async (url, signal) =>
+    new URL(url).pathname.endsWith(suffix) ? new Response("", { status }) : real(url, signal),
+  );
+};
+const snap = (h: Harness, key: string) => h.store.readSnapshot(A, key);
+
 const last = (events: Progress[]) => events[events.length - 1];
 const B = "1c6f9b4d-2a3e-4d6c-8b8f-4e3d2c1b0a90";
 const nameOf = (hash: string) => BLOBS.find((b) => sha(b) === hash)!;
@@ -276,6 +285,83 @@ describe("OfflineSaver", () => {
     expect(last(h.events)).toMatchObject({ state: "failed", error: "network" });
     expect(await h.saver.list()).toEqual(before);
     for (const hash of Object.values(H)) expect(await h.store.blob(A, hash)).not.toBeNull();
+  });
+
+  describe("a resync that finds the territory gone", () => {
+    it.each([
+      ["scene", "/scene"],
+      ["territory", "/ust-kut"],
+    ])("a 404 on the %s drops the pin, its blobs and snapshots, and emits gone", async (_n, suffix) => {
+      const h = await harness();
+      await h.saver.save("ust-kut");
+      h.events.length = 0;
+      answering(h, 404, suffix);
+      await h.saver.resyncAll();
+      await vi.waitFor(() => expect(h.events).toHaveLength(1));
+      expect(h.events[0]).toEqual({ slug: "ust-kut", state: "gone", done: 0, total: 0 });
+      expect(await h.saver.list()).toEqual([]);
+      for (const hash of Object.values(H)) expect(await h.store.blob(A, hash)).toBeNull();
+      expect(await snap(h, "/api/territories/ust-kut")).toBeNull();
+      expect(await snap(h, "/api/territories/ust-kut/scene")).toBeNull();
+    });
+
+    it.each([
+      [401, "signed-out"],
+      [503, "failed"],
+    ])("a %i keeps the copy", async (status, _e) => {
+      const h = await harness();
+      await h.saver.save("ust-kut");
+      const before = await h.saver.list();
+      answering(h, status, "/scene");
+      await h.saver.save("ust-kut");
+      expect(last(h.events)).toMatchObject({ state: "failed" });
+      expect(await h.saver.list()).toEqual(before);
+      expect(await h.store.blob(A, H.pump!)).not.toBeNull();
+      expect(await snap(h, "/api/territories/ust-kut/scene")).not.toBeNull();
+    });
+
+    it("a network error keeps the copy", async () => {
+      const h = await harness();
+      await h.saver.save("ust-kut");
+      const before = await h.saver.list();
+      h.fetch.mockImplementation(async () => {
+        throw new TypeError("net::ERR_INTERNET_DISCONNECTED");
+      });
+      await h.saver.save("ust-kut");
+      expect(last(h.events)).toMatchObject({ state: "failed", error: "network" });
+      expect(await h.saver.list()).toEqual(before);
+    });
+
+    it("a 401 reports signed-out", async () => {
+      const h = await harness();
+      await h.saver.save("ust-kut");
+      answering(h, 401, "/scene");
+      await h.saver.save("ust-kut");
+      expect(last(h.events)).toMatchObject({ state: "failed", error: "signed-out" });
+    });
+
+    it("a blob another pinned territory holds survives", async () => {
+      const h = await harness();
+      await h.saver.save("ust-kut");
+      await h.store.updatePins(A, (all) => [
+        ...all,
+        { slug: "other", title: "Other", hashes: [H.pump!], bytes: 4, savedAt: "t", syncedAt: "t" },
+      ]);
+      answering(h, 404, "/scene");
+      await h.saver.save("ust-kut");
+      expect(last(h.events)).toMatchObject({ state: "gone" });
+      expect(await h.store.blob(A, H.pump!)).not.toBeNull();
+      expect(await h.store.blob(A, H.pano!)).toBeNull();
+      expect((await h.store.readPins(A)).map((p) => p.slug)).toEqual(["other"]);
+    });
+
+    it("a first save (no syncedAt) that gets 404 fails as before and removes nothing else", async () => {
+      const h = await harness();
+      answering(h, 404, "/scene");
+      await h.saver.save("ust-kut");
+      expect(last(h.events)).toMatchObject({ state: "failed", error: "failed" });
+      expect(h.events.some((e) => e.state === "gone")).toBe(false);
+    });
   });
 
   it("resyncAll saves every pin again", async () => {

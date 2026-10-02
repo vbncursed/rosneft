@@ -54,6 +54,27 @@ describe("offline store", () => {
     act(() => b.push({ slug: "b", state: "failed", done: 0, total: 0, error: "network" }));
     expect(result.current.progress?.error).toBe("network");
   });
+  it("a gone copy is announced by title, left out of progress and the list is re-read", async () => {
+    const b = bridge();
+    const { result } = renderHook(() => ({ o: useOfflineTerritory("a"), n: useNotices() }));
+    await waitFor(() => expect(result.current.o.saved).toEqual(saved));
+    b.offline.list.mockResolvedValue([]);
+    act(() => b.push({ slug: "a", state: "gone", done: 0, total: 0 }));
+    expect(result.current.n.map((n) => n.message)).toEqual([
+      "\u201cA\u201d is no longer available and was removed from this device",
+    ]);
+    expect(result.current.o.progress).toBeUndefined();
+    await waitFor(() => expect(result.current.o.saved).toBeUndefined());
+  });
+  it("a gone copy not in the list is announced by its slug", () => {
+    const b = bridge();
+    const { result } = renderHook(() => useNotices());
+    renderHook(() => useOfflineState());
+    act(() => b.push({ slug: "zz", state: "gone", done: 0, total: 0 }));
+    expect(result.current.map((n) => n.message)).toEqual([
+      "\u201czz\u201d is no longer available and was removed from this device",
+    ]);
+  });
   it("passes actions to the shell", async () => {
     const b = bridge();
     offlineActions.save("a");

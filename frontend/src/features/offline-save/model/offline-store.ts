@@ -51,10 +51,16 @@ function wire(): void {
   void reload().catch(() => undefined);
   bridge.offline.onProgress((p) => {
     const progress = new Map(state.progress);
-    if (p.state === "saved" || p.state === "cancelled") progress.delete(p.slug);
+    if (p.state === "saved" || p.state === "cancelled" || p.state === "gone") progress.delete(p.slug);
     else progress.set(p.slug, p);
+    // The title is read before the reload drops it.
+    if (p.state === "gone")
+      notify.warning(
+        `\u201c${state.saved.get(p.slug)?.title ?? p.slug}\u201d is no longer available and was removed from this device`,
+      );
     set({ ...state, progress });
-    if (p.state === "saved" || p.state === "failed" || p.state === "cancelled") void reload().catch(() => undefined);
+    if (p.state === "saved" || p.state === "failed" || p.state === "cancelled" || p.state === "gone")
+      void reload().catch(() => undefined);
   });
 }
 

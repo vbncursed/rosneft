@@ -92,6 +92,10 @@ export class Store {
     await atomicWrite(this.snapshotFile(user, key), Buffer.concat([head, json, body]), this.tmpFile());
   }
 
+  async removeSnapshot(user: string, key: string): Promise<void> {
+    await rm(this.snapshotFile(user, key), { force: true });
+  }
+
   async blob(user: string, hash: string): Promise<{ path: string; size: number; type: string } | null> {
     const file = this.blobPath(user, hash);
     try {

@@ -201,4 +201,11 @@ describe("Store", () => {
     writeFileSync(path.join(dir, name), Buffer.from([0, 0, 0, 99, 1, 2]));
     expect(await store.readSnapshot(A, "/k")).toBeNull();
   });
+
+  it("removeSnapshot deletes one key and tolerates a missing one", async () => {
+    await store.writeSnapshot(A, "/k", { status: 200, headers: [] }, Buffer.from("body"));
+    await store.removeSnapshot(A, "/k");
+    expect(await store.readSnapshot(A, "/k")).toBeNull();
+    await expect(store.removeSnapshot(A, "/k")).resolves.toBeUndefined();
+  });
 });
