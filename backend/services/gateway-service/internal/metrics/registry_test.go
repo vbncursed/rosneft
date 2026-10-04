@@ -21,3 +21,13 @@ func (s *RegistrySuite) TestServicesUpIsAnInstantPerServiceQuery() {
 	assert.Assert(s.T(), p.instant)
 	assert.Equal(s.T(), p.expr, `up{job="services"}`)
 }
+
+// An expired cookie, a wrong password or a 404 is the service working, not
+// failing. Only the codes that map to HTTP 5xx count, or one stale session
+// paints auth "degraded" for the whole rate window.
+func (s *RegistrySuite) TestRedErrorsCountsServerFaultsOnly() {
+	p, ok := lookup("red-errors")
+	assert.Assert(s.T(), ok)
+	assert.Equal(s.T(), p.expr,
+		`sum by (service)(rate(grpc_server_handled_total{grpc_code=~"Unknown|DeadlineExceeded|Unimplemented|Internal|Unavailable|DataLoss"}[5m]))`)
+}
