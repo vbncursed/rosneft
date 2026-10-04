@@ -14,8 +14,12 @@ groups:
         annotations:
           summary: "A service target is down"
 
+      # Только серверные сбои — коды, которые gRPC переводит в HTTP 5xx.
+      # Отказ (просроченная сессия, неверный пароль, 404, троттлинг) — это
+      # сервис работает; при малом трафике один такой отказ давал >5 %.
+      # Тот же селектор, что у панели red-errors (gateway registry.go).
       - alert: HighGrpcErrorRate
-        expr: sum by (service)(rate(grpc_server_handled_total{grpc_code!="OK"}[5m])) / clamp_min(sum by (service)(rate(grpc_server_handled_total[5m])),0.001) > 0.05
+        expr: sum by (service)(rate(grpc_server_handled_total{grpc_code=~"Unknown|DeadlineExceeded|Unimplemented|Internal|Unavailable|DataLoss"}[5m])) / clamp_min(sum by (service)(rate(grpc_server_handled_total[5m])),0.001) > 0.05
         for: 5m
         labels:
           severity: warning
