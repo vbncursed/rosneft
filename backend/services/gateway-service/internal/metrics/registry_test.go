@@ -29,5 +29,5 @@ func (s *RegistrySuite) TestRedErrorsCountsServerFaultsOnly() {
 	p, ok := lookup("red-errors")
 	assert.Assert(s.T(), ok)
 	assert.Equal(s.T(), p.expr,
-		`sum by (service)(rate(grpc_server_handled_total{grpc_code=~"Unknown|DeadlineExceeded|Unimplemented|Internal|Unavailable|DataLoss"}[5m]))`)
+		`sum by (service)(rate(grpc_server_handled_total{grpc_code=~"Unknown|DeadlineExceeded|Unimplemented|Internal|Unavailable|DataLoss"}[5m])) or sum by (service)(rate(grpc_server_handled_total[5m])) * 0`)
 }
