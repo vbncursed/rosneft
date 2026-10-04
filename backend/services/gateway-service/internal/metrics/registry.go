@@ -26,8 +26,15 @@ var panels = map[string]panel{
 	"services-up": {expr: `up{job="services"}`, instant: true},
 
 	// Services (RED).
-	"red-rate":    {expr: `sum by (service)(rate(grpc_server_handled_total[5m]))`},
-	"red-errors":  {expr: `sum by (service)(rate(grpc_server_handled_total{grpc_code!="OK"}[5m]))`},
+	"red-rate": {expr: `sum by (service)(rate(grpc_server_handled_total[5m]))`},
+	// Server faults only — the codes gRPC maps to HTTP 5xx. A refusal
+	// (Unauthenticated, NotFound, InvalidArgument, the PermissionDenied/
+	// ResourceExhausted throttles) is the service working; counting it made one
+	// expired cookie read as auth "degraded" for 5m. Same selector as HighGrpcErrorRate in
+	// ops/prometheus/rules.yml — change both together.
+	// The fault series exist only after a first fault, so the `or … * 0`
+	// branch reports 0 for every service with traffic, instead of nothing.
+	"red-errors":  {expr: `sum by (service)(rate(grpc_server_handled_total{grpc_code=~"Unknown|DeadlineExceeded|Unimplemented|Internal|Unavailable|DataLoss"}[5m])) or sum by (service)(rate(grpc_server_handled_total[5m])) * 0`},
 	"red-latency": {expr: `histogram_quantile(0.99, sum by (le, grpc_service)(rate(grpc_server_handling_seconds_bucket[5m])))`},
 	"red-http":    {expr: `sum(rate(http_requests_total[5m]))`},
 
