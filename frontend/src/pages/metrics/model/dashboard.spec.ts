@@ -101,7 +101,7 @@ describe("panelEntry", () => {
     ).toEqual({
       key: "red-errors",
       title: "Errors by service",
-      meta: "rps · non-OK gRPC",
+      meta: "rps · gRPC server faults",
       unit: "rps",
       last: "1.6/s",
       lastTone: "bad",
