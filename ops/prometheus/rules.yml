@@ -24,7 +24,7 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "gRPC error rate above 5%"
+          summary: "gRPC server-fault rate above 5%"
 
       - alert: HighHttp5xxRate
         expr: sum(rate(http_requests_total{code=~"5.."}[5m])) / clamp_min(sum(rate(http_requests_total[5m])),0.001) > 0.05
