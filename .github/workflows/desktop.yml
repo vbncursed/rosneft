@@ -21,13 +21,14 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: yarn
-          cache-dependency-path: desktop/yarn.lock
-      - run: yarn --cwd desktop install --frozen-lockfile
+      # package.json's packageManager field picks the Yarn release. After
+      # setup-node, so the shim lands beside the Node this job runs.
+      - run: corepack enable
+      - run: yarn --cwd desktop install --immutable
       - run: make -C desktop check
       # Electron ships inside every installer, so its advisories matter even
       # though it is a devDependency: audit every group, fail on high.
-      - run: yarn --cwd desktop audit --level high
+      - run: yarn --cwd desktop npm audit --recursive --severity high
 
   build:
     needs: check
@@ -54,9 +55,10 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: yarn
-          cache-dependency-path: desktop/yarn.lock
-      - run: yarn --cwd desktop install --frozen-lockfile
+      # package.json's packageManager field picks the Yarn release. After
+      # setup-node, so the shim lands beside the Node this job runs.
+      - run: corepack enable
+      - run: yarn --cwd desktop install --immutable
 
       # The tag has to agree with package.json's version, or a release called
       # v0.4.0 ships files called 0.3.0. Checked before the build, so a wrong tag

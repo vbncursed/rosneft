@@ -12,7 +12,8 @@ Design: [`docs/superpowers/specs/2026-10-01-electron-desktop-design.md`](../docs
 
 ## Prerequisites
 
-- Node 24 and yarn 1. `yarn --cwd desktop install` once.
+- Node 24 and Yarn 4 (`corepack enable` picks the release `package.json` pins).
+  `yarn --cwd desktop install` once.
 - Nothing else. The CI runners build every installer type, `.deb` included,
   with what they ship.
 

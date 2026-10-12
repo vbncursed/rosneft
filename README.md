@@ -9,7 +9,7 @@ the browser fetches compact binary artifacts instead of 100+ MB ASCII files.
 
 ```
 andrey/
-├── backend/            # Go 1.27.1 microservices (gateway, catalog, content, auth,
+├── backend/            # Go 1.27.2 microservices (gateway, catalog, content, auth,
 │                       #   twofa, passkey, mesh, upload, asset)
 ├── frontend/           # Vite + React 19 SPA, Feature-Sliced (TanStack Router + react-three-fiber)
 ├── desktop/            # Electron desktop shell around the production SPA
@@ -41,7 +41,7 @@ See [`frontend/README.md`](frontend/README.md) and
 
 ### Backend (`backend/`)
 
-Go **1.27.1** multi-module workspace (`go.work`, 12 modules). Services:
+Go **1.27.2** multi-module workspace (`go.work`, 12 modules). Services:
 
 | Service           | Purpose                                                       | Network            |
 | ----------------- | ------------------------------------------------------------- | ------------------ |
@@ -93,8 +93,8 @@ Implemented across both sides; some are opt-in until both halves are wired:
 
 | Half | Runtime | Pinned where |
 | --- | --- | --- |
-| Backend | **Go 1.27.1** | `backend/go.work` + all 11 `go.mod` files; `golang:1.27.1-alpine` in every service Dockerfile |
-| Frontend | **Node + Yarn**, Vite 8, React 19, TypeScript strict | `frontend/package.json` |
+| Backend | **Go 1.27.2** | `backend/go.work` + all 12 `go.mod` files; `golang:1.27.2-alpine` in every service Dockerfile |
+| Frontend | **Node 24 + Yarn 4** (`packageManager`, via corepack), Vite 8, React 19, TypeScript strict | `frontend/package.json` |
 | Datastores | PostgreSQL 17, Redis 8 | `docker-compose.yml` |
 
 The backend's full pinned-dependency matrix, per-module breakdown, and the
@@ -137,6 +137,6 @@ Browse `http://localhost:8080/docs` for the Scalar API explorer.
 - **Tests**: `testify/suite` + `gotest.tools/v3/assert` on the backend;
   Vitest (`*.spec.ts(x)`, one beside every module) and a React Cosmos fixture
   per rendering slice on the frontend.
-- **Cross-service contracts**: protobuf for internal gRPC, OpenAPI 3.1 for
+- **Cross-service contracts**: protobuf for internal gRPC, OpenAPI 3.2 for
   the gateway; both schemas generate code on each side (`oapi-codegen` for
-  Go, `openapi-typescript` for the frontend).
+  Go, `@hey-api/openapi-ts` for the frontend).
