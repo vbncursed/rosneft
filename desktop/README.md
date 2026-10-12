@@ -13,7 +13,7 @@ Design: [`docs/superpowers/specs/2026-10-01-electron-desktop-design.md`](../docs
 ## Prerequisites
 
 - Node 24 and Yarn 4 (`corepack enable` picks the release `package.json` pins).
-  `yarn --cwd desktop install` once.
+  `yarn install` in `desktop/` once.
 - Nothing else. The CI runners build every installer type, `.deb` included,
   with what they ship.
 
@@ -26,7 +26,7 @@ DESKTOP_UPSTREAM=http://localhost:3000 make dev # against a local frontend
 make build                                      # installers for the current OS, into release/
 ```
 
-For a local backend, run the frontend's dev server (`yarn --cwd frontend dev`,
+For a local backend, run the frontend's dev server (`yarn dev` in `frontend/`,
 port 3000, which proxies `/api`) and point the shell at it with
 `DESKTOP_UPSTREAM=http://localhost:3000`.
 
