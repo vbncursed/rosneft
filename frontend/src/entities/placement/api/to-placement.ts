@@ -1,7 +1,7 @@
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import type { Placement } from "../model/placement";
 
-type PlacementDto = components["schemas"]["Placement"];
+type PlacementDto = Dto.Placement;
 
 /**
  * The one DTO→domain mapper for a placement. Both the scene bundle and the

@@ -1,9 +1,9 @@
 import { httpDelete, httpPost, httpPut } from "@/shared/api";
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import type { PlacementCreate, PlacementUpdate, Placement } from "../model/placement";
 import { toPlacement } from "./to-placement";
 
-type PlacementDto = components["schemas"]["Placement"];
+type PlacementDto = Dto.Placement;
 
 const base = (slug: string) => `/api/territories/${encodeURIComponent(slug)}/placements`;
 
@@ -45,7 +45,7 @@ export async function setPlacementVisibility(
   return toPlacement(await httpPut<PlacementDto>(`${base(territorySlug)}/${id}/visibility`, { panoramaIds }));
 }
 
-type UpdatedDto = components["schemas"]["PlacementsUpdated"];
+type UpdatedDto = Dto.PlacementsUpdated;
 
 /** One transaction over every id (1–1000); the answer is how many rows changed. */
 export async function setPlacementsHidden(territorySlug: string, ids: number[], hidden: boolean): Promise<number> {

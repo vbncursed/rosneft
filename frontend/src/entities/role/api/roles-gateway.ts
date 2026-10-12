@@ -1,9 +1,9 @@
 import { httpDelete, httpGet, httpPatch, httpPost } from "@/shared/api";
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import type { Role } from "../model/role";
 import { toRole } from "./to-role";
 
-type AuthRoleDto = components["schemas"]["AuthRole"];
+type AuthRoleDto = Dto.AuthRole;
 
 const at = (slug: string) => `/api/auth/roles/${encodeURIComponent(slug)}`;
 

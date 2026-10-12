@@ -10,6 +10,6 @@ staged=$(git diff --cached --name-only --diff-filter=ACMRD)
 
 touches() { printf '%s\n' "$staged" | grep -qE "$1"; }
 
-if touches '^frontend/'; then yarn --cwd "$root/frontend" lint; fi
+if touches '^frontend/'; then (cd "$root/frontend" && yarn lint); fi
 if touches '^desktop/'; then make -C "$root/desktop" typecheck lint fmt-check; fi
 if touches '^backend/.*\.(go|mod|sum)$'; then make -C "$root/backend" check; fi

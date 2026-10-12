@@ -2,8 +2,10 @@
 # docroot. Build context is frontend/. Node matches .github/workflows/frontend.yml.
 FROM node:24-alpine AS build
 WORKDIR /app
-COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile --network-timeout 600000
+RUN corepack enable
+ENV YARN_HTTP_TIMEOUT=600000
+COPY package.json yarn.lock .yarnrc.yml ./
+RUN yarn install --immutable
 COPY . .
 # .env.production (tracked, VITE_API_URL empty) rides along in the context.
 RUN yarn build

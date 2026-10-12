@@ -1,5 +1,5 @@
 import { httpGet } from "@/shared/api";
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import { toPlacement, toPlacementGroup, type Placement, type PlacementGroup, type Vec3 } from "@/entities/placement";
 import { toTerritory, type Territory } from "@/entities/territory";
 import { toPanorama, toPhaseHidden, type Panorama, type PhaseHidden } from "@/entities/panorama";
@@ -7,9 +7,9 @@ import { toDocument, type Document } from "@/entities/document";
 import { toStoredChain, type StoredChain } from "@/entities/measurement";
 import type { LodArtifact } from "../model/lod";
 
-type BundleDto = components["schemas"]["SceneBundle"];
-type ArtifactDto = components["schemas"]["Artifact"];
-type OptionDto = components["schemas"]["AssetOption"];
+type BundleDto = Dto.SceneBundle;
+type ArtifactDto = Dto.Artifact;
+type OptionDto = Dto.AssetOption;
 
 export type SceneArtifact = {
   lod: number;

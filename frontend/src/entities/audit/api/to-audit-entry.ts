@@ -1,7 +1,7 @@
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import type { AuditEntry } from "../model/audit-entry";
 
-type AuditEntryDto = components["schemas"]["AuditEntry"];
+type AuditEntryDto = Dto.AuditEntry;
 
 /** A snapshot is JSON text or empty; anything unparseable reads as none. */
 function parseRow(raw: string | undefined): Record<string, unknown> | null {

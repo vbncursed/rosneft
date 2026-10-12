@@ -1,12 +1,12 @@
 import { httpDelete, httpGet, httpPatch, httpPost } from "@/shared/api";
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import type { Territory } from "../model/territory";
 import { toTerritory } from "./to-territory";
 
-type TerritoryDto = components["schemas"]["Territory"];
-type TerritoryCreatedDto = components["schemas"]["TerritoryCreated"];
-type TerritorySourceReplace = components["schemas"]["TerritorySourceReplace"];
-type TerritoryUpdate = components["schemas"]["TerritoryUpdate"];
+type TerritoryDto = Dto.Territory;
+type TerritoryCreatedDto = Dto.TerritoryCreated;
+type TerritorySourceReplace = Dto.TerritorySourceReplace;
+type TerritoryUpdate = Dto.TerritoryUpdate;
 
 export const listTerritories = async (): Promise<Territory[]> =>
   (await httpGet<TerritoryDto[]>("/api/territories")).map(toTerritory);
@@ -34,7 +34,7 @@ export const updateTerritory = async (slug: string, body: TerritoryUpdate): Prom
 // The gateway's body for both POST /api/territories and POST /api/models;
 // `thumbnailBlobHash` is ignored for territories, but typing against the real
 // DTO (rather than a hand-duplicated shape) is what keeps this from drifting.
-export type CreateTerritoryInput = components["schemas"]["EntityCreate"];
+export type CreateTerritoryInput = Dto.EntityCreate;
 
 /** Registers a territory from a finalized upload and queues its conversion. */
 export async function createTerritory(

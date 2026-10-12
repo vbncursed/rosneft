@@ -1,8 +1,8 @@
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import { isLive, type TargetJob } from "../model/target-job";
 import { toTargetJob } from "./to-target-job";
 
-type JobDto = components["schemas"]["Job"];
+type JobDto = Dto.Job;
 
 /** Why a stream stopped: the job reached a terminal state, or the channel went away. */
 export type StreamEnd = "finished" | "lost";
