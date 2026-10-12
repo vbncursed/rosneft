@@ -166,9 +166,15 @@ type AssetOption struct {
 	// Empty when the model has no successful conversion yet — the
 	// frontend can grey it out in the picker.
 	Artifacts []LodArtifact `json:"artifacts"`
-	BboxMax   *Vec3         `json:"bboxMax,omitempty"`
-	BboxMin   *Vec3         `json:"bboxMin,omitempty"`
-	Slug      string        `json:"slug"`
+
+	// BboxMax Original (pre-normalize) bounding-box maximum.
+	BboxMax *Vec3 `json:"bboxMax,omitempty"`
+
+	// BboxMin Original (pre-normalize) bounding-box minimum of the source
+	// mesh. Carried so the frontend can compute a real-size scale
+	// when dropping a model onto a territory.
+	BboxMin *Vec3  `json:"bboxMin,omitempty"`
+	Slug    string `json:"slug"`
 
 	// ThumbnailBlobHash Optional thumbnail image blob hash for the picker. Empty/absent =
 	// no thumbnail. Fetch from /api/assets/{thumbnailBlobHash}.
