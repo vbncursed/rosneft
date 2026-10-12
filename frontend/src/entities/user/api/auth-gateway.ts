@@ -1,9 +1,9 @@
 import { httpGet, httpPost, setCsrfToken, clearCsrfToken } from "@/shared/api";
 import { markAuthed, clearAuthed, type Principal } from "@/shared/session";
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import { toPrincipal } from "./to-principal";
 
-type AuthUserDto = components["schemas"]["AuthUser"];
+type AuthUserDto = Dto.AuthUser;
 
 interface LoginResponse {
   token: string;

@@ -1,9 +1,9 @@
 import { httpDelete, httpGet, httpPost } from "@/shared/api";
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import type { Document, DocumentCreate } from "../model/document";
 import { toDocument } from "./to-document";
 
-type DocumentDto = components["schemas"]["Document"];
+type DocumentDto = Dto.Document;
 const base = (slug: string) => `/api/territories/${encodeURIComponent(slug)}/documents`;
 
 export const listDocuments = async (slug: string): Promise<Document[]> =>

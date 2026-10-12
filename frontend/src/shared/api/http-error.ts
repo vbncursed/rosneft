@@ -1,6 +1,6 @@
-import type { components } from "./dto";
+import type * as Dto from "./dto";
 
-export type ApiError = components["schemas"]["Error"];
+export type ApiError = Dto.Error;
 
 /** A non-2xx response, with the gateway's own body attached where it sent one. */
 export class HttpError extends Error {

@@ -1,8 +1,8 @@
 import { httpGet } from "@/shared/api";
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import type { Permission } from "../model/permission";
 
-type AuthPermissionDto = components["schemas"]["AuthPermission"];
+type AuthPermissionDto = Dto.AuthPermission;
 
 // An empty description is "none", which the model spells as absent.
 export const listPermissions = async (): Promise<Permission[]> =>

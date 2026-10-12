@@ -1,10 +1,10 @@
 import { ensureCsrfToken, httpDelete, httpPost } from "@/shared/api";
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
-type UploadSessionDto = components["schemas"]["UploadSession"];
-type UploadFinalizedDto = components["schemas"]["UploadFinalized"];
+type UploadSessionDto = Dto.UploadSession;
+type UploadFinalizedDto = Dto.UploadFinalized;
 
 export type UploadSession = { id: string; size: number; offset: number; contentType?: string };
 export type FinalizedBlob = { hash: string; size: number };

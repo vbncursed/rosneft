@@ -1,7 +1,7 @@
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import type { StoredChain } from "../model/measurement-reducer";
 
-type MeasurementDto = components["schemas"]["Measurement"];
+type MeasurementDto = Dto.Measurement;
 
 /** The one DTO→domain mapper for a saved chain: the scene bundle and the gateway answer the same shape. */
 export const toStoredChain = (d: MeasurementDto): StoredChain => ({

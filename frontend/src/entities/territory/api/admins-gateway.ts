@@ -1,7 +1,7 @@
 import { httpGet, httpPut } from "@/shared/api";
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 
-type AdminsMap = components["schemas"]["TerritoryAdminsMap"];
+type AdminsMap = Dto.TerritoryAdminsMap;
 
 const route = (slug: string) => `/api/territories/${encodeURIComponent(slug)}/admins`;
 

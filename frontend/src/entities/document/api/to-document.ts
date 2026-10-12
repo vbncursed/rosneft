@@ -1,7 +1,7 @@
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import type { Document } from "../model/document";
 
-type DocumentDto = components["schemas"]["Document"];
+type DocumentDto = Dto.Document;
 
 export const toDocument = (d: DocumentDto): Document => ({
   id: d.id,

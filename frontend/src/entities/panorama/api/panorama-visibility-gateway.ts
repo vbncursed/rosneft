@@ -1,9 +1,9 @@
 import { httpPut } from "@/shared/api";
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import { ALL_PHASES_SHOWN, type PanoramaPhase, type PhaseHidden } from "../model/panorama";
 
-type PhaseDto = components["schemas"]["PanoramaPhase"];
-type UpdatedDto = components["schemas"]["PanoramasUpdated"];
+type PhaseDto = Dto.PanoramaPhase;
+type UpdatedDto = Dto.PanoramasUpdated;
 
 const base = (slug: string) => `/api/territories/${encodeURIComponent(slug)}`;
 
