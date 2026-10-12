@@ -7,9 +7,9 @@ of 100+ MB ASCII files.
 
 ## Stack
 
-- **Go 1.27.1** — modern stdlib (`slices`, `maps`, `cmp`, `slog`, `errors.AsType`, `wg.Go`, `strings.SplitSeq`)
+- **Go 1.27.2** — modern stdlib (`slices`, `maps`, `cmp`, `slog`, `errors.AsType`, `wg.Go`, `strings.SplitSeq`)
 - **gRPC** — internal service-to-service
-- **REST + OpenAPI 3.0** — gateway → frontend (schema-first, `oapi-codegen` generates Go server stubs; frontend generates TS client from the same spec)
+- **REST + OpenAPI 3.2** — gateway → frontend (schema-first, `oapi-codegen` generates Go server stubs; frontend generates TS client from the same spec)
 - **PostgreSQL 17** — catalog + auth persistence (shared instance, separate tables / goose version table)
 - **Redis 8** — async conversion job queue (Streams) + auth sessions (opaque tokens, DB 1)
 - **Auth** — argon2id passwords, TOTP 2FA, WebAuthn passkeys, multi-role RBAC, opaque Redis sessions (`auth-service` + `twofa-service` + `passkey-service`)
@@ -17,8 +17,8 @@ of 100+ MB ASCII files.
 - **Cobra + Viper** — CLI / config (flag > env > file > default)
 - **gltfpack** (built from `zeux/meshoptimizer` in the worker image) — meshopt / KTX2 / LOD encoder
 
-Every module pins `go 1.27.1` and every service image builds from
-`golang:1.27.1-alpine`. See [Toolchain & dependencies](#toolchain--dependencies)
+Every module pins `go 1.27.2` and every service image builds from
+`golang:1.27.2-alpine`. See [Toolchain & dependencies](#toolchain--dependencies)
 for the full pinned-version matrix.
 
 ## Services
@@ -98,18 +98,18 @@ backend/
 
 | Where | Value |
 | --- | --- |
-| `go.work` + all 11 `go.mod` files | `go 1.27.1` |
-| every service `Dockerfile` build stage | `golang:1.27.1-alpine` |
+| `go.work` + all 12 `go.mod` files | `go 1.27.2` |
+| every service `Dockerfile` build stage | `golang:1.27.2-alpine` |
 | runtime images | `gcr.io/distroless/static` (all services except mesh-worker) |
 | `mesh-worker` runtime image | `gcr.io/distroless/cc-debian12:nonroot` (glibc + libstdc++ for `gltfpack`) |
 
 No `toolchain` directive is pinned — the `go` line is the floor, and CI/dev use
-whatever ≥1.27.1 toolchain is installed. Bump procedure:
+whatever ≥1.27.2 toolchain is installed. Bump procedure:
 
 ```bash
 # 1. bump the language version everywhere
-sed -i '' 's/^go 1\.27\.1$/go 1.27.X/' go.work pkg/go.mod proto/go.mod services/*/go.mod
-sed -i '' 's/golang:1\.27\.1-alpine/golang:1.27.X-alpine/' services/*/Dockerfile*
+sed -i '' 's/^go 1\.27\.2$/go 1.27.X/' go.work pkg/go.mod proto/go.mod services/*/go.mod
+sed -i '' 's/golang:1\.27\.2-alpine/golang:1.27.X-alpine/' services/*/Dockerfile*
 # 2. refresh dependencies per module
 for m in pkg proto services/*; do (cd $m && GOWORK=off go get -u ./... && GOWORK=off go mod tidy); done
 # 3. deps used only by `//go:build integration` files (testcontainers) are NOT
@@ -137,14 +137,14 @@ for m in pkg proto services/*; do (cd $m && GOWORK=off go list -m -u \
 
 | Module | Version | Used by | Role |
 | --- | --- | --- | --- |
-| `google.golang.org/grpc` | v1.83.2 — **held**, see below | all | Service-to-service transport |
+| `google.golang.org/grpc` | v1.84.0 | all | Service-to-service transport |
 | `google.golang.org/protobuf` | v1.36.12 | proto, auth, catalog, content, mesh | Generated message runtime |
 | `github.com/spf13/cobra` | v1.10.2 | all services | CLI root command |
 | `github.com/spf13/viper` | v1.21.0 | all services | Layered config (flag > env > default) |
 | `github.com/jackc/pgx/v5` | v5.11.0 | auth, catalog, content, passkey, twofa | Postgres driver + pool |
-| `github.com/pressly/goose/v3` | v3.28.0 | auth, catalog, content, passkey, twofa | Embedded SQL migrations |
-| `github.com/redis/go-redis/v9` | v9.22.0 | auth, mesh, passkey, twofa | Streams (mesh) / sessions / ceremony + rate-limit state |
-| `github.com/prometheus/client_golang` | v1.24.1 | pkg, auth, mesh, twofa, upload | `/metrics` exposition |
+| `github.com/pressly/goose/v3` | v3.29.0 | auth, catalog, content, passkey, twofa | Embedded SQL migrations |
+| `github.com/redis/go-redis/v9` | v9.23.0 | auth, mesh, passkey, twofa | Streams (mesh) / sessions / ceremony + rate-limit state |
+| `github.com/prometheus/client_golang` | v1.25.0 | pkg, auth, mesh, twofa, upload | `/metrics` exposition |
 | `github.com/gojuno/minimock/v3` | v3.4.7 | all services (test) | Generated interface mocks |
 | `github.com/stretchr/testify` | v1.12.1 | all (test) | `suite` grouping only |
 | `gotest.tools/v3` | v3.5.2 | all (test) | `assert` — the actual assertions |
@@ -155,17 +155,35 @@ for m in pkg proto services/*; do (cd $m && GOWORK=off go list -m -u \
 | --- | --- |
 | `pkg` | — (grpc + prometheus + test libs only) |
 | `proto` | — (grpc + protobuf only) |
-| `gateway-service` | `andybalholm/brotli` v1.2.5 · `getkin/kin-openapi` v0.149.0 · `go-chi/chi/v5` v5.3.2 · `go-chi/cors` v1.2.2 · `oapi-codegen/runtime` v1.7.0 · `samber/slog-chi` v1.19.1 · `golang.org/x/sync` v0.23.0 |
+| `gateway-service` | `andybalholm/brotli` v1.2.5 · `getkin/kin-openapi` v0.149.0 · `go-chi/chi/v5` v5.3.2 · `go-chi/cors` v1.2.2 · `oapi-codegen/runtime` v1.7.0 · `samber/slog-chi` v1.19.1 · `golang.org/x/sync` v0.24.0 |
 | `catalog-service` | — |
 | `content-service` | — |
-| `auth-service` | `golang.org/x/crypto` v0.57.0 (argon2id) |
+| `auth-service` | `golang.org/x/crypto` v0.58.0 (argon2id) |
 | `twofa-service` | `pquerna/otp` v1.5.0 (TOTP) |
 | `passkey-service` | `go-webauthn/webauthn` v0.18.2 |
 | `mesh-service` | `qmuntal/gltf` v0.29.0 (GLB writer) |
 | `upload-service` | — |
 | `asset-service` | — (does not import `proto`; HTTP-only) |
 
-### 2026-09-29 refresh (still Go 1.27.1 — the latest release)
+### 2026-10-12 refresh (Go 1.27.2)
+
+| Dependency / tool | From → To | Note |
+| --- | --- | --- |
+| Go | 1.27.1 → **1.27.2** | `go.work`, all 12 `go.mod`, every build stage `golang:1.27.2-alpine` |
+| `google.golang.org/grpc` | 1.83.2 → **1.84.0** | No longer held: the GO-2026-6443 record (modified 2026-10-06) marks only `1.84.0-dev` pseudo-versions before the fix as affected, and the tagged v1.84.0 sorts after it. govulncheck is clean on all 12 modules. The Dependabot ignore for 1.84.x is gone |
+| `pressly/goose/v3` | 3.28.0 → **3.29.0** | Requires grpc 1.84.0 in its module graph, so it could not move while grpc was held |
+| `prometheus/client_golang` | 1.24.1 → **1.25.0** | |
+| `redis/go-redis/v9` | 9.22.0 → **9.23.0** | |
+| `golang.org/x/crypto` / `x/sync` / `x/image` | 0.57.0 → **0.58.0** / 0.23.0 → **0.24.0** / 0.46.0 → **0.47.0** | |
+| OpenAPI spec | 3.0.3 → **3.2.0** | `api/openapi.yaml`. 3.1+ has no `nullable`: the seven uses became `type: [T, "null"]`. Changing the version line alone makes oapi-codegen drop the pointer silently (`groupId` turned from `*int64` into `int64`); with the type lists the regenerated stubs differ only in comments. `spec_test.go` pins the version and the null type on `/openapi.json` |
+
+golangci-lint 2.14.0, buf 1.73.0, oapi-codegen 2.8.0, minimock 3.4.7 and the
+protoc plugins were already the latest releases; govulncheck is unpinned.
+Dependencies were upgraded by name per module, as in the 2026-09-29 section
+below, this time with every `Require` entry of `go.mod` at `@latest`, indirect
+ones included.
+
+### 2026-09-29 refresh (Go 1.27.1)
 
 | Dependency / tool | From → To | Note |
 | --- | --- | --- |

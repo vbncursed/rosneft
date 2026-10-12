@@ -1,9 +1,9 @@
 import { httpDelete, httpGet, httpPatch, httpPost, httpPut } from "@/shared/api";
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import type { User } from "../model/user";
 import { toUser } from "./to-user";
 
-type AuthUserDto = components["schemas"]["AuthUser"];
+type AuthUserDto = Dto.AuthUser;
 
 const at = (id: string) => `/api/auth/users/${encodeURIComponent(id)}`;
 

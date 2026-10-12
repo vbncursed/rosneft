@@ -1,11 +1,11 @@
 import { httpGet, httpGetBlob } from "@/shared/api";
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import type { AuditEntry } from "../model/audit-entry";
 import type { Refs } from "../model/refs";
 import { toAuditEntry } from "./to-audit-entry";
 
-type AuditPageDto = components["schemas"]["AuditPage"];
-type AuditActorDto = components["schemas"]["AuditActor"];
+type AuditPageDto = Dto.AuditPage;
+type AuditActorDto = Dto.AuditActor;
 
 /** What the gateway filters on. `actor` is a user id, never a login. */
 export type AuditFilters = {

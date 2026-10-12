@@ -1,8 +1,8 @@
 import { queryOptions } from "@tanstack/react-query";
 import { httpGet } from "@/shared/api";
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 
-export type ConsoleSummary = components["schemas"]["ConsoleSummary"];
+export type ConsoleSummary = Dto.ConsoleSummary;
 
 /**
  * Home's console counts in one call: the gateway answers only the cards the

@@ -1,7 +1,7 @@
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import type { TargetJob } from "../model/target-job";
 
-type JobDto = components["schemas"]["Job"];
+type JobDto = Dto.Job;
 
 export const toTargetJob = (d: JobDto): TargetJob => ({
   kind: d.kind,

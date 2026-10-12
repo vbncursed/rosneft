@@ -1,7 +1,7 @@
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import type { Principal } from "@/shared/session";
 
-type AuthUserDto = components["schemas"]["AuthUser"];
+type AuthUserDto = Dto.AuthUser;
 
 // One of two mappers over AuthUser — the other is to-user.ts, for the admin
 // list item. `?? null` for the two tri-state fields — an absent key means the

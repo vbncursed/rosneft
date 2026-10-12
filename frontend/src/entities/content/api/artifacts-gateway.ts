@@ -1,9 +1,9 @@
 import { httpGet } from "@/shared/api";
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import type { Artifact, Vec3 } from "../model/artifact";
 import type { ContentKind } from "../model/content-item";
 
-type ArtifactDto = components["schemas"]["Artifact"];
+type ArtifactDto = Dto.Artifact;
 
 const route = (kind: ContentKind, slug: string) =>
   `/api/${kind === "territory" ? "territories" : "models"}/${encodeURIComponent(slug)}/artifacts`;

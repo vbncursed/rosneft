@@ -1,7 +1,7 @@
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import type { Role } from "../model/role";
 
-type AuthRoleDto = components["schemas"]["AuthRole"];
+type AuthRoleDto = Dto.AuthRole;
 
 // `users` is null here on purpose: the contract has no role→people count, so
 // the Roles screen derives it from the people list when it may read one. A

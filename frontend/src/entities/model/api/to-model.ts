@@ -1,7 +1,7 @@
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import type { Model } from "../model/model";
 
-type ModelDto = components["schemas"]["Model"];
+type ModelDto = Dto.Model;
 
 export function toModel(d: ModelDto): Model {
   return {

@@ -21,13 +21,18 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: yarn
-          cache-dependency-path: desktop/yarn.lock
-      - run: yarn --cwd desktop install --frozen-lockfile
+      # package.json's packageManager field picks the Yarn release. After
+      # setup-node, so the shim lands beside the Node this job runs. Every yarn
+      # step runs inside desktop/: corepack reads the field from the working
+      # directory, and `yarn --cwd desktop` from the root gets Yarn classic.
+      - run: corepack enable
+      - run: yarn install --immutable
+        working-directory: desktop
       - run: make -C desktop check
       # Electron ships inside every installer, so its advisories matter even
       # though it is a devDependency: audit every group, fail on high.
-      - run: yarn --cwd desktop audit --level high
+      - run: yarn npm audit --recursive --severity high
+        working-directory: desktop
 
   build:
     needs: check
@@ -54,9 +59,13 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: yarn
-          cache-dependency-path: desktop/yarn.lock
-      - run: yarn --cwd desktop install --frozen-lockfile
+      # package.json's packageManager field picks the Yarn release. After
+      # setup-node, so the shim lands beside the Node this job runs. Every yarn
+      # step runs inside desktop/: corepack reads the field from the working
+      # directory, and `yarn --cwd desktop` from the root gets Yarn classic.
+      - run: corepack enable
+      - run: yarn install --immutable
+        working-directory: desktop
 
       # The tag has to agree with package.json's version, or a release called
       # v0.4.0 ships files called 0.3.0. Checked before the build, so a wrong tag
@@ -80,7 +89,8 @@ jobs:
       # leaves the ad-hoc signature. Not CSC_LINK: Windows would read that too.
       # CSC_FOR_PULL_REQUEST: the builder skips signing on pull_request runs, and
       # a PR's arm64 artifact would then not launch.
-      - run: yarn --cwd desktop dist
+      - run: yarn dist
+        working-directory: desktop
         env:
           CSC_FOR_PULL_REQUEST: "true"
           ANDREY_SIGN_P12: ${{ matrix.os == 'macos-latest' && secrets.MAC_CSC_LINK || '' }}

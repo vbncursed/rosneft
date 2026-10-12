@@ -1,10 +1,10 @@
 import { httpDelete, httpGet, httpPost, httpPut } from "@/shared/api";
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import type { StoredChain } from "../model/measurement-reducer";
 import { toStoredChain } from "./to-measurement";
 
-type MeasurementDto = components["schemas"]["Measurement"];
-export type MeasurementWrite = components["schemas"]["MeasurementWrite"];
+type MeasurementDto = Dto.Measurement;
+export type MeasurementWrite = Dto.MeasurementWrite;
 
 const base = (slug: string) => `/api/territories/${encodeURIComponent(slug)}/measurements`;
 

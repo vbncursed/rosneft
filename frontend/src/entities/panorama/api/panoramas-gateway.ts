@@ -1,9 +1,9 @@
 import { httpDelete, httpGet, httpPost, httpPut } from "@/shared/api";
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import type { Panorama, PanoramaCreate, PanoramaUpdate } from "../model/panorama";
 import { toPanorama } from "./to-panorama";
 
-type PanoramaDto = components["schemas"]["Panorama"];
+type PanoramaDto = Dto.Panorama;
 const base = (slug: string) => `/api/territories/${encodeURIComponent(slug)}/panoramas`;
 
 export const listPanoramas = async (slug: string): Promise<Panorama[]> =>

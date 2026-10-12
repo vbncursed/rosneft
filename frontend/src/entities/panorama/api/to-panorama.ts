@@ -1,7 +1,7 @@
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import type { Panorama } from "../model/panorama";
 
-type PanoramaDto = components["schemas"]["Panorama"];
+type PanoramaDto = Dto.Panorama;
 // A panorama from a bundle saved before phases existed (the desktop shell's
 // offline snapshot) has neither field.
 type StoredPanoramaDto = Omit<PanoramaDto, "phase" | "hidden"> & Partial<Pick<PanoramaDto, "phase" | "hidden">>;

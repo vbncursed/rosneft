@@ -1,7 +1,7 @@
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import type { Territory } from "../model/territory";
 
-type TerritoryDto = components["schemas"]["Territory"];
+type TerritoryDto = Dto.Territory;
 
 /** Empty strings from the gateway mean "none"; the model says so with absence. */
 export function toTerritory(d: TerritoryDto): Territory {

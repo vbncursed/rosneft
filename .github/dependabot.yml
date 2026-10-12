@@ -33,6 +33,12 @@ updates:
       # by hand together with node-version in the workflows.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # Pinned to a `0.0.0-next` snapshot: 0.99.0, the latest release, imports
+      # the TypeScript JS API that typescript 7 no longer ships and crashes on
+      # start. Semver sorts the snapshot below every release, so a "bump" here
+      # would be a downgrade in support. Move it by hand, and run
+      # `yarn openapi:generate` when you do — CI never runs the generator.
+      - dependency-name: "@hey-api/openapi-ts"
 
   - package-ecosystem: npm
     directory: /desktop
@@ -61,10 +67,3 @@ updates:
     groups:
       gomod-minor-patch:
         update-types: [minor, patch]
-    ignore:
-      # grpc 1.84.x re-introduces GO-2026-6443 (server panic on a missing
-      # :authority/Host), fixed in 1.83.2 and again only from 1.85.0. Drop this
-      # once 1.85.0 is out — govulncheck in `make -C backend check` would fail
-      # on 1.84 anyway.
-      - dependency-name: "google.golang.org/grpc"
-        versions: ["1.84.x"]

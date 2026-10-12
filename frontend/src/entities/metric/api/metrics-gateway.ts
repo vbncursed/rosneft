@@ -1,11 +1,11 @@
 import { httpGet } from "@/shared/api";
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import type { PanelId } from "../model/panel-catalog";
 import type { MetricsRange } from "../model/range";
 import type { MetricSeries } from "../model/series";
 
-type SeriesDto = components["schemas"]["MetricSeries"];
-type PanelsDto = components["schemas"]["MetricsPanels"];
+type SeriesDto = Dto.MetricSeries;
+type PanelsDto = Dto.MetricsPanels;
 
 /** Each answered panel's series; a panel Prometheus could not answer is absent. */
 export type PanelSeries = Partial<Record<PanelId, MetricSeries[]>>;

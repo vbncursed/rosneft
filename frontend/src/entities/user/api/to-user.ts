@@ -1,7 +1,7 @@
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import type { User } from "../model/user";
 
-type AuthUserDto = components["schemas"]["AuthUser"];
+type AuthUserDto = Dto.AuthUser;
 
 // The admin list item is the same wire shape as the principal, minus what
 // only the signed-in caller needs (permissions, tours, csrf). `?? null` for

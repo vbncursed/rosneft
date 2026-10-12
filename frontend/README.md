@@ -19,7 +19,7 @@ yarn test:watch   # the same, watching
 yarn test:coverage
 yarn cosmos       # React Cosmos on :5100 — every *.fixture.tsx
 yarn cosmos:export
-yarn openapi:generate   # regenerate src/shared/api/dto.ts from the gateway's openapi.yaml
+yarn openapi:generate   # regenerate src/shared/api/dto/ from the gateway's openapi.yaml (@hey-api/openapi-ts)
 ```
 
 Port 3000 is not a preference: it is the origin the gateway's
@@ -33,7 +33,9 @@ target (default `http://localhost:8080`).
 request to `undefined/api/...` and warns about nothing; production is
 single-origin behind nginx, the desktop shell behind its loopback proxy.
 
-**Use yarn, never npm** — including version lookups (`yarn info <pkg> version`).
+**Use yarn, never npm** — including version lookups (`yarn npm info <pkg> --fields version`).
+Yarn 4, the release pinned by `packageManager` in `package.json`; `corepack enable`
+once and `yarn` resolves to it. `.yarnrc.yml` keeps the `node_modules` linker.
 
 ## What is here
 

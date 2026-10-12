@@ -231,7 +231,7 @@ external Postgres or Redis is required for the unit suite.
 
 ## Toolchain & dependencies
 
-Go **1.27.1** — `go 1.27.1` in `go.mod`, build stage `golang:1.27.1-alpine`.
+Go **1.27.2** — `go 1.27.2` in `go.mod`, build stage `golang:1.27.2-alpine`.
 Versions are pinned identically across every module in the workspace; see
 [`backend/README.md#toolchain--dependencies`](../../README.md#toolchain--dependencies)
 for the repo-wide matrix and the upgrade procedure.

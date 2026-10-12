@@ -1,8 +1,8 @@
 import { httpDelete, httpPatch, httpPost, httpPut } from "@/shared/api";
-import type { components } from "@/shared/api/dto";
+import type * as Dto from "@/shared/api/dto";
 import type { PlacementGroup } from "../model/placement";
 
-type PlacementGroupDto = components["schemas"]["PlacementGroup"];
+type PlacementGroupDto = Dto.PlacementGroup;
 
 const base = (slug: string) => `/api/territories/${encodeURIComponent(slug)}/placement-groups`;
 
