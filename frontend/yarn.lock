@@ -236,75 +236,73 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hey-api/codegen-cli@npm:0.0.0-next-20260930190945":
-  version: 0.0.0-next-20260930190945
-  resolution: "@hey-api/codegen-cli@npm:0.0.0-next-20260930190945"
-  dependencies:
-    citty: "npm:0.2.2"
-  checksum: 10c0/7b422a915d5afb8a98846b64d82b45b23187651f3c4b6d3465ae7ab4b2bc436827adf590ea1e55b9cf95d21ac8810dba58737cf922281308727644516d18b90a
-  languageName: node
-  linkType: hard
-
-"@hey-api/codegen-core@npm:0.0.0-next-20260930190945":
-  version: 0.0.0-next-20260930190945
-  resolution: "@hey-api/codegen-core@npm:0.0.0-next-20260930190945"
+"@hey-api/codegen-core@npm:0.9.1":
+  version: 0.9.1
+  resolution: "@hey-api/codegen-core@npm:0.9.1"
   dependencies:
     "@hey-api/types": "npm:0.1.4"
+    ansi-colors: "npm:4.1.3"
     c12: "npm:3.3.4"
-  checksum: 10c0/98476bc65ec5fc48ff34ba5592536a398a8db06e1ad11e7ae268e4b8c22612d58e6b3f5561676edee9090c16e83db8190b5482b31276ae707b3230227cff3853
+    color-support: "npm:1.1.3"
+  checksum: 10c0/ce2baa62e06ad80351855abeebde2094bbcd63fd15e361b8935dad14aa5195d9f6b59351aa61ea5abf6ef093b998e63b42b795796cf0025252d69d0797642a69
   languageName: node
   linkType: hard
 
-"@hey-api/json-schema-ref-parser@npm:0.0.0-next-20260930190945":
-  version: 0.0.0-next-20260930190945
-  resolution: "@hey-api/json-schema-ref-parser@npm:0.0.0-next-20260930190945"
+"@hey-api/json-schema-ref-parser@npm:1.4.4":
+  version: 1.4.4
+  resolution: "@hey-api/json-schema-ref-parser@npm:1.4.4"
   dependencies:
     "@jsdevtools/ono": "npm:7.1.3"
     "@types/json-schema": "npm:7.0.15"
-    js-yaml: "npm:5.3.0"
-  checksum: 10c0/73404cfe66453bb8b69afa185d249bdfd7acac754e8bb81e09be5ca0a43f059bd06d263ecbe089f51a733448edca21b8cb7899bc364ca798992d031f519153bf
+    js-yaml: "npm:4.2.0"
+  checksum: 10c0/8b836bc7196a75b554735141276c9bea395ab3ef017e3c80176ed09e29da666898146ab507e6110d70706e820ab6c170ef9a790ec2f3eace5efde30f992accfa
   languageName: node
   linkType: hard
 
-"@hey-api/openapi-ts@npm:0.0.0-next-20260930190945":
-  version: 0.0.0-next-20260930190945
-  resolution: "@hey-api/openapi-ts@npm:0.0.0-next-20260930190945"
+"@hey-api/openapi-ts@npm:0.99.0":
+  version: 0.99.0
+  resolution: "@hey-api/openapi-ts@npm:0.99.0"
   dependencies:
-    "@hey-api/codegen-cli": "npm:0.0.0-next-20260930190945"
-    "@hey-api/codegen-core": "npm:0.0.0-next-20260930190945"
-    "@hey-api/json-schema-ref-parser": "npm:0.0.0-next-20260930190945"
-    "@hey-api/shared": "npm:0.0.0-next-20260930190945"
-    "@hey-api/spec-types": "npm:0.0.0-next-20260930190945"
+    "@hey-api/codegen-core": "npm:0.9.1"
+    "@hey-api/json-schema-ref-parser": "npm:1.4.4"
+    "@hey-api/shared": "npm:0.5.0"
+    "@hey-api/spec-types": "npm:0.2.0"
     "@hey-api/types": "npm:0.1.4"
     "@lukeed/ms": "npm:2.0.2"
+    ansi-colors: "npm:4.1.3"
+    color-support: "npm:1.1.3"
+    commander: "npm:15.0.0"
     get-tsconfig: "npm:4.14.0"
+  peerDependencies:
+    typescript: ">=5.5.3 || >=6.0.0 || 6.0.1-rc"
   bin:
     openapi-ts: ./bin/run.js
-  checksum: 10c0/0233d52609f99d8295dfe3c615095551d4706efc0d5d6e60476aaf7ccfe3a4472b480b9698927c9e9fcdee573538b1185459f7cdc6f4a1138043d68130ca5d8b
+  checksum: 10c0/7ef3c56ea2d9973900f0edcca8b9a27927a7005424ab18d96a7be79726afeb2f1cd1abe08aae245f35257ad566a2f6fcb7bdcc1d1d43f8c9a8b72585f4a007ae
   languageName: node
   linkType: hard
 
-"@hey-api/shared@npm:0.0.0-next-20260930190945":
-  version: 0.0.0-next-20260930190945
-  resolution: "@hey-api/shared@npm:0.0.0-next-20260930190945"
+"@hey-api/shared@npm:0.5.0":
+  version: 0.5.0
+  resolution: "@hey-api/shared@npm:0.5.0"
   dependencies:
-    "@hey-api/codegen-core": "npm:0.0.0-next-20260930190945"
-    "@hey-api/json-schema-ref-parser": "npm:0.0.0-next-20260930190945"
-    "@hey-api/spec-types": "npm:0.0.0-next-20260930190945"
+    "@hey-api/codegen-core": "npm:0.9.1"
+    "@hey-api/json-schema-ref-parser": "npm:1.4.4"
+    "@hey-api/spec-types": "npm:0.2.0"
     "@hey-api/types": "npm:0.1.4"
+    ansi-colors: "npm:4.1.3"
+    cross-spawn: "npm:7.0.6"
     open: "npm:11.0.0"
-    tinyexec: "npm:1.2.4"
-    verkit: "npm:0.3.0"
-  checksum: 10c0/395e2c9c748d6aa55ed6de86e4e763ea8e6fbd6c55d4ddb633297379f57563ec27c0d8a91ab8c8c3051534bb2632cd811eb78663568f31f47dcfb299064aebb7
+    semver: "npm:7.8.4"
+  checksum: 10c0/75536a259cab898bb32a756c3406594f93a7ca375d9a3f21eca22cdf04fa855522d5739627b074f5d33e0fb9615378818b2daf08c9c62cfda77f9c7026f36e59
   languageName: node
   linkType: hard
 
-"@hey-api/spec-types@npm:0.0.0-next-20260930190945":
-  version: 0.0.0-next-20260930190945
-  resolution: "@hey-api/spec-types@npm:0.0.0-next-20260930190945"
+"@hey-api/spec-types@npm:0.2.0":
+  version: 0.2.0
+  resolution: "@hey-api/spec-types@npm:0.2.0"
   dependencies:
     "@hey-api/types": "npm:0.1.4"
-  checksum: 10c0/c7825758897117815c90d10583554286d2f74f2f90811966cbe05df58ada545d3dbe140c427f638857aea9a330b52effa3ec92fb9d6e745d5a53961cc7e46a65
+  checksum: 10c0/a3e20071a4442efad445dafaf90dce1a04265a2fcd6af0224e9c0a0e2ef1ee37d7f041e48ad6dba886b054bcaf3ea1bba758b7daeb5af32706315bc94ca035e9
   languageName: node
   linkType: hard
 
@@ -1648,6 +1646,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"ansi-colors@npm:4.1.3":
+  version: 4.1.3
+  resolution: "ansi-colors@npm:4.1.3"
+  checksum: 10c0/ec87a2f59902f74e61eada7f6e6fe20094a628dab765cfdbd03c3477599368768cffccdb5d3bb19a1b6c99126783a143b1fee31aab729b31ffe5836c7e5e28b9
+  languageName: node
+  linkType: hard
+
 "ansi-regex@npm:^5.0.1":
   version: 5.0.1
   resolution: "ansi-regex@npm:5.0.1"
@@ -1885,13 +1890,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"citty@npm:0.2.2":
-  version: 0.2.2
-  resolution: "citty@npm:0.2.2"
-  checksum: 10c0/c896c9dcd187d2a16685706d11428dcdec9eb59aa13fe50aff7b12e1d3521f1bf434d6a5316fe75a341f8ba5ce1d2beceb84f7f261d018985a73d3f6f2a793e3
-  languageName: node
-  linkType: hard
-
 "class-variance-authority@npm:^0.7.1":
   version: 0.7.1
   resolution: "class-variance-authority@npm:0.7.1"
@@ -1916,6 +1914,22 @@ __metadata:
   version: 2.1.1
   resolution: "clsx@npm:2.1.1"
   checksum: 10c0/c4c8eb865f8c82baab07e71bfa8897c73454881c4f99d6bc81585aecd7c441746c1399d08363dc096c550cceaf97bd4ce1e8854e1771e9998d9f94c4fe075839
+  languageName: node
+  linkType: hard
+
+"color-support@npm:1.1.3":
+  version: 1.1.3
+  resolution: "color-support@npm:1.1.3"
+  bin:
+    color-support: bin.js
+  checksum: 10c0/8ffeaa270a784dc382f62d9be0a98581db43e11eee301af14734a6d089bd456478b1a8b3e7db7ca7dc5b18a75f828f775c44074020b51c05fc00e6d0992b1cc6
+  languageName: node
+  linkType: hard
+
+"commander@npm:15.0.0":
+  version: 15.0.0
+  resolution: "commander@npm:15.0.0"
+  checksum: 10c0/539229c171914ea1ccd45ee5f10d924289a12a684ea3a7a44147abe54003c35ed6de9ae4ad198d88c29fdf403dca0428451a388234e6dc01b6faa978fb207206
   languageName: node
   linkType: hard
 
@@ -1987,7 +2001,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cross-spawn@npm:^7.0.1":
+"cross-spawn@npm:7.0.6, cross-spawn@npm:^7.0.1":
   version: 7.0.6
   resolution: "cross-spawn@npm:7.0.6"
   dependencies:
@@ -2421,7 +2435,7 @@ __metadata:
     "@fontsource-variable/fira-code": "npm:^5.3.0"
     "@fontsource-variable/geist": "npm:^5.3.0"
     "@github/webauthn-json": "npm:^2.1.1"
-    "@hey-api/openapi-ts": "npm:0.0.0-next-20260930190945"
+    "@hey-api/openapi-ts": "npm:0.99.0"
     "@react-three/drei": "npm:10.7.9"
     "@react-three/fiber": "npm:9.8.1"
     "@react-three/test-renderer": "npm:9.1.1"
@@ -2847,14 +2861,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"js-yaml@npm:5.3.0":
-  version: 5.3.0
-  resolution: "js-yaml@npm:5.3.0"
+"js-yaml@npm:4.2.0":
+  version: 4.2.0
+  resolution: "js-yaml@npm:4.2.0"
   dependencies:
     argparse: "npm:^2.0.1"
   bin:
-    js-yaml: bin/js-yaml.mjs
-  checksum: 10c0/c67383a74026f3b550fe1131c6f0f56df11e227fc9b8b8c1c85154f106831a95a944f2dd4f505498d537790483aec7cd5e3d5e9913fe28fa2d131eeb894a0fd9
+    js-yaml: bin/js-yaml.js
+  checksum: 10c0/1916456c118746603b067d74bbcbb0445d9a1d5e474ad4ae775e7b20525bed902e01d9d97dd0c81fcd8d4f596162309d0eb057f4aa38f3e9647f14075e9dea45
   languageName: node
   linkType: hard
 
@@ -4090,6 +4104,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"semver@npm:7.8.4":
+  version: 7.8.4
+  resolution: "semver@npm:7.8.4"
+  bin:
+    semver: bin/semver.js
+  checksum: 10c0/81b7c296fd7927b80f67fa516b75fa1017caac8167795320de28e76ccbc6f7f01763c30ecd10d6a0d8fd089708ab0548a5aebb94b0870e99c2a2b4600a46389b
+  languageName: node
+  linkType: hard
+
 "semver@npm:^7.3.5":
   version: 7.8.5
   resolution: "semver@npm:7.8.5"
@@ -4399,13 +4422,6 @@ __metadata:
   version: 6.2.0
   resolution: "tinybench@npm:6.2.0"
   checksum: 10c0/ae821428f0412324611d449290f8497c886c94f04bad8e19aa9b3a5060b4802e738c49f9eb493e4fd17e4d5e792290565e5079be647df1995aea731c82363815
-  languageName: node
-  linkType: hard
-
-"tinyexec@npm:1.2.4":
-  version: 1.2.4
-  resolution: "tinyexec@npm:1.2.4"
-  checksum: 10c0/153b8db6b080194b558ff145b9cffc36b80a6e07babd644dcfbe49c807eee668c876049d28bdee90b96304476f883352f2dad91b3f86bc23832532f4363e66ff
   languageName: node
   linkType: hard
 
@@ -4739,13 +4755,6 @@ __metadata:
   version: 1.1.2
   resolution: "vary@npm:1.1.2"
   checksum: 10c0/f15d588d79f3675135ba783c91a4083dcd290a2a5be9fcb6514220a1634e23df116847b1cc51f66bfb0644cf9353b2abb7815ae499bab06e46dd33c1a6bf1f4f
-  languageName: node
-  linkType: hard
-
-"verkit@npm:0.3.0":
-  version: 0.3.0
-  resolution: "verkit@npm:0.3.0"
-  checksum: 10c0/4ef036210a6bedf2ad7ae861bea46702038cd592d89236e09912402b537ebb2d0915051814c29fa0e50363e955153ac3daf8b50308d6d0930a165d6c0e06d0a8
   languageName: node
   linkType: hard
 
