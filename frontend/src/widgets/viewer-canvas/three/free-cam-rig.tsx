@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, type RefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Vector3, type Object3D, type PerspectiveCamera } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { isShortcutBlocked } from "@/features/viewer-mode";
 import { useMediaQuery } from "@/shared/lib/use-media-query";
 import { landingPivot } from "../model/flight-pose";
 import {
@@ -11,7 +10,7 @@ import {
   drifted,
   freeInput,
   freeSpeed,
-  isMoveKey,
+  JUMP_KEY,
   lookStep,
   nextMultiplier,
   poseOf,
@@ -23,6 +22,7 @@ import { boundsOf } from "./bounds";
 import { applyPose, setClip, setCursor, setEnabled } from "./free-cam-writes";
 import { useAutoLodBus } from "./settle-bus";
 import { holdStill } from "./stop-coast";
+import { useHeldKeys } from "./use-held-keys";
 import { useWalk } from "./use-walk";
 
 /** The most one frame moves the camera: a lost frame slows the flight, never teleports it (Play's MAX_STEP_MS). */
@@ -50,8 +50,8 @@ type FreeCamRigProps = {
 };
 
 /**
- * Free cam: WASD/QE fly, Shift ×4, the wheel scales the speed, a left or right
- * drag looks (the cursor stays, so the panels stay usable). Mounted by
+ * Free cam: WASD/QE fly, Shift ×4, Space jumps while walking, the wheel scales
+ * the speed, a left or right drag looks (the cursor stays, so the panels stay usable). Mounted by
  * SceneCanvas while the page says `free`, inside AutoLodClock.
  *
  * OrbitControls is switched off, not torn down, and is never asked to update
@@ -69,7 +69,6 @@ export default function FreeCamRig({ sceneRef, solidRef, walk, unitRatio, onWalk
   const invalidate = useThree((s) => s.invalidate);
   const controls = useThree((s) => s.controls) as OrbitControlsImpl | null;
   const bus = useAutoLodBus();
-  const keys = useRef(new Set<string>());
   const pose = useRef<FreePose | null>(null);
   const speed = useRef({ radius: FALLBACK_RADIUS, multiplier: 1 });
   // drei's Bounds fit moves the camera for about a second after mount or Focus:
@@ -94,6 +93,12 @@ export default function FreeCamRig({ sceneRef, solidRef, walk, unitRatio, onWalk
     onRefused: onWalkRefused,
     flying: flyingClip,
   });
+  const press = useCallback(() => {
+    resync();
+    invalidate();
+  }, [resync, invalidate]);
+  const canJump = () => walking.current !== null;
+  const keys = useHeldKeys(press, canJump);
 
   useEffect(() => {
     if (!controls) return;
@@ -120,36 +125,7 @@ export default function FreeCamRig({ sceneRef, solidRef, walk, unitRatio, onWalk
       // The pivot is on the line of sight, so the look-at inside turns nothing.
       controls.update();
     };
-  }, [controls, camera, sceneRef, invalidate, walking, pose]);
-
-  useEffect(() => {
-    const held = keys.current;
-    const down = (e: KeyboardEvent) => {
-      // macOS sends no keyup for the other keys while ⌘ is down: drop them before the guard below.
-      if (e.key === "Meta" || e.metaKey) {
-        held.clear();
-        return;
-      }
-      if (!isMoveKey(e.code) || isShortcutBlocked(e)) return;
-      resync();
-      held.add(e.code);
-      invalidate();
-    };
-    // A release always counts, wherever focus went in between.
-    const up = (e: KeyboardEvent) => {
-      held.delete(e.code);
-    };
-    // Alt-Tab swallows the keyup: a key held across it would fly on for ever.
-    const blur = () => held.clear();
-    window.addEventListener("keydown", down);
-    window.addEventListener("keyup", up);
-    window.addEventListener("blur", blur);
-    return () => {
-      window.removeEventListener("keydown", down);
-      window.removeEventListener("keyup", up);
-      window.removeEventListener("blur", blur);
-    };
-  }, [invalidate, resync]);
+  }, [controls, camera, sceneRef, invalidate, walking, pose, keys]);
 
   useEffect(() => {
     if (!controls) return;
@@ -224,6 +200,8 @@ export default function FreeCamRig({ sceneRef, solidRef, walk, unitRatio, onWalk
     if (!current) return;
     const dt = Math.min(delta, MAX_STEP_S);
     const input = { ...freeInput(keys.current), instant };
+    // A Space is one jump: this frame takes it, or it is spent in the air and gone.
+    keys.current.delete(JUMP_KEY);
     const { radius, multiplier } = speed.current;
     const ground = walking.current; // scale, groundAt and wallAt in one
     const next = ground

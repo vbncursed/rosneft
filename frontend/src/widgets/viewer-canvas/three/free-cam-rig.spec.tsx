@@ -496,5 +496,68 @@ describe("FreeCamRig", () => {
       await ReactThreeTestRenderer.act(async () => r.advanceFrames(1, 5));
       expect(0.5 - camera.position.z).toBeCloseTo(0.014, 3);
     });
+
+    // Counts the rises off the ground: a new hop starts only from rest.
+    const hopsIn = async (frames: (n: number) => Promise<void>, camera: PerspectiveCamera, n: number) => {
+      let hops = 0;
+      let up = camera.position.y > 1.18 + 1e-3;
+      for (let i = 0; i < n; i++) {
+        await frames(1);
+        const rising = camera.position.y > 1.18 + 1e-3;
+        if (rising && !up) hops++;
+        up = rising;
+      }
+      return hops;
+    };
+
+    it("a held Space jumps once, then stands", async () => {
+      reducedMotion();
+      const { camera, key, frames, walkTo } = await mount();
+      camera.position.set(0, 3, 0.5);
+      await walkTo(true);
+      await key("keydown", "Space");
+      await frames(1); // the take-off: in the air from here
+      expect(camera.position.y).toBeGreaterThan(1.18);
+      // The key is still down: the auto-repeat keydowns must not jump again on landing.
+      let hops = 0;
+      let up = true;
+      for (let i = 0; i < 40; i++) {
+        await key("keydown", "Space", { repeat: true });
+        await frames(1);
+        const rising = camera.position.y > 1.18 + 1e-3;
+        if (rising && !up) hops++;
+        up = rising;
+      }
+      expect(hops).toBe(0);
+      expect(camera.position.y).toBeCloseTo(1.18);
+    });
+
+    it("a Space pressed in the air is spent by the next frame, and does not jump on landing", async () => {
+      reducedMotion();
+      const { camera, key, frames, walkTo } = await mount();
+      camera.position.set(0, 3, 0.5);
+      await walkTo(true);
+      await key("keydown", "Space");
+      await frames(1); // the take-off
+      await key("keyup", "Space");
+      await key("keydown", "Space"); // in the air, not a jump; still down while it is spent
+      await frames(1);
+      expect(await hopsIn(frames, camera, 30)).toBe(0);
+      await key("keyup", "Space");
+      expect(camera.position.y).toBeCloseTo(1.18);
+    });
+
+    it("leaves Space to the page while not walking: no jump, nothing kept from it", async () => {
+      reducedMotion();
+      const { camera, frames } = await mount();
+      const start = camera.position.clone();
+      const e = new KeyboardEvent("keydown", { code: "Space", bubbles: true, cancelable: true });
+      await ReactThreeTestRenderer.act(async () => {
+        window.dispatchEvent(e);
+      });
+      await frames(4);
+      expect(e.defaultPrevented).toBe(false);
+      expect(camera.position.equals(start)).toBe(true);
+    });
   });
 });
