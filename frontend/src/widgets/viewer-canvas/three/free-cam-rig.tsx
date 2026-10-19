@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, type RefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Euler, Vector3, type Object3D, type PerspectiveCamera } from "three";
+import { Vector3, type Object3D, type PerspectiveCamera } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { isShortcutBlocked } from "@/features/viewer-mode";
 import { useMediaQuery } from "@/shared/lib/use-media-query";
@@ -19,6 +19,7 @@ import {
   type FreePose,
 } from "../model/free-cam";
 import { boundsOf } from "./bounds";
+import { applyPose, setClip, setCursor, setEnabled } from "./free-cam-writes";
 import { useAutoLodBus } from "./settle-bus";
 import { holdStill } from "./stop-coast";
 
@@ -32,24 +33,6 @@ const LOOK_BUTTONS = new Set([0, 2]);
 const LINE_PX = 16;
 
 type Drag = { id: number; startX: number; startY: number; x: number; y: number; looking: boolean };
-
-// Outside the component, like panorama-drag-controller's setOrbit: these are
-// three.js objects and a DOM node, not React state.
-const setEnabled = (controls: OrbitControlsImpl, on: boolean) => {
-  controls.enabled = on;
-};
-const setCursor = (canvas: HTMLElement, cursor: string) => {
-  canvas.style.cursor = cursor;
-};
-const setClip = (camera: PerspectiveCamera, planes: { near: number; far: number }) => {
-  camera.near = planes.near;
-  camera.far = planes.far;
-  camera.updateProjectionMatrix();
-};
-const applyPose = (camera: PerspectiveCamera, pose: FreePose) => {
-  camera.position.copy(pose.position);
-  camera.quaternion.setFromEuler(new Euler(pose.pitch, pose.yaw, 0, "YXZ"));
-};
 
 /**
  * Free cam: WASD/QE fly, Shift ×4, the wheel scales the speed, a left or right
