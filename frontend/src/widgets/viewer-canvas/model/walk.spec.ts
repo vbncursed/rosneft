@@ -325,13 +325,31 @@ describe("jumping and falling", () => {
     expect(p.velocity.z).toBeCloseTo(-1.4 + 0.3 * 1.4 * (10 / 60), 5);
   });
 
-  it("reaches the walk speed all but at once on the ground, eased or not", () => {
-    const p = stepWalk(
-      standOn(),
-      go({ forward: 1, instant: false }),
-      worldOf(1, () => 0, 0.05),
-    );
-    expect(p.velocity.length()).toBeGreaterThan(0.95 * 1.4);
+  it("eases into the walk speed on the ground in about 80 ms, and at once under reduced motion", () => {
+    const eased = (dt: number) =>
+      stepWalk(
+        standOn(),
+        go({ forward: 1, instant: false }),
+        worldOf(1, () => 0, dt),
+      ).velocity.length();
+    expect(eased(0.08)).toBeCloseTo(1.4 * (1 - Math.exp(-1)), 5);
+    expect(eased(0.25)).toBeGreaterThan(0.95 * 1.4);
+    expect(
+      stepWalk(
+        standOn(),
+        go({ forward: 1 }),
+        worldOf(1, () => 0, 0.01),
+      ).velocity.length(),
+    ).toBeCloseTo(1.4);
+  });
+
+  it("comes to rest in about 80 ms once the keys are up, eased", () => {
+    const w = worldOf(1, () => 0, 0.08);
+    const moving = standOn(1, { velocity: new Vector3(0, 0, -1.4) });
+    expect(stepWalk(moving, go({ instant: false }), w).velocity.length()).toBeCloseTo(1.4 * Math.exp(-1), 5);
+    let p = moving;
+    for (let i = 0; i < 7; i++) p = stepWalk(p, go({ instant: false }), w); // 0.56 s
+    expect(p.velocity.lengthSq()).toBe(0);
   });
 
   it("sticks to ground up to a step lower, at once", () => {
@@ -509,6 +527,59 @@ describe("walking into real meshes", () => {
       for (const climb of climbs) {
         expect(walkFor(site(climb()), input, frames, dt).position.z).toBeLessThan(-1.5);
       }
+    }
+  });
+
+  const easy = (over: Partial<FreeInput>) => go({ ...over, instant: false });
+  /** Each `[input, frames]` leg in turn at `dt`, from standing at the origin. */
+  const legs = (scene: Object3D, dt: number, ...run: Array<[FreeInput, number]>) => {
+    const w: WalkWorld = {
+      dt,
+      speed: walkSpeed(1, 1),
+      scale,
+      groundAt: (x, z, fromY) => raycastSurfaceY(scene, x, z, fromY),
+      wallAt: (from, dir, reach) => hitsWithin(scene, from, dir, reach),
+    };
+    let pose: FreePose = {
+      position: new Vector3(0, scale.eye, 0),
+      yaw: 0,
+      pitch: 0,
+      velocity: new Vector3(),
+      ground: 0,
+    };
+    for (const [input, frames] of run) for (let i = 0; i < frames; i++) pose = stepWalk(pose, input, w);
+    return pose;
+  };
+
+  it("eased: walks up to a 0.9 m crate and jumps onto it, and neither onto nor into a 1.05 m one", () => {
+    // 1 s up to the crate (the wall probe holds it off, the velocity still the wish), then Space with W held.
+    const up = (h: number) =>
+      legs(site(placed(h, -1.05)), 1 / 60, [easy({ forward: 1 }), 60], [easy({ forward: 1, jump: true }), 120]);
+    expect(up(0.9).ground).toBeCloseTo(0.9);
+    expect(up(0.9).position.z).toBeLessThan(-1.05);
+    expect(up(1.05).ground).toBeCloseTo(0);
+    expect(up(1.05).position.z).toBeGreaterThan(-1.05);
+  });
+
+  it("eased: never walks through a 2 cm rail the knee passes over, running at 0.1 s a frame from any start", () => {
+    for (const h of [0.55, 0.62, 0.69]) {
+      for (const z0 of [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]) {
+        const p = walkFor(site(block(h, 0.02, -1.05)), easy({ forward: 1, boost: true }), 30, 0.1, z0);
+        expect(p.position.z, `rail ${h} m from z ${z0}`).toBeGreaterThan(-1.05 - 1e-6);
+      }
+    }
+  });
+
+  it("eased: stops short of a building and climbs ramps and stairs, walking and running", () => {
+    expect(walkFor(site(block(6, 4, -1.05)), easy({ forward: 1 }), 120, 1 / 60).position.z).toBeGreaterThan(
+      -1.05 + scale.body - 1e-6,
+    );
+    const climbs = [() => ramp(20), () => ramp(30), () => ramp(40), () => stairs(0.18, 0.28), () => stairs(0.2, 0.25)];
+    for (const [input, frames, dt] of [
+      [easy({ forward: 1 }), 240, 1 / 60],
+      [easy({ forward: 1, boost: true }), 30, 0.1],
+    ] as const) {
+      for (const climb of climbs) expect(walkFor(site(climb()), input, frames, dt).position.z).toBeLessThan(-1.5);
     }
   });
 });

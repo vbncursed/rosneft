@@ -4,8 +4,8 @@ import { easeVelocity, type FreeInput, type FreePose } from "./free-cam";
 
 /** The tallest rise a step climbs, and the deepest drop the feet stick to, in metres: a kerb yes, a tank wall no. */
 const STEP_M = 0.5;
-const WALK_MPS = 1.4;
-const RUN_MPS = 4;
+export const WALK_MPS = 1.4;
+export const RUN_MPS = 4;
 /** A person's depth range in metres: a hand's width to a horizon a couple of km off. */
 const WALK_NEAR_M = 0.1;
 const WALK_FAR_M = 2000;
@@ -21,8 +21,8 @@ const GRAVITY_MPS2 = 9.8;
 const TERMINAL_MPS = 30;
 /** How high a jump lifts the feet, in metres. */
 const JUMP_M = 0.5;
-/** On the ground the velocity closes ~63 % of the gap to the wish in this many seconds: next to at once. */
-const GROUND_EASE_S = 0.015;
+/** On the ground the velocity closes ~63 % of the gap to the wish in this many seconds: a short lean in and out. */
+const GROUND_EASE_S = 0.08;
 /** In the air the velocity turns towards the wish by at most this share of the wish's speed a second. */
 const AIR_CONTROL = 0.3;
 
