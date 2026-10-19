@@ -1,4 +1,4 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { useCallback, useEffect, useRef, type RefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Euler, Vector3, type Object3D, type PerspectiveCamera } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
@@ -8,6 +8,7 @@ import { landingPivot } from "../model/flight-pose";
 import {
   CLICK_SLOP_PX,
   clipPlanes,
+  drifted,
   freeInput,
   freeSpeed,
   isMoveKey,
@@ -70,6 +71,14 @@ export default function FreeCamRig({ sceneRef }: { sceneRef: RefObject<Object3D 
   const keys = useRef(new Set<string>());
   const pose = useRef<FreePose | null>(null);
   const speed = useRef({ radius: FALLBACK_RADIUS, multiplier: 1 });
+  // drei's Bounds fit moves the camera for about a second after mount or Focus:
+  // a flight starts from where the camera is, not from the pose taken earlier.
+  const resync = useCallback(() => {
+    const current = pose.current;
+    if (!current) return;
+    const now = poseOf(camera.position, camera.quaternion);
+    if (drifted(current, now, speed.current.radius)) pose.current = now;
+  }, [camera]);
 
   useEffect(() => {
     if (!controls) return;
@@ -105,6 +114,7 @@ export default function FreeCamRig({ sceneRef }: { sceneRef: RefObject<Object3D 
         return;
       }
       if (!isMoveKey(e.code) || isShortcutBlocked(e)) return;
+      resync();
       held.add(e.code);
       invalidate();
     };
@@ -122,7 +132,7 @@ export default function FreeCamRig({ sceneRef }: { sceneRef: RefObject<Object3D 
       window.removeEventListener("keyup", up);
       window.removeEventListener("blur", blur);
     };
-  }, [invalidate]);
+  }, [invalidate, resync]);
 
   useEffect(() => {
     if (!controls) return;
@@ -135,6 +145,7 @@ export default function FreeCamRig({ sceneRef }: { sceneRef: RefObject<Object3D 
     const down = (e: PointerEvent) => {
       own();
       if (!LOOK_BUTTONS.has(e.button) || drag) return;
+      resync();
       drag = { id: e.pointerId, startX: e.clientX, startY: e.clientY, x: e.clientX, y: e.clientY, looking: false };
       canvas.setPointerCapture?.(e.pointerId);
     };
@@ -187,7 +198,7 @@ export default function FreeCamRig({ sceneRef }: { sceneRef: RefObject<Object3D 
       canvas.removeEventListener("contextmenu", menu);
       setCursor(canvas, "");
     };
-  }, [controls, gl, camera, bus, invalidate]);
+  }, [controls, gl, camera, bus, invalidate, resync]);
 
   // frameloop="demand": a frame runs only when asked, so the flight asks for
   // the next one for as long as anything is still moving.

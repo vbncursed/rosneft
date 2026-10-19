@@ -56,6 +56,15 @@ export function poseOf(position: Vector3, quaternion: Quaternion): FreePose {
   };
 }
 
+/** Territory radii, and radians, a camera may drift before it counts as moved from outside the rig. */
+const DRIFT_SHARE = 1e-4;
+
+/** Has the camera moved off the rig's pose? Its own frames never do; drei's Bounds fit does. */
+export const drifted = (a: FreePose, b: FreePose, radius: number) =>
+  a.position.distanceTo(b.position) > radius * DRIFT_SHARE ||
+  Math.abs(a.yaw - b.yaw) > DRIFT_SHARE ||
+  Math.abs(a.pitch - b.pitch) > DRIFT_SHARE;
+
 export const lookStep = (pose: FreePose, dx: number, dy: number): FreePose => ({
   ...pose,
   yaw: pose.yaw - dx * LOOK_RAD_PER_PX,

@@ -1,7 +1,7 @@
 import { useThree } from "@react-three/fiber";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { useEffect, type ReactNode } from "react";
-import { BoxGeometry, Group, Mesh, Vector3, type Camera, type PerspectiveCamera } from "three";
+import { BoxGeometry, Euler, Group, Mesh, Vector3, type Camera, type PerspectiveCamera } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import FreeCamRig from "./free-cam-rig";
 import { SETTLE_MS, useAutoLodBus } from "./settle-bus";
@@ -144,6 +144,18 @@ describe("FreeCamRig", () => {
     for (const axis of ["x", "y", "z"] as const) expect(aim[axis]).toBeCloseTo(sight[axis], 5);
     expect(camera.near).toBe(before.near);
     expect(camera.far).toBe(before.far);
+  });
+
+  it("flies from where the camera is now, when something moved it after the rig took its pose", async () => {
+    reducedMotion();
+    const { camera, key, frames } = await mount();
+    // drei's Bounds fit moves the camera after the rig has taken its pose.
+    camera.position.x += 5;
+    camera.quaternion.setFromEuler(new Euler(0, 0.5, 0, "YXZ"));
+    await key("keydown", "KeyW");
+    const start = camera.position.clone();
+    await frames(4);
+    expect(camera.position.distanceTo(start)).toBeLessThan(1);
   });
 
   it("ignores keys with a modifier, typed into a field, or under an open dialog", async () => {
