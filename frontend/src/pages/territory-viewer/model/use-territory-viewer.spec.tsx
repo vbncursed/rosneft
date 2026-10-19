@@ -316,6 +316,27 @@ describe("useTerritoryViewer", () => {
       expect(canvas.parentLods.map((a) => a.lod)).toEqual([0, 1, 2]);
     });
 
+    it("F hands the free cam to the canvas, and Play from it leaves it and takes off", async () => {
+      const r = mount();
+      await ready(r);
+      act(() => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "f" }));
+      });
+      expect(now(r).canvas.free).toBe(true);
+      act(() => now(r).overlays.onPlay());
+      expect(now(r).canvas).toMatchObject({ free: false, playing: true });
+    });
+
+    it("Reset leaves the free cam", async () => {
+      const r = mount();
+      await ready(r);
+      act(() => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "f" }));
+      });
+      act(() => now(r).overlays.onReset());
+      expect(now(r).canvas.free).toBe(false);
+    });
+
     it("feeds the report back into the strip and the switcher", async () => {
       const r = mount();
       const state = await ready(r);

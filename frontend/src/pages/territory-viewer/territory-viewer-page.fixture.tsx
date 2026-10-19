@@ -299,6 +299,7 @@ export const basePageParts = (): PageParts => ({
     expandedModel: "storage-tank-500",
     confirmClear: false,
     compact: false,
+    touch: false,
     error: null,
     now: new Date(2026, 8, 9, 14, 22),
   },

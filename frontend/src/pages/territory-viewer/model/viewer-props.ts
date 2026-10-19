@@ -134,6 +134,8 @@ export type PageHandlers = {
   onPlay: () => void;
   /** The canvas ended the flight itself: the reader grabbed the view. */
   onPlayStop: () => void;
+  /** F, and the rail's free cam tile. */
+  onFree: () => void;
   onMeasure: () => void;
   onAdd: () => void;
   onPanoramas: () => void;
@@ -186,6 +188,8 @@ export type PageViewState = {
   /** The Clear question is on screen. */
   confirmClear: boolean;
   compact: boolean;
+  /** A touch screen (no hover, coarse pointer): the free cam tile is not drawn. */
+  touch: boolean;
   error: ViewerError | null;
   /** Passed in rather than read here, so the error card's clock is testable. */
   now: Date;
