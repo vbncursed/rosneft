@@ -41,7 +41,9 @@ export function useKeyboardShortcuts(shortcuts: KeyboardShortcuts): void {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (isShortcutBlocked(event)) return;
+      // A held key repeats its keydown; every shortcut here is a toggle or a
+      // one-shot (G flips walk, a refused walk toasts), so one press is one act.
+      if (event.repeat || isShortcutBlocked(event)) return;
       const map = latest.current;
       const handler = map[event.key] ?? map[event.key.toLowerCase()];
       if (handler) handler();

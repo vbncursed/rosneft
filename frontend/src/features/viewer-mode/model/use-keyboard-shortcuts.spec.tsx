@@ -16,9 +16,9 @@ function bind(shortcuts: Record<string, () => void>) {
   return h;
 }
 
-function press(key: string, target?: Element) {
+function press(key: string, target?: Element, init: KeyboardEventInit = {}) {
   act(() => {
-    (target ?? window).dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+    (target ?? window).dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, ...init }));
   });
 }
 
@@ -34,6 +34,16 @@ test("character keys match case-insensitively — Shift+M is still M", () => {
   bind({ m });
   press("M");
   assert.equal(m.mock.calls.length, 1);
+});
+
+test("a held key fires once — auto-repeat keydowns are ignored", () => {
+  // G flips the walk on and off, and a refused walk toasts: a key held down
+  // must not repeat either of them.
+  const g = vi.fn();
+  bind({ g });
+  press("g");
+  press("g", undefined, { repeat: true });
+  assert.equal(g.mock.calls.length, 1);
 });
 
 test("named keys match literally", () => {
