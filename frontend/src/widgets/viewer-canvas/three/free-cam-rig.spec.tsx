@@ -60,7 +60,7 @@ async function mount(rig = true) {
     });
   const pointer = (type: string, init: PointerEventInit) =>
     ReactThreeTestRenderer.act(async () => {
-      canvas.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 1, ...init }));
+      canvas.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 1, buttons: 1, ...init }));
     });
   const wheel = (deltaY: number) =>
     ReactThreeTestRenderer.act(async () => {
@@ -208,6 +208,18 @@ describe("FreeCamRig", () => {
     expect(canvas.style.cursor).toBe("grabbing");
 
     await pointer("pointerup", { button: 0, clientX: 140, clientY: 100 });
+    expect(canvas.style.cursor).toBe("grab");
+  });
+
+  it("stops looking when a move arrives with no button down, the release having gone missing", async () => {
+    reducedMotion();
+    const { camera, pointer } = await mount();
+    const q = camera.quaternion.clone();
+    await pointer("pointerdown", { button: 0, clientX: 100, clientY: 100 });
+    await pointer("pointermove", { buttons: 0, clientX: 160, clientY: 100 });
+    expect(camera.quaternion.equals(q)).toBe(true);
+    await pointer("pointermove", { buttons: 0, clientX: 220, clientY: 100 });
+    expect(camera.quaternion.equals(q)).toBe(true);
     expect(canvas.style.cursor).toBe("grab");
   });
 

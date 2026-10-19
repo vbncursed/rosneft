@@ -138,9 +138,20 @@ export default function FreeCamRig({ sceneRef }: { sceneRef: RefObject<Object3D 
       drag = { id: e.pointerId, startX: e.clientX, startY: e.clientY, x: e.clientX, y: e.clientY, looking: false };
       canvas.setPointerCapture?.(e.pointerId);
     };
+    const up = (e: PointerEvent) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      drag = null;
+      setCursor(canvas, "grab");
+      canvas.releasePointerCapture?.(e.pointerId);
+    };
     const move = (e: PointerEvent) => {
       const current = pose.current;
       if (!drag || e.pointerId !== drag.id || !current) return;
+      // No button down: the release never arrived, so the look ends here.
+      if (e.buttons === 0) {
+        up(e);
+        return;
+      }
       // Under the slop a press is still a click: R3F hands the pick to the placement.
       if (!drag.looking && Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) < CLICK_SLOP_PX) return;
       if (!drag.looking) setCursor(canvas, "grabbing");
@@ -151,12 +162,6 @@ export default function FreeCamRig({ sceneRef }: { sceneRef: RefObject<Object3D 
       applyPose(camera, pose.current);
       bus.settle();
       invalidate();
-    };
-    const up = (e: PointerEvent) => {
-      if (!drag || e.pointerId !== drag.id) return;
-      drag = null;
-      setCursor(canvas, "grab");
-      canvas.releasePointerCapture?.(e.pointerId);
     };
     const wheel = (e: WheelEvent) => {
       e.preventDefault();
