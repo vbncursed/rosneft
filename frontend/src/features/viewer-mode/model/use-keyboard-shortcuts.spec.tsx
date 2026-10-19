@@ -46,6 +46,49 @@ test("a held key fires once — auto-repeat keydowns are ignored", () => {
   assert.equal(g.mock.calls.length, 1);
 });
 
+test("a Russian layout's M fires the m shortcut by its physical key", () => {
+  // ЙЦУКЕН types "ь" on the key that is KeyM: the letter shortcuts answer by
+  // position, as the free cam's WASD already does.
+  const m = vi.fn();
+  bind({ m });
+  press("ь", undefined, { code: "KeyM" });
+  assert.equal(m.mock.calls.length, 1);
+});
+
+test("a Latin M still fires once, not twice", () => {
+  const m = vi.fn();
+  bind({ m });
+  press("m", undefined, { code: "KeyM" });
+  assert.equal(m.mock.calls.length, 1);
+});
+
+test("Dvorak keeps its own letter: the c key fires c, not the j key under it", () => {
+  const c = vi.fn();
+  const j = vi.fn();
+  bind({ c, j });
+  press("c", undefined, { code: "KeyJ" });
+  assert.equal(c.mock.calls.length, 1);
+  assert.equal(j.mock.calls.length, 0);
+});
+
+test("a Latin letter with no handler does not fall back to the key beneath it", () => {
+  // Dvorak's c sits on KeyJ: with only j bound, c must stay silent.
+  const j = vi.fn();
+  bind({ j });
+  press("c", undefined, { code: "KeyJ" });
+  assert.equal(j.mock.calls.length, 0);
+});
+
+test("a non-Latin key in a typing field is still blocked", () => {
+  const m = vi.fn();
+  bind({ m });
+  const field = document.createElement("input");
+  document.body.appendChild(field);
+  press("ь", field, { code: "KeyM" });
+  field.remove();
+  assert.equal(m.mock.calls.length, 0);
+});
+
 test("named keys match literally", () => {
   const escape = vi.fn();
   bind({ Escape: escape });
