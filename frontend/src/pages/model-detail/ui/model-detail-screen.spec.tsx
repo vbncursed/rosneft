@@ -51,6 +51,14 @@ describe("ModelDetailScreen", () => {
     expect(screen.getByRole("status")).toBeInTheDocument();
   });
 
+  // The skeleton reserves the same height as the viewport at each breakpoint,
+  // so the page does not jump when the canvas replaces it.
+  it("reserves the viewport's height at every breakpoint", () => {
+    useModelDetail.mockReturnValue({ phase: "loading" });
+    render(<ModelDetailScreen />);
+    expect(screen.getByRole("status").lastElementChild).toHaveClass("h-[420px]", "sm:h-[560px]");
+  });
+
   it("says the model was not found, with a way back", () => {
     useModelDetail.mockReturnValue({ phase: "missing" });
     render(<ModelDetailScreen />);
