@@ -420,4 +420,16 @@ export default {
     mode: { ...p.mode, free: true },
     panel: { tab: "view", collapsed: false },
   })),
+
+  "19 walk": page((p) => ({
+    ...p,
+    mode: { ...p.mode, free: true, walk: true },
+    panel: { tab: "view", collapsed: false },
+  })),
+
+  "20 free cam without a scale": page((p) => ({
+    ...p,
+    vm: { ...p.vm, metadata: { ...p.vm.metadata, dims: { x: 0, y: 0, z: 0 } } },
+    mode: { ...p.mode, free: true },
+  })),
 };

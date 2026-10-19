@@ -63,7 +63,7 @@ const props = (over: Partial<ViewerOverlaysProps> = {}): ViewerOverlaysProps => 
   switcher: { levels: [0, 1, 2], choice: 1, target: 1, shown: 1, onChange: vi.fn() },
   strip: STRIP,
   hints: false,
-  freeHints: false,
+  freeKeys: null,
   error: null,
   switchTo3d: null,
   document: null,
@@ -189,8 +189,9 @@ describe("ViewerOverlays · the tool rail", () => {
   it("shows the free cam keys only when asked", () => {
     const { rerender } = render(<ViewerOverlays {...props()} />);
     expect(screen.queryByRole("note", { name: "Free cam keys" })).not.toBeInTheDocument();
-    rerender(<ViewerOverlays {...props({ freeHints: true })} />);
-    expect(screen.getByRole("note", { name: "Free cam keys" })).toBeInTheDocument();
+    rerender(<ViewerOverlays {...props({ freeKeys: "walk" })} />);
+    const note = screen.getByRole("note", { name: "Free cam keys" });
+    expect(within(note).getByText("fly")).toBeInTheDocument();
   });
 
   it("toggles the flight from its tile", async () => {

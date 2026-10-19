@@ -64,6 +64,9 @@ export type MeasuringView = {
   confirm: { title: string; onConfirm: () => void; onCancel: () => void } | null;
 };
 
+/** Which key row the free cam shows: flying, walking, or flying where walking has no metres to go by. */
+export type FreeKeys = "fly" | "walk" | "fly-no-scale";
+
 export type ViewerOverlaysProps = {
   tools: RailToolState[];
   onReset: () => void;
@@ -84,8 +87,8 @@ export type ViewerOverlaysProps = {
   switcher: SwitcherView | null;
   strip: StripView;
   hints: boolean;
-  /** The free cam's key row, under its chip. */
-  freeHints: boolean;
+  /** The free cam's key row, under its chip; null outside the free cam. */
+  freeKeys: FreeKeys | null;
   error: ViewerErrorProps | null;
   /** The way out of a panorama, under the mode chip; null in the 3D scene. */
   switchTo3d: (() => void) | null;

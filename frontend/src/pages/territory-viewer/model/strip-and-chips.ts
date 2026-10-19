@@ -1,6 +1,7 @@
+import { EYE_HEIGHT_M } from "@/entities/measurement";
 import { formatDims, groupDigits, type SceneMetadata } from "@/entities/scene";
 import type { ViewerMode, ViewerView } from "@/features/viewer-mode";
-import type { MeasuringView, PageParts } from "./viewer-props";
+import type { FreeKeys, MeasuringView, PageParts } from "./viewer-props";
 import { clearTitle } from "./viewer-view";
 
 /** What the mode chip says, per mode. Measure's tail is counted below. */
@@ -11,6 +12,7 @@ const NOT_SAVED = " · not saved";
 const PANORAMA_CHIP = "panorama · drag to look around";
 const MOVE_CHIP = "move points · drag a marker";
 const FREE_CHIP = "free cam · drag to look";
+const WALK_CHIP = `walk · ${EYE_HEIGHT_M.toFixed(2)} m`;
 const calibratingChip = (title: string) => `calibrating · ${title}`;
 
 /** The strip's spans when nothing rendered, in the mock's order. */
@@ -39,12 +41,14 @@ export function modeChip(a: {
   move: boolean;
   /** The free cam (F): the pointer looks, the keys fly. */
   free: boolean;
+  /** Walking in the free cam (G). */
+  walk: boolean;
   /** The title of the panorama being calibrated, or null. */
   calibrating: string | null;
 }): { text: string; kbd?: string } {
   if (a.view.kind === "panorama") return { text: PANORAMA_CHIP, kbd: "P" };
   // Free before calibration: in the free cam the pointer looks, it does not drag the ring.
-  if (a.free) return { text: FREE_CHIP, kbd: "F" };
+  if (a.free) return a.walk ? { text: WALK_CHIP, kbd: "G" } : { text: FREE_CHIP, kbd: "F" };
   if (a.calibrating !== null) return { text: calibratingChip(a.calibrating) };
   if (a.move) return { text: MOVE_CHIP, kbd: "V" };
   if (a.mode === "orbit") return { text: ORBIT_CHIP };
@@ -54,6 +58,16 @@ export function modeChip(a: {
   const counted = `${segments} ${segments === 1 ? "segment" : "segments"}`;
   const tail = unsaved ? NOT_SAVED : "";
   return { text: `${MEASURE_CHIP} · ${counted} · ${total} total${tail}` };
+}
+
+/**
+ * The free cam's key row. Over a territory with no size the walk has no metres
+ * to go by, so G says so rather than doing nothing silently.
+ */
+export function freeKeys(a: { free: boolean; walk: boolean; unitRatio: number }): FreeKeys | null {
+  if (!a.free) return null;
+  if (a.walk) return "walk";
+  return a.unitRatio === 1 ? "fly-no-scale" : "fly";
 }
 
 /**

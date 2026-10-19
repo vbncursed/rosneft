@@ -128,7 +128,7 @@ export function ViewerOverlays({
   switcher,
   strip,
   hints,
-  freeHints,
+  freeKeys,
   error,
   switchTo3d,
   document: doc,
@@ -190,7 +190,7 @@ export function ViewerOverlays({
             {chip.text}
           </ModeChip>
         ) : null}
-        {freeHints ? <FreeCamKeys /> : null}
+        {freeKeys ? <FreeCamKeys mode={freeKeys} /> : null}
         {switchTo3d ? (
           <Button size="sm" onClick={switchTo3d} className="shadow-elevation">
             {SWITCH_TO_3D}
