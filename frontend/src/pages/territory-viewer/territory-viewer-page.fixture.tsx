@@ -255,6 +255,7 @@ export const basePageParts = (): PageParts => ({
     snap: false,
     view: { kind: "scene" },
     move: false,
+    free: false,
     editingPanoramaId: null,
   },
   measure: {

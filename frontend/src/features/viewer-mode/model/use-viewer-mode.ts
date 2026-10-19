@@ -71,25 +71,33 @@ export function useViewerMode({
     dispatch({ type: "toggleMove" });
   }, [leaveMeasure]);
   const exitMove = useCallback(() => dispatch({ type: "exitMove" }), []);
+  // Entering from measure breaks an open chain, like every other way out of it.
+  const toggleFree = useCallback(() => {
+    leaveMeasure();
+    dispatch({ type: "toggleFree" });
+  }, [leaveMeasure]);
+  const exitFree = useCallback(() => dispatch({ type: "exitFree" }), []);
   const startEdit = useCallback((id: number) => dispatch({ type: "startEdit", id }), []);
   const closeEdit = useCallback(() => dispatch({ type: "closeEdit" }), []);
-  // Spec §1's order: move, then an open chain, then the document overlay, then
-  // the selection, the mode and the panorama. `beforeEscape` is the document's
-  // claim on the key, so it is offered only once the reducer has nothing of its
-  // own left to peel first — otherwise the window closed while the reader was
-  // still stuck in move mode, which is the sub-mode Escape was pressed to leave.
+  // Spec §1's order: move, free, an open chain, the document overlay, then the
+  // selection, the mode and the panorama. `beforeEscape` is the document's claim
+  // on the key, so it is offered only once the reducer has nothing of its own
+  // left to peel first — otherwise the window closed while the reader was still
+  // stuck in a sub-mode Escape was pressed to leave.
   const escape = useCallback(() => {
-    if (!state.move && !chainOpen && beforeEscape?.()) return;
+    if (!state.move && !state.free && !chainOpen && beforeEscape?.()) return;
     if (chainOpen) onCancelChain();
     dispatch({ type: "escape", chainOpen });
-  }, [beforeEscape, chainOpen, onCancelChain, state.move]);
+  }, [beforeEscape, chainOpen, onCancelChain, state.move, state.free]);
 
+  // S also flies backwards in the free cam; the panel's buttons still set the gizmo.
   const gizmoKey = (gizmo: GizmoMode) => () => {
-    if (canWrite && state.selectedId !== null) setGizmo(gizmo);
+    if (canWrite && state.selectedId !== null && !state.free) setGizmo(gizmo);
   };
 
   useKeyboardShortcuts({
     m: toggleMeasure,
+    f: toggleFree,
     t: gizmoKey("translate"),
     r: gizmoKey("rotate"),
     s: gizmoKey("scale"),
@@ -115,6 +123,8 @@ export function useViewerMode({
     exitPanorama,
     toggleMove,
     exitMove,
+    toggleFree,
+    exitFree,
     startEdit,
     closeEdit,
   };
