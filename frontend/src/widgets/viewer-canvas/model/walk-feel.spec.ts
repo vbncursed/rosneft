@@ -1,6 +1,7 @@
 import { Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import type { FreeInput, FreePose } from "./free-cam";
+import { stepWalk, walkScale, walkSpeed, type WalkWorld } from "./walk";
 import {
   eyeOffsetM,
   feelAtRest,
@@ -76,7 +77,7 @@ describe("the eye over a walking body", () => {
   });
 
   it("takes nothing off a landing or a flight: only a snap on the ground is smoothed", () => {
-    expect(eyeOffsetM(stepFeel(REST_FEEL, at(0, 2.1, 0, -1), at(0, 1.8, 0), go(), frame()))).toBe(0);
+    expect(stepFeel(REST_FEEL, at(0, 2.1, 0, -1), at(0, 1.8, 0), go(), frame()).eye.x).toBe(0);
     expect(eyeOffsetM(stepFeel(REST_FEEL, at(0, 1.8, 0), at(0, 2.1, 0), go(), frame({ walking: false })))).toBe(0);
   });
 
@@ -110,5 +111,88 @@ describe("fovHome", () => {
       last = s.x;
     }
     expect(s).toEqual({ x: 0, v: 0 });
+  });
+});
+
+describe("the dip of a landing and a take-off", () => {
+  /** Jump once from rest on the walker's own frames, then `n` frames; the offsets after landing. */
+  const jumpAndLand = (n: number, input = go()) => {
+    const w: WalkWorld = {
+      dt: 1 / 60,
+      speed: walkSpeed(1, 1),
+      scale: walkScale(1),
+      groundAt: () => 0,
+      wallAt: () => false,
+    };
+    let p: FreePose = { ...at(0, walkScale(1).eye, 0), ground: 0 };
+    let s = REST_FEEL;
+    const after: number[] = [];
+    for (let i = 0; i < n; i++) {
+      const next = stepWalk(p, { ...input, jump: i === 0 }, w);
+      s = stepFeel(s, p, next, input, frame());
+      if (next.vy === undefined && i > 0) after.push(eyeOffsetM(s));
+      p = next;
+    }
+    return { s, after };
+  };
+  /** `n` frames after a landing from `vy` m/s; every offset seen. */
+  const landFrom = (vy: number, n = 120, input = go()) => {
+    const ground = at(0, 1.8, 0);
+    let s = stepFeel(REST_FEEL, at(0, 1.9, 0, vy), ground, input, frame());
+    const seen = [eyeOffsetM(s)];
+    for (let i = 0; i < n; i++) {
+      s = stepFeel(s, ground, ground, input, frame());
+      seen.push(eyeOffsetM(s));
+    }
+    return { s, seen };
+  };
+
+  it("lands a 0.5 m jump 6–8 cm low and swings back a little past level", () => {
+    const { s, after } = jumpAndLand(200);
+    expect(Math.min(...after)).toBeLessThan(-0.06);
+    expect(Math.min(...after)).toBeGreaterThan(-0.08);
+    expect(Math.max(...after)).toBeGreaterThan(0);
+    expect(Math.max(...after)).toBeLessThan(0.01);
+    expect(feelAtRest(s)).toBe(true);
+    expect(eyeOffsetM(s)).toBe(0);
+  });
+
+  it("dips deeper the harder it lands, and no deeper than 25 cm", () => {
+    expect(Math.min(...landFrom(-6).seen)).toBeCloseTo(-0.022 * 6, 2);
+    expect(Math.min(...landFrom(-30).seen)).toBeCloseTo(-0.25, 2);
+  });
+
+  it("crouches 3.5 cm about 60 ms into a take-off, while the body already rises", () => {
+    const air = at(0, 1.9, 0, 3);
+    let s = stepFeel(REST_FEEL, at(0, 1.8, 0), air, go(), frame());
+    const seen = [eyeOffsetM(s)];
+    for (let i = 0; i < 20; i++) {
+      s = stepFeel(s, air, air, go(), frame());
+      seen.push(eyeOffsetM(s));
+    }
+    const low = Math.min(...seen);
+    expect(low).toBeCloseTo(-0.035, 2);
+    expect(seen.indexOf(low)).toBeGreaterThanOrEqual(2); // 2–4 frames at 60 fps: 33–67 ms
+    expect(seen.indexOf(low)).toBeLessThanOrEqual(4);
+  });
+
+  it("sags the same whatever the frame: a tenth of a second in one step is six sixtieths", () => {
+    const ground = at(0, 1.8, 0);
+    const fall = at(0, 1.9, 0, -6);
+    const slow = stepFeel(REST_FEEL, fall, ground, go(), frame({ dt: 0.1 }));
+    let fast = stepFeel(REST_FEEL, fall, ground, go(), frame());
+    for (let i = 0; i < 5; i++) fast = stepFeel(fast, ground, ground, go(), frame());
+    expect(eyeOffsetM(slow)).toBeCloseTo(eyeOffsetM(fast), 9);
+  });
+
+  it("takes no crouch off a walker that steps off a ledge", () => {
+    expect(eyeOffsetM(stepFeel(REST_FEEL, at(0, 1.8, 0), at(0, 1.79, 0, -0.16), go(), frame()))).toBe(0);
+  });
+
+  it("neither dips nor crouches under reduced motion, nor in a flight", () => {
+    expect(landFrom(-6, 120, go({ instant: true })).seen.every((m) => m === 0)).toBe(true);
+    expect(jumpAndLand(200, go({ instant: true })).after.every((m) => m === 0)).toBe(true);
+    const flight = stepFeel(REST_FEEL, at(0, 1.9, 0, -6), at(0, 1.8, 0), go(), frame({ walking: false }));
+    expect(eyeOffsetM(flight)).toBe(0);
   });
 });

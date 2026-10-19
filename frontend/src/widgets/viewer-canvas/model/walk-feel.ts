@@ -1,5 +1,5 @@
 import type { FreeInput, FreePose } from "./free-cam";
-import { AT_REST, springTo, type Spring } from "./spring";
+import { AT_REST, kickFor, springTo, type Spring } from "./spring";
 
 // The camera as an operator carries it. The body walks (model/walk.ts) and every
 // ray leaves from it; the eye rides over it with a lag, a dip, a bob and, at a
@@ -15,6 +15,14 @@ const REST_M = 1e-4;
 const REST_MPS = 1e-3;
 const REST_DEG = 1e-3;
 const REST_DEG_PS = 1e-2;
+/** A landing's or take-off's sag turns about 60 ms after the kick and swings back ~10 % past level (ω, ζ). */
+const DIP_OMEGA = 20;
+const DIP_ZETA = 0.6;
+/** A landing sags the eye this much per m/s of impact (a 0.5 m jump lands at ~3 m/s: ~7 cm), never deeper than the cap (m). */
+const LAND_DIP_PER_MPS = 0.022;
+const LAND_DIP_MAX_M = 0.25;
+/** A take-off crouches the eye this deep (m), the body already rising: the jump itself is never late. */
+const TAKE_OFF_DIP_M = 0.035;
 
 /**
  * The eye over the body. `eye` is its lag behind a step, `dip` a landing's or a
@@ -38,6 +46,21 @@ function eyeAfter(eye: Spring, prev: FreePose, next: FreePose, f: FeelFrame): Sp
   return springTo({ x: eye.x - snap, v: eye.v }, 0, EYE_OMEGA, 1, f.dt);
 }
 
+/** How deep this frame sags the eye: a landing by its impact, a take-off by a crouch; 0 when neither happened. */
+function dipDepth(prev: FreePose, next: FreePose, f: FeelFrame): number {
+  if (!standing(prev) && standing(next)) {
+    return Math.min(LAND_DIP_PER_MPS * Math.max(0, -(prev.vy ?? 0)) * f.unitRatio, LAND_DIP_MAX_M);
+  }
+  return standing(prev) && (next.vy ?? 0) > 0 ? TAKE_OFF_DIP_M : 0;
+}
+
+/** The sag one frame on: a kick by the depth read off the poses, then the spring home. Walking only, and never under reduced motion. */
+function dipAfter(dip: Spring, prev: FreePose, next: FreePose, input: FreeInput, f: FeelFrame): Spring {
+  const depth = f.walking && !input.instant ? dipDepth(prev, next, f) : 0;
+  const v = depth > 0 ? dip.v + kickFor(-depth, DIP_OMEGA, DIP_ZETA) : dip.v;
+  return rested(springTo({ x: dip.x, v }, 0, DIP_OMEGA, DIP_ZETA, f.dt), REST_M, REST_MPS);
+}
+
 /** The view's kick, a frame on towards none. */
 export const fovHome = (fov: Spring, dt: number): Spring =>
   rested(springTo(fov, 0, FOV_OMEGA, 1, dt), REST_DEG, REST_DEG_PS);
@@ -48,12 +71,13 @@ export const fovHome = (fov: Spring, dt: number): Spring =>
  * physics hands over nothing more than the poses it already makes. A walk begun
  * or ended starts the eye level with the pose; the view's kick eases on.
  */
-export function stepFeel(feel: Feel, prev: FreePose, next: FreePose, _input: FreeInput, f: FeelFrame): Feel {
+export function stepFeel(feel: Feel, prev: FreePose, next: FreePose, input: FreeInput, f: FeelFrame): Feel {
   if (!(f.dt > 0)) return feel;
   const from = feel.walking === f.walking ? feel : { ...REST_FEEL, walking: f.walking, fov: feel.fov };
   return {
     ...from,
     eye: rested(eyeAfter(from.eye, prev, next, f), REST_M, REST_MPS),
+    dip: dipAfter(from.dip, prev, next, input, f),
     fov: fovHome(from.fov, f.dt),
   };
 }
