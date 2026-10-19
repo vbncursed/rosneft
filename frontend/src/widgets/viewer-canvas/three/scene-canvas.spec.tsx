@@ -344,6 +344,10 @@ describe("SceneCanvas", () => {
     expect(seen.freeCam).toMatchObject({ walk: true, unitRatio: 18 });
     expect(seen.freeCam?.onWalkRefused).toBeTypeOf("function");
     expect(seen.layer.canEdit).toBe(false);
+    // The walker's solid world is the scene wrapper, not the territory alone.
+    const solid = seen.freeCam?.solidRef as { current: unknown } | undefined;
+    expect(solid?.current).toBeTruthy();
+    expect(seen.freeCam?.solidRef).not.toBe(seen.freeCam?.sceneRef);
   });
 });
 

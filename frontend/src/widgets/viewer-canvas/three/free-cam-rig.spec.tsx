@@ -1,7 +1,7 @@
 import { useThree } from "@react-three/fiber";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { useEffect, type ReactNode } from "react";
-import { BoxGeometry, Euler, Group, Mesh, Vector3, type Camera, type PerspectiveCamera } from "three";
+import { BoxGeometry, Euler, Group, Mesh, Vector3, type Camera, type Object3D, type PerspectiveCamera } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { clipPlanes } from "../model/free-cam";
 import FreeCamRig from "./free-cam-rig";
@@ -41,9 +41,18 @@ const scene = (
   rig: boolean,
   walk = false,
   onWalkRefused: () => void = noop,
+  solidRef: { current: Object3D } = sceneRef,
 ): ReactNode => (
   <WithControls controls={controls} probe={probe}>
-    {rig ? <FreeCamRig sceneRef={sceneRef} walk={walk} unitRatio={UNIT_RATIO} onWalkRefused={onWalkRefused} /> : null}
+    {rig ? (
+      <FreeCamRig
+        sceneRef={sceneRef}
+        solidRef={solidRef}
+        walk={walk}
+        unitRatio={UNIT_RATIO}
+        onWalkRefused={onWalkRefused}
+      />
+    ) : null}
     <CanvasProbe />
     <BusProbe />
   </WithControls>
@@ -53,10 +62,10 @@ const scene = (
 // window listeners, and they would fly the camera in the next test.
 const live = new Set<() => Promise<void>>();
 
-async function mount(rig = true, sceneRef = territory()) {
+async function mount(rig = true, sceneRef = territory(), solidRef = sceneRef) {
   const controls = fakeControls();
   const probe: { camera?: Camera } = {};
-  const r = await ReactThreeTestRenderer.create(scene(controls, probe, sceneRef, rig));
+  const r = await ReactThreeTestRenderer.create(scene(controls, probe, sceneRef, rig, false, noop, solidRef));
   const camera = probe.camera as PerspectiveCamera;
   const frames = (n: number) => ReactThreeTestRenderer.act(async () => r.advanceFrames(n, 0.05));
   const key = (type: "keydown" | "keyup", code: string, init: KeyboardEventInit = {}, target: EventTarget = window) =>
@@ -76,7 +85,7 @@ async function mount(rig = true, sceneRef = territory()) {
   };
   live.add(stop);
   const walkTo = (walk: boolean, refused?: () => void) =>
-    r.update(scene(controls, probe, sceneRef, true, walk, refused));
+    r.update(scene(controls, probe, sceneRef, true, walk, refused, solidRef));
   return { r, controls, camera, sceneRef, probe, frames, key, pointer, wheel, walkTo, unmount: stop };
 }
 
@@ -352,6 +361,23 @@ describe("FreeCamRig", () => {
       expect(refused).toHaveBeenCalledOnce();
       expect(camera.position.y).toBe(3);
       expect(camera.near).toBeCloseTo(clipPlanes(Math.sqrt(3)).near);
+    });
+
+    it("stands on a placed object, and drops to the territory once it is gone", async () => {
+      reducedMotion();
+      const sceneRef = territory(); // top y = 1
+      const crate = new Mesh(new BoxGeometry(0.6, 0.2, 0.6));
+      crate.position.set(0, 1.1, 0); // top y = 1.2, sitting on the territory
+      const solid = { current: new Group() };
+      solid.current.add(sceneRef.current, crate);
+      const { camera, frames, walkTo } = await mount(true, sceneRef, solid);
+      camera.position.set(0, 3, 0);
+      await walkTo(true);
+      expect(camera.position.y).toBeCloseTo(1.2 + 0.18);
+      // Hiding it unmounts it (PlacementsLayer): the walker is left over the territory and falls to it.
+      solid.current.remove(crate);
+      await frames(30);
+      expect(camera.position.y).toBeCloseTo(1 + 0.18);
     });
 
     it("flies again on the spot, without coasting, with the free cam's clip", async () => {

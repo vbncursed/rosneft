@@ -96,6 +96,7 @@ export default function SceneCanvas({
   // The scene wrapper, and what FocusOn frames from. It has to be this and not
   // the territory: <Bounds> renders a group of its own, so the territory's
   // parent is that group, and every placement hangs off the wrapper beside it.
+  // Everything drawn under it is solid to the free cam's walker: hidden placements are not mounted, so they are not.
   const wrapperRef = useRef<Group>(null);
 
   // Wrapper-group click is the catch-all for in-scene points. Use the first
@@ -209,7 +210,13 @@ export default function SceneCanvas({
         {/* Inside the clock: the rig tells Auto LOD the camera moved through
             the settle bus, since OrbitControls fires nothing while it flies. */}
         {free ? (
-          <FreeCamRig sceneRef={territoryRef} walk={walk} unitRatio={unitRatio} onWalkRefused={onWalkRefused} />
+          <FreeCamRig
+            sceneRef={territoryRef}
+            solidRef={wrapperRef}
+            walk={walk}
+            unitRatio={unitRatio}
+            onWalkRefused={onWalkRefused}
+          />
         ) : null}
       </AutoLodClock>
 

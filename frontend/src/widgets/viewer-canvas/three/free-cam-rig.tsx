@@ -37,7 +37,10 @@ const LINE_PX = 16;
 type Drag = { id: number; startX: number; startY: number; x: number; y: number; looking: boolean };
 
 type FreeCamRigProps = {
+  /** The territory: its size sets the flight's speed and where the orbit lands. */
   sceneRef: RefObject<Object3D | null>;
+  /** Everything the walker stands on and runs into: the scene wrapper — the territory and every placement drawn. */
+  solidRef: RefObject<Object3D | null>;
   /** G: walk at eye height over the territory instead of flying. */
   walk: boolean;
   /** Metres per scene unit (computeUnitRatio): the walk's eye, step and speeds are in metres. */
@@ -59,7 +62,7 @@ type FreeCamRigProps = {
  * Walking (G) is the same rig moving another way: `useWalk` stands the camera
  * at eye height and `stepWalk` keeps it there, frame by frame.
  */
-export default function FreeCamRig({ sceneRef, walk, unitRatio, onWalkRefused }: FreeCamRigProps) {
+export default function FreeCamRig({ sceneRef, solidRef, walk, unitRatio, onWalkRefused }: FreeCamRigProps) {
   const instant = useMediaQuery("(prefers-reduced-motion: reduce)");
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
   const gl = useThree((s) => s.gl);
@@ -85,7 +88,7 @@ export default function FreeCamRig({ sceneRef, walk, unitRatio, onWalkRefused }:
   const walking = useWalk({
     walk,
     unitRatio,
-    sceneRef,
+    solidRef,
     pose,
     restartSpeed,
     onRefused: onWalkRefused,

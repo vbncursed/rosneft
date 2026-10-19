@@ -28,7 +28,8 @@ type WalkParams = {
   walk: boolean;
   /** Metres per scene unit: the eye, the step and the clip are sized by it. */
   unitRatio: number;
-  sceneRef: RefObject<Object3D | null>;
+  /** Everything the walker stands on and runs into: the scene wrapper — the territory and every placement drawn. */
+  solidRef: RefObject<Object3D | null>;
   /** The rig's pose: walking writes the eye height and the ground into it. */
   pose: RefObject<FreePose | null>;
   /** Walking and flying count speed in different units: the rig's wheel multiplier goes back to ×1 here. */
@@ -54,7 +55,7 @@ type WalkParams = {
 export function useWalk({
   walk,
   unitRatio,
-  sceneRef,
+  solidRef,
   pose,
   restartSpeed,
   onRefused,
@@ -68,7 +69,7 @@ export function useWalk({
   useEffect(() => {
     restartSpeed();
     if (!walk) return;
-    const scene = sceneRef.current;
+    const scene = solidRef.current;
     const here = poseOf(camera.position, camera.quaternion);
     const ground = scene ? raycastSurfaceY(scene, here.position.x, here.position.z, here.position.y) : null;
     if (!scene || ground === null) {
@@ -95,10 +96,10 @@ export function useWalk({
       walking.current = null;
       setClip(camera, flying());
       const last = pose.current;
-      if (last) pose.current = { ...last, velocity: new Vector3() };
+      if (last) pose.current = { ...last, velocity: new Vector3(), vy: undefined };
       invalidate();
     };
-  }, [walk, unitRatio, sceneRef, pose, restartSpeed, onRefused, flying, camera, invalidate, bus]);
+  }, [walk, unitRatio, solidRef, pose, restartSpeed, onRefused, flying, camera, invalidate, bus]);
 
   return walking;
 }
