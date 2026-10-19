@@ -1,3 +1,4 @@
+import { CatalogShell } from "@/widgets/catalog-shell";
 import { ModelDetailPage } from "./ui/model-detail-page";
 
 const MODEL = {
@@ -33,59 +34,67 @@ export default {
   // error card for valve-assembly-lod2.glb: that is this fixture's failure
   // state. A real model is checked live (Task 7).
   ready: (
-    <ModelDetailPage
-      model={{ ...MODEL, thumbnailBlobHash: "thumb-hash" }}
-      status="ready"
-      artifacts={ARTIFACTS}
-      jobError={null}
-      canDelete
-      canWrite
-      thumbnailBusy={false}
-      onDelete={noop}
-      onThumbnail={noop}
-      onRemoveThumbnail={noop}
-    />
+    <CatalogShell>
+      <ModelDetailPage
+        model={{ ...MODEL, thumbnailBlobHash: "thumb-hash" }}
+        status="ready"
+        artifacts={ARTIFACTS}
+        jobError={null}
+        canDelete
+        canWrite
+        thumbnailBusy={false}
+        onDelete={noop}
+        onThumbnail={noop}
+        onRemoveThumbnail={noop}
+      />
+    </CatalogShell>
   ),
   converting: (
-    <ModelDetailPage
-      model={{ ...MODEL, usageCount: 0 }}
-      status="converting"
-      artifacts={[]}
-      jobError={null}
-      canDelete
-      canWrite
-      thumbnailBusy={false}
-      onDelete={noop}
-      onThumbnail={noop}
-      onRemoveThumbnail={noop}
-    />
+    <CatalogShell>
+      <ModelDetailPage
+        model={{ ...MODEL, usageCount: 0 }}
+        status="converting"
+        artifacts={[]}
+        jobError={null}
+        canDelete
+        canWrite
+        thumbnailBusy={false}
+        onDelete={noop}
+        onThumbnail={noop}
+        onRemoveThumbnail={noop}
+      />
+    </CatalogShell>
   ),
   failed: (
-    <ModelDetailPage
-      model={{ ...MODEL, usageCount: 0 }}
-      status="failed"
-      artifacts={[]}
-      jobError="mesh-worker: unsupported archive layout"
-      canDelete
-      canWrite
-      thumbnailBusy={false}
-      onDelete={noop}
-      onThumbnail={noop}
-      onRemoveThumbnail={noop}
-    />
+    <CatalogShell>
+      <ModelDetailPage
+        model={{ ...MODEL, usageCount: 0 }}
+        status="failed"
+        artifacts={[]}
+        jobError="mesh-worker: unsupported archive layout"
+        canDelete
+        canWrite
+        thumbnailBusy={false}
+        onDelete={noop}
+        onThumbnail={noop}
+        onRemoveThumbnail={noop}
+      />
+    </CatalogShell>
   ),
   pending: (
-    <ModelDetailPage
-      model={{ ...MODEL, usageCount: 0 }}
-      status="pending"
-      artifacts={[]}
-      jobError={null}
-      canDelete
-      canWrite
-      thumbnailBusy={false}
-      onDelete={noop}
-      onThumbnail={noop}
-      onRemoveThumbnail={noop}
-    />
+    <CatalogShell>
+      <ModelDetailPage
+        model={{ ...MODEL, usageCount: 0 }}
+        status="pending"
+        artifacts={[]}
+        jobError={null}
+        canDelete
+        canWrite
+        thumbnailBusy={false}
+        onDelete={noop}
+        onThumbnail={noop}
+        onRemoveThumbnail={noop}
+      />
+    </CatalogShell>
   ),
 };
