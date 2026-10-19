@@ -8,6 +8,7 @@ import type { LodReport } from "../ui/props";
 import { AutoLodClock } from "./auto-lod-clock";
 import CameraRig from "./camera-rig";
 import { CAMERA, DPR_RANGE, GL_CONFIG, GRID_POSITION } from "./canvas-config";
+import ContextLossWatch from "./context-loss-watch";
 import GltfModel from "./gltf-model";
 import Ktx2Init from "./ktx2-init";
 import Lighting from "./lighting";
@@ -18,6 +19,8 @@ export type ModelSceneProps = {
   retryVersion: number;
   onLod: (report: LodReport) => void;
   colors: SceneColors;
+  /** A lost WebGL context: the page shows its unavailable state. */
+  onUnavailable: () => void;
 };
 
 const noop = () => {};
@@ -29,7 +32,7 @@ const noop = () => {};
  * inside it), so it frames an empty box; the model fits the default camera
  * because the converter normalises every mesh to max-axis 2.
  */
-export default function ModelScene({ lods, retryVersion, onLod, colors }: ModelSceneProps) {
+export default function ModelScene({ lods, retryVersion, onLod, colors, onUnavailable }: ModelSceneProps) {
   const modelRef = useRef<Group>(null);
   const bgArgs = useMemo<[string]>(() => [colors.background], [colors.background]);
   const gridArgs = useMemo<[number, number, string, string]>(() => [6, 24, colors.grid, colors.grid], [colors.grid]);
@@ -38,6 +41,7 @@ export default function ModelScene({ lods, retryVersion, onLod, colors }: ModelS
       <color attach="background" args={bgArgs} />
       <Ktx2Init />
       <Lighting />
+      <ContextLossWatch onLost={onUnavailable} />
       <AutoLodClock>
         <Bounds fit clip margin={1.2}>
           <GltfModel

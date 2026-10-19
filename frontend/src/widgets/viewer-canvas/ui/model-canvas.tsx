@@ -14,7 +14,7 @@ export const ModelCanvas = memo(function ModelCanvas({ onUnavailable, ...scene }
   const colors = useSceneColors();
   return (
     <LodErrorBoundary resetKey="model" onError={onUnavailable}>
-      <ModelScene {...scene} colors={colors} />
+      <ModelScene {...scene} colors={colors} onUnavailable={onUnavailable} />
     </LodErrorBoundary>
   );
 });

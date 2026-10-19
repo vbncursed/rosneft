@@ -31,9 +31,10 @@ describe("ModelCanvas", () => {
     expect(seen.props?.colors).toEqual(expect.objectContaining({ background: expect.any(String) }));
   });
 
-  it("keeps onUnavailable away from the scene", () => {
-    render(<ModelCanvas {...props()} />);
-    expect(seen.props).not.toHaveProperty("onUnavailable");
+  it("hands onUnavailable to the scene, for a lost context", () => {
+    const onUnavailable = vi.fn();
+    render(<ModelCanvas {...props()} onUnavailable={onUnavailable} />);
+    expect(seen.props?.onUnavailable).toBe(onUnavailable);
   });
 
   it("reports unavailable once and draws nothing when the scene throws", () => {

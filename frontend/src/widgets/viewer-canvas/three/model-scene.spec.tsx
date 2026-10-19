@@ -39,6 +39,7 @@ const props = (over: Partial<Parameters<typeof ModelScene>[0]> = {}) => ({
   retryVersion: 0,
   onLod: vi.fn(),
   colors: COLORS,
+  onUnavailable: vi.fn(),
   ...over,
 });
 
