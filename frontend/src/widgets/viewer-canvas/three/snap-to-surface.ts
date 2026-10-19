@@ -8,7 +8,7 @@ const origin = new Vector3();
 const DOWN = new Vector3(0, -1, 0);
 // 1e4 is well above the converter's normalised max-axis = 2 envelope; any
 // realistic placement sits below this, so a vertical ray from origin always
-// starts outside the mesh. The walk passes its own start (feet + one step).
+// starts outside the mesh. The walk passes its own start (the knee, over the feet).
 const RAY_START_Y = 1e4;
 
 // The nearest surface of `target` along the ray from `from` towards `dir`
@@ -41,7 +41,7 @@ function nearestHit(target: Object3D, from: Vector3, dir: Vector3, far = Infinit
 }
 
 // The surface Y under (x, z), seen straight down from `fromY`. The default
-// starts above everything; the walk starts it one step over the feet, so a
+// starts above everything; the walk starts it at the knee over the feet, so a
 // roof overhead is not taken for the ground.
 export function raycastSurfaceY(target: Object3D, x: number, z: number, fromY = RAY_START_Y): number | null {
   return nearestHit(target, origin.set(x, fromY, z), DOWN)?.point.y ?? null;

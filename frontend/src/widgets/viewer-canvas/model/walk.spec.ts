@@ -15,7 +15,7 @@ const go = (over: Partial<FreeInput>): FreeInput => ({
 });
 
 describe("walking", () => {
-  // 1 scene unit = 10 m: eye 0.18, step 0.05, knee 0.07, chest 0.12, body 0.03, gravity 0.98, terminal 3, jump 0.31.
+  // 1 scene unit = 10 m: eye 0.18, step 0.05, knee 0.07, chest 0.12, body 0.03, over-step 0.002, gravity 0.98, terminal 3, jump 0.31.
   const scale = walkScale(10);
   const flat =
     (y = 0): GroundAt =>
@@ -393,7 +393,7 @@ describe("walking into real meshes", () => {
 
   // Face at z = -1.05: five steps reach -0.70, 0.35 m off it; the next would leave 0.21 m.
   it("stops short of a building standing on the ground", () => {
-    // Its floor is the slab: the ray down from one step over the feet found it, inside.
+    // Its floor is the slab: the ray down from the knee over the feet found it, inside.
     expect(walkNorth(site(block(6, 4, -1.05))).z).toBeCloseTo(-0.7);
   });
 

@@ -43,7 +43,7 @@ export type FreeInput = {
 };
 
 const MOVE_KEYS = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "KeyQ", "KeyE", "ShiftLeft", "ShiftRight"]);
-/** Space: held like a move key, but only while walking (useHeldKeys). */
+/** Space: a latch, not a held key: one press per jump, only while walking (useHeldKeys). */
 export const JUMP_KEY = "Space";
 
 /** `event.code`, not `event.key`: the same physical keys on a Russian layout. */
