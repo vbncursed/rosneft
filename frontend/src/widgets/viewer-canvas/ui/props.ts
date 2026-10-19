@@ -95,3 +95,12 @@ export type ViewerCanvasProps = {
   /** The rig ended the flight itself — a grab, or nothing to circle. */
   onPlayStop: () => void;
 };
+
+/** The model page's viewer: one LOD chain, nothing else. */
+export type ModelCanvasProps = {
+  lods: LodArtifact[];
+  retryVersion: number;
+  onLod: (report: LodReport) => void;
+  /** The scene could not start — no WebGL, or anything else that tore the Canvas down. */
+  onUnavailable: () => void;
+};

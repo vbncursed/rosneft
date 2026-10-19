@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import type { Chain } from "@/entities/measurement";
 import { ALL_PHASES_SHOWN } from "@/entities/panorama";
-import { ViewerCanvas } from "./index";
+import { ModelCanvas, ViewerCanvas } from "./index";
 
 const noop = () => undefined;
 
@@ -81,9 +81,18 @@ const Canvas = ({ chains = NO_CHAINS, showMeasurements = true, measuring = false
   </div>
 );
 
+const Model = () => (
+  <div className="h-[560px] w-full">
+    <Suspense fallback={null}>
+      <ModelCanvas lods={[]} retryVersion={0} onLod={noop} onUnavailable={noop} />
+    </Suspense>
+  </div>
+);
+
 export default {
   empty: <Canvas />,
   ruler: <Canvas chains={RULER} />,
   "ruler-hidden": <Canvas chains={RULER} showMeasurements={false} />,
   "ruler-hidden-measuring": <Canvas chains={RULER} showMeasurements={false} measuring />,
+  model: <Model />,
 };
