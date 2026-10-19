@@ -84,9 +84,9 @@ export function useWalkFeel(camera: PerspectiveCamera, unitRatio: number): WalkF
     const shown = (pose: FreePose) => lift(pose, eyeOffsetM(feel.current) / unitRatio);
     return {
       step(prev, next, input, dt, walking) {
-        const kept = feel.current.walking && !walking ? shown(next) : next;
-        feel.current = stepFeel(feel.current, prev, next, input, { dt, unitRatio, walking });
-        return kept;
+        const was = feel.current;
+        feel.current = stepFeel(was, prev, next, input, { dt, unitRatio, walking });
+        return was.walking && !feel.current.walking ? lift(next, eyeOffsetM(was) / unitRatio) : next;
       },
       apply(pose) {
         applyPose(camera, shown(pose));
