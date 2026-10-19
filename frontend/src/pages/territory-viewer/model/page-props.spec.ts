@@ -398,6 +398,14 @@ describe("pageProps · overlays", () => {
       "free",
     );
   });
+
+  it("keeps the free cam chip and key row on a touch screen once it is on", () => {
+    const p = parts({ panel: { tab: "view", collapsed: true } });
+    const props = pageProps({ ...p, view: { ...p.view, touch: true }, mode: { ...p.mode, free: true } });
+    expect(props.overlays.tools.map((t) => t.key)).not.toContain("free");
+    expect(props.overlays.chip).toEqual({ text: "free cam · drag to look", kbd: "F" });
+    expect(props.overlays.freeHints).toBe(true);
+  });
 });
 
 describe("pageProps · saved measurements", () => {
