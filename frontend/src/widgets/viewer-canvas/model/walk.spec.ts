@@ -58,6 +58,7 @@ describe("walking", () => {
       knee: 0.35,
       chest: 0.6,
       body: 0.15,
+      overStep: 0.01,
       gravity: 4.9,
       terminal: 15,
       jump: expect.closeTo(Math.sqrt(9.8) / 2, 6),
@@ -184,15 +185,18 @@ describe("walking", () => {
     expect(p.position.z).toBeGreaterThan(-0.04);
   });
 
-  it("probes at the knee, then the chest, along the step, as far as the step and the body", () => {
+  it("probes just over a step, then the knee and the chest, along the step, the first as far as the frame's move", () => {
     const wall = vi.fn<WallAt>(() => false);
     stepWalk(standing(), go({ forward: 1 }), walled(wall));
-    expect(wall).toHaveBeenCalledTimes(2);
-    const [[knee, dir, reach], [chest]] = wall.mock.calls;
+    // Three probes, not two: the over-step one catches a thin rail the knee passes over.
+    expect(wall).toHaveBeenCalledTimes(3);
+    const [[over, dir, overReach], [knee, , kneeReach], [chest]] = wall.mock.calls;
+    expect(over.y).toBeCloseTo(scale.step + scale.overStep);
+    expect(overReach).toBeCloseTo(0.14);
     expect(knee.y).toBeCloseTo(scale.knee);
     expect(chest.y).toBeCloseTo(scale.chest);
     near(dir, 0, 0, -1);
-    expect(reach).toBeCloseTo(0.14 + scale.body);
+    expect(kneeReach).toBeCloseTo(0.14 + scale.body);
   });
 
   it("spares the chest ray when the knee already hit", () => {
@@ -420,8 +424,8 @@ describe("walking into real meshes", () => {
     g.position.set(0, height / 2, face - 2);
     return g;
   };
-  /** `frames` frames of `dt` with `input` held, from standing at the origin. */
-  const walkFor = (scene: Object3D, input: FreeInput, frames: number, dt: number) => {
+  /** `frames` frames of `dt` with `input` held, from standing at (0, `z0`). */
+  const walkFor = (scene: Object3D, input: FreeInput, frames: number, dt: number, z0 = 0) => {
     const w: WalkWorld = {
       dt,
       speed: walkSpeed(1, 1),
@@ -430,7 +434,7 @@ describe("walking into real meshes", () => {
       wallAt: (from, dir, reach) => hitsWithin(scene, from, dir, reach),
     };
     let pose: FreePose = {
-      position: new Vector3(0, scale.eye, 0),
+      position: new Vector3(0, scale.eye, z0),
       yaw: 0,
       pitch: 0,
       velocity: new Vector3(),
@@ -464,6 +468,47 @@ describe("walking into real meshes", () => {
       const p = walkFor(site(placed(1.05, -1.05)), go({ forward: 1, jump }), 120, 1 / 60);
       expect(p.ground).toBeCloseTo(0);
       expect(p.position.z).toBeGreaterThan(-1.05);
+    }
+  });
+
+  it("never walks through a 2 cm rail that the knee passes over, running at 0.1 s a frame from any start", () => {
+    for (const h of [0.55, 0.62, 0.69]) {
+      for (const z0 of [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]) {
+        const p = walkFor(site(block(h, 0.02, -1.05)), go({ forward: 1, boost: true }), 30, 0.1, z0);
+        // Stops at the near face, or a float short of it: a step can land exactly on the face.
+        expect(p.position.z, `rail ${h} m from z ${z0}`).toBeGreaterThan(-1.05 - 1e-6);
+      }
+    }
+  });
+
+  /** A ramp rising towards -z from the floor's edge at z = 0, its top at `deg`. */
+  const ramp = (deg: number) => {
+    const a = (deg * Math.PI) / 180;
+    const m = new Mesh(new BoxGeometry(4, 0.01, 20));
+    m.rotation.x = a;
+    m.position.set(0, 10 * Math.sin(a) - 0.005 * Math.cos(a), -10 * Math.cos(a) - 0.005 * Math.sin(a));
+    return m;
+  };
+  /** Ten treads of `rise` by `tread`, from z = -1 towards -z. */
+  const stairs = (rise: number, tread: number) => {
+    const g = new Group();
+    for (let i = 1; i <= 10; i++) {
+      const m = new Mesh(new BoxGeometry(4, rise * i, tread));
+      m.position.set(0, (rise * i) / 2, -1 - tread * (i - 0.5));
+      g.add(m);
+    }
+    return g;
+  };
+
+  it("walks up ramps of 20, 30 and 40 degrees and stairs of 18/28 and 20/25 cm, walking and running", () => {
+    const climbs = [() => ramp(20), () => ramp(30), () => ramp(40), () => stairs(0.18, 0.28), () => stairs(0.2, 0.25)];
+    for (const [input, frames, dt] of [
+      [go({ forward: 1 }), 240, 1 / 60],
+      [go({ forward: 1, boost: true }), 30, 0.1],
+    ] as const) {
+      for (const climb of climbs) {
+        expect(walkFor(site(climb()), input, frames, dt).position.z).toBeLessThan(-1.5);
+      }
     }
   });
 });

@@ -9,7 +9,9 @@ const RUN_MPS = 4;
 /** A person's depth range in metres: a hand's width to a horizon a couple of km off. */
 const WALK_NEAR_M = 0.1;
 const WALK_FAR_M = 2000;
-/** The wall probe's two heights over the feet: the knee, over any rise a step climbs, then the chest. */
+/** The first wall probe runs this far over a step's height: a thin rail no step climbs is caught there. */
+const OVER_STEP_M = 0.02;
+/** The wall probes' heights over the feet: the knee, over any rise a step climbs, then the chest. */
 const KNEE_M = STEP_M + 0.2;
 const CHEST_M = 1.2;
 /** Half a person's width: how near a wall the walker comes head-on. */
@@ -31,6 +33,7 @@ export type WalkScale = {
   knee: number;
   chest: number;
   body: number;
+  overStep: number;
   gravity: number;
   terminal: number;
   jump: number;
@@ -47,6 +50,7 @@ export const walkScale = (unitRatio: number): WalkScale => ({
   knee: KNEE_M / unitRatio,
   chest: CHEST_M / unitRatio,
   body: BODY_M / unitRatio,
+  overStep: OVER_STEP_M / unitRatio,
   gravity: GRAVITY_MPS2 / unitRatio,
   terminal: TERMINAL_MPS / unitRatio,
   jump: Math.sqrt(2 * GRAVITY_MPS2 * JUMP_M) / unitRatio,
@@ -60,15 +64,19 @@ export const walkClip = (unitRatio: number, flyingFar: number) => ({
 });
 
 /**
- * Nothing at the knee or the chest along (dx, dz), as far as the step and the
- * body. The ray down cannot see a wall it starts below, nor one with ground
- * behind it; this level ray can. Knee first: most walls end there.
+ * Nothing in the way along (dx, dz). The first probe is level just over a step
+ * and runs the frame's own move, so a thin rail no step climbs is caught on
+ * every stretch of the move, not only where its face is; the knee and the
+ * chest then see the walls that stand higher, as far as the step and the body.
+ * The ray down cannot see a wall it starts below, nor one with ground behind
+ * it; these level rays can.
  */
 function clearAhead(w: WalkWorld, eye: Vector3, dx: number, dz: number): boolean {
   const step = Math.hypot(dx, dz);
   if (step === 0) return true;
   const dir = new Vector3(dx / step, 0, dz / step);
   const feet = eye.y - w.scale.eye;
+  if (w.wallAt(new Vector3(eye.x, feet + w.scale.step + w.scale.overStep, eye.z), dir, step)) return false;
   const reach = step + w.scale.body;
   return [w.scale.knee, w.scale.chest].every((h) => !w.wallAt(new Vector3(eye.x, feet + h, eye.z), dir, reach));
 }
