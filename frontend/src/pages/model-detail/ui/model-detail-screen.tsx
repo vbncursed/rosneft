@@ -18,7 +18,9 @@ export function ModelDetailScreen() {
     return (
       <div role="status" aria-busy="true" aria-label="Loading model" className="flex flex-col gap-3">
         <Skeleton height="28px" width="30%" />
-        <Skeleton height="560px" />
+        <div className="h-[420px] sm:h-[560px]">
+          <Skeleton height="100%" />
+        </div>
       </div>
     );
   }

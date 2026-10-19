@@ -10,6 +10,7 @@ const { useModelDetail, useParams } = vi.hoisted(() => ({
   useParams: vi.fn(),
 }));
 vi.mock("../model/use-model-detail", () => ({ useModelDetail }));
+vi.mock("@/widgets/viewer-canvas", () => ({ ModelCanvas: () => null }));
 vi.mock("@tanstack/react-router", () => ({ useParams: () => useParams() }));
 vi.mock("@/features/edit-entity", () => ({
   EditDetailsDialog: ({ title }: { title: string }) => <div role="dialog" aria-label={`Edit ${title}`} />,
@@ -48,6 +49,14 @@ describe("ModelDetailScreen", () => {
     useModelDetail.mockReturnValue({ phase: "loading" });
     render(<ModelDetailScreen />);
     expect(screen.getByRole("status")).toBeInTheDocument();
+  });
+
+  // The skeleton reserves the same height as the viewport at each breakpoint,
+  // so the page does not jump when the canvas replaces it.
+  it("reserves the viewport's height at every breakpoint", () => {
+    useModelDetail.mockReturnValue({ phase: "loading" });
+    render(<ModelDetailScreen />);
+    expect(screen.getByRole("status").lastElementChild).toHaveClass("h-[420px]", "sm:h-[560px]");
   });
 
   it("says the model was not found, with a way back", () => {
