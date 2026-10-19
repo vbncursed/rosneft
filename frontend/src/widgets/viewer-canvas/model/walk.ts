@@ -25,8 +25,8 @@ const JUMP_M = 0.5;
 const GROUND_EASE_S = 0.08;
 /** In the air the velocity turns towards the wish by at most this share of the wish's speed a second. */
 const AIR_CONTROL = 0.3;
-/** In the air the horizontal speed also bleeds away: half of it gone in ~0.6 s, a share of it a second, exact at any frame. */
-const AIR_DRAG = 1.2;
+/** In the air the horizontal speed also bleeds away: half of it gone in ~1.2 s, a share of it a second, exact at any frame. */
+export const AIR_DRAG = 0.6;
 
 /** The body in scene units: a metre is 1 / unitRatio of them; gravity, terminal speed and jump likewise per second. */
 export type WalkScale = {

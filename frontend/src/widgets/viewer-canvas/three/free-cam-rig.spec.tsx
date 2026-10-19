@@ -592,8 +592,8 @@ describe("FreeCamRig", () => {
       await key("keydown", "KeyW");
       const seen = await ys(frames, camera, 120); // well onto the kerb
       const rises = seen.slice(1).map((y, i) => y - seen[i]);
-      // The body takes the whole 0.03 in one step; a critically damped eye takes ~59 % of it in the first 50 ms frame.
-      expect(Math.max(...rises)).toBeLessThan(0.021);
+      // The body takes the whole 0.03 in one step; at ω 25 a critically damped eye takes ~36 % of it in each 50 ms frame at most, a snap would take 100 %.
+      expect(Math.max(...rises)).toBeLessThan(0.03 * 0.4);
       await key("keyup", "KeyW");
       await frames(20);
       expect(camera.position.y).toBeCloseTo(1.21, 9);

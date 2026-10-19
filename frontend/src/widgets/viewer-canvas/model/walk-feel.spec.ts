@@ -57,12 +57,14 @@ describe("the eye over a walking body", () => {
     expect(feelAtRest(s)).toBe(true);
   });
 
-  it("takes a step up first under the body, then catches up in about 120 ms without overshoot", () => {
+  it("takes a step up first under the body, then catches up in about 190 ms without overshoot", () => {
     const { s, seen } = stepUp(30);
     expect(seen[0]).toBeLessThan(-0.2);
     expect(seen[0]).toBeGreaterThan(-0.3);
     expect(Math.max(...seen)).toBeLessThanOrEqual(0);
-    expect(Math.abs(seen[6])).toBeLessThan(0.3 * 0.06); // 7 frames: 117 ms
+    // 5 % of the step is left at ωt ≈ 4.74, 0.19 s at ω 25: 11 frames (183 ms) still above it, 12 (200 ms) under.
+    expect(Math.abs(seen[10])).toBeGreaterThan(0.3 * 0.05);
+    expect(Math.abs(seen[11])).toBeLessThan(0.3 * 0.05);
     expect(eyeOffsetM(s)).toBe(0);
     expect(feelAtRest(s)).toBe(true);
   });

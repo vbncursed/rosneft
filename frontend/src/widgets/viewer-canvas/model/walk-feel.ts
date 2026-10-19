@@ -8,8 +8,8 @@ import { RUN_MPS, WALK_MPS } from "./walk";
 // run, a wider view. All of it in metres and degrees: the rig scales it into the
 // scene by unitRatio. Every knob of it is in this file.
 
-/** The eye catches a body that snapped up or down a step in about 120 ms, never overshooting (ω, rad/s). */
-const EYE_OMEGA = 40;
+/** The eye catches a body that snapped up or down a step in about 190 ms, never overshooting (ω, rad/s). */
+const EYE_OMEGA = 25;
 /** How fast the run's wider view comes and goes (ω, rad/s): about half a second. */
 const FOV_OMEGA = 10;
 /** Under these an offset (m) and its speed (m/s), and the view's kick (°, °/s), are none: the spring is at rest. */

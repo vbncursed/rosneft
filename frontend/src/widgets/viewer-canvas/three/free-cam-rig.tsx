@@ -86,7 +86,6 @@ export default function FreeCamRig({ sceneRef, solidRef, walk, unitRatio, onWalk
     pose.current = now;
     feel.rest();
   }, [camera, feel]);
-  const show = useCallback((p: FreePose) => feel.apply(p), [feel]);
   // Before the setup effect below, on purpose: see useWalk on the cleanup order.
   const restartSpeed = useCallback(() => {
     speed.current.multiplier = 1;
@@ -171,7 +170,7 @@ export default function FreeCamRig({ sceneRef, solidRef, walk, unitRatio, onWalk
       pose.current = lookStep(current, e.clientX - drag.x, e.clientY - drag.y);
       drag.x = e.clientX;
       drag.y = e.clientY;
-      show(pose.current);
+      feel.apply(pose.current);
       bus.settle();
       invalidate();
     };
@@ -199,7 +198,7 @@ export default function FreeCamRig({ sceneRef, solidRef, walk, unitRatio, onWalk
       canvas.removeEventListener("contextmenu", menu);
       setCursor(canvas, "");
     };
-  }, [controls, gl, bus, invalidate, resync, show]);
+  }, [controls, gl, bus, invalidate, resync, feel]);
 
   // frameloop="demand": a frame runs only when asked, so the flight asks for
   // the next one for as long as anything is still moving — the eye included.
