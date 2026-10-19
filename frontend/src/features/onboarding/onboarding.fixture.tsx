@@ -23,7 +23,7 @@ function Tooltip() {
 }
 
 // A fake viewer behind the dim: enough chrome to carry a `data-tour` anchor for
-// every step the tour lights up, so all eight are browsable here.
+// every step the tour lights up, so every step is browsable here.
 function FakeViewer() {
   return (
     <div className="flex h-dvh flex-col bg-bg">
@@ -35,7 +35,7 @@ function FakeViewer() {
       </header>
       <div className="flex min-h-0 flex-1">
         <div className="flex flex-col gap-2 border-r border-line p-2.5">
-          {(["reset-camera", "measure"] as const).map((id) => (
+          {(["reset-camera", "free-cam", "measure"] as const).map((id) => (
             <span key={id} data-tour={id} className="size-7 rounded-control border border-line-2 bg-panel-2" />
           ))}
         </div>

@@ -10,3 +10,6 @@ export function computeUnitRatio(dimensions: Vec3): number {
   if (!Number.isFinite(max) || max <= 0) return 1;
   return max / 2;
 }
+
+/** The walker's eye over the ground, in metres: the middle of 1.75–1.85. One place to change it. */
+export const EYE_HEIGHT_M = 1.8;

@@ -6,6 +6,7 @@ import type { Placement } from "@/entities/placement";
 import type { SceneBundle } from "@/entities/scene";
 import type { Principal } from "@/shared/session";
 import { HttpError } from "@/shared/api";
+import { notify } from "@/shared/lib/notify";
 import { useTerritoryViewer, type TerritoryViewerState } from "./use-territory-viewer";
 
 const {
@@ -326,6 +327,44 @@ describe("useTerritoryViewer", () => {
       expect(now(r).canvas.free).toBe(true);
       act(() => now(r).overlays.onPlay());
       expect(now(r).canvas).toMatchObject({ free: false, playing: true });
+    });
+
+    const press = (k: string) =>
+      act(() => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: k }));
+      });
+
+    it("G walks in the free cam and flies again; outside it G still snaps", async () => {
+      const r = mount();
+      await ready(r);
+      press("g");
+      expect(now(r).canvas).toMatchObject({ snap: true, walk: false });
+      press("f");
+      press("g");
+      expect(now(r).canvas).toMatchObject({ free: true, walk: true });
+      press("g");
+      expect(now(r).canvas.walk).toBe(false);
+    });
+
+    it("a walk the canvas refuses goes back to flying, with a word why", async () => {
+      const info = vi.spyOn(notify, "info").mockImplementation(() => 0);
+      const r = mount();
+      await ready(r);
+      press("f");
+      press("g");
+      act(() => now(r).canvas.onWalkRefused());
+      expect(now(r).canvas).toMatchObject({ free: true, walk: false });
+      expect(info).toHaveBeenCalledOnce();
+      info.mockRestore();
+    });
+
+    it("Escape from a walk leaves the free cam", async () => {
+      const r = mount();
+      await ready(r);
+      press("f");
+      press("g");
+      press("Escape");
+      expect(now(r).canvas).toMatchObject({ free: false, walk: false });
     });
 
     it("Reset leaves the free cam", async () => {

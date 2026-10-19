@@ -2,7 +2,6 @@ import { documentFileName } from "@/entities/document";
 import { Button } from "@/shared/ui/button";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { Icon, type IconName } from "@/shared/ui/icon";
-import { KeycapHint } from "@/shared/ui/keycap-hint";
 import { LodSwitcher } from "@/shared/ui/lod-switcher";
 import { ModeChip } from "@/shared/ui/mode-chip";
 import { StatsStrip } from "@/shared/ui/stats-strip";
@@ -12,11 +11,15 @@ import { SWITCH_TO_3D } from "@/widgets/view-tab";
 import type { ViewerOverlaysProps } from "../model/page-props";
 import type { RailTool } from "../model/viewer-view";
 import { FreeCamKeys } from "./free-cam-keys";
+import { OrbitHints } from "./orbit-hints";
 import { ViewerError } from "./viewer-error";
 
 /** Saved measurements are shared (spec M-1), so Clear takes them from everyone. */
 const CLEAR_NOTE =
   "Measurements are shared: this removes them for everyone who opens this territory. Your unsaved chains are cleared too.";
+
+/** What G does once the free cam is on — said on the tile, where the free cam is found. */
+const FREE_NOTE = "Inside, press G to walk";
 
 /**
  * The tile's icon, name and tour anchor. The page decides the state.
@@ -27,11 +30,11 @@ const CLEAR_NOTE =
  */
 const TILES: Record<
   RailTool,
-  { icon: IconName; name: string; shortcut?: string; toggle?: boolean; dataTour?: string }
+  { icon: IconName; name: string; shortcut?: string; note?: string; toggle?: boolean; dataTour?: string }
 > = {
   reset: { icon: "reset", name: "Reset camera", dataTour: "reset-camera" },
   play: { icon: "play", name: "Fly around", toggle: true },
-  free: { icon: "free-cam", name: "Free cam", shortcut: "F", toggle: true },
+  free: { icon: "free-cam", name: "Free cam", shortcut: "F", note: FREE_NOTE, toggle: true, dataTour: "free-cam" },
   measure: { icon: "ruler", name: "Measure", shortcut: "M", toggle: true, dataTour: "measure" },
   add: { icon: "plus", name: "Add objects", toggle: true, dataTour: "add-object" },
   panoramas: { icon: "panorama", name: "Panoramas", toggle: true, dataTour: "panoramas" },
@@ -128,7 +131,7 @@ export function ViewerOverlays({
   switcher,
   strip,
   hints,
-  freeHints,
+  freeKeys,
   error,
   switchTo3d,
   document: doc,
@@ -190,7 +193,7 @@ export function ViewerOverlays({
             {chip.text}
           </ModeChip>
         ) : null}
-        {freeHints ? <FreeCamKeys /> : null}
+        {freeKeys ? <FreeCamKeys mode={freeKeys} /> : null}
         {switchTo3d ? (
           <Button size="sm" onClick={switchTo3d} className="shadow-elevation">
             {SWITCH_TO_3D}
@@ -226,16 +229,7 @@ export function ViewerOverlays({
         ) : null}
       </div>
 
-      {hints ? (
-        <div
-          role="note"
-          aria-label="Keyboard hints"
-          className="absolute bottom-3.5 right-[74px] flex items-center gap-1.5"
-        >
-          <KeycapHint keyLabel="M">measure</KeycapHint>
-          <KeycapHint keyLabel="Esc">exit / deselect</KeycapHint>
-        </div>
-      ) : null}
+      {hints ? <OrbitHints freeCam={tools.some((t) => t.key === "free" && t.state !== "inert")} /> : null}
 
       {measuring ? (
         <div role="note" aria-label="Measure tool" className={`${HINT_BAR} ${PANEL_EDGE_MOVING}`}>

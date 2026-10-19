@@ -12,7 +12,7 @@ export {
   type ChainSync,
 } from "./model/chain";
 export { formatDistance } from "./model/distance";
-export { computeUnitRatio } from "./model/unit-ratio";
+export { computeUnitRatio, EYE_HEIGHT_M } from "./model/unit-ratio";
 export {
   measurementReducer,
   initialMeasurementState,

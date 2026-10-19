@@ -41,6 +41,11 @@ const HEAD: TourStep[] = [
     body: "Frame the whole territory again after you have zoomed or panned away. Drag to rotate, scroll to zoom, right-drag to pan.",
   },
   {
+    id: "free-cam",
+    title: "Fly and walk",
+    body: "Free cam (F) flies you through the territory: WASD to move, Q/E down and up, drag to look, the wheel sets the speed. Inside it, G sets you on the ground at eye height to walk, and G again takes off. Esc steps back out.",
+  },
+  {
     id: "measure",
     title: "Measure distances",
     body: "Click two points on any surface to measure between them. Keep clicking to chain segments, and click the first dot to close the loop. A Clear button appears once you have drawn something.",
@@ -69,7 +74,7 @@ const TAIL: TourStep[] = [
     id: "shortcuts",
     center: true,
     title: "Keyboard shortcuts",
-    body: "M measure · P next panorama · V move panorama points · T move · R rotate · S scale · G snap to surface · Esc step back out. Reopen this tour any time with the\u00a0? button.",
+    body: "M measure · F free cam (G there to walk) · P next panorama · V move panorama points · T move · R rotate · S scale · G snap to surface · Esc step back out. Reopen this tour any time with the\u00a0? button.",
   },
 ];
 

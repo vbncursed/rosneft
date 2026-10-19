@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, type RefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Euler, Vector3, type Object3D, type PerspectiveCamera } from "three";
+import { Vector3, type Object3D, type PerspectiveCamera } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { isShortcutBlocked } from "@/features/viewer-mode";
 import { useMediaQuery } from "@/shared/lib/use-media-query";
@@ -16,11 +16,15 @@ import {
   nextMultiplier,
   poseOf,
   stepFreeCam,
+  stepWalk,
+  walkSpeed,
   type FreePose,
 } from "../model/free-cam";
 import { boundsOf } from "./bounds";
+import { applyPose, setClip, setCursor, setEnabled } from "./free-cam-writes";
 import { useAutoLodBus } from "./settle-bus";
 import { holdStill } from "./stop-coast";
+import { useWalk } from "./use-walk";
 
 /** The most one frame moves the camera: a lost frame slows the flight, never teleports it (Play's MAX_STEP_MS). */
 const MAX_STEP_S = 0.1;
@@ -33,22 +37,14 @@ const LINE_PX = 16;
 
 type Drag = { id: number; startX: number; startY: number; x: number; y: number; looking: boolean };
 
-// Outside the component, like panorama-drag-controller's setOrbit: these are
-// three.js objects and a DOM node, not React state.
-const setEnabled = (controls: OrbitControlsImpl, on: boolean) => {
-  controls.enabled = on;
-};
-const setCursor = (canvas: HTMLElement, cursor: string) => {
-  canvas.style.cursor = cursor;
-};
-const setClip = (camera: PerspectiveCamera, planes: { near: number; far: number }) => {
-  camera.near = planes.near;
-  camera.far = planes.far;
-  camera.updateProjectionMatrix();
-};
-const applyPose = (camera: PerspectiveCamera, pose: FreePose) => {
-  camera.position.copy(pose.position);
-  camera.quaternion.setFromEuler(new Euler(pose.pitch, pose.yaw, 0, "YXZ"));
+type FreeCamRigProps = {
+  sceneRef: RefObject<Object3D | null>;
+  /** G: walk at eye height over the territory instead of flying. */
+  walk: boolean;
+  /** Metres per scene unit (computeUnitRatio): the walk's eye, step and speeds are in metres. */
+  unitRatio: number;
+  /** Nothing to stand on under the camera: the page goes back to flying. */
+  onWalkRefused: () => void;
 };
 
 /**
@@ -60,8 +56,11 @@ const applyPose = (camera: PerspectiveCamera, pose: FreePose) => {
  * mid-flight — update() would pull the camera back onto its old orbit. Auto
  * LOD hears the camera move through the settle bus instead. On the way out
  * the orbit pivots on the territory along the line of sight, as Play lands.
+ *
+ * Walking (G) is the same rig moving another way: `useWalk` stands the camera
+ * at eye height and `stepWalk` keeps it there, frame by frame.
  */
-export default function FreeCamRig({ sceneRef }: { sceneRef: RefObject<Object3D | null> }) {
+export default function FreeCamRig({ sceneRef, walk, unitRatio, onWalkRefused }: FreeCamRigProps) {
   const instant = useMediaQuery("(prefers-reduced-motion: reduce)");
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
   const gl = useThree((s) => s.gl);
@@ -79,6 +78,20 @@ export default function FreeCamRig({ sceneRef }: { sceneRef: RefObject<Object3D 
     const now = poseOf(camera.position, camera.quaternion);
     if (drifted(current, now, speed.current.radius)) pose.current = now;
   }, [camera]);
+  // Before the setup effect below, on purpose: see useWalk on the cleanup order.
+  const restartSpeed = useCallback(() => {
+    speed.current.multiplier = 1;
+  }, []);
+  const flyingClip = useCallback(() => clipPlanes(speed.current.radius), []);
+  const walking = useWalk({
+    walk,
+    unitRatio,
+    sceneRef,
+    pose,
+    restartSpeed,
+    onRefused: onWalkRefused,
+    flying: flyingClip,
+  });
 
   useEffect(() => {
     if (!controls) return;
@@ -88,8 +101,10 @@ export default function FreeCamRig({ sceneRef }: { sceneRef: RefObject<Object3D 
     scale.radius = sphere?.radius ?? FALLBACK_RADIUS;
     holdStill(controls, camera);
     setEnabled(controls, false);
-    const saved = { near: camera.near, far: camera.far };
-    setClip(camera, clipPlanes(scale.radius));
+    // A walk already on at mount (a canvas remount mid-walk) ran its effect first: the orbit's planes are the ones it took.
+    const walked = walking.current;
+    const saved = walked ? walked.before : { near: camera.near, far: camera.far };
+    setClip(camera, walked ? walked.clip() : clipPlanes(scale.radius));
     pose.current = poseOf(camera.position, camera.quaternion);
     invalidate();
     return () => {
@@ -103,7 +118,7 @@ export default function FreeCamRig({ sceneRef }: { sceneRef: RefObject<Object3D 
       // The pivot is on the line of sight, so the look-at inside turns nothing.
       controls.update();
     };
-  }, [controls, camera, sceneRef, invalidate]);
+  }, [controls, camera, sceneRef, invalidate, walking, pose]);
 
   useEffect(() => {
     const held = keys.current;
@@ -205,15 +220,16 @@ export default function FreeCamRig({ sceneRef }: { sceneRef: RefObject<Object3D 
   useFrame((_, delta) => {
     const current = pose.current;
     if (!current) return;
+    const dt = Math.min(delta, MAX_STEP_S);
+    const input = { ...freeInput(keys.current), instant };
     const { radius, multiplier } = speed.current;
-    const next = stepFreeCam(
-      current,
-      { ...freeInput(keys.current), instant },
-      Math.min(delta, MAX_STEP_S),
-      freeSpeed(radius, multiplier),
-    );
+    const ground = walking.current; // scale, groundAt and wallAt in one
+    const next = ground
+      ? stepWalk(current, input, { dt, speed: walkSpeed(unitRatio, multiplier), ...ground })
+      : stepFreeCam(current, input, dt, freeSpeed(radius, multiplier));
     pose.current = next;
-    if (next.velocity.lengthSq() === 0) return;
+    // At rest only when nothing eases out and nothing is still sinking to lower ground.
+    if (next.velocity.lengthSq() === 0 && next.position.equals(current.position)) return;
     applyPose(camera, next);
     bus.settle();
     invalidate();

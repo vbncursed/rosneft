@@ -3,6 +3,7 @@ import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { useEffect, type ReactNode } from "react";
 import { BoxGeometry, Euler, Group, Mesh, Vector3, type Camera, type PerspectiveCamera } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { clipPlanes } from "../model/free-cam";
 import FreeCamRig from "./free-cam-rig";
 import { SETTLE_MS, useAutoLodBus } from "./settle-bus";
 import { fakeControls, waitInAct, WithControls } from "./testing";
@@ -30,14 +31,19 @@ const territory = () => {
   return { current: group };
 };
 
+const UNIT_RATIO = 10; // 1 scene unit = 10 m: eye 0.18, walk 0.14 u/s, run 0.4 u/s
+const noop = () => {};
+
 const scene = (
   controls: ReturnType<typeof fakeControls>,
   probe: { camera?: Camera },
   sceneRef: { current: Group },
   rig: boolean,
+  walk = false,
+  onWalkRefused: () => void = noop,
 ): ReactNode => (
   <WithControls controls={controls} probe={probe}>
-    {rig ? <FreeCamRig sceneRef={sceneRef} /> : null}
+    {rig ? <FreeCamRig sceneRef={sceneRef} walk={walk} unitRatio={UNIT_RATIO} onWalkRefused={onWalkRefused} /> : null}
     <CanvasProbe />
     <BusProbe />
   </WithControls>
@@ -47,10 +53,9 @@ const scene = (
 // window listeners, and they would fly the camera in the next test.
 const live = new Set<() => Promise<void>>();
 
-async function mount(rig = true) {
+async function mount(rig = true, sceneRef = territory()) {
   const controls = fakeControls();
   const probe: { camera?: Camera } = {};
-  const sceneRef = territory();
   const r = await ReactThreeTestRenderer.create(scene(controls, probe, sceneRef, rig));
   const camera = probe.camera as PerspectiveCamera;
   const frames = (n: number) => ReactThreeTestRenderer.act(async () => r.advanceFrames(n, 0.05));
@@ -70,7 +75,9 @@ async function mount(rig = true) {
     if (live.delete(stop)) await r.unmount();
   };
   live.add(stop);
-  return { r, controls, camera, sceneRef, probe, frames, key, pointer, wheel, unmount: stop };
+  const walkTo = (walk: boolean, refused?: () => void) =>
+    r.update(scene(controls, probe, sceneRef, true, walk, refused));
+  return { r, controls, camera, sceneRef, probe, frames, key, pointer, wheel, walkTo, unmount: stop };
 }
 
 afterEach(async () => {
@@ -317,5 +324,151 @@ describe("FreeCamRig", () => {
       expect.arrayContaining(["pointerdown", "pointermove", "pointerup", "pointercancel", "wheel", "contextmenu"]),
     );
     expect(canvas.style.cursor).toBe("");
+  });
+
+  describe("walking", () => {
+    it("stands 1.8 m over the territory and walks along it, whatever the pitch, up to its edge", async () => {
+      reducedMotion();
+      const { camera, key, frames, walkTo } = await mount();
+      camera.position.set(0, 3, -0.5);
+      camera.quaternion.setFromEuler(new Euler(-0.6, 0, 0, "YXZ")); // looking down
+      await walkTo(true);
+      expect(camera.position.y).toBeCloseTo(1.18);
+      expect(camera.near).toBeCloseTo(0.01);
+      await key("keydown", "KeyW");
+      await key("keydown", "ShiftLeft");
+      await frames(40); // 2 s at 0.4 u/s would carry it 0.8 — past the edge at z = -1
+      expect(camera.position.y).toBeCloseTo(1.18);
+      // Float steps of 0.02 may land a hair past -1 before the ray misses.
+      expect(camera.position.z).toBeGreaterThan(-1.001);
+      expect(camera.position.z).toBeLessThan(-0.95);
+    });
+
+    it("refuses with nothing under the camera, and keeps flying where it was", async () => {
+      const refused = vi.fn();
+      const { camera, walkTo } = await mount();
+      camera.position.set(5, 3, 5);
+      await walkTo(true, refused);
+      expect(refused).toHaveBeenCalledOnce();
+      expect(camera.position.y).toBe(3);
+      expect(camera.near).toBeCloseTo(clipPlanes(Math.sqrt(3)).near);
+    });
+
+    it("flies again on the spot, without coasting, with the free cam's clip", async () => {
+      const { camera, key, frames, walkTo } = await mount(); // eased: no reduced motion
+      camera.position.set(0, 3, 0.5);
+      await walkTo(true);
+      await key("keydown", "KeyW");
+      await frames(2);
+      await key("keyup", "KeyW");
+      await walkTo(false);
+      const here = camera.position.clone();
+      await frames(4);
+      expect(camera.position.equals(here)).toBe(true);
+      expect(camera.near).toBeCloseTo(clipPlanes(Math.sqrt(3)).near);
+      expect(camera.far).toBeCloseTo(clipPlanes(Math.sqrt(3)).far);
+    });
+
+    it("keeps sinking off a ledge after the keys are up, and lands", async () => {
+      reducedMotion();
+      // High ground x ∈ [-1, 1] (top y = 1), a low slab x ∈ [1, 3] (top y = 0.1).
+      const sceneRef = territory();
+      const low = new Mesh(new BoxGeometry(2, 0.2, 2));
+      low.position.set(2, 0, 0);
+      sceneRef.current.add(low);
+      const { camera, key, frames, walkTo } = await mount(true, sceneRef);
+      camera.position.set(0.9, 3, 0);
+      camera.quaternion.setFromEuler(new Euler(0, -Math.PI / 2, 0, "YXZ")); // facing +X
+      await walkTo(true);
+      await key("keydown", "KeyW");
+      await frames(20); // 1 s at 0.14 u/s: over the edge at x = 1
+      await key("keyup", "KeyW");
+      const offEdge = camera.position.y;
+      await frames(5);
+      expect(camera.position.y).toBeLessThan(offEdge);
+      await frames(40);
+      expect(camera.position.y).toBeCloseTo(0.1 + 0.18);
+    });
+
+    it("leaves the free cam straight from a walk with the orbit's own clip back", async () => {
+      const controls = fakeControls();
+      const probe: { camera?: Camera } = {};
+      const sceneRef = territory();
+      const r = await ReactThreeTestRenderer.create(scene(controls, probe, sceneRef, false));
+      const camera = probe.camera as PerspectiveCamera;
+      const orbit = { near: camera.near, far: camera.far };
+      await r.update(scene(controls, probe, sceneRef, true));
+      camera.position.set(0, 3, 0.5);
+      await r.update(scene(controls, probe, sceneRef, true, true));
+      expect(camera.near).toBeCloseTo(0.01);
+      await r.update(scene(controls, probe, sceneRef, false));
+      expect(camera.near).toBe(orbit.near);
+      expect(camera.far).toBe(orbit.far);
+      expect(controls.enabled).toBe(true);
+      await r.unmount();
+    });
+
+    it("keeps the walk's clip when it mounts already walking, and the orbit's on the way out", async () => {
+      const controls = fakeControls();
+      const probe: { camera?: Camera } = {};
+      const sceneRef = territory();
+      const r = await ReactThreeTestRenderer.create(scene(controls, probe, sceneRef, false));
+      const camera = probe.camera as PerspectiveCamera;
+      const orbit = { near: camera.near, far: camera.far };
+      camera.position.set(0, 3, 0.5);
+      await r.update(scene(controls, probe, sceneRef, true, true));
+      expect(camera.near).toBeCloseTo(0.01, 6);
+      await r.update(scene(controls, probe, sceneRef, false));
+      expect(camera.near).toBe(orbit.near);
+      expect(camera.far).toBe(orbit.far);
+      await r.unmount();
+    });
+
+    it("starts each way of moving at ×1: the wheel's speed does not carry over", async () => {
+      reducedMotion();
+      const { camera, key, frames, wheel, walkTo } = await mount();
+      await wheel(-1000); // flying ×7.4
+      camera.position.set(0, 3, 0.5);
+      await walkTo(true);
+      const start = camera.position.z;
+      await key("keydown", "KeyW");
+      await frames(4); // 0.2 s at 0.14 u/s
+      expect(start - camera.position.z).toBeCloseTo(0.028, 3);
+    });
+
+    it("stops short of a building standing on the territory, and slides along it", async () => {
+      reducedMotion();
+      // A 6 m-wide, 10 m-tall block on the top (y = 1), its +Z face at z = -0.4.
+      // Its floor is the territory's top: the ray down alone walked inside.
+      const sceneRef = territory();
+      const building = new Mesh(new BoxGeometry(0.6, 1, 0.6));
+      building.position.set(0, 1.5, -0.7);
+      sceneRef.current.add(building);
+      const { camera, key, frames, walkTo } = await mount(true, sceneRef);
+      camera.position.set(0, 3, 0);
+      await walkTo(true);
+      await key("keydown", "KeyW");
+      await key("keydown", "ShiftLeft");
+      await frames(40); // 2 s at 0.4 u/s would carry it 0.8 — through the face
+      // Head-on it keeps the body's 0.03 off the face: it stops at -0.36.
+      expect(camera.position.z).toBeGreaterThan(-0.4 + 0.03);
+      expect(camera.position.z).toBeLessThan(-0.33);
+      await key("keydown", "KeyD");
+      await frames(10);
+      expect(camera.position.x).toBeGreaterThan(0.05);
+      expect(camera.position.z).toBeGreaterThan(-0.4);
+    });
+
+    it("moves a stalled frame's worth of a tenth of a second, no more", async () => {
+      // The rig clamps dt (MAX_STEP_S): the probe reaches as far as any step,
+      // but the ray down sees only where the step lands, not what it skipped.
+      reducedMotion();
+      const { r, camera, key, walkTo } = await mount();
+      camera.position.set(0, 3, 0.5);
+      await walkTo(true);
+      await key("keydown", "KeyW");
+      await ReactThreeTestRenderer.act(async () => r.advanceFrames(1, 5));
+      expect(0.5 - camera.position.z).toBeCloseTo(0.014, 3);
+    });
   });
 });

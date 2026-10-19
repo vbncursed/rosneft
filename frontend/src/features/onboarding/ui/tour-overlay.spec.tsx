@@ -164,7 +164,9 @@ describe("TourOverlay", () => {
       await userEvent.click(screen.getByRole("button", { name: "Skip tour" }));
       expect(screen.getByRole("button", { name: "Skip tour" })).toHaveFocus();
 
-      view.rerender(<TourOverlay tour={tour({ step: VIEWER_TOUR_STEPS[3], stepIndex: 3 })} />);
+      view.rerender(
+        <TourOverlay tour={tour({ step: VIEWER_TOUR_STEPS.find((s) => s.id === "measure"), stepIndex: 4 })} />,
+      );
       expect(screen.getByRole("button", { name: "Next" })).toHaveFocus();
     });
 

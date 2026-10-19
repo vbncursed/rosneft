@@ -121,6 +121,7 @@ const props = (over: Partial<ViewerCanvasProps> = {}): ViewerCanvasProps => ({
   resetVersion: 0,
   playing: false,
   free: false,
+  walk: false,
   retryVersion: 0,
   focusRequest: null,
   activePanorama: null,
@@ -151,6 +152,7 @@ const props = (over: Partial<ViewerCanvasProps> = {}): ViewerCanvasProps => ({
   onRemoveChain: vi.fn(),
   onLod: vi.fn(),
   onPlayStop: vi.fn(),
+  onWalkRefused: vi.fn(),
   ...over,
 });
 
@@ -337,9 +339,10 @@ describe("SceneCanvas", () => {
     await mount({ canWrite: true, selectedId: 3 });
     expect(seen.freeCam).toBeNull();
     expect(seen.layer.canEdit).toBe(true);
-    await mount({ canWrite: true, selectedId: 3, free: true });
-    expect(seen.freeCam).not.toBeNull();
+    await mount({ canWrite: true, selectedId: 3, free: true, walk: true, unitRatio: 18 });
     expect(seen.freeCam?.sceneRef).toHaveProperty("current");
+    expect(seen.freeCam).toMatchObject({ walk: true, unitRatio: 18 });
+    expect(seen.freeCam?.onWalkRefused).toBeTypeOf("function");
     expect(seen.layer.canEdit).toBe(false);
   });
 });

@@ -1,5 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { notify } from "@/shared/lib/notify";
 import { useViewerMode } from "./use-viewer-mode";
 
 const press = (key: string) =>
@@ -300,5 +301,84 @@ describe("useViewerMode", () => {
     rerender();
     expect(result.current.toggleFree).toBe(first.toggleFree);
     expect(result.current.exitFree).toBe(first.exitFree);
+  });
+
+  it("G walks only in the free cam and only with a scale; outside it G still snaps", () => {
+    const { result, rerender } = renderHook(
+      ({ canWalk }) =>
+        useViewerMode({
+          canWrite: true,
+          canMovePoints: false,
+          chainOpen: false,
+          onCancelChain: noop,
+          onCycle: noop,
+          canWalk,
+        }),
+      { initialProps: { canWalk: false } },
+    );
+    press("g");
+    expect(result.current.state).toMatchObject({ snap: true, walk: false });
+    press("f");
+    press("g");
+    expect(result.current.state).toMatchObject({ free: true, walk: false, snap: true });
+    rerender({ canWalk: true });
+    press("g");
+    expect(result.current.state).toMatchObject({ free: true, walk: true, snap: true });
+    press("G");
+    expect(result.current.state.walk).toBe(false);
+  });
+
+  it("refuseWalk flies on and says why", () => {
+    const info = vi.spyOn(notify, "info").mockImplementation(() => 0);
+    const { result } = renderHook(() =>
+      useViewerMode({
+        canWrite: true,
+        canMovePoints: false,
+        chainOpen: false,
+        onCancelChain: noop,
+        onCycle: noop,
+        canWalk: true,
+      }),
+    );
+    press("f");
+    press("g");
+    act(() => result.current.refuseWalk());
+    expect(result.current.state).toMatchObject({ free: true, walk: false });
+    expect(info).toHaveBeenCalledExactlyOnceWith(expect.stringContaining("No ground under the camera"));
+    info.mockRestore();
+  });
+
+  it("Escape from walking leaves the free cam in one press", () => {
+    const { result } = renderHook(() =>
+      useViewerMode({
+        canWrite: true,
+        canMovePoints: false,
+        chainOpen: false,
+        onCancelChain: noop,
+        onCycle: noop,
+        canWalk: true,
+      }),
+    );
+    press("f");
+    press("g");
+    press("Escape");
+    expect(result.current.state).toMatchObject({ free: false, walk: false });
+  });
+
+  it("refuseWalk keeps its identity across renders", () => {
+    const { result, rerender } = renderHook(() =>
+      useViewerMode({
+        canWrite: true,
+        canMovePoints: false,
+        chainOpen: false,
+        onCancelChain: noop,
+        onCycle: noop,
+        canWalk: true,
+      }),
+    );
+    const first = result.current.refuseWalk;
+    press("f");
+    rerender();
+    expect(result.current.refuseWalk).toBe(first);
   });
 });

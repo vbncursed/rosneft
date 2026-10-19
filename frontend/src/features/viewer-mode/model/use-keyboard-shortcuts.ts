@@ -9,6 +9,14 @@ type KeyboardShortcuts = Record<string, Handler>;
 
 const TYPING_TAGS = new Set(["INPUT", "SELECT", "TEXTAREA"]);
 
+// The Latin letter on a physical KeyX key, for a non-Latin layout (ЙЦУКЕН
+// types "ь" on KeyM). Only consulted when event.key is not a Latin letter
+// itself, so Dvorak and AZERTY keep the letter they print.
+function physicalLetter(event: KeyboardEvent): string | undefined {
+  if (/^[a-z]$/iu.test(event.key)) return undefined;
+  return /^Key([A-Z])$/u.exec(event.code)?.[1].toLowerCase();
+}
+
 /**
  * A key the viewer must leave alone: typed into a field, pressed under an open
  * <dialog>, or held with ⌘/Ctrl/Alt — ⌘F is the browser's find, ⌘R a reload,
@@ -41,9 +49,12 @@ export function useKeyboardShortcuts(shortcuts: KeyboardShortcuts): void {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (isShortcutBlocked(event)) return;
+      // A held key repeats its keydown; every shortcut here is a toggle or a
+      // one-shot (G flips walk, a refused walk toasts), so one press is one act.
+      if (event.repeat || isShortcutBlocked(event)) return;
       const map = latest.current;
-      const handler = map[event.key] ?? map[event.key.toLowerCase()];
+      const letter = physicalLetter(event);
+      const handler = map[event.key] ?? map[event.key.toLowerCase()] ?? (letter ? map[letter] : undefined);
       if (handler) handler();
     };
     window.addEventListener("keydown", onKey);
