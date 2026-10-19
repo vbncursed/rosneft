@@ -77,7 +77,8 @@ describe("hitsWithin", () => {
     expect(hitsWithin(wall(), from, new Vector3(0, 0, 1), 10)).toBe(false);
   });
 
-  it("sees nothing from inside a mesh, so a walker inside can walk out", () => {
+  // MeshBasicMaterial is FrontSide, the one-sided case: a DoubleSide mesh is hit from inside.
+  it("sees nothing from inside a one-sided mesh, so a walker inside can walk out", () => {
     expect(hitsWithin(wall(), new Vector3(0, 0, -1), north, 1)).toBe(false);
   });
 

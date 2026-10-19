@@ -15,8 +15,9 @@ const RAY_START_Y = 1e4;
 // (a unit vector), within `far`. Bypasses Mesh.raycast = noop (the
 // wheel-perf optimisation in gltf-model.tsx) by calling each mesh's stashed
 // userData.origRaycast — the user-facing raycastable flag stays off, but
-// snap/floor/wall logic still finds geometry. Front faces only: from inside
-// a mesh nothing is hit.
+// snap/floor/wall logic still finds geometry. Which faces count follows each
+// mesh's material.side: the territory GLBs are DoubleSide, so a back face is
+// hit too; a one-sided material hits nothing from inside the mesh.
 function nearestHit(target: Object3D, from: Vector3, dir: Vector3, far = Infinity): Intersection | null {
   raycaster.set(from, dir);
   // Set on every call: the Raycaster is shared, and a probe's short reach must not clip the next ray.
