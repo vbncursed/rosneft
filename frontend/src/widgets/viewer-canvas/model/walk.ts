@@ -25,6 +25,8 @@ const JUMP_M = 0.5;
 const GROUND_EASE_S = 0.08;
 /** In the air the velocity turns towards the wish by at most this share of the wish's speed a second. */
 const AIR_CONTROL = 0.3;
+/** In the air the horizontal speed also bleeds away: half of it gone in ~0.6 s, a share of it a second, exact at any frame. */
+const AIR_DRAG = 1.2;
 
 /** The body in scene units: a metre is 1 / unitRatio of them; gravity, terminal speed and jump likewise per second. */
 export type WalkScale = {
@@ -120,13 +122,16 @@ function walkWish(yaw: number, input: FreeInput, speed: number): Vector3 {
   return wish.multiplyScalar(speed * (input.boost ? RUN_MPS / WALK_MPS : 1));
 }
 
-/** In the air: the take-off velocity kept, turned towards the wish by AIR_CONTROL of its speed a second at most. */
+/** In the air: the take-off velocity turned towards the wish by AIR_CONTROL of its speed a second at most, then bled by AIR_DRAG. */
 function steer(from: Vector3, wish: Vector3, dt: number): Vector3 {
   const turn = wish
     .clone()
     .sub(from)
     .clampLength(0, wish.length() * AIR_CONTROL * dt);
-  return from.clone().add(turn);
+  return from
+    .clone()
+    .add(turn)
+    .multiplyScalar(Math.exp(-AIR_DRAG * dt));
 }
 
 /**

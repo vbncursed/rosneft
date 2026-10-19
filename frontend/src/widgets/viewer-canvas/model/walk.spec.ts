@@ -311,18 +311,75 @@ describe("jumping and falling", () => {
     expect(p.vy).toBe(-30);
   });
 
-  it("keeps the take-off speed in the air with the keys up", () => {
+  it("bleeds the take-off speed in the air with the keys up, 1.2 a second", () => {
     let p = stepWalk(standOn(1, { velocity: new Vector3(0, 0, -1.4) }), go({ forward: 1, jump: true }), worldOf());
     for (let i = 0; i < 10; i++) p = stepWalk(p, go({}), worldOf());
     expect(p.vy).toBeDefined();
-    expect(p.velocity.z).toBeCloseTo(-1.4);
+    expect(p.velocity.z).toBeCloseTo(-1.4 * Math.exp((-1.2 * 10) / 60), 6);
   });
 
   it("turns in the air by 30 % of the wish's speed a second, so never round", () => {
     let p = stepWalk(standOn(1, { velocity: new Vector3(0, 0, -1.4) }), go({ forward: 1, jump: true }), worldOf());
     for (let i = 0; i < 10; i++) p = stepWalk(p, go({ forward: -1 }), worldOf());
+    // Each frame turns by 0.3 · 1.4 · dt, then bleeds by e^(-1.2 dt): the geometric sum of those.
+    const a = Math.exp(-1.2 / 60);
+    const turn = (0.3 * 1.4) / 60;
     expect(p.vy).toBeDefined();
-    expect(p.velocity.z).toBeCloseTo(-1.4 + 0.3 * 1.4 * (10 / 60), 5);
+    expect(p.velocity.z).toBeCloseTo(a ** 10 * -1.4 + (turn * a * (1 - a ** 10)) / (1 - a), 5);
+  });
+
+  describe("air drag", () => {
+    /** Ground far below every test's fall: the walker never lands, so its velocity is the flight's. */
+    const abyss = (): GroundAt => () => -1e6;
+
+    it("bleeds a 4 m/s take-off to about 4 · e^-1.2 after a second in the air", () => {
+      let p = standOn(1, { velocity: new Vector3(0, 0, -4), vy: 0 });
+      const w = worldOf(1, abyss());
+      for (let i = 0; i < 60; i++) p = stepWalk(p, go({}), w);
+      expect(p.vy).toBeDefined();
+      expect(Math.abs(p.velocity.z)).toBeCloseTo(4 * Math.exp(-1.2), 3);
+    });
+
+    it("is the same whatever the frame: one 0.1 s frame as a hundred 1 ms ones", () => {
+      const start = standOn(1, { position: new Vector3(0, 5, 0), velocity: new Vector3(0, 0, -4), vy: 0 });
+      const one = stepWalk(start, go({}), worldOf(1, abyss(), 0.1));
+      let many = start;
+      for (let i = 0; i < 100; i++) many = stepWalk(many, go({}), worldOf(1, abyss(), 0.001));
+      expect(one.velocity.z).toBeCloseTo(many.velocity.z, 9);
+    });
+
+    it("does not bleed on the ground: only the ease takes the speed down", () => {
+      const p = stepWalk(
+        standOn(1, { velocity: new Vector3(0, 0, -1.4) }),
+        go({ instant: false }),
+        worldOf(1, () => 0, 0.04),
+      );
+      expect(p.vy).toBeUndefined();
+      expect(p.velocity.z).toBeCloseTo(-1.4 * Math.exp(-0.5), 6);
+    });
+
+    it("leaves a running jump's height at 0.5 m, and clears vy on landing", () => {
+      const w = worldOf();
+      let p = stepWalk(standOn(1, { velocity: new Vector3(0, 0, -1.4) }), go({ forward: 1, jump: true }), w);
+      let top = feetOf(p);
+      for (let i = 0; i < 600 && p.vy !== undefined; i++) {
+        p = stepWalk(p, go({ forward: 1 }), w);
+        top = Math.max(top, feetOf(p));
+      }
+      expect(top).toBeCloseTo(0.5, 2);
+      expect(p.vy).toBeUndefined();
+    });
+
+    it("covers the same metres at any unit ratio", () => {
+      const metres = (unitRatio: number) => {
+        let p = standOn(unitRatio, { velocity: new Vector3(0, 0, -4 / unitRatio), vy: 0 });
+        const w = worldOf(unitRatio, abyss());
+        for (let i = 0; i < 60; i++) p = stepWalk(p, go({}), w);
+        return -p.position.z * unitRatio;
+      };
+      expect(metres(0.1)).toBeCloseTo(metres(1), 6);
+      expect(metres(1)).toBeCloseTo((4 * (1 - Math.exp(-1.2))) / 1.2, 1);
+    });
   });
 
   it("eases into the walk speed on the ground in about 80 ms, and at once under reduced motion", () => {
