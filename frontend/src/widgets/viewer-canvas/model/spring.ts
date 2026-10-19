@@ -6,6 +6,7 @@ export const AT_REST: Spring = { x: 0, v: 0 };
 /**
  * The spring `dt` seconds on, pulled towards `target`: ω the stiffness (rad/s),
  * ζ the damping — 1 comes home without overshoot, under 1 swings a little past.
+ * Above 1 is read as 1: an overdamped spring (ζ > 1) is not solved, it is critical.
  * A closed form, not a step of Euler: one long frame lands where many short ones
  * do, so a lost frame neither shakes it nor changes where it goes.
  */
