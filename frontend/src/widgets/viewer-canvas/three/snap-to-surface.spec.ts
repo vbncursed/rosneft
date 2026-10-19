@@ -44,4 +44,19 @@ describe("raycastSurfaceY", () => {
     expect(raycastSurfaceY(t, 0, 0)).toBe(SURFACE_Y);
     expect(raycastSurfaceY(t, 0, 0)).toBe(SURFACE_Y);
   });
+
+  it("starts the ray where asked: under a roof it finds the floor", () => {
+    // The walk casts from one step over the feet, so a roof overhead is not the ground.
+    const floor = territory();
+    const roof = territory();
+    roof.position.y = 4;
+    const scene = new Object3D();
+    scene.add(floor, roof);
+    expect(raycastSurfaceY(scene, 0, 0)).toBe(4 + SURFACE_Y);
+    expect(raycastSurfaceY(scene, 0, 0, 2)).toBe(SURFACE_Y);
+  });
+
+  it("answers null when the ray starts below every surface", () => {
+    expect(raycastSurfaceY(territory(), 0, 0, -5)).toBeNull();
+  });
 });

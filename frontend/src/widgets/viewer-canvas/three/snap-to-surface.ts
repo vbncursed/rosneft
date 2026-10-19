@@ -8,16 +8,16 @@ const origin = new Vector3();
 const DOWN = new Vector3(0, -1, 0);
 // 1e4 is well above the converter's normalised max-axis = 2 envelope; any
 // realistic placement sits below this, so a vertical ray from origin always
-// starts outside the mesh.
+// starts outside the mesh. The walk passes its own start (feet + one step).
 const RAY_START_Y = 1e4;
 
 // Resolve the surface Y of the territory mesh directly under (x, z) by
-// casting a downward ray. Bypasses Mesh.raycast = noop (the wheel-perf
-// optimisation in gltf-model.tsx) by calling each mesh's stashed
+// casting a downward ray from `fromY`. Bypasses Mesh.raycast = noop (the
+// wheel-perf optimisation in gltf-model.tsx) by calling each mesh's stashed
 // userData.origRaycast — the user-facing raycastable flag stays off, but
 // snap/floor logic still finds geometry.
-export function raycastSurfaceY(target: Object3D, x: number, z: number): number | null {
-  origin.set(x, RAY_START_Y, z);
+export function raycastSurfaceY(target: Object3D, x: number, z: number, fromY = RAY_START_Y): number | null {
+  origin.set(x, fromY, z);
   raycaster.set(origin, DOWN);
   target.updateMatrixWorld(true);
   const hits: Intersection[] = [];
