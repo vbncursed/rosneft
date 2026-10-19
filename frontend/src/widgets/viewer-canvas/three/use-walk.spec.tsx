@@ -7,6 +7,7 @@ import type { FreePose } from "../model/free-cam";
 import { walkClip } from "../model/walk";
 import { fakeControls, WithControls } from "./testing";
 import { useWalk, type Walking } from "./use-walk";
+import { useWalkFeel } from "./use-walk-feel";
 
 const UNIT_RATIO = 10; // 1 scene unit = 10 m: eye 0.18
 const noop = () => {};
@@ -27,7 +28,8 @@ function Probe({ walk, solidRef, onRefused }: { walk: boolean; solidRef: { curre
   // The rig's flying planes stand in for the camera's: here, the planes the camera had at mount.
   const [flyingPlanes] = useState(() => ({ near: camera.near, far: camera.far }));
   const flying = useCallback(() => flyingPlanes, [flyingPlanes]);
-  const walking = useWalk({ walk, unitRatio: UNIT_RATIO, solidRef, pose, restartSpeed: noop, onRefused, flying });
+  const feel = useWalkFeel(camera, UNIT_RATIO);
+  const walking = useWalk({ walk, unitRatio: UNIT_RATIO, solidRef, pose, feel, restartSpeed: noop, onRefused, flying });
   useEffect(() => {
     out.walking = walking;
     out.pose = pose;

@@ -19,11 +19,12 @@ import {
 } from "../model/free-cam";
 import { stepWalk, walkSpeed } from "../model/walk";
 import { boundsOf } from "./bounds";
-import { applyPose, setClip, setCursor, setEnabled } from "./free-cam-writes";
+import { setClip, setCursor, setEnabled } from "./free-cam-writes";
 import { useAutoLodBus } from "./settle-bus";
 import { holdStill } from "./stop-coast";
 import { useHeldKeys } from "./use-held-keys";
 import { useWalk } from "./use-walk";
+import { useWalkFeel } from "./use-walk-feel";
 
 /** The most one frame moves the camera: a lost frame slows the flight, never teleports it (Play's MAX_STEP_MS). */
 const MAX_STEP_S = 0.1;
@@ -59,8 +60,10 @@ type FreeCamRigProps = {
  * LOD hears the camera move through the settle bus instead. On the way out
  * the orbit pivots on the territory along the line of sight, as Play lands.
  *
- * Walking (G) is the same rig moving another way: `useWalk` stands the camera
- * at eye height and `stepWalk` keeps it there, frame by frame.
+ * Walking (G) is the same rig moving another way: `useWalk` stands the body at
+ * eye height and `stepWalk` keeps it there, frame by frame; `useWalkFeel` shows
+ * the camera over that body the way an operator carries it: a lag, a dip, a bob
+ * and a wider view at a run.
  */
 export default function FreeCamRig({ sceneRef, solidRef, walk, unitRatio, onWalkRefused }: FreeCamRigProps) {
   const instant = useMediaQuery("(prefers-reduced-motion: reduce)");
@@ -69,16 +72,21 @@ export default function FreeCamRig({ sceneRef, solidRef, walk, unitRatio, onWalk
   const invalidate = useThree((s) => s.invalidate);
   const controls = useThree((s) => s.controls) as OrbitControlsImpl | null;
   const bus = useAutoLodBus();
+  const feel = useWalkFeel(camera, unitRatio);
   const pose = useRef<FreePose | null>(null);
   const speed = useRef({ radius: FALLBACK_RADIUS, multiplier: 1 });
   // drei's Bounds fit moves the camera for about a second after mount or Focus:
   // a flight starts from where the camera is, not from the pose taken earlier.
+  // Compared with where the pose is shown: the walk's eye rides off the body on purpose.
   const resync = useCallback(() => {
     const current = pose.current;
     if (!current) return;
     const now = poseOf(camera.position, camera.quaternion);
-    if (drifted(current, now, speed.current.radius)) pose.current = now;
-  }, [camera]);
+    if (!drifted(feel.shown(current), now, speed.current.radius)) return;
+    pose.current = now;
+    feel.rest();
+  }, [camera, feel]);
+  const show = useCallback((p: FreePose) => feel.apply(p), [feel]);
   // Before the setup effect below, on purpose: see useWalk on the cleanup order.
   const restartSpeed = useCallback(() => {
     speed.current.multiplier = 1;
@@ -89,6 +97,7 @@ export default function FreeCamRig({ sceneRef, solidRef, walk, unitRatio, onWalk
     unitRatio,
     solidRef,
     pose,
+    feel,
     restartSpeed,
     onRefused: onWalkRefused,
     flying: flyingClip,
@@ -162,7 +171,7 @@ export default function FreeCamRig({ sceneRef, solidRef, walk, unitRatio, onWalk
       pose.current = lookStep(current, e.clientX - drag.x, e.clientY - drag.y);
       drag.x = e.clientX;
       drag.y = e.clientY;
-      applyPose(camera, pose.current);
+      show(pose.current);
       bus.settle();
       invalidate();
     };
@@ -190,10 +199,10 @@ export default function FreeCamRig({ sceneRef, solidRef, walk, unitRatio, onWalk
       canvas.removeEventListener("contextmenu", menu);
       setCursor(canvas, "");
     };
-  }, [controls, gl, camera, bus, invalidate, resync]);
+  }, [controls, gl, bus, invalidate, resync, show]);
 
   // frameloop="demand": a frame runs only when asked, so the flight asks for
-  // the next one for as long as anything is still moving.
+  // the next one for as long as anything is still moving — the eye included.
   useFrame((_, delta) => {
     const current = pose.current;
     if (!current) return;
@@ -203,13 +212,16 @@ export default function FreeCamRig({ sceneRef, solidRef, walk, unitRatio, onWalk
     keys.current.delete(JUMP_KEY);
     const { radius, multiplier } = speed.current;
     const ground = walking.current; // scale, groundAt and wallAt in one
-    const next = ground
+    const moved = ground
       ? stepWalk(current, input, { dt, speed: walkSpeed(unitRatio, multiplier), ...ground })
       : stepFreeCam(current, input, dt, freeSpeed(radius, multiplier));
+    const settling = feel.live();
+    // The frame a walk ends, the pose takes the eye's place: nothing on screen moves.
+    const next = feel.step(current, moved, input, dt, ground !== null);
     pose.current = next;
-    // At rest only when nothing eases out and nothing is still sinking to lower ground.
-    if (next.velocity.lengthSq() === 0 && next.position.equals(current.position)) return;
-    applyPose(camera, next);
+    // At rest only when nothing eased out before or after this frame, and nothing is still sinking to lower ground.
+    if (!settling && !feel.live() && next.velocity.lengthSq() === 0 && next.position.equals(current.position)) return;
+    feel.apply(next);
     bus.settle();
     invalidate();
   });

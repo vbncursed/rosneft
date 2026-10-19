@@ -6,6 +6,7 @@ import { walkClip, walkScale, type GroundAt, type WalkScale, type WallAt } from 
 import { applyPose, setClip } from "./free-cam-writes";
 import { useAutoLodBus } from "./settle-bus";
 import { hitsWithin, raycastSurfaceY } from "./snap-to-surface";
+import type { WalkFeel } from "./use-walk-feel";
 
 // Outside the hook, like free-cam-writes: the pose ref is the rig's, handed in as an argument.
 const putPose = (ref: RefObject<FreePose | null>, value: FreePose) => {
@@ -32,6 +33,8 @@ type WalkParams = {
   solidRef: RefObject<Object3D | null>;
   /** The rig's pose: walking writes the eye height and the ground into it. */
   pose: RefObject<FreePose | null>;
+  /** The camera over the body: a walk re-placed mid-walk bakes what it shows into the body first. */
+  feel: WalkFeel;
   /** Walking and flying count speed in different units: the rig's wheel multiplier goes back to ×1 here. */
   restartSpeed: () => void;
   /** Nothing to stand on under the camera. */
@@ -57,6 +60,7 @@ export function useWalk({
   unitRatio,
   solidRef,
   pose,
+  feel,
   restartSpeed,
   onRefused,
   flying,
@@ -65,11 +69,19 @@ export function useWalk({
   const invalidate = useThree((s) => s.invalidate);
   const bus = useAutoLodBus();
   const walking = useRef<Walking | null>(null);
+  // Set by the cleanup, read by the next run: a walk is re-placed while it goes on, not entered.
+  const resumed = useRef(false);
 
   useEffect(() => {
     restartSpeed();
-    if (!walk) return;
+    if (!walk) {
+      resumed.current = false;
+      return;
+    }
+    const resume = resumed.current;
+    resumed.current = false;
     const scene = solidRef.current;
+    // Where the camera is shown: mid-walk that includes the eye's offset.
     const here = poseOf(camera.position, camera.quaternion);
     const ground = scene ? raycastSurfaceY(scene, here.position.x, here.position.z, here.position.y) : null;
     if (!scene || ground === null) {
@@ -80,7 +92,11 @@ export function useWalk({
     const before = { near: camera.near, far: camera.far };
     const clip = () => walkClip(unitRatio, flying().far);
     setClip(camera, clip());
-    const standing = { ...here, ground, position: here.position.clone().setY(ground + scale.eye) };
+    // Resumed: the body takes the height the camera is shown at and the eye is rested, so nothing moves on screen;
+    // the next frame settles the body on the ground and the eye absorbs that snap.
+    if (resume) feel.rest();
+    const position = resume ? here.position.clone() : here.position.clone().setY(ground + scale.eye);
+    const standing = { ...here, ground, position };
     putPose(pose, standing);
     applyPose(camera, standing);
     walking.current = {
@@ -93,13 +109,14 @@ export function useWalk({
     bus.settle();
     invalidate();
     return () => {
+      resumed.current = true;
       walking.current = null;
       setClip(camera, flying());
       const last = pose.current;
       if (last) pose.current = { ...last, velocity: new Vector3(), vy: undefined };
       invalidate();
     };
-  }, [walk, unitRatio, solidRef, pose, restartSpeed, onRefused, flying, camera, invalidate, bus]);
+  }, [walk, unitRatio, solidRef, pose, feel, restartSpeed, onRefused, flying, camera, invalidate, bus]);
 
   return walking;
 }
