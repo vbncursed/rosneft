@@ -16,6 +16,10 @@ export const setClip = (camera: PerspectiveCamera, planes: { near: number; far: 
   camera.far = planes.far;
   camera.updateProjectionMatrix();
 };
+export const setFov = (camera: PerspectiveCamera, fov: number) => {
+  camera.fov = fov;
+  camera.updateProjectionMatrix();
+};
 export const applyPose = (camera: PerspectiveCamera, pose: FreePose) => {
   camera.position.copy(pose.position);
   camera.quaternion.setFromEuler(new Euler(pose.pitch, pose.yaw, 0, "YXZ"));

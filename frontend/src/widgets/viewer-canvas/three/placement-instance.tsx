@@ -1,5 +1,5 @@
 import { memo, type Ref, useCallback, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { Group, Object3D } from "three";
+import type { Group, Mesh, Object3D } from "three";
 import type { ThreeEvent } from "@react-three/fiber";
 import { useCursor, useGLTF } from "@react-three/drei";
 import { SkeletonUtils } from "three-stdlib";
@@ -89,6 +89,15 @@ function PlacementBody({ placement, url, measureMode, onSelect, ref }: Placement
     c.scale.set(1, 1, 1);
     return c;
   }, [scene]);
+  // A walker's ground and wall rays run through every placement each frame:
+  // a BVH per geometry (shared by every clone of the model) keeps them cheap,
+  // as gltf-model.tsx does for the territory.
+  useLayoutEffect(() => {
+    cloned.traverse((o) => {
+      const m = o as Mesh;
+      if (m.isMesh && !m.geometry.boundsTree) m.geometry.computeBoundsTree();
+    });
+  }, [cloned]);
   const groupRef = useRef<Group>(null);
   useImperativeHandle(ref, () => groupRef.current as Object3D, []);
 

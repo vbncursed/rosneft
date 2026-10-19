@@ -1,6 +1,6 @@
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { createElement, type ComponentType } from "react";
-import type { BufferGeometry, Color, Mesh, Scene } from "three";
+import type { BufferGeometry, Color, Mesh, Object3D, Scene } from "three";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ALL_PHASES_SHOWN, type Panorama } from "@/entities/panorama";
 import type { ViewerCanvasProps } from "../ui/props";
@@ -176,6 +176,17 @@ const inside = () => ({
 const territoryGroup = (r: Awaited<ReturnType<typeof mount>>) => r.scene.findAll((n) => n.props.visible !== undefined);
 
 const ground = (r: Awaited<ReturnType<typeof mount>>) => (r.scene.instance as unknown as Scene).background as Color;
+/** Whether `node` is in the tree under `root`, by id, however deep. */
+const under = (root: Object3D | null, node: Object3D | null | undefined) =>
+  root !== null && node !== null && node !== undefined && root.getObjectById(node.id) !== undefined;
+/** The placement group drawn for placement `id`, wherever it sits under `root`. */
+const placedOf = (root: Object3D | null, id: number) => {
+  let found: Object3D | undefined;
+  root?.traverse((o) => {
+    if (o.userData.placementId === id) found = o;
+  });
+  return found;
+};
 
 const clickEvent = (point: { x: number; y: number; z: number }) => ({
   nativeEvent: { id: 1 },
@@ -339,11 +350,28 @@ describe("SceneCanvas", () => {
     await mount({ canWrite: true, selectedId: 3 });
     expect(seen.freeCam).toBeNull();
     expect(seen.layer.canEdit).toBe(true);
-    await mount({ canWrite: true, selectedId: 3, free: true, walk: true, unitRatio: 18 });
+    await mount({
+      canWrite: true,
+      selectedId: 3,
+      free: true,
+      walk: true,
+      unitRatio: 18,
+      parentLods: [{ lod: 0, hash: "t0", size: 1 }],
+      placements: [fakePlacement(1)],
+    });
     expect(seen.freeCam?.sceneRef).toHaveProperty("current");
     expect(seen.freeCam).toMatchObject({ walk: true, unitRatio: 18 });
     expect(seen.freeCam?.onWalkRefused).toBeTypeOf("function");
     expect(seen.layer.canEdit).toBe(false);
+    // The walker's solid world is the scene wrapper: the territory and the placement it draws sit under it.
+    type Holder = { current: Object3D | null };
+    const { sceneRef, solidRef } = seen.freeCam as { sceneRef: Holder; solidRef: Holder };
+    const solid = solidRef.current;
+    const territory = (seen.layer.territoryRef as Holder).current;
+    expect(solid).not.toBeNull();
+    expect(solid).not.toBe(sceneRef.current);
+    expect(under(solid, territory)).toBe(true);
+    expect(under(solid, placedOf(solid, 1))).toBe(true);
   });
 });
 

@@ -16,8 +16,8 @@ describe("FreeCamKeys", () => {
     expect(within(note).getByText("WASD").tagName).toBe("KBD");
   });
 
-  it("drops Q/E while walking: there is no up or down", () => {
-    expect(rows("walk")).toEqual(["WASDmove", "Shiftrun", "Wheelspeed", "Gfly", "Escexit"]);
+  it("drops Q/E while walking and offers the jump: there is no up or down", () => {
+    expect(rows("walk")).toEqual(["WASDmove", "Shiftrun", "Spacejump", "Wheelspeed", "Gfly", "Escexit"]);
   });
 
   it("says why G does not walk over a territory with no size", () => {

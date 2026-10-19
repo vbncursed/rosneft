@@ -1,7 +1,7 @@
 import { useThree } from "@react-three/fiber";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { useEffect, type ReactNode } from "react";
-import { BoxGeometry, Euler, Group, Mesh, Vector3, type Camera, type PerspectiveCamera } from "three";
+import { BoxGeometry, Euler, Group, Mesh, Vector3, type Camera, type Object3D, type PerspectiveCamera } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { clipPlanes } from "../model/free-cam";
 import FreeCamRig from "./free-cam-rig";
@@ -41,9 +41,18 @@ const scene = (
   rig: boolean,
   walk = false,
   onWalkRefused: () => void = noop,
+  solidRef: { current: Object3D } = sceneRef,
 ): ReactNode => (
   <WithControls controls={controls} probe={probe}>
-    {rig ? <FreeCamRig sceneRef={sceneRef} walk={walk} unitRatio={UNIT_RATIO} onWalkRefused={onWalkRefused} /> : null}
+    {rig ? (
+      <FreeCamRig
+        sceneRef={sceneRef}
+        solidRef={solidRef}
+        walk={walk}
+        unitRatio={UNIT_RATIO}
+        onWalkRefused={onWalkRefused}
+      />
+    ) : null}
     <CanvasProbe />
     <BusProbe />
   </WithControls>
@@ -53,10 +62,10 @@ const scene = (
 // window listeners, and they would fly the camera in the next test.
 const live = new Set<() => Promise<void>>();
 
-async function mount(rig = true, sceneRef = territory()) {
+async function mount(rig = true, sceneRef = territory(), solidRef = sceneRef) {
   const controls = fakeControls();
   const probe: { camera?: Camera } = {};
-  const r = await ReactThreeTestRenderer.create(scene(controls, probe, sceneRef, rig));
+  const r = await ReactThreeTestRenderer.create(scene(controls, probe, sceneRef, rig, false, noop, solidRef));
   const camera = probe.camera as PerspectiveCamera;
   const frames = (n: number) => ReactThreeTestRenderer.act(async () => r.advanceFrames(n, 0.05));
   const key = (type: "keydown" | "keyup", code: string, init: KeyboardEventInit = {}, target: EventTarget = window) =>
@@ -76,7 +85,7 @@ async function mount(rig = true, sceneRef = territory()) {
   };
   live.add(stop);
   const walkTo = (walk: boolean, refused?: () => void) =>
-    r.update(scene(controls, probe, sceneRef, true, walk, refused));
+    r.update(scene(controls, probe, sceneRef, true, walk, refused, solidRef));
   return { r, controls, camera, sceneRef, probe, frames, key, pointer, wheel, walkTo, unmount: stop };
 }
 
@@ -354,6 +363,23 @@ describe("FreeCamRig", () => {
       expect(camera.near).toBeCloseTo(clipPlanes(Math.sqrt(3)).near);
     });
 
+    it("stands on a placed object, and drops to the territory once it is gone", async () => {
+      reducedMotion();
+      const sceneRef = territory(); // top y = 1
+      const crate = new Mesh(new BoxGeometry(0.6, 0.2, 0.6));
+      crate.position.set(0, 1.1, 0); // top y = 1.2, sitting on the territory
+      const solid = { current: new Group() };
+      solid.current.add(sceneRef.current, crate);
+      const { camera, frames, walkTo } = await mount(true, sceneRef, solid);
+      camera.position.set(0, 3, 0);
+      await walkTo(true);
+      expect(camera.position.y).toBeCloseTo(1.2 + 0.18);
+      // Hiding it unmounts it (PlacementsLayer): the walker is left over the territory and falls to it.
+      solid.current.remove(crate);
+      await frames(30);
+      expect(camera.position.y).toBeCloseTo(1 + 0.18);
+    });
+
     it("flies again on the spot, without coasting, with the free cam's clip", async () => {
       const { camera, key, frames, walkTo } = await mount(); // eased: no reduced motion
       camera.position.set(0, 3, 0.5);
@@ -469,6 +495,270 @@ describe("FreeCamRig", () => {
       await key("keydown", "KeyW");
       await ReactThreeTestRenderer.act(async () => r.advanceFrames(1, 5));
       expect(0.5 - camera.position.z).toBeCloseTo(0.014, 3);
+    });
+
+    // Counts the rises off the ground: a new hop starts only from rest.
+    const hopsIn = async (frames: (n: number) => Promise<void>, camera: PerspectiveCamera, n: number) => {
+      let hops = 0;
+      let up = camera.position.y > 1.18 + 1e-3;
+      for (let i = 0; i < n; i++) {
+        await frames(1);
+        const rising = camera.position.y > 1.18 + 1e-3;
+        if (rising && !up) hops++;
+        up = rising;
+      }
+      return hops;
+    };
+
+    it("a held Space jumps once, then stands", async () => {
+      reducedMotion();
+      const { camera, key, frames, walkTo } = await mount();
+      camera.position.set(0, 3, 0.5);
+      await walkTo(true);
+      await key("keydown", "Space");
+      await frames(1); // the take-off: in the air from here
+      expect(camera.position.y).toBeGreaterThan(1.18);
+      // The key is still down: the auto-repeat keydowns must not jump again on landing.
+      const repeating = async (n: number) => {
+        await key("keydown", "Space", { repeat: true });
+        await frames(n);
+      };
+      expect(await hopsIn(repeating, camera, 40)).toBe(0);
+      expect(camera.position.y).toBeCloseTo(1.18);
+    });
+
+    it("a Space released before the next frame still jumps", async () => {
+      reducedMotion();
+      const { camera, key, frames, walkTo } = await mount();
+      camera.position.set(0, 3, 0.5);
+      await walkTo(true);
+      await key("keydown", "Space");
+      await key("keyup", "Space");
+      await frames(1);
+      expect(camera.position.y).toBeGreaterThan(1.18);
+    });
+
+    it("a Space pressed in the air is spent by the next frame, and does not jump on landing", async () => {
+      reducedMotion();
+      const { camera, key, frames, walkTo } = await mount();
+      camera.position.set(0, 3, 0.5);
+      await walkTo(true);
+      await key("keydown", "Space");
+      await frames(1); // the take-off
+      await key("keyup", "Space");
+      await key("keydown", "Space"); // in the air, not a jump; still down while it is spent
+      await frames(1);
+      expect(await hopsIn(frames, camera, 30)).toBe(0);
+      await key("keyup", "Space");
+      expect(camera.position.y).toBeCloseTo(1.18);
+    });
+
+    it("leaves Space to the page while not walking: no jump, nothing kept from it", async () => {
+      reducedMotion();
+      const { camera, frames } = await mount();
+      const start = camera.position.clone();
+      const e = new KeyboardEvent("keydown", { code: "Space", bubbles: true, cancelable: true });
+      await ReactThreeTestRenderer.act(async () => {
+        window.dispatchEvent(e);
+      });
+      await frames(4);
+      expect(e.defaultPrevented).toBe(false);
+      expect(camera.position.equals(start)).toBe(true);
+    });
+
+    /** Each frame's camera y over `n` frames. */
+    const ys = async (frames: (n: number) => Promise<void>, camera: PerspectiveCamera, n: number) => {
+      const seen: number[] = [];
+      for (let i = 0; i < n; i++) {
+        await frames(1);
+        seen.push(camera.position.y);
+      }
+      return seen;
+    };
+    /** A 0.03-unit kerb (0.3 m) on the top, its near edge at z = -0.2. */
+    const kerbed = () => {
+      const sceneRef = territory();
+      const kerb = new Mesh(new BoxGeometry(2, 0.03, 0.8));
+      kerb.position.set(0, 1.015, -0.6);
+      sceneRef.current.add(kerb);
+      return sceneRef;
+    };
+
+    it("climbs a kerb with the eye catching up instead of snapping, under reduced motion too", async () => {
+      reducedMotion();
+      const { camera, key, frames, walkTo } = await mount(true, kerbed());
+      camera.position.set(0, 3, 0.5);
+      await walkTo(true);
+      await key("keydown", "KeyW");
+      const seen = await ys(frames, camera, 120); // well onto the kerb
+      const rises = seen.slice(1).map((y, i) => y - seen[i]);
+      // The body takes the whole 0.03 in one step; at ω 25 a critically damped eye takes ~36 % of it in each 50 ms frame at most, a snap would take 100 %.
+      expect(Math.max(...rises)).toBeLessThan(0.03 * 0.4);
+      await key("keyup", "KeyW");
+      await frames(20);
+      expect(camera.position.y).toBeCloseTo(1.21, 9);
+    });
+
+    it("lands a jump with a dip that swings back a little past the eye, then settles on it exactly", async () => {
+      const { camera, key, frames, walkTo } = await mount();
+      camera.position.set(0, 3, 0.5);
+      await walkTo(true);
+      await key("keydown", "Space");
+      const seen = await ys(frames, camera, 60);
+      const landed = seen.findIndex((y, i) => i > 3 && y < 1.18);
+      const after = seen.slice(landed);
+      expect(Math.min(...after)).toBeLessThan(1.18 - 0.004); // ~6.6 cm at 10 m a unit
+      expect(Math.min(...after)).toBeGreaterThan(1.18 - 0.01);
+      expect(Math.max(...after)).toBeGreaterThan(1.18);
+      await frames(20);
+      expect(camera.position.y).toBeCloseTo(1.18, 9);
+    });
+
+    it("under reduced motion neither dips nor widens the view", async () => {
+      reducedMotion();
+      const { camera, key, frames, walkTo } = await mount();
+      camera.position.set(0, 3, 0.5);
+      await walkTo(true);
+      await key("keydown", "Space");
+      expect(Math.min(...(await ys(frames, camera, 40)))).toBeGreaterThanOrEqual(1.18 - 1e-9);
+      const base = camera.fov; // the test renderer's camera: 75°, not the app's 50°
+      await key("keydown", "KeyW");
+      await key("keydown", "ShiftLeft");
+      await frames(20);
+      expect(camera.fov).toBe(base);
+    });
+
+    it("widens the view 3° at a run and brings it home once Shift is up", async () => {
+      const { camera, key, frames, walkTo } = await mount();
+      camera.position.set(0, 3, 0.5);
+      await walkTo(true);
+      const base = camera.fov;
+      await key("keydown", "KeyW");
+      await key("keydown", "ShiftLeft");
+      await frames(20);
+      expect(camera.fov).toBeCloseTo(base + 3, 1);
+      await key("keyup", "ShiftLeft");
+      await frames(40);
+      expect(camera.fov).toBe(base);
+    });
+
+    it("leaves a walk mid-run with nothing on screen moving, the view easing home", async () => {
+      const { camera, key, frames, walkTo } = await mount();
+      camera.position.set(0, 3, 0.5);
+      await walkTo(true);
+      const base = camera.fov;
+      await key("keydown", "KeyW");
+      await key("keydown", "ShiftLeft");
+      await frames(10);
+      await key("keyup", "KeyW");
+      await key("keyup", "ShiftLeft");
+      const here = camera.position.clone();
+      const wide = camera.fov;
+      await walkTo(false);
+      await frames(1);
+      expect(camera.position.equals(here)).toBe(true);
+      expect(camera.fov).toBeLessThan(wide);
+      expect(camera.fov).toBeGreaterThan(base);
+      await frames(40);
+      expect(camera.position.equals(here)).toBe(true);
+      expect(camera.fov).toBe(base);
+    });
+
+    it("leaves the free cam mid-run where it stands, and the view eases home on its own", async () => {
+      const { camera, key, frames, walkTo, unmount } = await mount();
+      camera.position.set(0, 3, 0.5);
+      await walkTo(true);
+      const base = camera.fov;
+      await key("keydown", "KeyW");
+      await key("keydown", "ShiftLeft");
+      await frames(10);
+      const queue: FrameRequestCallback[] = [];
+      vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => queue.push(cb));
+      vi.stubGlobal("cancelAnimationFrame", () => {});
+      const here = camera.position.clone();
+      const wide = camera.fov;
+      await unmount();
+      expect(camera.position.equals(here)).toBe(true);
+      expect(camera.fov).toBe(wide); // no snap on the way out
+      let now = 0;
+      for (let i = 0; i < 400 && queue.length > 0; i++) queue.shift()!((now += 16));
+      expect(camera.fov).toBe(base);
+    });
+
+    it("looks around mid-dip without the camera jumping to the body", async () => {
+      const { camera, key, frames, pointer, walkTo } = await mount();
+      camera.position.set(0, 3, 0.5);
+      await walkTo(true);
+      await key("keydown", "Space");
+      const seen = await ys(frames, camera, 30);
+      const landed = seen.findIndex((y, i) => i > 3 && y < 1.18);
+      expect(landed).toBeGreaterThan(0);
+      await frames(1); // mid-dip
+      const y = camera.position.y;
+      await pointer("pointerdown", { button: 0, clientX: 100, clientY: 100 });
+      await pointer("pointermove", { clientX: 140, clientY: 100 });
+      expect(camera.position.y).toBe(y);
+    });
+
+    it("a key pressed mid-dip changes nothing on screen", async () => {
+      // The press re-reads the pose (resync): the eye's offset is not a camera moved from outside.
+      const landing = async (press: boolean) => {
+        const { camera, key, frames, walkTo, unmount } = await mount();
+        camera.position.set(0, 3, 0.5);
+        await walkTo(true);
+        await key("keydown", "Space");
+        const first = await ys(frames, camera, 14);
+        if (press) await key("keydown", "KeyQ"); // a move key walking ignores
+        const rest = await ys(frames, camera, 20);
+        await unmount();
+        return [...first, ...rest];
+      };
+      const plain = await landing(false);
+      const pressed = await landing(true);
+      pressed.forEach((y, i) => expect(y).toBeCloseTo(plain[i], 12));
+    });
+
+    it("re-placed mid-dip, the camera stays where it is shown and settles without a jump", async () => {
+      // A walk re-placed while it goes on (a new onWalkRefused identity re-runs useWalk) must bake the
+      // eye's offset into the body first: otherwise the offset is counted twice, once in the body, once in the eye.
+      const { camera, key, frames, walkTo } = await mount();
+      camera.position.set(0, 3, 0.5);
+      await walkTo(true);
+      await key("keydown", "Space");
+      // Frame by frame until the landing has sagged the eye: the walk is re-placed mid-dip.
+      for (let i = 0; i < 60 && camera.position.y > 1.18 - 0.003; i++) await frames(1);
+      const before = camera.position.y;
+      expect(before).toBeLessThan(1.18 - 0.003);
+      await walkTo(true, () => {});
+      expect(camera.position.y).toBeCloseTo(before, 9);
+      const after = await ys(frames, camera, 20);
+      const shown = [before, ...after];
+      // The eye springs home from the dip it was shown at: a catch-up, not a jump. Counting the dip twice would
+      // send the first frame down by the dip again, so it must rise instead.
+      expect(after[0]).toBeGreaterThan(before);
+      expect(Math.max(...shown.slice(1).map((y, i) => Math.abs(y - shown[i])))).toBeLessThan(0.006);
+      expect(Math.min(...after)).toBeGreaterThan(1.18 - 0.01);
+      await frames(20);
+      expect(camera.position.y).toBeCloseTo(1.18, 9);
+    });
+
+    it("stands exactly on the body once settled, and does not drift over a long walk with presses", async () => {
+      const { camera, key, frames, walkTo } = await mount();
+      camera.position.set(0, 3, 0.5);
+      await walkTo(true);
+      await frames(40);
+      expect(camera.position.y).toBeCloseTo(1.18, 9); // at rest the camera is the body, no offset left
+      await key("keydown", "KeyW");
+      for (let i = 0; i < 20; i++) {
+        await frames(3);
+        await key("keydown", "KeyQ"); // each press re-reads the camera (resync): the bob must not be taken as drift
+      }
+      const bobbing = await ys(frames, camera, 40);
+      // The bob only ever goes down, 1.5 cm at a walk: never above the eye, never a metre off it.
+      for (const y of bobbing) {
+        expect(y).toBeLessThanOrEqual(1.18 + 1e-9);
+        expect(y).toBeGreaterThan(1.18 - 0.0016);
+      }
     });
   });
 });

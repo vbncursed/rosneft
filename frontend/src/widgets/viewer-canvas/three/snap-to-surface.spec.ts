@@ -46,7 +46,7 @@ describe("raycastSurfaceY", () => {
   });
 
   it("starts the ray where asked: under a roof it finds the floor", () => {
-    // The walk casts from one step over the feet, so a roof overhead is not the ground.
+    // The walk casts from the knee over the feet, so a roof overhead is not the ground.
     const floor = territory();
     const roof = territory();
     roof.position.y = 4;

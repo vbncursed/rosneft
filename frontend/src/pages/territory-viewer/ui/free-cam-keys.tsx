@@ -11,10 +11,11 @@ const FLY: Row[] = [
   ["G", "walk"],
   ["Esc", "exit"],
 ];
-/** No up or down on foot: Q/E are left out, not greyed. */
+/** No up or down on foot: Q/E are left out, not greyed; Space jumps. */
 const WALK: Row[] = [
   ["WASD", "move"],
   ["Shift", "run"],
+  ["Space", "jump"],
   ["Wheel", "speed"],
   ["G", "fly"],
   ["Esc", "exit"],

@@ -3,9 +3,11 @@ import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { BoxGeometry, Group, Mesh, Vector3, type Camera, type PerspectiveCamera } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { walkClip, type FreePose } from "../model/free-cam";
+import type { FreePose } from "../model/free-cam";
+import { walkClip } from "../model/walk";
 import { fakeControls, WithControls } from "./testing";
 import { useWalk, type Walking } from "./use-walk";
+import { useWalkFeel } from "./use-walk-feel";
 
 const UNIT_RATIO = 10; // 1 scene unit = 10 m: eye 0.18
 const noop = () => {};
@@ -20,13 +22,14 @@ const site = () => {
 };
 
 const out: { walking?: RefObject<Walking | null>; pose?: RefObject<FreePose | null> } = {};
-function Probe({ walk, sceneRef, onRefused }: { walk: boolean; sceneRef: { current: Group }; onRefused: () => void }) {
+function Probe({ walk, solidRef, onRefused }: { walk: boolean; solidRef: { current: Group }; onRefused: () => void }) {
   const pose = useRef<FreePose | null>(null);
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
   // The rig's flying planes stand in for the camera's: here, the planes the camera had at mount.
   const [flyingPlanes] = useState(() => ({ near: camera.near, far: camera.far }));
   const flying = useCallback(() => flyingPlanes, [flyingPlanes]);
-  const walking = useWalk({ walk, unitRatio: UNIT_RATIO, sceneRef, pose, restartSpeed: noop, onRefused, flying });
+  const feel = useWalkFeel(camera, UNIT_RATIO);
+  const walking = useWalk({ walk, unitRatio: UNIT_RATIO, solidRef, pose, feel, restartSpeed: noop, onRefused, flying });
   useEffect(() => {
     out.walking = walking;
     out.pose = pose;
@@ -38,11 +41,11 @@ const live = new Set<() => Promise<void>>();
 async function mount() {
   const controls = fakeControls();
   const probe: { camera?: Camera } = {};
-  const sceneRef = site();
+  const solidRef = site();
   const onRefused = vi.fn();
   const tree = (walk: boolean) => (
     <WithControls controls={controls} probe={probe}>
-      <Probe walk={walk} sceneRef={sceneRef} onRefused={onRefused} />
+      <Probe walk={walk} solidRef={solidRef} onRefused={onRefused} />
     </WithControls>
   );
   const r = await ReactThreeTestRenderer.create(tree(false));
@@ -113,5 +116,15 @@ describe("useWalk", () => {
     const north = new Vector3(0, 0, -1);
     expect(out.walking?.current?.wallAt(from, north, 2.5)).toBe(true);
     expect(out.walking?.current?.wallAt(from, north, 1.5)).toBe(false);
+  });
+
+  it("leaves a jump in the air on the way back to flying: no speed up or down", async () => {
+    const { camera, walk } = await mount();
+    camera.position.set(0.5, 2.5, 0.5);
+    await walk(true);
+    const stood = out.pose?.current;
+    if (stood && out.pose) out.pose.current = { ...stood, vy: 1 };
+    await walk(false);
+    expect(out.pose?.current?.vy).toBeUndefined();
   });
 });

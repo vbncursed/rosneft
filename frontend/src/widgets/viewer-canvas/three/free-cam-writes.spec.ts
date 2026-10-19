@@ -1,7 +1,7 @@
 import { PerspectiveCamera, Vector3 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { describe, expect, it } from "vitest";
-import { applyPose, setClip, setCursor, setEnabled } from "./free-cam-writes";
+import { applyPose, setClip, setCursor, setEnabled, setFov } from "./free-cam-writes";
 
 describe("free cam writes", () => {
   it("setClip writes both planes and refreshes the projection", () => {
@@ -9,6 +9,14 @@ describe("free cam writes", () => {
     const before = camera.projectionMatrix.clone();
     setClip(camera, { near: 0.01, far: 9 });
     expect([camera.near, camera.far]).toEqual([0.01, 9]);
+    expect(camera.projectionMatrix.equals(before)).toBe(false);
+  });
+
+  it("setFov widens the view and refreshes the projection", () => {
+    const camera = new PerspectiveCamera(50, 1, 0.1, 500);
+    const before = camera.projectionMatrix.clone();
+    setFov(camera, 53);
+    expect(camera.fov).toBe(53);
     expect(camera.projectionMatrix.equals(before)).toBe(false);
   });
 
