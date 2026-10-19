@@ -24,6 +24,7 @@ const chip = (over: Partial<Parameters<typeof modeChip>[0]> = {}) =>
     measure: NOTHING,
     view: SCENE,
     move: false,
+    free: false,
     calibrating: null,
     ...over,
   });
@@ -74,6 +75,10 @@ describe("modeChip", () => {
 
   it("says what move mode moves, and which key leaves it", () => {
     expect(chip({ move: true })).toEqual({ text: "move points · drag a marker", kbd: "V" });
+  });
+
+  it("says the pointer looks in the free cam, and that F leaves it", () => {
+    expect(chip({ free: true })).toEqual({ text: "free cam · drag to look", kbd: "F" });
   });
 
   it("looks around rather than calibrating once the camera is inside the sphere", () => {

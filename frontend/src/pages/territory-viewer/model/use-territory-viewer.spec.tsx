@@ -299,6 +299,7 @@ describe("useTerritoryViewer", () => {
       expect(state.overlays.tools.map((t) => t.key)).toEqual([
         "reset",
         "play",
+        "free",
         "measure",
         "panoramas",
         "documents",

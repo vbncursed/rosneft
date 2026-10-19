@@ -69,6 +69,8 @@ export type ViewerOverlaysProps = {
   onReset: () => void;
   /** The fly-around tile: takes off, or lands a flight in progress. */
   onPlay: () => void;
+  /** The free cam tile: F's toggle. */
+  onFree: () => void;
   onMeasure: () => void;
   onAdd: () => void;
   /** The two overlay tiles: reveal that section of the View tab (Task 15's `revealSection`). */
@@ -82,6 +84,8 @@ export type ViewerOverlaysProps = {
   switcher: SwitcherView | null;
   strip: StripView;
   hints: boolean;
+  /** The free cam's key row, under its chip. */
+  freeHints: boolean;
   error: ViewerErrorProps | null;
   /** The way out of a panorama, under the mode chip; null in the 3D scene. */
   switchTo3d: (() => void) | null;

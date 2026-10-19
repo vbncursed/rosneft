@@ -42,6 +42,7 @@ const props = (over: Partial<ViewerOverlaysProps> = {}): ViewerOverlaysProps => 
   tools: [
     { key: "reset", state: "active" },
     { key: "play", state: "idle" },
+    { key: "free", state: "idle" },
     { key: "measure", state: "idle" },
     { key: "add", state: "idle" },
     { key: "panoramas", state: "idle" },
@@ -50,6 +51,7 @@ const props = (over: Partial<ViewerOverlaysProps> = {}): ViewerOverlaysProps => 
   ],
   onReset: vi.fn(),
   onPlay: vi.fn(),
+  onFree: vi.fn(),
   onMeasure: vi.fn(),
   onAdd: vi.fn(),
   onPanoramas: vi.fn(),
@@ -61,6 +63,7 @@ const props = (over: Partial<ViewerOverlaysProps> = {}): ViewerOverlaysProps => 
   switcher: { levels: [0, 1, 2], choice: 1, target: 1, shown: 1, onChange: vi.fn() },
   strip: STRIP,
   hints: false,
+  freeHints: false,
   error: null,
   switchTo3d: null,
   document: null,
@@ -84,6 +87,7 @@ describe("ViewerOverlays · the tool rail", () => {
     expect([...rail.querySelectorAll("button")].map((b) => b.getAttribute("aria-label"))).toEqual([
       "Reset camera",
       "Fly around",
+      "Free cam",
       "Measure",
       "Add objects",
       "Panoramas",
@@ -169,6 +173,24 @@ describe("ViewerOverlays · the tool rail", () => {
       />,
     );
     expect(screen.getByRole("button", { name: "Fly around" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("names the free cam tile, announces F, and presses it while flying", async () => {
+    const onFree = vi.fn();
+    const tools = props().tools.map((t) => (t.key === "free" ? { ...t, state: "active" as const } : t));
+    render(<ViewerOverlays {...props({ onFree, tools })} />);
+    const tile = screen.getByRole("button", { name: "Free cam" });
+    expect(tile).toHaveAttribute("aria-keyshortcuts", "F");
+    expect(tile).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(tile);
+    expect(onFree).toHaveBeenCalledOnce();
+  });
+
+  it("shows the free cam keys only when asked", () => {
+    const { rerender } = render(<ViewerOverlays {...props()} />);
+    expect(screen.queryByRole("note", { name: "Free cam keys" })).not.toBeInTheDocument();
+    rerender(<ViewerOverlays {...props({ freeHints: true })} />);
+    expect(screen.getByRole("note", { name: "Free cam keys" })).toBeInTheDocument();
   });
 
   it("toggles the flight from its tile", async () => {

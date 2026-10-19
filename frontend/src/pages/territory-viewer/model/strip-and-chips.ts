@@ -10,6 +10,7 @@ const MEASURE_CHIP = "measure";
 const NOT_SAVED = " · not saved";
 const PANORAMA_CHIP = "panorama · drag to look around";
 const MOVE_CHIP = "move points · drag a marker";
+const FREE_CHIP = "free cam · drag to look";
 const calibratingChip = (title: string) => `calibrating · ${title}`;
 
 /** The strip's spans when nothing rendered, in the mock's order. */
@@ -36,10 +37,14 @@ export function modeChip(a: {
   view: ViewerView;
   /** The scene-only sub-mode for dragging panorama anchors (V). */
   move: boolean;
+  /** The free cam (F): the pointer looks, the keys fly. */
+  free: boolean;
   /** The title of the panorama being calibrated, or null. */
   calibrating: string | null;
 }): { text: string; kbd?: string } {
   if (a.view.kind === "panorama") return { text: PANORAMA_CHIP, kbd: "P" };
+  // Free before calibration: in the free cam the pointer looks, it does not drag the ring.
+  if (a.free) return { text: FREE_CHIP, kbd: "F" };
   if (a.calibrating !== null) return { text: calibratingChip(a.calibrating) };
   if (a.move) return { text: MOVE_CHIP, kbd: "V" };
   if (a.mode === "orbit") return { text: ORBIT_CHIP };

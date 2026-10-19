@@ -11,6 +11,7 @@ import { CollapsedPill, DocumentWindow } from "@/widgets/document-window";
 import { SWITCH_TO_3D } from "@/widgets/view-tab";
 import type { ViewerOverlaysProps } from "../model/page-props";
 import type { RailTool } from "../model/viewer-view";
+import { FreeCamKeys } from "./free-cam-keys";
 import { ViewerError } from "./viewer-error";
 
 /** Saved measurements are shared (spec M-1), so Clear takes them from everyone. */
@@ -30,6 +31,7 @@ const TILES: Record<
 > = {
   reset: { icon: "reset", name: "Reset camera", dataTour: "reset-camera" },
   play: { icon: "play", name: "Fly around", toggle: true },
+  free: { icon: "free-cam", name: "Free cam", shortcut: "F", toggle: true },
   measure: { icon: "ruler", name: "Measure", shortcut: "M", toggle: true, dataTour: "measure" },
   add: { icon: "plus", name: "Add objects", toggle: true, dataTour: "add-object" },
   panoramas: { icon: "panorama", name: "Panoramas", toggle: true, dataTour: "panoramas" },
@@ -114,6 +116,7 @@ export function ViewerOverlays({
   tools,
   onReset,
   onPlay,
+  onFree,
   onMeasure,
   onAdd,
   onPanoramas,
@@ -125,6 +128,7 @@ export function ViewerOverlays({
   switcher,
   strip,
   hints,
+  freeHints,
   error,
   switchTo3d,
   document: doc,
@@ -133,6 +137,7 @@ export function ViewerOverlays({
   const handlers: Record<RailTool, () => void> = {
     reset: onReset,
     play: onPlay,
+    free: onFree,
     measure: onMeasure,
     add: onAdd,
     panoramas: onPanoramas,
@@ -185,6 +190,7 @@ export function ViewerOverlays({
             {chip.text}
           </ModeChip>
         ) : null}
+        {freeHints ? <FreeCamKeys /> : null}
         {switchTo3d ? (
           <Button size="sm" onClick={switchTo3d} className="shadow-elevation">
             {SWITCH_TO_3D}

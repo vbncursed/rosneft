@@ -124,7 +124,7 @@ export function headerPills(a: {
 /** The mono line under the title: which territory, how many levels, in what units. */
 export const headerMeta = (slug: string, lods: number, units: string) => `${slug} · ${lods} LODs · ${units}`;
 
-export type RailTool = "reset" | "play" | "measure" | "add" | "panoramas" | "documents" | "tour";
+export type RailTool = "reset" | "play" | "free" | "measure" | "add" | "panoramas" | "documents" | "tour";
 export type RailToolState = { key: RailTool; state: "active" | "idle" | "inert" };
 
 type RailInputs = {
@@ -137,6 +137,10 @@ type RailInputs = {
   documentOpen: boolean;
   /** The camera is flying around the territory. */
   playing: boolean;
+  /** The free cam (F) is on. */
+  free: boolean;
+  /** A touch screen: the free cam has no touch controls, so its tile is not drawn. */
+  touch: boolean;
 };
 
 /**
@@ -159,11 +163,14 @@ type RailInputs = {
  * mesh from orbit mode only — a pointer mode is using the view. A download
  * never dims it: a level on screen is a level to circle, and a flight caught
  * mid-download has to stay stoppable from its tile.
+ *
+ * The free cam (F) lights like Play, beside the mode's tile, and only in orbit
+ * mode; a touch screen draws no tile at all, the rule that a control with
+ * nothing to drive is removed rather than greyed.
  */
 export function railTools(a: RailInputs): RailToolState[] {
-  const keys: RailTool[] = a.grants.create
-    ? ["reset", "play", "measure", "add", "panoramas", "documents", "tour"]
-    : ["reset", "play", "measure", "panoramas", "documents", "tour"];
+  const all: RailTool[] = ["reset", "play", "free", "measure", "add", "panoramas", "documents", "tour"];
+  const keys = all.filter((k) => (k !== "add" || a.grants.create) && (k !== "free" || !a.touch));
   const inside = a.view.kind === "panorama";
   const activeKey: RailTool | null = a.tourActive
     ? null
@@ -180,7 +187,7 @@ export function railTools(a: RailInputs): RailToolState[] {
   return keys.map((key) => ({ key, state: stateOf(key, activeKey, inside, a) }));
 }
 
-const NEEDS_MESH: RailTool[] = ["play", "measure", "add"];
+const NEEDS_MESH: RailTool[] = ["play", "free", "measure", "add"];
 
 function stateOf(key: RailTool, activeKey: RailTool | null, inside: boolean, a: RailInputs): RailToolState["state"] {
   // The two overlay tiles are never inert — see the note above.
@@ -188,6 +195,7 @@ function stateOf(key: RailTool, activeKey: RailTool | null, inside: boolean, a: 
   if (!a.geometry) return "inert";
   if (inside && NEEDS_MESH.includes(key)) return "inert";
   if (key === "play") return a.mode === "orbit" ? (a.playing && !a.tourActive ? "active" : "idle") : "inert";
+  if (key === "free") return a.mode === "orbit" ? (a.free && !a.tourActive ? "active" : "idle") : "inert";
   if (key === activeKey) return "active";
   return a.loading ? "inert" : "idle";
 }

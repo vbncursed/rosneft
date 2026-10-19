@@ -167,6 +167,8 @@ describe("railTools", () => {
       view: SCENE,
       documentOpen: false,
       playing: false,
+      free: false,
+      touch: false,
       ...over,
     });
   const states = (over: Partial<Parameters<typeof railTools>[0]> = {}) =>
@@ -176,6 +178,7 @@ describe("railTools", () => {
     expect(tools()).toEqual([
       { key: "reset", state: "active" },
       { key: "play", state: "idle" },
+      { key: "free", state: "idle" },
       { key: "measure", state: "idle" },
       { key: "add", state: "idle" },
       { key: "panoramas", state: "idle" },
@@ -196,6 +199,7 @@ describe("railTools", () => {
     expect(tools({ grants: GUEST }).map((t) => t.key)).toEqual([
       "reset",
       "play",
+      "free",
       "measure",
       "panoramas",
       "documents",
@@ -211,6 +215,7 @@ describe("railTools", () => {
     expect(states({ loading: true })).toEqual({
       reset: "active",
       play: "idle",
+      free: "idle",
       measure: "inert",
       add: "inert",
       panoramas: "idle",
@@ -227,6 +232,7 @@ describe("railTools", () => {
     expect(states({ geometry: false })).toEqual({
       reset: "inert",
       play: "inert",
+      free: "inert",
       measure: "inert",
       add: "inert",
       panoramas: "idle",
@@ -241,6 +247,7 @@ describe("railTools", () => {
     expect(states({ view: INSIDE })).toEqual({
       reset: "idle",
       play: "inert",
+      free: "inert",
       measure: "inert",
       add: "inert",
       panoramas: "active",
@@ -264,6 +271,21 @@ describe("railTools", () => {
   it("makes Play inert while a pointer mode is using the view", () => {
     expect(states({ mode: "measure" }).play).toBe("inert");
     expect(states({ mode: "place" }).play).toBe("inert");
+  });
+
+  it("lights the free cam tile while flying free, beside the lit Reset", () => {
+    expect(states({ free: true })).toMatchObject({ reset: "active", free: "active", play: "idle" });
+  });
+
+  it("keeps the free cam tile out of a pointer mode and a panorama, and never dims it for a download", () => {
+    expect(states({ mode: "measure" }).free).toBe("inert");
+    expect(states({ view: INSIDE }).free).toBe("inert");
+    expect(states({ geometry: false }).free).toBe("inert");
+    expect(states({ loading: true }).free).toBe("idle");
+  });
+
+  it("draws no free cam tile on a touch screen at all", () => {
+    expect(tools({ touch: true }).map((t) => t.key)).not.toContain("free");
   });
 
   it("keeps a running flight stoppable from its tile while a level downloads", () => {

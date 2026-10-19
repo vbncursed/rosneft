@@ -413,4 +413,10 @@ export default {
       {page((p) => ({ ...selected(p), view: { ...p.view, compact: true, targetLod: 0 } }))}
     </div>
   ),
+
+  "18 free cam": page((p) => ({
+    ...p,
+    mode: { ...p.mode, free: true },
+    panel: { tab: "view", collapsed: false },
+  })),
 };
