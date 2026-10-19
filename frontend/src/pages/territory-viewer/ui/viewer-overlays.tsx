@@ -2,7 +2,6 @@ import { documentFileName } from "@/entities/document";
 import { Button } from "@/shared/ui/button";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { Icon, type IconName } from "@/shared/ui/icon";
-import { KeycapHint } from "@/shared/ui/keycap-hint";
 import { LodSwitcher } from "@/shared/ui/lod-switcher";
 import { ModeChip } from "@/shared/ui/mode-chip";
 import { StatsStrip } from "@/shared/ui/stats-strip";
@@ -12,6 +11,7 @@ import { SWITCH_TO_3D } from "@/widgets/view-tab";
 import type { ViewerOverlaysProps } from "../model/page-props";
 import type { RailTool } from "../model/viewer-view";
 import { FreeCamKeys } from "./free-cam-keys";
+import { OrbitHints } from "./orbit-hints";
 import { ViewerError } from "./viewer-error";
 
 /** Saved measurements are shared (spec M-1), so Clear takes them from everyone. */
@@ -229,16 +229,7 @@ export function ViewerOverlays({
         ) : null}
       </div>
 
-      {hints ? (
-        <div
-          role="note"
-          aria-label="Keyboard hints"
-          className="absolute bottom-3.5 right-[74px] flex items-center gap-1.5"
-        >
-          <KeycapHint keyLabel="M">measure</KeycapHint>
-          <KeycapHint keyLabel="Esc">exit / deselect</KeycapHint>
-        </div>
-      ) : null}
+      {hints ? <OrbitHints freeCam={tools.some((t) => t.key === "free" && t.state !== "inert")} /> : null}
 
       {measuring ? (
         <div role="note" aria-label="Measure tool" className={`${HINT_BAR} ${PANEL_EDGE_MOVING}`}>

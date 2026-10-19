@@ -340,14 +340,19 @@ describe("ViewerOverlays · the strip, the switcher and the hints", () => {
     expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
   });
 
-  it("shows the two keycap hints only when the page asks for them", () => {
+  it("shows the keycap hints only when the page asks, F among them while the free cam tile is live", () => {
     const { rerender } = render(<ViewerOverlays {...props()} />);
     expect(screen.queryByRole("note", { name: "Keyboard hints" })).not.toBeInTheDocument();
     rerender(<ViewerOverlays {...props({ hints: true })} />);
     // Exact text: a substring match passed while the Esc keycap and its label
     // both said "Esc", so the chip read "Esc Esc exit / deselect".
     const hints = screen.getByRole("note", { name: "Keyboard hints" });
-    expect([...hints.children].map((c) => c.textContent)).toEqual(["Mmeasure", "Escexit / deselect"]);
+    expect([...hints.children].map((c) => c.textContent)).toEqual(["Mmeasure", "Ffree cam", "Escexit / deselect"]);
+    rerender(<ViewerOverlays {...props({ hints: true, tools: props().tools.filter((t) => t.key !== "free") })} />);
+    expect([...screen.getByRole("note", { name: "Keyboard hints" }).children].map((c) => c.textContent)).toEqual([
+      "Mmeasure",
+      "Escexit / deselect",
+    ]);
   });
 });
 
