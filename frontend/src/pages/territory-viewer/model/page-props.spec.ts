@@ -145,6 +145,7 @@ const parts = (over: Partial<PageParts> = {}): PageParts => ({
     view: { kind: "scene" },
     move: false,
     free: false,
+    walk: false,
     editingPanoramaId: null,
   },
   measure: {
@@ -257,6 +258,7 @@ describe("pageProps · canvas", () => {
         view: { kind: "scene" },
         move: false,
         free: false,
+        walk: false,
         editingPanoramaId: null,
       },
     });
@@ -557,6 +559,7 @@ describe("pageProps · panel", () => {
         view: { kind: "scene" },
         move: false,
         free: false,
+        walk: false,
         editingPanoramaId: null,
       },
     });
@@ -578,6 +581,7 @@ describe("pageProps · panel", () => {
         view: { kind: "scene" },
         move: false,
         free: false,
+        walk: false,
         editingPanoramaId: null,
       },
     });
@@ -606,6 +610,7 @@ describe("pageProps · panel", () => {
         view: { kind: "scene" },
         move: false,
         free: false,
+        walk: false,
         editingPanoramaId: null,
       },
     });

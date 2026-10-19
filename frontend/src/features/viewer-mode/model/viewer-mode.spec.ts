@@ -14,6 +14,7 @@ describe("viewerModeReducer", () => {
       view: { kind: "scene" },
       move: false,
       free: false,
+      walk: false,
       editingPanoramaId: null,
     });
   });
@@ -196,5 +197,41 @@ describe("the free cam", () => {
     expect(s.mode).toBe("orbit");
     esc();
     expect(s.view).toEqual({ kind: "scene" });
+  });
+});
+
+describe("walking", () => {
+  const flying: ViewerModeState = { ...INITIAL_VIEWER_MODE, free: true };
+  const walking: ViewerModeState = { ...flying, walk: true };
+
+  it("G walks inside the free cam and flies again", () => {
+    const on = reduce(flying, { type: "toggleWalk" });
+    expect(on).toMatchObject({ free: true, walk: true });
+    expect(reduce(on, { type: "toggleWalk" })).toMatchObject({ free: true, walk: false });
+  });
+
+  it("does nothing outside the free cam", () => {
+    expect(reduce(INITIAL_VIEWER_MODE, { type: "toggleWalk" })).toBe(INITIAL_VIEWER_MODE);
+  });
+
+  it.each([
+    [{ type: "toggleFree" }],
+    [{ type: "exitFree" }],
+    [{ type: "toggleMeasure" }],
+    [{ type: "enterPlace" }],
+    [{ type: "toggleMove" }],
+    [{ type: "enterPanorama", id: 2 }],
+    [{ type: "escape", chainOpen: false }],
+  ] as const)("%o leaves walking together with the free cam", (action) => {
+    expect(reduce(walking, action)).toMatchObject({ free: false, walk: false });
+  });
+
+  it("a pick keeps walking", () => {
+    expect(reduce(walking, { type: "select", id: 9 })).toMatchObject({ walk: true, selectedId: 9 });
+  });
+
+  it("exitWalk flies on, and is a no-op when not walking", () => {
+    expect(reduce(walking, { type: "exitWalk" })).toMatchObject({ free: true, walk: false });
+    expect(reduce(flying, { type: "exitWalk" })).toBe(flying);
   });
 });
