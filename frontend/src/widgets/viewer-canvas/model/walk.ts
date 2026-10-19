@@ -2,12 +2,10 @@ import { Vector3 } from "three";
 import { EYE_HEIGHT_M } from "@/entities/measurement";
 import { easeVelocity, type FreeInput, type FreePose } from "./free-cam";
 
-/** The tallest rise a step climbs, in metres: a kerb yes, a tank wall no. */
+/** The tallest rise a step climbs, and the deepest drop the feet stick to, in metres: a kerb yes, a tank wall no. */
 const STEP_M = 0.5;
 const WALK_MPS = 1.4;
 const RUN_MPS = 4;
-/** The fastest the walker sinks to lower ground, in metres a second. */
-const FALL_MPS = 8;
 /** A person's depth range in metres: a hand's width to a horizon a couple of km off. */
 const WALK_NEAR_M = 0.1;
 const WALK_FAR_M = 2000;
@@ -16,9 +14,27 @@ const KNEE_M = STEP_M + 0.2;
 const CHEST_M = 1.2;
 /** Half a person's width: how near a wall the walker comes head-on. */
 const BODY_M = 0.3;
+const GRAVITY_MPS2 = 9.8;
+/** The fastest a fall gets, in metres a second. */
+const TERMINAL_MPS = 30;
+/** How high a jump lifts the feet, in metres. */
+const JUMP_M = 0.5;
+/** On the ground the velocity closes ~63 % of the gap to the wish in this many seconds: next to at once. */
+const GROUND_EASE_S = 0.015;
+/** In the air the velocity turns towards the wish by at most this share of the wish's speed a second. */
+const AIR_CONTROL = 0.3;
 
-/** Eye height, step, fall speed and the wall probe's heights and body in scene units: a metre is 1 / unitRatio of them. */
-export type WalkScale = { eye: number; step: number; fall: number; knee: number; chest: number; body: number };
+/** The body in scene units: a metre is 1 / unitRatio of them; gravity, terminal speed and jump likewise per second. */
+export type WalkScale = {
+  eye: number;
+  step: number;
+  knee: number;
+  chest: number;
+  body: number;
+  gravity: number;
+  terminal: number;
+  jump: number;
+};
 /** The surface under (x, z) seen from `fromY` straight down; null when there is none. */
 export type GroundAt = (x: number, z: number, fromY: number) => number | null;
 /** Is there a surface within `reach` of `from` along `dir` (a horizontal unit vector)? */
@@ -28,10 +44,12 @@ export type WalkWorld = { dt: number; speed: number; scale: WalkScale; groundAt:
 export const walkScale = (unitRatio: number): WalkScale => ({
   eye: EYE_HEIGHT_M / unitRatio,
   step: STEP_M / unitRatio,
-  fall: FALL_MPS / unitRatio,
   knee: KNEE_M / unitRatio,
   chest: CHEST_M / unitRatio,
   body: BODY_M / unitRatio,
+  gravity: GRAVITY_MPS2 / unitRatio,
+  terminal: TERMINAL_MPS / unitRatio,
+  jump: Math.sqrt(2 * GRAVITY_MPS2 * JUMP_M) / unitRatio,
 });
 
 export const walkSpeed = (unitRatio: number, multiplier: number) => (WALK_MPS / unitRatio) * multiplier;
@@ -63,36 +81,76 @@ function footing(w: WalkWorld, eye: Vector3, dx: number, dz: number): number | n
   return clearAhead(w, eye, dx, dz) ? ground : null;
 }
 
-/**
- * One frame of walking: along the ground towards the yaw (the pitch only
- * looks), up a rise no taller than a step, never onto one taller, into a
- * wall or off the territory's edge. Blocked, each axis is tried alone — X,
- * then Z — so the walker slides along a wall. Lower ground is reached at
- * FALL_MPS at most.
- */
-export function stepWalk(pose: FreePose, input: FreeInput, w: WalkWorld): FreePose {
-  const { yaw } = pose;
+/** Where (dx, dz) takes the walker — the whole step, else X alone, else Z alone, so it slides along a wall — and the ground there; null when every try is blocked. */
+function slide(w: WalkWorld, eye: Vector3, dx: number, dz: number): { x: number; z: number; ground: number } | null {
+  for (const [sx, sz] of [
+    [dx, dz],
+    [dx, 0],
+    [0, dz],
+  ]) {
+    const ground = footing(w, eye, sx, sz);
+    if (ground !== null) return { x: eye.x + sx, z: eye.z + sz, ground };
+  }
+  return null;
+}
+
+/** The keys' wish along the ground towards the yaw (the pitch only looks), run with Shift. */
+function walkWish(yaw: number, input: FreeInput, speed: number): Vector3 {
   const wish = new Vector3(-Math.sin(yaw), 0, -Math.cos(yaw))
     .multiplyScalar(input.forward)
     .addScaledVector(new Vector3(Math.cos(yaw), 0, -Math.sin(yaw)), input.right);
   if (wish.lengthSq() > 1) wish.normalize();
-  wish.multiplyScalar(w.speed * (input.boost ? RUN_MPS / WALK_MPS : 1));
-  const velocity = easeVelocity(pose.velocity, wish, w.dt, input.instant, w.speed);
-  const feet = pose.position.y - w.scale.eye;
-  let { x, z } = pose.position;
-  let ground = pose.ground ?? feet;
+  return wish.multiplyScalar(speed * (input.boost ? RUN_MPS / WALK_MPS : 1));
+}
+
+/** In the air: the take-off velocity kept, turned towards the wish by AIR_CONTROL of its speed a second at most. */
+function steer(from: Vector3, wish: Vector3, dt: number): Vector3 {
+  const turn = wish
+    .clone()
+    .sub(from)
+    .clampLength(0, wish.length() * AIR_CONTROL * dt);
+  return from.clone().add(turn);
+}
+
+/**
+ * The feet one frame on, and the speed up while off the ground (undefined:
+ * standing). Standing, the feet stick to ground up to a step below and jump
+ * on request; off it, gravity pulls — exactly, whatever the frame rate — no
+ * faster than terminal, until the feet meet the ground.
+ */
+function rise(feet: number, ground: number, vy: number | undefined, jump: boolean, w: WalkWorld) {
+  let lift = vy;
+  if (lift === undefined && jump) lift = w.scale.jump;
+  else if (lift === undefined && feet - ground > w.scale.step) lift = 0;
+  if (lift === undefined) return { feet: ground, vy: undefined };
+  const v = Math.max(lift - w.scale.gravity * w.dt, -w.scale.terminal);
+  const next = feet + ((lift + v) / 2) * w.dt;
+  return next <= ground ? { feet: ground, vy: undefined } : { feet: next, vy: v };
+}
+
+/**
+ * One frame of walking: along the ground towards the yaw, up a rise no taller
+ * than a step, never onto one taller, into a wall or off the territory's edge;
+ * blocked, each axis is tried alone (it slides). Space leaves the ground, and
+ * off it the walker keeps its momentum under gravity. The ground under the
+ * feet is read every frame, standing too: what held them may have gone.
+ */
+export function stepWalk(pose: FreePose, input: FreeInput, w: WalkWorld): FreePose {
+  // A frame that is not a number (a broken dt) is no frame: nothing moves, nothing is cast.
+  if (!(w.dt > 0)) return pose;
+  const wish = walkWish(pose.yaw, input, w.speed);
+  const velocity =
+    pose.vy === undefined
+      ? easeVelocity(pose.velocity, wish, w.dt, input.instant, w.speed, GROUND_EASE_S)
+      : steer(pose.velocity, wish, w.dt);
+  const eye = pose.position;
+  const feet = eye.y - w.scale.eye;
   const dx = velocity.x * w.dt;
   const dz = velocity.z * w.dt;
-  // A step that is not a number (a broken dt) stands still and casts nothing.
-  if ((dx !== 0 || dz !== 0) && Number.isFinite(dx + dz)) {
-    const eye = pose.position;
-    const both = footing(w, eye, dx, dz);
-    const alongX = both === null ? footing(w, eye, dx, 0) : null;
-    const alongZ = both === null && alongX === null ? footing(w, eye, 0, dz) : null;
-    if (both !== null) [x, z, ground] = [x + dx, z + dz, both];
-    else if (alongX !== null) [x, ground] = [x + dx, alongX];
-    else if (alongZ !== null) [z, ground] = [z + dz, alongZ];
-  }
-  const landed = ground >= feet ? ground : Math.max(ground, feet - w.scale.fall * w.dt);
-  return { ...pose, velocity, ground, position: new Vector3(x, landed + w.scale.eye, z) };
+  const moved = dx !== 0 || dz !== 0 ? slide(w, eye, dx, dz) : null;
+  const x = moved?.x ?? eye.x;
+  const z = moved?.z ?? eye.z;
+  const ground = moved ? moved.ground : (w.groundAt(x, z, feet + w.scale.step) ?? pose.ground ?? feet);
+  const body = rise(feet, ground, pose.vy, input.jump, w);
+  return { ...pose, velocity, ground, vy: body.vy, position: new Vector3(x, body.feet + w.scale.eye, z) };
 }

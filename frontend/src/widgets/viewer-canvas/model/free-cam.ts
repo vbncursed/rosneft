@@ -27,12 +27,24 @@ export type FreePose = {
   velocity: Vector3;
   /** Walk only: the surface under the feet, in scene units. */
   ground?: number;
+  /** Walk only: the speed up while off the ground, in scene units a second; absent while standing. */
+  vy?: number;
 };
 
 /** Each axis is -1, 0 or 1. `instant`: prefers-reduced-motion — no easing. */
-export type FreeInput = { forward: number; right: number; up: number; boost: boolean; instant: boolean };
+export type FreeInput = {
+  forward: number;
+  right: number;
+  up: number;
+  boost: boolean;
+  /** Walk only: Space, leaves the ground. */
+  jump: boolean;
+  instant: boolean;
+};
 
 const MOVE_KEYS = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "KeyQ", "KeyE", "ShiftLeft", "ShiftRight"]);
+/** Space: held like a move key, but only while walking (useHeldKeys). */
+export const JUMP_KEY = "Space";
 
 /** `event.code`, not `event.key`: the same physical keys on a Russian layout. */
 export const isMoveKey = (code: string) => MOVE_KEYS.has(code);
@@ -44,6 +56,7 @@ export function freeInput(held: ReadonlySet<string>): Omit<FreeInput, "instant">
     right: axis("KeyD", "KeyA"),
     up: axis("KeyE", "KeyQ"),
     boost: held.has("ShiftLeft") || held.has("ShiftRight"),
+    jump: held.has(JUMP_KEY),
   };
 }
 

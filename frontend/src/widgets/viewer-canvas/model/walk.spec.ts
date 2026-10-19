@@ -9,12 +9,13 @@ const go = (over: Partial<FreeInput>): FreeInput => ({
   right: 0,
   up: 0,
   boost: false,
+  jump: false,
   instant: true,
   ...over,
 });
 
 describe("walking", () => {
-  // 1 scene unit = 10 m: eye 0.18, step 0.05, fall 0.8 a second, knee 0.07, chest 0.12, body 0.03.
+  // 1 scene unit = 10 m: eye 0.18, step 0.05, knee 0.07, chest 0.12, body 0.03, gravity 0.98, terminal 3, jump 0.31.
   const scale = walkScale(10);
   const flat =
     (y = 0): GroundAt =>
@@ -50,8 +51,17 @@ describe("walking", () => {
     expect(v.z).toBeCloseTo(z);
   };
 
-  it("sizes the eye, the step, the fall and the probe in metres", () => {
-    expect(walkScale(2)).toEqual({ eye: 0.9, step: 0.25, fall: 4, knee: 0.35, chest: 0.6, body: 0.15 });
+  it("sizes the body, the step, gravity, the fall and the jump in metres", () => {
+    expect(walkScale(2)).toEqual({
+      eye: 0.9,
+      step: 0.25,
+      knee: 0.35,
+      chest: 0.6,
+      body: 0.15,
+      gravity: 4.9,
+      terminal: 15,
+      jump: expect.closeTo(Math.sqrt(9.8) / 2, 6),
+    });
   });
 
   it("walks 1.4 m/s, runs 4 m/s, and the wheel scales both", () => {
@@ -105,12 +115,14 @@ describe("walking", () => {
     near(stepWalk(standing(), go({ forward: 1 }), world(island)).position, 0, scale.eye, 0);
   });
 
-  it("sinks to lower ground at 8 m/s at most, keys up or not, and lands on it", () => {
+  it("drops off a 10 m ledge under gravity, keys up or not, and lands on it", () => {
     const ledge: GroundAt = (_x, z) => (z < -0.05 ? -1 : 0); // a 10 m drop
     const off = stepWalk(standing(), go({ forward: 1 }), world(ledge));
-    expect(off.position.y).toBeCloseTo(-0.8 + scale.eye);
+    expect(off.vy).toBeCloseTo(-0.98);
+    expect(off.position.y).toBeCloseTo(-0.49 + scale.eye);
     const landed = stepWalk(off, go({}), world(ledge));
     expect(landed.position.y).toBeCloseTo(-1 + scale.eye);
+    expect(landed.vy).toBeUndefined();
   });
 
   it("looks for the ground from one step over the feet", () => {
@@ -119,17 +131,18 @@ describe("walking", () => {
     expect(calls.mock.calls[0][2]).toBeCloseTo(scale.step);
   });
 
-  it("casts one ray for a clear step, three at most against a wall, none standing still", () => {
+  it("casts one ray for a clear step and one standing still, four at most against a wall", () => {
     const calls = vi.fn<GroundAt>(() => 0);
     stepWalk(standing(), go({ forward: 1 }), world(calls));
     expect(calls).toHaveBeenCalledOnce();
     calls.mockClear();
+    // Standing still it still looks down: an object hidden underfoot must stop holding.
+    stepWalk(standing(), go({}), world(calls));
+    expect(calls).toHaveBeenCalledOnce();
+    calls.mockClear();
     calls.mockReturnValue(null);
     stepWalk(standing(), go({ forward: 1, right: 1 }), world(calls));
-    expect(calls).toHaveBeenCalledTimes(3);
-    calls.mockClear();
-    stepWalk(standing(), go({}), world(calls));
-    expect(calls).not.toHaveBeenCalled();
+    expect(calls).toHaveBeenCalledTimes(4);
   });
 
   it("keeps a person's depth range, never deeper than the flight's", () => {
@@ -230,10 +243,107 @@ describe("walking", () => {
   });
 });
 
+describe("jumping and falling", () => {
+  /** Flat ground at `groundAt`'s height, no walls, at `dt` a frame. */
+  const worldOf = (unitRatio = 1, groundAt: GroundAt = () => 0, dt = 1 / 60): WalkWorld => ({
+    dt,
+    speed: walkSpeed(unitRatio, 1),
+    scale: walkScale(unitRatio),
+    groundAt,
+    wallAt: () => false,
+  });
+  const standOn = (unitRatio = 1, over: Partial<FreePose> = {}): FreePose => ({
+    position: new Vector3(0, walkScale(unitRatio).eye, 0),
+    yaw: 0,
+    pitch: 0,
+    velocity: new Vector3(),
+    ground: 0,
+    ...over,
+  });
+  const feetOf = (p: FreePose, unitRatio = 1) => p.position.y - walkScale(unitRatio).eye;
+  /** One press of Space, then frames until the walker stands again: the highest feet, the frames taken, the pose it lands in. */
+  const hop = (unitRatio = 1) => {
+    const w = worldOf(unitRatio);
+    let p = stepWalk(standOn(unitRatio), go({ jump: true }), w);
+    let top = feetOf(p, unitRatio);
+    let frames = 1;
+    while (p.vy !== undefined && frames < 600) {
+      p = stepWalk(p, go({}), w);
+      top = Math.max(top, feetOf(p, unitRatio));
+      frames++;
+    }
+    return { p, top, frames };
+  };
+
+  it("jumps 0.5 m and is down again in about 0.64 s, at any scale", () => {
+    const m = hop(1);
+    expect(m.top).toBeCloseTo(0.5, 2);
+    expect(m.frames / 60).toBeCloseTo(0.64, 1);
+    expect(m.p.vy).toBeUndefined();
+    expect(feetOf(m.p)).toBe(0);
+    expect(hop(10).top).toBeCloseTo(0.05, 3);
+  });
+
+  it("does not jump again in the air", () => {
+    const up = stepWalk(standOn(), go({ jump: true }), worldOf());
+    const next = stepWalk(up, go({ jump: true }), worldOf());
+    expect(next.vy).toBeCloseTo((up.vy ?? 0) - 9.8 / 60);
+  });
+
+  it("falls no faster than 30 m/s", () => {
+    let p = standOn(1, { position: new Vector3(0, 5000, 0), vy: 0 });
+    for (let i = 0; i < 300; i++) p = stepWalk(p, go({}), worldOf());
+    expect(p.vy).toBe(-30);
+  });
+
+  it("keeps the take-off speed in the air with the keys up", () => {
+    let p = stepWalk(standOn(1, { velocity: new Vector3(0, 0, -1.4) }), go({ forward: 1, jump: true }), worldOf());
+    for (let i = 0; i < 10; i++) p = stepWalk(p, go({}), worldOf());
+    expect(p.vy).toBeDefined();
+    expect(p.velocity.z).toBeCloseTo(-1.4);
+  });
+
+  it("turns in the air by 30 % of the wish's speed a second, so never round", () => {
+    let p = stepWalk(standOn(1, { velocity: new Vector3(0, 0, -1.4) }), go({ forward: 1, jump: true }), worldOf());
+    for (let i = 0; i < 10; i++) p = stepWalk(p, go({ forward: -1 }), worldOf());
+    expect(p.vy).toBeDefined();
+    expect(p.velocity.z).toBeCloseTo(-1.4 + 0.3 * 1.4 * (10 / 60), 5);
+  });
+
+  it("reaches the walk speed all but at once on the ground, eased or not", () => {
+    const p = stepWalk(
+      standOn(),
+      go({ forward: 1, instant: false }),
+      worldOf(1, () => 0, 0.05),
+    );
+    expect(p.velocity.length()).toBeGreaterThan(0.95 * 1.4);
+  });
+
+  it("sticks to ground up to a step lower, at once", () => {
+    const p = stepWalk(
+      standOn(),
+      go({}),
+      worldOf(1, () => -0.45),
+    );
+    expect(feetOf(p)).toBeCloseTo(-0.45);
+    expect(p.vy).toBeUndefined();
+  });
+
+  it("falls from rest off a drop deeper than a step", () => {
+    const p = stepWalk(
+      standOn(),
+      go({}),
+      worldOf(1, () => -0.6, 0.1),
+    );
+    expect(p.vy).toBeCloseTo(-0.98);
+    expect(feetOf(p)).toBeCloseTo(-0.049);
+  });
+});
+
 describe("walking into real meshes", () => {
   // 1 scene unit = 1 m. A 10×1×10 slab whose top — the ground — is at y = 0.
   const scale = walkScale(1);
-  const site = (...on: Mesh[]) => {
+  const site = (...on: Object3D[]) => {
     const slab = new Mesh(new BoxGeometry(10, 1, 10));
     slab.position.y = -0.5;
     const group = new Group();
@@ -280,5 +390,46 @@ describe("walking into real meshes", () => {
     const p = walkNorth(site(block(0.3, 4, -1.05)));
     expect(p.y).toBeCloseTo(0.3 + scale.eye);
     expect(p.z).toBeCloseTo(-4.2);
+  });
+
+  /** A placed object as PlacementInstance draws one: a unit box scaled by its group to 4 × h × 4, on the ground, its +Z face at z = `face`. */
+  const placed = (height: number, face: number) => {
+    const g = new Group();
+    g.add(new Mesh(new BoxGeometry(1, 1, 1)));
+    g.scale.set(4, height, 4);
+    g.position.set(0, height / 2, face - 2);
+    return g;
+  };
+  /** `frames` frames of `dt` with `input` held, from standing at the origin. */
+  const walkFor = (scene: Object3D, input: FreeInput, frames: number, dt: number) => {
+    const w: WalkWorld = {
+      dt,
+      speed: walkSpeed(1, 1),
+      scale,
+      groundAt: (x, z, fromY) => raycastSurfaceY(scene, x, z, fromY),
+      wallAt: (from, dir, reach) => hitsWithin(scene, from, dir, reach),
+    };
+    let pose: FreePose = {
+      position: new Vector3(0, scale.eye, 0),
+      yaw: 0,
+      pitch: 0,
+      velocity: new Vector3(),
+      ground: 0,
+    };
+    for (let i = 0; i < frames; i++) pose = stepWalk(pose, input, w);
+    return pose;
+  };
+
+  it("stops at a placed object's wall as at the territory's", () => {
+    expect(walkNorth(site(placed(2, -1.05))).z).toBeCloseTo(-0.7);
+  });
+
+  it("jumps onto a 0.9 m crate, and not onto a 1.2 m one", () => {
+    const onto = walkFor(site(placed(0.9, -1.05)), go({ forward: 1, jump: true }), 120, 1 / 60);
+    expect(onto.ground).toBeCloseTo(0.9);
+    expect(onto.position.z).toBeLessThan(-1.05);
+    const short = walkFor(site(placed(1.2, -1.05)), go({ forward: 1, jump: true }), 120, 1 / 60);
+    expect(short.ground).toBeCloseTo(0);
+    expect(short.position.z).toBeGreaterThan(-1.05);
   });
 });

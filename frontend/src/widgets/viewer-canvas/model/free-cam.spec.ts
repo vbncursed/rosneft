@@ -20,6 +20,7 @@ const go = (over: Partial<FreeInput>): FreeInput => ({
   right: 0,
   up: 0,
   boost: false,
+  jump: false,
   instant: true,
   ...over,
 });
@@ -100,13 +101,16 @@ describe("speed, keys and clip planes", () => {
       right: 1,
       up: 1,
       boost: true,
+      jump: false,
     });
     expect(freeInput(new Set(["KeyW", "KeyS", "KeyA", "KeyQ"]))).toEqual({
       forward: 0,
       right: -1,
       up: -1,
       boost: false,
+      jump: false,
     });
+    expect(freeInput(new Set(["Space"])).jump).toBe(true);
     expect(isMoveKey("KeyW")).toBe(true);
     expect(isMoveKey("KeyF")).toBe(false);
   });
