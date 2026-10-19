@@ -169,6 +169,17 @@ describe("FreeCamRig", () => {
     expect(camera.position.equals(start)).toBe(true);
   });
 
+  it("stops flying on a ⌘ press: macOS sends no keyup for the keys still held", async () => {
+    reducedMotion();
+    const { camera, key, frames } = await mount();
+    await key("keydown", "KeyW");
+    await frames(2);
+    await key("keydown", "MetaLeft", { key: "Meta", metaKey: true });
+    const stopped = camera.position.clone();
+    await frames(4);
+    expect(camera.position.equals(stopped)).toBe(true);
+  });
+
   it("stops flying when the window loses focus with a key still held", async () => {
     reducedMotion();
     const { camera, key, frames } = await mount();

@@ -99,6 +99,11 @@ export default function FreeCamRig({ sceneRef }: { sceneRef: RefObject<Object3D 
   useEffect(() => {
     const held = keys.current;
     const down = (e: KeyboardEvent) => {
+      // macOS sends no keyup for the other keys while ⌘ is down: drop them before the guard below.
+      if (e.key === "Meta" || e.metaKey) {
+        held.clear();
+        return;
+      }
       if (!isMoveKey(e.code) || isShortcutBlocked(e)) return;
       held.add(e.code);
       invalidate();
