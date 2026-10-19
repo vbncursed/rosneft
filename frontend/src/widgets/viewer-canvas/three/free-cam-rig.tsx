@@ -16,10 +16,9 @@ import {
   nextMultiplier,
   poseOf,
   stepFreeCam,
-  stepWalk,
-  walkSpeed,
   type FreePose,
 } from "../model/free-cam";
+import { stepWalk, walkSpeed } from "../model/walk";
 import { boundsOf } from "./bounds";
 import { applyPose, setClip, setCursor, setEnabled } from "./free-cam-writes";
 import { useAutoLodBus } from "./settle-bus";

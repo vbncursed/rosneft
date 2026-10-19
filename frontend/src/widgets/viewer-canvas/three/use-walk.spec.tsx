@@ -3,7 +3,8 @@ import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { BoxGeometry, Group, Mesh, Vector3, type Camera, type PerspectiveCamera } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { walkClip, type FreePose } from "../model/free-cam";
+import type { FreePose } from "../model/free-cam";
+import { walkClip } from "../model/walk";
 import { fakeControls, WithControls } from "./testing";
 import { useWalk, type Walking } from "./use-walk";
 

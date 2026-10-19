@@ -1,15 +1,8 @@
 import { useEffect, useRef, type RefObject } from "react";
 import { useThree } from "@react-three/fiber";
 import { Vector3, type Object3D, type PerspectiveCamera } from "three";
-import {
-  poseOf,
-  walkClip,
-  walkScale,
-  type FreePose,
-  type GroundAt,
-  type WalkScale,
-  type WallAt,
-} from "../model/free-cam";
+import { poseOf, type FreePose } from "../model/free-cam";
+import { walkClip, walkScale, type GroundAt, type WalkScale, type WallAt } from "../model/walk";
 import { applyPose, setClip } from "./free-cam-writes";
 import { useAutoLodBus } from "./settle-bus";
 import { hitsWithin, raycastSurfaceY } from "./snap-to-surface";
