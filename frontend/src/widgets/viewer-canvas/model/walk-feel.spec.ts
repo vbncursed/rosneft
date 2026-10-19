@@ -196,3 +196,80 @@ describe("the dip of a landing and a take-off", () => {
     expect(eyeOffsetM(flight)).toBe(0);
   });
 });
+
+describe("the bob of a step and the run's wider view", () => {
+  /** `n` frames north at `mps` over level ground, from `feel`; the feel and every offset. Airborne: both poses in the air. */
+  const stroll = (feel: Feel, mps: number, n: number, input = go({ forward: 1 }), f = frame(), airborne = false) => {
+    let s = feel;
+    const seen: number[] = [];
+    const vy = airborne ? 0.5 : undefined;
+    for (let i = 0; i < n; i++) {
+      const z = (i * mps * f.dt) / f.unitRatio;
+      const step = (mps * f.dt) / f.unitRatio;
+      s = stepFeel(s, at(0, 1.8 / f.unitRatio, -z, vy), at(0, 1.8 / f.unitRatio, -z - step, vy), input, f);
+      seen.push(eyeOffsetM(s));
+    }
+    return { s, seen };
+  };
+  const depth = (seen: number[]) => Math.max(...seen) - Math.min(...seen);
+
+  it("bobs 1.5 cm walking and 2.5 cm running, never over the eye's height", () => {
+    const walk = stroll(stroll(REST_FEEL, 1.4, 60).s, 1.4, 120).seen;
+    expect(depth(walk)).toBeCloseTo(0.015, 3);
+    expect(Math.max(...walk)).toBeLessThanOrEqual(0);
+    expect(depth(stroll(stroll(REST_FEEL, 4, 60).s, 4, 120, go({ forward: 1, boost: true })).seen)).toBeCloseTo(
+      0.025,
+      3,
+    );
+  });
+
+  it("bobs the same metres whatever the scene's unit", () => {
+    const tenth = stroll(
+      stroll(REST_FEEL, 1.4, 60, go({ forward: 1 }), frame({ unitRatio: 10 })).s,
+      1.4,
+      120,
+      go({ forward: 1 }),
+      frame({ unitRatio: 10 }),
+    );
+    expect(depth(tenth.seen)).toBeCloseTo(0.015, 3);
+  });
+
+  it("gives the same bob and wider view at a tenth of a second a frame as at a sixtieth", () => {
+    const slow = stroll(REST_FEEL, 4, 10, go({ forward: 1, boost: true }), frame({ dt: 0.1 })).s;
+    const fast = stroll(REST_FEEL, 4, 60, go({ forward: 1, boost: true }), frame()).s;
+    expect(fovKickDeg(slow)).toBeCloseTo(fovKickDeg(fast), 6);
+    expect(slow.bob.x).toBeCloseTo(fast.bob.x, 6);
+  });
+
+  it("fades out in the air, and once the walker stops, to exactly level", () => {
+    const walking = stroll(REST_FEEL, 1.4, 60).s;
+    expect(Math.abs(stroll(walking, 1.4, 60, go({ forward: 1 }), frame(), true).seen.at(-1)!)).toBeLessThan(1e-3);
+    const stopped = hold(walking, at(0, 1.8, 0), 120);
+    expect(eyeOffsetM(stopped)).toBe(0);
+    expect(feelAtRest(stopped)).toBe(true);
+  });
+
+  it("does not bob a walker held against a wall, nor under reduced motion, nor in a flight", () => {
+    expect(hold(REST_FEEL, at(0, 1.8, 0), 120, go({ forward: 1 })).bob.x).toBe(0);
+    expect(stroll(REST_FEEL, 1.4, 120, go({ forward: 1, instant: true })).seen.every((m) => m === 0)).toBe(true);
+    expect(stroll(REST_FEEL, 1.4, 120, go({ forward: 1 }), frame({ walking: false })).seen.every((m) => m === 0)).toBe(
+      true,
+    );
+  });
+
+  it("widens the view 3° at a run and brings it home once Shift is up, to exactly none", () => {
+    const running = stroll(REST_FEEL, 4, 60, go({ forward: 1, boost: true })).s;
+    expect(fovKickDeg(running)).toBeCloseTo(3, 2);
+    const kept = stroll(running, 4, 30, go({ forward: 1, boost: true }), frame(), true).s;
+    expect(fovKickDeg(kept)).toBeCloseTo(3, 2); // in the air it holds: nothing new on a jump
+    const home = stroll(running, 1.4, 120).s;
+    expect(fovKickDeg(home)).toBe(0);
+  });
+
+  it("does not widen the view standing with Shift held, jumping, in a flight, or under reduced motion", () => {
+    expect(fovKickDeg(hold(REST_FEEL, at(0, 1.8, 0), 60, go({ boost: true })))).toBe(0);
+    expect(fovKickDeg(stepFeel(REST_FEEL, at(0, 1.8, 0), at(0, 1.9, 0, 3), go({ jump: true }), frame()))).toBe(0);
+    expect(fovKickDeg(stroll(REST_FEEL, 4, 60, go({ forward: 1, boost: true }), frame({ walking: false })).s)).toBe(0);
+    expect(fovKickDeg(stroll(REST_FEEL, 4, 60, go({ forward: 1, boost: true, instant: true })).s)).toBe(0);
+  });
+});

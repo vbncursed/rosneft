@@ -1,5 +1,7 @@
+import { MathUtils } from "three";
 import type { FreeInput, FreePose } from "./free-cam";
 import { AT_REST, kickFor, springTo, type Spring } from "./spring";
+import { RUN_MPS, WALK_MPS } from "./walk";
 
 // The camera as an operator carries it. The body walks (model/walk.ts) and every
 // ray leaves from it; the eye rides over it with a lag, a dip, a bob and, at a
@@ -23,6 +25,17 @@ const LAND_DIP_PER_MPS = 0.022;
 const LAND_DIP_MAX_M = 0.25;
 /** A take-off crouches the eye this deep (m), the body already rising: the jump itself is never late. */
 const TAKE_OFF_DIP_M = 0.035;
+/** The bob's depth, peak to peak, walking and running, and the steps a second that drive it. */
+const BOB_WALK_M = 0.015;
+const BOB_RUN_M = 0.025;
+const WALK_STEPS_HZ = 1.9;
+const RUN_STEPS_HZ = 2.8;
+/** How fast the bob swells and fades (ω, rad/s): gone about half a second after the walker stops. */
+const BOB_OMEGA = 10;
+/** Slower than this along the ground the walker stands: no bob, no wider view (m/s). */
+const MOVING_MPS = 0.1;
+/** The run's wider view, in degrees over the base. */
+const FOV_KICK_DEG = 3;
 
 /**
  * The eye over the body. `eye` is its lag behind a step, `dip` a landing's or a
@@ -65,6 +78,35 @@ function dipAfter(dip: Spring, prev: FreePose, next: FreePose, input: FreeInput,
 export const fovHome = (fov: Spring, dt: number): Spring =>
   rested(springTo(fov, 0, FOV_OMEGA, 1, dt), REST_DEG, REST_DEG_PS);
 
+/** Metres a second the body really went along the ground: a walker held against a wall does not bob. */
+const pace = (prev: FreePose, next: FreePose, f: FeelFrame) =>
+  (Math.hypot(next.position.x - prev.position.x, next.position.z - prev.position.z) * f.unitRatio) / f.dt;
+
+/** 0 at a walk, 1 at a run, linear in between. */
+const runShare = (mps: number) => MathUtils.clamp((mps - WALK_MPS) / (RUN_MPS - WALK_MPS), 0, 1);
+
+/** The bob's depth eased towards the pace's, and the steps it has taken; none in the air, standing, or under reduced motion. */
+function bobAfter(
+  feel: Feel,
+  mps: number,
+  next: FreePose,
+  input: FreeInput,
+  f: FeelFrame,
+): Pick<Feel, "bob" | "phase"> {
+  const on = f.walking && !input.instant && standing(next) && mps > MOVING_MPS;
+  const run = runShare(mps);
+  const depth = on ? MathUtils.lerp(BOB_WALK_M, BOB_RUN_M, run) * Math.min(1, mps / WALK_MPS) : 0;
+  const bob = rested(springTo(feel.bob, depth, BOB_OMEGA, 1, f.dt), REST_M, REST_MPS);
+  const phase = (feel.phase + MathUtils.lerp(WALK_STEPS_HZ, RUN_STEPS_HZ, run) * f.dt) % 1;
+  return { bob, phase: bob === AT_REST ? 0 : phase };
+}
+
+/** The run's wider view: towards the kick while Shift drives a walking body along, else towards none. */
+function fovAfter(fov: Spring, mps: number, input: FreeInput, f: FeelFrame): Spring {
+  const on = f.walking && !input.instant && input.boost && mps > MOVING_MPS;
+  return on ? rested(springTo(fov, FOV_KICK_DEG, FOV_OMEGA, 1, f.dt), REST_DEG, REST_DEG_PS) : fovHome(fov, f.dt);
+}
+
 /**
  * The eye one frame on, the body having gone from `prev` to `next`. What
  * happened is read off the two poses — a landing, a take-off, a step — so the
@@ -74,11 +116,13 @@ export const fovHome = (fov: Spring, dt: number): Spring =>
 export function stepFeel(feel: Feel, prev: FreePose, next: FreePose, input: FreeInput, f: FeelFrame): Feel {
   if (!(f.dt > 0)) return feel;
   const from = feel.walking === f.walking ? feel : { ...REST_FEEL, walking: f.walking, fov: feel.fov };
+  const mps = pace(prev, next, f);
   return {
-    ...from,
+    walking: f.walking,
     eye: rested(eyeAfter(from.eye, prev, next, f), REST_M, REST_MPS),
     dip: dipAfter(from.dip, prev, next, input, f),
-    fov: fovHome(from.fov, f.dt),
+    ...bobAfter(from, mps, next, input, f),
+    fov: fovAfter(from.fov, mps, input, f),
   };
 }
 
