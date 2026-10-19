@@ -82,7 +82,16 @@ export default function FreeCamRig({ sceneRef, walk, unitRatio, onWalkRefused }:
   const restartSpeed = useCallback(() => {
     speed.current.multiplier = 1;
   }, []);
-  const walking = useWalk({ walk, unitRatio, sceneRef, pose, restartSpeed, onRefused: onWalkRefused });
+  const flyingClip = useCallback(() => clipPlanes(speed.current.radius), []);
+  const walking = useWalk({
+    walk,
+    unitRatio,
+    sceneRef,
+    pose,
+    restartSpeed,
+    onRefused: onWalkRefused,
+    flying: flyingClip,
+  });
 
   useEffect(() => {
     if (!controls) return;
@@ -92,8 +101,10 @@ export default function FreeCamRig({ sceneRef, walk, unitRatio, onWalkRefused }:
     scale.radius = sphere?.radius ?? FALLBACK_RADIUS;
     holdStill(controls, camera);
     setEnabled(controls, false);
-    const saved = { near: camera.near, far: camera.far };
-    setClip(camera, clipPlanes(scale.radius));
+    // A walk already on at mount (a canvas remount mid-walk) ran its effect first: the orbit's planes are the ones it took.
+    const walked = walking.current;
+    const saved = walked ? walked.before : { near: camera.near, far: camera.far };
+    setClip(camera, walked ? walked.clip() : clipPlanes(scale.radius));
     pose.current = poseOf(camera.position, camera.quaternion);
     invalidate();
     return () => {
@@ -107,7 +118,7 @@ export default function FreeCamRig({ sceneRef, walk, unitRatio, onWalkRefused }:
       // The pivot is on the line of sight, so the look-at inside turns nothing.
       controls.update();
     };
-  }, [controls, camera, sceneRef, invalidate]);
+  }, [controls, camera, sceneRef, invalidate, walking, pose]);
 
   useEffect(() => {
     const held = keys.current;

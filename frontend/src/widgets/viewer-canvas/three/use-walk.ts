@@ -19,8 +19,17 @@ const putPose = (ref: RefObject<FreePose | null>, value: FreePose) => {
   ref.current = value;
 };
 
-/** What a walking frame needs: the sizes in scene units, a way to find the ground and one to find a wall. */
-export type Walking = { scale: WalkScale; groundAt: GroundAt; wallAt: WallAt };
+/**
+ * What a walking frame needs: the sizes in scene units, a way to find the ground and one to find a wall.
+ * `before` is the clip the camera had when the walk began; `clip()` is the walk's own, read when wanted.
+ */
+export type Walking = {
+  scale: WalkScale;
+  groundAt: GroundAt;
+  wallAt: WallAt;
+  before: { near: number; far: number };
+  clip: () => { near: number; far: number };
+};
 
 type WalkParams = {
   walk: boolean;
@@ -33,6 +42,8 @@ type WalkParams = {
   restartSpeed: () => void;
   /** Nothing to stand on under the camera. */
   onRefused: () => void;
+  /** The free cam's planes, read when needed: its radius is known only once the rig's setup has run. */
+  flying: () => { near: number; far: number };
 };
 
 /**
@@ -54,6 +65,7 @@ export function useWalk({
   pose,
   restartSpeed,
   onRefused,
+  flying,
 }: WalkParams): RefObject<Walking | null> {
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
   const invalidate = useThree((s) => s.invalidate);
@@ -71,8 +83,9 @@ export function useWalk({
       return;
     }
     const scale = walkScale(unitRatio);
-    const flying = { near: camera.near, far: camera.far };
-    setClip(camera, walkClip(unitRatio, flying.far));
+    const before = { near: camera.near, far: camera.far };
+    const clip = () => walkClip(unitRatio, flying().far);
+    setClip(camera, clip());
     const standing = { ...here, ground, position: here.position.clone().setY(ground + scale.eye) };
     putPose(pose, standing);
     applyPose(camera, standing);
@@ -80,17 +93,19 @@ export function useWalk({
       scale,
       groundAt: (x, z, fromY) => raycastSurfaceY(scene, x, z, fromY),
       wallAt: (from, dir, reach) => hitsWithin(scene, from, dir, reach),
+      before,
+      clip,
     };
     bus.settle();
     invalidate();
     return () => {
       walking.current = null;
-      setClip(camera, flying);
+      setClip(camera, flying());
       const last = pose.current;
       if (last) pose.current = { ...last, velocity: new Vector3() };
       invalidate();
     };
-  }, [walk, unitRatio, sceneRef, pose, restartSpeed, onRefused, camera, invalidate, bus]);
+  }, [walk, unitRatio, sceneRef, pose, restartSpeed, onRefused, flying, camera, invalidate, bus]);
 
   return walking;
 }

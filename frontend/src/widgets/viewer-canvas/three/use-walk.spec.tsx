@@ -1,5 +1,6 @@
+import { useThree } from "@react-three/fiber";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
-import { useEffect, useRef, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { BoxGeometry, Group, Mesh, Vector3, type Camera, type PerspectiveCamera } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { walkClip, type FreePose } from "../model/free-cam";
@@ -21,7 +22,11 @@ const site = () => {
 const out: { walking?: RefObject<Walking | null>; pose?: RefObject<FreePose | null> } = {};
 function Probe({ walk, sceneRef, onRefused }: { walk: boolean; sceneRef: { current: Group }; onRefused: () => void }) {
   const pose = useRef<FreePose | null>(null);
-  const walking = useWalk({ walk, unitRatio: UNIT_RATIO, sceneRef, pose, restartSpeed: noop, onRefused });
+  const camera = useThree((s) => s.camera) as PerspectiveCamera;
+  // The rig's flying planes stand in for the camera's: here, the planes the camera had at mount.
+  const [flyingPlanes] = useState(() => ({ near: camera.near, far: camera.far }));
+  const flying = useCallback(() => flyingPlanes, [flyingPlanes]);
+  const walking = useWalk({ walk, unitRatio: UNIT_RATIO, sceneRef, pose, restartSpeed: noop, onRefused, flying });
   useEffect(() => {
     out.walking = walking;
     out.pose = pose;

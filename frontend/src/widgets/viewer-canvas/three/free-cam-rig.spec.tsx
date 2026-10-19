@@ -408,6 +408,22 @@ describe("FreeCamRig", () => {
       await r.unmount();
     });
 
+    it("keeps the walk's clip when it mounts already walking, and the orbit's on the way out", async () => {
+      const controls = fakeControls();
+      const probe: { camera?: Camera } = {};
+      const sceneRef = territory();
+      const r = await ReactThreeTestRenderer.create(scene(controls, probe, sceneRef, false));
+      const camera = probe.camera as PerspectiveCamera;
+      const orbit = { near: camera.near, far: camera.far };
+      camera.position.set(0, 3, 0.5);
+      await r.update(scene(controls, probe, sceneRef, true, true));
+      expect(camera.near).toBeCloseTo(0.01, 6);
+      await r.update(scene(controls, probe, sceneRef, false));
+      expect(camera.near).toBe(orbit.near);
+      expect(camera.far).toBe(orbit.far);
+      await r.unmount();
+    });
+
     it("starts each way of moving at ×1: the wheel's speed does not carry over", async () => {
       reducedMotion();
       const { camera, key, frames, wheel, walkTo } = await mount();
