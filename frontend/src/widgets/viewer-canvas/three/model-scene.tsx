@@ -24,8 +24,10 @@ const noop = () => {};
 
 /**
  * One converted model on its own: the territory scene's parts without the
- * territory — no placements, panoramas, rulers or gizmo. Auto LOD, framed once
- * on mount by Bounds, orbited by CameraRig.
+ * territory — no placements, panoramas, rulers or gizmo. Auto LOD, orbited by
+ * CameraRig. Bounds mounts before the GLB has loaded (GltfModel suspends
+ * inside it), so it frames an empty box; the model fits the default camera
+ * because the converter normalises every mesh to max-axis 2.
  */
 export default function ModelScene({ lods, retryVersion, onLod, colors }: ModelSceneProps) {
   const modelRef = useRef<Group>(null);
