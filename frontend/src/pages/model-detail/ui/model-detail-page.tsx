@@ -77,7 +77,7 @@ export function ModelDetailPage({
         }
       />
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(420px,1fr)_minmax(300px,360px)]">
-        <ModelViewport slug={model.slug} title={model.title} status={status} artifacts={artifacts} />
+        <ModelViewport key={model.slug} slug={model.slug} title={model.title} status={status} artifacts={artifacts} />
         <ModelAside
           model={model}
           status={status}

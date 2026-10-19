@@ -1,12 +1,19 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { Model } from "@/entities/model";
+import type { ModelCanvasProps } from "@/widgets/viewer-canvas";
 import { ModelDetailPage, type ModelDetailPageProps } from "./model-detail-page";
 import { focusTip, hoverTip } from "@/shared/ui/tooltip/testing";
 
 // The scene has its own spec; the page only needs the viewport to mount without three.
-vi.mock("@/widgets/viewer-canvas", () => ({ ModelCanvas: () => null }));
+const { seen } = vi.hoisted(() => ({ seen: { props: null as null | ModelCanvasProps } }));
+vi.mock("@/widgets/viewer-canvas", () => ({
+  ModelCanvas: (p: ModelCanvasProps) => {
+    seen.props = p;
+    return null;
+  },
+}));
 
 const MODEL: Model = {
   slug: "valve-assembly",
@@ -82,6 +89,18 @@ describe("ModelDetailPage", () => {
     expect(enabled).not.toBeDisabled();
     await userEvent.click(enabled);
     expect(onDelete).toHaveBeenCalled();
+  });
+
+  // The route keeps one component across /models/:slug, so the viewport must
+  // not carry the last model's scene state (here: WebGL unavailable) to the next.
+  it("starts the viewport fresh when the page moves to another model", () => {
+    const { rerender } = render(<ModelDetailPage {...props()} />);
+    act(() => seen.props!.onUnavailable());
+    expect(screen.getByText("3D preview unavailable")).toBeInTheDocument();
+
+    rerender(<ModelDetailPage {...props({ model: { ...MODEL, slug: "air-compressor", title: "Air Compressor" } })} />);
+    expect(screen.queryByText("3D preview unavailable")).not.toBeInTheDocument();
+    expect(seen.props).not.toBeNull();
   });
 
   // Answers the press, not only the release; the hover border eases with it.
