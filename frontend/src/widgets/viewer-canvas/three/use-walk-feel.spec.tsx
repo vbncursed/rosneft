@@ -7,22 +7,9 @@ import type { FreeInput, FreePose } from "../model/free-cam";
 import { fakeControls, WithControls } from "./testing";
 import { easeFovHome, stopFovHome, useWalkFeel, type WalkFeel } from "./use-walk-feel";
 
-// The model has no source of a view kick yet: this seam gives the spring one, so the
-// re-entry test can take a kick into flight. Every other frame is the real stepFeel.
-const kick = vi.hoisted(() => ({ deg: 0 }));
-vi.mock("../model/walk-feel", async (orig) => {
-  const real = await orig<typeof import("../model/walk-feel")>();
-  return {
-    ...real,
-    stepFeel: (...args: Parameters<typeof real.stepFeel>) => {
-      const next = real.stepFeel(...args);
-      return kick.deg ? { ...next, fov: { x: kick.deg, v: 0 } } : next;
-    },
-  };
-});
-
 const UNIT_RATIO = 10; // 1 scene unit = 10 m: eye 0.18
 const go: FreeInput = { forward: 0, right: 0, up: 0, boost: false, jump: false, instant: false };
+const sprint: FreeInput = { ...go, forward: 1, boost: true };
 const at = (y: number, x = 0, z = 0): FreePose => ({
   position: new Vector3(x, y, z),
   yaw: 0,
@@ -46,6 +33,13 @@ function Harness({ on, controls, probe }: { on: boolean; controls: unknown; prob
       {on ? <Probe /> : null}
     </WithControls>
   );
+}
+
+/** A second of 60 frames at 4 m/s along the ground, Shift held: the body moves, the feel takes the run. */
+function sprint60(feel: WalkFeel) {
+  const dt = 1 / 60;
+  const step = (4 * dt) / UNIT_RATIO;
+  for (let i = 0; i < 60; i++) feel.step(at(0.18, 0, -i * step), at(0.18, 0, -(i + 1) * step), sprint, dt, true);
 }
 
 const live = new Set<() => Promise<void>>();
@@ -160,11 +154,9 @@ describe("easeFovHome", () => {
     const camera = probe.camera as PerspectiveCamera;
     const base = camera.fov;
 
-    kick.deg = 3;
-    out.feel!.step(at(0.18), at(0.18), go, 1 / 60, true);
-    kick.deg = 0;
+    sprint60(out.feel!); // a second at a run: the view has reached its kick
     out.feel!.apply(at(0.18));
-    expect(camera.fov).toBe(base + 3);
+    expect(camera.fov).toBeCloseTo(base + 3, 2);
 
     const raf = frames();
     await r.update(<Harness on={false} controls={controls} probe={probe} />);

@@ -266,6 +266,24 @@ describe("the bob of a step and the run's wider view", () => {
     expect(fovKickDeg(home)).toBe(0);
   });
 
+  it("starts the bob at a slow walk at any frame rate: 0.3 m/s at 360 Hz settles at 3.2 mm", () => {
+    const s = stroll(REST_FEEL, 0.3, 360, go({ forward: 1 }), frame({ dt: 1 / 360 })).s;
+    expect(s.bob.x).toBeGreaterThan(0);
+    expect(s.bob.x).toBeCloseTo(0.0032, 3);
+  });
+
+  it("still snaps a stopped bob to exactly level at a high frame rate", () => {
+    const f = frame({ dt: 1 / 360 });
+    const walking = stroll(REST_FEEL, 0.3, 360, go({ forward: 1 }), f).s;
+    expect(feelAtRest(hold(walking, at(0, 1.8, 0), 360, go(), f))).toBe(true);
+  });
+
+  it("holds the view in a flight begun from a standstill, however Shift is held", () => {
+    const takeOff = stepFeel(REST_FEEL, at(0, 1.8, 0), at(0, 1.9, 0, 3), go({ jump: true }), frame());
+    const flown = stroll(takeOff, 4, 60, go({ forward: 1, boost: true }), frame(), true).s;
+    expect(fovKickDeg(flown)).toBeLessThanOrEqual(fovKickDeg(takeOff));
+  });
+
   it("does not widen the view standing with Shift held, jumping, in a flight, or under reduced motion", () => {
     expect(fovKickDeg(hold(REST_FEEL, at(0, 1.8, 0), 60, go({ boost: true })))).toBe(0);
     expect(fovKickDeg(stepFeel(REST_FEEL, at(0, 1.8, 0), at(0, 1.9, 0, 3), go({ jump: true }), frame()))).toBe(0);

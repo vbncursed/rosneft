@@ -96,15 +96,20 @@ function bobAfter(
   const on = f.walking && !input.instant && standing(next) && mps > MOVING_MPS;
   const run = runShare(mps);
   const depth = on ? MathUtils.lerp(BOB_WALK_M, BOB_RUN_M, run) * Math.min(1, mps / WALK_MPS) : 0;
-  const bob = rested(springTo(feel.bob, depth, BOB_OMEGA, 1, f.dt), REST_M, REST_MPS);
+  const bob =
+    depth === 0
+      ? rested(springTo(feel.bob, 0, BOB_OMEGA, 1, f.dt), REST_M, REST_MPS)
+      : springTo(feel.bob, depth, BOB_OMEGA, 1, f.dt);
   const phase = (feel.phase + MathUtils.lerp(WALK_STEPS_HZ, RUN_STEPS_HZ, run) * f.dt) % 1;
   return { bob, phase: bob === AT_REST ? 0 : phase };
 }
 
-/** The run's wider view: towards the kick while Shift drives a walking body along, else towards none. */
-function fovAfter(fov: Spring, mps: number, input: FreeInput, f: FeelFrame): Spring {
+/** The run's wider view: towards the kick while Shift drives a walking body along, held in the air, else towards none. */
+function fovAfter(fov: Spring, mps: number, prev: FreePose, next: FreePose, input: FreeInput, f: FeelFrame): Spring {
   const on = f.walking && !input.instant && input.boost && mps > MOVING_MPS;
-  return on ? rested(springTo(fov, FOV_KICK_DEG, FOV_OMEGA, 1, f.dt), REST_DEG, REST_DEG_PS) : fovHome(fov, f.dt);
+  if (!on) return fovHome(fov, f.dt);
+  const airborne = !standing(prev) || !standing(next);
+  return springTo(fov, airborne ? fov.x : FOV_KICK_DEG, FOV_OMEGA, 1, f.dt);
 }
 
 /**
@@ -122,7 +127,7 @@ export function stepFeel(feel: Feel, prev: FreePose, next: FreePose, input: Free
     eye: rested(eyeAfter(from.eye, prev, next, f), REST_M, REST_MPS),
     dip: dipAfter(from.dip, prev, next, input, f),
     ...bobAfter(from, mps, next, input, f),
-    fov: fovAfter(from.fov, mps, input, f),
+    fov: fovAfter(from.fov, mps, prev, next, input, f),
   };
 }
 
