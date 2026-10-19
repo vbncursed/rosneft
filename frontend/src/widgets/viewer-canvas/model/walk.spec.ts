@@ -125,10 +125,10 @@ describe("walking", () => {
     expect(landed.vy).toBeUndefined();
   });
 
-  it("looks for the ground from one step over the feet", () => {
+  it("looks for the ground from a knee over the feet, above any block a step climbs", () => {
     const calls = vi.fn<GroundAt>(() => 0);
     stepWalk(standing(), go({ forward: 1 }), world(calls));
-    expect(calls.mock.calls[0][2]).toBeCloseTo(scale.step);
+    expect(calls.mock.calls[0][2]).toBeCloseTo(scale.knee);
   });
 
   it("casts one ray for a clear step and one standing still, four at most against a wall", () => {
@@ -284,6 +284,17 @@ describe("jumping and falling", () => {
     expect(hop(10).top).toBeCloseTo(0.05, 3);
   });
 
+  it("a jump pressed in the frame the walker climbs a step still leaves the ground upward", () => {
+    const kerb: GroundAt = (_x, z) => (z < -0.05 ? 0.3 : 0); // a 0.3 m kerb, reached this frame
+    const p = stepWalk(
+      standOn(1, { position: new Vector3(0, walkScale(1).eye, -0.04) }),
+      go({ forward: 1, jump: true }),
+      worldOf(1, kerb),
+    );
+    expect(p.vy).toBeGreaterThan(0);
+    expect(feetOf(p)).toBeGreaterThan(0.3);
+  });
+
   it("does not jump again in the air", () => {
     const up = stepWalk(standOn(), go({ jump: true }), worldOf());
     const next = stepWalk(up, go({ jump: true }), worldOf());
@@ -392,6 +403,15 @@ describe("walking into real meshes", () => {
     expect(p.z).toBeCloseTo(-4.2);
   });
 
+  it("never walks through a block taller than a step, under the knee or over it", () => {
+    // The ray down from the knee starts above these; before, one from a step up found the floor inside them.
+    for (const h of [0.55, 0.65, 1.05, 1.15]) {
+      const p = walkNorth(site(block(h, 4, -1.05)));
+      expect(p.z).toBeGreaterThan(-1.05);
+      expect(p.y).toBeCloseTo(scale.eye);
+    }
+  });
+
   /** A placed object as PlacementInstance draws one: a unit box scaled by its group to 4 × h × 4, on the ground, its +Z face at z = `face`. */
   const placed = (height: number, face: number) => {
     const g = new Group();
@@ -431,5 +451,19 @@ describe("walking into real meshes", () => {
     const short = walkFor(site(placed(1.2, -1.05)), go({ forward: 1, jump: true }), 120, 1 / 60);
     expect(short.ground).toBeCloseTo(0);
     expect(short.position.z).toBeGreaterThan(-1.05);
+  });
+
+  it("jumps onto a 0.95 m crate, just under what a jump's 0.5 m and a step reach", () => {
+    const onto = walkFor(site(placed(0.95, -1.05)), go({ forward: 1, jump: true }), 120, 1 / 60);
+    expect(onto.ground).toBeCloseTo(0.95);
+    expect(onto.position.z).toBeLessThan(-1.05);
+  });
+
+  it("neither enters nor stands on a 1.05 m crate, jumping or not", () => {
+    for (const jump of [true, false]) {
+      const p = walkFor(site(placed(1.05, -1.05)), go({ forward: 1, jump }), 120, 1 / 60);
+      expect(p.ground).toBeCloseTo(0);
+      expect(p.position.z).toBeGreaterThan(-1.05);
+    }
   });
 });

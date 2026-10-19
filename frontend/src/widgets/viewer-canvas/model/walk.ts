@@ -9,7 +9,7 @@ const RUN_MPS = 4;
 /** A person's depth range in metres: a hand's width to a horizon a couple of km off. */
 const WALK_NEAR_M = 0.1;
 const WALK_FAR_M = 2000;
-/** The wall probe's two heights over the feet: over any rise a step climbs, then the chest. */
+/** The wall probe's two heights over the feet: the knee, over any rise a step climbs, then the chest. */
 const KNEE_M = STEP_M + 0.2;
 const CHEST_M = 1.2;
 /** Half a person's width: how near a wall the walker comes head-on. */
@@ -73,10 +73,19 @@ function clearAhead(w: WalkWorld, eye: Vector3, dx: number, dz: number): boolean
   return [w.scale.knee, w.scale.chest].every((h) => !w.wallAt(new Vector3(eye.x, feet + h, eye.z), dir, reach));
 }
 
-/** Ground the feet may step onto by (dx, dz): found from one step up, no higher than it, no wall in the way. */
+/**
+ * The ground under (x, z) as the feet see it, looked for from the knee: a ray
+ * from a step up starts inside any block taller than that and finds the floor
+ * under it, so the walker walks through.
+ */
+function groundUnder(w: WalkWorld, x: number, z: number, feet: number): number | null {
+  return w.groundAt(x, z, feet + w.scale.knee);
+}
+
+/** Ground the feet may step onto by (dx, dz): found from the knee, no higher than a step, no wall in the way. */
 function footing(w: WalkWorld, eye: Vector3, dx: number, dz: number): number | null {
   const feet = eye.y - w.scale.eye;
-  const ground = w.groundAt(eye.x + dx, eye.z + dz, feet + w.scale.step);
+  const ground = groundUnder(w, eye.x + dx, eye.z + dz, feet);
   if (ground === null || ground - feet > w.scale.step) return null;
   return clearAhead(w, eye, dx, dz) ? ground : null;
 }
@@ -120,11 +129,14 @@ function steer(from: Vector3, wish: Vector3, dt: number): Vector3 {
  */
 function rise(feet: number, ground: number, vy: number | undefined, jump: boolean, w: WalkWorld) {
   let lift = vy;
-  if (lift === undefined && jump) lift = w.scale.jump;
-  else if (lift === undefined && feet - ground > w.scale.step) lift = 0;
+  let from = feet;
+  if (lift === undefined && jump) {
+    lift = w.scale.jump;
+    from = Math.max(feet, ground); // a step climbed this frame: the walker jumps from its new height
+  } else if (lift === undefined && feet - ground > w.scale.step) lift = 0;
   if (lift === undefined) return { feet: ground, vy: undefined };
   const v = Math.max(lift - w.scale.gravity * w.dt, -w.scale.terminal);
-  const next = feet + ((lift + v) / 2) * w.dt;
+  const next = from + ((lift + v) / 2) * w.dt;
   return next <= ground ? { feet: ground, vy: undefined } : { feet: next, vy: v };
 }
 
@@ -150,7 +162,7 @@ export function stepWalk(pose: FreePose, input: FreeInput, w: WalkWorld): FreePo
   const moved = dx !== 0 || dz !== 0 ? slide(w, eye, dx, dz) : null;
   const x = moved?.x ?? eye.x;
   const z = moved?.z ?? eye.z;
-  const ground = moved ? moved.ground : (w.groundAt(x, z, feet + w.scale.step) ?? pose.ground ?? feet);
+  const ground = moved ? moved.ground : (groundUnder(w, x, z, feet) ?? pose.ground ?? feet);
   const body = rise(feet, ground, pose.vy, input.jump, w);
   return { ...pose, velocity, ground, vy: body.vy, position: new Vector3(x, body.feet + w.scale.eye, z) };
 }
