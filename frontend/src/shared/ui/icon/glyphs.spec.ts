@@ -26,6 +26,7 @@ describe("the glyph registry", () => {
       "file",
       "folder-move",
       "folder-plus",
+      "free-cam",
       "grid",
       "grip",
       "help",
