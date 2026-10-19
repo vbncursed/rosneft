@@ -36,6 +36,7 @@ single-origin behind nginx, the desktop shell behind its loopback proxy.
 **Use yarn, never npm** — including version lookups (`yarn npm info <pkg> --fields version`).
 Yarn 4, the release pinned by `packageManager` in `package.json`; `corepack enable`
 once and `yarn` resolves to it. `.yarnrc.yml` keeps the `node_modules` linker.
+The `node_modules` linker stays: TypeScript 7 cannot resolve through PnP (checked 2026-10-19, see `../docs/superpowers/plans/2026-10-19-yarn-pnp.md`).
 
 ## What is here
 
