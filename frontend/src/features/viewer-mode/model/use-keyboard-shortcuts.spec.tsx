@@ -3,7 +3,7 @@ import { test, afterEach, vi } from "vitest";
 import assert from "node:assert/strict";
 
 import { act, renderHook } from "@testing-library/react";
-import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
+import { isShortcutBlocked, useKeyboardShortcuts } from "./use-keyboard-shortcuts";
 
 const mounted: (() => void)[] = [];
 afterEach(() => {
@@ -132,4 +132,29 @@ test("unmounting removes the listener", () => {
   h.unmount();
   press("m");
   assert.equal(m.mock.calls.length, 0);
+});
+
+test("a key held with ⌘, Ctrl or Alt belongs to the browser, not the viewer", () => {
+  const f = vi.fn();
+  bind({ f });
+  for (const mod of ["metaKey", "ctrlKey", "altKey"] as const) {
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "f", [mod]: true }));
+    });
+  }
+  assert.equal(f.mock.calls.length, 0);
+});
+
+test("isShortcutBlocked: typing targets, an open dialog and modifiers", () => {
+  const input = document.createElement("input");
+  assert.equal(isShortcutBlocked(new KeyboardEvent("keydown", { key: "w" })), false);
+  const typed = new KeyboardEvent("keydown", { key: "w" });
+  Object.defineProperty(typed, "target", { value: input });
+  assert.equal(isShortcutBlocked(typed), true);
+  assert.equal(isShortcutBlocked(new KeyboardEvent("keydown", { key: "w", ctrlKey: true })), true);
+  const dialog = document.createElement("dialog");
+  dialog.setAttribute("open", "");
+  document.body.append(dialog);
+  assert.equal(isShortcutBlocked(new KeyboardEvent("keydown", { key: "w" })), true);
+  dialog.remove();
 });

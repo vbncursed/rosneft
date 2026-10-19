@@ -12,6 +12,8 @@ export type ViewerModeState = {
   view: ViewerView;
   /** Drag panorama points (V). A scene-only sub-mode of orbit. */
   move: boolean;
+  /** Free cam (F): fly with WASD, look by dragging. A scene-only sub-mode of orbit. */
+  free: boolean;
   /** The anchor card's target; survives 3D ↔ panorama. */
   editingPanoramaId: number | null;
 };
@@ -23,6 +25,7 @@ export const INITIAL_VIEWER_MODE: ViewerModeState = {
   snap: false,
   view: { kind: "scene" },
   move: false,
+  free: false,
   editingPanoramaId: null,
 };
 
@@ -38,6 +41,8 @@ export type ViewerModeAction =
   | { type: "exitPanorama" }
   | { type: "toggleMove" }
   | { type: "exitMove" }
+  | { type: "toggleFree" }
+  | { type: "exitFree" }
   | { type: "startEdit"; id: number }
   | { type: "closeEdit" }
   /** chainOpen: the measure tool still has a chain to break — that press is its, not ours. */
@@ -54,16 +59,18 @@ const SCENE: ViewerView = { kind: "scene" };
  * `view` is a second axis, orthogonal to `mode`: the scene or one panorama.
  * `move` is a scene-only sub-mode for dragging panorama points, entering it
  * leaves measure and any selection the same way place does; place and move
- * cannot be entered from inside a panorama. `editingPanoramaId` is the
- * anchor card's own target and outlives a view switch. Escape now peels four
- * layers: move, then the selection, then the mode, then the panorama.
+ * cannot be entered from inside a panorama. `free` is the flight sub-mode,
+ * entered from any scene mode and left by place, measure, move or a panorama;
+ * a pick keeps it. `editingPanoramaId` is the anchor card's own target and
+ * outlives a view switch. Escape now peels five layers: move, free, the
+ * selection, the mode, then the panorama.
  */
 export function viewerModeReducer(state: ViewerModeState, action: ViewerModeAction): ViewerModeState {
   switch (action.type) {
     case "toggleMeasure":
       return state.mode === "measure"
         ? { ...state, mode: "orbit" }
-        : { ...state, mode: "measure", selectedId: null, move: false };
+        : { ...state, mode: "measure", selectedId: null, move: false, free: false };
     case "exitMeasure":
       return state.mode === "measure" ? { ...state, mode: "orbit" } : state;
     case "setGizmo":
@@ -77,18 +84,26 @@ export function viewerModeReducer(state: ViewerModeState, action: ViewerModeActi
     case "enterPlace":
       // B-5: inside a panorama nothing is placed — the tile is inert and the key is too.
       if (state.view.kind === "panorama") return state;
-      return { ...state, mode: "place", selectedId: null, move: false };
+      return { ...state, mode: "place", selectedId: null, move: false, free: false };
     case "exitPlace":
       return state.mode === "place" ? { ...state, mode: "orbit" } : state;
     case "enterPanorama":
-      return { ...state, mode: "orbit", move: false, view: { kind: "panorama", id: action.id } };
+      return { ...state, mode: "orbit", move: false, free: false, view: { kind: "panorama", id: action.id } };
     case "exitPanorama":
       return state.view.kind === "scene" ? state : { ...state, view: SCENE };
     case "toggleMove":
       if (state.view.kind === "panorama") return state;
-      return state.move ? { ...state, move: false } : { ...state, move: true, mode: "orbit", selectedId: null };
+      return state.move
+        ? { ...state, move: false }
+        : { ...state, move: true, mode: "orbit", selectedId: null, free: false };
     case "exitMove":
       return state.move ? { ...state, move: false } : state;
+    case "toggleFree":
+      // Inside a panorama the camera stands on the anchor: there is nowhere to fly.
+      if (state.view.kind === "panorama") return state;
+      return state.free ? { ...state, free: false } : { ...state, free: true, mode: "orbit", move: false };
+    case "exitFree":
+      return state.free ? { ...state, free: false } : state;
     case "startEdit":
       // Editing a capture while standing inside a *different* one is
       // incoherent: the rig stands the eye on the edited anchor while the
@@ -105,6 +120,7 @@ export function viewerModeReducer(state: ViewerModeState, action: ViewerModeActi
     case "escape":
       if (action.chainOpen) return state;
       if (state.move) return { ...state, move: false };
+      if (state.free) return { ...state, free: false };
       if (state.selectedId !== null) return { ...state, selectedId: null };
       if (state.mode !== "orbit") return { ...state, mode: "orbit" };
       if (state.view.kind === "panorama") return { ...state, view: SCENE };

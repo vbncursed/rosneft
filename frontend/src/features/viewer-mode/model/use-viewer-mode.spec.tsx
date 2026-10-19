@@ -243,4 +243,62 @@ describe("useViewerMode", () => {
     press("r");
     expect(result.current.state.gizmo).toBe("rotate");
   });
+
+  it("F toggles the free cam; T/R/S are off while flying, the panel still sets the gizmo", () => {
+    const { result } = renderHook(() =>
+      useViewerMode({ canWrite: true, canMovePoints: false, chainOpen: false, onCancelChain: vi.fn(), onCycle: noop }),
+    );
+    act(() => result.current.select(4));
+    press("f");
+    expect(result.current.state).toMatchObject({ free: true, selectedId: 4 });
+    press("s");
+    expect(result.current.state.gizmo).toBe("translate");
+    act(() => result.current.setGizmo("rotate"));
+    expect(result.current.state.gizmo).toBe("rotate");
+    press("F");
+    expect(result.current.state.free).toBe(false);
+  });
+
+  it("Escape leaves the free cam before the document window gets the key", () => {
+    const beforeEscape = vi.fn(() => true);
+    const { result } = renderHook(() =>
+      useViewerMode({
+        canWrite: true,
+        canMovePoints: false,
+        chainOpen: false,
+        onCancelChain: vi.fn(),
+        onCycle: noop,
+        beforeEscape,
+      }),
+    );
+    press("f");
+    press("Escape");
+    expect(result.current.state.free).toBe(false);
+    expect(beforeEscape).not.toHaveBeenCalled();
+  });
+
+  it("entering the free cam from measure breaks the open chain", () => {
+    const onCancelChain = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ chainOpen }) =>
+        useViewerMode({ canWrite: true, canMovePoints: false, chainOpen, onCancelChain, onCycle: noop }),
+      { initialProps: { chainOpen: false } },
+    );
+    act(() => result.current.toggleMeasure());
+    rerender({ chainOpen: true });
+    press("f");
+    expect(onCancelChain).toHaveBeenCalledOnce();
+    expect(result.current.state).toMatchObject({ free: true, mode: "orbit" });
+  });
+
+  it("exitFree and toggleFree keep their identity across renders", () => {
+    const { result, rerender } = renderHook(() =>
+      useViewerMode({ canWrite: true, canMovePoints: false, chainOpen: false, onCancelChain: noop, onCycle: noop }),
+    );
+    const first = result.current;
+    press("f");
+    rerender();
+    expect(result.current.toggleFree).toBe(first.toggleFree);
+    expect(result.current.exitFree).toBe(first.exitFree);
+  });
 });

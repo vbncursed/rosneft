@@ -255,6 +255,7 @@ export const basePageParts = (): PageParts => ({
     snap: false,
     view: { kind: "scene" },
     move: false,
+    free: false,
     editingPanoramaId: null,
   },
   measure: {
@@ -298,6 +299,7 @@ export const basePageParts = (): PageParts => ({
     expandedModel: "storage-tank-500",
     confirmClear: false,
     compact: false,
+    touch: false,
     error: null,
     now: new Date(2026, 8, 9, 14, 22),
   },
@@ -411,4 +413,10 @@ export default {
       {page((p) => ({ ...selected(p), view: { ...p.view, compact: true, targetLod: 0 } }))}
     </div>
   ),
+
+  "18 free cam": page((p) => ({
+    ...p,
+    mode: { ...p.mode, free: true },
+    panel: { tab: "view", collapsed: false },
+  })),
 };

@@ -5,6 +5,7 @@ import { useCursor, useGLTF } from "@react-three/drei";
 import { SkeletonUtils } from "three-stdlib";
 import type { ResolvedPlacement } from "@/entities/placement";
 import { useProgressiveLod } from "@/features/lod";
+import { CLICK_SLOP_PX } from "../model/free-cam";
 import { extendGltfLoader } from "./gltf-loader-setup";
 import LodWarmer from "./lod-warmer";
 import LodErrorBoundary from "./lod-error-boundary";
@@ -113,6 +114,9 @@ function PlacementBody({ placement, url, measureMode, onSelect, ref }: Placement
       // In measure mode the wrapper-group click handler higher up captures
       // the world point — yield to it instead of selecting.
       if (measureMode) return;
+      // A press that travelled is a look (free cam) or an orbit, not a pick.
+      // R3F measures it (`delta`, px) but gates only onPointerMissed on it.
+      if (event.delta >= CLICK_SLOP_PX) return;
       // Stop propagation so the Canvas-level onPointerMissed does NOT also
       // fire and immediately deselect what we just selected.
       event.stopPropagation();

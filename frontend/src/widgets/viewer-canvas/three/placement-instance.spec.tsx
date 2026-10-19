@@ -166,4 +166,17 @@ describe("PlacementInstance", () => {
     expect(await hover(false)).toEqual({ cursor: "pointer", after: "auto" });
     expect((await hover(true)).cursor).not.toBe("pointer");
   });
+
+  it("selects on a click and not on a drag that ends over the object", async () => {
+    const onSelect = vi.fn();
+    const r = await create(
+      <PlacementInstance placement={fakePlacement(5)} measureMode={false} measuring={false} onSelect={onSelect} />,
+    );
+    const group = r.scene.findAll((n) => n.instance.userData?.placementId === 5)[0];
+    await r.fireEvent(group, "onClick", { delta: 6, stopPropagation: vi.fn() });
+    expect(onSelect).not.toHaveBeenCalled();
+    await r.fireEvent(group, "onClick", { delta: 3, stopPropagation: vi.fn() });
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith(5);
+  });
 });

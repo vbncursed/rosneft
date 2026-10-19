@@ -29,7 +29,9 @@ const deps = (
   } = {},
 ) => {
   const mode = {
-    state: { mode: "orbit", view: { kind: "scene" }, selectedId: over.selectedId ?? null },
+    state: { mode: "orbit", view: { kind: "scene" }, selectedId: over.selectedId ?? null, free: false },
+    exitFree: vi.fn(),
+    toggleFree: vi.fn(),
     enterPlace: vi.fn(),
     exitPlace: vi.fn(),
     select: vi.fn(),
@@ -210,6 +212,25 @@ describe("usePageHandlers", () => {
     expect(result.current.view.playing).toBe(false);
   });
 
+  it("Reset and Focus leave the free cam", () => {
+    const { result, spies } = mount();
+    act(() => result.current.on.onReset());
+    act(() => result.current.on.onFocus(7));
+    expect(spies.mode.exitFree).toHaveBeenCalledTimes(2);
+  });
+
+  it("Play leaves the free cam and takes off", () => {
+    const { result, spies } = mount();
+    act(() => result.current.on.onPlay());
+    expect(spies.mode.exitFree).toHaveBeenCalledOnce();
+    expect(result.current.view.playing).toBe(true);
+  });
+
+  it("hands F's toggle out as onFree", () => {
+    const { result, spies } = mount();
+    expect(result.current.on.onFree).toBe(spies.mode.toggleFree);
+  });
+
   it("lands the flight when a placement is focused", () => {
     const { result } = mount();
     act(() => result.current.on.onPlay());
@@ -228,6 +249,7 @@ describe("usePageHandlers", () => {
     expect(result.current.on.onReset).toBe(first.onReset);
     expect(result.current.on.onPlay).toBe(first.onPlay);
     expect(result.current.on.onPlayStop).toBe(first.onPlayStop);
+    expect(result.current.on.onFree).toBe(first.onFree);
     expect(result.current.view.resetVersion).toBe(1);
   });
 

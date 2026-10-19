@@ -30,6 +30,7 @@ const props = {
   unitRatio: 1,
   resetVersion: 0,
   playing: false,
+  free: false,
   retryVersion: 0,
   focusRequest: null,
   activePanorama: null,

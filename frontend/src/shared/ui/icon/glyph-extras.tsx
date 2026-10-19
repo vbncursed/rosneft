@@ -121,4 +121,6 @@ export const EXTRA_GLYPHS = {
       </>
     ),
   },
+  // runeicons `move`: four arrows — the camera goes anywhere.
+  "free-cam": { body: <path d="M12 2V22M15 5L12 2L9 5M9 19L12 22L15 19M19 15L22 12L19 9M22 12H2M5 15L2 12L5 9" /> },
 } as const;
