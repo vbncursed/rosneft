@@ -2,11 +2,12 @@ import { describe, expect, it } from "vitest";
 import { VIEWER_TOUR, VIEWER_TOUR_STEPS } from "./viewer-tour-steps";
 
 describe("the viewer tour's steps", () => {
-  it("visits all fifteen controls, in order", () => {
+  it("visits all sixteen controls, in order", () => {
     expect(VIEWER_TOUR_STEPS.map((s) => s.id)).toEqual([
       "intro",
       "catalog-link",
       "reset-camera",
+      "free-cam",
       "measure",
       "overlays-tabs",
       "panorama-picker",
@@ -59,6 +60,18 @@ describe("the viewer tour's steps", () => {
     const centred = VIEWER_TOUR_STEPS.filter((s) => s.center);
     expect(centred.map((s) => s.id)).toEqual(["intro", "shortcuts"]);
     for (const step of centred) expect(step.tab).toBeUndefined();
+  });
+
+  // The step stands on the rail tile, so the reader learns the walk without
+  // entering the free cam: F flies, G inside it walks, and the closing list
+  // names F beside the other keys.
+  it("tells a reader how to fly and how to walk from the free cam tile, and lists F", () => {
+    const free = VIEWER_TOUR_STEPS.find((s) => s.id === "free-cam")!;
+    expect(free.center).toBeUndefined();
+    expect(free.tab).toBeUndefined();
+    expect(free.body).toMatch(/\bF\b/);
+    expect(free.body).toMatch(/\bG\b.*walk/);
+    expect(VIEWER_TOUR_STEPS.find((s) => s.id === "shortcuts")!.body).toContain("F free cam");
   });
 
   // The rail's Replay tile draws the help icon, a question mark. A no-break

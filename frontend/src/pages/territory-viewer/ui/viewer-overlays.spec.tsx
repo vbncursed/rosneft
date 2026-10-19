@@ -131,10 +131,11 @@ describe("ViewerOverlays · the tool rail", () => {
     expect(onDocuments).toHaveBeenCalledOnce();
   });
 
-  it("anchors the three tour targets on the tiles themselves", () => {
+  it("anchors the tour targets on the tiles themselves", () => {
     const { container } = render(<ViewerOverlays {...props()} />);
     for (const [anchor, name] of [
       ["reset-camera", "Reset camera"],
+      ["free-cam", "Free cam"],
       ["measure", "Measure"],
       ["add-object", "Add objects"],
     ] as const) {
