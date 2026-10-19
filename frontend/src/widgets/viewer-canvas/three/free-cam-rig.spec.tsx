@@ -519,17 +519,23 @@ describe("FreeCamRig", () => {
       await frames(1); // the take-off: in the air from here
       expect(camera.position.y).toBeGreaterThan(1.18);
       // The key is still down: the auto-repeat keydowns must not jump again on landing.
-      let hops = 0;
-      let up = true;
-      for (let i = 0; i < 40; i++) {
+      const repeating = async (n: number) => {
         await key("keydown", "Space", { repeat: true });
-        await frames(1);
-        const rising = camera.position.y > 1.18 + 1e-3;
-        if (rising && !up) hops++;
-        up = rising;
-      }
-      expect(hops).toBe(0);
+        await frames(n);
+      };
+      expect(await hopsIn(repeating, camera, 40)).toBe(0);
       expect(camera.position.y).toBeCloseTo(1.18);
+    });
+
+    it("a Space released before the next frame still jumps", async () => {
+      reducedMotion();
+      const { camera, key, frames, walkTo } = await mount();
+      camera.position.set(0, 3, 0.5);
+      await walkTo(true);
+      await key("keydown", "Space");
+      await key("keyup", "Space");
+      await frames(1);
+      expect(camera.position.y).toBeGreaterThan(1.18);
     });
 
     it("a Space pressed in the air is spent by the next frame, and does not jump on landing", async () => {

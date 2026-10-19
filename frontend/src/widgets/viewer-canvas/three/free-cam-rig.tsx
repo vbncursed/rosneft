@@ -97,8 +97,7 @@ export default function FreeCamRig({ sceneRef, solidRef, walk, unitRatio, onWalk
     resync();
     invalidate();
   }, [resync, invalidate]);
-  const canJump = () => walking.current !== null;
-  const keys = useHeldKeys(press, canJump);
+  const keys = useHeldKeys(press, walking);
 
   useEffect(() => {
     if (!controls) return;
