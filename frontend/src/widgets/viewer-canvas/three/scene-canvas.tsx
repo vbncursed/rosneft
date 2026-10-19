@@ -9,6 +9,7 @@ import CameraRig from "./camera-rig";
 import CameraTracker from "./camera-tracker";
 import { CAMERA, DPR_RANGE, GL_CONFIG, GRID_POSITION } from "./canvas-config";
 import FocusOn from "./focus-on";
+import FreeCamRig from "./free-cam-rig";
 import GlbPreloader from "./glb-preloader";
 import GltfModel from "./gltf-model";
 import Ktx2Init from "./ktx2-init";
@@ -25,6 +26,7 @@ export default function SceneCanvas({
   retryVersion,
   resetVersion,
   playing,
+  free,
   placements,
   placementGroups,
   mode,
@@ -185,7 +187,10 @@ export default function SceneCanvas({
               mode={gizmo}
               measureMode={pointMode}
               measuring={mode === "measure"}
-              canEdit={canWrite}
+              // No gizmo in the free cam: it and the look share one pointerdown,
+              // and its drop hands the orbit back (use-gizmo-events). The ring
+              // marks the selection instead, as it does for a guest.
+              canEdit={canWrite && !free}
               territoryRef={territoryRef}
               // Nothing to snap to inside a panorama: the territory is behind
               // the equirect and the reader cannot see where a drop landed.
@@ -199,6 +204,9 @@ export default function SceneCanvas({
             />
           </Suspense>
         </group>
+        {/* Inside the clock: the rig tells Auto LOD the camera moved through
+            the settle bus, since OrbitControls fires nothing while it flies. */}
+        {free ? <FreeCamRig sceneRef={territoryRef} /> : null}
       </AutoLodClock>
 
       <MeasurementLayer

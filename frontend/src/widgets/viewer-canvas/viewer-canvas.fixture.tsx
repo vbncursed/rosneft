@@ -23,10 +23,10 @@ const RULER: Chain[] = [
 
 const NO_CHAINS: Chain[] = [];
 
-type CanvasProps = { chains?: Chain[]; showMeasurements?: boolean; measuring?: boolean };
+type CanvasProps = { chains?: Chain[]; showMeasurements?: boolean; measuring?: boolean; free?: boolean };
 
 // This is the surface the theme's background colour is measured against.
-const Canvas = ({ chains = NO_CHAINS, showMeasurements = true, measuring = false }: CanvasProps) => (
+const Canvas = ({ chains = NO_CHAINS, showMeasurements = true, measuring = false, free = false }: CanvasProps) => (
   <div className="h-[700px] w-full">
     <Suspense fallback={null}>
       <ViewerCanvas
@@ -46,6 +46,7 @@ const Canvas = ({ chains = NO_CHAINS, showMeasurements = true, measuring = false
         unitRatio={1}
         resetVersion={0}
         playing={false}
+        free={free}
         retryVersion={0}
         focusRequest={null}
         activePanorama={null}
@@ -94,5 +95,6 @@ export default {
   ruler: <Canvas chains={RULER} />,
   "ruler-hidden": <Canvas chains={RULER} showMeasurements={false} />,
   "ruler-hidden-measuring": <Canvas chains={RULER} showMeasurements={false} measuring />,
+  freeCam: <Canvas free />,
   model: <Model />,
 };

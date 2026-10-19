@@ -35,6 +35,8 @@ export type ViewerCanvasProps = {
   resetVersion: number;
   /** Play: the camera flies around the territory until the page or the rig stops it. */
   playing: boolean;
+  /** Free cam: FreeCamRig flies the camera and the orbit stands aside; the gizmo hides meanwhile. */
+  free: boolean;
   /** Bumped by the page's Retry: re-arms the boundary and clears the failure. */
   retryVersion: number;
   /** Instance ids to frame; a new array reference triggers a refit. */

@@ -97,6 +97,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       unitRatio: computeUnitRatio(vm.metadata.dims),
       resetVersion: view.resetVersion,
       playing: view.playing,
+      free: mode.free,
       retryVersion: view.retryVersion,
       focusRequest: view.focusRequest,
       ...panoramaCanvasProps(p, groups),

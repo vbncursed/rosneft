@@ -36,6 +36,13 @@ const seen = vi.hoisted(() => ({
   layer: {} as Record<string, unknown>,
   panorama: {} as Record<string, unknown>,
   measure: {} as Record<string, unknown>,
+  freeCam: null as Record<string, unknown> | null,
+}));
+vi.mock("./free-cam-rig", () => ({
+  default: (p: Record<string, unknown>) => {
+    seen.freeCam = p;
+    return null;
+  },
 }));
 vi.mock("./measurement-layer", async (orig) => {
   const real = ((await orig()) as { default: ComponentType<Record<string, unknown>> }).default;
@@ -113,6 +120,7 @@ const props = (over: Partial<ViewerCanvasProps> = {}): ViewerCanvasProps => ({
   unitRatio: 1,
   resetVersion: 0,
   playing: false,
+  free: false,
   retryVersion: 0,
   focusRequest: null,
   activePanorama: null,
@@ -177,6 +185,7 @@ const clickEvent = (point: { x: number; y: number; z: number }) => ({
 beforeEach(() => {
   seen.gltf = {};
   seen.layer = {};
+  seen.freeCam = null;
 });
 
 describe("SceneCanvas", () => {
@@ -322,6 +331,16 @@ describe("SceneCanvas", () => {
     const onPlayStop = vi.fn();
     await mount({ playing: true, onPlayStop });
     expect(onPlayStop).toHaveBeenCalledOnce();
+  });
+
+  it("mounts the free cam only while free, and hides the gizmo meanwhile", async () => {
+    await mount({ canWrite: true, selectedId: 3 });
+    expect(seen.freeCam).toBeNull();
+    expect(seen.layer.canEdit).toBe(true);
+    await mount({ canWrite: true, selectedId: 3, free: true });
+    expect(seen.freeCam).not.toBeNull();
+    expect(seen.freeCam?.sceneRef).toHaveProperty("current");
+    expect(seen.layer.canEdit).toBe(false);
   });
 });
 
