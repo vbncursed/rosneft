@@ -10,6 +10,7 @@ const { useModelDetail, useParams } = vi.hoisted(() => ({
   useParams: vi.fn(),
 }));
 vi.mock("../model/use-model-detail", () => ({ useModelDetail }));
+vi.mock("@/widgets/viewer-canvas", () => ({ ModelCanvas: () => null }));
 vi.mock("@tanstack/react-router", () => ({ useParams: () => useParams() }));
 vi.mock("@/features/edit-entity", () => ({
   EditDetailsDialog: ({ title }: { title: string }) => <div role="dialog" aria-label={`Edit ${title}`} />,

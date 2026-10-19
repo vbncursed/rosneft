@@ -5,6 +5,9 @@ import type { Model } from "@/entities/model";
 import { ModelDetailPage, type ModelDetailPageProps } from "./model-detail-page";
 import { focusTip, hoverTip } from "@/shared/ui/tooltip/testing";
 
+// The scene has its own spec; the page only needs the viewport to mount without three.
+vi.mock("@/widgets/viewer-canvas", () => ({ ModelCanvas: () => null }));
+
 const MODEL: Model = {
   slug: "valve-assembly",
   title: "Valve Assembly",

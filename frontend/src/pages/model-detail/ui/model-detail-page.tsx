@@ -1,6 +1,5 @@
 import type { ConversionStatus } from "@/entities/conversion";
 import { assetUrl } from "@/entities/content";
-import { thumbnailUrl } from "@/entities/model";
 import { ThemeToggle } from "@/features/theme-toggle";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -19,7 +18,7 @@ const BADGE_TONE: Record<ConversionStatus, "ok" | "warn" | "bad" | "dim"> = {
   pending: "dim",
 };
 
-/** The model page: header (status, download, delete) plus the thumbnail viewport and its facts. */
+/** The model page: header (status, download, delete) plus the 3D viewport and its facts. */
 export function ModelDetailPage({
   model,
   status,
@@ -78,7 +77,7 @@ export function ModelDetailPage({
         }
       />
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(420px,1fr)_minmax(300px,360px)]">
-        <ModelViewport title={model.title} thumbnailUrl={thumbnailUrl(model)} />
+        <ModelViewport slug={model.slug} title={model.title} status={status} artifacts={artifacts} />
         <ModelAside
           model={model}
           status={status}
