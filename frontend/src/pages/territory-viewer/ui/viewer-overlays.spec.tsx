@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { Document } from "@/entities/document";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 import type { ViewerOverlaysProps } from "../model/page-props";
 import { ViewerOverlays } from "./viewer-overlays";
 
@@ -182,6 +183,8 @@ describe("ViewerOverlays · the tool rail", () => {
     const tile = screen.getByRole("button", { name: "Free cam" });
     expect(tile).toHaveAttribute("aria-keyshortcuts", "F");
     expect(tile).toHaveAttribute("aria-pressed", "true");
+    expect(hoverTip(tile)).toHaveTextContent("Inside, press G to walk");
+    expect(tile).toHaveAccessibleName("Free cam");
     await userEvent.click(tile);
     expect(onFree).toHaveBeenCalledOnce();
   });

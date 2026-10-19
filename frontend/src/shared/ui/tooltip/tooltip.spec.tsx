@@ -242,6 +242,22 @@ describe("Tooltip", () => {
     expect(screen.getByRole("tooltip").querySelector("kbd")).toHaveTextContent("M");
   });
 
+  it("puts a note on a second line, in the description and never in the name", () => {
+    const b = renderOne("Free cam", { shortcut: "F", note: "Inside, press G to walk" });
+    tabTo(b);
+    const tip = screen.getByRole("tooltip");
+    expect(tip).toHaveTextContent("Inside, press G to walk");
+    expect(tip.querySelector("kbd")).toHaveTextContent("F");
+    expect(b).toHaveAccessibleName("Free cam");
+    expect(b).toHaveAccessibleDescription(/Inside, press G to walk/);
+  });
+
+  it("draws one line without a note", () => {
+    const b = renderOne("Measure", { shortcut: "M" });
+    tabTo(b);
+    expect(screen.getByRole("tooltip").children).toHaveLength(1);
+  });
+
   it("closes when anything scrolls, a panel included, or the window resizes", () => {
     render(
       <div data-testid="panel">

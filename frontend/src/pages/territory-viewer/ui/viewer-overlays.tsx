@@ -18,6 +18,9 @@ import { ViewerError } from "./viewer-error";
 const CLEAR_NOTE =
   "Measurements are shared: this removes them for everyone who opens this territory. Your unsaved chains are cleared too.";
 
+/** What G does once the free cam is on — said on the tile, where the free cam is found. */
+const FREE_NOTE = "Inside, press G to walk";
+
 /**
  * The tile's icon, name and tour anchor. The page decides the state.
  *
@@ -27,11 +30,11 @@ const CLEAR_NOTE =
  */
 const TILES: Record<
   RailTool,
-  { icon: IconName; name: string; shortcut?: string; toggle?: boolean; dataTour?: string }
+  { icon: IconName; name: string; shortcut?: string; note?: string; toggle?: boolean; dataTour?: string }
 > = {
   reset: { icon: "reset", name: "Reset camera", dataTour: "reset-camera" },
   play: { icon: "play", name: "Fly around", toggle: true },
-  free: { icon: "free-cam", name: "Free cam", shortcut: "F", toggle: true },
+  free: { icon: "free-cam", name: "Free cam", shortcut: "F", note: FREE_NOTE, toggle: true, dataTour: "free-cam" },
   measure: { icon: "ruler", name: "Measure", shortcut: "M", toggle: true, dataTour: "measure" },
   add: { icon: "plus", name: "Add objects", toggle: true, dataTour: "add-object" },
   panoramas: { icon: "panorama", name: "Panoramas", toggle: true, dataTour: "panoramas" },

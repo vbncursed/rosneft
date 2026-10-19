@@ -3,7 +3,7 @@ import { clsx as cx } from "clsx";
 import { placeTooltip, type Side } from "./tooltip-geometry";
 import { useTooltip } from "./use-tooltip";
 
-export type TooltipProps = { label: string; shortcut?: string; side?: Side; children: ReactElement };
+export type TooltipProps = { label: string; shortcut?: string; note?: string; side?: Side; children: ReactElement };
 
 type Handler = (event: never) => void;
 type ChildProps = Record<string, unknown> & { disabled?: boolean; "aria-describedby"?: string };
@@ -52,7 +52,7 @@ function driftIn(el: HTMLElement, side: Side) {
  * context or canvas can clip it. A long label wraps inside 20rem (and the
  * viewport less its 8 px edges); placement measures it after it has wrapped.
  */
-export function Tooltip({ label, shortcut, side = "top", children }: TooltipProps) {
+export function Tooltip({ label, shortcut, note, side = "top", children }: TooltipProps) {
   const { open, instant, triggerProps } = useTooltip();
   const id = useId();
   const tip = useRef<HTMLDivElement>(null);
@@ -81,8 +81,8 @@ export function Tooltip({ label, shortcut, side = "top", children }: TooltipProp
     if (entered.current) return;
     entered.current = true;
     if (!instant) driftIn(tip.current, placed.side);
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- trigger, not input: a changed label or shortcut changes the tip's size, so it is placed again
-  }, [open, instant, side, label, shortcut]);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- trigger, not input: a changed label, shortcut or note changes the tip's size, so it is placed again
+  }, [open, instant, side, label, shortcut, note]);
 
   const own = child.props["aria-describedby"];
   const described = { "aria-describedby": open ? cx(own, id) : own };
@@ -115,14 +115,19 @@ export function Tooltip({ label, shortcut, side = "top", children }: TooltipProp
           role="tooltip"
           popover="manual"
           style={style}
-          className="pointer-events-none fixed inset-auto m-0 inline-flex items-center gap-2 w-max max-w-[min(20rem,calc(100vw-16px))] overflow-visible rounded-[6px] border border-line-2 bg-panel-2 px-2 py-1 text-[11px] leading-4 text-fg shadow-elevation"
+          className="pointer-events-none fixed inset-auto m-0 flex flex-col items-start gap-0.5 w-max max-w-[min(20rem,calc(100vw-16px))] overflow-visible rounded-[6px] border border-line-2 bg-panel-2 px-2 py-1 text-[11px] leading-4 text-fg shadow-elevation"
         >
-          {label}
-          {shortcut ? (
-            <kbd className="rounded-[4px] border border-line-2 px-[5px] py-px font-mono text-[10px] leading-3 text-muted">
-              {shortcut}
-            </kbd>
-          ) : null}
+          <span className="inline-flex items-center gap-2">
+            {label}
+            {shortcut ? (
+              <kbd className="rounded-[4px] border border-line-2 px-[5px] py-px font-mono text-[10px] leading-3 text-muted">
+                {shortcut}
+              </kbd>
+            ) : null}
+          </span>
+          {/* What else the control's key does, once it is on. A description, not
+              part of the name: the tip is only aria-describedby while open. */}
+          {note ? <span className="text-muted">{note}</span> : null}
         </div>
       ) : null}
     </>

@@ -10,6 +10,8 @@ export type ToolRailItem = {
   name: string;
   /** The key that fires it: drawn as a keycap in the tooltip and announced as `aria-keyshortcuts`. */
   shortcut?: string;
+  /** A second line in the tooltip — never part of the accessible name. */
+  note?: string;
   /** inert: drawn dim and unclickable, kept in place so the rail never shifts. */
   state?: "active" | "idle" | "inert";
   /**
@@ -50,8 +52,8 @@ export function ToolRail({ tools, label, className }: ToolRailProps) {
     >
       {/* Above, the default: the viewer's rail has room over it, and the
           placement flips below wherever a rail sits flush with the top. */}
-      {tools.map(({ key, glyph, name, shortcut, state = "idle", toggle, onClick, dataTour }) => (
-        <Tooltip key={key} label={name} shortcut={shortcut}>
+      {tools.map(({ key, glyph, name, shortcut, note, state = "idle", toggle, onClick, dataTour }) => (
+        <Tooltip key={key} label={name} shortcut={shortcut} note={note}>
           <button
             type="button"
             data-tour={dataTour}

@@ -101,6 +101,26 @@ describe("ToolRail · tooltip", () => {
     expect(tip?.querySelector("kbd")).toHaveTextContent("M");
   });
 
+  it("passes a tile's note to its tooltip and keeps the name the tile's own", () => {
+    render(
+      <ToolRail
+        label="Viewer tools"
+        tools={[
+          {
+            key: "free",
+            glyph: <Icon name="free-cam" size={15} />,
+            name: "Free cam",
+            shortcut: "F",
+            note: "Inside, press G to walk",
+          },
+        ]}
+      />,
+    );
+    const tile = screen.getByRole("button", { name: "Free cam" });
+    expect(tile).toHaveAttribute("aria-keyshortcuts", "F");
+    expect(hoverTip(tile)).toHaveTextContent("Inside, press G to walk");
+  });
+
   it("claims no shortcut for a tile without one", () => {
     render(<ToolRail label="Viewer tools" tools={tools()} />);
     expect(screen.getByRole("button", { name: "Reset camera" })).not.toHaveAttribute("aria-keyshortcuts");
