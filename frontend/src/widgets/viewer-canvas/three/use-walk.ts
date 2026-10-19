@@ -44,12 +44,13 @@ type WalkParams = {
 };
 
 /**
- * Walk (G inside the free cam): stands the camera at eye height over the
- * surface straight below it — read from where the camera is now, since drei's
- * Bounds may have moved it since the rig took its pose — and narrows the clip
- * planes to a person's. Refuses when there is nothing below. On the way back
- * to flying it puts the free cam's planes back and leaves the camera where it
- * stands, at rest.
+ * Walk (G inside the free cam): stands the body at eye height over the
+ * surface straight below the camera — read from where the camera is now, since
+ * drei's Bounds may have moved it since the rig took its pose — and narrows the
+ * clip planes to a person's. The camera itself is shown over the body by the
+ * feel layer (use-walk-feel.ts). Refuses when there is nothing below. On the
+ * way back to flying it puts the free cam's planes back and leaves the camera
+ * where it stands, at rest.
  *
  * FreeCamRig calls this before its own setup effect: React cleans effects up
  * in that order, so leaving the free cam straight from a walk restores the
