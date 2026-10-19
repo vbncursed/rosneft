@@ -1,4 +1,5 @@
 import ReactThreeTestRenderer from "@react-three/test-renderer";
+import type { Mesh, Object3D } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { LodArtifact } from "@/entities/scene";
 import { AutoLodClock } from "./auto-lod-clock";
@@ -178,5 +179,18 @@ describe("PlacementInstance", () => {
     await r.fireEvent(group, "onClick", { delta: 3, stopPropagation: vi.fn() });
     expect(onSelect).toHaveBeenCalledTimes(1);
     expect(onSelect).toHaveBeenCalledWith(5);
+  });
+
+  it("builds a bounds tree for its meshes, so a walker's rays stay cheap", async () => {
+    const r = await create(
+      <PlacementInstance placement={fakePlacement(5)} measureMode={false} measuring={false} onSelect={vi.fn()} />,
+    );
+    const group = r.scene.findAll((n) => n.instance.userData?.placementId === 5)[0];
+    const meshes: Mesh[] = [];
+    group.instance.traverse((o: Object3D) => {
+      if ((o as Mesh).isMesh) meshes.push(o as Mesh);
+    });
+    expect(meshes.length).toBeGreaterThan(0);
+    for (const m of meshes) expect(m.geometry.boundsTree).toBeDefined();
   });
 });
