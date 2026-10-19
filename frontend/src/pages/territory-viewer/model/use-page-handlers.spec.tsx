@@ -32,6 +32,7 @@ const deps = (
     state: { mode: "orbit", view: { kind: "scene" }, selectedId: over.selectedId ?? null, free: false },
     exitFree: vi.fn(),
     toggleFree: vi.fn(),
+    refuseWalk: vi.fn(),
     enterPlace: vi.fn(),
     exitPlace: vi.fn(),
     select: vi.fn(),
@@ -231,6 +232,11 @@ describe("usePageHandlers", () => {
     expect(result.current.on.onFree).toBe(spies.mode.toggleFree);
   });
 
+  it("hands the walk refusal to the mode", () => {
+    const { result, spies } = mount();
+    expect(result.current.on.onWalkRefused).toBe(spies.mode.refuseWalk);
+  });
+
   it("lands the flight when a placement is focused", () => {
     const { result } = mount();
     act(() => result.current.on.onPlay());
@@ -250,6 +256,7 @@ describe("usePageHandlers", () => {
     expect(result.current.on.onPlay).toBe(first.onPlay);
     expect(result.current.on.onPlayStop).toBe(first.onPlayStop);
     expect(result.current.on.onFree).toBe(first.onFree);
+    expect(result.current.on.onWalkRefused).toBe(first.onWalkRefused);
     expect(result.current.view.resetVersion).toBe(1);
   });
 

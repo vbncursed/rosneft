@@ -87,11 +87,14 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     onChanged,
   });
 
+  const dims = vm?.metadata.dims ?? { x: 0, y: 0, z: 0 };
   const cycle = useRef<() => void>(() => {});
   const beforeEscape = useRef<() => boolean>(() => false);
   const mode = useViewerMode({
     canWrite: grants.write,
     canMovePoints: grants.panoramaWrite,
+    // No size, no metres: the free cam cannot walk.
+    canWalk: computeUnitRatio(dims) !== 1,
     chainOpen: measure.activeChainId !== null,
     onCancelChain: measure.cancelChain,
     onCycle: useCallback(() => cycle.current(), []),
@@ -159,7 +162,6 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     beforeEscape.current = documents.escape;
   });
 
-  const dims = vm?.metadata.dims ?? { x: 0, y: 0, z: 0 };
   const { editor, groups } = useViewerPlacements({
     slug,
     bundle,

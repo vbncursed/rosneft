@@ -98,6 +98,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       resetVersion: view.resetVersion,
       playing: view.playing,
       free: mode.free,
+      walk: mode.walk,
       retryVersion: view.retryVersion,
       focusRequest: view.focusRequest,
       ...panoramaCanvasProps(p, groups),
@@ -109,6 +110,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       onRemoveChain: on.onRemoveChain,
       onLod: on.onLod,
       onPlayStop: on.onPlayStop,
+      onWalkRefused: on.onWalkRefused,
     },
 
     overlays: {

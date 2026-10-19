@@ -1,18 +1,26 @@
 import { useEffect, useRef, type RefObject } from "react";
 import { useThree } from "@react-three/fiber";
 import { Vector3, type Object3D, type PerspectiveCamera } from "three";
-import { poseOf, walkClip, walkScale, type FreePose, type GroundAt, type WalkScale } from "../model/free-cam";
+import {
+  poseOf,
+  walkClip,
+  walkScale,
+  type FreePose,
+  type GroundAt,
+  type WalkScale,
+  type WallAt,
+} from "../model/free-cam";
 import { applyPose, setClip } from "./free-cam-writes";
 import { useAutoLodBus } from "./settle-bus";
-import { raycastSurfaceY } from "./snap-to-surface";
+import { hitsWithin, raycastSurfaceY } from "./snap-to-surface";
 
 // Outside the hook, like free-cam-writes: the pose ref is the rig's, handed in as an argument.
 const putPose = (ref: RefObject<FreePose | null>, value: FreePose) => {
   ref.current = value;
 };
 
-/** What a walking frame needs: the sizes in scene units and a way to find the ground. */
-export type Walking = { scale: WalkScale; groundAt: GroundAt };
+/** What a walking frame needs: the sizes in scene units, a way to find the ground and one to find a wall. */
+export type Walking = { scale: WalkScale; groundAt: GroundAt; wallAt: WallAt };
 
 type WalkParams = {
   walk: boolean;
@@ -21,6 +29,8 @@ type WalkParams = {
   sceneRef: RefObject<Object3D | null>;
   /** The rig's pose: walking writes the eye height and the ground into it. */
   pose: RefObject<FreePose | null>;
+  /** Walking and flying count speed in different units: the rig's wheel multiplier goes back to ×1 here. */
+  restartSpeed: () => void;
   /** Nothing to stand on under the camera. */
   onRefused: () => void;
 };
@@ -37,13 +47,21 @@ type WalkParams = {
  * in that order, so leaving the free cam straight from a walk restores the
  * free cam's planes here first and the orbit's in the rig last.
  */
-export function useWalk({ walk, unitRatio, sceneRef, pose, onRefused }: WalkParams): RefObject<Walking | null> {
+export function useWalk({
+  walk,
+  unitRatio,
+  sceneRef,
+  pose,
+  restartSpeed,
+  onRefused,
+}: WalkParams): RefObject<Walking | null> {
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
   const invalidate = useThree((s) => s.invalidate);
   const bus = useAutoLodBus();
   const walking = useRef<Walking | null>(null);
 
   useEffect(() => {
+    restartSpeed();
     if (!walk) return;
     const scene = sceneRef.current;
     const here = poseOf(camera.position, camera.quaternion);
@@ -58,7 +76,11 @@ export function useWalk({ walk, unitRatio, sceneRef, pose, onRefused }: WalkPara
     const standing = { ...here, ground, position: here.position.clone().setY(ground + scale.eye) };
     putPose(pose, standing);
     applyPose(camera, standing);
-    walking.current = { scale, groundAt: (x, z, fromY) => raycastSurfaceY(scene, x, z, fromY) };
+    walking.current = {
+      scale,
+      groundAt: (x, z, fromY) => raycastSurfaceY(scene, x, z, fromY),
+      wallAt: (from, dir, reach) => hitsWithin(scene, from, dir, reach),
+    };
     bus.settle();
     invalidate();
     return () => {
@@ -68,7 +90,7 @@ export function useWalk({ walk, unitRatio, sceneRef, pose, onRefused }: WalkPara
       if (last) pose.current = { ...last, velocity: new Vector3() };
       invalidate();
     };
-  }, [walk, unitRatio, sceneRef, pose, onRefused, camera, invalidate, bus]);
+  }, [walk, unitRatio, sceneRef, pose, restartSpeed, onRefused, camera, invalidate, bus]);
 
   return walking;
 }

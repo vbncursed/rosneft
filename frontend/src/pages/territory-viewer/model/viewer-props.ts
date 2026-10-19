@@ -140,6 +140,8 @@ export type PageHandlers = {
   onPlayStop: () => void;
   /** F, and the rail's free cam tile. */
   onFree: () => void;
+  /** The canvas found no ground under the camera to walk on. */
+  onWalkRefused: () => void;
   onMeasure: () => void;
   onAdd: () => void;
   onPanoramas: () => void;

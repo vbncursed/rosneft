@@ -184,6 +184,7 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
       onPlay,
       onPlayStop: stopFlight,
       onFree: toggleFree,
+      onWalkRefused: mode.refuseWalk,
       onMeasure: mode.toggleMeasure,
       onAdd,
       onPanoramas,

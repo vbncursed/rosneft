@@ -47,6 +47,7 @@ const Canvas = ({ chains = NO_CHAINS, showMeasurements = true, measuring = false
         resetVersion={0}
         playing={false}
         free={free}
+        walk={false}
         retryVersion={0}
         focusRequest={null}
         activePanorama={null}
@@ -67,6 +68,7 @@ const Canvas = ({ chains = NO_CHAINS, showMeasurements = true, measuring = false
         cameraYawRef={{ current: null }}
         onPick={noop}
         onPlayStop={noop}
+        onWalkRefused={noop}
         onActivatePanorama={noop}
         onMarkerGrab={noop}
         onMarkerMove={noop}

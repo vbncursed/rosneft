@@ -16,12 +16,15 @@ import {
   nextMultiplier,
   poseOf,
   stepFreeCam,
+  stepWalk,
+  walkSpeed,
   type FreePose,
 } from "../model/free-cam";
 import { boundsOf } from "./bounds";
 import { applyPose, setClip, setCursor, setEnabled } from "./free-cam-writes";
 import { useAutoLodBus } from "./settle-bus";
 import { holdStill } from "./stop-coast";
+import { useWalk } from "./use-walk";
 
 /** The most one frame moves the camera: a lost frame slows the flight, never teleports it (Play's MAX_STEP_MS). */
 const MAX_STEP_S = 0.1;
@@ -34,6 +37,16 @@ const LINE_PX = 16;
 
 type Drag = { id: number; startX: number; startY: number; x: number; y: number; looking: boolean };
 
+type FreeCamRigProps = {
+  sceneRef: RefObject<Object3D | null>;
+  /** G: walk at eye height over the territory instead of flying. */
+  walk: boolean;
+  /** Metres per scene unit (computeUnitRatio): the walk's eye, step and speeds are in metres. */
+  unitRatio: number;
+  /** Nothing to stand on under the camera: the page goes back to flying. */
+  onWalkRefused: () => void;
+};
+
 /**
  * Free cam: WASD/QE fly, Shift ×4, the wheel scales the speed, a left or right
  * drag looks (the cursor stays, so the panels stay usable). Mounted by
@@ -43,8 +56,11 @@ type Drag = { id: number; startX: number; startY: number; x: number; y: number; 
  * mid-flight — update() would pull the camera back onto its old orbit. Auto
  * LOD hears the camera move through the settle bus instead. On the way out
  * the orbit pivots on the territory along the line of sight, as Play lands.
+ *
+ * Walking (G) is the same rig moving another way: `useWalk` stands the camera
+ * at eye height and `stepWalk` keeps it there, frame by frame.
  */
-export default function FreeCamRig({ sceneRef }: { sceneRef: RefObject<Object3D | null> }) {
+export default function FreeCamRig({ sceneRef, walk, unitRatio, onWalkRefused }: FreeCamRigProps) {
   const instant = useMediaQuery("(prefers-reduced-motion: reduce)");
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
   const gl = useThree((s) => s.gl);
@@ -62,6 +78,11 @@ export default function FreeCamRig({ sceneRef }: { sceneRef: RefObject<Object3D 
     const now = poseOf(camera.position, camera.quaternion);
     if (drifted(current, now, speed.current.radius)) pose.current = now;
   }, [camera]);
+  // Before the setup effect below, on purpose: see useWalk on the cleanup order.
+  const restartSpeed = useCallback(() => {
+    speed.current.multiplier = 1;
+  }, []);
+  const walking = useWalk({ walk, unitRatio, sceneRef, pose, restartSpeed, onRefused: onWalkRefused });
 
   useEffect(() => {
     if (!controls) return;
@@ -188,15 +209,16 @@ export default function FreeCamRig({ sceneRef }: { sceneRef: RefObject<Object3D 
   useFrame((_, delta) => {
     const current = pose.current;
     if (!current) return;
+    const dt = Math.min(delta, MAX_STEP_S);
+    const input = { ...freeInput(keys.current), instant };
     const { radius, multiplier } = speed.current;
-    const next = stepFreeCam(
-      current,
-      { ...freeInput(keys.current), instant },
-      Math.min(delta, MAX_STEP_S),
-      freeSpeed(radius, multiplier),
-    );
+    const ground = walking.current; // scale, groundAt and wallAt in one
+    const next = ground
+      ? stepWalk(current, input, { dt, speed: walkSpeed(unitRatio, multiplier), ...ground })
+      : stepFreeCam(current, input, dt, freeSpeed(radius, multiplier));
     pose.current = next;
-    if (next.velocity.lengthSq() === 0) return;
+    // At rest only when nothing eases out and nothing is still sinking to lower ground.
+    if (next.velocity.lengthSq() === 0 && next.position.equals(current.position)) return;
     applyPose(camera, next);
     bus.settle();
     invalidate();

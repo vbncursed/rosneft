@@ -1,12 +1,13 @@
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { useEffect, useRef, type RefObject } from "react";
-import { BoxGeometry, Group, Mesh, type Camera, type PerspectiveCamera } from "three";
+import { BoxGeometry, Group, Mesh, Vector3, type Camera, type PerspectiveCamera } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { walkClip, type FreePose } from "../model/free-cam";
 import { fakeControls, WithControls } from "./testing";
 import { useWalk, type Walking } from "./use-walk";
 
 const UNIT_RATIO = 10; // 1 scene unit = 10 m: eye 0.18
+const noop = () => {};
 /** A 2×2×2 box at the origin (top y = 1) under a thin roof slab at y 3…3.2. */
 const site = () => {
   const group = new Group();
@@ -20,7 +21,7 @@ const site = () => {
 const out: { walking?: RefObject<Walking | null>; pose?: RefObject<FreePose | null> } = {};
 function Probe({ walk, sceneRef, onRefused }: { walk: boolean; sceneRef: { current: Group }; onRefused: () => void }) {
   const pose = useRef<FreePose | null>(null);
-  const walking = useWalk({ walk, unitRatio: UNIT_RATIO, sceneRef, pose, onRefused });
+  const walking = useWalk({ walk, unitRatio: UNIT_RATIO, sceneRef, pose, restartSpeed: noop, onRefused });
   useEffect(() => {
     out.walking = walking;
     out.pose = pose;
@@ -96,5 +97,16 @@ describe("useWalk", () => {
     await walk(true);
     expect(out.walking?.current?.groundAt(0, 0, 2)).toBeCloseTo(1);
     expect(out.walking?.current?.groundAt(0, 0, 10)).toBeCloseTo(3.2);
+  });
+
+  it("probes the territory for walls along the way", async () => {
+    const { camera, walk } = await mount();
+    camera.position.set(0.5, 2.5, 0.5);
+    await walk(true);
+    // The box's +Z face stands at z = 1: two units from z = 3, at a height inside it.
+    const from = new Vector3(0, 0.5, 3);
+    const north = new Vector3(0, 0, -1);
+    expect(out.walking?.current?.wallAt(from, north, 2.5)).toBe(true);
+    expect(out.walking?.current?.wallAt(from, north, 1.5)).toBe(false);
   });
 });

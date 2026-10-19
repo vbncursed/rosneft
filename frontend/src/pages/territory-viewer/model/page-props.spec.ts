@@ -101,6 +101,7 @@ const HANDLERS: PageHandlers = {
   onPlay: noop,
   onPlayStop: noop,
   onFree: noop,
+  onWalkRefused: noop,
   onMeasure: noop,
   onAdd: noop,
   onPanoramas: noop,
@@ -392,6 +393,13 @@ describe("pageProps · overlays", () => {
     expect(props.overlays.freeHints).toBe(true);
     expect(props.overlays.hints).toBe(false);
     expect(props.canvas.free).toBe(true);
+  });
+
+  it("hands the walk and its refusal down to the canvas", () => {
+    const p = parts();
+    const props = pageProps({ ...p, mode: { ...p.mode, free: true, walk: true } });
+    expect(props.canvas.walk).toBe(true);
+    expect(props.canvas.onWalkRefused).toBe(HANDLERS.onWalkRefused);
   });
 
   it("draws no free cam tile on a touch screen", () => {

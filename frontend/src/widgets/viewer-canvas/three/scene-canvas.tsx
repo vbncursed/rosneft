@@ -27,6 +27,7 @@ export default function SceneCanvas({
   resetVersion,
   playing,
   free,
+  walk,
   placements,
   placementGroups,
   mode,
@@ -68,6 +69,7 @@ export default function SceneCanvas({
   onRemoveChain,
   onLod,
   onPlayStop,
+  onWalkRefused,
 }: SceneCanvasProps) {
   // Orbit is the only mode that edits a selection; every other mode is
   // picking points, so the gizmo hides and clicks reach the wrapper group.
@@ -206,7 +208,9 @@ export default function SceneCanvas({
         </group>
         {/* Inside the clock: the rig tells Auto LOD the camera moved through
             the settle bus, since OrbitControls fires nothing while it flies. */}
-        {free ? <FreeCamRig sceneRef={territoryRef} /> : null}
+        {free ? (
+          <FreeCamRig sceneRef={territoryRef} walk={walk} unitRatio={unitRatio} onWalkRefused={onWalkRefused} />
+        ) : null}
       </AutoLodClock>
 
       <MeasurementLayer
