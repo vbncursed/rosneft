@@ -94,8 +94,10 @@ func TestConvertRawYUpSourceKeepsTheTallAxis(t *testing.T) {
 // keeps its axes; otherwise it is swapped from Z-up. A model never swaps.
 func TestConvertRawUpAxis(t *testing.T) {
 	const (
-		yThin = "v 0 0 0\nv 10 0 0\nv 0 1 8\nf 1 2 3\n" // extents 10 x 1 x 8
-		zThin = "v 0 0 0\nv 10 0 0\nv 0 8 1\nf 1 2 3\n" // extents 10 x 8 x 1
+		// A level rectangle plus one raised vertex: the plane normal is on the
+		// up axis, so only the axis decision is under test, not levelling.
+		yThin = "v 0 0 0\nv 10 0 0\nv 0 0 8\nv 10 0 8\nv 5 1 4\nf 1 2 3\nf 2 3 4\nf 3 4 5\n" // extents 10 x 1 x 8
+		zThin = "v 0 0 0\nv 10 0 0\nv 0 8 0\nv 10 8 0\nv 5 4 1\nf 1 2 3\nf 2 3 4\nf 3 4 5\n" // extents 10 x 8 x 1
 	)
 	tests := []struct {
 		name  string
