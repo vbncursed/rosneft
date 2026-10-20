@@ -5,7 +5,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/glbexport"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/httpapi"
 )
@@ -18,7 +17,6 @@ func mountRootRoutes(
 	r chi.Router,
 	apiServer *httpapi.Server,
 	authH *authhttp.Handlers,
-	exportOpen glbexport.Opener,
 	assetProxy, metricsHandler, summaryHandler http.Handler,
 ) {
 	r.Get("/docs", apiServer.ServeDocs)
@@ -65,9 +63,9 @@ func mountRootRoutes(
 	// prefix, and an inline r.With route is matched before its middlewares run
 	// (pinned by TerritoryExportSuite). No permission, as for /api/assets.
 	r.With(authH.Authenticate, apiServer.RequireTerritoryAccess).
-		Get("/api/territories/{slug}/export.glb", apiServer.ServeTerritoryExport(exportOpen))
+		Get("/api/territories/{slug}/export.glb", apiServer.ServeTerritoryExport())
 	r.With(authH.Authenticate, apiServer.RequireTerritoryAccess).
-		Get("/api/territories/{slug}/export.obj.zip", apiServer.ServeTerritoryExportOBJ(exportOpen))
+		Get("/api/territories/{slug}/export.obj.zip", apiServer.ServeTerritoryExportOBJ())
 
 	// /api/auth/* on the root router: login/2fa are public; self/admin
 	// handlers validate the Bearer token themselves via the auth client.

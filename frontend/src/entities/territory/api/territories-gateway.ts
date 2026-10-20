@@ -1,4 +1,4 @@
-import { httpDelete, httpGet, httpGetBlob, httpPatch, httpPost } from "@/shared/api";
+import { httpDelete, httpGet, httpPatch, httpPost } from "@/shared/api";
 import type * as Dto from "@/shared/api/dto";
 import type { Territory } from "../model/territory";
 import { toTerritory } from "./to-territory";
@@ -29,15 +29,20 @@ export const deleteTerritory = (slug: string): Promise<void> =>
 
 export type ExportVariant = "compressed" | "compatible" | "obj";
 
+// The download routes differ in shape: `?variant=compressed` is a 400 on export.glb, so compressed carries no query.
 const EXPORT_PATH: Record<ExportVariant, string> = {
   compressed: "export.glb",
   compatible: "export.glb?variant=compatible",
   obj: "export.obj.zip",
 };
 
-/** The whole scene as one GLB, or an OBJ + textures ZIP. Goes through the client so it shares the base URL and the 401 bounce. */
-export const exportTerritory = (slug: string, variant: ExportVariant): Promise<Blob> =>
-  httpGetBlob(`/api/territories/${encodeURIComponent(slug)}/${EXPORT_PATH[variant]}`);
+/** Where the browser fetches the file itself; same origin, so the session cookie rides along. */
+export const exportDownloadUrl = (slug: string, variant: ExportVariant): string =>
+  `${import.meta.env.VITE_API_URL}/api/territories/${encodeURIComponent(slug)}/${EXPORT_PATH[variant]}`;
+
+/** Runs the download's own checks without sending the file: its name and size, or the refusal the download would give. */
+export const checkExport = (slug: string, variant: ExportVariant): Promise<Dto.ExportCheck> =>
+  httpGet<Dto.ExportCheck>(`/api/territories/${encodeURIComponent(slug)}/export-check?variant=${variant}`);
 
 /** Updates mutable fields only (no re-conversion) — today just the external panorama link. */
 export const updateTerritory = async (slug: string, body: TerritoryUpdate): Promise<Territory> =>

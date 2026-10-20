@@ -140,6 +140,27 @@ func (e PanoramaPhaseName) Valid() bool {
 	}
 }
 
+// Defines values for ExportTerritoryCheckParamsVariant.
+const (
+	Compatible ExportTerritoryCheckParamsVariant = "compatible"
+	Compressed ExportTerritoryCheckParamsVariant = "compressed"
+	Obj        ExportTerritoryCheckParamsVariant = "obj"
+)
+
+// Valid indicates whether the value is a known member of the ExportTerritoryCheckParamsVariant enum.
+func (e ExportTerritoryCheckParamsVariant) Valid() bool {
+	switch e {
+	case Compatible:
+		return true
+	case Compressed:
+		return true
+	case Obj:
+		return true
+	default:
+		return false
+	}
+}
+
 // Artifact defines model for Artifact.
 type Artifact struct {
 	// Artifacts All available LODs for this owner, sorted by lod ascending.
@@ -393,6 +414,15 @@ type EntityCreate struct {
 type Error struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
+}
+
+// ExportCheck defines model for ExportCheck.
+type ExportCheck struct {
+	// Filename The exact name the download will send in Content-Disposition
+	Filename string `json:"filename"`
+
+	// SizeBytes The download's exact Content-Length; omitted for the chunked OBJ ZIP
+	SizeBytes *int64 `json:"sizeBytes,omitempty"`
 }
 
 // Health defines model for Health.
@@ -1005,6 +1035,15 @@ type ListMyAuditParams struct {
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// ExportTerritoryCheckParams defines parameters for ExportTerritoryCheck.
+type ExportTerritoryCheckParams struct {
+	// Variant `compressed`: meshopt geometry and KTX2 textures (export.glb). `compatible`: plain GLB (export.glb?variant=compatible). `obj`: baked OBJ in a ZIP (export.obj.zip). Exactly one value.
+	Variant ExportTerritoryCheckParamsVariant `form:"variant" json:"variant"`
+}
+
+// ExportTerritoryCheckParamsVariant defines parameters for ExportTerritoryCheck.
+type ExportTerritoryCheckParamsVariant string
+
 // CreatePlacementsParams defines parameters for CreatePlacements.
 type CreatePlacementsParams struct {
 	// IdempotencyKey 1–64 characters of `[A-Za-z0-9-]`; anything else is 400.
@@ -1156,6 +1195,9 @@ type ServerInterface interface {
 	// DeleteDocument Remove a document
 	// (DELETE /api/territories/{slug}/documents/{id})
 	DeleteDocument(w http.ResponseWriter, r *http.Request, slug string, id int64)
+	// ExportTerritoryCheck Check an export before downloading it
+	// (GET /api/territories/{slug}/export-check)
+	ExportTerritoryCheck(w http.ResponseWriter, r *http.Request, slug string, params ExportTerritoryCheckParams)
 	// DeleteMeasurements Remove every measurement on a territory
 	// (DELETE /api/territories/{slug}/measurements)
 	DeleteMeasurements(w http.ResponseWriter, r *http.Request, slug string)
@@ -1387,6 +1429,12 @@ func (_ Unimplemented) CreateDocument(w http.ResponseWriter, r *http.Request, sl
 // DeleteDocument Remove a document
 // (DELETE /api/territories/{slug}/documents/{id})
 func (_ Unimplemented) DeleteDocument(w http.ResponseWriter, r *http.Request, slug string, id int64) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ExportTerritoryCheck Check an export before downloading it
+// (GET /api/territories/{slug}/export-check)
+func (_ Unimplemented) ExportTerritoryCheck(w http.ResponseWriter, r *http.Request, slug string, params ExportTerritoryCheckParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2278,6 +2326,48 @@ func (siw *ServerInterfaceWrapper) DeleteDocument(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeleteDocument(w, r, slug, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ExportTerritoryCheck operation middleware
+func (siw *ServerInterfaceWrapper) ExportTerritoryCheck(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ExportTerritoryCheckParams
+
+	// ------------- Required query parameter "variant" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "variant", r.URL.Query(), &params.Variant, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "variant"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "variant", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ExportTerritoryCheck(w, r, slug, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3394,6 +3484,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/territories/{slug}/source", wrapper.ReplaceTerritorySource)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/territories/{slug}/export-check", wrapper.ExportTerritoryCheck)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/territories/{slug}/scene", wrapper.GetSceneBundle)
@@ -4793,6 +4886,135 @@ func (response DeleteDocument500JSONResponse) VisitDeleteDocumentResponse(w http
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ExportTerritoryCheckRequestObject struct {
+	Slug   string `json:"slug"`
+	Params ExportTerritoryCheckParams
+}
+
+type ExportTerritoryCheckResponseObject interface {
+	VisitExportTerritoryCheckResponse(w http.ResponseWriter) error
+}
+
+type ExportTerritoryCheck200ResponseHeaders struct {
+	CacheControl string
+}
+
+type ExportTerritoryCheck200JSONResponse struct {
+	Body    ExportCheck
+	Headers ExportTerritoryCheck200ResponseHeaders
+}
+
+func (response ExportTerritoryCheck200JSONResponse) VisitExportTerritoryCheckResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", fmt.Sprint(response.Headers.CacheControl))
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ExportTerritoryCheck400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ExportTerritoryCheck400JSONResponse) VisitExportTerritoryCheckResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ExportTerritoryCheck401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ExportTerritoryCheck401JSONResponse) VisitExportTerritoryCheckResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ExportTerritoryCheck404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ExportTerritoryCheck404JSONResponse) VisitExportTerritoryCheckResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ExportTerritoryCheck409JSONResponse Error
+
+func (response ExportTerritoryCheck409JSONResponse) VisitExportTerritoryCheckResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ExportTerritoryCheck422JSONResponse Error
+
+func (response ExportTerritoryCheck422JSONResponse) VisitExportTerritoryCheckResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ExportTerritoryCheck500JSONResponse struct{ InternalJSONResponse }
+
+func (response ExportTerritoryCheck500JSONResponse) VisitExportTerritoryCheckResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ExportTerritoryCheck503JSONResponse Error
+
+func (response ExportTerritoryCheck503JSONResponse) VisitExportTerritoryCheckResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(503)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -7005,6 +7227,9 @@ type StrictServerInterface interface {
 	// DeleteDocument Remove a document
 	// (DELETE /api/territories/{slug}/documents/{id})
 	DeleteDocument(ctx context.Context, request DeleteDocumentRequestObject) (DeleteDocumentResponseObject, error)
+	// ExportTerritoryCheck Check an export before downloading it
+	// (GET /api/territories/{slug}/export-check)
+	ExportTerritoryCheck(ctx context.Context, request ExportTerritoryCheckRequestObject) (ExportTerritoryCheckResponseObject, error)
 	// DeleteMeasurements Remove every measurement on a territory
 	// (DELETE /api/territories/{slug}/measurements)
 	DeleteMeasurements(ctx context.Context, request DeleteMeasurementsRequestObject) (DeleteMeasurementsResponseObject, error)
@@ -7742,6 +7967,33 @@ func (sh *strictHandler) DeleteDocument(w http.ResponseWriter, r *http.Request, 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(DeleteDocumentResponseObject); ok {
 		if err := validResponse.VisitDeleteDocumentResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ExportTerritoryCheck operation middleware
+func (sh *strictHandler) ExportTerritoryCheck(w http.ResponseWriter, r *http.Request, slug string, params ExportTerritoryCheckParams) {
+	var request ExportTerritoryCheckRequestObject
+
+	request.Slug = slug
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ExportTerritoryCheck(ctx, request.(ExportTerritoryCheckRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ExportTerritoryCheck")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ExportTerritoryCheckResponseObject); ok {
+		if err := validResponse.VisitExportTerritoryCheckResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

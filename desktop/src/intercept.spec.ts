@@ -299,6 +299,27 @@ describe("createHandler", () => {
   });
 });
 
+describe("createHandler export downloads", () => {
+  it.each(["/api/territories/t/export.glb?variant=compatible", "/api/territories/t/export.obj.zip"])(
+    "%s streams through untouched: same body object, no cache write, no CSP",
+    async (p) => {
+      const upstream = new Response(new ReadableStream({ pull: (c) => c.close() }), {
+        headers: { "content-type": "application/zip", "content-disposition": 'attachment; filename="t.zip"' },
+      });
+      const h = await harness(async () => upstream);
+      const write = vi.spyOn(h.store, "writeBlob");
+      const snap = vi.spyOn(h.store, "writeSnapshot");
+      const res = await h.handle(req(p));
+      expect(res.body).toBe(upstream.body);
+      expect(res.headers.get("content-disposition")).toBe('attachment; filename="t.zip"');
+      expect(res.headers.get("content-security-policy")).toBeNull();
+      expect(write).not.toHaveBeenCalled();
+      expect(snap).not.toHaveBeenCalled();
+      expect(upstream.bodyUsed).toBe(false);
+    },
+  );
+});
+
 describe("createHandler isolation", () => {
   it("a stale /api/auth/me cannot hand the cache back to the previous user", async () => {
     let release: (r: Response) => void = noop;

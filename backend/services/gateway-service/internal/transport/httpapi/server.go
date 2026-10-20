@@ -9,9 +9,13 @@ package httpapi
 import (
 	"context"
 	"io"
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
 
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/glbexport"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
 )
 
@@ -111,7 +115,8 @@ func blobScope(ctx context.Context) domain.BlobScope {
 
 // Server implements the oapi-codegen StrictServerInterface over a Service.
 type Server struct {
-	svc Service
+	svc  Service
+	open glbexport.Opener // blob reads for the export routes and export-check
 }
 
 // New constructs a Server.
@@ -134,4 +139,25 @@ func codeOf(err error) string {
 	default:
 		return apperr.SlugInternal
 	}
+}
+
+// WithExportOpener sets where the export routes and export-check read blobs
+// from. One opener serves the download and its check, so they read the same.
+func (s *Server) WithExportOpener(open glbexport.Opener) *Server {
+	s.open = open
+	return s
+}
+
+// Mount registers the generated /api routes on r. A parameter the generated
+// wrapper refuses (a missing, repeated or malformed value) answers the {code,
+// message} envelope like every other 400, not the wrapper's plain text, and is
+// never cached.
+func Mount(r chi.Router, s *Server) http.Handler {
+	return HandlerWithOptions(NewStrictHandler(s, nil), ChiServerOptions{
+		BaseRouter: r,
+		ErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, err error) {
+			w.Header().Set("Cache-Control", "no-store")
+			apperr.Write(w, http.StatusBadRequest, apperr.SlugInvalidInput, err.Error())
+		},
+	})
 }

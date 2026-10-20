@@ -1,112 +1,134 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { exportTerritory } from "@/entities/territory";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { checkExport } from "@/entities/territory";
 import { HttpError } from "@/shared/api";
-import { saveBlob } from "@/shared/lib/download";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useTerritoryExport } from "./use-territory-export";
 
 vi.mock("@/entities/territory", async (importOriginal) => ({
   ...(await importOriginal<object>()),
-  exportTerritory: vi.fn(),
+  checkExport: vi.fn(),
 }));
-vi.mock("@/shared/lib/download", () => ({ saveBlob: vi.fn() }));
 
-let client: QueryClient;
-const wrapper = ({ children }: { children: ReactNode }) => (
-  <QueryClientProvider client={client}>{children}</QueryClientProvider>
-);
-const exporter = () => renderHook(() => ({ s: useTerritoryExport("ust-kut"), notices: useNotices() }), { wrapper });
+const exporter = () => renderHook(() => ({ s: useTerritoryExport("ust-kut"), notices: useNotices() }));
+const messages = (r: { current: { notices: readonly { message: string }[] } }) =>
+  r.current.notices.map((n) => n.message);
 
+let click: ReturnType<typeof vi.spyOn>;
+let hrefs: string[];
+let names: (string | null)[];
+let fetchMock: ReturnType<typeof vi.fn>;
 beforeEach(() => {
-  client = new QueryClient();
-  vi.mocked(exportTerritory).mockReset();
-  vi.mocked(saveBlob).mockReset();
+  vi.mocked(checkExport).mockReset();
   clearNotices();
+  hrefs = [];
+  names = [];
+  click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+    hrefs.push(this.getAttribute("href") ?? "");
+    names.push(this.getAttribute("download"));
+    expect(this.isConnected).toBe(true);
+  });
+  fetchMock = vi.fn();
+  vi.stubGlobal("fetch", fetchMock);
+});
+afterEach(() => {
+  click.mockRestore();
+  vi.unstubAllGlobals();
 });
 
 describe("useTerritoryExport", () => {
-  it("saves the file as <slug>.glb", async () => {
-    const blob = new Blob(["glb"]);
-    vi.mocked(exportTerritory).mockResolvedValue(blob);
+  it.each([
+    ["compressed", "/api/territories/ust-kut/export.glb"],
+    ["compatible", "/api/territories/ust-kut/export.glb?variant=compatible"],
+    ["obj", "/api/territories/ust-kut/export.obj.zip"],
+  ] as const)("%s: a passed check clicks one anchor to %s and fetches nothing", async (variant, href) => {
+    vi.mocked(checkExport).mockResolvedValue({ filename: "ust-kut.glb", sizeBytes: 3 * 1_048_576 });
+    const { result } = exporter();
+    act(() => result.current.s.run(variant));
+    await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
+    expect(checkExport).toHaveBeenCalledWith("ust-kut", variant);
+    expect(hrefs).toEqual([href]);
+    expect(names).toEqual(["ust-kut.glb"]);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(document.querySelector("a[download]")).toBeNull();
+  });
+
+  it("announces the started download with its name and size", async () => {
+    vi.mocked(checkExport).mockResolvedValue({ filename: "ust-kut.glb", sizeBytes: 3 * 1_048_576 });
     const { result } = exporter();
     act(() => result.current.s.run("compressed"));
-    await waitFor(() => expect(saveBlob).toHaveBeenCalledWith(blob, "ust-kut.glb"));
-    expect(exportTerritory).toHaveBeenCalledWith("ust-kut", "compressed");
+    await waitFor(() => expect(messages(result)).toHaveLength(1));
+    expect(messages(result)[0]).toContain("Download started: ust-kut.glb (3 MB)");
+    expect(messages(result)[0]).toContain("browser's downloads");
   });
 
-  it("saves the compatible variant as <slug>-compatible.glb", async () => {
-    const blob = new Blob(["glb"]);
-    vi.mocked(exportTerritory).mockResolvedValue(blob);
-    const { result } = exporter();
-    act(() => result.current.s.run("compatible"));
-    await waitFor(() => expect(saveBlob).toHaveBeenCalledWith(blob, "ust-kut-compatible.glb"));
-    expect(exportTerritory).toHaveBeenCalledWith("ust-kut", "compatible");
+  it("points the desktop app's user at its save dialog, not at a browser download manager", async () => {
+    window.desktop = {} as NonNullable<typeof window.desktop>;
+    try {
+      vi.mocked(checkExport).mockResolvedValue({ filename: "ust-kut.glb", sizeBytes: 3 * 1_048_576 });
+      const { result } = exporter();
+      act(() => result.current.s.run("compressed"));
+      await waitFor(() => expect(messages(result)).toHaveLength(1));
+      expect(messages(result)[0]).toContain("Download started: ust-kut.glb (3 MB)");
+      expect(messages(result)[0]).toContain("choose where to save it");
+      expect(messages(result)[0]).not.toContain("browser");
+    } finally {
+      delete window.desktop;
+    }
   });
 
-  it("saves the OBJ variant as <slug>-obj.zip", async () => {
-    const blob = new Blob(["zip"]);
-    vi.mocked(exportTerritory).mockResolvedValue(blob);
-    const { result } = exporter();
-    act(() => result.current.s.run("obj"));
-    await waitFor(() => expect(saveBlob).toHaveBeenCalledWith(blob, "ust-kut-obj.zip"));
-    expect(exportTerritory).toHaveBeenCalledWith("ust-kut", "obj");
-  });
-
-  it("shows the gateway's refusal while the OBJ copy is not ready", async () => {
-    vi.mocked(exportTerritory).mockRejectedValue(new HttpError(409, null, "OBJ export is not ready yet"));
+  it("leaves the size out when the check reports none (chunked OBJ)", async () => {
+    vi.mocked(checkExport).mockResolvedValue({ filename: "ust-kut-obj.zip" });
     const { result } = exporter();
     act(() => result.current.s.run("obj"));
-    await waitFor(() => expect(result.current.notices.map((n) => n.message)).toContain("OBJ export is not ready yet"));
-    expect(saveBlob).not.toHaveBeenCalled();
+    await waitFor(() => expect(messages(result)).toHaveLength(1));
+    expect(messages(result)[0]).toMatch(/^Download started: ust-kut-obj\.zip — /);
+    expect(messages(result)[0]).not.toContain("(");
   });
 
-  it("shows the gateway's refusal while the compatible copy is being made", async () => {
-    vi.mocked(exportTerritory).mockRejectedValue(new HttpError(409, null, "compatible copy is not ready yet"));
+  it.each([
+    [409, "compatible copy is not ready yet"],
+    [422, "scene is over the vertex ceiling"],
+    [503, "Export failed"], // messageOf never shows a 5xx body
+  ])("a %i check shows %s and downloads nothing", async (status, message) => {
+    vi.mocked(checkExport).mockRejectedValue(new HttpError(status, null, status < 500 ? message : "internal error"));
     const { result } = exporter();
     act(() => result.current.s.run("compatible"));
-    await waitFor(() =>
-      expect(result.current.notices.map((n) => n.message)).toContain("compatible copy is not ready yet"),
-    );
-    expect(saveBlob).not.toHaveBeenCalled();
-  });
-
-  it("shows the gateway's own refusal", async () => {
-    vi.mocked(exportTerritory).mockRejectedValue(new HttpError(409, null, "territory is not converted yet"));
-    const { result } = exporter();
-    act(() => result.current.s.run("compressed"));
-    await waitFor(() =>
-      expect(result.current.notices.map((n) => n.message)).toContain("territory is not converted yet"),
-    );
-    expect(saveBlob).not.toHaveBeenCalled();
+    await waitFor(() => expect(messages(result)).toContain(message));
+    expect(click).not.toHaveBeenCalled();
+    await waitFor(() => expect(result.current.s.busy).toBe(false));
   });
 
   it("falls back to a generic notice when the network fails", async () => {
-    vi.mocked(exportTerritory).mockRejectedValue(new TypeError("Failed to fetch"));
+    vi.mocked(checkExport).mockRejectedValue(new TypeError("Failed to fetch"));
     const { result } = exporter();
     act(() => result.current.s.run("compressed"));
-    await waitFor(() => expect(result.current.notices.map((n) => n.message)).toContain("Export failed"));
+    await waitFor(() => expect(messages(result)).toContain("Export failed"));
+    expect(click).not.toHaveBeenCalled();
   });
 
-  it("goes idle again after a stream cut mid-download, saving nothing", async () => {
-    vi.mocked(exportTerritory).mockRejectedValue(new TypeError("network error"));
-    const { result } = exporter();
-    act(() => result.current.s.run("obj"));
-    await waitFor(() => expect(result.current.notices.map((n) => n.message)).toContain("Export failed"));
-    await waitFor(() => expect(result.current.s.busy).toBe(false));
-    expect(saveBlob).not.toHaveBeenCalled();
-  });
-
-  it("is busy while the request is pending and idle after", async () => {
-    let resolve!: (b: Blob) => void;
-    vi.mocked(exportTerritory).mockReturnValue(new Promise((r) => (resolve = r)));
+  it("is busy while the check is pending and idle right after the click", async () => {
+    let resolve!: (v: { filename: string }) => void;
+    vi.mocked(checkExport).mockReturnValue(new Promise((r) => (resolve = r)));
     const { result } = exporter();
     expect(result.current.s.busy).toBe(false);
     act(() => result.current.s.run("compressed"));
     await waitFor(() => expect(result.current.s.busy).toBe(true));
-    await act(async () => resolve(new Blob(["x"])));
+    await act(async () => resolve({ filename: "ust-kut.glb" }));
     await waitFor(() => expect(result.current.s.busy).toBe(false));
+    expect(click).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores a second press while the first check is running", async () => {
+    let resolve!: (v: { filename: string }) => void;
+    vi.mocked(checkExport).mockReturnValue(new Promise((r) => (resolve = r)));
+    const { result } = exporter();
+    act(() => {
+      result.current.s.run("compressed");
+      result.current.s.run("obj");
+    });
+    await act(async () => resolve({ filename: "ust-kut.glb" }));
+    expect(checkExport).toHaveBeenCalledTimes(1);
+    expect(click).toHaveBeenCalledTimes(1);
   });
 });
