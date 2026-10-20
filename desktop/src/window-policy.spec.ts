@@ -177,15 +177,15 @@ function wireDownloads() {
   const fail = vi.fn();
   attachDownloadPolicy({ on: (_n: string, l: typeof onDownload) => void (onDownload = l) } as never, ORIGIN, fail);
   const item = (chain: string[], name = "t.glb") => {
-    let updated!: (e: object, state: string) => void;
+    const on: Record<string, (e: object, state: string) => void> = {};
     const dl = {
       cancel: vi.fn(),
       getURLChain: () => chain,
       getFilename: () => name,
-      on: (_n: string, l: typeof updated) => void (updated = l),
+      on: (n: string, l: (e: object, state: string) => void) => void (on[n] = l),
     };
     onDownload({}, dl);
-    return { dl, update: (state: string) => updated({}, state) };
+    return { dl, update: (state: string) => on.updated?.({}, state), done: (state: string) => on.done?.({}, state) };
   };
   return { item, fail };
 }
@@ -197,14 +197,31 @@ describe("attachDownloadPolicy", () => {
     expect(dl.cancel).toHaveBeenCalledOnce();
     expect(w.fail).not.toHaveBeenCalled();
   });
-  it("lets a same-origin download run and reports it when it is interrupted", () => {
+  it("lets a same-origin download run; a cut is cancelled after the callback and reported once", async () => {
     const w = wireDownloads();
-    const { dl, update } = w.item([`${ORIGIN}/api/territories/a/export.glb`]);
+    const { dl, update, done } = w.item([`${ORIGIN}/api/territories/a/export.glb`]);
     update("progressing");
     expect(dl.cancel).not.toHaveBeenCalled();
     expect(w.fail).not.toHaveBeenCalled();
     update("interrupted");
-    expect(dl.cancel).toHaveBeenCalledOnce();
     expect(w.fail).toHaveBeenCalledWith("t.glb");
+    expect(dl.cancel).not.toHaveBeenCalled();
+    await new Promise((r) => setImmediate(r));
+    expect(dl.cancel).toHaveBeenCalledOnce();
+    done("cancelled");
+    expect(w.fail).toHaveBeenCalledOnce();
+  });
+  it("reports a refusal Chromium cannot resume (done: interrupted, e.g. a 401)", () => {
+    const w = wireDownloads();
+    const { dl, done } = w.item([`${ORIGIN}/api/territories/a/export.glb`]);
+    done("interrupted");
+    expect(w.fail).toHaveBeenCalledExactlyOnceWith("t.glb");
+    expect(dl.cancel).not.toHaveBeenCalled();
+  });
+  it("says nothing about a finished or cancelled download", () => {
+    const w = wireDownloads();
+    w.item([`${ORIGIN}/a`]).done("completed");
+    w.item([`${ORIGIN}/b`]).done("cancelled");
+    expect(w.fail).not.toHaveBeenCalled();
   });
 });

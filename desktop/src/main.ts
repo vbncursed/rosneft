@@ -60,9 +60,21 @@ async function start(): Promise<void> {
 
   const ses = session.fromPartition(PARTITION);
   attachPermissionPolicy(ses, ORIGIN);
-  attachDownloadPolicy(ses, ORIGIN, (name) =>
-    dialog.showErrorBox("Download failed", `${name || "The file"} was not saved. Start the export again.`),
-  );
+  // showMessageBox, not showErrorBox: that one blocks the main process, and every download streams through
+  // the protocol handler here. One box at a time, however many downloads fail.
+  let failShown = false;
+  attachDownloadPolicy(ses, ORIGIN, (name) => {
+    if (failShown) return;
+    failShown = true;
+    const options = {
+      type: "error" as const,
+      message: "Download failed",
+      detail: `${name || "The file"} was not saved. Start the export again.`,
+    };
+    void (win ? dialog.showMessageBox(win, options) : dialog.showMessageBox(options)).finally(() => {
+      failShown = false;
+    });
+  });
   // ses.fetch, never net.fetch: that is the default session, without our cookie.
   // credentials: "include" — without it Electron blocks cookies both ways.
   const network = (input: Request | string, init: RequestInit = {}) =>

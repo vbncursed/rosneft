@@ -65,8 +65,10 @@ export function downloadAllowed(urlChain: readonly string[], origin: string): bo
   return urlChain.length > 0 && urlChain.every((url) => sameOrigin(url, origin));
 }
 
-// The save dialog stays Electron's default. A failed download (the session expired between the export
-// check and the click, the connection dropped) is otherwise silent: Chromium leaves it "interrupted".
+// The save dialog stays Electron's default. A failed download is otherwise silent. Two shapes:
+// "updated: interrupted" is a cut Chromium could resume, but the shell has no download UI to resume it from
+// and Chromium does not retry it alone; "done: interrupted" is a refusal it cannot resume, e.g. the 401 of a
+// session that expired between the export check and the click. Each is reported once.
 export function attachDownloadPolicy(ses: Pick<Session, "on">, origin: string, fail: (filename: string) => void): void {
   ses.on("will-download", (_event, item) => {
     if (!downloadAllowed(item.getURLChain(), origin)) {
@@ -75,8 +77,12 @@ export function attachDownloadPolicy(ses: Pick<Session, "on">, origin: string, f
     }
     item.on("updated", (_e, state) => {
       if (state !== "interrupted") return;
-      item.cancel();
+      // Not inline: cancelling inside Chromium's observer callback trips its re-entrancy check.
+      setImmediate(() => item.cancel());
       fail(item.getFilename());
+    });
+    item.on("done", (_e, state) => {
+      if (state === "interrupted") fail(item.getFilename());
     });
   });
 }
