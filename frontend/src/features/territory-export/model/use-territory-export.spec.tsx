@@ -90,6 +90,15 @@ describe("useTerritoryExport", () => {
     await waitFor(() => expect(result.current.notices.map((n) => n.message)).toContain("Export failed"));
   });
 
+  it("goes idle again after a stream cut mid-download, saving nothing", async () => {
+    vi.mocked(exportTerritory).mockRejectedValue(new TypeError("network error"));
+    const { result } = exporter();
+    act(() => result.current.s.run("obj"));
+    await waitFor(() => expect(result.current.notices.map((n) => n.message)).toContain("Export failed"));
+    await waitFor(() => expect(result.current.s.busy).toBe(false));
+    expect(saveBlob).not.toHaveBeenCalled();
+  });
+
   it("is busy while the request is pending and idle after", async () => {
     let resolve!: (b: Blob) => void;
     vi.mocked(exportTerritory).mockReturnValue(new Promise((r) => (resolve = r)));
