@@ -2,6 +2,7 @@ package objexport
 
 import (
 	"math"
+	"math/rand/v2"
 	"strconv"
 	"strings"
 	"testing"
@@ -141,4 +142,54 @@ func (s *MatrixSuite) TestUVFlip() {
 func (s *MatrixSuite) TestNegativeZeroIsWrittenAsZero() {
 	assert.Equal(s.T(), string(appendNum(nil, math.Copysign(0, -1))), "0")
 	assert.Equal(s.T(), string(appendNum(nil, -1e-50)), "0") // underflows float32
+}
+
+// Every sum of products below is spelled with float64(...) around each product,
+// which forbids fusing. arm64 fuses a*b+c without it and amd64 does not, so a
+// matrix would differ in its last bit, and so would the OBJ text printed from it.
+func (s *MatrixSuite) TestArithmeticIsUnfused() {
+	rnd := rand.New(rand.NewPCG(1, 2))
+	num := func() float64 { return rnd.Float64()*20 - 10 }
+	for range 200 {
+		var a, b mat4
+		for i := range a {
+			a[i], b[i] = num(), num()
+		}
+		x, y, z := num(), num(), num()
+
+		var want mat4
+		for col := range 4 {
+			for row := range 4 {
+				var sum float64
+				for k := range 4 {
+					sum += float64(a[k*4+row] * b[col*4+k])
+				}
+				want[col*4+row] = sum
+			}
+		}
+		assert.Equal(s.T(), a.mul(b), want)
+
+		gx, gy, gz := a.apply(x, y, z)
+		assert.Equal(s.T(), gx, float64(a[0]*x)+float64(a[4]*y)+float64(a[8]*z)+a[12])
+		assert.Equal(s.T(), gy, float64(a[1]*x)+float64(a[5]*y)+float64(a[9]*z)+a[13])
+		assert.Equal(s.T(), gz, float64(a[2]*x)+float64(a[6]*y)+float64(a[10]*z)+a[14])
+
+		minor := func(p, q, r, t int) float64 { return float64(a[p]*a[q]) - float64(a[r]*a[t]) }
+		assert.Equal(s.T(), a.det3(),
+			float64(a[0]*minor(5, 10, 9, 6))-float64(a[4]*minor(1, 10, 9, 2))+float64(a[8]*minor(1, 6, 5, 2)))
+
+		q := [4]float64{num(), num(), num(), num()}
+		sc := [3]float64{num(), num(), num()}
+		r := [3][3]float64{
+			{1 - 2*(float64(q[1]*q[1])+float64(q[2]*q[2])), 2 * (float64(q[0]*q[1]) - float64(q[2]*q[3])), 2 * (float64(q[0]*q[2]) + float64(q[1]*q[3]))},
+			{2 * (float64(q[0]*q[1]) + float64(q[2]*q[3])), 1 - 2*(float64(q[0]*q[0])+float64(q[2]*q[2])), 2 * (float64(q[1]*q[2]) - float64(q[0]*q[3]))},
+			{2 * (float64(q[0]*q[2]) - float64(q[1]*q[3])), 2 * (float64(q[1]*q[2]) + float64(q[0]*q[3])), 1 - 2*(float64(q[0]*q[0])+float64(q[1]*q[1]))},
+		}
+		got := trs([3]float64{x, y, z}, q, sc)
+		for c := range 3 {
+			for row := range 3 {
+				assert.Equal(s.T(), got[c*4+row], float64(r[row][c]*sc[c]))
+			}
+		}
+	}
 }

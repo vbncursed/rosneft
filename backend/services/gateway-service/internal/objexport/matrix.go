@@ -6,6 +6,11 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/glbexport"
 )
 
+// Every sum of products here rounds each product with float64(...) first.
+// arm64 would otherwise fuse a*b+c into one FMA and amd64 would not, so the
+// last bit of a matrix, and of the OBJ text printed from it, would depend on
+// the machine.
+
 // mat4 is column-major, as glTF: element (row r, column c) is m[c*4+r].
 type mat4 [16]float64
 
@@ -19,7 +24,7 @@ func (a mat4) mul(b mat4) mat4 {
 		for row := range 4 {
 			var sum float64
 			for k := range 4 {
-				sum += a[k*4+row] * b[col*4+k]
+				sum += float64(a[k*4+row] * b[col*4+k])
 			}
 			c[col*4+row] = sum
 		}
@@ -29,25 +34,28 @@ func (a mat4) mul(b mat4) mat4 {
 
 // apply transforms the point p.
 func (m mat4) apply(x, y, z float64) (float64, float64, float64) {
-	return m[0]*x + m[4]*y + m[8]*z + m[12],
-		m[1]*x + m[5]*y + m[9]*z + m[13],
-		m[2]*x + m[6]*y + m[10]*z + m[14]
+	return float64(m[0]*x) + float64(m[4]*y) + float64(m[8]*z) + m[12],
+		float64(m[1]*x) + float64(m[5]*y) + float64(m[9]*z) + m[13],
+		float64(m[2]*x) + float64(m[6]*y) + float64(m[10]*z) + m[14]
 }
 
 // det3 is the determinant of the upper-left 3x3.
 func (m mat4) det3() float64 {
-	return m[0]*(m[5]*m[10]-m[9]*m[6]) -
-		m[4]*(m[1]*m[10]-m[9]*m[2]) +
-		m[8]*(m[1]*m[6]-m[5]*m[2])
+	return float64(m[0]*(float64(m[5]*m[10])-float64(m[9]*m[6]))) -
+		float64(m[4]*(float64(m[1]*m[10])-float64(m[9]*m[2]))) +
+		float64(m[8]*(float64(m[1]*m[6])-float64(m[5]*m[2])))
 }
 
 // trs is T·R·S for the unit quaternion q = (x, y, z, w).
 func trs(t [3]float64, q [4]float64, s [3]float64) mat4 {
 	x, y, z, w := q[0], q[1], q[2], q[3]
+	xx, yy, zz := float64(x*x), float64(y*y), float64(z*z)
+	xy, xz, yz := float64(x*y), float64(x*z), float64(y*z)
+	xw, yw, zw := float64(x*w), float64(y*w), float64(z*w)
 	r := [3][3]float64{
-		{1 - 2*(y*y+z*z), 2 * (x*y - z*w), 2 * (x*z + y*w)},
-		{2 * (x*y + z*w), 1 - 2*(x*x+z*z), 2 * (y*z - x*w)},
-		{2 * (x*z - y*w), 2 * (y*z + x*w), 1 - 2*(x*x+y*y)},
+		{1 - 2*(yy+zz), 2 * (xy - zw), 2 * (xz + yw)},
+		{2 * (xy + zw), 1 - 2*(xx+zz), 2 * (yz - xw)},
+		{2 * (xz - yw), 2 * (yz + xw), 1 - 2*(xx+yy)},
 	}
 	var m mat4
 	for c := range 3 {
