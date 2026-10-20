@@ -53,8 +53,9 @@ function GltfPrimitive({
   onDrawn: (url: string | null) => void;
 }) {
   // mesh-worker has already centered + scaled (max axis = 2) and
-  // converted Z-up → Y-up, so we render the scene as-is. extendGltfLoader
-  // wires up KTX2 transcoding; Draco is enabled via the second arg.
+  // fixed the up axis (it detects it for territories), so we render the
+  // scene as-is. extendGltfLoader wires up KTX2 transcoding; Draco is enabled
+  // via the second arg.
   const { scene } = useGLTF(url, true, true, extendGltfLoader);
 
   // The first time we see a mesh, stash its real raycast in userData so

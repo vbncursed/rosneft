@@ -25,8 +25,8 @@ type rawGLB struct {
 }
 
 // convertRaw runs the pure conversion pipeline: parse OBJ, normalize
-// (Z-up→Y-up unless the ctx says the source is Y-up, center, scale to
-// maxDim=2), resolve materials, emit GLB. No external binary is involved, so
+// (models never swap axes; a territory is swapped Z-up→Y-up unless Y is its
+// thinnest axis; then center, scale to maxDim=2), resolve materials, emit GLB. No external binary is involved, so
 // the result is deterministic.
 func (c *Converter) convertRaw(ctx context.Context, root, sourcePath string) (rawGLB, error) {
 	if err := ctx.Err(); err != nil {
@@ -39,12 +39,16 @@ func (c *Converter) convertRaw(ctx context.Context, root, sourcePath string) (ra
 	defer func() { _ = f.Close() }()
 
 	report(ctx, "parsing", 0.30)
-	src, err := parseOBJWithUp(f, YUpSource(ctx))
+	src, err := parseOBJWithUp(f, true) // raw axes; the up axis is decided below
 	if err != nil {
 		return rawGLB{}, fmt.Errorf("converter: parse: %w: %w", domain.ErrBadSource, err)
 	}
 	if err := ctx.Err(); err != nil {
 		return rawGLB{}, err
+	}
+
+	if len(src.positions) > 0 && !YUpSource(ctx) && zUpSource(bounds(src.positions)) {
+		swapZUpToYUp(src.positions)
 	}
 
 	report(ctx, "encoding", 0.45)

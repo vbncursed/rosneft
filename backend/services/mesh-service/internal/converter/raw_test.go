@@ -89,3 +89,39 @@ func TestConvertRawYUpSourceKeepsTheTallAxis(t *testing.T) {
 		})
 	}
 }
+
+// A territory's up axis is detected: Y thinnest means the source is Y-up and
+// keeps its axes; otherwise it is swapped from Z-up. A model never swaps.
+func TestConvertRawUpAxis(t *testing.T) {
+	const (
+		yThin = "v 0 0 0\nv 10 0 0\nv 0 1 8\nf 1 2 3\n" // extents 10 x 1 x 8
+		zThin = "v 0 0 0\nv 10 0 0\nv 0 8 1\nf 1 2 3\n" // extents 10 x 8 x 1
+	)
+	tests := []struct {
+		name  string
+		obj   string
+		model bool
+		want  [3]float64 // bbox extents in the output axes
+	}{
+		{"territory Y-thin keeps its axes", yThin, false, [3]float64{10, 1, 8}},
+		{"territory Z-thin is swapped", zThin, false, [3]float64{10, 1, 8}},
+		{"model Y-thin is never swapped", yThin, true, [3]float64{10, 1, 8}},
+		{"model Z-thin is never swapped", zThin, true, [3]float64{10, 8, 1}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "m.obj")
+			assert.NilError(t, os.WriteFile(path, []byte(tt.obj), 0o600))
+			ctx := t.Context()
+			if tt.model {
+				ctx = WithYUpSource(ctx)
+			}
+
+			got, err := (&Converter{}).convertRaw(ctx, filepath.Dir(path), path)
+
+			assert.NilError(t, err)
+			ext := [3]float64{got.bboxMax.X - got.bboxMin.X, got.bboxMax.Y - got.bboxMin.Y, got.bboxMax.Z - got.bboxMin.Z}
+			assert.Equal(t, ext, tt.want)
+		})
+	}
+}

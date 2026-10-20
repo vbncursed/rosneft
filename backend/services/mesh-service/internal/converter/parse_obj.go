@@ -61,9 +61,10 @@ const (
 // parseOBJ stream-parses positions, UVs, faces, and material directives from
 // an OBJ source. Normals and smoothing-group lines are silently skipped.
 //
-// Coordinate system: positions are converted from Z-up (the convention from
-// most CAD/photogrammetry exports) to Y-up (the glTF convention) inline,
-// unless yUp says the source already is Y-up (models; see WithYUpSource).
+// Coordinate system: parseOBJ converts positions from Z-up (the convention from
+// most CAD/photogrammetry exports) to Y-up (the glTF convention) inline.
+// convertRaw instead parses raw axes (yUp) and decides afterwards: models never
+// swap, territories swap unless Y is their thinnest axis (see zUpSource).
 // UV V coordinate is flipped (V_glTF = 1 − V_OBJ) because OBJ has V=0 at the
 // bottom of the texture image while glTF has V=0 at the top.
 //
@@ -76,8 +77,8 @@ const (
 // vertex buffer.
 func parseOBJ(r io.Reader) (parsedSource, error) { return parseOBJWithUp(r, false) }
 
-// parseOBJWithUp is parseOBJ for a source whose up axis is known: yUp keeps
-// positions as written (models), otherwise they are swapped from Z-up.
+// parseOBJWithUp is parseOBJ with the swap switchable: yUp keeps positions as
+// written, otherwise they are swapped from Z-up.
 func parseOBJWithUp(r io.Reader, yUp bool) (parsedSource, error) {
 	sc := bufio.NewScanner(r)
 	// Long face lines (e.g. fan with hundreds of vertices) need a generous buffer.
