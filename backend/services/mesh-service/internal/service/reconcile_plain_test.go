@@ -215,3 +215,25 @@ func (s *ReconcileSuite) TestPlainBackfillBacksOffFromARecentFailure() {
 		assert.DeepEqual(s.T(), locked, []string{tc.want})
 	}
 }
+
+// A conversion that succeeded moments ago yet left no plain copy means the
+// catalog drops plain_hash (an older image). Its success signal must not
+// reconvert the next target back to back: the pass queues nothing, so the
+// drain stops and the skew costs one reconversion per tick, as before it.
+func (s *ReconcileSuite) TestPlainBackfillStopsWhenARecentSuccessLeftNoPlain() {
+	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
+		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
+		{Kind: domain.KindTerritory, Slug: "t2", SourceBlobHash: "h"},
+	}, nil)
+	s.catalog.HasLOD0Mock.Return(true, false, nil)
+	s.queue.ListTargetJobsMock.Return([]domain.Job{{
+		ID: "j1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusSucceeded,
+		Backfill: true, UpdatedAt: time.Now(),
+	}}, nil)
+
+	n, err := s.svc.ReconcileMissingArtifacts(s.ctx)
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), n, 0)
+	assert.Equal(s.T(), len(s.queue.TryLockTargetMock.Calls()), 0)
+}

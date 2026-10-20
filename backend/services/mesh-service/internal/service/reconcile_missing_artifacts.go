@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"slices"
 	"sync"
 	"time"
 
@@ -34,9 +33,10 @@ const TargetLockTTL = 30 * time.Minute
 const MaxQueueWait = 6 * time.Hour
 
 // BackfillRetryAfter is how long a plain-copy backfill waits after its latest
-// job failed. The worker pokes the reconciler after every successful job, so
-// without it one target that fails for infrastructure reasons would be tried
-// first on every such pass and the rest of the backlog would stall behind it.
+// job finished without leaving a plain copy. The worker pokes the reconciler
+// after every successful job, so without it one target that fails for
+// infrastructure reasons would be tried first on every such pass, and a
+// catalog that drops plain_hash would reconvert back to back forever.
 const BackfillRetryAfter = 5 * time.Minute
 
 // ReconcileMissingArtifacts queues a conversion for every catalog target
@@ -69,11 +69,11 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 		return 0, fmt.Errorf("service.ReconcileMissingArtifacts: list: %w", err)
 	}
 
-	// One index read per tick, taken on first need and shared with the sweep.
+	// One index read per pass, taken on first need and shared with the sweep.
 	index := sync.OnceValues(func() ([]domain.Job, error) { return m.queue.ListTargetJobs(ctx) })
 	var latest map[string]domain.Job
 
-	queued := 0
+	queued, skewed := 0, false
 	for _, t := range targets {
 		if err := ctx.Err(); err != nil {
 			return queued, err
@@ -82,12 +82,6 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 		if err != nil {
 			return queued, fmt.Errorf("service.ReconcileMissingArtifacts: check %s/%s: %w", t.Kind, t.Slug, err)
 		}
-		// ponytail: a catalog that drops plain_hash (older image) makes every
-		// converted target look unbackfilled, so the gate below reconverts
-		// them one after another, back to back, without converging; CD
-		// deploys and rolls back catalog and mesh together, so that skew
-		// never ships.
-		// Gate the backfill on the RegisterArtifact echo if it ever can.
 		if has && hasPlain {
 			continue
 		}
@@ -109,11 +103,19 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 			// conversion per target (~1 min each), not 12 targets an hour.
 			// Targets whose latest job failed wait BackfillRetryAfter, so
 			// only a success drains at once.
-			if queued > 0 || anyLive(ctx, index, m.liveNow) {
+			if queued > 0 || skewed || anyLive(ctx, index, m.liveNow) {
 				continue
 			}
-			if seen && last.Status == domain.JobStatusFailed && m.now().Sub(last.UpdatedAt) < BackfillRetryAfter {
-				continue
+			if seen && m.now().Sub(last.UpdatedAt) < BackfillRetryAfter {
+				// Every conversion writes the plain copy, so one that just
+				// succeeded without it means the catalog drops plain_hash
+				// (an older image): its success signal would reconvert back
+				// to back forever. Stop the drain for this pass; the skew
+				// then costs one reconversion per tick, as before the drain.
+				skewed = last.Status == domain.JobStatusSucceeded
+				if skewed || last.Status == domain.JobStatusFailed {
+					continue
+				}
 			}
 		}
 		// SubmitConversion holds the target claim; when the target is already
@@ -173,41 +175,4 @@ func (m *Mesh) sweepIndex(ctx context.Context, targets []domain.ConversionTarget
 		}
 		slog.InfoContext(ctx, "reconcile: forgot deleted target", "kind", j.Kind, "slug", j.Slug)
 	}
-}
-
-// anyLive reports whether the index holds a job that is still waiting for or
-// holding the worker. An index read error counts as busy: skipping a backfill
-// for one tick costs nothing.
-func anyLive(ctx context.Context, index func() ([]domain.Job, error), live func(domain.Job) bool) bool {
-	jobs, err := index()
-	if err != nil {
-		slog.WarnContext(ctx, "reconcile: index read failed", "err", err)
-		return true
-	}
-	return slices.ContainsFunc(jobs, live)
-}
-
-// liveNow is queued (Pending, younger than MaxQueueWait) or Running with a
-// write inside TargetLockTTL; past that its worker is gone.
-func (m *Mesh) liveNow(j domain.Job) bool {
-	return m.queued(j) || j.Status == domain.JobStatusRunning && m.now().Sub(j.UpdatedAt) < TargetLockTTL
-}
-
-func targetKey(kind domain.Kind, slug string) string {
-	return kind.String() + ":" + slug
-}
-
-// latestJobs is the index keyed by target. An index read error yields an
-// empty map, so the tick retries as before.
-func latestJobs(ctx context.Context, index func() ([]domain.Job, error)) map[string]domain.Job {
-	jobs, err := index()
-	if err != nil {
-		slog.WarnContext(ctx, "reconcile: index read failed", "err", err)
-		return map[string]domain.Job{}
-	}
-	out := make(map[string]domain.Job, len(jobs))
-	for _, j := range jobs {
-		out[targetKey(j.Kind, j.Slug)] = j
-	}
-	return out
 }

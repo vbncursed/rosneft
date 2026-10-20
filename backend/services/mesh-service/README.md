@@ -115,7 +115,10 @@ target (≈1 min), instead of one per 5 minutes. It stops by itself: a pass that
 finds nothing queues no job, so no further signal. A failed job sends no
 signal, and a backfill whose latest job failed waits `BackfillRetryAfter`
 (5 min) before it is tried again, so a failing target neither spins nor
-stalls the rest; the tick retries it. Idempotent — a no-op on a
+stalls the rest; the tick retries it. A job that succeeded under
+`BackfillRetryAfter` ago yet left no plain copy means the catalog drops
+`plain_hash` (an older image): that pass queues no backfill at all, so the skew
+costs at most one reconversion per tick instead of a back-to-back loop. Idempotent — a no-op on a
 fully-converted catalog. It is the belt-and-suspenders backstop for
 conversions that were never queued or that crashed mid-flight.
 

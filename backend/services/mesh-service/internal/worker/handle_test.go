@@ -1,7 +1,6 @@
 package worker
 
 import (
-	"context"
 	"errors"
 	"io"
 	"log/slog"
@@ -35,7 +34,7 @@ func TestHandleOne_SignalsAfterASuccess(t *testing.T) {
 	succeeded := make(chan struct{}, 1)
 	w := newHandleWorker(t, nil, succeeded)
 
-	w.handleOne(context.Background(), storage.DeliveredJob{MessageID: "m", JobID: "j"})
+	w.handleOne(t.Context(), storage.DeliveredJob{MessageID: "m", JobID: "j"})
 
 	assert.Equal(t, len(succeeded), 1)
 }
@@ -46,7 +45,7 @@ func TestHandleOne_DoesNotSignalAfterAFailure(t *testing.T) {
 	succeeded := make(chan struct{}, 1)
 	w := newHandleWorker(t, errors.New("convert failed"), succeeded)
 
-	w.handleOne(context.Background(), storage.DeliveredJob{MessageID: "m", JobID: "j"})
+	w.handleOne(t.Context(), storage.DeliveredJob{MessageID: "m", JobID: "j"})
 
 	assert.Equal(t, len(succeeded), 0)
 }
@@ -58,7 +57,7 @@ func TestHandleOne_CoalescesSignalsAndNeverBlocks(t *testing.T) {
 	w := newHandleWorker(t, nil, succeeded)
 
 	for range 5 { // nobody reads; a blocking send would hang here
-		w.handleOne(context.Background(), storage.DeliveredJob{MessageID: "m", JobID: "j"})
+		w.handleOne(t.Context(), storage.DeliveredJob{MessageID: "m", JobID: "j"})
 	}
 
 	assert.Equal(t, len(succeeded), 1)
@@ -68,5 +67,5 @@ func TestHandleOne_CoalescesSignalsAndNeverBlocks(t *testing.T) {
 func TestHandleOne_NilSignalChannelIsFine(t *testing.T) {
 	w := newHandleWorker(t, nil, nil)
 
-	w.handleOne(context.Background(), storage.DeliveredJob{MessageID: "m", JobID: "j"})
+	w.handleOne(t.Context(), storage.DeliveredJob{MessageID: "m", JobID: "j"})
 }
