@@ -40,3 +40,21 @@ func TestJobWithoutFailedOnSourceFieldReadsFalse(t *testing.T) {
 
 	assert.Assert(t, !jobFromHash(fields).FailedOnSource)
 }
+
+func TestJobRoundTripKeepsBackfill(t *testing.T) {
+	in := domain.Job{
+		ID: "j", Kind: domain.KindTerritory, Slug: "s", Status: domain.JobStatusFailed, Backfill: true,
+		CreatedAt: time.Unix(1, 0).UTC(), UpdatedAt: time.Unix(2, 0).UTC(),
+	}
+
+	assert.DeepEqual(t, jobFromHash(asHash(jobFields(in))), in)
+}
+
+// A job saved by the previous release has no backfill key: a user-triggered
+// conversion, so a failure of it stays visible.
+func TestJobWithoutBackfillFieldReadsFalse(t *testing.T) {
+	fields := asHash(jobFields(domain.Job{ID: "old", Status: domain.JobStatusFailed, Backfill: true}))
+	delete(fields, "backfill")
+
+	assert.Assert(t, !jobFromHash(fields).Backfill)
+}

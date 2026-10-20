@@ -33,8 +33,10 @@ func jobFromHash(res map[string]string) domain.Job {
 		ErrorMessage: res["error_message"],
 		// Absent on jobs saved before the field existed: not a source failure.
 		FailedOnSource: res["failed_on_source"] == "true",
-		ArtifactHash:   res["artifact_hash"],
-		Stage:          res["stage"],
+		// Absent on jobs saved before the field existed: a user's conversion.
+		Backfill:     res["backfill"] == "true",
+		ArtifactHash: res["artifact_hash"],
+		Stage:        res["stage"],
 	}
 	if p, err := strconv.ParseFloat(res["progress"], 32); err == nil {
 		j.Progress = float32(p)

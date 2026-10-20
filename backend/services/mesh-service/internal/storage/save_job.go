@@ -48,6 +48,7 @@ func jobFields(j domain.Job) map[string]any {
 		"status":           j.Status.String(),
 		"error_message":    j.ErrorMessage,
 		"failed_on_source": strconv.FormatBool(j.FailedOnSource),
+		"backfill":         strconv.FormatBool(j.Backfill),
 		"artifact_hash":    j.ArtifactHash,
 		"progress":         strconv.FormatFloat(float64(j.Progress), 'f', 4, 32),
 		"stage":            j.Stage,

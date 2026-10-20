@@ -102,7 +102,9 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 		}
 		// SubmitConversion holds the target claim; when the target is already
 		// in flight it hands back that job and created is false.
-		_, created, err := m.SubmitConversion(ctx, t.Kind, t.Slug)
+		// Only the plain-copy backfill is marked: a target without LOD0 is a
+		// first conversion, and its failure must stay visible.
+		_, created, err := m.submit(ctx, t.Kind, t.Slug, has)
 		if err != nil {
 			return queued, fmt.Errorf("service.ReconcileMissingArtifacts: submit %s/%s: %w", t.Kind, t.Slug, err)
 		}

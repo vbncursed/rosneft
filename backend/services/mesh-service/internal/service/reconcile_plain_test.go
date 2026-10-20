@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"context"
 	"time"
 
 	"gotest.tools/v3/assert"
@@ -116,4 +117,49 @@ func (s *ReconcileSuite) TestAbandonedJobDoesNotHoldThePlainBackfill() {
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), n, 1)
+}
+
+// The reconciler marks only the plain backfill (the target has a LOD0); a
+// target with no LOD0 is a first conversion and its failure must stay visible.
+func (s *ReconcileSuite) TestMarksThePlainBackfillJobButNotAFirstConversion() {
+	for _, tc := range []struct {
+		name          string
+		has, hasPlain bool
+		backfill      bool
+	}{
+		{"no plain copy", true, false, true},
+		{"no lod0", false, false, false},
+	} {
+		s.SetupTest()
+		var saved []domain.Job
+		s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"}}, nil)
+		s.catalog.HasLOD0Mock.Return(tc.has, tc.hasPlain, nil)
+		s.queue.TryLockTargetMock.Return(true, nil)
+		s.queue.SaveJobMock.Set(func(_ context.Context, j domain.Job) error { saved = append(saved, j); return nil })
+		s.queue.EnqueueJobMock.Return(nil)
+		s.queue.GetJobMock.Return(domain.Job{}, nil)
+		s.queue.ListTargetJobsMock.Return(nil, nil)
+
+		n, err := s.svc.ReconcileMissingArtifacts(s.ctx)
+
+		assert.NilError(s.T(), err)
+		assert.Equal(s.T(), n, 1, tc.name)
+		assert.Equal(s.T(), len(saved), 1, tc.name)
+		assert.Equal(s.T(), saved[0].Backfill, tc.backfill, tc.name)
+	}
+}
+
+// A backfill that failed on its source is still left alone, so hiding it from
+// the list cannot start a requeue loop.
+func (s *ReconcileSuite) TestSkipsABackfillThatFailedOnItsSource() {
+	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"}}, nil)
+	s.catalog.HasLOD0Mock.Return(true, false, nil)
+	s.queue.ListTargetJobsMock.Return([]domain.Job{{
+		ID: "j1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusFailed, FailedOnSource: true, Backfill: true,
+	}}, nil)
+
+	n, err := s.svc.ReconcileMissingArtifacts(s.ctx)
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), n, 0)
 }
