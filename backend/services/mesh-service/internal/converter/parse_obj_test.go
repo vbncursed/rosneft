@@ -24,6 +24,25 @@ func (s *ParseOBJSuite) TestBasicTriangle() {
 	assert.Equal(s.T(), src.groups[0].triangles[0], triangle{0, 1, 2})
 }
 
+func (s *ParseOBJSuite) TestParseOBJYUpKeepsAxes() {
+	obj := "v 1 2 3\nv 4 5 6\nv 7 8 9\nf 1 2 3\n"
+	tests := []struct {
+		name string
+		yUp  bool
+		want vertex
+	}{
+		{"territory Z-up is swapped", false, vertex{1, 3, -2}},
+		{"model Y-up is kept", true, vertex{1, 2, 3}},
+	}
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			src, err := parseOBJWithUp(strings.NewReader(obj), tt.yUp)
+			assert.NilError(s.T(), err)
+			assert.Equal(s.T(), src.positions[0], tt.want)
+		})
+	}
+}
+
 func (s *ParseOBJSuite) TestQuadFanTriangulation() {
 	obj := "v 0 0 0\nv 1 0 0\nv 1 1 0\nv 0 1 0\nf 1 2 3 4\n"
 	src, err := parseOBJ(strings.NewReader(obj))

@@ -12,18 +12,7 @@ func normalize(positions []vertex) (origMin, origMax vertex) {
 	if len(positions) == 0 {
 		return
 	}
-	origMin = positions[0]
-	origMax = positions[0]
-	for _, p := range positions[1:] {
-		for i := range 3 {
-			if p[i] < origMin[i] {
-				origMin[i] = p[i]
-			}
-			if p[i] > origMax[i] {
-				origMax[i] = p[i]
-			}
-		}
-	}
+	origMin, origMax = bounds(positions)
 	cx := (origMin[0] + origMax[0]) / 2
 	cy := (origMin[1] + origMax[1]) / 2
 	cz := (origMin[2] + origMax[2]) / 2
@@ -46,6 +35,18 @@ func normalize(positions []vertex) (origMin, origMax vertex) {
 		positions[i][0] = (positions[i][0] - cx) * scale
 		positions[i][1] = (positions[i][1] - cy) * scale
 		positions[i][2] = (positions[i][2] - cz) * scale
+	}
+	return
+}
+
+// bounds returns the axis-aligned bbox corners of a non-empty positions slice.
+func bounds(positions []vertex) (minV, maxV vertex) {
+	minV, maxV = positions[0], positions[0]
+	for _, p := range positions[1:] {
+		for i := range 3 {
+			minV[i] = min(minV[i], p[i])
+			maxV[i] = max(maxV[i], p[i])
+		}
 	}
 	return
 }
