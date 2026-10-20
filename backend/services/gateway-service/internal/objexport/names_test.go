@@ -18,6 +18,7 @@ func (s *NamesSuite) TestObjectNames() {
 		{"a\nmtllib x#y", "a_mtllib x_y"},
 		{"Резервуар 01 (тест)", "Резервуар 01 (тест)"},
 		{"", "unnamed"},
+		{"   ", "unnamed"},
 		{"\r\n", "__"},
 		{"a\x7Fb", "a_b"},
 	}
@@ -57,6 +58,7 @@ func (s *NamesSuite) TestUnitRatio() {
 		{"zero bbox", [3]float64{}, [3]float64{}, 1, false},
 		{"NaN component", [3]float64{0, 0, 0}, [3]float64{1, math.NaN(), 1}, 1, false},
 		{"max below min", [3]float64{1, 1, 1}, [3]float64{0, 0, 0}, 1, false},
+		{"one side inverted, as the viewer", [3]float64{0, 0, 0}, [3]float64{4, -1, 2}, 2, true},
 	}
 	for _, tc := range cases {
 		s.Run(tc.name, func() {

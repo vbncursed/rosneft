@@ -45,8 +45,9 @@ func (in *input) view(i int) (*gltf.BufferView, error) {
 	if v.Buffer != 0 {
 		return nil, unsupported("bufferView %d is on buffer %d", i, v.Buffer)
 	}
+	// The length is checked against the room left, so no sum can overflow.
 	if v.ByteOffset < 0 || v.ByteLength < 0 || v.ByteStride < 0 ||
-		int64(v.ByteOffset)+int64(v.ByteLength) > in.head.BinLength {
+		int64(v.ByteOffset) > in.head.BinLength || int64(v.ByteLength) > in.head.BinLength-int64(v.ByteOffset) {
 		return nil, malformed("bufferView %d [%d,+%d) outside the %d-byte BIN", i, v.ByteOffset, v.ByteLength, in.head.BinLength)
 	}
 	return v, nil

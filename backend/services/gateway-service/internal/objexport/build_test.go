@@ -1,6 +1,7 @@
 package objexport
 
 import (
+	"math"
 	"testing"
 
 	"github.com/qmuntal/gltf"
@@ -41,6 +42,9 @@ func (s *BuildSuite) TestRefusals() {
 		{"position as VEC2", func(d *gltf.Document, _ int) { d.Accessors[0].Type = gltf.AccessorVec2 }, ErrUnsupported},
 		{"view on buffer 1", func(d *gltf.Document, _ int) { d.BufferViews[0].Buffer = 1 }, ErrUnsupported},
 		{"accessor view past the BIN", func(d *gltf.Document, binLen int) { d.BufferViews[0].ByteOffset = binLen - 35 }, ErrMalformed},
+		{"view range overflows int64", func(d *gltf.Document, _ int) {
+			d.BufferViews[0].ByteOffset, d.BufferViews[0].ByteLength = math.MaxInt, math.MaxInt
+		}, ErrMalformed},
 		{"stride below the element", func(d *gltf.Document, _ int) { d.BufferViews[0].ByteStride = 8 }, ErrMalformed},
 		{"index count 4", func(d *gltf.Document, _ int) {
 			d.Accessors[2].Count = 4

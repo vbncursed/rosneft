@@ -9,9 +9,10 @@ import (
 )
 
 // objectName is an `o` line's text: control bytes and '#' become '_', UTF-8
-// is kept, and an empty name reads "unnamed" so no bare `o` line is written.
+// is kept, and an empty or all-space name reads "unnamed" so no bare `o` line is
+// written.
 func objectName(s string) string {
-	if s == "" {
+	if strings.Trim(s, " ") == "" {
 		return "unnamed"
 	}
 	b := []byte(s)
@@ -59,18 +60,12 @@ func imageFile(n int, name, mime string) string {
 func stemOf(slug string) string { return cmp.Or(token(slug), "territory") }
 
 // UnitRatio is the factor from scene units to metres as the viewer measures
-// them: half the longest side of the territory's bounding box. A box that is
-// empty, inverted or not finite gives (1, false).
+// them: half the longest side of the territory's bounding box, exactly the
+// frontend's computeUnitRatio. A longest side that is not a positive finite
+// number gives (1, false).
 func UnitRatio(lo, hi [3]float64) (ratio float64, metric bool) {
-	var span float64
-	for i := range 3 {
-		d := hi[i] - lo[i]
-		if math.IsNaN(d) || math.IsInf(d, 0) || d < 0 {
-			return 1, false
-		}
-		span = max(span, d)
-	}
-	if span == 0 {
+	span := max(hi[0]-lo[0], hi[1]-lo[1], hi[2]-lo[2]) // NaN if any side is
+	if !(span > 0) || math.IsInf(span, 0) {
 		return 1, false
 	}
 	return span / 2, true
