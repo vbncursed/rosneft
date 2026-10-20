@@ -2,6 +2,7 @@ package converter
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"os"
 	"path/filepath"
@@ -62,4 +63,29 @@ func TestConvertRawResolvesMaterialsInsideTheGivenRoot(t *testing.T) {
 
 	assert.Assert(t, bytes.Contains(inRoot.content, []byte(red)))
 	assert.Assert(t, !bytes.Contains(narrow.content, []byte(red)))
+}
+
+// A tall model (long along the OBJ's Y) keeps Y as its tallest axis when the
+// context marks the source Y-up; a territory-style conversion swaps it onto Z.
+func TestConvertRawYUpSourceKeepsTheTallAxis(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "tall.obj")
+	assert.NilError(t, os.WriteFile(path, []byte("v 0 0 0\nv 1 0 0\nv 0 5 0\nf 1 2 3\n"), 0o600))
+
+	tests := []struct {
+		name  string
+		ctx   context.Context
+		wantY float64
+		wantZ float64
+	}{
+		{"model", WithYUpSource(t.Context()), 5, 0},
+		{"territory", t.Context(), 0, 5},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			raw, err := (&Converter{}).convertRaw(tt.ctx, filepath.Dir(path), path)
+			assert.NilError(t, err)
+			assert.Equal(t, raw.bboxMax.Y-raw.bboxMin.Y, tt.wantY)
+			assert.Equal(t, raw.bboxMax.Z-raw.bboxMin.Z, tt.wantZ)
+		})
+	}
 }
