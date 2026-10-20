@@ -76,8 +76,9 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 			return queued, fmt.Errorf("service.ReconcileMissingArtifacts: check %s/%s: %w", t.Kind, t.Slug, err)
 		}
 		// ponytail: a catalog that drops plain_hash (older image) makes every
-		// target look unconverted and re-runs them all every tick; CD deploys
-		// and rolls back catalog and mesh together, so that skew never ships.
+		// converted target look unbackfilled, so the gate below reconverts one
+		// per idle tick forever (12/hour, never converging); CD deploys and
+		// rolls back catalog and mesh together, so that skew never ships.
 		// Gate the backfill on the RegisterArtifact echo if it ever can.
 		if has && hasPlain {
 			continue
