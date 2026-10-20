@@ -1,10 +1,6 @@
 package glbexport
 
-import (
-	"math"
-
-	"github.com/qmuntal/gltf"
-)
+import "github.com/qmuntal/gltf"
 
 // maxDepth bounds an input's node tree; real ones are a few levels deep.
 const maxDepth = 256
@@ -12,14 +8,16 @@ const maxDepth = 256
 // QuatFromEulerXYZ is three.js Quaternion.setFromEuler for order 'XYZ', in
 // glTF component order (x, y, z, w).
 func QuatFromEulerXYZ(x, y, z float64) [4]float64 {
-	s1, c1 := math.Sincos(x / 2)
-	s2, c2 := math.Sincos(y / 2)
-	s3, c3 := math.Sincos(z / 2)
+	s1, c1 := sincos(x / 2)
+	s2, c2 := sincos(y / 2)
+	s3, c3 := sincos(z / 2)
+	// float64(...) pins each product: arm64 fuses a*b+c*d into an FMA and
+	// amd64 does not, so without it the last bit differs between machines.
 	return [4]float64{
-		s1*c2*c3 + c1*s2*s3,
-		c1*s2*c3 - s1*c2*s3,
-		c1*c2*s3 + s1*s2*c3,
-		c1*c2*c3 - s1*s2*s3,
+		float64(s1*c2*c3) + float64(c1*s2*s3),
+		float64(c1*s2*c3) - float64(s1*c2*s3),
+		float64(c1*c2*s3) + float64(s1*s2*c3),
+		float64(c1*c2*c3) - float64(s1*s2*s3),
 	}
 }
 
