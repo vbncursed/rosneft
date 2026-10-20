@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"mime"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -197,7 +198,7 @@ func (s *TerritoryExportSuite) TestStreamsTheVisibleScene() {
 	assert.Equal(s.T(), rec.Code, http.StatusOK)
 	h := rec.Header()
 	assert.Equal(s.T(), h.Get("Content-Type"), "model/gltf-binary")
-	assert.Equal(s.T(), h.Get("Content-Disposition"), `attachment; filename="ust-kut.glb"`)
+	assert.Equal(s.T(), h.Get("Content-Disposition"), `attachment; filename=ust-kut.glb`)
 	assert.Equal(s.T(), h.Get("Cache-Control"), "no-store")
 	body := rec.Body.Bytes()
 	assert.Equal(s.T(), h.Get("Content-Length"), strconv.Itoa(len(body)))
@@ -210,6 +211,18 @@ func (s *TerritoryExportSuite) TestStreamsTheVisibleScene() {
 	}
 	assert.DeepEqual(s.T(), names, []string{"Усть-Кут", "shown"})
 	assert.Assert(s.T(), strings.Contains(s.logs.String(), `"export_skipped":1`), s.logs.String())
+}
+
+// A slug the schema never constrained must not break out of the filename.
+func (s *TerritoryExportSuite) TestOddSlugStaysInsideTheFilename() {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, `/api/territories/a";x=y/export.glb`, nil)
+	s.router(&exportServiceStub{bundle: s.bundle()}, scoped, exportOpener(s.blobs(), nil)).ServeHTTP(rec, req)
+
+	assert.Equal(s.T(), rec.Code, http.StatusOK)
+	_, params, err := mime.ParseMediaType(rec.Header().Get("Content-Disposition"))
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), params, map[string]string{"filename": `a";x=y.glb`})
 }
 
 func (s *TerritoryExportSuite) TestOpenerFailureBeforeFirstByteIs500() {

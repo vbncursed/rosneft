@@ -3,6 +3,7 @@ package httpapi
 import (
 	"errors"
 	"log/slog"
+	"mime"
 	"net/http"
 	"strconv"
 
@@ -74,7 +75,9 @@ func (s *Server) ServeTerritoryExport(open glbexport.Opener) http.HandlerFunc {
 
 		h := w.Header()
 		h.Set("Content-Type", "model/gltf-binary")
-		h.Set("Content-Disposition", `attachment; filename="`+slug+`.glb"`) // slug is [a-z0-9-]
+		// New slugs are [a-z0-9-], but nothing in the schema enforces it on old
+		// rows; FormatMediaType quotes or RFC 2231-encodes whatever is there.
+		h.Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": slug + ".glb"}))
 		h.Set("Cache-Control", "no-store")
 		h.Set("Content-Length", strconv.FormatInt(plan.Size, 10))
 		w.WriteHeader(http.StatusOK)
