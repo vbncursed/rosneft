@@ -189,21 +189,41 @@ describe("walking", () => {
   it("probes just over a step, then the knee and the chest, along the step, the first as far as the frame's move", () => {
     const wall = vi.fn<WallAt>(() => false);
     stepWalk(standing(), go({ forward: 1 }), walled(wall));
-    // Three probes, not two: the over-step one catches a thin rail the knee passes over.
-    expect(wall).toHaveBeenCalledTimes(3);
-    const [[over, dir, overReach], [knee, , kneeReach], [chest]] = wall.mock.calls;
+    // Three level probes, not two: the over-step one catches a thin rail the knee passes over. One up after them.
+    expect(wall).toHaveBeenCalledTimes(4);
+    const [[over, dir, overReach], [knee, , kneeReach], [chest], [head, up, headReach]] = wall.mock.calls;
     expect(over.y).toBeCloseTo(scale.step + scale.overStep);
     expect(overReach).toBeCloseTo(0.14);
     expect(knee.y).toBeCloseTo(scale.knee);
     expect(chest.y).toBeCloseTo(scale.chest);
     near(dir, 0, 0, -1);
     expect(kneeReach).toBeCloseTo(0.14 + scale.body);
+    // The headroom ray: from the chest at the new ground, up to the top of the head.
+    near(up, 0, 1, 0);
+    expect(head.y).toBeCloseTo(scale.chest);
+    expect(headReach).toBeCloseTo(scale.eye + scale.head - scale.chest);
+  });
+
+  it("will not walk under a beam between the level probes: the head would pass through it", () => {
+    // A slab with its underside 1.5 m up (0.15 here): above the chest probe, below the over-the-head one.
+    const beam: WallAt = (from, dir, reach) => dir.y > 0 && from.y < 0.15 && from.y + reach >= 0.15;
+    const p = stepWalk(standing(), go({ forward: 1 }), walled(beam));
+    near(p.position, 0, scale.eye, 0);
+  });
+
+  it("will not climb a step onto ground with a ceiling over it", () => {
+    const kerb: GroundAt = (_x, z) => (z < -0.05 ? 0.03 : 0); // a 0.3 m kerb
+    // Room over the ground (0.03) is 0.18 + 0.01 - 0.12 from 0.03 + 0.12: the slab sits right over the kerb.
+    const low: WallAt = (from, dir, reach) => dir.y > 0 && from.y + reach >= 0.2;
+    const p = stepWalk(standing(), go({ forward: 1 }), world(kerb, 1, walkSpeed(10, 1), low));
+    expect(p.position.y).toBeCloseTo(scale.eye);
   });
 
   it("spares the chest ray when the knee already hit", () => {
     const wall = vi.fn<WallAt>(() => true);
     stepWalk(standing(), go({ forward: 1 }), walled(wall));
-    expect(wall).toHaveBeenCalledOnce();
+    // Only the over-step probe runs, once for each try (whole step, X, Z): never the knee or the chest.
+    expect(wall.mock.calls.filter(([, dir]) => dir.y === 0).every(([from]) => from.y < scale.knee)).toBe(true);
   });
 
   it("is not carried through a wall by a long frame: the probe reaches as far as the step", () => {
@@ -301,7 +321,7 @@ describe("jumping and falling", () => {
   });
 
   it("a jump under a low ceiling goes nowhere: the rise is cancelled and the walker is down again", () => {
-    const ceiling = 1.92; // the eye is 1.8 m up and the head 0.1 m over it: no room to rise
+    const ceiling = 1.9; // the eye is 1.8 m up and the head 0.1 m over it: no room to rise
     const wallAt: WallAt = (from, dir, reach) => dir.y > 0 && from.y + reach >= ceiling;
     const w = { ...worldOf(), wallAt };
     let p = stepWalk(standOn(), go({ jump: true }), w);
@@ -315,18 +335,23 @@ describe("jumping and falling", () => {
     expect(p.vy).toBeGreaterThan(0);
   });
 
-  it("a head that meets a ceiling mid-jump stops rising and falls", () => {
-    const ceiling = 2.1;
-    const w = { ...worldOf(), wallAt: ((from, dir, reach) => dir.y > 0 && from.y + reach >= ceiling) as WallAt };
-    let p = stepWalk(standOn(), go({ jump: true }), worldOf());
-    let top = feetOf(p);
-    for (let i = 0; i < 60 && p.vy !== undefined; i++) {
-      p = stepWalk(p, go({}), w);
-      top = Math.max(top, feetOf(p));
-    }
-    expect(top).toBeLessThan(0.5);
-    expect(top + walkScale(1).eye + walkScale(1).head).toBeLessThan(ceiling + 0.05);
-    expect(p.vy).toBeUndefined();
+  it("a head that meets a ceiling mid-jump stops there, at any frame rate, and falls", () => {
+    const ceiling = 2.1; // room for the head to rise 0.2 m: 2.1 - 0.1 - 1.8
+    const tops = [1 / 240, 1 / 60, 0.1].map((dt) => {
+      const w = {
+        ...worldOf(1, () => 0, dt),
+        wallAt: ((from, dir, reach) => dir.y > 0 && from.y + reach >= ceiling) as WallAt,
+      };
+      let p = stepWalk(standOn(), go({ jump: true }), w);
+      let top = feetOf(p);
+      for (let i = 0; i < 600 && p.vy !== undefined; i++) {
+        p = stepWalk(p, go({}), w);
+        top = Math.max(top, feetOf(p));
+      }
+      expect(p.vy).toBeUndefined();
+      return top;
+    });
+    for (const top of tops) expect(top).toBeCloseTo(0.2, 2);
   });
 
   it("does not jump again in the air", () => {

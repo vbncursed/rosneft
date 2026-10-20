@@ -97,12 +97,23 @@ function groundUnder(w: WalkWorld, x: number, z: number, feet: number): number |
   return w.groundAt(x, z, feet + w.scale.knee);
 }
 
-/** Ground the feet may step onto by (dx, dz): found from the knee, no higher than a step, no wall in the way. */
+/**
+ * Room for a body over (x, z) standing at `base`: nothing between the chest and
+ * the top of the head. The level probes see only three heights, so a beam or a
+ * slab between them is caught from below, and so is a ceiling over a step up.
+ */
+function hasHeadroom(w: WalkWorld, x: number, z: number, base: number): boolean {
+  const from = new Vector3(x, base + w.scale.chest, z);
+  return !w.wallAt(from, UP, w.scale.eye + w.scale.head - w.scale.chest);
+}
+
+/** Ground the feet may step onto by (dx, dz): found from the knee, no higher than a step, no wall in the way, room for the head. */
 function footing(w: WalkWorld, eye: Vector3, dx: number, dz: number): number | null {
   const feet = eye.y - w.scale.eye;
   const ground = groundUnder(w, eye.x + dx, eye.z + dz, feet);
   if (ground === null || ground - feet > w.scale.step) return null;
-  return clearAhead(w, eye, dx, dz) ? ground : null;
+  if (!clearAhead(w, eye, dx, dz)) return null;
+  return hasHeadroom(w, eye.x + dx, eye.z + dz, Math.max(feet, ground)) ? ground : null;
 }
 
 /** Where (dx, dz) takes the walker — the whole step, else X alone, else Z alone, so it slides along a wall — and the ground there; null when every try is blocked. */
@@ -139,19 +150,32 @@ function steer(from: Vector3, wish: Vector3, dt: number): Vector3 {
     .multiplyScalar(Math.exp(-AIR_DRAG * dt));
 }
 
-/** A surface over the head between the feet at `from` and at `to`, straight up from (x, z). */
-function hitsCeiling(w: WalkWorld, at: Vector3, from: number, to: number): boolean {
+/**
+ * How much of a `lift` the feet at `from` may rise before the head meets a ceiling over (x, z): all of it, or
+ * where the head touches. ponytail: bisection, eight casts and only on the frame that hits; have WallAt
+ * return the distance if that frame ever shows in a profile.
+ */
+function ceilingRoom(w: WalkWorld, at: Vector3, from: number, lift: number): number {
   const top = new Vector3(at.x, from + w.scale.eye, at.z);
-  return w.wallAt(top, UP, to - from + w.scale.head);
+  const hit = (r: number) => w.wallAt(top, UP, r + w.scale.head);
+  if (!hit(lift)) return lift;
+  if (hit(0)) return 0;
+  let [lo, hi] = [0, lift];
+  for (let i = 0; i < 8; i++) {
+    const mid = (lo + hi) / 2;
+    if (hit(mid)) hi = mid;
+    else lo = mid;
+  }
+  return lo;
 }
 
 /**
  * The feet one frame on, and the speed up while off the ground (undefined:
  * standing). Standing, the feet stick to ground up to a step below and jump
  * on request; off it, gravity pulls — exactly, whatever the frame rate — no
- * faster than terminal, until the feet meet the ground. A rise that would put
- * the head into a ceiling is cancelled and the walker starts to fall: under
- * an overhang a jump goes nowhere.
+ * faster than terminal, until the feet meet the ground. A rise stops where the
+ * head meets a ceiling and the walker starts to fall: under an overhang a jump
+ * goes nowhere, and a lower one reaches the same height at any frame rate.
  */
 function rise(at: Vector3, feet: number, ground: number, vy: number | undefined, jump: boolean, w: WalkWorld) {
   let lift = vy;
@@ -163,8 +187,10 @@ function rise(at: Vector3, feet: number, ground: number, vy: number | undefined,
   if (lift === undefined) return { feet: ground, vy: undefined };
   const v = Math.max(lift - w.scale.gravity * w.dt, -w.scale.terminal);
   const next = from + ((lift + v) / 2) * w.dt;
-  if (next > from && hitsCeiling(w, at, from, next))
-    return from <= ground ? { feet: ground, vy: undefined } : { feet: from, vy: 0 };
+  if (next > from) {
+    const top = from + ceilingRoom(w, at, from, next - from);
+    if (top < next) return top <= ground ? { feet: ground, vy: undefined } : { feet: top, vy: 0 };
+  }
   return next <= ground ? { feet: ground, vy: undefined } : { feet: next, vy: v };
 }
 

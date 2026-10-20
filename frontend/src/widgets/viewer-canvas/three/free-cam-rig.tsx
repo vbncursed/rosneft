@@ -219,7 +219,14 @@ export default function FreeCamRig({ sceneRef, solidRef, walk, unitRatio, onWalk
     const next = feel.step(current, moved, input, dt, ground !== null);
     pose.current = next;
     // At rest only when nothing eased out before or after this frame, and nothing is still sinking to lower ground.
-    if (!settling && !feel.live() && next.velocity.lengthSq() === 0 && next.position.equals(current.position)) return;
+    if (
+      !settling &&
+      !feel.live() &&
+      next.velocity.lengthSq() === 0 &&
+      next.vy === undefined &&
+      next.position.equals(current.position)
+    )
+      return;
     feel.apply(next);
     bus.settle();
     invalidate();

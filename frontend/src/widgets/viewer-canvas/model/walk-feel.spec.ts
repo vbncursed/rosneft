@@ -83,6 +83,21 @@ describe("the eye over a walking body", () => {
     expect(eyeOffsetM(stepFeel(REST_FEEL, at(0, 1.8, 0), at(0, 2.1, 0), go(), frame({ walking: false })))).toBe(0);
   });
 
+  it("smooths a step climbed in the frame of a take-off, and a rise to a ledge in a landing", () => {
+    // Jumping from a 0.5 m kerb: the feet go from 0 to 0.5 + a little, the ground there is 0.5.
+    const kerb = { ...at(0, 1.8 + 0.5 + 0.05, 0, 3), ground: 0.5 };
+    const taken = stepFeel(REST_FEEL, at(0, 1.8, 0), kerb, go({ jump: true }), frame());
+    // The same lag a plain 0.5 m step up on the ground takes.
+    expect(taken.eye.x).toBeCloseTo(stepFeel(REST_FEEL, at(0, 1.8, 0), at(0, 2.3, 0), go(), frame()).eye.x, 9);
+    // Falling onto a ledge 0.4 m higher than the feet in the air: the body is set on it in one frame.
+    const landed = stepFeel(REST_FEEL, at(0, 1.8 + 0.1, 0, 1), at(0, 1.8 + 0.5, 0), go(), frame());
+    expect(landed.eye.x).toBeCloseTo(stepFeel(REST_FEEL, at(0, 1.8, 0), at(0, 2.2, 0), go(), frame()).eye.x, 9);
+    // A jump from level ground has no snap to take: the rise is the jump's own.
+    expect(
+      stepFeel(REST_FEEL, at(0, 1.8, 0), { ...at(0, 1.85, 0, 3), ground: 0 }, go({ jump: true }), frame()).eye.x,
+    ).toBe(0);
+  });
+
   it("under reduced motion the catch-up is the same spring, not a gentler one", () => {
     expect(stepUp(30, go({ instant: true })).seen).toEqual(stepUp(30).seen);
   });

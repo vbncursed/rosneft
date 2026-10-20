@@ -1,4 +1,5 @@
 import { MathUtils } from "three";
+import { EYE_HEIGHT_M } from "@/entities/measurement";
 import type { FreeInput, FreePose } from "./free-cam";
 import { AT_REST, kickFor, springTo, type Spring } from "./spring";
 import { RUN_MPS, WALK_MPS } from "./walk";
@@ -53,10 +54,24 @@ const standing = (p: FreePose) => p.vy === undefined;
 
 const rested = (s: Spring, x: number, v: number): Spring => (Math.abs(s.x) < x && Math.abs(s.v) < v ? AT_REST : s);
 
+/**
+ * What the body's height changed by in one frame that is not the physics' own motion, in metres: a step up
+ * or down on the ground, a step climbed in the frame of a take-off, a rise to ledge height in a landing.
+ * A fall or a flight is motion, not a snap.
+ */
+function snapOf(prev: FreePose, next: FreePose, f: FeelFrame): number {
+  if (!f.walking) return 0;
+  if (standing(prev) && standing(next)) return (next.position.y - prev.position.y) * f.unitRatio;
+  if (standing(prev)) {
+    const feet = prev.position.y - EYE_HEIGHT_M / f.unitRatio;
+    return Math.max(0, (next.ground ?? feet) - feet) * f.unitRatio;
+  }
+  return standing(next) ? Math.max(0, next.position.y - prev.position.y) * f.unitRatio : 0;
+}
+
 /** A snap of the body on the ground (a step up or down) goes into the lag, and the lag springs home. */
 function eyeAfter(eye: Spring, prev: FreePose, next: FreePose, f: FeelFrame): Spring {
-  const snap = f.walking && standing(prev) && standing(next) ? (next.position.y - prev.position.y) * f.unitRatio : 0;
-  return springTo({ x: eye.x - snap, v: eye.v }, 0, EYE_OMEGA, 1, f.dt);
+  return springTo({ x: eye.x - snapOf(prev, next, f), v: eye.v }, 0, EYE_OMEGA, 1, f.dt);
 }
 
 /** How deep this frame sags the eye: a landing by its impact, a take-off by a crouch; 0 when neither happened. */
