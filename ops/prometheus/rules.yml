@@ -103,3 +103,65 @@ groups:
         annotations:
           summary: "{{ $labels.service }} is up but not ready"
           description: "Its dependency probe has been failing for two minutes. TargetDown cannot see this: the process is alive and /metrics answers."
+
+  # The host disk. There is no node_exporter by decision: asset-service exports
+  # the free and total bytes of the filesystem under its blob volume
+  # (blobstore_fs_*, statfs at scrape time). blob-data, postgres-data, docker
+  # images and logs share one root filesystem on prod, so these describe the
+  # whole disk. Free is Bavail, i.e. what a non-root writer can use.
+  # Alertmanager has a single route, so warning and critical both reach Telegram.
+  # Its message prints only `summary`, so the number goes there.
+  - name: andrey-disk
+    interval: 1m
+    rules:
+      # 15 %: on the 119 GB prod disk that is about 18 GB, a few full meshes
+      # of backfill away and still enough time to act. for: 10m ignores a
+      # momentary dip (a temp file during a deploy, an image pull).
+      - alert: DiskSpaceLow
+        expr: blobstore_fs_free_bytes / blobstore_fs_size_bytes < 0.15
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk below 15% free ({{ $value | humanizePercentage }} left)"
+          description: "{{ with query \"blobstore_fs_free_bytes\" }}{{ . | first | value | humanize1024 }}B{{ end }} free on the filesystem holding blob-data, Postgres and docker. There is no blob GC, so this only grows."
+
+      # 5 %: about 6 GB. Postgres and the upload stage stop working before
+      # the disk is literally full, so this is the last useful moment.
+      # Highest severity in this file is critical.
+      - alert: DiskSpaceCritical
+        expr: blobstore_fs_free_bytes / blobstore_fs_size_bytes < 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disk below 5% free ({{ $value | humanizePercentage }} left)"
+          description: "{{ with query \"blobstore_fs_free_bytes\" }}{{ . | first | value | humanize1024 }}B{{ end }} free. Writes to Postgres and blob-data are about to fail."
+
+      # Extrapolates the last 6 h one day ahead, so it warns while there is
+      # still time, well before the percentage rules. 6 h is long enough to
+      # smooth out a single upload; for: 30m keeps one steep slope from paging.
+      # A legitimate burst (the mesh backfill writes ~3x LOD0 in a few hours)
+      # can trip it once even though the disk has room: check the free bytes,
+      # and expect it to clear by itself once the slope flattens.
+      - alert: DiskFillingUp
+        expr: predict_linear(blobstore_fs_free_bytes[6h], 24 * 3600) < 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk projected to be full within 24h at the current rate"
+          description: "{{ with query \"blobstore_fs_free_bytes\" }}{{ . | first | value | humanize1024 }}B{{ end }} free now. A one-off bulk write (mesh backfill) can cause this once."
+
+      # Without this the three rules above go quiet if asset-service stops
+      # exporting or statfs fails: no series, no comparison, no alert. That
+      # is exactly how audit-service went unmonitored. asset-service exports
+      # on every start, so a healthy stack (prod or compose) never trips it.
+      - alert: DiskMetricMissing
+        expr: absent(blobstore_fs_free_bytes)
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No disk metric: the DiskSpace alerts are blind"
+          description: "asset-service is not exporting blobstore_fs_free_bytes (down, unscraped, or statfs failing; see its log)."

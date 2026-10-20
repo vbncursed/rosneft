@@ -71,6 +71,10 @@ func (s *Server) RequireTerritoryAccess(next http.Handler) http.Handler {
 	})
 }
 
+// msgTerritoryMissing is the 404 text for a territory the caller cannot open or
+// that does not exist; the gate and the export routes both use it.
+const msgTerritoryMissing = "territory not found"
+
 func writeTerritoryMissing(w http.ResponseWriter) {
-	apperr.Write(w, http.StatusNotFound, apperr.SlugNotFound, "territory not found")
+	apperr.Write(w, http.StatusNotFound, apperr.SlugNotFound, msgTerritoryMissing)
 }

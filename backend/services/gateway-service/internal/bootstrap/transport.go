@@ -42,7 +42,7 @@ var (
 //	  /api/territories/{slug}/export.glb → Authenticate → RequireTerritoryAccess → GLB stream
 //	  /api/territories/{slug}/export.obj.zip → Authenticate → RequireTerritoryAccess → ZIP stream
 //	  /api/auth/*          → authhttp (login public; self/admin gated)
-//	  /api/* sub-router
+//	  /api/* sub-router (also territories/{slug}/export-check, which shares the export's preparation)
 //	    Authenticate → RequirePermissionForRoute → RequireTerritoryAccess
 //	    → RequireCSRF → ETag → Compress(br/gzip/deflate)
 //	    openapi strict handlers
@@ -103,8 +103,8 @@ func InitRouter(
 	r.Get("/healthz", hz.Live)
 	r.Get("/readyz", hz.Ready)
 
-	apiServer := httpapi.New(svc)
-	mountRootRoutes(r, apiServer, authH, exportOpen, assetProxy, metricsHandler, summaryHandler)
+	apiServer := httpapi.New(svc).WithExportOpener(exportOpen)
+	mountRootRoutes(r, apiServer, authH, assetProxy, metricsHandler, summaryHandler)
 
 	// /api JSON sub-router: authenticate + per-route permission gate, then
 	// ETag + Compress, then the openapi strict handlers.
@@ -120,10 +120,7 @@ func InitRouter(
 		api.Use(authH.RequireCSRF)
 		api.Use(httpapi.ETagMiddleware)
 		api.Use(newCompressor().Handler)
-		httpapi.HandlerFromMux(
-			httpapi.NewStrictHandler(apiServer, nil),
-			api,
-		)
+		httpapi.Mount(api, apiServer)
 	})
 
 	return r, hz
