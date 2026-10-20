@@ -3,6 +3,7 @@ import { setCsrfToken } from "@/shared/api";
 import {
   createTerritory,
   deleteTerritory,
+  exportTerritoryGlb,
   getTerritory,
   listTerritories,
   replaceTerritorySource,
@@ -85,5 +86,14 @@ describe("territories gateway", () => {
     expect(init.method).toBe("PATCH");
     expect(JSON.parse(init.body as string)).toEqual({ externalPanoramaUrl: "https://tour.example" });
     expect(out.externalPanoramaUrl).toBe("https://tour.example");
+  });
+
+  it("fetches the export as a blob from the slug's export.glb", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response("glb", { status: 200, headers: { "Content-Type": "model/gltf-binary" } }),
+    );
+    const blob = await exportTerritoryGlb("ust-kut");
+    expect(request()).toEqual({ url: "/api/territories/ust-kut/export.glb", method: "GET" });
+    expect(await blob.text()).toBe("glb");
   });
 });

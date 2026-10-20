@@ -37,6 +37,8 @@ export type ViewerHeaderProps = {
   onEdit?: () => void;
   /** The desktop shell's Save offline control; draws nothing in a browser. */
   offline?: ReactNode;
+  /** The Download control, next to Save offline; the screen supplies it. */
+  download?: ReactNode;
 };
 
 export type ViewerErrorProps = {
