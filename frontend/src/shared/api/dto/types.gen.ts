@@ -1536,6 +1536,53 @@ export type ExportTerritoryGlbResponses = {
 
 export type ExportTerritoryGlbResponse = ExportTerritoryGlbResponses[keyof ExportTerritoryGlbResponses];
 
+export type ExportTerritoryObjData = {
+  body?: never;
+  path: {
+    slug: string;
+  };
+  query?: never;
+  url: '/api/territories/{slug}/export.obj.zip';
+};
+
+export type ExportTerritoryObjErrors = {
+  /**
+   * Missing or invalid session token
+   */
+  401: Error;
+  /**
+   * Resource not found
+   */
+  404: Error;
+  /**
+   * The territory is not converted yet, or a plain copy is still being made
+   */
+  409: Error;
+  /**
+   * The export would exceed 20 million vertices or 40 million faces
+   */
+  422: Error;
+  /**
+   * Internal server error
+   */
+  500: Error;
+  /**
+   * The catalog could not be asked whether the caller may open the territory
+   */
+  503: Error;
+};
+
+export type ExportTerritoryObjError = ExportTerritoryObjErrors[keyof ExportTerritoryObjErrors];
+
+export type ExportTerritoryObjResponses = {
+  /**
+   * The ZIP (README.txt, MTL, textures, OBJ)
+   */
+  200: Blob | File;
+};
+
+export type ExportTerritoryObjResponse = ExportTerritoryObjResponses[keyof ExportTerritoryObjResponses];
+
 export type GetSceneBundleData = {
   body?: never;
   path: {
