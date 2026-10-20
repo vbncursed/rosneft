@@ -91,5 +91,6 @@ func readmeText(stem, units string) string {
 		"Axes: Z up, Y forward (right-handed).\n" +
 		"Units: " + units + ".\n" +
 		blenderHint + ".\n" +
+		"SketchUp / CAD: OBJ stores no units, so import with units set to Meters and Z up.\n" +
 		"The territory is centred on its middle; the source file's origin is not restored.\n"
 }

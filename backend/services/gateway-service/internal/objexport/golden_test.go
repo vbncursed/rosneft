@@ -73,6 +73,7 @@ const goldenREADME = `ust-kut.obj holds the territory and every visible placemen
 Axes: Z up, Y forward (right-handed).
 Units: metres as the viewer measures them, i.e. the source file's own units (1 scene unit = 2 m).
 Blender: File > Import > Wavefront (.obj), Up Axis Z, Forward Axis Y.
+SketchUp / CAD: OBJ stores no units, so import with units set to Meters and Z up.
 The territory is centred on its middle; the source file's origin is not restored.
 `
 
