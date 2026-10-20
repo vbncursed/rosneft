@@ -16,6 +16,8 @@ const KNEE_M = STEP_M + 0.2;
 const CHEST_M = 1.2;
 /** Half a person's width: how near a wall the walker comes head-on. */
 const BODY_M = 0.3;
+/** How far over the eye the head reaches: a rising walker stops this short of a ceiling. */
+const HEAD_M = 0.1;
 const GRAVITY_MPS2 = 9.8;
 /** The fastest a fall gets, in metres a second. */
 const TERMINAL_MPS = 30;
@@ -35,6 +37,7 @@ export type WalkScale = {
   knee: number;
   chest: number;
   body: number;
+  head: number;
   overStep: number;
   gravity: number;
   terminal: number;
@@ -42,8 +45,9 @@ export type WalkScale = {
 };
 /** The surface under (x, z) seen from `fromY` straight down; null when there is none. */
 export type GroundAt = (x: number, z: number, fromY: number) => number | null;
-/** Is there a surface within `reach` of `from` along `dir` (a horizontal unit vector)? */
+/** Is there a surface within `reach` of `from` along `dir` (a unit vector: level for a wall, up for a ceiling)? */
 export type WallAt = (from: Vector3, dir: Vector3, reach: number) => boolean;
+const UP = new Vector3(0, 1, 0);
 export type WalkWorld = { dt: number; speed: number; scale: WalkScale; groundAt: GroundAt; wallAt: WallAt };
 
 export const walkScale = (unitRatio: number): WalkScale => ({
@@ -52,6 +56,7 @@ export const walkScale = (unitRatio: number): WalkScale => ({
   knee: KNEE_M / unitRatio,
   chest: CHEST_M / unitRatio,
   body: BODY_M / unitRatio,
+  head: HEAD_M / unitRatio,
   overStep: OVER_STEP_M / unitRatio,
   gravity: GRAVITY_MPS2 / unitRatio,
   terminal: TERMINAL_MPS / unitRatio,
@@ -134,13 +139,21 @@ function steer(from: Vector3, wish: Vector3, dt: number): Vector3 {
     .multiplyScalar(Math.exp(-AIR_DRAG * dt));
 }
 
+/** A surface over the head between the feet at `from` and at `to`, straight up from (x, z). */
+function hitsCeiling(w: WalkWorld, at: Vector3, from: number, to: number): boolean {
+  const top = new Vector3(at.x, from + w.scale.eye, at.z);
+  return w.wallAt(top, UP, to - from + w.scale.head);
+}
+
 /**
  * The feet one frame on, and the speed up while off the ground (undefined:
  * standing). Standing, the feet stick to ground up to a step below and jump
  * on request; off it, gravity pulls — exactly, whatever the frame rate — no
- * faster than terminal, until the feet meet the ground.
+ * faster than terminal, until the feet meet the ground. A rise that would put
+ * the head into a ceiling is cancelled and the walker starts to fall: under
+ * an overhang a jump goes nowhere.
  */
-function rise(feet: number, ground: number, vy: number | undefined, jump: boolean, w: WalkWorld) {
+function rise(at: Vector3, feet: number, ground: number, vy: number | undefined, jump: boolean, w: WalkWorld) {
   let lift = vy;
   let from = feet;
   if (lift === undefined && jump) {
@@ -150,6 +163,8 @@ function rise(feet: number, ground: number, vy: number | undefined, jump: boolea
   if (lift === undefined) return { feet: ground, vy: undefined };
   const v = Math.max(lift - w.scale.gravity * w.dt, -w.scale.terminal);
   const next = from + ((lift + v) / 2) * w.dt;
+  if (next > from && hitsCeiling(w, at, from, next))
+    return from <= ground ? { feet: ground, vy: undefined } : { feet: from, vy: 0 };
   return next <= ground ? { feet: ground, vy: undefined } : { feet: next, vy: v };
 }
 
@@ -176,6 +191,6 @@ export function stepWalk(pose: FreePose, input: FreeInput, w: WalkWorld): FreePo
   const x = moved?.x ?? eye.x;
   const z = moved?.z ?? eye.z;
   const ground = moved ? moved.ground : (groundUnder(w, x, z, feet) ?? pose.ground ?? feet);
-  const body = rise(feet, ground, pose.vy, input.jump, w);
+  const body = rise(new Vector3(x, 0, z), feet, ground, pose.vy, input.jump, w);
   return { ...pose, velocity, ground, vy: body.vy, position: new Vector3(x, body.feet + w.scale.eye, z) };
 }

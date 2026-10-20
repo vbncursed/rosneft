@@ -58,6 +58,7 @@ describe("walking", () => {
       knee: 0.35,
       chest: 0.6,
       body: 0.15,
+      head: 0.05,
       overStep: 0.01,
       gravity: 4.9,
       terminal: 15,
@@ -297,6 +298,35 @@ describe("jumping and falling", () => {
     );
     expect(p.vy).toBeGreaterThan(0);
     expect(feetOf(p)).toBeGreaterThan(0.3);
+  });
+
+  it("a jump under a low ceiling goes nowhere: the rise is cancelled and the walker is down again", () => {
+    const ceiling = 1.92; // the eye is 1.8 m up and the head 0.1 m over it: no room to rise
+    const wallAt: WallAt = (from, dir, reach) => dir.y > 0 && from.y + reach >= ceiling;
+    const w = { ...worldOf(), wallAt };
+    let p = stepWalk(standOn(), go({ jump: true }), w);
+    expect(feetOf(p)).toBe(0);
+    expect(p.vy).toBeUndefined();
+    // Under a ceiling a jump would clear, the walker still jumps.
+    p = stepWalk(standOn(), go({ jump: true }), {
+      ...w,
+      wallAt: (from, dir, reach) => dir.y > 0 && from.y + reach >= 9,
+    });
+    expect(p.vy).toBeGreaterThan(0);
+  });
+
+  it("a head that meets a ceiling mid-jump stops rising and falls", () => {
+    const ceiling = 2.1;
+    const w = { ...worldOf(), wallAt: ((from, dir, reach) => dir.y > 0 && from.y + reach >= ceiling) as WallAt };
+    let p = stepWalk(standOn(), go({ jump: true }), worldOf());
+    let top = feetOf(p);
+    for (let i = 0; i < 60 && p.vy !== undefined; i++) {
+      p = stepWalk(p, go({}), w);
+      top = Math.max(top, feetOf(p));
+    }
+    expect(top).toBeLessThan(0.5);
+    expect(top + walkScale(1).eye + walkScale(1).head).toBeLessThan(ceiling + 0.05);
+    expect(p.vy).toBeUndefined();
   });
 
   it("does not jump again in the air", () => {
