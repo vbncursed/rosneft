@@ -12,8 +12,8 @@ export type SectionHeadProps = {
   fold?: { open: boolean; locked: boolean; onToggle: () => void; controls: string };
 };
 
-const OVERLINE = "font-mono text-[9px] uppercase tracking-[0.2em] text-muted";
-const COUNT = "font-mono text-[10px] text-muted";
+const OVERLINE = "font-mono text-[13px] uppercase tracking-[0.14em] text-muted";
+const COUNT = "font-mono text-[12px] text-muted";
 
 /**
  * A panel section's own head: what it lists, how many, and the way to add one.

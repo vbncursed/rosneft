@@ -330,4 +330,12 @@ describe("ViewTab", () => {
       expect(screen.queryByRole("button", { name: new RegExp(DOCUMENTS_OVERLINE) })).toBeNull();
     });
   });
+
+  it("draws the section heads and switch labels at the Panorama tour size", () => {
+    tab();
+    const heads = [PANORAMAS_OVERLINE, DOCUMENTS_OVERLINE, MEASUREMENTS_OVERLINE, MARKERS_SWITCH, MEASUREMENTS_SWITCH];
+    for (const text of heads) {
+      expect(screen.getAllByText(text)[0]).toHaveClass("text-[13px]");
+    }
+  });
 });
