@@ -15,9 +15,9 @@ import (
 // A group id the bundle does not list (deleted between the reads) counts as
 // visible: the viewer draws a placement it cannot find a group for.
 //
-// For variantCompatible the hashes are the plain copies; a blob without one
-// has Hash "" and the caller refuses the export instead of shipping a
-// compressed blob under the compatible name.
+// For the plain variants (compatible, OBJ) the hashes are the plain copies; a
+// blob without one has Hash "" and the caller refuses the export instead of
+// shipping a compressed blob under the plain name.
 //
 // The caller has checked b.Artifact is non-nil.
 func exportPlacements(b domain.SceneBundle, v exportVariant) (placements []glbexport.Placement, skipped int) {

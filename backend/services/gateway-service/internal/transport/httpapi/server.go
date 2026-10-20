@@ -9,6 +9,9 @@ package httpapi
 import (
 	"context"
 	"io"
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
 
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
@@ -143,4 +146,18 @@ func codeOf(err error) string {
 func (s *Server) WithExportOpener(open glbexport.Opener) *Server {
 	s.open = open
 	return s
+}
+
+// Mount registers the generated /api routes on r. A parameter the generated
+// wrapper refuses (a missing, repeated or malformed value) answers the {code,
+// message} envelope like every other 400, not the wrapper's plain text, and is
+// never cached.
+func Mount(r chi.Router, s *Server) http.Handler {
+	return HandlerWithOptions(NewStrictHandler(s, nil), ChiServerOptions{
+		BaseRouter: r,
+		ErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, err error) {
+			w.Header().Set("Cache-Control", "no-store")
+			apperr.Write(w, http.StatusBadRequest, apperr.SlugInvalidInput, err.Error())
+		},
+	})
 }

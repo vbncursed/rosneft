@@ -4,8 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
-
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 )
 
@@ -28,16 +26,4 @@ func (s *Server) ExportTerritoryCheck(ctx context.Context, req ExportTerritoryCh
 		Body:    ExportCheck{Filename: p.filename, SizeBytes: p.size},
 		Headers: ExportTerritoryCheck200ResponseHeaders{CacheControl: "no-store"},
 	}, nil
-}
-
-// Mount registers the generated /api routes on r. A parameter the generated
-// wrapper refuses (a missing or repeated query value) answers the {code,
-// message} envelope like every other 400, not the wrapper's plain text.
-func Mount(r chi.Router, s *Server) http.Handler {
-	return HandlerWithOptions(NewStrictHandler(s, nil), ChiServerOptions{
-		BaseRouter: r,
-		ErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, err error) {
-			apperr.Write(w, http.StatusBadRequest, apperr.SlugInvalidInput, err.Error())
-		},
-	})
 }

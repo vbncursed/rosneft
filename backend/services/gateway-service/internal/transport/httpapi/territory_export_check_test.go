@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"mime"
 	"net/http"
-	"net/http/httptest"
 	"strconv"
 	"strings"
 
@@ -176,18 +175,26 @@ func (s *TerritoryExportSuite) TestCheckVariantIsRequiredAndExact() {
 		"", "?variant=", "?variant=Compatible", "?variant=zip", "?variant=obj&variant=obj",
 		"?variant=obj&variant=compatible",
 		// url.Values drops a pair it cannot parse, which would read as "absent".
-		"?variant=compat%zzible", "?variant=obj;x",
+		"?variant=compat%zzible", "?variant=obj;x", "?variant=%zz", "?variant=obj;variant=glb",
+		"?variant=OBJ", "?variant=obj%00", "?variant=" + strings.Repeat("o", 300),
 	} {
 		s.Run(q, func() {
 			svc := &exportServiceStub{bundle: s.compatBundle()}
-			rec := httptest.NewRecorder()
-
-			s.router(svc, scoped, exportOpener(s.compatBlobs(), nil)).
-				ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/territories/ust-kut/export-check"+q, nil))
+			rec := s.getPath(s.router(svc, scoped, exportOpener(s.compatBlobs(), nil)), "/api/territories/ust-kut/export-check"+q)
 
 			assert.Equal(s.T(), rec.Code, http.StatusBadRequest, rec.Body.String())
 			assert.Assert(s.T(), strings.Contains(rec.Body.String(), `"code":"invalid_input"`), rec.Body.String())
+			assert.Equal(s.T(), rec.Header().Get("Cache-Control"), "no-store")
 			assert.Equal(s.T(), svc.bundleCalls, 0)
 		})
+	}
+}
+
+// An encoded value is the value; a junk pair beside it is dropped by url.Values.
+func (s *TerritoryExportSuite) TestCheckVariantIsDecodedAndUnrelatedJunkIgnored() {
+	h := s.router(&exportServiceStub{bundle: s.compatBundle()}, scoped, exportOpener(s.objBlobs(), nil))
+	for _, q := range []string{"%6Fbj", "obj&x=%zz"} {
+		rec := s.getPath(h, checkURL+q)
+		assert.Assert(s.T(), strings.Contains(rec.Body.String(), `"filename":"ust-kut-obj.zip"`), "%s: %s", q, rec.Body.String())
 	}
 }
