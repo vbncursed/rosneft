@@ -51,4 +51,15 @@ describe("ExportButton", () => {
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
     expect(run).not.toHaveBeenCalled();
   });
+
+  it("announces the busy state, which a disabled trigger cannot", () => {
+    vi.mocked(useTerritoryExport).mockReturnValue({ busy: true, run });
+    render(<ExportButton slug="ust-kut" />);
+    expect(screen.getByRole("status")).toHaveTextContent("Preparing download");
+  });
+
+  it("announces nothing while idle", () => {
+    render(<ExportButton slug="ust-kut" />);
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+  });
 });
