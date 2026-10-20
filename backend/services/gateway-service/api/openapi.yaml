@@ -1509,6 +1509,46 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
 
+  /api/territories/{slug}/export.obj.zip:
+    get:
+      operationId: exportTerritoryObj
+      summary: Download the territory and its visible placed models as one baked OBJ in a ZIP
+      description: >
+        The same scene as `export.glb?variant=compatible` (plain copies; hidden
+        placements and placements in hidden groups are left out), baked into
+        world space as one OBJ object per placement, with its MTL and the source
+        textures. Z is up and Y forward; units are metres as the viewer measures
+        them, centred on the scene (scene units when the territory's size is
+        unknown). The ZIP is streamed outside the JSON chain chunked, without a
+        Content-Length: a stream that is cut is a failed export.
+      tags: [territories, territory-export]
+      parameters:
+        - { in: path, name: slug, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: The ZIP (README.txt, MTL, textures, OBJ)
+          content:
+            application/zip:
+              schema: { type: string, format: binary }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The territory is not converted yet, or a plain copy is still being made
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422':
+          description: The export would exceed 20 million vertices or 40 million faces
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '500': { $ref: '#/components/responses/Internal' }
+        '503':
+          description: The catalog could not be asked whether the caller may open the territory
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
   /api/territories/{slug}/scene:
     parameters:
       - name: slug

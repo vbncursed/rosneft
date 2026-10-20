@@ -59,13 +59,15 @@ func mountRootRoutes(
 	r.With(authH.Authenticate, authH.Require("audit:read")).
 		Get("/api/audit.csv", apiServer.ServeAuditCSV)
 
-	// Territory export (one streamed GLB). On the root router because
+	// Territory export (one streamed GLB, or an OBJ ZIP). On the root router because
 	// ETagMiddleware buffers the whole body. The territory gate is applied by
 	// hand and still fires: RequireTerritoryAccess keys on the route-pattern
 	// prefix, and an inline r.With route is matched before its middlewares run
 	// (pinned by TerritoryExportSuite). No permission, as for /api/assets.
 	r.With(authH.Authenticate, apiServer.RequireTerritoryAccess).
 		Get("/api/territories/{slug}/export.glb", apiServer.ServeTerritoryExport(exportOpen))
+	r.With(authH.Authenticate, apiServer.RequireTerritoryAccess).
+		Get("/api/territories/{slug}/export.obj.zip", apiServer.ServeTerritoryExportOBJ(exportOpen))
 
 	// /api/auth/* on the root router: login/2fa are public; self/admin
 	// handlers validate the Bearer token themselves via the auth client.

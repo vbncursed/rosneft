@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	slogchi "github.com/samber/slog-chi"
 	"github.com/stretchr/testify/suite"
 
@@ -99,7 +100,7 @@ func (e *exportServiceStub) GetSceneBundle(context.Context, string, string) (dom
 func (s *TerritoryExportSuite) router(svc Service, sc gateCase, open glbexport.Opener) http.Handler {
 	srv := New(svc)
 	r := chi.NewRouter()
-	r.Use(slogchi.New(slog.New(slog.NewJSONHandler(&s.logs, nil))))
+	r.Use(middleware.Recoverer, slogchi.New(slog.New(slog.NewJSONHandler(&s.logs, nil))))
 	scope := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			next.ServeHTTP(w, req.WithContext(withTestScope(req.Context(), sc)))
@@ -107,6 +108,8 @@ func (s *TerritoryExportSuite) router(svc Service, sc gateCase, open glbexport.O
 	}
 	r.With(scope, srv.RequireTerritoryAccess).
 		Get("/api/territories/{slug}/export.glb", srv.ServeTerritoryExport(open))
+	r.With(scope, srv.RequireTerritoryAccess).
+		Get("/api/territories/{slug}/export.obj.zip", srv.ServeTerritoryExportOBJ(open))
 	return r
 }
 

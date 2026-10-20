@@ -40,6 +40,7 @@ var (
 //	  /api/console/summary → Authenticate → per-card gates → fan-out (no-store)
 //	  /api/audit.csv       → Authenticate → Require("audit:read") → CSV stream
 //	  /api/territories/{slug}/export.glb → Authenticate → RequireTerritoryAccess → GLB stream
+//	  /api/territories/{slug}/export.obj.zip → Authenticate → RequireTerritoryAccess → ZIP stream
 //	  /api/auth/*          → authhttp (login public; self/admin gated)
 //	  /api/* sub-router
 //	    Authenticate → RequirePermissionForRoute → RequireTerritoryAccess
