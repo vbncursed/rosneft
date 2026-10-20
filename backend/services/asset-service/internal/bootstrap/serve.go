@@ -27,6 +27,7 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 		return fmt.Errorf("init blobstore: %w", err)
 	}
 	svc := InitService(store)
+	registerFSMetrics(metrics.Registry, cfg.BlobDir, logger)
 	mux, hz := InitMux(svc, logger, cfg.BlobDir)
 
 	// asset runs no gRPC server (Health stays nil) but is a Prometheus scrape
