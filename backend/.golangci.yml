@@ -88,6 +88,12 @@ linters:
       - path: services/mesh-service/internal/converter/
         text: G115
         linters: [gosec]
+      # Accessor counts and offsets are range-checked against a BIN of at most
+      # 4 GiB in Build, and the baked totals are capped at 20M vertices / 40M
+      # faces, so no count or vertex base here can leave its range.
+      - path: services/gateway-service/internal/objexport/
+        text: G115
+        linters: [gosec]
       # Test cookies, credential fixtures and fixture paths are not exposure;
       # a test's http.Get needs no cancellation.
       - path: _test\.go

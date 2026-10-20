@@ -26,6 +26,7 @@ export function ExportButton({ slug }: { slug: string }) {
         items={[
           { label: "Compressed GLB — web viewers", onSelect: () => run("compressed") },
           { label: "Compatible GLB — Blender, desktop apps", onSelect: () => run("compatible") },
+          { label: "OBJ + textures (ZIP) — SketchUp, CAD, Blender", onSelect: () => run("obj") },
         ]}
       />
       {/* A disabled trigger is skipped by screen readers and carries no aria-busy; this says why it went dead. */}

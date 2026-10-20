@@ -8,7 +8,8 @@
 #   - jobs    → SSE stream + jobs list (WatchJobEvents, ListJobs)
 #   - audit-export → streaming CSV handler (ServeAuditCSV); the JSON
 #     GET /api/audit keeps its generated stub under the plain `audit` tag
-#   - territory-export → streamed GLB export (ServeTerritoryExport)
+#   - territory-export → streamed GLB and OBJ ZIP exports (ServeTerritoryExport,
+#     ServeTerritoryExportOBJ)
 #   - metrics → owner-gated Prometheus proxy (InitMetricsHandler)
 #   - console → Home's console summary (InitConsoleSummary)
 #   - ops     → healthz/readyz probes + /docs + /openapi.json

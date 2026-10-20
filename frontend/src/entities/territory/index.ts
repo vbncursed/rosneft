@@ -4,7 +4,7 @@ export { TerritoryCard, type TerritoryCardProps } from "./ui/territory-card";
 export {
   createTerritory,
   deleteTerritory,
-  exportTerritoryGlb,
+  exportTerritory,
   getTerritory,
   listTerritories,
   replaceTerritorySource,

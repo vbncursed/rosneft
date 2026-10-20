@@ -56,12 +56,19 @@ func (r *statusRecorder) ReadFrom(src io.Reader) (int64, error) {
 
 // Middleware records RED metrics for every HTTP request. Labels are method +
 // status only — the URL path is deliberately omitted to bound cardinality.
+// A request whose handler panics out (a stream cut with http.ErrAbortHandler,
+// which Recoverer re-panics) is counted with code "aborted": its status line
+// may already be out, but its body never finished.
 func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rec := &statusRecorder{ResponseWriter: w, code: http.StatusOK}
 		start := time.Now()
+		code := "aborted"
+		defer func() {
+			httpDuration.WithLabelValues(r.Method).Observe(time.Since(start).Seconds())
+			httpHandled.WithLabelValues(r.Method, code).Inc()
+		}()
 		next.ServeHTTP(rec, r)
-		httpDuration.WithLabelValues(r.Method).Observe(time.Since(start).Seconds())
-		httpHandled.WithLabelValues(r.Method, strconv.Itoa(rec.code)).Inc()
+		code = strconv.Itoa(rec.code)
 	})
 }

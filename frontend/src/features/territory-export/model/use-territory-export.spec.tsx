@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { exportTerritoryGlb } from "@/entities/territory";
+import { exportTerritory } from "@/entities/territory";
 import { HttpError } from "@/shared/api";
 import { saveBlob } from "@/shared/lib/download";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
@@ -10,7 +10,7 @@ import { useTerritoryExport } from "./use-territory-export";
 
 vi.mock("@/entities/territory", async (importOriginal) => ({
   ...(await importOriginal<object>()),
-  exportTerritoryGlb: vi.fn(),
+  exportTerritory: vi.fn(),
 }));
 vi.mock("@/shared/lib/download", () => ({ saveBlob: vi.fn() }));
 
@@ -22,7 +22,7 @@ const exporter = () => renderHook(() => ({ s: useTerritoryExport("ust-kut"), not
 
 beforeEach(() => {
   client = new QueryClient();
-  vi.mocked(exportTerritoryGlb).mockReset();
+  vi.mocked(exportTerritory).mockReset();
   vi.mocked(saveBlob).mockReset();
   clearNotices();
 });
@@ -30,24 +30,41 @@ beforeEach(() => {
 describe("useTerritoryExport", () => {
   it("saves the file as <slug>.glb", async () => {
     const blob = new Blob(["glb"]);
-    vi.mocked(exportTerritoryGlb).mockResolvedValue(blob);
+    vi.mocked(exportTerritory).mockResolvedValue(blob);
     const { result } = exporter();
     act(() => result.current.s.run("compressed"));
     await waitFor(() => expect(saveBlob).toHaveBeenCalledWith(blob, "ust-kut.glb"));
-    expect(exportTerritoryGlb).toHaveBeenCalledWith("ust-kut", "compressed");
+    expect(exportTerritory).toHaveBeenCalledWith("ust-kut", "compressed");
   });
 
   it("saves the compatible variant as <slug>-compatible.glb", async () => {
     const blob = new Blob(["glb"]);
-    vi.mocked(exportTerritoryGlb).mockResolvedValue(blob);
+    vi.mocked(exportTerritory).mockResolvedValue(blob);
     const { result } = exporter();
     act(() => result.current.s.run("compatible"));
     await waitFor(() => expect(saveBlob).toHaveBeenCalledWith(blob, "ust-kut-compatible.glb"));
-    expect(exportTerritoryGlb).toHaveBeenCalledWith("ust-kut", "compatible");
+    expect(exportTerritory).toHaveBeenCalledWith("ust-kut", "compatible");
+  });
+
+  it("saves the OBJ variant as <slug>-obj.zip", async () => {
+    const blob = new Blob(["zip"]);
+    vi.mocked(exportTerritory).mockResolvedValue(blob);
+    const { result } = exporter();
+    act(() => result.current.s.run("obj"));
+    await waitFor(() => expect(saveBlob).toHaveBeenCalledWith(blob, "ust-kut-obj.zip"));
+    expect(exportTerritory).toHaveBeenCalledWith("ust-kut", "obj");
+  });
+
+  it("shows the gateway's refusal while the OBJ copy is not ready", async () => {
+    vi.mocked(exportTerritory).mockRejectedValue(new HttpError(409, null, "OBJ export is not ready yet"));
+    const { result } = exporter();
+    act(() => result.current.s.run("obj"));
+    await waitFor(() => expect(result.current.notices.map((n) => n.message)).toContain("OBJ export is not ready yet"));
+    expect(saveBlob).not.toHaveBeenCalled();
   });
 
   it("shows the gateway's refusal while the compatible copy is being made", async () => {
-    vi.mocked(exportTerritoryGlb).mockRejectedValue(new HttpError(409, null, "compatible copy is not ready yet"));
+    vi.mocked(exportTerritory).mockRejectedValue(new HttpError(409, null, "compatible copy is not ready yet"));
     const { result } = exporter();
     act(() => result.current.s.run("compatible"));
     await waitFor(() =>
@@ -57,7 +74,7 @@ describe("useTerritoryExport", () => {
   });
 
   it("shows the gateway's own refusal", async () => {
-    vi.mocked(exportTerritoryGlb).mockRejectedValue(new HttpError(409, null, "territory is not converted yet"));
+    vi.mocked(exportTerritory).mockRejectedValue(new HttpError(409, null, "territory is not converted yet"));
     const { result } = exporter();
     act(() => result.current.s.run("compressed"));
     await waitFor(() =>
@@ -67,15 +84,24 @@ describe("useTerritoryExport", () => {
   });
 
   it("falls back to a generic notice when the network fails", async () => {
-    vi.mocked(exportTerritoryGlb).mockRejectedValue(new TypeError("Failed to fetch"));
+    vi.mocked(exportTerritory).mockRejectedValue(new TypeError("Failed to fetch"));
     const { result } = exporter();
     act(() => result.current.s.run("compressed"));
     await waitFor(() => expect(result.current.notices.map((n) => n.message)).toContain("Export failed"));
   });
 
+  it("goes idle again after a stream cut mid-download, saving nothing", async () => {
+    vi.mocked(exportTerritory).mockRejectedValue(new TypeError("network error"));
+    const { result } = exporter();
+    act(() => result.current.s.run("obj"));
+    await waitFor(() => expect(result.current.notices.map((n) => n.message)).toContain("Export failed"));
+    await waitFor(() => expect(result.current.s.busy).toBe(false));
+    expect(saveBlob).not.toHaveBeenCalled();
+  });
+
   it("is busy while the request is pending and idle after", async () => {
     let resolve!: (b: Blob) => void;
-    vi.mocked(exportTerritoryGlb).mockReturnValue(new Promise((r) => (resolve = r)));
+    vi.mocked(exportTerritory).mockReturnValue(new Promise((r) => (resolve = r)));
     const { result } = exporter();
     expect(result.current.s.busy).toBe(false);
     act(() => result.current.s.run("compressed"));

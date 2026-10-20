@@ -2,6 +2,7 @@ package glbexport
 
 import (
 	"encoding/json"
+	"math"
 
 	"github.com/qmuntal/gltf"
 	"gotest.tools/v3/assert"
@@ -31,6 +32,13 @@ func (s *BuildSuite) TestRejects() {
 		}, ErrMalformed},
 		{"meshopt payload past the BIN", meshoptDoc, func(d *gltf.Document) {
 			d.BufferViews[0].Extensions["EXT_meshopt_compression"] = json.RawMessage(`{"buffer":0,"byteOffset":36,"byteLength":20,"byteStride":12,"count":3,"mode":"ATTRIBUTES"}`)
+		}, ErrMalformed},
+		{"bufferView offset and length overflow int64", triangleDoc, func(d *gltf.Document) {
+			d.BufferViews[1].ByteOffset = math.MaxInt
+			d.BufferViews[1].ByteLength = math.MaxInt
+		}, ErrMalformed},
+		{"meshopt payload offset and length overflow int64", meshoptDoc, func(d *gltf.Document) {
+			d.BufferViews[0].Extensions["EXT_meshopt_compression"] = json.RawMessage(`{"buffer":0,"byteOffset":9223372036854775807,"byteLength":9223372036854775807,"byteStride":12,"count":3,"mode":"ATTRIBUTES"}`)
 		}, ErrMalformed},
 		{"negative accessor bufferView", triangleDoc, func(d *gltf.Document) { d.Accessors[0].BufferView = new(-1) }, ErrMalformed},
 		{"negative attribute accessor", triangleDoc, func(d *gltf.Document) { d.Meshes[0].Primitives[0].Attributes["POSITION"] = -1 }, ErrMalformed},
@@ -71,6 +79,19 @@ func (s *BuildSuite) TestTooLarge() {
 	a, _ := triangleDoc()
 	b, _ := triangleDoc()
 	heads := map[string]Head{"a": {Doc: a, BinLength: 3 << 30}, "b": {Doc: b, BinLength: 3 << 30}}
+
+	_, err := Build([]Placement{place("a", "a"), place("b", "b")}, heads)
+
+	assert.ErrorIs(s.T(), err, ErrTooLarge)
+}
+
+func (s *BuildSuite) TestTooLargeDeclaredBinDoesNotOverflow() {
+	a, bin := triangleDoc()
+	b, _ := triangleDoc()
+	heads := map[string]Head{
+		"a": {Doc: a, BinLength: int64(len(bin) + len(bin)%4)},
+		"b": {Doc: b, BinLength: math.MaxInt64},
+	}
 
 	_, err := Build([]Placement{place("a", "a"), place("b", "b")}, heads)
 

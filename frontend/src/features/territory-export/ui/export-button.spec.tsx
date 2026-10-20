@@ -11,6 +11,7 @@ vi.mock("@/shared/lib/use-online");
 const run = vi.fn();
 const COMPRESSED = "Compressed GLB — web viewers";
 const COMPATIBLE = "Compatible GLB — Blender, desktop apps";
+const OBJ = "OBJ + textures (ZIP) — SketchUp, CAD, Blender";
 beforeEach(() => {
   run.mockReset();
   vi.mocked(useOnline).mockReturnValue(true);
@@ -18,16 +19,17 @@ beforeEach(() => {
 });
 
 describe("ExportButton", () => {
-  it("offers the two variants in order", async () => {
+  it("offers the three variants in order", async () => {
     render(<ExportButton slug="ust-kut" />);
     await userEvent.click(screen.getByRole("button", { name: "Download" }));
-    expect(screen.getAllByRole("menuitem").map((i) => i.textContent)).toEqual([COMPRESSED, COMPATIBLE]);
+    expect(screen.getAllByRole("menuitem").map((i) => i.textContent)).toEqual([COMPRESSED, COMPATIBLE, OBJ]);
     expect(useTerritoryExport).toHaveBeenCalledWith("ust-kut");
   });
 
   it.each([
     [COMPRESSED, "compressed"],
     [COMPATIBLE, "compatible"],
+    [OBJ, "obj"],
   ])("%s starts that export once", async (name, variant) => {
     render(<ExportButton slug="ust-kut" />);
     await userEvent.click(screen.getByRole("button", { name: "Download" }));

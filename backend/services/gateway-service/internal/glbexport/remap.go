@@ -74,15 +74,15 @@ func (b *builder) addDoc(hash string, h Head) (*instance, error) {
 	if src == nil {
 		return nil, malformed("no document")
 	}
-	if err := validate(src); err != nil {
+	if err := Validate(src); err != nil {
 		return nil, err
 	}
-	roots, err := sceneRoots(src)
+	roots, err := SceneRoots(src)
 	if err != nil {
 		return nil, err
 	}
 	base := align4(b.binLen)
-	if h.BinLength < 0 || int64(base)+h.BinLength > math.MaxUint32 {
+	if h.BinLength < 0 || h.BinLength > math.MaxUint32-int64(base) {
 		return nil, ErrTooLarge
 	}
 	if h.BinLength > 0 {
@@ -143,7 +143,8 @@ func (r *remap) bufferViews() {
 // inBin checks that [*off, *off+length) lies inside the input's BIN and moves
 // it to where that BIN starts in the output.
 func (r *remap) inBin(off *int, length int, what string) {
-	if *off < 0 || length < 0 || int64(*off)+int64(length) > r.head.BinLength {
+	// length is compared with the remainder: *off+length can wrap int64.
+	if *off < 0 || length < 0 || int64(*off) > r.head.BinLength || int64(length) > r.head.BinLength-int64(*off) {
 		r.fail(malformed("%s [%d,+%d) outside the %d-byte BIN", what, *off, length, r.head.BinLength))
 	}
 	*off += r.base

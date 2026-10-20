@@ -18,9 +18,9 @@ var allowedExtensions = []string{
 	"KHR_texture_transform",
 }
 
-// validate refuses what the merge would silently corrupt. A pipeline change
+// Validate refuses what the merge would silently corrupt. A pipeline change
 // that starts emitting any of it fails here, in a test, not in a user's file.
-func validate(doc *gltf.Document) error {
+func Validate(doc *gltf.Document) error {
 	switch {
 	case len(doc.Animations) > 0:
 		return unsupported("animations")

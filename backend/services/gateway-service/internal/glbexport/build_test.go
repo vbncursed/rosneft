@@ -75,7 +75,7 @@ func (s *BuildSuite) TestOneModelThreePlacements() {
 		pn := doc.Nodes[n]
 		assert.DeepEqual(s.T(), pn.Translation, [3]float64{float64(i), 2, 3})
 		assert.DeepEqual(s.T(), pn.Scale, [3]float64{2, 3, 4})
-		assert.DeepEqual(s.T(), pn.Rotation, quatFromEulerXYZ(0.3, -1.2, 2.5))
+		assert.DeepEqual(s.T(), pn.Rotation, QuatFromEulerXYZ(0.3, -1.2, 2.5))
 		assert.Equal(s.T(), *doc.Nodes[pn.Children[0]].Mesh, 1, "every copy shares the model's mesh")
 	}
 }
