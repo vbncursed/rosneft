@@ -29,11 +29,13 @@ describe("ExportButton", () => {
     expect(screen.getByRole("button", { name: "Download" })).toBeDisabled();
   });
 
-  it("says it is preparing and refuses a second press while busy", () => {
+  it("shows the button's spinner and refuses a second press while busy", async () => {
     vi.mocked(useTerritoryExport).mockReturnValue({ busy: true, run });
     render(<ExportButton slug="ust-kut" />);
-    const button = screen.getByRole("button", { name: "Preparing…" });
-    expect(button).toBeDisabled();
+    const button = screen.getByRole("button", { name: "Download" });
+    expect(screen.getByTestId("button-spinner")).toBeInTheDocument();
     expect(button).toHaveAttribute("aria-busy", "true");
+    await userEvent.click(button);
+    expect(run).not.toHaveBeenCalled();
   });
 });
