@@ -69,6 +69,7 @@ func territoryArtifactToProto(a domain.Artifact) *catalogv1.TerritoryArtifact {
 		BboxMin:       vec3ToProto(a.BBoxMin),
 		BboxMax:       vec3ToProto(a.BBoxMax),
 		CreatedAt:     timestamppb.New(a.CreatedAt),
+		PlainHash:     a.PlainHash,
 	}
 }
 
@@ -83,6 +84,7 @@ func territoryArtifactFromProto(a *catalogv1.TerritoryArtifact) domain.Artifact 
 		Faces:       a.GetFaces(),
 		BBoxMin:     vec3FromProto(a.GetBboxMin()),
 		BBoxMax:     vec3FromProto(a.GetBboxMax()),
+		PlainHash:   a.GetPlainHash(),
 	}
 }
 
@@ -98,6 +100,7 @@ func modelArtifactToProto(a domain.Artifact) *catalogv1.ModelArtifact {
 		BboxMin:     vec3ToProto(a.BBoxMin),
 		BboxMax:     vec3ToProto(a.BBoxMax),
 		CreatedAt:   timestamppb.New(a.CreatedAt),
+		PlainHash:   a.PlainHash,
 	}
 }
 
@@ -112,6 +115,7 @@ func modelArtifactFromProto(a *catalogv1.ModelArtifact) domain.Artifact {
 		Faces:       a.GetFaces(),
 		BBoxMin:     vec3FromProto(a.GetBboxMin()),
 		BBoxMax:     vec3FromProto(a.GetBboxMax()),
+		PlainHash:   a.GetPlainHash(),
 	}
 }
 

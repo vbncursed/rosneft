@@ -19,6 +19,7 @@ func (r *PG) GetModelArtifact(ctx context.Context, slug string, lod uint32) (dom
 	const q = `SELECT ` + artifactSelectCols + `
 		FROM model_artifacts a
 		JOIN models m ON m.id = a.model_id
+		` + plainJoin + `
 		WHERE m.slug = $1 AND a.lod = $2`
 
 	row := r.pool.QueryRow(ctx, q, slug, lod)

@@ -14,11 +14,13 @@ const (
 	territoryArtifactsBySlug = `SELECT t.slug, ` + artifactSelectCols + `
 		FROM territory_artifacts a
 		JOIN territories t ON t.id = a.territory_id
+		` + plainJoin + `
 		WHERE t.slug = ANY($1)
 		ORDER BY a.lod`
 	modelArtifactsBySlug = `SELECT m.slug, ` + artifactSelectCols + `
 		FROM model_artifacts a
 		JOIN models m ON m.id = a.model_id
+		` + plainJoin + `
 		WHERE m.slug = ANY($1)
 		ORDER BY a.lod`
 )
@@ -39,7 +41,7 @@ func (r *PG) artifactsBySlug(ctx context.Context, q string, slugs []string) (map
 			&a.LOD, &a.Hash, &a.ContentType, &a.Size, &a.Vertices, &a.Faces,
 			&a.BBoxMin.X, &a.BBoxMin.Y, &a.BBoxMin.Z,
 			&a.BBoxMax.X, &a.BBoxMax.Y, &a.BBoxMax.Z,
-			&a.CreatedAt,
+			&a.CreatedAt, &a.PlainHash,
 		); err != nil {
 			return nil, fmt.Errorf("artifacts by slug: scan: %w", err)
 		}

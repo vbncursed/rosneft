@@ -18,6 +18,7 @@ func (r *PG) ListTerritoryArtifacts(ctx context.Context, slug string) ([]domain.
 	const q = `SELECT ` + artifactSelectCols + `
 		FROM territory_artifacts a
 		JOIN territories t ON t.id = a.territory_id
+		` + plainJoin + `
 		WHERE t.slug = $1
 		ORDER BY a.lod`
 

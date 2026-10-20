@@ -48,7 +48,12 @@ const artifactReturningCols = `lod, hash, content_type, size_bytes, vertices, fa
 const artifactSelectCols = `a.lod, a.hash, a.content_type, a.size_bytes, a.vertices, a.faces,
 	a.bbox_min_x, a.bbox_min_y, a.bbox_min_z,
 	a.bbox_max_x, a.bbox_max_y, a.bbox_max_z,
-	a.created_at`
+	a.created_at, COALESCE(p.plain_hash, '')`
+
+// plainJoin attaches a LOD0's plain GLB (plain_artifacts) to an artifact read
+// aliased a. It is keyed by the LOD0's hash, so a LOD0 with new bytes joins
+// nothing; lower LODs never join.
+const plainJoin = `LEFT JOIN plain_artifacts p ON a.lod = 0 AND p.lod0_hash = a.hash`
 
 // rowScanner accepts either pgx.Row or pgx.Rows in scan helpers.
 type rowScanner interface {
@@ -90,7 +95,7 @@ func scanArtifact(r rowScanner, slug string) (domain.Artifact, error) {
 		&a.LOD, &a.Hash, &a.ContentType, &a.Size, &a.Vertices, &a.Faces,
 		&a.BBoxMin.X, &a.BBoxMin.Y, &a.BBoxMin.Z,
 		&a.BBoxMax.X, &a.BBoxMax.Y, &a.BBoxMax.Z,
-		&a.CreatedAt,
+		&a.CreatedAt, &a.PlainHash,
 	)
 	return a, err
 }

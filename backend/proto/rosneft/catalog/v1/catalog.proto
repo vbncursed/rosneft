@@ -149,6 +149,7 @@ message TerritoryArtifact {
   Vec3 bbox_min = 8;
   Vec3 bbox_max = 9;
   google.protobuf.Timestamp created_at = 10;
+  string plain_hash = 11; // hash of the plain GLB made with this LOD0; "" when none or lod != 0
 }
 
 // ModelArtifact is a converted GLB output for one model + LOD.
@@ -163,6 +164,7 @@ message ModelArtifact {
   Vec3 bbox_min = 8;
   Vec3 bbox_max = 9;
   google.protobuf.Timestamp created_at = 10;
+  string plain_hash = 11; // hash of the plain GLB made with this LOD0; "" when none or lod != 0
 }
 
 // Placement is one instance of a model overlaid on a territory at a

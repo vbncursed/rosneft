@@ -25,12 +25,16 @@ import (
 // A panorama's thumbnail is its territory's, exactly like its source: it is
 // made from those bytes, so the same scope filter answers for both.
 //
+// A plain GLB (plain_artifacts) passes exactly when the LOD0 it maps from does;
+// a mapping whose LOD0 hash no artifact row holds grants nothing. The two plain
+// branches come last because plain requests are rare.
+//
 // Added a table with a hash column? Add a branch here and a case to
 // resolve_blob_access_integration_test.go, or the new asset type is either
 // reachable by nobody or by everybody — and nothing else will notice.
 func (r *PG) ResolveBlobAccess(ctx context.Context, hash, scopeAdminID string) (bool, error) {
-	// EXISTS over UNION ALL stops at the first matching row, so the six branches
-	// are not six scans. Models come first because in a typical scene most asset
+	// EXISTS over UNION ALL stops at the first matching row, so the eight branches
+	// are not eight scans. Models come first because in a typical scene most asset
 	// requests are placement GLBs. The leading guard refuses "": thumbnail
 	// columns hold '' until the thumbnail is made, so it would match those rows.
 	const q = `
@@ -58,6 +62,16 @@ SELECT $1 <> '' AND EXISTS (
       WHERE d.source_blob_hash = $1 AND ($2 = '' OR EXISTS (
         SELECT 1 FROM territory_assignments a
         WHERE a.territory_id = d.territory_id AND a.admin_user_id = $2::uuid))
+    UNION ALL
+    SELECT 1 FROM plain_artifacts pa
+      JOIN model_artifacts ma ON ma.lod = 0 AND ma.hash = pa.lod0_hash
+      WHERE pa.plain_hash = $1
+    UNION ALL
+    SELECT 1 FROM plain_artifacts pa
+      JOIN territory_artifacts ta ON ta.lod = 0 AND ta.hash = pa.lod0_hash
+      WHERE pa.plain_hash = $1 AND ($2 = '' OR EXISTS (
+        SELECT 1 FROM territory_assignments a
+        WHERE a.territory_id = ta.territory_id AND a.admin_user_id = $2::uuid))
 )`
 
 	var allowed bool

@@ -120,3 +120,21 @@ func (s *ArtifactsSuite) TestListModelRejectsEmptySlug() {
 	_, err := s.svc.ListModelArtifacts(s.ctx, "")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
+
+func (s *ArtifactsSuite) TestRegisterTerritoryRejectsPlainOnALowerLOD() {
+	_, err := s.svc.RegisterTerritoryArtifact(s.ctx, domain.Artifact{Slug: "t1", Hash: "h", LOD: 1, PlainHash: "p"})
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}
+
+func (s *ArtifactsSuite) TestRegisterModelRejectsPlainOnALowerLOD() {
+	_, err := s.svc.RegisterModelArtifact(s.ctx, domain.Artifact{Slug: "m1", Hash: "h", LOD: 1, PlainHash: "p"})
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}
+
+func (s *ArtifactsSuite) TestRegisterTerritoryForwardsPlainOnLOD0() {
+	in := domain.Artifact{Slug: "t1", Hash: "h", LOD: 0, PlainHash: "p"}
+	s.repo.RegisterTerritoryArtifactMock.Expect(s.ctx, in).Return(in, nil)
+	out, err := s.svc.RegisterTerritoryArtifact(s.ctx, in)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), out.PlainHash, "p")
+}
