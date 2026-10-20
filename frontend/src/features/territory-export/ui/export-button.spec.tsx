@@ -9,6 +9,8 @@ vi.mock("../model/use-territory-export");
 vi.mock("@/shared/lib/use-online");
 
 const run = vi.fn();
+const COMPRESSED = "Compressed GLB — web viewers";
+const COMPATIBLE = "Compatible GLB — Blender, desktop apps";
 beforeEach(() => {
   run.mockReset();
   vi.mocked(useOnline).mockReturnValue(true);
@@ -16,11 +18,21 @@ beforeEach(() => {
 });
 
 describe("ExportButton", () => {
-  it("starts the export on click", async () => {
+  it("offers the two variants in order", async () => {
     render(<ExportButton slug="ust-kut" />);
     await userEvent.click(screen.getByRole("button", { name: "Download" }));
-    expect(run).toHaveBeenCalledOnce();
+    expect(screen.getAllByRole("menuitem").map((i) => i.textContent)).toEqual([COMPRESSED, COMPATIBLE]);
     expect(useTerritoryExport).toHaveBeenCalledWith("ust-kut");
+  });
+
+  it.each([
+    [COMPRESSED, "compressed"],
+    [COMPATIBLE, "compatible"],
+  ])("%s starts that export once", async (name, variant) => {
+    render(<ExportButton slug="ust-kut" />);
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
+    await userEvent.click(screen.getByRole("menuitem", { name }));
+    expect(run).toHaveBeenCalledExactlyOnceWith(variant);
   });
 
   it("is disabled offline", () => {
@@ -29,13 +41,14 @@ describe("ExportButton", () => {
     expect(screen.getByRole("button", { name: "Download" })).toBeDisabled();
   });
 
-  it("shows the button's spinner and refuses a second press while busy", async () => {
+  it("shows the button's spinner and opens nothing while busy", async () => {
     vi.mocked(useTerritoryExport).mockReturnValue({ busy: true, run });
     render(<ExportButton slug="ust-kut" />);
     const button = screen.getByRole("button", { name: "Download" });
     expect(screen.getByTestId("button-spinner")).toBeInTheDocument();
-    expect(button).toHaveAttribute("aria-busy", "true");
+    expect(button).toBeDisabled();
     await userEvent.click(button);
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
     expect(run).not.toHaveBeenCalled();
   });
 });

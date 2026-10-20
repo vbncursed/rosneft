@@ -1484,11 +1484,21 @@ export type ExportTerritoryGlbData = {
   path: {
     slug: string;
   };
-  query?: never;
+  query?: {
+    /**
+     * Absent: geometry meshopt-compressed and textures KTX2 (web viewers). `compatible`: plain geometry and the source JPEG/PNG textures, no required extensions (Blender, desktop tools); about three times larger.
+     *
+     */
+    variant?: 'compatible';
+  };
   url: '/api/territories/{slug}/export.glb';
 };
 
 export type ExportTerritoryGlbErrors = {
+  /**
+   * Invalid request
+   */
+  400: Error;
   /**
    * Missing or invalid session token
    */
@@ -1498,7 +1508,7 @@ export type ExportTerritoryGlbErrors = {
    */
   404: Error;
   /**
-   * The territory is not converted yet
+   * The territory is not converted yet, or (compatible) a plain copy is still being made
    */
   409: Error;
   /**
