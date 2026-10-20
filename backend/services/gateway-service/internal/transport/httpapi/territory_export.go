@@ -32,7 +32,7 @@ import (
 func (s *Server) ServeTerritoryExport(open glbexport.Opener) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		variant, err := parseExportVariant(r.URL.Query())
+		variant, err := parseExportVariant(r.URL.RawQuery)
 		if err != nil {
 			apperr.Write(w, http.StatusBadRequest, apperr.SlugInvalidInput, err.Error())
 			return

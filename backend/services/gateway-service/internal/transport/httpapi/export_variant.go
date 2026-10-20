@@ -14,17 +14,24 @@ const (
 	variantCompatible
 )
 
+var errBadVariant = errors.New(`variant must be "compatible" or absent`)
+
 // parseExportVariant reads ?variant=: absent is compressed, exactly one
 // "compatible" is compatible, anything else (empty, other case, repeated) is
-// refused rather than silently served as the compressed file.
-func parseExportVariant(q url.Values) (exportVariant, error) {
+// refused rather than silently served as the compressed file. It parses the
+// raw query itself because url.Values drops a pair it cannot decode
+// (`%zz`, `;`), which would read as "absent".
+func parseExportVariant(rawQuery string) (exportVariant, error) {
+	q, err := url.ParseQuery(rawQuery)
 	switch v := q["variant"]; {
+	case err != nil:
+		return variantCompressed, errBadVariant
 	case len(v) == 0:
 		return variantCompressed, nil
 	case len(v) == 1 && v[0] == "compatible":
 		return variantCompatible, nil
 	}
-	return variantCompressed, errors.New(`variant must be "compatible" or absent`)
+	return variantCompressed, errBadVariant
 }
 
 func (v exportVariant) filename(slug string) string {

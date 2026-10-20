@@ -55,7 +55,12 @@ func (s *TerritoryExportSuite) TestCompatibleStreamsWithItsOwnFilename() {
 
 // Review Focus 2.
 func (s *TerritoryExportSuite) TestVariantIsValidated() {
-	for _, q := range []string{"?variant=", "?variant=Compatible", "?variant=compressed", "?variant=compatible&variant=compatible"} {
+	for _, q := range []string{
+		"?variant=", "?variant=Compatible", "?variant=compressed", "?variant=compatible&variant=compatible",
+		"?variant=compatible&variant=compressed",
+		// url.Values drops a pair it cannot parse, which would read as "absent".
+		"?variant=compat%zzible", "?variant=compatible;x",
+	} {
 		s.Run(q, func() {
 			svc := &exportServiceStub{bundle: s.compatBundle()}
 
