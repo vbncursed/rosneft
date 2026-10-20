@@ -19,7 +19,17 @@ const fillOf = (tone: HeaderPill["tone"]) => (tone === "neutral" ? "outline" : "
  * (a guest's sentence, the measuring pill, a failure) and by CSS at 1280,
  * where the title alone already fills the row.
  */
-export function ViewerHeader({ slug, title, pills, meta, guest, canReplace, onEdit, offline }: ViewerHeaderProps) {
+export function ViewerHeader({
+  slug,
+  title,
+  pills,
+  meta,
+  guest,
+  canReplace,
+  onEdit,
+  offline,
+  download,
+}: ViewerHeaderProps) {
   return (
     <header className="flex shrink-0 items-center justify-between gap-6 border-b border-line bg-panel px-5 py-3.5 max-[1281px]:gap-5 max-[1281px]:px-[18px]">
       <div className="flex min-w-0 items-center gap-4 max-[1281px]:gap-[14px]">
@@ -42,6 +52,7 @@ export function ViewerHeader({ slug, title, pills, meta, guest, canReplace, onEd
 
       <div className="flex shrink-0 items-center gap-[9px]">
         {offline}
+        {download}
         {guest ? <span className="font-mono text-[10px] text-muted">{GUEST_SENTENCE}</span> : null}
         {canReplace && onEdit ? (
           <Button variant="secondary" onClick={onEdit}>

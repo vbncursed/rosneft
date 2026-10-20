@@ -1479,6 +1479,53 @@ export type ReplaceTerritorySourceResponses = {
 
 export type ReplaceTerritorySourceResponse = ReplaceTerritorySourceResponses[keyof ReplaceTerritorySourceResponses];
 
+export type ExportTerritoryGlbData = {
+  body?: never;
+  path: {
+    slug: string;
+  };
+  query?: never;
+  url: '/api/territories/{slug}/export.glb';
+};
+
+export type ExportTerritoryGlbErrors = {
+  /**
+   * Missing or invalid session token
+   */
+  401: Error;
+  /**
+   * Resource not found
+   */
+  404: Error;
+  /**
+   * The territory is not converted yet
+   */
+  409: Error;
+  /**
+   * The export would exceed the GLB format's 4 GiB limit
+   */
+  422: Error;
+  /**
+   * Internal server error
+   */
+  500: Error;
+  /**
+   * The catalog could not be asked whether the caller may open the territory
+   */
+  503: Error;
+};
+
+export type ExportTerritoryGlbError = ExportTerritoryGlbErrors[keyof ExportTerritoryGlbErrors];
+
+export type ExportTerritoryGlbResponses = {
+  /**
+   * The merged GLB
+   */
+  200: Blob | File;
+};
+
+export type ExportTerritoryGlbResponse = ExportTerritoryGlbResponses[keyof ExportTerritoryGlbResponses];
+
 export type GetSceneBundleData = {
   body?: never;
   path: {
