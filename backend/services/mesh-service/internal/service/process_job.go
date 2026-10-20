@@ -143,9 +143,17 @@ func (m *Mesh) runConversion(ctx context.Context, j *domain.Job) (string, error)
 // persistLOD writes one LOD artifact to the BlobStore and registers it in
 // the catalog under the appropriate table (territory_artifacts or
 // model_artifacts depending on Kind).
+//
+// LOD0's plain GLB is written after the LOD and before the registration, so
+// the catalog never records a mapping that names a missing blob.
 func (m *Mesh) persistLOD(ctx context.Context, kind domain.Kind, slug string, lod uint32, r domain.ConversionResult) error {
 	if _, err := m.blobs.Put(ctx, r.ArtifactHash, r.ContentType, bytes.NewReader(r.Content)); err != nil {
 		return fmt.Errorf("blobstore put lod=%d: %w", lod, err)
+	}
+	if r.PlainHash != "" {
+		if _, err := m.blobs.Put(ctx, r.PlainHash, r.ContentType, bytes.NewReader(r.Plain)); err != nil {
+			return fmt.Errorf("blobstore put plain lod=%d: %w", lod, err)
+		}
 	}
 	if err := m.catalog.RegisterArtifact(ctx, domain.Artifact{
 		Kind:        kind,
@@ -158,6 +166,7 @@ func (m *Mesh) persistLOD(ctx context.Context, kind domain.Kind, slug string, lo
 		Faces:       r.Faces,
 		BBoxMin:     r.BBoxMin,
 		BBoxMax:     r.BBoxMax,
+		PlainHash:   r.PlainHash,
 	}); err != nil {
 		return fmt.Errorf("register artifact lod=%d: %w", lod, err)
 	}

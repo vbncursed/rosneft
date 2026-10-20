@@ -33,7 +33,9 @@ const TargetLockTTL = 30 * time.Minute
 const MaxQueueWait = 6 * time.Hour
 
 // ReconcileMissingArtifacts queues a conversion for every catalog target
-// (territory or model) that does not already have a LOD0 artifact.
+// (territory or model) that does not already have a LOD0 artifact, or whose
+// LOD0 has no plain GLB copy (the backfill for targets converted before the
+// compatible export existed: the ordinary job writes the copy).
 // Idempotent at the catalog level — re-running on a fully-converted catalog
 // is a no-op aside from the read pass.
 //
@@ -67,12 +69,20 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 		if err := ctx.Err(); err != nil {
 			return queued, err
 		}
-		has, err := m.catalog.HasLOD0(ctx, t.Kind, t.Slug)
+		has, hasPlain, err := m.catalog.HasLOD0(ctx, t.Kind, t.Slug)
 		if err != nil {
 			return queued, fmt.Errorf("service.ReconcileMissingArtifacts: check %s/%s: %w", t.Kind, t.Slug, err)
 		}
-		if has {
+		// ponytail: a catalog that drops plain_hash (older image) makes every
+		// target look unconverted and re-runs them all every tick; CD deploys
+		// and rolls back catalog and mesh together, so that skew never ships.
+		// Gate the backfill on the RegisterArtifact echo if it ever can.
+		if has && hasPlain {
 			continue
+		}
+		reason := "no lod0"
+		if has {
+			reason = "no plain copy"
 		}
 		if failed == nil {
 			failed = failedOnInput(ctx, index)
@@ -89,7 +99,7 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 		if !created {
 			continue
 		}
-		slog.InfoContext(ctx, "reconcile: queued conversion", "kind", t.Kind, "slug", t.Slug)
+		slog.InfoContext(ctx, "reconcile: queued conversion", "kind", t.Kind, "slug", t.Slug, "reason", reason)
 		queued++
 	}
 	m.sweepIndex(ctx, targets, index)

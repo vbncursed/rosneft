@@ -51,11 +51,12 @@ type Queue interface {
 // Catalog is the catalog client surface used by ProcessJob and the
 // reconciler. The Kind+Slug pair identifies whether a target is a territory
 // or a model; HasLOD0 reports whether the catalog already has a LOD0
-// artifact (used by the reconciler to skip already-converted entities).
+// artifact and whether it has a plain GLB copy (used by the reconciler to skip
+// already-converted entities and to backfill the plain copy).
 type Catalog interface {
 	GetTarget(ctx context.Context, kind domain.Kind, slug string) (domain.ConversionTarget, error)
 	ListTargets(ctx context.Context) ([]domain.ConversionTarget, error)
-	HasLOD0(ctx context.Context, kind domain.Kind, slug string) (bool, error)
+	HasLOD0(ctx context.Context, kind domain.Kind, slug string) (has, hasPlain bool, err error)
 	RegisterArtifact(ctx context.Context, a domain.Artifact) error
 	RescaleTerritoryPlacements(ctx context.Context, slug string, newMax float64, newCenter domain.Vec3) error
 }
