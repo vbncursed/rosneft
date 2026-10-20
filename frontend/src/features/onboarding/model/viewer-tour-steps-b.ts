@@ -2,7 +2,7 @@ import type { TourStep } from "./tour-step";
 
 // The seven steps package B adds to the viewer tour, spliced between
 // `overlays-tabs` and `add-object` in `viewer-tour-steps.ts`. Split into its
-// own file — with its own spec — because the full fifteen-step list would
+// own file — with its own spec — because the full sixteen-step list would
 // push `viewer-tour-steps.ts` past the 200-line cap.
 //
 // `panorama-marker` names no tab: its target is the beacon drawn on the 3D

@@ -3,7 +3,7 @@ import { test, afterEach, vi } from "vitest";
 import assert from "node:assert/strict";
 
 import { act, renderHook } from "@testing-library/react";
-import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
+import { isShortcutBlocked, useKeyboardShortcuts } from "./use-keyboard-shortcuts";
 
 const mounted: (() => void)[] = [];
 afterEach(() => {
@@ -16,9 +16,9 @@ function bind(shortcuts: Record<string, () => void>) {
   return h;
 }
 
-function press(key: string, target?: Element) {
+function press(key: string, target?: Element, init: KeyboardEventInit = {}) {
   act(() => {
-    (target ?? window).dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+    (target ?? window).dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, ...init }));
   });
 }
 
@@ -34,6 +34,59 @@ test("character keys match case-insensitively — Shift+M is still M", () => {
   bind({ m });
   press("M");
   assert.equal(m.mock.calls.length, 1);
+});
+
+test("a held key fires once — auto-repeat keydowns are ignored", () => {
+  // G flips the walk on and off, and a refused walk toasts: a key held down
+  // must not repeat either of them.
+  const g = vi.fn();
+  bind({ g });
+  press("g");
+  press("g", undefined, { repeat: true });
+  assert.equal(g.mock.calls.length, 1);
+});
+
+test("a Russian layout's M fires the m shortcut by its physical key", () => {
+  // ЙЦУКЕН types "ь" on the key that is KeyM: the letter shortcuts answer by
+  // position, as the free cam's WASD already does.
+  const m = vi.fn();
+  bind({ m });
+  press("ь", undefined, { code: "KeyM" });
+  assert.equal(m.mock.calls.length, 1);
+});
+
+test("a Latin M still fires once, not twice", () => {
+  const m = vi.fn();
+  bind({ m });
+  press("m", undefined, { code: "KeyM" });
+  assert.equal(m.mock.calls.length, 1);
+});
+
+test("Dvorak keeps its own letter: the c key fires c, not the j key under it", () => {
+  const c = vi.fn();
+  const j = vi.fn();
+  bind({ c, j });
+  press("c", undefined, { code: "KeyJ" });
+  assert.equal(c.mock.calls.length, 1);
+  assert.equal(j.mock.calls.length, 0);
+});
+
+test("a Latin letter with no handler does not fall back to the key beneath it", () => {
+  // Dvorak's c sits on KeyJ: with only j bound, c must stay silent.
+  const j = vi.fn();
+  bind({ j });
+  press("c", undefined, { code: "KeyJ" });
+  assert.equal(j.mock.calls.length, 0);
+});
+
+test("a non-Latin key in a typing field is still blocked", () => {
+  const m = vi.fn();
+  bind({ m });
+  const field = document.createElement("input");
+  document.body.appendChild(field);
+  press("ь", field, { code: "KeyM" });
+  field.remove();
+  assert.equal(m.mock.calls.length, 0);
 });
 
 test("named keys match literally", () => {
@@ -132,4 +185,29 @@ test("unmounting removes the listener", () => {
   h.unmount();
   press("m");
   assert.equal(m.mock.calls.length, 0);
+});
+
+test("a key held with ⌘, Ctrl or Alt belongs to the browser, not the viewer", () => {
+  const f = vi.fn();
+  bind({ f });
+  for (const mod of ["metaKey", "ctrlKey", "altKey"] as const) {
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "f", [mod]: true }));
+    });
+  }
+  assert.equal(f.mock.calls.length, 0);
+});
+
+test("isShortcutBlocked: typing targets, an open dialog and modifiers", () => {
+  const input = document.createElement("input");
+  assert.equal(isShortcutBlocked(new KeyboardEvent("keydown", { key: "w" })), false);
+  const typed = new KeyboardEvent("keydown", { key: "w" });
+  Object.defineProperty(typed, "target", { value: input });
+  assert.equal(isShortcutBlocked(typed), true);
+  assert.equal(isShortcutBlocked(new KeyboardEvent("keydown", { key: "w", ctrlKey: true })), true);
+  const dialog = document.createElement("dialog");
+  dialog.setAttribute("open", "");
+  document.body.append(dialog);
+  assert.equal(isShortcutBlocked(new KeyboardEvent("keydown", { key: "w" })), true);
+  dialog.remove();
 });

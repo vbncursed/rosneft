@@ -33,6 +33,8 @@ const UNSTAMPED = new Date(0);
 
 /** Under this the panel is 300 wide and the gizmo keys lose their brackets. */
 const COMPACT = "(max-width: 1280px)";
+/** A touch screen: no hover to point a free cam with. */
+const TOUCH = "(hover: none) and (pointer: coarse)";
 
 /**
  * Everything the viewer page draws: the bundle, the principal's grants, and
@@ -74,6 +76,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
   const grants = useMemo(() => grantsOf(me.data ?? null), [me.data]);
 
   const compact = useMediaQuery(COMPACT);
+  const touch = useMediaQuery(TOUCH);
   const onChanged = useSceneDrop(client, slug);
 
   const ruler = useMeasurementSwitch();
@@ -84,11 +87,14 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     onChanged,
   });
 
+  const dims = vm?.metadata.dims ?? { x: 0, y: 0, z: 0 };
   const cycle = useRef<() => void>(() => {});
   const beforeEscape = useRef<() => boolean>(() => false);
   const mode = useViewerMode({
     canWrite: grants.write,
     canMovePoints: grants.panoramaWrite,
+    // No size, no metres: the free cam cannot walk.
+    canWalk: computeUnitRatio(dims) !== 1,
     chainOpen: measure.activeChainId !== null,
     onCancelChain: measure.cancelChain,
     onCycle: useCallback(() => cycle.current(), []),
@@ -156,7 +162,6 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     beforeEscape.current = documents.escape;
   });
 
-  const dims = vm?.metadata.dims ?? { x: 0, y: 0, z: 0 };
   const { editor, groups } = useViewerPlacements({
     slug,
     bundle,
@@ -229,6 +234,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
       view: {
         ...view,
         compact,
+        touch,
         error: viewerError(
           view.report.failure,
           vm.parentLods,

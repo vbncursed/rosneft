@@ -1,5 +1,5 @@
 export { useViewerMode, type UseViewerModeParams } from "./model/use-viewer-mode";
-export { useKeyboardShortcuts } from "./model/use-keyboard-shortcuts";
+export { isShortcutBlocked, useKeyboardShortcuts } from "./model/use-keyboard-shortcuts";
 export {
   INITIAL_VIEWER_MODE,
   viewerModeReducer,

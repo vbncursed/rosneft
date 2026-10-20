@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { Document } from "@/entities/document";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 import type { ViewerOverlaysProps } from "../model/page-props";
 import { ViewerOverlays } from "./viewer-overlays";
 
@@ -42,6 +43,7 @@ const props = (over: Partial<ViewerOverlaysProps> = {}): ViewerOverlaysProps => 
   tools: [
     { key: "reset", state: "active" },
     { key: "play", state: "idle" },
+    { key: "free", state: "idle" },
     { key: "measure", state: "idle" },
     { key: "add", state: "idle" },
     { key: "panoramas", state: "idle" },
@@ -50,6 +52,7 @@ const props = (over: Partial<ViewerOverlaysProps> = {}): ViewerOverlaysProps => 
   ],
   onReset: vi.fn(),
   onPlay: vi.fn(),
+  onFree: vi.fn(),
   onMeasure: vi.fn(),
   onAdd: vi.fn(),
   onPanoramas: vi.fn(),
@@ -61,6 +64,7 @@ const props = (over: Partial<ViewerOverlaysProps> = {}): ViewerOverlaysProps => 
   switcher: { levels: [0, 1, 2], choice: 1, target: 1, shown: 1, onChange: vi.fn() },
   strip: STRIP,
   hints: false,
+  freeKeys: null,
   error: null,
   switchTo3d: null,
   document: null,
@@ -84,6 +88,7 @@ describe("ViewerOverlays · the tool rail", () => {
     expect([...rail.querySelectorAll("button")].map((b) => b.getAttribute("aria-label"))).toEqual([
       "Reset camera",
       "Fly around",
+      "Free cam",
       "Measure",
       "Add objects",
       "Panoramas",
@@ -126,10 +131,11 @@ describe("ViewerOverlays · the tool rail", () => {
     expect(onDocuments).toHaveBeenCalledOnce();
   });
 
-  it("anchors the three tour targets on the tiles themselves", () => {
+  it("anchors the tour targets on the tiles themselves", () => {
     const { container } = render(<ViewerOverlays {...props()} />);
     for (const [anchor, name] of [
       ["reset-camera", "Reset camera"],
+      ["free-cam", "Free cam"],
       ["measure", "Measure"],
       ["add-object", "Add objects"],
     ] as const) {
@@ -169,6 +175,27 @@ describe("ViewerOverlays · the tool rail", () => {
       />,
     );
     expect(screen.getByRole("button", { name: "Fly around" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("names the free cam tile, announces F, and presses it while flying", async () => {
+    const onFree = vi.fn();
+    const tools = props().tools.map((t) => (t.key === "free" ? { ...t, state: "active" as const } : t));
+    render(<ViewerOverlays {...props({ onFree, tools })} />);
+    const tile = screen.getByRole("button", { name: "Free cam" });
+    expect(tile).toHaveAttribute("aria-keyshortcuts", "F");
+    expect(tile).toHaveAttribute("aria-pressed", "true");
+    expect(hoverTip(tile)).toHaveTextContent("Inside, press G to walk");
+    expect(tile).toHaveAccessibleName("Free cam");
+    await userEvent.click(tile);
+    expect(onFree).toHaveBeenCalledOnce();
+  });
+
+  it("shows the free cam keys only when asked", () => {
+    const { rerender } = render(<ViewerOverlays {...props()} />);
+    expect(screen.queryByRole("note", { name: "Free cam keys" })).not.toBeInTheDocument();
+    rerender(<ViewerOverlays {...props({ freeKeys: "walk" })} />);
+    const note = screen.getByRole("note", { name: "Free cam keys" });
+    expect(within(note).getByText("fly")).toBeInTheDocument();
   });
 
   it("toggles the flight from its tile", async () => {
@@ -314,14 +341,19 @@ describe("ViewerOverlays · the strip, the switcher and the hints", () => {
     expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
   });
 
-  it("shows the two keycap hints only when the page asks for them", () => {
+  it("shows the keycap hints only when the page asks, F among them while the free cam tile is live", () => {
     const { rerender } = render(<ViewerOverlays {...props()} />);
     expect(screen.queryByRole("note", { name: "Keyboard hints" })).not.toBeInTheDocument();
     rerender(<ViewerOverlays {...props({ hints: true })} />);
     // Exact text: a substring match passed while the Esc keycap and its label
     // both said "Esc", so the chip read "Esc Esc exit / deselect".
     const hints = screen.getByRole("note", { name: "Keyboard hints" });
-    expect([...hints.children].map((c) => c.textContent)).toEqual(["Mmeasure", "Escexit / deselect"]);
+    expect([...hints.children].map((c) => c.textContent)).toEqual(["Mmeasure", "Ffree cam", "Escexit / deselect"]);
+    rerender(<ViewerOverlays {...props({ hints: true, tools: props().tools.filter((t) => t.key !== "free") })} />);
+    expect([...screen.getByRole("note", { name: "Keyboard hints" }).children].map((c) => c.textContent)).toEqual([
+      "Mmeasure",
+      "Escexit / deselect",
+    ]);
   });
 });
 

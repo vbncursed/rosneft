@@ -3,7 +3,7 @@ import { groupByModel } from "@/entities/placement";
 import { documentProps, loadingLevel, panoramaCanvasProps, uploadProps, viewTabProps } from "./page-props-b";
 import { memoLast } from "./memo-last";
 import { placementsPanelProps } from "./page-props-placements";
-import { loadingChip, measuringView, modeChip, stripItems } from "./strip-and-chips";
+import { freeKeys, loadingChip, measuringView, modeChip, stripItems } from "./strip-and-chips";
 import { errorCopy, headerMeta, headerPills, measureGrants, railTools } from "./viewer-view";
 import type { PageParts, TerritoryViewerPageProps } from "./viewer-props";
 
@@ -49,6 +49,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
 
   const levels = vm.parentLods.map((a) => a.lod).sort((a, b) => a - b);
   const groups = groupsOf(p.placements, options);
+  const unitRatio = computeUnitRatio(vm.metadata.dims);
 
   return {
     header: {
@@ -94,9 +95,11 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       activeChainId: measure.activeChainId,
       showMeasurements: measure.show,
       canEditMeasurements: canEditSaved(measureGrants(grants)),
-      unitRatio: computeUnitRatio(vm.metadata.dims),
+      unitRatio,
       resetVersion: view.resetVersion,
       playing: view.playing,
+      free: mode.free,
+      walk: mode.walk,
       retryVersion: view.retryVersion,
       focusRequest: view.focusRequest,
       ...panoramaCanvasProps(p, groups),
@@ -108,6 +111,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       onRemoveChain: on.onRemoveChain,
       onLod: on.onLod,
       onPlayStop: on.onPlayStop,
+      onWalkRefused: on.onWalkRefused,
     },
 
     overlays: {
@@ -123,9 +127,12 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
         view: mode.view,
         documentOpen: docs.window !== null,
         playing: view.playing,
+        free: mode.free,
+        touch: view.touch,
       }),
       onReset: on.onReset,
       onPlay: on.onPlay,
+      onFree: on.onFree,
       onMeasure: on.onMeasure,
       onAdd: on.onAdd,
       onPanoramas: on.onPanoramas,
@@ -141,6 +148,8 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
               measure: measure.summary,
               view: mode.view,
               move: mode.move,
+              free: mode.free,
+              walk: mode.walk,
               calibrating: p.panoramas.calibration.active ? (p.panoramas.editing?.title ?? null) : null,
             }),
       loading: loading ? { chip: loadingChip(loading), percent: loading.percent, target: loading.target } : null,
@@ -166,7 +175,8 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
         target: failed ? error.lod : report.target,
         failed,
       }),
-      hints: !failed && p.panel.collapsed && mode.mode === "orbit",
+      hints: !failed && p.panel.collapsed && mode.mode === "orbit" && !mode.free,
+      freeKeys: failed ? null : freeKeys({ free: mode.free, walk: mode.walk, unitRatio }),
       switchTo3d: inside ? p.panoramas.onExit : null,
       document: docs.window,
       documentLayerRef: p.documents.layerRef,

@@ -30,6 +30,8 @@ const props = {
   unitRatio: 1,
   resetVersion: 0,
   playing: false,
+  free: false,
+  walk: false,
   retryVersion: 0,
   focusRequest: null,
   activePanorama: null,
@@ -60,6 +62,7 @@ const props = {
   onRemoveChain: vi.fn(),
   onLod: vi.fn(),
   onPlayStop: vi.fn(),
+  onWalkRefused: vi.fn(),
 } as ViewerCanvasProps;
 
 const setTokens = (panel: string) => {

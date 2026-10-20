@@ -150,7 +150,7 @@ internal/
 
 ## Toolchain & dependencies
 
-Go **1.27.2** (`go 1.27.2` in `go.mod`; image `golang:1.27.2-alpine`).
+Go **1.27.3** (`go 1.27.3` in `go.mod`; image `golang:1.27.3-alpine`).
 
 | Module | Version | Role |
 | --- | --- | --- |

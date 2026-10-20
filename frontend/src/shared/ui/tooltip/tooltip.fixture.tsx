@@ -53,6 +53,16 @@ export default {
       <Tile icon="trash" label="Delete" disabled />
     </div>
   ),
+  // A second line under the name: what the control's key does once it is on.
+  note: (
+    <div className="flex gap-1 rounded-card border border-line bg-panel p-6 pt-12">
+      <Tooltip label="Free cam" shortcut="F" note="Inside, press G to walk">
+        <button type="button" aria-label="Free cam" className={TILE}>
+          <Icon name="free-cam" size={15} />
+        </button>
+      </Tooltip>
+    </div>
+  ),
   // The rail sits under the header, so its tooltips hang below it.
   bottom: (
     <div className="flex gap-1 rounded-card border border-line bg-panel p-6">

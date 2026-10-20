@@ -3,7 +3,7 @@ import type { SceneMetadata } from "@/entities/scene";
 import type { ViewerView } from "@/features/viewer-mode";
 import type { Chain } from "@/entities/measurement";
 import { basePageParts, GUEST } from "../territory-viewer-page.fixture";
-import { loadingChip, measuringView, modeChip, stripItems } from "./strip-and-chips";
+import { freeKeys, loadingChip, measuringView, modeChip, stripItems } from "./strip-and-chips";
 
 const SCENE: ViewerView = { kind: "scene" };
 const INSIDE: ViewerView = { kind: "panorama", id: 7 };
@@ -24,6 +24,8 @@ const chip = (over: Partial<Parameters<typeof modeChip>[0]> = {}) =>
     measure: NOTHING,
     view: SCENE,
     move: false,
+    free: false,
+    walk: false,
     calibrating: null,
     ...over,
   });
@@ -76,10 +78,30 @@ describe("modeChip", () => {
     expect(chip({ move: true })).toEqual({ text: "move points · drag a marker", kbd: "V" });
   });
 
+  it("says the pointer looks in the free cam, and that F leaves it", () => {
+    expect(chip({ free: true })).toEqual({ text: "free cam · drag to look", kbd: "F" });
+  });
+
+  it("names the walk and its eye height, and that G leaves it", () => {
+    expect(chip({ free: true, walk: true })).toEqual({ text: "walk · 1.80 m", kbd: "G" });
+  });
+
   it("looks around rather than calibrating once the camera is inside the sphere", () => {
     // The chip answers "what does the pointer do", and inside the sphere a
     // drag looks around whatever the anchor card is doing on the panel.
     expect(chip({ view: INSIDE, calibrating: "Control room" }).text).toBe("panorama · drag to look around");
+  });
+});
+
+describe("freeKeys", () => {
+  it("is the walking row while walking, the flying row otherwise, and none outside the free cam", () => {
+    expect(freeKeys({ free: true, walk: true, unitRatio: 18 })).toBe("walk");
+    expect(freeKeys({ free: true, walk: false, unitRatio: 18 })).toBe("fly");
+    expect(freeKeys({ free: false, walk: false, unitRatio: 18 })).toBeNull();
+  });
+
+  it("says the walk is out of reach on a territory with no size", () => {
+    expect(freeKeys({ free: true, walk: false, unitRatio: 1 })).toBe("fly-no-scale");
   });
 });
 

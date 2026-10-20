@@ -9,7 +9,7 @@ the browser fetches compact binary artifacts instead of 100+ MB ASCII files.
 
 ```
 andrey/
-├── backend/            # Go 1.27.2 microservices (gateway, catalog, content, auth,
+├── backend/            # Go 1.27.3 microservices (gateway, catalog, content, auth,
 │                       #   twofa, passkey, mesh, upload, asset)
 ├── frontend/           # Vite + React 19 SPA, Feature-Sliced (TanStack Router + react-three-fiber)
 ├── desktop/            # Electron desktop shell around the production SPA
@@ -41,7 +41,7 @@ See [`frontend/README.md`](frontend/README.md) and
 
 ### Backend (`backend/`)
 
-Go **1.27.2** multi-module workspace (`go.work`, 12 modules). Services:
+Go **1.27.3** multi-module workspace (`go.work`, 12 modules). Services:
 
 | Service           | Purpose                                                       | Network            |
 | ----------------- | ------------------------------------------------------------- | ------------------ |
@@ -93,7 +93,7 @@ Implemented across both sides; some are opt-in until both halves are wired:
 
 | Half | Runtime | Pinned where |
 | --- | --- | --- |
-| Backend | **Go 1.27.2** | `backend/go.work` + all 12 `go.mod` files; `golang:1.27.2-alpine` in every service Dockerfile |
+| Backend | **Go 1.27.3** | `backend/go.work` + all 12 `go.mod` files; `golang:1.27.3-alpine` in every service Dockerfile |
 | Frontend | **Node 24 + Yarn 4** (`packageManager`, via corepack), Vite 8, React 19, TypeScript strict | `frontend/package.json` |
 | Datastores | PostgreSQL 17, Redis 8 | `docker-compose.yml` |
 

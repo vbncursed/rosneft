@@ -1,6 +1,10 @@
 import { useCallback, useReducer } from "react";
+import { notify } from "@/shared/lib/notify";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
 import { INITIAL_VIEWER_MODE, viewerModeReducer, type GizmoMode } from "./viewer-mode";
+
+/** Said when G finds nothing under the camera to stand on. */
+const NO_GROUND = "No ground under the camera to walk on. Fly over the territory and press G again.";
 
 export type UseViewerModeParams = {
   /** placement:write — without it the gizmo keys do nothing. */
@@ -18,6 +22,8 @@ export type UseViewerModeParams = {
    * `escape` below.
    */
   beforeEscape?: () => boolean;
+  /** The territory has a scale (unitRatio ≠ 1): only then does G walk in the free cam. */
+  canWalk?: boolean;
 };
 
 /** The reducer behind a stable API, with the viewer's keys bound. */
@@ -28,6 +34,7 @@ export function useViewerMode({
   onCancelChain,
   onCycle,
   beforeEscape,
+  canWalk = false,
 }: UseViewerModeParams) {
   const [state, dispatch] = useReducer(viewerModeReducer, INITIAL_VIEWER_MODE);
 
@@ -71,29 +78,47 @@ export function useViewerMode({
     dispatch({ type: "toggleMove" });
   }, [leaveMeasure]);
   const exitMove = useCallback(() => dispatch({ type: "exitMove" }), []);
+  // Entering from measure breaks an open chain, like every other way out of it.
+  const toggleFree = useCallback(() => {
+    leaveMeasure();
+    dispatch({ type: "toggleFree" });
+  }, [leaveMeasure]);
+  const exitFree = useCallback(() => dispatch({ type: "exitFree" }), []);
+  const toggleWalk = useCallback(() => dispatch({ type: "toggleWalk" }), []);
+  // The canvas found nothing to stand on: keep flying, and say why.
+  const refuseWalk = useCallback(() => {
+    dispatch({ type: "exitWalk" });
+    notify.info(NO_GROUND);
+  }, []);
   const startEdit = useCallback((id: number) => dispatch({ type: "startEdit", id }), []);
   const closeEdit = useCallback(() => dispatch({ type: "closeEdit" }), []);
-  // Spec §1's order: move, then an open chain, then the document overlay, then
-  // the selection, the mode and the panorama. `beforeEscape` is the document's
-  // claim on the key, so it is offered only once the reducer has nothing of its
-  // own left to peel first — otherwise the window closed while the reader was
-  // still stuck in move mode, which is the sub-mode Escape was pressed to leave.
+  // Spec §1's order: move, free, an open chain, the document overlay, then the
+  // selection, the mode and the panorama. `beforeEscape` is the document's claim
+  // on the key, so it is offered only once the reducer has nothing of its own
+  // left to peel first — otherwise the window closed while the reader was still
+  // stuck in a sub-mode Escape was pressed to leave.
   const escape = useCallback(() => {
-    if (!state.move && !chainOpen && beforeEscape?.()) return;
+    if (!state.move && !state.free && !chainOpen && beforeEscape?.()) return;
     if (chainOpen) onCancelChain();
     dispatch({ type: "escape", chainOpen });
-  }, [beforeEscape, chainOpen, onCancelChain, state.move]);
+  }, [beforeEscape, chainOpen, onCancelChain, state.move, state.free]);
 
+  // S also flies backwards in the free cam; the panel's buttons still set the gizmo.
   const gizmoKey = (gizmo: GizmoMode) => () => {
-    if (canWrite && state.selectedId !== null) setGizmo(gizmo);
+    if (canWrite && state.selectedId !== null && !state.free) setGizmo(gizmo);
   };
 
   useKeyboardShortcuts({
     m: toggleMeasure,
+    f: toggleFree,
     t: gizmoKey("translate"),
     r: gizmoKey("rotate"),
     s: gizmoKey("scale"),
-    g: toggleSnap,
+    // G snaps the gizmo to the surface; in the free cam, which has no gizmo, it walks.
+    g: () => {
+      if (!state.free) toggleSnap();
+      else if (canWalk) toggleWalk();
+    },
     p: onCycle,
     v: () => {
       if (canMovePoints) toggleMove();
@@ -115,6 +140,9 @@ export function useViewerMode({
     exitPanorama,
     toggleMove,
     exitMove,
+    toggleFree,
+    exitFree,
+    refuseWalk,
     startEdit,
     closeEdit,
   };

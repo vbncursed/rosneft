@@ -64,11 +64,16 @@ export type MeasuringView = {
   confirm: { title: string; onConfirm: () => void; onCancel: () => void } | null;
 };
 
+/** Which key row the free cam shows: flying, walking, or flying where walking has no metres to go by. */
+export type FreeKeys = "fly" | "walk" | "fly-no-scale";
+
 export type ViewerOverlaysProps = {
   tools: RailToolState[];
   onReset: () => void;
   /** The fly-around tile: takes off, or lands a flight in progress. */
   onPlay: () => void;
+  /** The free cam tile: F's toggle. */
+  onFree: () => void;
   onMeasure: () => void;
   onAdd: () => void;
   /** The two overlay tiles: reveal that section of the View tab (Task 15's `revealSection`). */
@@ -82,6 +87,8 @@ export type ViewerOverlaysProps = {
   switcher: SwitcherView | null;
   strip: StripView;
   hints: boolean;
+  /** The free cam's key row, under its chip; null outside the free cam. */
+  freeKeys: FreeKeys | null;
   error: ViewerErrorProps | null;
   /** The way out of a panorama, under the mode chip; null in the 3D scene. */
   switchTo3d: (() => void) | null;
@@ -134,6 +141,10 @@ export type PageHandlers = {
   onPlay: () => void;
   /** The canvas ended the flight itself: the reader grabbed the view. */
   onPlayStop: () => void;
+  /** F, and the rail's free cam tile. */
+  onFree: () => void;
+  /** The canvas found no ground under the camera to walk on. */
+  onWalkRefused: () => void;
   onMeasure: () => void;
   onAdd: () => void;
   onPanoramas: () => void;
@@ -186,6 +197,8 @@ export type PageViewState = {
   /** The Clear question is on screen. */
   confirmClear: boolean;
   compact: boolean;
+  /** A touch screen (no hover, coarse pointer): the free cam tile is not drawn. */
+  touch: boolean;
   error: ViewerError | null;
   /** Passed in rather than read here, so the error card's clock is testable. */
   now: Date;

@@ -1,7 +1,7 @@
 import { act, render } from "@testing-library/react";
 import { createElement, isValidElement, type ReactNode } from "react";
 import { beforeAll, describe, expect, it } from "vitest";
-import { preloadViewer } from "@/widgets/viewer-canvas";
+import { preloadModelViewer, preloadViewer } from "@/widgets/viewer-canvas";
 
 /**
  * Every fixture must at least render. Cosmos only loads a fixture when someone
@@ -41,7 +41,7 @@ describe("every fixture renders", () => {
   // act had closed, and woke every root still waiting on it in the middle of
   // some other test. Loaded up front, the lazy boundary resolves within a
   // microtask — inside the act each fixture now awaits, canvas and all.
-  beforeAll(() => preloadViewer());
+  beforeAll(() => Promise.all([preloadViewer(), preloadModelViewer()]));
 
   it("finds the fixtures to check — a broken glob must not pass silently", () => {
     expect(paths.length).toBeGreaterThan(40);

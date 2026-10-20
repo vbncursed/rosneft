@@ -100,6 +100,8 @@ const HANDLERS: PageHandlers = {
   onReset: noop,
   onPlay: noop,
   onPlayStop: noop,
+  onFree: noop,
+  onWalkRefused: noop,
   onMeasure: noop,
   onAdd: noop,
   onPanoramas: noop,
@@ -143,6 +145,8 @@ const parts = (over: Partial<PageParts> = {}): PageParts => ({
     snap: false,
     view: { kind: "scene" },
     move: false,
+    free: false,
+    walk: false,
     editingPanoramaId: null,
   },
   measure: {
@@ -178,6 +182,7 @@ const parts = (over: Partial<PageParts> = {}): PageParts => ({
     expandedModel: null,
     confirmClear: false,
     compact: false,
+    touch: false,
     error: null,
     now: new Date(2026, 8, 9, 14, 22),
   },
@@ -253,6 +258,8 @@ describe("pageProps · canvas", () => {
         snap: true,
         view: { kind: "scene" },
         move: false,
+        free: false,
+        walk: false,
         editingPanoramaId: null,
       },
     });
@@ -270,6 +277,7 @@ describe("pageProps · overlays", () => {
     expect(pageProps(parts()).overlays.tools).toEqual([
       { key: "reset", state: "active" },
       { key: "play", state: "idle" },
+      { key: "free", state: "idle" },
       { key: "measure", state: "idle" },
       { key: "add", state: "idle" },
       { key: "panoramas", state: "idle" },
@@ -375,6 +383,57 @@ describe("pageProps · overlays", () => {
     expect(props.canvas.onPlayStop).toBe(HANDLERS.onPlayStop);
     expect(props.overlays.onPlay).toBe(HANDLERS.onPlay);
     expect(props.overlays.tools.find((t) => t.key === "play")?.state).toBe("active");
+  });
+
+  it("flies free: the tile lit, the chip says so, the free cam keys up, the orbit hints down", () => {
+    const p = parts({ panel: { tab: "view", collapsed: true } });
+    const props = pageProps({ ...p, mode: { ...p.mode, free: true } });
+    expect(props.overlays.tools.find((t) => t.key === "free")?.state).toBe("active");
+    expect(props.overlays.chip).toEqual({ text: "free cam · drag to look", kbd: "F" });
+    expect(props.overlays.freeKeys).toBe("fly");
+    expect(props.overlays.hints).toBe(false);
+    expect(props.canvas.free).toBe(true);
+  });
+
+  it("hands the walk and its refusal down to the canvas", () => {
+    const p = parts();
+    const props = pageProps({ ...p, mode: { ...p.mode, free: true, walk: true } });
+    expect(props.canvas.walk).toBe(true);
+    expect(props.canvas.onWalkRefused).toBe(HANDLERS.onWalkRefused);
+  });
+
+  it("draws no free cam tile on a touch screen", () => {
+    const p = parts();
+    expect(pageProps({ ...p, view: { ...p.view, touch: true } }).overlays.tools.map((t) => t.key)).not.toContain(
+      "free",
+    );
+  });
+
+  it("keeps the free cam chip and key row on a touch screen once it is on", () => {
+    const p = parts({ panel: { tab: "view", collapsed: true } });
+    const props = pageProps({ ...p, view: { ...p.view, touch: true }, mode: { ...p.mode, free: true } });
+    expect(props.overlays.tools.map((t) => t.key)).not.toContain("free");
+    expect(props.overlays.chip).toEqual({ text: "free cam · drag to look", kbd: "F" });
+    expect(props.overlays.freeKeys).toBe("fly");
+  });
+
+  it("walks: the chip names the eye height, the walking keys are up", () => {
+    const p = parts();
+    const props = pageProps({ ...p, mode: { ...p.mode, free: true, walk: true } });
+    expect(props.overlays.chip).toEqual({ text: "walk · 1.80 m", kbd: "G" });
+    expect(props.overlays.freeKeys).toBe("walk");
+    expect(props.overlays.tools.find((t) => t.key === "free")?.state).toBe("active");
+  });
+
+  it("tells a free cam over a territory with no size that it cannot walk", () => {
+    const p = parts();
+    const vm = { ...p.vm, metadata: { ...p.vm.metadata, dims: { x: 0, y: 0, z: 0 } } };
+    expect(pageProps({ ...p, vm, mode: { ...p.mode, free: true } }).overlays.freeKeys).toBe("fly-no-scale");
+  });
+
+  it("draws no free cam keys over a failure", () => {
+    const p = parts(FAILURE);
+    expect(pageProps({ ...p, mode: { ...p.mode, free: true } }).overlays.freeKeys).toBeNull();
   });
 });
 
@@ -526,6 +585,8 @@ describe("pageProps · panel", () => {
         snap: false,
         view: { kind: "scene" },
         move: false,
+        free: false,
+        walk: false,
         editingPanoramaId: null,
       },
     });
@@ -546,6 +607,8 @@ describe("pageProps · panel", () => {
         snap: false,
         view: { kind: "scene" },
         move: false,
+        free: false,
+        walk: false,
         editingPanoramaId: null,
       },
     });
@@ -573,6 +636,8 @@ describe("pageProps · panel", () => {
         snap: false,
         view: { kind: "scene" },
         move: false,
+        free: false,
+        walk: false,
         editingPanoramaId: null,
       },
     });

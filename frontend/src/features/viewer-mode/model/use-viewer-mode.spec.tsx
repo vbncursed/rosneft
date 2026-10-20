@@ -1,5 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { notify } from "@/shared/lib/notify";
 import { useViewerMode } from "./use-viewer-mode";
 
 const press = (key: string) =>
@@ -242,5 +243,142 @@ describe("useViewerMode", () => {
     });
     press("r");
     expect(result.current.state.gizmo).toBe("rotate");
+  });
+
+  it("F toggles the free cam; T/R/S are off while flying, the panel still sets the gizmo", () => {
+    const { result } = renderHook(() =>
+      useViewerMode({ canWrite: true, canMovePoints: false, chainOpen: false, onCancelChain: vi.fn(), onCycle: noop }),
+    );
+    act(() => result.current.select(4));
+    press("f");
+    expect(result.current.state).toMatchObject({ free: true, selectedId: 4 });
+    press("s");
+    expect(result.current.state.gizmo).toBe("translate");
+    act(() => result.current.setGizmo("rotate"));
+    expect(result.current.state.gizmo).toBe("rotate");
+    press("F");
+    expect(result.current.state.free).toBe(false);
+  });
+
+  it("Escape leaves the free cam before the document window gets the key", () => {
+    const beforeEscape = vi.fn(() => true);
+    const { result } = renderHook(() =>
+      useViewerMode({
+        canWrite: true,
+        canMovePoints: false,
+        chainOpen: false,
+        onCancelChain: vi.fn(),
+        onCycle: noop,
+        beforeEscape,
+      }),
+    );
+    press("f");
+    press("Escape");
+    expect(result.current.state.free).toBe(false);
+    expect(beforeEscape).not.toHaveBeenCalled();
+  });
+
+  it("entering the free cam from measure breaks the open chain", () => {
+    const onCancelChain = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ chainOpen }) =>
+        useViewerMode({ canWrite: true, canMovePoints: false, chainOpen, onCancelChain, onCycle: noop }),
+      { initialProps: { chainOpen: false } },
+    );
+    act(() => result.current.toggleMeasure());
+    rerender({ chainOpen: true });
+    press("f");
+    expect(onCancelChain).toHaveBeenCalledOnce();
+    expect(result.current.state).toMatchObject({ free: true, mode: "orbit" });
+  });
+
+  it("exitFree and toggleFree keep their identity across renders", () => {
+    const { result, rerender } = renderHook(() =>
+      useViewerMode({ canWrite: true, canMovePoints: false, chainOpen: false, onCancelChain: noop, onCycle: noop }),
+    );
+    const first = result.current;
+    press("f");
+    rerender();
+    expect(result.current.toggleFree).toBe(first.toggleFree);
+    expect(result.current.exitFree).toBe(first.exitFree);
+  });
+
+  it("G walks only in the free cam and only with a scale; outside it G still snaps", () => {
+    const { result, rerender } = renderHook(
+      ({ canWalk }) =>
+        useViewerMode({
+          canWrite: true,
+          canMovePoints: false,
+          chainOpen: false,
+          onCancelChain: noop,
+          onCycle: noop,
+          canWalk,
+        }),
+      { initialProps: { canWalk: false } },
+    );
+    press("g");
+    expect(result.current.state).toMatchObject({ snap: true, walk: false });
+    press("f");
+    press("g");
+    expect(result.current.state).toMatchObject({ free: true, walk: false, snap: true });
+    rerender({ canWalk: true });
+    press("g");
+    expect(result.current.state).toMatchObject({ free: true, walk: true, snap: true });
+    press("G");
+    expect(result.current.state.walk).toBe(false);
+  });
+
+  it("refuseWalk flies on and says why", () => {
+    const info = vi.spyOn(notify, "info").mockImplementation(() => 0);
+    const { result } = renderHook(() =>
+      useViewerMode({
+        canWrite: true,
+        canMovePoints: false,
+        chainOpen: false,
+        onCancelChain: noop,
+        onCycle: noop,
+        canWalk: true,
+      }),
+    );
+    press("f");
+    press("g");
+    act(() => result.current.refuseWalk());
+    expect(result.current.state).toMatchObject({ free: true, walk: false });
+    expect(info).toHaveBeenCalledExactlyOnceWith(expect.stringContaining("No ground under the camera"));
+    info.mockRestore();
+  });
+
+  it("Escape from walking leaves the free cam in one press", () => {
+    const { result } = renderHook(() =>
+      useViewerMode({
+        canWrite: true,
+        canMovePoints: false,
+        chainOpen: false,
+        onCancelChain: noop,
+        onCycle: noop,
+        canWalk: true,
+      }),
+    );
+    press("f");
+    press("g");
+    press("Escape");
+    expect(result.current.state).toMatchObject({ free: false, walk: false });
+  });
+
+  it("refuseWalk keeps its identity across renders", () => {
+    const { result, rerender } = renderHook(() =>
+      useViewerMode({
+        canWrite: true,
+        canMovePoints: false,
+        chainOpen: false,
+        onCancelChain: noop,
+        onCycle: noop,
+        canWalk: true,
+      }),
+    );
+    const first = result.current.refuseWalk;
+    press("f");
+    rerender();
+    expect(result.current.refuseWalk).toBe(first);
   });
 });

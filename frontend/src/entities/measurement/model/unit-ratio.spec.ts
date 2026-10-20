@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { computeUnitRatio } from "./unit-ratio";
+import { computeUnitRatio, EYE_HEIGHT_M } from "./unit-ratio";
+
+it("stands the eye at 1.80 m", () => expect(EYE_HEIGHT_M).toBe(1.8));
 
 describe("computeUnitRatio", () => {
   it("is the largest bbox axis over 2 (converter's normalised max)", () => {

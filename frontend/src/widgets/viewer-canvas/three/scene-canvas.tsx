@@ -7,7 +7,9 @@ import type { ViewerCanvasProps } from "../ui/props";
 import { AutoLodClock } from "./auto-lod-clock";
 import CameraRig from "./camera-rig";
 import CameraTracker from "./camera-tracker";
+import { CAMERA, DPR_RANGE, GL_CONFIG, GRID_POSITION } from "./canvas-config";
 import FocusOn from "./focus-on";
+import FreeCamRig from "./free-cam-rig";
 import GlbPreloader from "./glb-preloader";
 import GltfModel from "./gltf-model";
 import Ktx2Init from "./ktx2-init";
@@ -15,26 +17,6 @@ import Lighting from "./lighting";
 import MeasurementLayer from "./measurement-layer";
 import PanoramaScene from "./panorama-scene";
 import PlacementsLayer from "./placements-layer";
-
-// Stable literal references so react-three-fiber doesn't tear down and
-// recreate the gridHelper / background colour on every render of this
-// component. R3F reconciles `args` by reference; new array literals each
-// render trigger a dispose+reconstruct cycle for the underlying
-// THREE.Object3D — which is why the two coloured ones are memoised on
-// `colors` rather than written inline.
-// near=0.1 (not 0.01) keeps the depth-buffer precision sane against
-// far=500 — log2(500/0.1) fits a 24-bit depth buffer comfortably; 500/0.01
-// invites Z-fighting on coplanar geometry without a measurable benefit
-// at the converter's normalised scale (max-axis = 2).
-const CAMERA = { position: [0, 0, 3] as [number, number, number], fov: 50, near: 0.1, far: 500 };
-// A fixed density range. drei's AdaptiveDpr used to sit here, but it only
-// moves dpr when something calls `regress()`, and nothing does — CameraRig
-// drives three-stdlib's controls directly — so it never changed a pixel.
-// 1.5 is the ceiling this viewer has always rendered at; whether a retina
-// screen should get 2 is a cost call for a real GPU, not swiftshader.
-const DPR_RANGE: [number, number] = [1, 1.5];
-const GL_CONFIG = { antialias: true, alpha: false };
-const GRID_POSITION: [number, number, number] = [0, -1.2, 0];
 
 export type SceneCanvasProps = ViewerCanvasProps & { colors: SceneColors };
 
@@ -44,6 +26,8 @@ export default function SceneCanvas({
   retryVersion,
   resetVersion,
   playing,
+  free,
+  walk,
   placements,
   placementGroups,
   mode,
@@ -85,6 +69,7 @@ export default function SceneCanvas({
   onRemoveChain,
   onLod,
   onPlayStop,
+  onWalkRefused,
 }: SceneCanvasProps) {
   // Orbit is the only mode that edits a selection; every other mode is
   // picking points, so the gizmo hides and clicks reach the wrapper group.
@@ -111,6 +96,7 @@ export default function SceneCanvas({
   // The scene wrapper, and what FocusOn frames from. It has to be this and not
   // the territory: <Bounds> renders a group of its own, so the territory's
   // parent is that group, and every placement hangs off the wrapper beside it.
+  // Everything drawn under it is solid to the free cam's walker: hidden placements are not mounted, so they are not.
   const wrapperRef = useRef<Group>(null);
 
   // Wrapper-group click is the catch-all for in-scene points. Use the first
@@ -204,7 +190,10 @@ export default function SceneCanvas({
               mode={gizmo}
               measureMode={pointMode}
               measuring={mode === "measure"}
-              canEdit={canWrite}
+              // No gizmo in the free cam: it and the look share one pointerdown,
+              // and its drop hands the orbit back (use-gizmo-events). The ring
+              // marks the selection instead, as it does for a guest.
+              canEdit={canWrite && !free}
               territoryRef={territoryRef}
               // Nothing to snap to inside a panorama: the territory is behind
               // the equirect and the reader cannot see where a drop landed.
@@ -218,6 +207,17 @@ export default function SceneCanvas({
             />
           </Suspense>
         </group>
+        {/* Inside the clock: the rig tells Auto LOD the camera moved through
+            the settle bus, since OrbitControls fires nothing while it flies. */}
+        {free ? (
+          <FreeCamRig
+            sceneRef={territoryRef}
+            solidRef={wrapperRef}
+            walk={walk}
+            unitRatio={unitRatio}
+            onWalkRefused={onWalkRefused}
+          />
+        ) : null}
       </AutoLodClock>
 
       <MeasurementLayer

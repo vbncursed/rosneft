@@ -36,7 +36,7 @@ export type HandlerDeps = {
 
 /** The page's own state, plus the moment a failure arrived — `now`'s source. */
 export type PageInteraction = {
-  view: Omit<PageViewState, "compact" | "error" | "now">;
+  view: Omit<PageViewState, "compact" | "touch" | "error" | "now">;
   failedAt: Date | null;
   on: PageHandlers;
 };
@@ -71,8 +71,19 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
   const [query, setQuery] = useState("");
   const [expandedModel, setExpandedModel] = useState<string | null>(null);
 
-  const fly = useFlyAround(mode.state.mode, mode.state.view.kind);
-  const land = fly.stop;
+  const fly = useFlyAround(mode.state.mode, mode.state.view.kind, mode.state.free);
+  const { stop: stopFlight, toggle: toggleFlight } = fly;
+  const { exitFree, toggleFree } = mode;
+  // Reset and Focus take the camera somewhere: a flight lands, the free cam ends.
+  const land = useCallback(() => {
+    stopFlight();
+    exitFree();
+  }, [stopFlight, exitFree]);
+  // Play from the free cam leaves it first (useFlyAround lands only on entering it).
+  const onPlay = useCallback(() => {
+    exitFree();
+    toggleFlight();
+  }, [exitFree, toggleFlight]);
   const { report, failedAt, retryVersion, resetVersion, onLod, onReset, onRetry } = useLodHandlers({ land });
   // So does a focus: the next flight frame would overwrite it.
   const onFocus = useCallback(
@@ -170,8 +181,10 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
       onRemoveChain: measure.removeChain,
       onLod,
       onReset,
-      onPlay: fly.toggle,
-      onPlayStop: fly.stop,
+      onPlay,
+      onPlayStop: stopFlight,
+      onFree: toggleFree,
+      onWalkRefused: mode.refuseWalk,
       onMeasure: mode.toggleMeasure,
       onAdd,
       onPanoramas,

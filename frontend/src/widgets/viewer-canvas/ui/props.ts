@@ -35,6 +35,10 @@ export type ViewerCanvasProps = {
   resetVersion: number;
   /** Play: the camera flies around the territory until the page or the rig stops it. */
   playing: boolean;
+  /** Free cam: FreeCamRig flies the camera and the orbit stands aside; the gizmo hides meanwhile. */
+  free: boolean;
+  /** G inside the free cam: the camera walks at eye height over the territory instead of flying. */
+  walk: boolean;
   /** Bumped by the page's Retry: re-arms the boundary and clears the failure. */
   retryVersion: number;
   /** Instance ids to frame; a new array reference triggers a refit. */
@@ -94,4 +98,15 @@ export type ViewerCanvasProps = {
   onLod: (report: LodReport) => void;
   /** The rig ended the flight itself — a grab, or nothing to circle. */
   onPlayStop: () => void;
+  /** Walk found no ground under the camera: the page goes back to flying and says why. */
+  onWalkRefused: () => void;
+};
+
+/** The model page's viewer: one LOD chain, nothing else. */
+export type ModelCanvasProps = {
+  lods: LodArtifact[];
+  retryVersion: number;
+  onLod: (report: LodReport) => void;
+  /** The scene could not start — no WebGL, or anything else that tore the Canvas down. */
+  onUnavailable: () => void;
 };

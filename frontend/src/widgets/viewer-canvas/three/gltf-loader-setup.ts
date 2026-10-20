@@ -7,8 +7,8 @@ import type { KTX2Loader as StdlibKTX2Loader, GLTFLoader } from "three-stdlib";
 // One-time prototype patch: route every Mesh.raycast through three-mesh-bvh's
 // accelerated implementation. Without a BVH the accelerated path falls back
 // to the stock raycast, so this is safe for meshes we don't explicitly
-// compute a bounds tree on — only the territory builds one (see
-// gltf-model.tsx). With a BVH, raycast against a triangle-rich territory
+// compute a bounds tree on — the territory and the placed models build one (see
+// gltf-model.tsx and placement-instance.tsx). With a BVH, raycast against a triangle-rich territory
 // drops from ~5ms to ~50µs, which is what makes per-frame snap-to-surface
 // during a placement drag stop micro-freezing.
 //
