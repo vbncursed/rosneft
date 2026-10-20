@@ -64,7 +64,7 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 
 	// One index read per tick, taken on first need and shared with the sweep.
 	index := sync.OnceValues(func() ([]domain.Job, error) { return m.queue.ListTargetJobs(ctx) })
-	var failed map[string]struct{}
+	var latest map[string]domain.Job
 
 	queued := 0
 	for _, t := range targets {
@@ -94,17 +94,21 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 				continue
 			}
 		}
-		if failed == nil {
-			failed = failedOnInput(ctx, index)
+		if latest == nil {
+			latest = latestJobs(ctx, index)
 		}
-		if _, skip := failed[targetKey(t.Kind, t.Slug)]; skip {
+		last, seen := latest[targetKey(t.Kind, t.Slug)]
+		if seen && last.Status == domain.JobStatusFailed && last.FailedOnSource {
 			continue
 		}
 		// SubmitConversion holds the target claim; when the target is already
 		// in flight it hands back that job and created is false.
-		// Only the plain-copy backfill is marked: a target without LOD0 is a
-		// first conversion, and its failure must stay visible.
-		_, created, err := m.submit(ctx, t.Kind, t.Slug, has)
+		// Only the plain-copy backfill is marked (Job.Backfill hides its
+		// failure). A first conversion (no LOD0) is not, nor a retry of a job
+		// that neither succeeded nor was a backfill: that is a failed or
+		// abandoned replace-source, converting bytes the LOD0 is not built from.
+		backfill := has && (!seen || last.Status == domain.JobStatusSucceeded || last.Backfill)
+		_, created, err := m.submit(ctx, t.Kind, t.Slug, backfill)
 		if err != nil {
 			return queued, fmt.Errorf("service.ReconcileMissingArtifacts: submit %s/%s: %w", t.Kind, t.Slug, err)
 		}
@@ -178,19 +182,17 @@ func targetKey(kind domain.Kind, slug string) string {
 	return kind.String() + ":" + slug
 }
 
-// failedOnInput is the targets whose latest job failed on its source.
-// An index read error yields an empty set, so the tick retries as before.
-func failedOnInput(ctx context.Context, index func() ([]domain.Job, error)) map[string]struct{} {
-	set := map[string]struct{}{}
+// latestJobs is the index keyed by target. An index read error yields an
+// empty map, so the tick retries as before.
+func latestJobs(ctx context.Context, index func() ([]domain.Job, error)) map[string]domain.Job {
 	jobs, err := index()
 	if err != nil {
 		slog.WarnContext(ctx, "reconcile: index read failed", "err", err)
-		return set
+		return map[string]domain.Job{}
 	}
+	out := make(map[string]domain.Job, len(jobs))
 	for _, j := range jobs {
-		if j.Status == domain.JobStatusFailed && j.FailedOnSource {
-			set[targetKey(j.Kind, j.Slug)] = struct{}{}
-		}
+		out[targetKey(j.Kind, j.Slug)] = j
 	}
-	return set
+	return out
 }

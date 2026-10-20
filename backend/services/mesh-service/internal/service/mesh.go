@@ -26,6 +26,10 @@ type Queue interface {
 
 	EnqueueJob(ctx context.Context, jobID string) error
 
+	// ClearBackfill drops a job's backfill mark (domain.Job.Backfill) without
+	// touching its other fields; later SaveJobs never write the mark back.
+	ClearBackfill(ctx context.Context, id string) error
+
 	// TryLockTarget claims a target for one conversion. Reports false when
 	// another attempt already holds it. The lock is what stops the reconciler
 	// re-queueing an entity whose conversion is still running, and what stops

@@ -112,19 +112,24 @@ fully-converted catalog. It is the belt-and-suspenders backstop for
 conversions that were never queued or that crashed mid-flight.
 
 **Backfill jobs are marked and their failure is hidden.** A job the reconciler
-queues for a target that already has its LOD0 (only the plain copy is missing)
-carries `Job.Backfill` (`backfill` in the Redis job hash; absent on jobs from
-the previous release, which read false). `ListTargetJobs` (so `GET /api/jobs`)
+queues for a target that already has its LOD0 (only the plain copy is missing),
+when the target's latest job is absent, succeeded or itself a backfill, carries
+`Job.Backfill` (`backfill` in the Redis job hash; absent on jobs from the
+previous release, which read false). `ListTargetJobs` (so `GET /api/jobs`)
 drops a job that is `Failed` *and* `Backfill`: the viewer of that target works,
 and the console must not paint it red. A queued or running backfill is listed
 as converting. The failure is logged by `markFailed` (`process: backfill failed`
 with `job_id`, `kind`, `slug`, `on_source`, `err`). The reconciler and
 `SubmitConversion` read the index unfiltered, so `FailedOnSource` still stops
 the requeue loop and an infrastructure failure still retries on the next tick.
-A first conversion (no LOD0) and every user-triggered job (create,
-`replace-source`) are unmarked and fail visibly as before; a user submit that
-lands on a still-queued backfill clears the mark. `GET /api/jobs/{id}/events`
-reads the job by id and is unaffected (no user is handed a backfill id).
+Unmarked, and so failing visibly as before: a first conversion (no LOD0), every
+user-triggered job (create, `replace-source`), and a reconciler retry of a job
+that neither succeeded nor was a backfill (a failed or abandoned
+`replace-source`, whose retry converts the new bytes). A user submit that lands
+on a live backfill is handed that job and clears the mark (`ClearBackfill`, one
+`HSET`); `SaveJob` writes `backfill` only when it creates the job, so a worker's
+or a progress tick's copy never writes it back. `GET /api/jobs/{id}/events`
+reads the job by id and is unaffected.
 
 ## Optional optimisations
 

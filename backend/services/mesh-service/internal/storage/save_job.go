@@ -19,17 +19,12 @@ import (
 // conversion the console can never show.
 // Fields are stored as strings; UpdatedAt is set to time.Now().
 func (r *Redis) SaveJob(ctx context.Context, j domain.Job) error {
-	now := time.Now().UTC()
-	if j.CreatedAt.IsZero() {
-		j.CreatedAt = now
-	}
-	j.UpdatedAt = now
-
+	fields := saveFields(j, time.Now().UTC())
 	// Two keys in one MULTI: single-node Redis, so this is fine. Under a
 	// cluster client the same pipeline would be CROSSSLOT unless the keys were
 	// hash-tagged into one slot.
 	_, err := r.client.TxPipelined(ctx, func(p redis.Pipeliner) error {
-		p.HSet(ctx, jobKey(j.ID), jobFields(j))
+		p.HSet(ctx, jobKey(j.ID), fields)
 		p.HSet(ctx, targetsKey, targetField(j.Kind, j.Slug), j.ID)
 		return nil
 	})
@@ -37,6 +32,23 @@ func (r *Redis) SaveJob(ctx context.Context, j domain.Job) error {
 		return fmt.Errorf("storage.SaveJob: pipeline: %w", err)
 	}
 	return nil
+}
+
+// saveFields is what SaveJob writes for j at now. The backfill mark is written
+// only when the job is created (CreatedAt still zero): every later save is a
+// worker's or a progress tick's copy, read before a user's submit may have
+// cleared the mark (ClearBackfill), and HSET leaves an unlisted field alone.
+func saveFields(j domain.Job, now time.Time) map[string]any {
+	created := j.CreatedAt.IsZero()
+	if created {
+		j.CreatedAt = now
+	}
+	j.UpdatedAt = now
+	fields := jobFields(j)
+	if !created {
+		delete(fields, "backfill")
+	}
+	return fields
 }
 
 // jobFields is the hash representation of j; jobFromHash is its inverse.

@@ -36,9 +36,11 @@ func (m *Mesh) SubmitConversion(ctx context.Context, kind domain.Kind, slug stri
 
 // submit is SubmitConversion; backfill marks the job it creates as the
 // reconciler's plain-copy backfill (domain.Job.Backfill). A user-triggered
-// submit that lands on a still-queued backfill adopts it by clearing the mark:
-// the worker reads the source when the job starts, so the user's replacement
-// is what it converts, and its failure is theirs to see.
+// submit that lands on a live backfill adopts it by clearing the mark: the
+// user is handed that job to follow, so its failure is theirs to see. Queued,
+// it converts the replacement; running, it fails or succeeds on the old bytes
+// (success re-queues the replacement, requeueIfSourceReplaced), and a retry
+// after its failure stays unmarked (ReconcileMissingArtifacts).
 func (m *Mesh) submit(ctx context.Context, kind domain.Kind, slug string, backfill bool) (domain.Job, bool, error) {
 	if kind == domain.KindUnspecified {
 		return domain.Job{}, false, fmt.Errorf("%w: kind is required", domain.ErrInvalidInput)
@@ -62,13 +64,11 @@ func (m *Mesh) submit(ctx context.Context, kind domain.Kind, slug string, backfi
 	// leaves a queued job queued (the claim is re-taken when it starts), but a
 	// Running job without a claim outlived TargetLockTTL: its worker is gone.
 	if live != nil && (!locked || m.queued(*live)) {
-		// ponytail: read-modify-write, so a worker that marks the job Running in
-		// between rewrites the mark back; the window is one Redis round trip.
-		if !backfill && live.Backfill && live.Status == domain.JobStatusPending {
-			live.Backfill = false
-			if err := m.queue.SaveJob(ctx, *live); err != nil {
+		if !backfill && live.Backfill {
+			if err := m.queue.ClearBackfill(ctx, live.ID); err != nil {
 				return domain.Job{}, false, fmt.Errorf("service.SubmitConversion: adopt: %w", err)
 			}
+			live.Backfill = false
 		}
 		return *live, false, nil
 	}

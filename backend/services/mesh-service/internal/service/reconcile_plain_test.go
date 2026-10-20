@@ -119,16 +119,28 @@ func (s *ReconcileSuite) TestAbandonedJobDoesNotHoldThePlainBackfill() {
 	assert.Equal(s.T(), n, 1)
 }
 
-// The reconciler marks only the plain backfill (the target has a LOD0); a
-// target with no LOD0 is a first conversion and its failure must stay visible.
+// The reconciler marks only the plain backfill: the target has a LOD0 and
+// nothing a user caused is outstanding on it. A first conversion (no LOD0) is
+// unmarked, and so is a retry of a user's job that failed or was abandoned — a
+// replace-source whose retry converts the new bytes must fail visibly, not
+// erase the user's failure from the list.
 func (s *ReconcileSuite) TestMarksThePlainBackfillJobButNotAFirstConversion() {
+	job := func(st domain.JobStatus, backfill bool) []domain.Job {
+		return []domain.Job{{ID: "old", Kind: domain.KindTerritory, Slug: "t1", Status: st, Backfill: backfill}}
+	}
 	for _, tc := range []struct {
 		name          string
 		has, hasPlain bool
+		latest        []domain.Job
 		backfill      bool
 	}{
-		{"no plain copy", true, false, true},
-		{"no lod0", false, false, false},
+		{"no plain copy", true, false, nil, true},
+		{"no lod0", false, false, nil, false},
+		{"after a success", true, false, job(domain.JobStatusSucceeded, false), true},
+		{"after a failed backfill", true, false, job(domain.JobStatusFailed, true), true},
+		{"after a user's failure", true, false, job(domain.JobStatusFailed, false), false},
+		{"after a user's abandoned run", true, false, job(domain.JobStatusRunning, false), false},
+		{"after a user's abandoned queue", true, false, job(domain.JobStatusPending, false), false},
 	} {
 		s.SetupTest()
 		var saved []domain.Job
@@ -138,7 +150,7 @@ func (s *ReconcileSuite) TestMarksThePlainBackfillJobButNotAFirstConversion() {
 		s.queue.SaveJobMock.Set(func(_ context.Context, j domain.Job) error { saved = append(saved, j); return nil })
 		s.queue.EnqueueJobMock.Return(nil)
 		s.queue.GetJobMock.Return(domain.Job{}, nil)
-		s.queue.ListTargetJobsMock.Return(nil, nil)
+		s.queue.ListTargetJobsMock.Return(tc.latest, nil)
 
 		n, err := s.svc.ReconcileMissingArtifacts(s.ctx)
 

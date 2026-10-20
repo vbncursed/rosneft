@@ -58,3 +58,17 @@ func TestJobWithoutBackfillFieldReadsFalse(t *testing.T) {
 
 	assert.Assert(t, !jobFromHash(fields).Backfill)
 }
+
+// The mark is written when the job is created and never again: a worker's or
+// a progress tick's save carries a copy read before a user's submit may have
+// cleared it (ClearBackfill), and must not write it back.
+func TestSaveFieldsWriteBackfillOnlyOnCreate(t *testing.T) {
+	now := time.Unix(5, 0).UTC()
+	created := saveFields(domain.Job{ID: "j", Backfill: true}, now)
+	later := saveFields(domain.Job{ID: "j", Backfill: true, CreatedAt: now}, now)
+
+	assert.Equal(t, created["backfill"], "true")
+	assert.Equal(t, created["created_at"], now.Format(time.RFC3339Nano))
+	_, ok := later["backfill"]
+	assert.Assert(t, !ok)
+}
