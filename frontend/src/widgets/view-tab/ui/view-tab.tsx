@@ -75,7 +75,7 @@ export type ViewTabProps = {
 
 const SECTION = "flex flex-col gap-[9px]";
 const SWITCH_ROW = "flex items-center justify-between gap-2.5";
-const SWITCH_LABEL = "font-mono text-[10px] text-fg";
+const SWITCH_LABEL = "font-mono text-[13px] text-fg";
 const LIST = "m-0 flex list-none flex-col gap-[9px] p-0";
 const KBD = "rounded-[4px] border border-accent-line px-[5px] py-px font-mono text-[10px]";
 
@@ -169,7 +169,7 @@ export function ViewTab({ details, panoramas, documents, measurements, footer }:
                 aria-pressed={panoramas.moving}
                 data-tour="move-points"
                 className={cx(
-                  "flex cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 font-mono text-[10px] uppercase tracking-[0.1em] text-accent transition-[scale] duration-150 ease-out active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent",
+                  "flex cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 font-mono text-[12px] uppercase tracking-[0.1em] text-accent transition-[scale] duration-150 ease-out active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent",
                   panoramas.moving ? "underline" : "hover:underline",
                 )}
               >

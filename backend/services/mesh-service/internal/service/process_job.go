@@ -111,6 +111,10 @@ func (m *Mesh) runConversion(ctx context.Context, j *domain.Job) (string, error)
 	convCtx := converter.WithProgress(ctx, func(stage string, fraction float32) {
 		progress(fraction, stage)
 	})
+	if j.Kind == domain.KindModel {
+		// Models are authored Y-up; only territories (photogrammetry) are Z-up.
+		convCtx = converter.WithYUpSource(convCtx)
+	}
 	results, err := m.converter.ConvertLODs(convCtx, workDir, objPath)
 	if err != nil {
 		return "", fmt.Errorf("convert: %w", err)

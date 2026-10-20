@@ -61,8 +61,10 @@ const (
 // parseOBJ stream-parses positions, UVs, faces, and material directives from
 // an OBJ source. Normals and smoothing-group lines are silently skipped.
 //
-// Coordinate system: positions are converted from Z-up (the convention from
+// Coordinate system: parseOBJ converts positions from Z-up (the convention from
 // most CAD/photogrammetry exports) to Y-up (the glTF convention) inline.
+// convertRaw instead parses raw axes (yUp) and decides afterwards: models never
+// swap, territories swap unless Y is their thinnest axis (see zUpSource).
 // UV V coordinate is flipped (V_glTF = 1 − V_OBJ) because OBJ has V=0 at the
 // bottom of the texture image while glTF has V=0 at the top.
 //
@@ -73,7 +75,11 @@ const (
 // `usemtl X` switches the active material — subsequent faces append to the
 // X-named group (created if absent). All groups share a single deduplicated
 // vertex buffer.
-func parseOBJ(r io.Reader) (parsedSource, error) {
+func parseOBJ(r io.Reader) (parsedSource, error) { return parseOBJWithUp(r, false) }
+
+// parseOBJWithUp is parseOBJ with the swap switchable: yUp keeps positions as
+// written, otherwise they are swapped from Z-up.
+func parseOBJWithUp(r io.Reader, yUp bool) (parsedSource, error) {
 	sc := bufio.NewScanner(r)
 	// Long face lines (e.g. fan with hundreds of vertices) need a generous buffer.
 	sc.Buffer(make([]byte, 0, 1<<20), 1<<24)
@@ -99,7 +105,7 @@ func parseOBJ(r io.Reader) (parsedSource, error) {
 		}
 		switch {
 		case line[0] == 'v' && line[1] == ' ':
-			v, err := parseVertex(line[2:])
+			v, err := parseVertex(line[2:], yUp)
 			if err != nil {
 				return parsedSource{}, fmt.Errorf("parseOBJ: vertex line %d: %w", len(p.objPositions)+1, err)
 			}
@@ -272,8 +278,9 @@ func (p *parser) parseFace(line []byte) error {
 	return nil
 }
 
-// parseVertex parses "x y z [w]" and returns a Y-up vertex.
-func parseVertex(line []byte) (vertex, error) {
+// parseVertex parses "x y z [w]" and returns a Y-up vertex; yUp says the
+// source is Y-up already, so the axes are kept.
+func parseVertex(line []byte, yUp bool) (vertex, error) {
 	x, line, err := nextFloat32(line)
 	if err != nil {
 		return vertex{}, err
@@ -285,6 +292,9 @@ func parseVertex(line []byte) (vertex, error) {
 	z, _, err := nextFloat32(line)
 	if err != nil {
 		return vertex{}, err
+	}
+	if yUp {
+		return vertex{x, y, z}, nil
 	}
 	// Z-up → Y-up: (x, y, z) → (x, z, -y).
 	return vertex{x, z, -y}, nil

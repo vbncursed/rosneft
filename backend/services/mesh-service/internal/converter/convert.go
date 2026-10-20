@@ -12,8 +12,9 @@ import (
 )
 
 // Convert reads sourcePath (an OBJ file, inside root) plus its sibling MTL and any textures
-// the MTL references, normalizes the geometry (Z-up→Y-up, center, scale to
-// maxDim=2), and emits a binary glTF (.glb).
+// the MTL references, normalizes the geometry (models never swap axes or level; a territory
+// is swapped Z-up→Y-up unless Y is its thinnest axis, then a flat, tilted one is levelled
+// so its plane normal is +Y; then center, scale to maxDim=2), and emits a binary glTF (.glb).
 //
 // Materials are derived from the MTL: each `usemtl` group becomes a separate
 // glTF primitive carrying baseColorFactor (from `Kd` + `d`/`Tr`) and, when the

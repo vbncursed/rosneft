@@ -18,6 +18,7 @@ import (
 	"gotest.tools/v3/assert"
 
 	"github.com/vbncursed/rosneft/backend/pkg/blobstore"
+	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/converter"
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/service"
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/service/mocks"
@@ -280,6 +281,35 @@ func (s *ProcessJobSuite) TestConverterGetsTheExtractionDirAsRoot() {
 	rel, err := filepath.Rel(s.convRoot, s.convObj)
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), s.convRoot != "" && filepath.IsLocal(rel), "root %q, obj %q", s.convRoot, s.convObj)
+}
+
+// Models are Y-up already, so a model job tells the converter to skip the
+// Z-up swap; a territory job must not, or its conversion would change.
+func (s *ProcessJobSuite) TestModelJobMarksTheSourceYUp() {
+	assert.Assert(s.T(), s.convertedAsYUp(domain.KindModel))
+}
+
+func (s *ProcessJobSuite) TestTerritoryJobKeepsTheZUpSwap() {
+	assert.Assert(s.T(), !s.convertedAsYUp(domain.KindTerritory))
+}
+
+// convertedAsYUp runs a job of kind up to a converter that records whether its
+// ctx carries the Y-up mark, then fails so nothing after it needs a stub.
+func (s *ProcessJobSuite) convertedAsYUp(kind domain.Kind) bool {
+	s.queue.GetJobMock.Return(domain.Job{ID: "job-1", Kind: kind, Slug: "s1", Status: domain.JobStatusPending}, nil)
+	s.stubSourceHashes("h1")
+	s.blobs.GetMock.Set(func(context.Context, string) (io.ReadCloser, blobstore.Blob, error) {
+		return io.NopCloser(bytes.NewReader(objZip(s.T()))), blobstore.Blob{}, nil
+	})
+	s.queue.UnlockTargetMock.Return(nil)
+	var yUp bool
+	s.converter.ConvertLODsMock.Set(func(ctx context.Context, _, _ string) ([]domain.ConversionResult, error) {
+		yUp = converter.YUpSource(ctx)
+		return nil, errors.New("stop here")
+	})
+
+	assert.ErrorContains(s.T(), s.svc.ProcessJob(s.ctx, "job-1"), "stop here")
+	return yUp
 }
 
 // A backfill job that fails is recorded Failed with its marker kept (the list
