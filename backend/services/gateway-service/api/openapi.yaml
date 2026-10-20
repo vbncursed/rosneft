@@ -716,6 +716,18 @@ components:
         code: { type: string }
         message: { type: string }
 
+    ExportCheck:
+      type: object
+      required: [filename]
+      properties:
+        filename:
+          type: string
+          description: The exact name the download will send in Content-Disposition
+        sizeBytes:
+          type: integer
+          format: int64
+          description: The download's exact Content-Length; omitted for the chunked OBJ ZIP
+
     # --- auth domain ---
     AuthUser:
       type: object
@@ -1539,6 +1551,59 @@ paths:
               schema: { $ref: '#/components/schemas/Error' }
         '422':
           description: The export would exceed 20 million vertices or 40 million faces
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '500': { $ref: '#/components/responses/Internal' }
+        '503':
+          description: The catalog could not be asked whether the caller may open the territory
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /api/territories/{slug}/export-check:
+    get:
+      operationId: exportTerritoryCheck
+      summary: Check an export before downloading it
+      description: >
+        Runs everything the export routes run up to the first byte (scene
+        bundle, placement selection, reading the model headers, building the
+        GLB or OBJ plan) and answers what the download would send, or the
+        refusal it would answer, with the same status and body. Nothing is
+        streamed. `sizeBytes` is the exact Content-Length of the GLB variants;
+        the OBJ ZIP is chunked and has none, so it is omitted. The browser
+        then downloads the file natively from `export.glb` or `export.obj.zip`.
+      tags: [territories]
+      parameters:
+        - { in: path, name: slug, required: true, schema: { type: string } }
+        - in: query
+          name: variant
+          required: true
+          description: >
+            `compressed`: meshopt geometry and KTX2 textures (export.glb).
+            `compatible`: plain GLB (export.glb?variant=compatible).
+            `obj`: baked OBJ in a ZIP (export.obj.zip). Exactly one value.
+          schema: { type: string, enum: [compressed, compatible, obj] }
+      responses:
+        '200':
+          description: The export would succeed
+          headers:
+            Cache-Control:
+              required: true
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ExportCheck' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The territory is not converted yet, or a plain copy is still being made
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422':
+          description: The export would exceed the GLB format's 4 GiB limit or the OBJ ceilings
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }

@@ -43,6 +43,23 @@ func (s *RouterBodyLimitSuite) TestAnOversizedLoginIsRefusedBeforeTheHandler() {
 	assert.Equal(s.T(), rec.Code, http.StatusRequestEntityTooLarge)
 }
 
+// export-check is a plain /api operation and inherits Authenticate from the
+// group: an anonymous caller is told 401, not 404 or 400.
+func (s *RouterBodyLimitSuite) TestAnAnonymousExportCheckIsRefusedBeforeTheHandler() {
+	mc := minimock.NewController(s.T())
+	svc := service.New(mocks.NewCatalogMock(mc), mocks.NewContentMock(mc), mocks.NewMeshMock(mc),
+		mocks.NewUploadMock(mc), mocks.NewAuditMock(mc), mocks.NewAuthMock(mc))
+	discard := slog.New(slog.NewTextHandler(io.Discard, nil))
+	authH := authhttp.New(nil, nil, nil, nil, nil, discard, authhttp.CookieOptions{}, []byte("test"))
+	r, _ := InitRouter(svc, http.NotFoundHandler(), nil, http.NotFoundHandler(), http.NotFoundHandler(), authH, discard, config.Config{}, nil)
+
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequestWithContext(s.T().Context(), http.MethodGet,
+		"/api/territories/ust-kut/export-check?variant=obj", nil))
+
+	assert.Equal(s.T(), rec.Code, http.StatusUnauthorized)
+}
+
 // The export is mounted by hand on the root router, so its Authenticate is
 // pinned here: without it the territory gate would answer 404, not 401. A nil
 // opener panics if the handler runs.

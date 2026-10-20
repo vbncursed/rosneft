@@ -95,10 +95,10 @@ func (e *exportServiceStub) GetSceneBundle(context.Context, string, string) (dom
 	return e.bundle, e.bundleErr
 }
 
-// router mirrors routes_root.go: the territory gate mounted inline on the root
-// router, then the handler. Anything that differs proves nothing about production.
+// router mirrors routes_root.go (the territory gate mounted inline on the root
+// router, then the handler) and InitRouter's /api group for export-check. Anything that differs proves nothing about production.
 func (s *TerritoryExportSuite) router(svc Service, sc gateCase, open glbexport.Opener) http.Handler {
-	srv := New(svc)
+	srv := New(svc).WithExportOpener(open)
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer, slogchi.New(slog.New(slog.NewJSONHandler(&s.logs, nil))))
 	scope := func(next http.Handler) http.Handler {
@@ -107,9 +107,14 @@ func (s *TerritoryExportSuite) router(svc Service, sc gateCase, open glbexport.O
 		})
 	}
 	r.With(scope, srv.RequireTerritoryAccess).
-		Get("/api/territories/{slug}/export.glb", srv.ServeTerritoryExport(open))
+		Get("/api/territories/{slug}/export.glb", srv.ServeTerritoryExport())
 	r.With(scope, srv.RequireTerritoryAccess).
-		Get("/api/territories/{slug}/export.obj.zip", srv.ServeTerritoryExportOBJ(open))
+		Get("/api/territories/{slug}/export.obj.zip", srv.ServeTerritoryExportOBJ())
+	// The check is a normal /api operation: it inherits the gate from the group.
+	r.Group(func(api chi.Router) {
+		api.Use(scope, srv.RequireTerritoryAccess, ETagMiddleware)
+		Mount(api, srv)
+	})
 	return r
 }
 

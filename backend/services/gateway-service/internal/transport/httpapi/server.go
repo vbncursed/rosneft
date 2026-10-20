@@ -12,6 +12,7 @@ import (
 
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/glbexport"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
 )
 
@@ -111,7 +112,8 @@ func blobScope(ctx context.Context) domain.BlobScope {
 
 // Server implements the oapi-codegen StrictServerInterface over a Service.
 type Server struct {
-	svc Service
+	svc  Service
+	open glbexport.Opener // blob reads for the export routes and export-check
 }
 
 // New constructs a Server.
@@ -134,4 +136,11 @@ func codeOf(err error) string {
 	default:
 		return apperr.SlugInternal
 	}
+}
+
+// WithExportOpener sets where the export routes and export-check read blobs
+// from. One opener serves the download and its check, so they read the same.
+func (s *Server) WithExportOpener(open glbexport.Opener) *Server {
+	s.open = open
+	return s
 }
