@@ -16,6 +16,7 @@ import (
 	"github.com/vbncursed/rosneft/backend/pkg/metrics"
 
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/config"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/glbexport"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/service"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/httpapi"
@@ -38,6 +39,7 @@ var (
 //	  /api/metrics/query   → Authenticate → owner check → Prometheus proxy
 //	  /api/console/summary → Authenticate → per-card gates → fan-out (no-store)
 //	  /api/audit.csv       → Authenticate → Require("audit:read") → CSV stream
+//	  /api/territories/{slug}/export.glb → Authenticate → RequireTerritoryAccess → GLB stream
 //	  /api/auth/*          → authhttp (login public; self/admin gated)
 //	  /api/* sub-router
 //	    Authenticate → RequirePermissionForRoute → RequireTerritoryAccess
@@ -55,6 +57,7 @@ var (
 func InitRouter(
 	svc *service.Gateway,
 	assetProxy http.Handler,
+	exportOpen glbexport.Opener,
 	metricsHandler http.Handler,
 	summaryHandler http.Handler,
 	authH *authhttp.Handlers,
@@ -100,7 +103,7 @@ func InitRouter(
 	r.Get("/readyz", hz.Ready)
 
 	apiServer := httpapi.New(svc)
-	mountRootRoutes(r, apiServer, authH, assetProxy, metricsHandler, summaryHandler)
+	mountRootRoutes(r, apiServer, authH, exportOpen, assetProxy, metricsHandler, summaryHandler)
 
 	// /api JSON sub-router: authenticate + per-route permission gate, then
 	// ETag + Compress, then the openapi strict handlers.

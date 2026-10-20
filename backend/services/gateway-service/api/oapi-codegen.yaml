@@ -8,6 +8,7 @@
 #   - jobs    → SSE stream + jobs list (WatchJobEvents, ListJobs)
 #   - audit-export → streaming CSV handler (ServeAuditCSV); the JSON
 #     GET /api/audit keeps its generated stub under the plain `audit` tag
+#   - territory-export → streamed GLB export (ServeTerritoryExport)
 #   - metrics → owner-gated Prometheus proxy (InitMetricsHandler)
 #   - console → Home's console summary (InitConsoleSummary)
 #   - ops     → healthz/readyz probes + /docs + /openapi.json
@@ -29,6 +30,7 @@ output-options:
     - assets
     - jobs
     - audit-export
+    - territory-export
     - metrics
     - console
     - ops

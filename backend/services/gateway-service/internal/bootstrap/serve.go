@@ -91,6 +91,11 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 		return fmt.Errorf("init asset proxy: %w", err)
 	}
 
+	assetClient, err := InitAssetClient(cfg)
+	if err != nil {
+		return fmt.Errorf("init asset client: %w", err)
+	}
+
 	prom := InitPrometheus(cfg)
 	metricsHandler := InitMetricsHandler(prom, logger)
 	summaryHandler := InitConsoleSummary(svc, authClient, prom, logger)
@@ -106,7 +111,7 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 		"audit":   auditClient.Conn(),
 	}
 
-	router, hz := InitRouter(svc, assetProxy, metricsHandler, summaryHandler, authH, logger, cfg, backends)
+	router, hz := InitRouter(svc, assetProxy, assetClient.Open, metricsHandler, summaryHandler, authH, logger, cfg, backends)
 
 	// gateway runs no gRPC server (Health stays nil) but is a Prometheus
 	// scrape target like every gRPC service, so it needs the same
