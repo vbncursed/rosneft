@@ -1,11 +1,11 @@
 module github.com/vbncursed/rosneft/backend/services/gateway-service
 
-go 1.27.2
+go 1.27.3
 
 require (
 	github.com/andybalholm/brotli v1.2.6
-	github.com/getkin/kin-openapi v0.149.0
-	github.com/go-chi/chi/v5 v5.3.2
+	github.com/getkin/kin-openapi v0.151.0
+	github.com/go-chi/chi/v5 v5.5.0
 	github.com/go-chi/cors v1.2.2
 	github.com/gojuno/minimock/v3 v3.4.7
 	github.com/oapi-codegen/runtime v1.7.0
@@ -54,7 +54,7 @@ require (
 	golang.org/x/net v0.61.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20261005182115-fad411399dd8 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20261019180522-ce908d29299b // indirect
 )
 
 replace (

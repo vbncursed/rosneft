@@ -1,6 +1,6 @@
 module github.com/vbncursed/rosneft/backend/pkg
 
-go 1.27.2
+go 1.27.3
 
 require (
 	github.com/jackc/pgx/v5 v5.11.0
@@ -30,6 +30,6 @@ require (
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20261005182115-fad411399dd8 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20261019180522-ce908d29299b // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 )
