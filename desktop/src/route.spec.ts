@@ -18,6 +18,13 @@ describe("classify", () => {
     expect(classify("GET", at(`/api/assets/${HASH}?v=1`))).toEqual({ kind: "pass" });
     expect(classify("HEAD", at(`/api/assets/${HASH}`))).toEqual({ kind: "pass" });
   });
+  it.each([
+    "/api/territories/ust-kut/export.glb",
+    "/api/territories/ust-kut/export.glb?variant=compatible",
+    "/api/territories/ust-kut/export.obj.zip",
+  ])("passes the export download %s straight through (no snapshot, no blob)", (p) => {
+    expect(classify("GET", at(p))).toEqual({ kind: "pass" });
+  });
   it("snapshots the whitelist and nothing with a query", () => {
     for (const p of [
       "/api/auth/me",

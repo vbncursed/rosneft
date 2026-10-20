@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
-import { attachPermissionPolicy, attachWindowPolicy, permissionAllowed, permissionCheckAllowed } from "./window-policy";
+import {
+  attachDownloadPolicy,
+  attachPermissionPolicy,
+  attachWindowPolicy,
+  downloadAllowed,
+  permissionAllowed,
+  permissionCheckAllowed,
+} from "./window-policy";
 
 const ORIGIN = "https://andrey.vbncursed.fun";
 
@@ -143,5 +150,61 @@ describe("attachPermissionPolicy", () => {
     const w = wire();
     expect(w.ask("media", main)).toBe(false);
     expect(w.check("media", ORIGIN, main)).toBe(false);
+  });
+});
+
+describe("downloadAllowed", () => {
+  it("allows a same-origin download, redirects included", () => {
+    expect(downloadAllowed([`${ORIGIN}/api/territories/a/export.glb`], ORIGIN)).toBe(true);
+    expect(downloadAllowed([`${ORIGIN}/a`, `${ORIGIN}/b`], ORIGIN)).toBe(true);
+    // The audit CSV is saved from a blob: the page made.
+    expect(downloadAllowed([`blob:${ORIGIN}/uuid`], ORIGIN)).toBe(true);
+  });
+  it.each([
+    [[]],
+    [["https://evil.example/x.exe"]],
+    [[`${ORIGIN}/a`, "https://evil.example/x.exe"]],
+    [["blob:https://evil.example/uuid"]],
+    [["data:text/html,hi"]],
+    [["not a url"]],
+  ])("refuses %j", (chain) => {
+    expect(downloadAllowed(chain, ORIGIN)).toBe(false);
+  });
+});
+
+function wireDownloads() {
+  let onDownload!: (e: object, item: object) => void;
+  const fail = vi.fn();
+  attachDownloadPolicy({ on: (_n: string, l: typeof onDownload) => void (onDownload = l) } as never, ORIGIN, fail);
+  const item = (chain: string[], name = "t.glb") => {
+    let updated!: (e: object, state: string) => void;
+    const dl = {
+      cancel: vi.fn(),
+      getURLChain: () => chain,
+      getFilename: () => name,
+      on: (_n: string, l: typeof updated) => void (updated = l),
+    };
+    onDownload({}, dl);
+    return { dl, update: (state: string) => updated({}, state) };
+  };
+  return { item, fail };
+}
+
+describe("attachDownloadPolicy", () => {
+  it("cancels a download that leaves the origin, silently", () => {
+    const w = wireDownloads();
+    const { dl } = w.item(["https://evil.example/x.exe"]);
+    expect(dl.cancel).toHaveBeenCalledOnce();
+    expect(w.fail).not.toHaveBeenCalled();
+  });
+  it("lets a same-origin download run and reports it when it is interrupted", () => {
+    const w = wireDownloads();
+    const { dl, update } = w.item([`${ORIGIN}/api/territories/a/export.glb`]);
+    update("progressing");
+    expect(dl.cancel).not.toHaveBeenCalled();
+    expect(w.fail).not.toHaveBeenCalled();
+    update("interrupted");
+    expect(dl.cancel).toHaveBeenCalledOnce();
+    expect(w.fail).toHaveBeenCalledWith("t.glb");
   });
 });
