@@ -25,8 +25,9 @@ type rawGLB struct {
 }
 
 // convertRaw runs the pure conversion pipeline: parse OBJ, normalize
-// (Z-up→Y-up unless the ctx says the source is Y-up, center, scale to maxDim=2), resolve materials, emit GLB. No
-// external binary is involved, so the result is deterministic.
+// (Z-up→Y-up unless the ctx says the source is Y-up, center, scale to
+// maxDim=2), resolve materials, emit GLB. No external binary is involved, so
+// the result is deterministic.
 func (c *Converter) convertRaw(ctx context.Context, root, sourcePath string) (rawGLB, error) {
 	if err := ctx.Err(); err != nil {
 		return rawGLB{}, err

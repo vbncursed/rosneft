@@ -62,7 +62,8 @@ const (
 // an OBJ source. Normals and smoothing-group lines are silently skipped.
 //
 // Coordinate system: positions are converted from Z-up (the convention from
-// most CAD/photogrammetry exports) to Y-up (the glTF convention) inline.
+// most CAD/photogrammetry exports) to Y-up (the glTF convention) inline,
+// unless yUp says the source already is Y-up (models; see WithYUpSource).
 // UV V coordinate is flipped (V_glTF = 1 − V_OBJ) because OBJ has V=0 at the
 // bottom of the texture image while glTF has V=0 at the top.
 //
