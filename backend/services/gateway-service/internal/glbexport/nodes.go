@@ -6,6 +6,9 @@ import (
 	"github.com/qmuntal/gltf"
 )
 
+// maxDepth bounds an input's node tree; real ones are a few levels deep.
+const maxDepth = 256
+
 // quatFromEulerXYZ is three.js Quaternion.setFromEuler for order 'XYZ', in
 // glTF component order (x, y, z, w).
 func quatFromEulerXYZ(x, y, z float64) [4]float64 {
@@ -62,7 +65,7 @@ func (b *builder) addPlacement(in *instance, p Placement) error {
 	b.doc.Nodes = append(b.doc.Nodes, node)
 	seen := map[int]bool{}
 	for _, root := range in.roots {
-		c, err := b.copySubtree(in, root, seen)
+		c, err := b.copySubtree(in, root, seen, 1)
 		if err != nil {
 			return err
 		}
@@ -73,10 +76,14 @@ func (b *builder) addPlacement(in *instance, p Placement) error {
 
 // copySubtree copies node i and everything below it into the output and
 // returns the copy's index. glTF nodes form a tree, so reaching one twice
-// (a cycle, or two parents) is malformed.
-func (b *builder) copySubtree(in *instance, i int, seen map[int]bool) (int, error) {
+// (a cycle, or two parents) is malformed, and so is a tree deeper than
+// maxDepth, which would otherwise recurse as deep as the input is long.
+func (b *builder) copySubtree(in *instance, i int, seen map[int]bool, depth int) (int, error) {
 	if i < 0 || i >= len(in.src.Nodes) {
 		return 0, malformed("node %d out of range [0, %d)", i, len(in.src.Nodes))
+	}
+	if depth > maxDepth {
+		return 0, malformed("node tree deeper than %d", maxDepth)
 	}
 	if seen[i] {
 		return 0, malformed("node %d reached twice", i)
@@ -96,7 +103,7 @@ func (b *builder) copySubtree(in *instance, i int, seen map[int]bool) (int, erro
 	b.doc.Nodes = append(b.doc.Nodes, &n)
 	n.Children = nil
 	for _, c := range in.src.Nodes[i].Children {
-		ci, err := b.copySubtree(in, c, seen)
+		ci, err := b.copySubtree(in, c, seen, depth+1)
 		if err != nil {
 			return 0, err
 		}

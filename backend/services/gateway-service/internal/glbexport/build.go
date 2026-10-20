@@ -10,7 +10,13 @@ import (
 	"github.com/qmuntal/gltf"
 )
 
-const generator = "rosneft territory export"
+const (
+	generator = "rosneft territory export"
+
+	// maxNodes bounds the output's nodes: every placement copies its blob's
+	// node tree, so placements × nodes would grow the JSON without limit.
+	maxNodes = 1 << 18
+)
 
 // instance is one input GLB after its resources went into the output: the
 // pieces a placement needs to copy that GLB's node tree.
@@ -38,12 +44,21 @@ func Build(placements []Placement, heads map[string]Head) (Plan, error) {
 	b := &builder{insts: map[string]*instance{}, used: map[string]bool{}, required: map[string]bool{}}
 	b.doc.Buffers = []*gltf.Buffer{{}} // buffer 0: the output BIN, sized in plan
 	b.doc.Scenes = []*gltf.Scene{{}}
-	for _, p := range placements {
+	insts := make([]*instance, len(placements))
+	nodes := 0
+	for i, p := range placements {
 		in, err := b.instance(p.Hash, heads)
 		if err != nil {
 			return Plan{}, err
 		}
-		if err := b.addPlacement(in, p); err != nil {
+		insts[i] = in
+		nodes += 1 + len(in.src.Nodes) // upper bound: the placement node and every input node
+	}
+	if nodes > maxNodes {
+		return Plan{}, fmt.Errorf("%w: up to %d nodes, limit %d", ErrTooLarge, nodes, maxNodes)
+	}
+	for i, p := range placements {
+		if err := b.addPlacement(insts[i], p); err != nil {
 			return Plan{}, fmt.Errorf("glbexport: placement %q: %w", p.Name, err)
 		}
 	}
