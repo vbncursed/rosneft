@@ -27,6 +27,7 @@ func (c *Client) RegisterArtifact(ctx context.Context, a domain.Artifact) error 
 				Faces:         a.Faces,
 				BboxMin:       bbMin,
 				BboxMax:       bbMax,
+				PlainHash:     a.PlainHash,
 			},
 		})
 		if err != nil {
@@ -46,6 +47,7 @@ func (c *Client) RegisterArtifact(ctx context.Context, a domain.Artifact) error 
 				Faces:       a.Faces,
 				BboxMin:     bbMin,
 				BboxMax:     bbMax,
+				PlainHash:   a.PlainHash,
 			},
 		})
 		if err != nil {

@@ -18,7 +18,7 @@ import (
 
 // BlobAccessSuite exercises ResolveBlobAccess against a real Postgres.
 //
-// The whole decision is one SQL statement with six UNION ALL branches, four of
+// The whole decision is one SQL statement with eight UNION ALL branches, five of
 // which carry a scope filter. A mock of the storage layer would assert nothing
 // about it, and dropping the filter from a single branch leaks exactly one class
 // of asset — silently. This suite is the only thing that would notice.
@@ -58,6 +58,9 @@ func (s *BlobAccessSuite) SetupSuite() {
 	s.terrA = s.seedTerritory(ctx, "a", "hash-terr-a-src", s.adminA)
 	s.terrB = s.seedTerritory(ctx, "b", "hash-terr-b-src", s.adminB)
 	s.seedModel(ctx, "shared-pump", "hash-model-src", "hash-model-thumb", "hash-model-glb")
+	_, err = s.pool.Exec(ctx, `INSERT INTO plain_artifacts (lod0_hash, plain_hash) VALUES
+		('hash-artifact-a','hash-plain-a'), ('hash-model-glb','hash-plain-model'), ('hash-gone','hash-plain-gone')`)
+	assert.NilError(s.T(), err)
 }
 
 func (s *BlobAccessSuite) TearDownSuite() {

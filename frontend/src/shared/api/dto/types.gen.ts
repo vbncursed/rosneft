@@ -1479,6 +1479,110 @@ export type ReplaceTerritorySourceResponses = {
 
 export type ReplaceTerritorySourceResponse = ReplaceTerritorySourceResponses[keyof ReplaceTerritorySourceResponses];
 
+export type ExportTerritoryGlbData = {
+  body?: never;
+  path: {
+    slug: string;
+  };
+  query?: {
+    /**
+     * Absent: geometry meshopt-compressed and textures KTX2 (web viewers). `compatible`: plain geometry and the source JPEG/PNG textures, no required extensions (Blender, desktop tools); about three times larger.
+     *
+     */
+    variant?: 'compatible';
+  };
+  url: '/api/territories/{slug}/export.glb';
+};
+
+export type ExportTerritoryGlbErrors = {
+  /**
+   * Invalid request
+   */
+  400: Error;
+  /**
+   * Missing or invalid session token
+   */
+  401: Error;
+  /**
+   * Resource not found
+   */
+  404: Error;
+  /**
+   * The territory is not converted yet, or (compatible) a plain copy is still being made
+   */
+  409: Error;
+  /**
+   * The export would exceed the GLB format's 4 GiB limit
+   */
+  422: Error;
+  /**
+   * Internal server error
+   */
+  500: Error;
+  /**
+   * The catalog could not be asked whether the caller may open the territory
+   */
+  503: Error;
+};
+
+export type ExportTerritoryGlbError = ExportTerritoryGlbErrors[keyof ExportTerritoryGlbErrors];
+
+export type ExportTerritoryGlbResponses = {
+  /**
+   * The merged GLB
+   */
+  200: Blob | File;
+};
+
+export type ExportTerritoryGlbResponse = ExportTerritoryGlbResponses[keyof ExportTerritoryGlbResponses];
+
+export type ExportTerritoryObjData = {
+  body?: never;
+  path: {
+    slug: string;
+  };
+  query?: never;
+  url: '/api/territories/{slug}/export.obj.zip';
+};
+
+export type ExportTerritoryObjErrors = {
+  /**
+   * Missing or invalid session token
+   */
+  401: Error;
+  /**
+   * Resource not found
+   */
+  404: Error;
+  /**
+   * The territory is not converted yet, or a plain copy is still being made
+   */
+  409: Error;
+  /**
+   * The export would exceed 20 million vertices or 40 million faces
+   */
+  422: Error;
+  /**
+   * Internal server error
+   */
+  500: Error;
+  /**
+   * The catalog could not be asked whether the caller may open the territory
+   */
+  503: Error;
+};
+
+export type ExportTerritoryObjError = ExportTerritoryObjErrors[keyof ExportTerritoryObjErrors];
+
+export type ExportTerritoryObjResponses = {
+  /**
+   * The ZIP (README.txt, MTL, textures, OBJ)
+   */
+  200: Blob | File;
+};
+
+export type ExportTerritoryObjResponse = ExportTerritoryObjResponses[keyof ExportTerritoryObjResponses];
+
 export type GetSceneBundleData = {
   body?: never;
   path: {

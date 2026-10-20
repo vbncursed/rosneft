@@ -1459,6 +1459,96 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/Internal' }
 
+  /api/territories/{slug}/export.glb:
+    get:
+      operationId: exportTerritoryGlb
+      summary: Download the territory and its visible placed models as one GLB
+      description: >
+        LOD 0 of the territory and of each placed model, in the territory's
+        normalised scene space; hidden placements and placements in hidden
+        groups are left out, as are placements whose model has no LOD 0. Each
+        placement is a node named by its label (`<modelSlug>-<id>` when empty).
+        By default geometry stays meshopt-compressed and textures KTX2 (the
+        `compatible` variant below swaps both for plain data). Streamed outside
+        the JSON chain with an exact Content-Length; a body shorter than it is
+        a failed export.
+      tags: [territories, territory-export]
+      parameters:
+        - { in: path, name: slug, required: true, schema: { type: string } }
+        - in: query
+          name: variant
+          required: false
+          description: >
+            Absent: geometry meshopt-compressed and textures KTX2 (web viewers).
+            `compatible`: plain geometry and the source JPEG/PNG textures, no
+            required extensions (Blender, desktop tools); about three times larger.
+          schema: { type: string, enum: [compatible] }
+      responses:
+        '200':
+          description: The merged GLB
+          content:
+            model/gltf-binary:
+              schema: { type: string, format: binary }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The territory is not converted yet, or (compatible) a plain copy is still being made
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422':
+          description: The export would exceed the GLB format's 4 GiB limit
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '500': { $ref: '#/components/responses/Internal' }
+        '503':
+          description: The catalog could not be asked whether the caller may open the territory
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /api/territories/{slug}/export.obj.zip:
+    get:
+      operationId: exportTerritoryObj
+      summary: Download the territory and its visible placed models as one baked OBJ in a ZIP
+      description: >
+        The same scene as `export.glb?variant=compatible` (plain copies; hidden
+        placements and placements in hidden groups are left out), baked into
+        world space as one OBJ object per placement, with its MTL and the source
+        textures. Z is up and Y forward; units are metres as the viewer measures
+        them, centred on the scene (scene units when the territory's size is
+        unknown). The ZIP is streamed outside the JSON chain chunked, without a
+        Content-Length: a stream that is cut is a failed export.
+      tags: [territories, territory-export]
+      parameters:
+        - { in: path, name: slug, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: The ZIP (README.txt, MTL, textures, OBJ)
+          content:
+            application/zip:
+              schema: { type: string, format: binary }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The territory is not converted yet, or a plain copy is still being made
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422':
+          description: The export would exceed 20 million vertices or 40 million faces
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '500': { $ref: '#/components/responses/Internal' }
+        '503':
+          description: The catalog could not be asked whether the caller may open the territory
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
   /api/territories/{slug}/scene:
     parameters:
       - name: slug

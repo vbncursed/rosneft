@@ -3,6 +3,7 @@ import { setCsrfToken } from "@/shared/api";
 import {
   createTerritory,
   deleteTerritory,
+  exportTerritory,
   getTerritory,
   listTerritories,
   replaceTerritorySource,
@@ -85,5 +86,26 @@ describe("territories gateway", () => {
     expect(init.method).toBe("PATCH");
     expect(JSON.parse(init.body as string)).toEqual({ externalPanoramaUrl: "https://tour.example" });
     expect(out.externalPanoramaUrl).toBe("https://tour.example");
+  });
+
+  it("fetches the export as a blob from the slug's export.glb", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response("glb", { status: 200, headers: { "Content-Type": "model/gltf-binary" } }),
+    );
+    const blob = await exportTerritory("ust-kut", "compressed");
+    expect(request()).toEqual({ url: "/api/territories/ust-kut/export.glb", method: "GET" });
+    expect(await blob.text()).toBe("glb");
+  });
+
+  it("exportTerritory asks for the compatible variant by query", async () => {
+    fetchMock.mockResolvedValue(new Response("glb", { status: 200 }));
+    await exportTerritory("ust-kut", "compatible");
+    expect(request()).toEqual({ url: "/api/territories/ust-kut/export.glb?variant=compatible", method: "GET" });
+  });
+
+  it("exportTerritory asks for the OBJ archive by its own path", async () => {
+    fetchMock.mockResolvedValue(new Response("zip", { status: 200 }));
+    await exportTerritory("ust-kut", "obj");
+    expect(request()).toEqual({ url: "/api/territories/ust-kut/export.obj.zip", method: "GET" });
   });
 });

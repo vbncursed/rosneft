@@ -12,7 +12,6 @@ import (
 	"github.com/vbncursed/rosneft/backend/pkg/grpcutil"
 	"github.com/vbncursed/rosneft/backend/pkg/metrics"
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/config"
-	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/service"
 )
 
 // reconcileTickInterval controls how often the worker re-scans the catalog
@@ -69,12 +68,14 @@ func RunWorker(ctx context.Context, cfg config.Config) error {
 	}
 	svc := InitServiceWorker(store, cat, conv, blobs)
 
-	w := InitWorker(store, svc, logger, cfg)
+	// Capacity 1: signals from a burst of finished jobs coalesce into one.
+	jobDone := make(chan struct{}, 1)
+	w := InitWorker(store, svc, logger, cfg, jobDone)
 
 	// Reconciler runs alongside the consume loop: queues conversions for any
 	// catalog project missing a LOD0 artifact. First pass retries with
 	// backoff because catalog might still be coming up.
-	go runReconciler(rootCtx, svc)
+	go runReconciler(rootCtx, svc, jobDone)
 
 	go grpcutil.WatchReadiness(rootCtx, grpcutil.ReadinessConfig{
 		Service: "mesh-worker",
@@ -94,7 +95,12 @@ func RunWorker(ctx context.Context, cfg config.Config) error {
 	return nil
 }
 
-func runReconciler(ctx context.Context, svc *service.Mesh) {
+// reconciler is the one service method the reconcile loop drives.
+type reconciler interface {
+	ReconcileMissingArtifacts(ctx context.Context) (int, error)
+}
+
+func runReconciler(ctx context.Context, svc reconciler, kick <-chan struct{}) {
 	logger := slogFromCtx()
 
 	// Initial pass with retry — catalog gRPC may not be serving yet.
@@ -118,19 +124,31 @@ func runReconciler(ctx context.Context, svc *service.Mesh) {
 
 	t := time.NewTicker(reconcileTickInterval)
 	defer t.Stop()
+	reconcileLoop(ctx, svc, t.C, kick)
+}
+
+// reconcileLoop runs a pass on every tick and, when kick is set, on every
+// signal. The signal path is what drains the plain-copy backfill: each
+// successful job pokes it, so the next backfill is queued as soon as the
+// worker is idle instead of 5 minutes later. It cannot spin: a pass runs only
+// on a signal or a tick, a signal comes only from a job that finished, and
+// a pass that queues nothing produces no job. A failed job sends no signal.
+func reconcileLoop(ctx context.Context, svc reconciler, tick <-chan time.Time, kick <-chan struct{}) {
+	logger := slogFromCtx()
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-t.C:
-			n, err := svc.ReconcileMissingArtifacts(ctx)
-			if err != nil {
-				logger.Warn("reconcile: tick failed", "err", err)
-				continue
-			}
-			if n > 0 {
-				logger.Info("reconcile: tick queued", "count", n)
-			}
+		case <-tick:
+		case <-kick:
+		}
+		n, err := svc.ReconcileMissingArtifacts(ctx)
+		if err != nil {
+			logger.Warn("reconcile: pass failed", "err", err)
+			continue
+		}
+		if n > 0 {
+			logger.Info("reconcile: pass queued", "count", n)
 		}
 	}
 }

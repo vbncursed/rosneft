@@ -31,6 +31,17 @@ import (
 // and an empty index, treats it as stale and may queue a second job. The
 // window is one Redis round trip, versus the whole conversion before.
 func (m *Mesh) SubmitConversion(ctx context.Context, kind domain.Kind, slug string) (domain.Job, bool, error) {
+	return m.submit(ctx, kind, slug, false)
+}
+
+// submit is SubmitConversion; backfill marks the job it creates as the
+// reconciler's plain-copy backfill (domain.Job.Backfill). A user-triggered
+// submit that lands on a live backfill adopts it by clearing the mark: the
+// user is handed that job to follow, so its failure is theirs to see. Queued,
+// it converts the replacement; running, it fails or succeeds on the old bytes
+// (success re-queues the replacement, requeueIfSourceReplaced), and a retry
+// after its failure stays unmarked (ReconcileMissingArtifacts).
+func (m *Mesh) submit(ctx context.Context, kind domain.Kind, slug string, backfill bool) (domain.Job, bool, error) {
 	if kind == domain.KindUnspecified {
 		return domain.Job{}, false, fmt.Errorf("%w: kind is required", domain.ErrInvalidInput)
 	}
@@ -53,14 +64,21 @@ func (m *Mesh) SubmitConversion(ctx context.Context, kind domain.Kind, slug stri
 	// leaves a queued job queued (the claim is re-taken when it starts), but a
 	// Running job without a claim outlived TargetLockTTL: its worker is gone.
 	if live != nil && (!locked || m.queued(*live)) {
+		if !backfill && live.Backfill {
+			if err := m.queue.ClearBackfill(ctx, live.ID); err != nil {
+				return domain.Job{}, false, fmt.Errorf("service.SubmitConversion: adopt: %w", err)
+			}
+			live.Backfill = false
+		}
 		return *live, false, nil
 	}
 
 	job := domain.Job{
-		ID:     m.idGen(),
-		Kind:   kind,
-		Slug:   slug,
-		Status: domain.JobStatusPending,
+		ID:       m.idGen(),
+		Kind:     kind,
+		Slug:     slug,
+		Status:   domain.JobStatusPending,
+		Backfill: backfill,
 	}
 	// Release only a claim this call actually took. Falling through a stale
 	// lock means someone else holds the key: inside the TOCTOU window above

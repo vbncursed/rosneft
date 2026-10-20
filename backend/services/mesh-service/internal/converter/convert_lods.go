@@ -22,6 +22,9 @@ import (
 // textures, so simplifying the compressed artifact would leave every LOD
 // carrying full-resolution textures.
 //
+// LOD0 additionally carries the uncompressed GLB it was made from (Plain,
+// PlainHash): it is already in memory, and the compatible export needs it.
+//
 // Every LOD carries its own vertex/face counts, read back from its own
 // produced GLB, and LOD 0's source-unit bounding box (simplification never
 // moves the mesh, so every LOD shares it).
@@ -34,6 +37,13 @@ func (c *Converter) ConvertLODs(ctx context.Context, root, sourcePath string) ([
 	if err != nil {
 		return nil, err
 	}
+	// ponytail: LOD0 keeps the plain GLB so the compatible export can serve it.
+	// Nothing here depends on gltfpack being byte-deterministic for the plain
+	// itself (convertRaw is pure Go), but the backfill's "one reconversion per
+	// target" assumes `-tj 1` makes the packed LODs deterministic too; if not,
+	// each backfill also re-hashes every LOD.
+	plainSum := sha256.Sum256(raw.content)
+	base.Plain, base.PlainHash = raw.content, hex.EncodeToString(plainSum[:])
 	out := []domain.ConversionResult{base}
 	if c.compressor == nil || len(c.lodRatios) == 0 {
 		return out, nil

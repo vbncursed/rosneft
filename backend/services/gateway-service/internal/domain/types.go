@@ -92,6 +92,8 @@ type LodArtifact struct {
 	Size     int64
 	Vertices uint64
 	Faces    uint64
+	// PlainHash is the uncompressed GLB made with this LOD0; "" when none.
+	PlainHash string
 }
 
 // Artifact is the gateway view of a converted artifact. Top-level fields
@@ -109,6 +111,7 @@ type Artifact struct {
 	BBoxMax     Vec3
 	CreatedAt   time.Time
 	LODs        []LodArtifact
+	PlainHash   string // see LodArtifact.PlainHash
 }
 
 // Job is the gateway view of a conversion job. Progress (0..1) + Stage

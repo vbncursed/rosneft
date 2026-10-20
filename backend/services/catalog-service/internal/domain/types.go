@@ -75,4 +75,7 @@ type Artifact struct {
 	BBoxMin     Vec3
 	BBoxMax     Vec3
 	CreatedAt   time.Time
+	// PlainHash is the uncompressed GLB made with this LOD0 (plain_artifacts);
+	// "" when there is none, and always "" for lod > 0.
+	PlainHash string
 }

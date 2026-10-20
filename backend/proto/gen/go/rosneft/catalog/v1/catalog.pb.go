@@ -324,6 +324,7 @@ type TerritoryArtifact struct {
 	BboxMin       *Vec3                  `protobuf:"bytes,8,opt,name=bbox_min,json=bboxMin,proto3" json:"bbox_min,omitempty"`
 	BboxMax       *Vec3                  `protobuf:"bytes,9,opt,name=bbox_max,json=bboxMax,proto3" json:"bbox_max,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	PlainHash     string                 `protobuf:"bytes,11,opt,name=plain_hash,json=plainHash,proto3" json:"plain_hash,omitempty"` // hash of the plain GLB made with this LOD0; "" when none or lod != 0
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -428,6 +429,13 @@ func (x *TerritoryArtifact) GetCreatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *TerritoryArtifact) GetPlainHash() string {
+	if x != nil {
+		return x.PlainHash
+	}
+	return ""
+}
+
 // ModelArtifact is a converted GLB output for one model + LOD.
 type ModelArtifact struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -441,6 +449,7 @@ type ModelArtifact struct {
 	BboxMin       *Vec3                  `protobuf:"bytes,8,opt,name=bbox_min,json=bboxMin,proto3" json:"bbox_min,omitempty"`
 	BboxMax       *Vec3                  `protobuf:"bytes,9,opt,name=bbox_max,json=bboxMax,proto3" json:"bbox_max,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	PlainHash     string                 `protobuf:"bytes,11,opt,name=plain_hash,json=plainHash,proto3" json:"plain_hash,omitempty"` // hash of the plain GLB made with this LOD0; "" when none or lod != 0
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -543,6 +552,13 @@ func (x *ModelArtifact) GetCreatedAt() *timestamppb.Timestamp {
 		return x.CreatedAt
 	}
 	return nil
+}
+
+func (x *ModelArtifact) GetPlainHash() string {
+	if x != nil {
+		return x.PlainHash
+	}
+	return ""
 }
 
 // Placement is one instance of a model overlaid on a territory at a
@@ -5184,7 +5200,7 @@ const file_rosneft_catalog_v1_catalog_proto_rawDesc = "" +
 	"\x13thumbnail_blob_hash\x18\a \x01(\tR\x11thumbnailBlobHash\x12\x1f\n" +
 	"\vusage_count\x18\b \x01(\rR\n" +
 	"usageCount\x12?\n" +
-	"\tartifacts\x18\t \x03(\v2!.rosneft.catalog.v1.ModelArtifactR\tartifacts\"\xee\x02\n" +
+	"\tartifacts\x18\t \x03(\v2!.rosneft.catalog.v1.ModelArtifactR\tartifacts\"\x8d\x03\n" +
 	"\x11TerritoryArtifact\x12%\n" +
 	"\x0eterritory_slug\x18\x01 \x01(\tR\rterritorySlug\x12\x10\n" +
 	"\x03lod\x18\x02 \x01(\rR\x03lod\x12\x12\n" +
@@ -5197,7 +5213,9 @@ const file_rosneft_catalog_v1_catalog_proto_rawDesc = "" +
 	"\bbbox_max\x18\t \x01(\v2\x18.rosneft.catalog.v1.Vec3R\abboxMax\x129\n" +
 	"\n" +
 	"created_at\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xe2\x02\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"plain_hash\x18\v \x01(\tR\tplainHash\"\x81\x03\n" +
 	"\rModelArtifact\x12\x1d\n" +
 	"\n" +
 	"model_slug\x18\x01 \x01(\tR\tmodelSlug\x12\x10\n" +
@@ -5211,7 +5229,9 @@ const file_rosneft_catalog_v1_catalog_proto_rawDesc = "" +
 	"\bbbox_max\x18\t \x01(\v2\x18.rosneft.catalog.v1.Vec3R\abboxMax\x129\n" +
 	"\n" +
 	"created_at\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\x80\x04\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"plain_hash\x18\v \x01(\tR\tplainHash\"\x80\x04\n" +
 	"\tPlacement\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12%\n" +
 	"\x0eterritory_slug\x18\x02 \x01(\tR\rterritorySlug\x12\x1d\n" +

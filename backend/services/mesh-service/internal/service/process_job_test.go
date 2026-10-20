@@ -7,7 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -278,4 +280,37 @@ func (s *ProcessJobSuite) TestConverterGetsTheExtractionDirAsRoot() {
 	rel, err := filepath.Rel(s.convRoot, s.convObj)
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), s.convRoot != "" && filepath.IsLocal(rel), "root %q, obj %q", s.convRoot, s.convObj)
+}
+
+// A backfill job that fails is recorded Failed with its marker kept (the list
+// hides it by that marker) and logged with the job, the target and the cause:
+// the log is where such a failure stays inspectable.
+func (s *ProcessJobSuite) TestFailedBackfillKeepsItsMarkerAndIsLogged() {
+	var logs bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&logs, nil)))
+	s.T().Cleanup(func() { slog.SetDefault(prev) })
+	s.queue.GetJobMock.Return(domain.Job{
+		ID: "job-1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusPending, Backfill: true,
+	}, nil)
+	s.catalog.GetTargetMock.Return(domain.ConversionTarget{}, fmt.Errorf("get target: %w: x", domain.ErrBadSource))
+	s.queue.UnlockTargetMock.Return(nil)
+
+	_ = s.svc.ProcessJob(s.ctx, "job-1")
+
+	last := s.saved[len(s.saved)-1]
+	assert.Equal(s.T(), last.Status, domain.JobStatusFailed)
+	assert.Assert(s.T(), last.Backfill)
+	assert.Assert(s.T(), last.FailedOnSource)
+	out := logs.String()
+	for _, want := range []string{"backfill", "job_id=job-1", "slug=t1", "bad source"} {
+		assert.Assert(s.T(), strings.Contains(out, want), "log lacks %q: %s", want, out)
+	}
+}
+
+// A user-triggered job carries no marker, so its failure is listed as before.
+func (s *ProcessJobSuite) TestFailedUserConversionIsNotABackfill() {
+	last := s.failTarget(errors.New("catalog down"))
+
+	assert.Assert(s.T(), !last.Backfill)
 }

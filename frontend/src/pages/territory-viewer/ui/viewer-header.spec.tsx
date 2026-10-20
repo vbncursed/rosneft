@@ -97,4 +97,9 @@ describe("ViewerHeader", () => {
     render(<ViewerHeader {...props()} offline={<button type="button">offline control</button>} />);
     expect(screen.getByRole("button", { name: "offline control" })).toBeInTheDocument();
   });
+
+  it("draws the download control the screen hands it", () => {
+    render(<ViewerHeader {...props()} download={<button type="button">download control</button>} />);
+    expect(screen.getByRole("button", { name: "download control" })).toBeInTheDocument();
+  });
 });

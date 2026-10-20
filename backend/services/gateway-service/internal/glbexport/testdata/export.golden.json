@@ -1,0 +1,198 @@
+{
+  "extensionsUsed": [
+    "KHR_texture_basisu"
+  ],
+  "extensionsRequired": [
+    "KHR_texture_basisu"
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 3,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5123,
+      "count": 3,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 4,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5126,
+      "count": 4,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 4,
+      "componentType": 5123,
+      "count": 6,
+      "type": "SCALAR"
+    }
+  ],
+  "asset": {
+    "generator": "rosneft territory export",
+    "version": "2.0"
+  },
+  "buffers": [
+    {
+      "byteLength": 152
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 36
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 36,
+      "byteLength": 6
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 44,
+      "byteLength": 48
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 92,
+      "byteLength": 32
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 124,
+      "byteLength": 12
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 136,
+      "byteLength": 16
+    }
+  ],
+  "images": [
+    {
+      "mimeType": "image/ktx2",
+      "bufferView": 5
+    }
+  ],
+  "materials": [
+    {
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 0
+        }
+      },
+      "normalTexture": {
+        "index": 0
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0
+          },
+          "indices": 1
+        }
+      ]
+    },
+    {
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 2,
+            "TEXCOORD_0": 3
+          },
+          "indices": 4,
+          "material": 0
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "Ust-Kut",
+      "children": [
+        1
+      ]
+    },
+    {
+      "name": "tri",
+      "mesh": 0
+    },
+    {
+      "rotation": [
+        0,
+        0.6816387600233342,
+        0,
+        0.7316888688738209
+      ],
+      "translation": [
+        0.5,
+        0,
+        -0.25
+      ],
+      "name": "tank-1",
+      "children": [
+        3
+      ]
+    },
+    {
+      "name": "quad",
+      "mesh": 1
+    },
+    {
+      "scale": [
+        2,
+        2,
+        2
+      ],
+      "translation": [
+        -0.5,
+        0,
+        0.25
+      ],
+      "name": "tank-2",
+      "children": [
+        5
+      ]
+    },
+    {
+      "name": "quad",
+      "mesh": 1
+    }
+  ],
+  "samplers": [
+    {}
+  ],
+  "scene": 0,
+  "scenes": [
+    {
+      "nodes": [
+        0,
+        2,
+        4
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "extensions": {
+        "KHR_texture_basisu": {
+          "source": 0
+        }
+      },
+      "sampler": 0
+    }
+  ]
+} 

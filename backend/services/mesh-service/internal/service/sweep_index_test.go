@@ -13,7 +13,7 @@ func (s *ReconcileSuite) TestForgetsIndexEntriesWhoseTargetTheCatalogNoLongerLis
 	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
 		{Kind: domain.KindTerritory, Slug: "kept", SourceBlobHash: "h"},
 	}, nil)
-	s.catalog.HasLOD0Mock.Return(true, nil)
+	s.catalog.HasLOD0Mock.Return(true, true, nil)
 	s.queue.ListTargetJobsMock.Return([]domain.Job{
 		{ID: "j1", Kind: domain.KindTerritory, Slug: "kept", Status: domain.JobStatusSucceeded},
 		{ID: "j2", Kind: domain.KindTerritory, Slug: "gone", Status: domain.JobStatusFailed},
@@ -53,7 +53,7 @@ func (s *ReconcileSuite) TestNoSweepAfterALoopError() {
 	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
 		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
 	}, nil)
-	s.catalog.HasLOD0Mock.Return(false, errors.New("db blip"))
+	s.catalog.HasLOD0Mock.Return(false, false, errors.New("db blip"))
 	// ListTargetJobs and ForgetTarget are unmocked: reaching them fails the test.
 
 	_, err := s.svc.ReconcileMissingArtifacts(s.ctx)

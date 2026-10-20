@@ -16,6 +16,9 @@ vi.mock("@tanstack/react-router", () => ({ useParams: () => useParams() }));
 vi.mock("@/features/edit-entity", () => ({
   EditDetailsDialog: ({ title }: { title: string }) => <div role="dialog" aria-label={`Edit ${title}`} />,
 }));
+vi.mock("@/features/territory-export", () => ({
+  ExportButton: ({ slug }: { slug: string }) => <button type="button">Download {slug}</button>,
+}));
 vi.mock("@/widgets/viewer-canvas", () => ({
   ViewerCanvas: () => <div data-testid="canvas" />,
   preloadViewer: vi.fn(),
@@ -30,6 +33,14 @@ describe("TerritoryViewerScreen", () => {
     useTerritoryViewer.mockReturnValue(READY());
     render(<TerritoryViewerScreen />);
     expect(useTerritoryViewer).toHaveBeenCalledWith("refinery-block-c");
+  });
+
+  it("puts the Download control in the header", () => {
+    useParams.mockReturnValue({ slug: "refinery-block-c" });
+    useSceneSeeded.mockReturnValue(true);
+    useTerritoryViewer.mockReturnValue(READY());
+    render(<TerritoryViewerScreen />);
+    expect(screen.getByRole("button", { name: /^Download / })).toBeInTheDocument();
   });
 
   it("stands the loading card in while nothing has answered", () => {

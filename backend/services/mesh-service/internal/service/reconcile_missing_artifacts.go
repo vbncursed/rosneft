@@ -32,8 +32,19 @@ const TargetLockTTL = 30 * time.Minute
 // the group's last-delivered-id if a queue ever legitimately waits this long.
 const MaxQueueWait = 6 * time.Hour
 
+// BackfillRetryAfter is how long a plain-copy backfill waits after its latest
+// job finished without leaving a plain copy. The worker pokes the reconciler
+// after every successful job, so without it one target that fails for
+// infrastructure reasons would be tried first on every such pass, and a
+// catalog that drops plain_hash would reconvert back to back forever.
+const BackfillRetryAfter = 5 * time.Minute
+
 // ReconcileMissingArtifacts queues a conversion for every catalog target
-// (territory or model) that does not already have a LOD0 artifact.
+// (territory or model) that does not already have a LOD0 artifact, or whose
+// LOD0 has no plain GLB copy (the backfill for targets converted before the
+// compatible export existed: the ordinary job writes the copy). The backfill
+// goes one target per pass and only while no other job is live; a pass runs
+// every tick and right after each successful job.
 // Idempotent at the catalog level — re-running on a fully-converted catalog
 // is a no-op aside from the read pass.
 //
@@ -58,38 +69,70 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 		return 0, fmt.Errorf("service.ReconcileMissingArtifacts: list: %w", err)
 	}
 
-	// One index read per tick, taken on first need and shared with the sweep.
+	// One index read per pass, taken on first need and shared with the sweep.
 	index := sync.OnceValues(func() ([]domain.Job, error) { return m.queue.ListTargetJobs(ctx) })
-	var failed map[string]struct{}
+	var latest map[string]domain.Job
 
-	queued := 0
+	queued, skewed := 0, false
 	for _, t := range targets {
 		if err := ctx.Err(); err != nil {
 			return queued, err
 		}
-		has, err := m.catalog.HasLOD0(ctx, t.Kind, t.Slug)
+		has, hasPlain, err := m.catalog.HasLOD0(ctx, t.Kind, t.Slug)
 		if err != nil {
 			return queued, fmt.Errorf("service.ReconcileMissingArtifacts: check %s/%s: %w", t.Kind, t.Slug, err)
 		}
+		if has && hasPlain {
+			continue
+		}
+		if latest == nil {
+			latest = latestJobs(ctx, index)
+		}
+		last, seen := latest[targetKey(t.Kind, t.Slug)]
+		if seen && last.Status == domain.JobStatusFailed && last.FailedOnSource {
+			continue
+		}
+		reason := "no lod0"
 		if has {
-			continue
-		}
-		if failed == nil {
-			failed = failedOnInput(ctx, index)
-		}
-		if _, skip := failed[targetKey(t.Kind, t.Slug)]; skip {
-			continue
+			reason = "no plain copy"
+			// ponytail: one backfill per pass, and only on an idle worker, so
+			// an upload never queues behind the whole catalog and no queued
+			// backfill outlives MaxQueueWait (which would queue it twice).
+			// The worker also runs a pass right after every successful job,
+			// so a succeeding backlog drains back to back: ceiling is one
+			// conversion per target (~1 min each), not 12 targets an hour.
+			// Targets whose latest job failed wait BackfillRetryAfter, so
+			// only a success drains at once.
+			if queued > 0 || skewed || anyLive(ctx, index, m.liveNow) {
+				continue
+			}
+			if seen && m.now().Sub(last.UpdatedAt) < BackfillRetryAfter {
+				// Every conversion writes the plain copy, so one that just
+				// succeeded without it means the catalog drops plain_hash
+				// (an older image): its success signal would reconvert back
+				// to back forever. Stop the drain for this pass; the skew
+				// then costs one reconversion per tick, as before the drain.
+				skewed = last.Status == domain.JobStatusSucceeded
+				if skewed || last.Status == domain.JobStatusFailed {
+					continue
+				}
+			}
 		}
 		// SubmitConversion holds the target claim; when the target is already
 		// in flight it hands back that job and created is false.
-		_, created, err := m.SubmitConversion(ctx, t.Kind, t.Slug)
+		// Only the plain-copy backfill is marked (Job.Backfill hides its
+		// failure). A first conversion (no LOD0) is not, nor a retry of a job
+		// that neither succeeded nor was a backfill: that is a failed or
+		// abandoned replace-source, converting bytes the LOD0 is not built from.
+		backfill := has && (!seen || last.Status == domain.JobStatusSucceeded || last.Backfill)
+		_, created, err := m.submit(ctx, t.Kind, t.Slug, backfill)
 		if err != nil {
 			return queued, fmt.Errorf("service.ReconcileMissingArtifacts: submit %s/%s: %w", t.Kind, t.Slug, err)
 		}
 		if !created {
 			continue
 		}
-		slog.InfoContext(ctx, "reconcile: queued conversion", "kind", t.Kind, "slug", t.Slug)
+		slog.InfoContext(ctx, "reconcile: queued conversion", "kind", t.Kind, "slug", t.Slug, "reason", reason)
 		queued++
 	}
 	m.sweepIndex(ctx, targets, index)
@@ -132,25 +175,4 @@ func (m *Mesh) sweepIndex(ctx context.Context, targets []domain.ConversionTarget
 		}
 		slog.InfoContext(ctx, "reconcile: forgot deleted target", "kind", j.Kind, "slug", j.Slug)
 	}
-}
-
-func targetKey(kind domain.Kind, slug string) string {
-	return kind.String() + ":" + slug
-}
-
-// failedOnInput is the targets whose latest job failed on its source.
-// An index read error yields an empty set, so the tick retries as before.
-func failedOnInput(ctx context.Context, index func() ([]domain.Job, error)) map[string]struct{} {
-	set := map[string]struct{}{}
-	jobs, err := index()
-	if err != nil {
-		slog.WarnContext(ctx, "reconcile: index read failed", "err", err)
-		return set
-	}
-	for _, j := range jobs {
-		if j.Status == domain.JobStatusFailed && j.FailedOnSource {
-			set[targetKey(j.Kind, j.Slug)] = struct{}{}
-		}
-	}
-	return set
 }

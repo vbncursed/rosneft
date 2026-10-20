@@ -148,11 +148,12 @@ func lodChain(arts []domain.Artifact) []domain.LodArtifact {
 	out := make([]domain.LodArtifact, len(arts))
 	for i, a := range arts {
 		out[i] = domain.LodArtifact{
-			LOD:      a.LOD,
-			Hash:     a.Hash,
-			Size:     a.Size,
-			Vertices: a.Vertices,
-			Faces:    a.Faces,
+			LOD:       a.LOD,
+			Hash:      a.Hash,
+			Size:      a.Size,
+			Vertices:  a.Vertices,
+			Faces:     a.Faces,
+			PlainHash: a.PlainHash,
 		}
 	}
 	return out

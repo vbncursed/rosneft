@@ -105,9 +105,42 @@ Runs in-process alongside the consume loop (`bootstrap/run_worker.go`). An
 initial pass (up to 5 retries with backoff, since catalog gRPC may still be
 coming up) plus a **5-minute ticker** (`reconcileTickInterval`). Each pass
 `ListTargets` over every territory + model and, for any without a LOD0
-artifact (`HasLOD0`), calls `SubmitConversion`. Idempotent — a no-op on a
+artifact, or whose LOD0 has no plain GLB copy (`HasLOD0` returns both; this
+backfills targets converted before the compatible export, one reconversion
+each, one target per pass and only while no other job is live, +≈3× LOD0 disk), calls `SubmitConversion`.
+A pass also runs right after every **successful** job (the worker pokes a
+capacity-1 channel without blocking, so a burst coalesces into one pass), so a
+succeeding backfill backlog drains back to back, about one conversion per
+target (≈1 min), instead of one per 5 minutes. It stops by itself: a pass that
+finds nothing queues no job, so no further signal. A failed job sends no
+signal, and a backfill whose latest job failed waits `BackfillRetryAfter`
+(5 min) before it is tried again, so a failing target neither spins nor
+stalls the rest; the tick retries it. A job that succeeded under
+`BackfillRetryAfter` ago yet left no plain copy means the catalog drops
+`plain_hash` (an older image): that pass queues no backfill at all, so the skew
+costs at most one reconversion per tick instead of a back-to-back loop. Idempotent — a no-op on a
 fully-converted catalog. It is the belt-and-suspenders backstop for
 conversions that were never queued or that crashed mid-flight.
+
+**Backfill jobs are marked and their failure is hidden.** A job the reconciler
+queues for a target that already has its LOD0 (only the plain copy is missing),
+when the target's latest job is absent, succeeded or itself a backfill, carries
+`Job.Backfill` (`backfill` in the Redis job hash; absent on jobs from the
+previous release, which read false). `ListTargetJobs` (so `GET /api/jobs`)
+drops a job that is `Failed` *and* `Backfill`: the viewer of that target works,
+and the console must not paint it red. A queued or running backfill is listed
+as converting. The failure is logged by `markFailed` (`process: backfill failed`
+with `job_id`, `kind`, `slug`, `on_source`, `err`). The reconciler and
+`SubmitConversion` read the index unfiltered, so `FailedOnSource` still stops
+the requeue loop and an infrastructure failure still retries on the next tick.
+Unmarked, and so failing visibly as before: a first conversion (no LOD0), every
+user-triggered job (create, `replace-source`), and a reconciler retry of a job
+that neither succeeded nor was a backfill (a failed or abandoned
+`replace-source`, whose retry converts the new bytes). A user submit that lands
+on a live backfill is handed that job and clears the mark (`ClearBackfill`, one
+`HSET`); `SaveJob` writes `backfill` only when it creates the job, so a worker's
+or a progress tick's copy never writes it back. `GET /api/jobs/{id}/events`
+reads the job by id and is unaffected.
 
 ## Optional optimisations
 

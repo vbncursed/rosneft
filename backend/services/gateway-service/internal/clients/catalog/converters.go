@@ -90,6 +90,7 @@ func territoryArtifactFromProto(a *catalogv1.TerritoryArtifact) domain.Artifact 
 		BBoxMin:     vec3FromProto(a.GetBboxMin()),
 		BBoxMax:     vec3FromProto(a.GetBboxMax()),
 		CreatedAt:   a.GetCreatedAt().AsTime(),
+		PlainHash:   a.GetPlainHash(),
 	}
 }
 
@@ -108,6 +109,7 @@ func modelArtifactFromProto(a *catalogv1.ModelArtifact) domain.Artifact {
 		BBoxMin:     vec3FromProto(a.GetBboxMin()),
 		BBoxMax:     vec3FromProto(a.GetBboxMax()),
 		CreatedAt:   a.GetCreatedAt().AsTime(),
+		PlainHash:   a.GetPlainHash(),
 	}
 }
 
@@ -149,6 +151,7 @@ type lodSource interface {
 	GetSize() int64
 	GetVertices() uint64
 	GetFaces() uint64
+	GetPlainHash() string
 }
 
 func lodsFromProto[A lodSource](in []A) []domain.LodArtifact {
@@ -156,7 +159,7 @@ func lodsFromProto[A lodSource](in []A) []domain.LodArtifact {
 	for i, a := range in {
 		out[i] = domain.LodArtifact{
 			LOD: a.GetLod(), Hash: a.GetHash(), Size: a.GetSize(),
-			Vertices: a.GetVertices(), Faces: a.GetFaces(),
+			Vertices: a.GetVertices(), Faces: a.GetFaces(), PlainHash: a.GetPlainHash(),
 		}
 	}
 	return out

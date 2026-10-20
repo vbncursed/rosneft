@@ -4,11 +4,13 @@ export { TerritoryCard, type TerritoryCardProps } from "./ui/territory-card";
 export {
   createTerritory,
   deleteTerritory,
+  exportTerritory,
   getTerritory,
   listTerritories,
   replaceTerritorySource,
   updateTerritory,
   type CreateTerritoryInput,
+  type ExportVariant,
 } from "./api/territories-gateway";
 export { toTerritory } from "./api/to-territory";
 export { territoriesQuery } from "./api/territories-query";

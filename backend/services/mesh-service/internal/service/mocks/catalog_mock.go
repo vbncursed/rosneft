@@ -26,7 +26,7 @@ type CatalogMock struct {
 	beforeGetTargetCounter uint64
 	GetTargetMock          mCatalogMockGetTarget
 
-	funcHasLOD0          func(ctx context.Context, kind domain.Kind, slug string) (b1 bool, err error)
+	funcHasLOD0          func(ctx context.Context, kind domain.Kind, slug string) (has bool, hasPlain bool, err error)
 	funcHasLOD0Origin    string
 	inspectFuncHasLOD0   func(ctx context.Context, kind domain.Kind, slug string)
 	afterHasLOD0Counter  uint64
@@ -497,8 +497,9 @@ type CatalogMockHasLOD0ParamPtrs struct {
 
 // CatalogMockHasLOD0Results contains results of the Catalog.HasLOD0
 type CatalogMockHasLOD0Results struct {
-	b1  bool
-	err error
+	has      bool
+	hasPlain bool
+	err      error
 }
 
 // CatalogMockHasLOD0Origins contains origins of expectations of the Catalog.HasLOD0
@@ -625,7 +626,7 @@ func (mmHasLOD0 *mCatalogMockHasLOD0) Inspect(f func(ctx context.Context, kind d
 }
 
 // Return sets up results that will be returned by Catalog.HasLOD0
-func (mmHasLOD0 *mCatalogMockHasLOD0) Return(b1 bool, err error) *CatalogMock {
+func (mmHasLOD0 *mCatalogMockHasLOD0) Return(has bool, hasPlain bool, err error) *CatalogMock {
 	if mmHasLOD0.mock.funcHasLOD0 != nil {
 		mmHasLOD0.mock.t.Fatalf("CatalogMock.HasLOD0 mock is already set by Set")
 	}
@@ -633,13 +634,13 @@ func (mmHasLOD0 *mCatalogMockHasLOD0) Return(b1 bool, err error) *CatalogMock {
 	if mmHasLOD0.defaultExpectation == nil {
 		mmHasLOD0.defaultExpectation = &CatalogMockHasLOD0Expectation{mock: mmHasLOD0.mock}
 	}
-	mmHasLOD0.defaultExpectation.results = &CatalogMockHasLOD0Results{b1, err}
+	mmHasLOD0.defaultExpectation.results = &CatalogMockHasLOD0Results{has, hasPlain, err}
 	mmHasLOD0.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
 	return mmHasLOD0.mock
 }
 
 // Set uses given function f to mock the Catalog.HasLOD0 method
-func (mmHasLOD0 *mCatalogMockHasLOD0) Set(f func(ctx context.Context, kind domain.Kind, slug string) (b1 bool, err error)) *CatalogMock {
+func (mmHasLOD0 *mCatalogMockHasLOD0) Set(f func(ctx context.Context, kind domain.Kind, slug string) (has bool, hasPlain bool, err error)) *CatalogMock {
 	if mmHasLOD0.defaultExpectation != nil {
 		mmHasLOD0.mock.t.Fatalf("Default expectation is already set for the Catalog.HasLOD0 method")
 	}
@@ -670,8 +671,8 @@ func (mmHasLOD0 *mCatalogMockHasLOD0) When(ctx context.Context, kind domain.Kind
 }
 
 // Then sets up Catalog.HasLOD0 return parameters for the expectation previously defined by the When method
-func (e *CatalogMockHasLOD0Expectation) Then(b1 bool, err error) *CatalogMock {
-	e.results = &CatalogMockHasLOD0Results{b1, err}
+func (e *CatalogMockHasLOD0Expectation) Then(has bool, hasPlain bool, err error) *CatalogMock {
+	e.results = &CatalogMockHasLOD0Results{has, hasPlain, err}
 	return e.mock
 }
 
@@ -697,7 +698,7 @@ func (mmHasLOD0 *mCatalogMockHasLOD0) invocationsDone() bool {
 }
 
 // HasLOD0 implements mm_service.Catalog
-func (mmHasLOD0 *CatalogMock) HasLOD0(ctx context.Context, kind domain.Kind, slug string) (b1 bool, err error) {
+func (mmHasLOD0 *CatalogMock) HasLOD0(ctx context.Context, kind domain.Kind, slug string) (has bool, hasPlain bool, err error) {
 	mm_atomic.AddUint64(&mmHasLOD0.beforeHasLOD0Counter, 1)
 	defer mm_atomic.AddUint64(&mmHasLOD0.afterHasLOD0Counter, 1)
 
@@ -717,7 +718,7 @@ func (mmHasLOD0 *CatalogMock) HasLOD0(ctx context.Context, kind domain.Kind, slu
 	for _, e := range mmHasLOD0.HasLOD0Mock.expectations {
 		if minimock.Equal(*e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.b1, e.results.err
+			return e.results.has, e.results.hasPlain, e.results.err
 		}
 	}
 
@@ -754,7 +755,7 @@ func (mmHasLOD0 *CatalogMock) HasLOD0(ctx context.Context, kind domain.Kind, slu
 		if mm_results == nil {
 			mmHasLOD0.t.Fatal("No results are set for the CatalogMock.HasLOD0")
 		}
-		return (*mm_results).b1, (*mm_results).err
+		return (*mm_results).has, (*mm_results).hasPlain, (*mm_results).err
 	}
 	if mmHasLOD0.funcHasLOD0 != nil {
 		return mmHasLOD0.funcHasLOD0(ctx, kind, slug)

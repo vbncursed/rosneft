@@ -251,3 +251,30 @@ func (s *SubmitConversionSuite) TestReleasesTheLockWhenTheIndexReadFails() {
 	_, _, err := s.svc.SubmitConversion(s.ctx, domain.KindTerritory, "t1")
 	assert.ErrorContains(s.T(), err, "redis down")
 }
+
+// A user's submit that lands on a live backfill adopts it: the user is handed
+// that job, so its failure is theirs to see. The mark is cleared field-wise —
+// a whole-job save here could rewind a worker that marked it Running meanwhile.
+func (s *SubmitConversionSuite) TestUserSubmitAdoptsALiveBackfill() {
+	for _, tc := range []struct {
+		name   string
+		locked bool
+		live   domain.Job
+	}{
+		{"queued", true, domain.Job{ID: "bf", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusPending, Backfill: true, CreatedAt: submitNow}},
+		{"running", false, domain.Job{ID: "bf", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusRunning, Backfill: true}},
+	} {
+		s.SetupTest()
+		adopted := tc.live
+		adopted.Backfill = false
+		s.queue.TryLockTargetMock.Return(tc.locked, nil)
+		s.queue.ListTargetJobsMock.Return([]domain.Job{tc.live}, nil)
+		s.queue.ClearBackfillMock.Expect(s.ctx, "bf").Return(nil)
+
+		got, created, err := s.svc.SubmitConversion(s.ctx, domain.KindTerritory, "t1")
+
+		assert.NilError(s.T(), err, tc.name)
+		assert.Assert(s.T(), !created, tc.name)
+		assert.DeepEqual(s.T(), got, adopted)
+	}
+}
