@@ -107,7 +107,15 @@ coming up) plus a **5-minute ticker** (`reconcileTickInterval`). Each pass
 `ListTargets` over every territory + model and, for any without a LOD0
 artifact, or whose LOD0 has no plain GLB copy (`HasLOD0` returns both; this
 backfills targets converted before the compatible export, one reconversion
-each, one target per tick and only while no other job is live, +≈3× LOD0 disk), calls `SubmitConversion`. Idempotent — a no-op on a
+each, one target per pass and only while no other job is live, +≈3× LOD0 disk), calls `SubmitConversion`.
+A pass also runs right after every **successful** job (the worker pokes a
+capacity-1 channel without blocking, so a burst coalesces into one pass), so a
+succeeding backfill backlog drains back to back, about one conversion per
+target (≈1 min), instead of one per 5 minutes. It stops by itself: a pass that
+finds nothing queues no job, so no further signal. A failed job sends no
+signal, and a backfill whose latest job failed waits `BackfillRetryAfter`
+(5 min) before it is tried again, so a failing target neither spins nor
+stalls the rest; the tick retries it. Idempotent — a no-op on a
 fully-converted catalog. It is the belt-and-suspenders backstop for
 conversions that were never queued or that crashed mid-flight.
 

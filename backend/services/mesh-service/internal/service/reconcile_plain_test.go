@@ -175,3 +175,43 @@ func (s *ReconcileSuite) TestSkipsABackfillThatFailedOnItsSource() {
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), n, 0)
 }
+
+// A backfill that just failed (infrastructure, not its source) is not retried
+// at once: the signal-driven passes would otherwise put one poison target in
+// front of the rest of the backlog. The pass moves on to the next target; the
+// failed one is retried once BackfillRetryAfter has passed.
+func (s *ReconcileSuite) TestPlainBackfillBacksOffFromARecentFailure() {
+	for _, tc := range []struct {
+		name      string
+		updatedAt time.Time
+		want      string // the one target queued
+	}{
+		{"just failed", time.Now(), "t2"},
+		{"failed long ago", time.Now().Add(-service.BackfillRetryAfter), "t1"},
+	} {
+		s.SetupTest()
+		s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
+			{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
+			{Kind: domain.KindTerritory, Slug: "t2", SourceBlobHash: "h"},
+		}, nil)
+		s.catalog.HasLOD0Mock.Return(true, false, nil)
+		var locked []string
+		s.queue.TryLockTargetMock.Set(func(_ context.Context, _ domain.Kind, slug string, _ time.Duration) (bool, error) {
+			locked = append(locked, slug)
+			return true, nil
+		})
+		s.queue.SaveJobMock.Return(nil)
+		s.queue.EnqueueJobMock.Return(nil)
+		s.queue.GetJobMock.Return(domain.Job{}, nil)
+		s.queue.ListTargetJobsMock.Return([]domain.Job{{
+			ID: "j1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusFailed,
+			Backfill: true, UpdatedAt: tc.updatedAt,
+		}}, nil)
+
+		n, err := s.svc.ReconcileMissingArtifacts(s.ctx)
+
+		assert.NilError(s.T(), err)
+		assert.Equal(s.T(), n, 1, tc.name)
+		assert.DeepEqual(s.T(), locked, []string{tc.want})
+	}
+}
