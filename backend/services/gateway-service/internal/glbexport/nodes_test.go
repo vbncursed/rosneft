@@ -26,7 +26,7 @@ func (s *NodesSuite) TestQuatFromEulerXYZMatchesThree() {
 	}
 	for _, tc := range cases {
 		s.Run(tc.name, func() {
-			got := quatFromEulerXYZ(tc.x, tc.y, tc.z)
+			got := QuatFromEulerXYZ(tc.x, tc.y, tc.z)
 			for i := range got {
 				assert.Assert(s.T(), math.Abs(got[i]-tc.want[i]) < 1e-12, "component %d: got %v want %v", i, got, tc.want)
 			}

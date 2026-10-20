@@ -9,9 +9,9 @@ import (
 // maxDepth bounds an input's node tree; real ones are a few levels deep.
 const maxDepth = 256
 
-// quatFromEulerXYZ is three.js Quaternion.setFromEuler for order 'XYZ', in
+// QuatFromEulerXYZ is three.js Quaternion.setFromEuler for order 'XYZ', in
 // glTF component order (x, y, z, w).
-func quatFromEulerXYZ(x, y, z float64) [4]float64 {
+func QuatFromEulerXYZ(x, y, z float64) [4]float64 {
 	s1, c1 := math.Sincos(x / 2)
 	s2, c2 := math.Sincos(y / 2)
 	s3, c3 := math.Sincos(z / 2)
@@ -23,9 +23,9 @@ func quatFromEulerXYZ(x, y, z float64) [4]float64 {
 	}
 }
 
-// sceneRoots lists the nodes the viewer would draw: the default scene's, or
+// SceneRoots lists the nodes the viewer would draw: the default scene's, or
 // every parentless node when the document has no scenes.
-func sceneRoots(doc *gltf.Document) ([]int, error) {
+func SceneRoots(doc *gltf.Document) ([]int, error) {
 	if len(doc.Scenes) == 0 {
 		hasParent := map[int]bool{}
 		for _, n := range doc.Nodes {
@@ -58,7 +58,7 @@ func (b *builder) addPlacement(in *instance, p Placement) error {
 	node := &gltf.Node{
 		Name:        p.Name,
 		Translation: p.Translation,
-		Rotation:    quatFromEulerXYZ(p.Rotation[0], p.Rotation[1], p.Rotation[2]),
+		Rotation:    QuatFromEulerXYZ(p.Rotation[0], p.Rotation[1], p.Rotation[2]),
 		Scale:       p.Scale,
 	}
 	b.doc.Scenes[0].Nodes = append(b.doc.Scenes[0].Nodes, len(b.doc.Nodes))

@@ -74,10 +74,10 @@ func (b *builder) addDoc(hash string, h Head) (*instance, error) {
 	if src == nil {
 		return nil, malformed("no document")
 	}
-	if err := validate(src); err != nil {
+	if err := Validate(src); err != nil {
 		return nil, err
 	}
-	roots, err := sceneRoots(src)
+	roots, err := SceneRoots(src)
 	if err != nil {
 		return nil, err
 	}
