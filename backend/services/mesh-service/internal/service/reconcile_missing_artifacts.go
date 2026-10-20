@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
 	"sync"
 	"time"
 
@@ -35,7 +36,8 @@ const MaxQueueWait = 6 * time.Hour
 // ReconcileMissingArtifacts queues a conversion for every catalog target
 // (territory or model) that does not already have a LOD0 artifact, or whose
 // LOD0 has no plain GLB copy (the backfill for targets converted before the
-// compatible export existed: the ordinary job writes the copy).
+// compatible export existed: the ordinary job writes the copy). The backfill
+// goes one target per tick and only while no other job is live.
 // Idempotent at the catalog level — re-running on a fully-converted catalog
 // is a no-op aside from the read pass.
 //
@@ -83,6 +85,14 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 		reason := "no lod0"
 		if has {
 			reason = "no plain copy"
+			// ponytail: one backfill per tick, and only on an idle worker, so
+			// an upload never queues behind the whole catalog and no queued
+			// backfill outlives MaxQueueWait (which would queue it twice).
+			// Ceiling: 12 targets an hour; queue several per idle tick if a
+			// catalog ever outgrows that.
+			if queued > 0 || anyLive(ctx, index, m.liveNow) {
+				continue
+			}
 		}
 		if failed == nil {
 			failed = failedOnInput(ctx, index)
@@ -142,6 +152,24 @@ func (m *Mesh) sweepIndex(ctx context.Context, targets []domain.ConversionTarget
 		}
 		slog.InfoContext(ctx, "reconcile: forgot deleted target", "kind", j.Kind, "slug", j.Slug)
 	}
+}
+
+// anyLive reports whether the index holds a job that is still waiting for or
+// holding the worker. An index read error counts as busy: skipping a backfill
+// for one tick costs nothing.
+func anyLive(ctx context.Context, index func() ([]domain.Job, error), live func(domain.Job) bool) bool {
+	jobs, err := index()
+	if err != nil {
+		slog.WarnContext(ctx, "reconcile: index read failed", "err", err)
+		return true
+	}
+	return slices.ContainsFunc(jobs, live)
+}
+
+// liveNow is queued (Pending, younger than MaxQueueWait) or Running with a
+// write inside TargetLockTTL; past that its worker is gone.
+func (m *Mesh) liveNow(j domain.Job) bool {
+	return m.queued(j) || j.Status == domain.JobStatusRunning && m.now().Sub(j.UpdatedAt) < TargetLockTTL
 }
 
 func targetKey(kind domain.Kind, slug string) string {

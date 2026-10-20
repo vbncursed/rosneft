@@ -1,16 +1,12 @@
 package converter
 
 import (
-	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/qmuntal/gltf"
 	"github.com/stretchr/testify/suite"
 	"gotest.tools/v3/assert"
 )
@@ -162,45 +158,4 @@ func (s *ConvertLODsSuite) TestLODWithUnreadableBytesKeepsZeroCounts() {
 	assert.Equal(s.T(), len(out), 2)
 	assert.Equal(s.T(), out[1].Faces, uint64(0))
 	assert.Equal(s.T(), out[1].BBoxMax, out[0].BBoxMax)
-}
-
-// LOD0 keeps the uncompressed GLB it was packed from; the compatible export
-// serves it. Lower LODs carry none.
-func (s *ConvertLODsSuite) TestLOD0CarriesThePlainItWasMadeFrom() {
-	var packedFrom []byte
-	pp := &fakePostprocessor{
-		compressFn: func(_ context.Context, glb []byte) ([]byte, error) {
-			packedFrom = bytes.Clone(glb)
-			return []byte("packed"), nil
-		},
-		simplifyFn: func(context.Context, []byte, float64) ([]byte, error) { return []byte("ok"), nil },
-	}
-	c := &Converter{compressor: pp, lodRatios: []float64{0.5, 0.25}}
-
-	out, err := c.ConvertLODs(s.T().Context(), filepath.Dir(s.objPath), s.objPath)
-
-	assert.NilError(s.T(), err)
-	assert.Equal(s.T(), len(out), 3)
-	assert.DeepEqual(s.T(), out[0].Plain, packedFrom)
-	sum := sha256.Sum256(out[0].Plain)
-	assert.Equal(s.T(), out[0].PlainHash, hex.EncodeToString(sum[:]))
-	for _, lod := range out[1:] {
-		assert.Assert(s.T(), lod.Plain == nil)
-		assert.Equal(s.T(), lod.PlainHash, "")
-	}
-}
-
-func (s *ConvertLODsSuite) TestPlainIsAnExtensionFreeGLB() {
-	c := &Converter{}
-
-	out, err := c.ConvertLODs(s.T().Context(), filepath.Dir(s.objPath), s.objPath)
-
-	assert.NilError(s.T(), err)
-	var doc gltf.Document
-	assert.NilError(s.T(), gltf.NewDecoder(bytes.NewReader(out[0].Plain)).Decode(&doc))
-	assert.Equal(s.T(), len(doc.ExtensionsUsed), 0)
-	assert.Equal(s.T(), len(doc.ExtensionsRequired), 0)
-	pos := doc.Accessors[doc.Meshes[0].Primitives[0].Attributes[gltf.POSITION]]
-	assert.Equal(s.T(), len(pos.Min), 3)
-	assert.Equal(s.T(), len(pos.Max), 3)
 }

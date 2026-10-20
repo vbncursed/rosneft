@@ -106,8 +106,8 @@ initial pass (up to 5 retries with backoff, since catalog gRPC may still be
 coming up) plus a **5-minute ticker** (`reconcileTickInterval`). Each pass
 `ListTargets` over every territory + model and, for any without a LOD0
 artifact, or whose LOD0 has no plain GLB copy (`HasLOD0` returns both; this
-backfills targets converted before the compatible export, one serial
-reconversion each, +≈3× LOD0 disk), calls `SubmitConversion`. Idempotent — a no-op on a
+backfills targets converted before the compatible export, one reconversion
+each, one target per tick and only while no other job is live, +≈3× LOD0 disk), calls `SubmitConversion`. Idempotent — a no-op on a
 fully-converted catalog. It is the belt-and-suspenders backstop for
 conversions that were never queued or that crashed mid-flight.
 
