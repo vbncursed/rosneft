@@ -96,4 +96,10 @@ describe("territories gateway", () => {
     expect(request()).toEqual({ url: "/api/territories/ust-kut/export.glb", method: "GET" });
     expect(await blob.text()).toBe("glb");
   });
+
+  it("exportTerritoryGlb asks for the compatible variant by query", async () => {
+    fetchMock.mockResolvedValue(new Response("glb", { status: 200 }));
+    await exportTerritoryGlb("ust-kut", "compatible");
+    expect(request()).toEqual({ url: "/api/territories/ust-kut/export.glb?variant=compatible", method: "GET" });
+  });
 });

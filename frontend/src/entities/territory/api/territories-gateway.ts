@@ -27,9 +27,13 @@ export async function replaceTerritorySource(
 export const deleteTerritory = (slug: string): Promise<void> =>
   httpDelete(`/api/territories/${encodeURIComponent(slug)}`);
 
+export type ExportVariant = "compressed" | "compatible";
+
 /** The whole scene as one GLB. Goes through the client so it shares the base URL and the 401 bounce. */
-export const exportTerritoryGlb = (slug: string): Promise<Blob> =>
-  httpGetBlob(`/api/territories/${encodeURIComponent(slug)}/export.glb`);
+export const exportTerritoryGlb = (slug: string, variant: ExportVariant = "compressed"): Promise<Blob> =>
+  httpGetBlob(
+    `/api/territories/${encodeURIComponent(slug)}/export.glb${variant === "compatible" ? "?variant=compatible" : ""}`,
+  );
 
 /** Updates mutable fields only (no re-conversion) — today just the external panorama link. */
 export const updateTerritory = async (slug: string, body: TerritoryUpdate): Promise<Territory> =>

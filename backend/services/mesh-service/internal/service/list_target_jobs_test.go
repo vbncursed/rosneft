@@ -49,3 +49,23 @@ func (s *ListTargetJobsSuite) TestPassesTheQueueErrorThrough() {
 	_, err := s.svc.ListTargetJobs(s.ctx)
 	assert.ErrorIs(s.T(), err, boom)
 }
+
+// A failed backfill is the reconciler's own housekeeping on a target whose
+// viewer works: it must not read as a failed conversion in the job list.
+// Everything else stays: a backfill that is queued or running ("converting"),
+// and a failed job a user caused (first conversion, replace-source).
+func (s *ListTargetJobsSuite) TestHidesOnlyAFailedBackfill() {
+	jobs := []domain.Job{
+		{ID: "bf-failed", Kind: domain.KindTerritory, Slug: "a", Status: domain.JobStatusFailed, Backfill: true},
+		{ID: "bf-onsource", Kind: domain.KindTerritory, Slug: "b", Status: domain.JobStatusFailed, Backfill: true, FailedOnSource: true},
+		{ID: "bf-pending", Kind: domain.KindTerritory, Slug: "c", Status: domain.JobStatusPending, Backfill: true},
+		{ID: "bf-running", Kind: domain.KindModel, Slug: "d", Status: domain.JobStatusRunning, Backfill: true},
+		{ID: "user-failed", Kind: domain.KindModel, Slug: "e", Status: domain.JobStatusFailed},
+	}
+	s.queue.ListTargetJobsMock.Expect(s.ctx).Return(jobs, nil)
+
+	got, err := s.svc.ListTargetJobs(s.ctx)
+
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), got, jobs[2:])
+}

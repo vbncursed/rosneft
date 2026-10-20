@@ -12,35 +12,48 @@ import (
 
 // RegisterTerritoryArtifact upserts an artifact for the given territory + LOD.
 // Re-converting an existing LOD overwrites the row (workers re-publish on
-// re-runs without producing duplicates).
+// re-runs without producing duplicates). For LOD 0 with a PlainHash the
+// plain_artifacts mapping lands in the same statement, so a missing owner
+// writes neither; the returned PlainHash is what this call recorded, not a
+// read of an older mapping.
 func (r *PG) RegisterTerritoryArtifact(ctx context.Context, a domain.Artifact) (domain.Artifact, error) {
 	const q = `
-		WITH t AS (SELECT id FROM territories WHERE slug = $1)
-		INSERT INTO territory_artifacts (
-			territory_id, lod, hash, content_type, size_bytes, vertices, faces,
-			bbox_min_x, bbox_min_y, bbox_min_z,
-			bbox_max_x, bbox_max_y, bbox_max_z
+		WITH t AS (SELECT id FROM territories WHERE slug = $1),
+		ins AS (
+			INSERT INTO territory_artifacts (
+				territory_id, lod, hash, content_type, size_bytes, vertices, faces,
+				bbox_min_x, bbox_min_y, bbox_min_z,
+				bbox_max_x, bbox_max_y, bbox_max_z
+			)
+			SELECT t.id, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13 FROM t
+			ON CONFLICT (territory_id, lod) DO UPDATE SET
+				hash         = EXCLUDED.hash,
+				content_type = EXCLUDED.content_type,
+				size_bytes   = EXCLUDED.size_bytes,
+				vertices     = EXCLUDED.vertices,
+				faces        = EXCLUDED.faces,
+				bbox_min_x   = EXCLUDED.bbox_min_x,
+				bbox_min_y   = EXCLUDED.bbox_min_y,
+				bbox_min_z   = EXCLUDED.bbox_min_z,
+				bbox_max_x   = EXCLUDED.bbox_max_x,
+				bbox_max_y   = EXCLUDED.bbox_max_y,
+				bbox_max_z   = EXCLUDED.bbox_max_z,
+				created_at   = NOW()
+			RETURNING ` + artifactReturningCols + `
+		),
+		pl AS (
+			INSERT INTO plain_artifacts (lod0_hash, plain_hash)
+			SELECT hash, $14::text FROM ins WHERE lod = 0 AND $14::text <> ''
+			ON CONFLICT (lod0_hash) DO UPDATE SET plain_hash = EXCLUDED.plain_hash, created_at = now()
+			RETURNING plain_hash
 		)
-		SELECT t.id, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13 FROM t
-		ON CONFLICT (territory_id, lod) DO UPDATE SET
-			hash         = EXCLUDED.hash,
-			content_type = EXCLUDED.content_type,
-			size_bytes   = EXCLUDED.size_bytes,
-			vertices     = EXCLUDED.vertices,
-			faces        = EXCLUDED.faces,
-			bbox_min_x   = EXCLUDED.bbox_min_x,
-			bbox_min_y   = EXCLUDED.bbox_min_y,
-			bbox_min_z   = EXCLUDED.bbox_min_z,
-			bbox_max_x   = EXCLUDED.bbox_max_x,
-			bbox_max_y   = EXCLUDED.bbox_max_y,
-			bbox_max_z   = EXCLUDED.bbox_max_z,
-			created_at   = NOW()
-		RETURNING ` + artifactReturningCols
+		SELECT ` + artifactReturningCols + `, COALESCE((SELECT plain_hash FROM pl), '') FROM ins`
 
 	row := r.pool.QueryRow(ctx, q,
 		a.Slug, a.LOD, a.Hash, a.ContentType, a.Size, a.Vertices, a.Faces,
 		a.BBoxMin.X, a.BBoxMin.Y, a.BBoxMin.Z,
 		a.BBoxMax.X, a.BBoxMax.Y, a.BBoxMax.Z,
+		a.PlainHash,
 	)
 	out, err := scanArtifact(row, a.Slug)
 	if err != nil {

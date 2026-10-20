@@ -1468,22 +1468,32 @@ paths:
         normalised scene space; hidden placements and placements in hidden
         groups are left out, as are placements whose model has no LOD 0. Each
         placement is a node named by its label (`<modelSlug>-<id>` when empty).
-        Geometry stays meshopt-compressed and textures KTX2. Streamed outside
+        By default geometry stays meshopt-compressed and textures KTX2 (the
+        `compatible` variant below swaps both for plain data). Streamed outside
         the JSON chain with an exact Content-Length; a body shorter than it is
         a failed export.
       tags: [territories, territory-export]
       parameters:
         - { in: path, name: slug, required: true, schema: { type: string } }
+        - in: query
+          name: variant
+          required: false
+          description: >
+            Absent: geometry meshopt-compressed and textures KTX2 (web viewers).
+            `compatible`: plain geometry and the source JPEG/PNG textures, no
+            required extensions (Blender, desktop tools); about three times larger.
+          schema: { type: string, enum: [compatible] }
       responses:
         '200':
           description: The merged GLB
           content:
             model/gltf-binary:
               schema: { type: string, format: binary }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409':
-          description: The territory is not converted yet
+          description: The territory is not converted yet, or (compatible) a plain copy is still being made
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }

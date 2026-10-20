@@ -94,7 +94,8 @@ func (b *builder) plan() (Plan, error) {
 		b.used[name] = true
 	}
 	b.doc.ExtensionsUsed = slices.Sorted(maps.Keys(b.used))
-	b.doc.ExtensionsRequired = slices.Sorted(maps.Keys(b.required))
+	required := slices.Sorted(maps.Keys(b.required))
+	b.doc.ExtensionsRequired = required
 
 	js, err := json.Marshal(&b.doc)
 	if err != nil {
@@ -107,5 +108,5 @@ func (b *builder) plan() (Plan, error) {
 	if size > math.MaxUint32 {
 		return Plan{}, ErrTooLarge
 	}
-	return Plan{JSON: js, BinLength: int64(binLen), Segments: b.segments, Size: size}, nil
+	return Plan{JSON: js, BinLength: int64(binLen), Segments: b.segments, Required: required, Size: size}, nil
 }

@@ -65,6 +65,8 @@ type Artifact struct {
 	Faces       uint64
 	BBoxMin     Vec3
 	BBoxMax     Vec3
+	// PlainHash is the uncompressed GLB made from this LOD0; "" for any other LOD.
+	PlainHash string
 }
 
 // ConversionResult is what the converter returns to the worker. The worker
@@ -79,4 +81,8 @@ type ConversionResult struct {
 	Faces        uint64
 	BBoxMin      Vec3
 	BBoxMax      Vec3
+	// Plain and PlainHash are the uncompressed GLB the artifact was packed
+	// from, set on LOD0 only (the compatible export serves it).
+	Plain     []byte
+	PlainHash string
 }

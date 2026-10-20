@@ -20,6 +20,9 @@ func validateArtifact(a domain.Artifact) error {
 	if a.Hash == "" {
 		return fmt.Errorf("%w: empty hash", domain.ErrInvalidInput)
 	}
+	if a.PlainHash != "" && a.LOD != 0 {
+		return fmt.Errorf("%w: plain hash is only recorded for lod 0", domain.ErrInvalidInput)
+	}
 	return nil
 }
 

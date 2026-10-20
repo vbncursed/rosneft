@@ -138,11 +138,12 @@ func (s *BuildSuite) TestUnionsExtensions() {
 	heads := map[string]Head{
 		"t": s.head(triangleDoc), "a": s.head(texturedQuadDoc), "b": s.head(texturedQuadDoc), "m": s.head(meshoptDoc),
 	}
-	_, doc := s.build([]Placement{place("t", "t"), place("m", "m"), place("a", "a"), place("b", "b")}, heads)
+	plan, doc := s.build([]Placement{place("t", "t"), place("m", "m"), place("a", "a"), place("b", "b")}, heads)
 
 	want := []string{"EXT_meshopt_compression", "KHR_texture_basisu"}
 	assert.DeepEqual(s.T(), doc.ExtensionsUsed, want)
 	assert.DeepEqual(s.T(), doc.ExtensionsRequired, want)
+	assert.DeepEqual(s.T(), plan.Required, want)
 }
 
 // Review focus 1: the viewer keeps a model's root transforms under the placement.

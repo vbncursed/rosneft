@@ -21,9 +21,21 @@ func (w *Worker) handleOne(ctx context.Context, d storage.DeliveredJob) {
 		return
 	}
 	metricConversions.WithLabelValues("succeeded").Inc()
+	// Before the ack: the signal is about the job's result, not the stream.
+	// ponytail: a failed job sends nothing, so a backfill that keeps failing
+	// is retried by the tick only (one per 5 min), never back to back.
+	w.signalSucceeded()
 	if err := w.queue.AckJob(ctx, d.MessageID); err != nil {
 		w.logger.Warn("worker: ack failed", "msg_id", d.MessageID, "err", err)
 		return
 	}
 	w.logger.Info("worker: job done", "job_id", d.JobID)
+}
+
+// signalSucceeded never blocks: a full channel already holds a pending signal.
+func (w *Worker) signalSucceeded() {
+	select {
+	case w.succeeded <- struct{}{}:
+	default:
+	}
 }

@@ -41,6 +41,8 @@ type Worker struct {
 	// parallel jobs multiply memory, not throughput, on the 8 GB host this
 	// ships to.
 	sem chan struct{}
+	// succeeded is poked, never blocked on, after each job that succeeded.
+	succeeded chan<- struct{}
 }
 
 // Config wires the Worker.
@@ -52,6 +54,11 @@ type Config struct {
 	BlockTimeout time.Duration
 	// MaxConcurrent caps parallel conversions. <=0 defaults to GOMAXPROCS.
 	MaxConcurrent int
+	// Succeeded, if set, gets a non-blocking send after every successful job,
+	// so a consumer (the reconciler) can look at the backlog straight away.
+	// Give it capacity 1: a full channel drops the send, which coalesces a
+	// burst into one pending signal. A failed job sends nothing.
+	Succeeded chan<- struct{}
 }
 
 // New constructs a Worker.
@@ -67,5 +74,6 @@ func New(cfg Config) *Worker {
 		name:         cfg.Name,
 		blockTimeout: cfg.BlockTimeout,
 		sem:          make(chan struct{}, n),
+		succeeded:    cfg.Succeeded,
 	}
 }

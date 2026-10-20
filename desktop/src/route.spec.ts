@@ -34,6 +34,7 @@ describe("classify", () => {
     expect(classify("GET", at("/api/jobs?x=1"))).toEqual({ kind: "pass" });
     expect(classify("GET", at("/api/jobs/abc/events"))).toEqual({ kind: "pass" });
     expect(classify("GET", at("/api/territories/ust-kut/export.glb"))).toEqual({ kind: "pass" });
+    expect(classify("GET", at("/api/territories/ust-kut/export.glb?variant=compatible"))).toEqual({ kind: "pass" });
   });
   it("resets the session on every step that issues or revokes a cookie", () => {
     for (const p of [

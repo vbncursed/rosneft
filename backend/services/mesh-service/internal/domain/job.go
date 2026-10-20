@@ -64,9 +64,16 @@ type Job struct {
 	// content (ErrBadSource). Jobs stored before the field existed read false
 	// and are retried.
 	FailedOnSource bool
-	ArtifactHash   string
-	Progress       float32
-	Stage          string
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	// Backfill marks a job the reconciler queued for a target that already has
+	// its LOD0 (it only lacks the plain GLB copy). Its failure leaves the
+	// viewer working, so the job list hides it; the log keeps it. Jobs stored
+	// before the field existed read false: a user-triggered conversion.
+	// Written once, when the job is created; a user submit adopting the job
+	// clears it (Queue.ClearBackfill), and no later save writes it back.
+	Backfill     bool
+	ArtifactHash string
+	Progress     float32
+	Stage        string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }

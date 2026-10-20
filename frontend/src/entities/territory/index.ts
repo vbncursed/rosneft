@@ -10,6 +10,7 @@ export {
   replaceTerritorySource,
   updateTerritory,
   type CreateTerritoryInput,
+  type ExportVariant,
 } from "./api/territories-gateway";
 export { toTerritory } from "./api/to-territory";
 export { territoriesQuery } from "./api/territories-query";

@@ -15,13 +15,13 @@ type ExportPlacementsSuite struct{ suite.Suite }
 func TestExportPlacementsSuite(t *testing.T) { suite.Run(t, new(ExportPlacementsSuite)) }
 
 func lods(hash string) []domain.LodArtifact {
-	return []domain.LodArtifact{{LOD: 1, Hash: hash + "-1"}, {LOD: 0, Hash: hash}}
+	return []domain.LodArtifact{{LOD: 1, Hash: hash + "-1"}, {LOD: 0, Hash: hash, PlainHash: hash + "-p"}}
 }
 
 func (s *ExportPlacementsSuite) bundle(ps ...domain.Placement) domain.SceneBundle {
 	return domain.SceneBundle{
 		Territory: domain.Territory{Slug: "ust-kut", Title: "Усть-Кут"},
-		Artifact:  &domain.Artifact{Hash: "terr"},
+		Artifact:  &domain.Artifact{Hash: "terr", PlainHash: "terr-p"},
 		ModelOptions: []domain.AssetOption{
 			{Slug: "tank", LODs: lods("tank")},
 			{Slug: "pipe", LODs: lods("pipe")},
@@ -33,7 +33,7 @@ func (s *ExportPlacementsSuite) bundle(ps ...domain.Placement) domain.SceneBundl
 }
 
 func (s *ExportPlacementsSuite) TestTerritoryIsFirst() {
-	got, skipped := exportPlacements(s.bundle())
+	got, skipped := exportPlacements(s.bundle(), variantCompressed)
 
 	assert.Equal(s.T(), skipped, 0)
 	assert.DeepEqual(s.T(), got, []glbexport.Placement{
@@ -47,7 +47,7 @@ func (s *ExportPlacementsSuite) TestCopiesTransformAndUsesLOD0() {
 		Position: domain.Vec3{X: 1, Y: 2, Z: 3},
 		Rotation: domain.Vec3{X: 0.1, Y: 0.2, Z: 0.3},
 		Scale:    domain.Vec3{X: 4, Y: 5, Z: 6},
-	}))
+	}), variantCompressed)
 
 	assert.Equal(s.T(), skipped, 0)
 	assert.Equal(s.T(), len(got), 2)
@@ -58,7 +58,7 @@ func (s *ExportPlacementsSuite) TestCopiesTransformAndUsesLOD0() {
 }
 
 func (s *ExportPlacementsSuite) TestEmptyLabelFallsBackToSlugAndID() {
-	got, _ := exportPlacements(s.bundle(domain.Placement{ID: 42, ModelSlug: "tank"}))
+	got, _ := exportPlacements(s.bundle(domain.Placement{ID: 42, ModelSlug: "tank"}), variantCompressed)
 
 	assert.Equal(s.T(), got[1].Name, "tank-42")
 }
@@ -69,7 +69,7 @@ func (s *ExportPlacementsSuite) TestHiddenIsLeftOut() {
 		domain.Placement{ID: 1, ModelSlug: "tank", Hidden: true},
 		domain.Placement{ID: 2, ModelSlug: "tank", GroupID: grp(1)}, // hidden group
 		domain.Placement{ID: 3, ModelSlug: "pipe", GroupID: grp(2)}, // visible group
-	))
+	), variantCompressed)
 
 	assert.Equal(s.T(), skipped, 0)
 	assert.Equal(s.T(), len(got), 2)
@@ -79,7 +79,7 @@ func (s *ExportPlacementsSuite) TestHiddenIsLeftOut() {
 // Review Focus 4: a group deleted between the two reads must not drop or crash.
 func (s *ExportPlacementsSuite) TestUnknownGroupIsVisible() {
 	gone := int64(99)
-	got, _ := exportPlacements(s.bundle(domain.Placement{ID: 7, ModelSlug: "tank", GroupID: &gone}))
+	got, _ := exportPlacements(s.bundle(domain.Placement{ID: 7, ModelSlug: "tank", GroupID: &gone}), variantCompressed)
 
 	assert.Equal(s.T(), len(got), 2)
 	assert.Equal(s.T(), got[1].Name, "tank-7")
@@ -90,9 +90,34 @@ func (s *ExportPlacementsSuite) TestModelWithoutLOD0IsSkippedAndCounted() {
 		domain.Placement{ID: 1, ModelSlug: "raw"},
 		domain.Placement{ID: 2, ModelSlug: "unknown"},
 		domain.Placement{ID: 3, ModelSlug: "tank"},
-	))
+	), variantCompressed)
 
 	assert.Equal(s.T(), skipped, 2)
 	assert.Equal(s.T(), len(got), 2)
 	assert.Equal(s.T(), got[1].Name, "tank-3")
+}
+
+func (s *ExportPlacementsSuite) TestCompatiblePicksPlainHashes() {
+	got, _ := exportPlacements(s.bundle(domain.Placement{ID: 1, ModelSlug: "pipe"}), variantCompatible)
+
+	assert.Equal(s.T(), got[0].Hash, "terr-p")
+	assert.Equal(s.T(), got[1].Hash, "pipe-p")
+}
+
+func (s *ExportPlacementsSuite) TestCompatibleLeavesAMissingPlainEmpty() {
+	b := s.bundle(domain.Placement{ID: 1, ModelSlug: "tank"})
+	b.ModelOptions[0].LODs = []domain.LodArtifact{{LOD: 0, Hash: "tank"}}
+	b.Artifact.PlainHash = ""
+
+	got, _ := exportPlacements(b, variantCompatible)
+
+	assert.Equal(s.T(), got[0].Hash, "")
+	assert.Equal(s.T(), got[1].Hash, "")
+}
+
+func (s *ExportPlacementsSuite) TestCompatibleStillSkipsAModelWithoutLOD0() {
+	got, skipped := exportPlacements(s.bundle(domain.Placement{ID: 1, ModelSlug: "raw"}), variantCompatible)
+
+	assert.Equal(s.T(), skipped, 1)
+	assert.Equal(s.T(), len(got), 1)
 }

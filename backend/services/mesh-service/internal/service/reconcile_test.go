@@ -55,8 +55,8 @@ func (s *ReconcileSuite) TestNothingToReconcileWhenAllHaveLOD0() {
 		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
 		{Kind: domain.KindModel, Slug: "m1", SourceBlobHash: "h"},
 	}, nil)
-	s.catalog.HasLOD0Mock.When(s.ctx, domain.KindTerritory, "t1").Then(true, nil)
-	s.catalog.HasLOD0Mock.When(s.ctx, domain.KindModel, "m1").Then(true, nil)
+	s.catalog.HasLOD0Mock.When(s.ctx, domain.KindTerritory, "t1").Then(true, true, nil)
+	s.catalog.HasLOD0Mock.When(s.ctx, domain.KindModel, "m1").Then(true, true, nil)
 	s.queue.ListTargetJobsMock.Return(nil, nil)
 
 	queued, err := s.svc.ReconcileMissingArtifacts(s.ctx)
@@ -70,9 +70,9 @@ func (s *ReconcileSuite) TestQueuesOnlyMissingTargets() {
 		{Kind: domain.KindTerritory, Slug: "t2", SourceBlobHash: "h"},
 		{Kind: domain.KindModel, Slug: "m1", SourceBlobHash: "h"},
 	}, nil)
-	s.catalog.HasLOD0Mock.When(s.ctx, domain.KindTerritory, "t1").Then(true, nil)
-	s.catalog.HasLOD0Mock.When(s.ctx, domain.KindTerritory, "t2").Then(false, nil)
-	s.catalog.HasLOD0Mock.When(s.ctx, domain.KindModel, "m1").Then(false, nil)
+	s.catalog.HasLOD0Mock.When(s.ctx, domain.KindTerritory, "t1").Then(true, true, nil)
+	s.catalog.HasLOD0Mock.When(s.ctx, domain.KindTerritory, "t2").Then(false, false, nil)
+	s.catalog.HasLOD0Mock.When(s.ctx, domain.KindModel, "m1").Then(false, false, nil)
 	s.allowSubmit()
 
 	queued, err := s.svc.ReconcileMissingArtifacts(s.ctx)
@@ -90,7 +90,7 @@ func (s *ReconcileSuite) TestSurfaceLOD0CheckErrorOnFirstFailure() {
 	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
 		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
 	}, nil)
-	s.catalog.HasLOD0Mock.Return(false, errors.New("db blip"))
+	s.catalog.HasLOD0Mock.Return(false, false, errors.New("db blip"))
 	_, err := s.svc.ReconcileMissingArtifacts(s.ctx)
 	assert.ErrorContains(s.T(), err, "db blip")
 }
@@ -103,7 +103,7 @@ func (s *ReconcileSuite) TestStopsOnSubmitFailureAndReleasesTheLock() {
 		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
 		{Kind: domain.KindTerritory, Slug: "t2", SourceBlobHash: "h"},
 	}, nil)
-	s.catalog.HasLOD0Mock.Return(false, nil)
+	s.catalog.HasLOD0Mock.Return(false, false, nil)
 	s.queue.TryLockTargetMock.Return(true, nil)
 	s.queue.ListTargetJobsMock.Return(nil, nil)
 	s.queue.SaveJobMock.Return(errors.New("redis down"))
@@ -129,7 +129,7 @@ func (s *ReconcileSuite) TestDoesNotCountATargetAlreadyInFlight() {
 	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
 		{Kind: domain.KindTerritory, Slug: "t1"},
 	}, nil)
-	s.catalog.HasLOD0Mock.Return(false, nil)
+	s.catalog.HasLOD0Mock.Return(false, false, nil)
 	s.queue.TryLockTargetMock.Return(false, nil)
 	s.queue.ListTargetJobsMock.Return([]domain.Job{
 		{ID: "j1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusRunning},
@@ -147,7 +147,7 @@ func (s *ReconcileSuite) TestQueuesTargetWhenLockIsFree() {
 	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
 		{Kind: domain.KindTerritory, Slug: "t1"},
 	}, nil)
-	s.catalog.HasLOD0Mock.Return(false, nil)
+	s.catalog.HasLOD0Mock.Return(false, false, nil)
 	s.queue.TryLockTargetMock.Return(true, nil)
 	s.queue.SaveJobMock.Return(nil)
 	s.queue.EnqueueJobMock.Return(nil)
@@ -178,7 +178,7 @@ func (s *ReconcileSuite) TestSkipsTargetWhoseLatestJobFailedOnItsInput() {
 	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
 		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
 	}, nil)
-	s.catalog.HasLOD0Mock.Return(false, nil)
+	s.catalog.HasLOD0Mock.Return(false, false, nil)
 	s.queue.ListTargetJobsMock.Return([]domain.Job{{
 		ID: "j1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusFailed,
 		ErrorMessage: "service.runConversion: extract: bad source: archive expands past 8 GiB", FailedOnSource: true,
@@ -197,7 +197,7 @@ func (s *ReconcileSuite) TestRetriesTargetWhoseLatestJobFailedOnInfrastructure()
 	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
 		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
 	}, nil)
-	s.catalog.HasLOD0Mock.Return(false, nil)
+	s.catalog.HasLOD0Mock.Return(false, false, nil)
 	s.queue.TryLockTargetMock.Return(true, nil)
 	s.queue.SaveJobMock.Return(nil)
 	s.queue.EnqueueJobMock.Return(nil)
@@ -220,7 +220,7 @@ func (s *ReconcileSuite) TestRetriesFailedJobWhoseMessageMerelyMentionsInvalidIn
 	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
 		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
 	}, nil)
-	s.catalog.HasLOD0Mock.Return(false, nil)
+	s.catalog.HasLOD0Mock.Return(false, false, nil)
 	s.queue.TryLockTargetMock.Return(true, nil)
 	s.queue.SaveJobMock.Return(nil)
 	s.queue.EnqueueJobMock.Return(nil)
@@ -242,7 +242,7 @@ func (s *ReconcileSuite) TestSkipIsPerTarget() {
 		{Kind: domain.KindTerritory, Slug: "bad", SourceBlobHash: "h"},
 		{Kind: domain.KindTerritory, Slug: "new", SourceBlobHash: "h"},
 	}, nil)
-	s.catalog.HasLOD0Mock.Return(false, nil)
+	s.catalog.HasLOD0Mock.Return(false, false, nil)
 	s.queue.TryLockTargetMock.Return(true, nil)
 	s.queue.SaveJobMock.Return(nil)
 	s.queue.EnqueueJobMock.Return(nil)
@@ -264,7 +264,7 @@ func (s *ReconcileSuite) TestStillSubmitsWhenTheIndexReadFails() {
 	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
 		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
 	}, nil)
-	s.catalog.HasLOD0Mock.Return(false, nil)
+	s.catalog.HasLOD0Mock.Return(false, false, nil)
 	s.queue.TryLockTargetMock.Return(true, nil)
 	s.queue.SaveJobMock.Return(nil)
 	s.queue.EnqueueJobMock.Return(nil)

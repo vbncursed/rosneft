@@ -1,8 +1,11 @@
 package glbexport
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"image"
+	"image/png"
 	"testing"
 
 	"github.com/qmuntal/gltf"
@@ -161,4 +164,45 @@ func meshoptDoc() (*gltf.Document, []byte) {
 		{ByteLength: 36, Extensions: gltf.Extensions{"EXT_meshopt_compression": json.RawMessage(`{"fallback":true}`)}},
 	}
 	return doc, binOf(40, 50)
+}
+
+// plainQuadDoc is what the mesh converter's plain GLB looks like: float
+// positions and UVs, uint32 indices, the source PNG in a bufferView, no
+// extensions at all.
+func plainQuadDoc() (*gltf.Document, []byte) {
+	var pngBuf bytes.Buffer
+	if err := png.Encode(&pngBuf, image.NewRGBA(image.Rect(0, 0, 2, 2))); err != nil {
+		panic(err) // encoding a 2x2 image into memory cannot fail
+	}
+	img := pngBuf.Bytes()
+	bin := append(binOf(104, 1), img...)
+	doc := &gltf.Document{
+		Asset:  gltf.Asset{Version: "2.0"},
+		Scene:  new(0),
+		Scenes: []*gltf.Scene{{Nodes: []int{0}}},
+		Nodes:  []*gltf.Node{{Name: "quad", Mesh: new(0)}},
+		Meshes: []*gltf.Mesh{{Primitives: []*gltf.Primitive{{
+			Attributes: gltf.PrimitiveAttributes{"POSITION": 0, "TEXCOORD_0": 1},
+			Indices:    new(2),
+			Material:   new(0),
+		}}}},
+		Accessors: []*gltf.Accessor{
+			{BufferView: new(0), ComponentType: gltf.ComponentFloat, Count: 4, Type: gltf.AccessorVec3},
+			{BufferView: new(1), ComponentType: gltf.ComponentFloat, Count: 4, Type: gltf.AccessorVec2},
+			{BufferView: new(2), ComponentType: gltf.ComponentUint, Count: 6, Type: gltf.AccessorScalar},
+		},
+		BufferViews: []*gltf.BufferView{
+			{Buffer: 0, ByteOffset: 0, ByteLength: 48},
+			{Buffer: 0, ByteOffset: 48, ByteLength: 32},
+			{Buffer: 0, ByteOffset: 80, ByteLength: 24},
+			{Buffer: 0, ByteOffset: 104, ByteLength: len(img)},
+		},
+		Images:   []*gltf.Image{{BufferView: new(3), MimeType: "image/png"}},
+		Textures: []*gltf.Texture{{Source: new(0)}},
+		Materials: []*gltf.Material{{
+			PBRMetallicRoughness: &gltf.PBRMetallicRoughness{BaseColorTexture: &gltf.TextureInfo{Index: 0}},
+		}},
+		Buffers: []*gltf.Buffer{{ByteLength: len(bin)}},
+	}
+	return doc, bin
 }

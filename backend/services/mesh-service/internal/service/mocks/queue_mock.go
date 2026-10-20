@@ -20,6 +20,13 @@ type QueueMock struct {
 	t          minimock.Tester
 	finishOnce sync.Once
 
+	funcClearBackfill          func(ctx context.Context, id string) (err error)
+	funcClearBackfillOrigin    string
+	inspectFuncClearBackfill   func(ctx context.Context, id string)
+	afterClearBackfillCounter  uint64
+	beforeClearBackfillCounter uint64
+	ClearBackfillMock          mQueueMockClearBackfill
+
 	funcEnqueueJob          func(ctx context.Context, jobID string) (err error)
 	funcEnqueueJobOrigin    string
 	inspectFuncEnqueueJob   func(ctx context.Context, jobID string)
@@ -85,6 +92,9 @@ func NewQueueMock(t minimock.Tester) *QueueMock {
 		controller.RegisterMocker(m)
 	}
 
+	m.ClearBackfillMock = mQueueMockClearBackfill{mock: m}
+	m.ClearBackfillMock.callArgs = []*QueueMockClearBackfillParams{}
+
 	m.EnqueueJobMock = mQueueMockEnqueueJob{mock: m}
 	m.EnqueueJobMock.callArgs = []*QueueMockEnqueueJobParams{}
 
@@ -112,6 +122,348 @@ func NewQueueMock(t minimock.Tester) *QueueMock {
 	t.Cleanup(m.MinimockFinish)
 
 	return m
+}
+
+type mQueueMockClearBackfill struct {
+	optional           bool
+	mock               *QueueMock
+	defaultExpectation *QueueMockClearBackfillExpectation
+	expectations       []*QueueMockClearBackfillExpectation
+
+	callArgs []*QueueMockClearBackfillParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// QueueMockClearBackfillExpectation specifies expectation struct of the Queue.ClearBackfill
+type QueueMockClearBackfillExpectation struct {
+	mock               *QueueMock
+	params             *QueueMockClearBackfillParams
+	paramPtrs          *QueueMockClearBackfillParamPtrs
+	expectationOrigins QueueMockClearBackfillExpectationOrigins
+	results            *QueueMockClearBackfillResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// QueueMockClearBackfillParams contains parameters of the Queue.ClearBackfill
+type QueueMockClearBackfillParams struct {
+	ctx context.Context
+	id  string
+}
+
+// QueueMockClearBackfillParamPtrs contains pointers to parameters of the Queue.ClearBackfill
+type QueueMockClearBackfillParamPtrs struct {
+	ctx *context.Context
+	id  *string
+}
+
+// QueueMockClearBackfillResults contains results of the Queue.ClearBackfill
+type QueueMockClearBackfillResults struct {
+	err error
+}
+
+// QueueMockClearBackfillOrigins contains origins of expectations of the Queue.ClearBackfill
+type QueueMockClearBackfillExpectationOrigins struct {
+	origin    string
+	originCtx string
+	originId  string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmClearBackfill *mQueueMockClearBackfill) Optional() *mQueueMockClearBackfill {
+	mmClearBackfill.optional = true
+	return mmClearBackfill
+}
+
+// Expect sets up expected params for Queue.ClearBackfill
+func (mmClearBackfill *mQueueMockClearBackfill) Expect(ctx context.Context, id string) *mQueueMockClearBackfill {
+	if mmClearBackfill.mock.funcClearBackfill != nil {
+		mmClearBackfill.mock.t.Fatalf("QueueMock.ClearBackfill mock is already set by Set")
+	}
+
+	if mmClearBackfill.defaultExpectation == nil {
+		mmClearBackfill.defaultExpectation = &QueueMockClearBackfillExpectation{}
+	}
+
+	if mmClearBackfill.defaultExpectation.paramPtrs != nil {
+		mmClearBackfill.mock.t.Fatalf("QueueMock.ClearBackfill mock is already set by ExpectParams functions")
+	}
+
+	mmClearBackfill.defaultExpectation.params = &QueueMockClearBackfillParams{ctx, id}
+	mmClearBackfill.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmClearBackfill.expectations {
+		if minimock.Equal(e.params, mmClearBackfill.defaultExpectation.params) {
+			mmClearBackfill.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmClearBackfill.defaultExpectation.params)
+		}
+	}
+
+	return mmClearBackfill
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Queue.ClearBackfill
+func (mmClearBackfill *mQueueMockClearBackfill) ExpectCtxParam1(ctx context.Context) *mQueueMockClearBackfill {
+	if mmClearBackfill.mock.funcClearBackfill != nil {
+		mmClearBackfill.mock.t.Fatalf("QueueMock.ClearBackfill mock is already set by Set")
+	}
+
+	if mmClearBackfill.defaultExpectation == nil {
+		mmClearBackfill.defaultExpectation = &QueueMockClearBackfillExpectation{}
+	}
+
+	if mmClearBackfill.defaultExpectation.params != nil {
+		mmClearBackfill.mock.t.Fatalf("QueueMock.ClearBackfill mock is already set by Expect")
+	}
+
+	if mmClearBackfill.defaultExpectation.paramPtrs == nil {
+		mmClearBackfill.defaultExpectation.paramPtrs = &QueueMockClearBackfillParamPtrs{}
+	}
+	mmClearBackfill.defaultExpectation.paramPtrs.ctx = &ctx
+	mmClearBackfill.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmClearBackfill
+}
+
+// ExpectIdParam2 sets up expected param id for Queue.ClearBackfill
+func (mmClearBackfill *mQueueMockClearBackfill) ExpectIdParam2(id string) *mQueueMockClearBackfill {
+	if mmClearBackfill.mock.funcClearBackfill != nil {
+		mmClearBackfill.mock.t.Fatalf("QueueMock.ClearBackfill mock is already set by Set")
+	}
+
+	if mmClearBackfill.defaultExpectation == nil {
+		mmClearBackfill.defaultExpectation = &QueueMockClearBackfillExpectation{}
+	}
+
+	if mmClearBackfill.defaultExpectation.params != nil {
+		mmClearBackfill.mock.t.Fatalf("QueueMock.ClearBackfill mock is already set by Expect")
+	}
+
+	if mmClearBackfill.defaultExpectation.paramPtrs == nil {
+		mmClearBackfill.defaultExpectation.paramPtrs = &QueueMockClearBackfillParamPtrs{}
+	}
+	mmClearBackfill.defaultExpectation.paramPtrs.id = &id
+	mmClearBackfill.defaultExpectation.expectationOrigins.originId = minimock.CallerInfo(1)
+
+	return mmClearBackfill
+}
+
+// Inspect accepts an inspector function that has same arguments as the Queue.ClearBackfill
+func (mmClearBackfill *mQueueMockClearBackfill) Inspect(f func(ctx context.Context, id string)) *mQueueMockClearBackfill {
+	if mmClearBackfill.mock.inspectFuncClearBackfill != nil {
+		mmClearBackfill.mock.t.Fatalf("Inspect function is already set for QueueMock.ClearBackfill")
+	}
+
+	mmClearBackfill.mock.inspectFuncClearBackfill = f
+
+	return mmClearBackfill
+}
+
+// Return sets up results that will be returned by Queue.ClearBackfill
+func (mmClearBackfill *mQueueMockClearBackfill) Return(err error) *QueueMock {
+	if mmClearBackfill.mock.funcClearBackfill != nil {
+		mmClearBackfill.mock.t.Fatalf("QueueMock.ClearBackfill mock is already set by Set")
+	}
+
+	if mmClearBackfill.defaultExpectation == nil {
+		mmClearBackfill.defaultExpectation = &QueueMockClearBackfillExpectation{mock: mmClearBackfill.mock}
+	}
+	mmClearBackfill.defaultExpectation.results = &QueueMockClearBackfillResults{err}
+	mmClearBackfill.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmClearBackfill.mock
+}
+
+// Set uses given function f to mock the Queue.ClearBackfill method
+func (mmClearBackfill *mQueueMockClearBackfill) Set(f func(ctx context.Context, id string) (err error)) *QueueMock {
+	if mmClearBackfill.defaultExpectation != nil {
+		mmClearBackfill.mock.t.Fatalf("Default expectation is already set for the Queue.ClearBackfill method")
+	}
+
+	if len(mmClearBackfill.expectations) > 0 {
+		mmClearBackfill.mock.t.Fatalf("Some expectations are already set for the Queue.ClearBackfill method")
+	}
+
+	mmClearBackfill.mock.funcClearBackfill = f
+	mmClearBackfill.mock.funcClearBackfillOrigin = minimock.CallerInfo(1)
+	return mmClearBackfill.mock
+}
+
+// When sets expectation for the Queue.ClearBackfill which will trigger the result defined by the following
+// Then helper
+func (mmClearBackfill *mQueueMockClearBackfill) When(ctx context.Context, id string) *QueueMockClearBackfillExpectation {
+	if mmClearBackfill.mock.funcClearBackfill != nil {
+		mmClearBackfill.mock.t.Fatalf("QueueMock.ClearBackfill mock is already set by Set")
+	}
+
+	expectation := &QueueMockClearBackfillExpectation{
+		mock:               mmClearBackfill.mock,
+		params:             &QueueMockClearBackfillParams{ctx, id},
+		expectationOrigins: QueueMockClearBackfillExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmClearBackfill.expectations = append(mmClearBackfill.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Queue.ClearBackfill return parameters for the expectation previously defined by the When method
+func (e *QueueMockClearBackfillExpectation) Then(err error) *QueueMock {
+	e.results = &QueueMockClearBackfillResults{err}
+	return e.mock
+}
+
+// Times sets number of times Queue.ClearBackfill should be invoked
+func (mmClearBackfill *mQueueMockClearBackfill) Times(n uint64) *mQueueMockClearBackfill {
+	if n == 0 {
+		mmClearBackfill.mock.t.Fatalf("Times of QueueMock.ClearBackfill mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmClearBackfill.expectedInvocations, n)
+	mmClearBackfill.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmClearBackfill
+}
+
+func (mmClearBackfill *mQueueMockClearBackfill) invocationsDone() bool {
+	if len(mmClearBackfill.expectations) == 0 && mmClearBackfill.defaultExpectation == nil && mmClearBackfill.mock.funcClearBackfill == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmClearBackfill.mock.afterClearBackfillCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmClearBackfill.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ClearBackfill implements mm_service.Queue
+func (mmClearBackfill *QueueMock) ClearBackfill(ctx context.Context, id string) (err error) {
+	mm_atomic.AddUint64(&mmClearBackfill.beforeClearBackfillCounter, 1)
+	defer mm_atomic.AddUint64(&mmClearBackfill.afterClearBackfillCounter, 1)
+
+	mmClearBackfill.t.Helper()
+
+	if mmClearBackfill.inspectFuncClearBackfill != nil {
+		mmClearBackfill.inspectFuncClearBackfill(ctx, id)
+	}
+
+	mm_params := QueueMockClearBackfillParams{ctx, id}
+
+	// Record call args
+	mmClearBackfill.ClearBackfillMock.mutex.Lock()
+	mmClearBackfill.ClearBackfillMock.callArgs = append(mmClearBackfill.ClearBackfillMock.callArgs, &mm_params)
+	mmClearBackfill.ClearBackfillMock.mutex.Unlock()
+
+	for _, e := range mmClearBackfill.ClearBackfillMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmClearBackfill.ClearBackfillMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmClearBackfill.ClearBackfillMock.defaultExpectation.Counter, 1)
+		mm_want := mmClearBackfill.ClearBackfillMock.defaultExpectation.params
+		mm_want_ptrs := mmClearBackfill.ClearBackfillMock.defaultExpectation.paramPtrs
+
+		mm_got := QueueMockClearBackfillParams{ctx, id}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmClearBackfill.t.Errorf("QueueMock.ClearBackfill got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmClearBackfill.ClearBackfillMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
+				mmClearBackfill.t.Errorf("QueueMock.ClearBackfill got unexpected parameter id, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmClearBackfill.ClearBackfillMock.defaultExpectation.expectationOrigins.originId, *mm_want_ptrs.id, mm_got.id, minimock.Diff(*mm_want_ptrs.id, mm_got.id))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmClearBackfill.t.Errorf("QueueMock.ClearBackfill got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmClearBackfill.ClearBackfillMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmClearBackfill.ClearBackfillMock.defaultExpectation.results
+		if mm_results == nil {
+			mmClearBackfill.t.Fatal("No results are set for the QueueMock.ClearBackfill")
+		}
+		return (*mm_results).err
+	}
+	if mmClearBackfill.funcClearBackfill != nil {
+		return mmClearBackfill.funcClearBackfill(ctx, id)
+	}
+	mmClearBackfill.t.Fatalf("Unexpected call to QueueMock.ClearBackfill. %v %v", ctx, id)
+	return
+}
+
+// ClearBackfillAfterCounter returns a count of finished QueueMock.ClearBackfill invocations
+func (mmClearBackfill *QueueMock) ClearBackfillAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmClearBackfill.afterClearBackfillCounter)
+}
+
+// ClearBackfillBeforeCounter returns a count of QueueMock.ClearBackfill invocations
+func (mmClearBackfill *QueueMock) ClearBackfillBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmClearBackfill.beforeClearBackfillCounter)
+}
+
+// Calls returns a list of arguments used in each call to QueueMock.ClearBackfill.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmClearBackfill *mQueueMockClearBackfill) Calls() []*QueueMockClearBackfillParams {
+	mmClearBackfill.mutex.RLock()
+
+	argCopy := make([]*QueueMockClearBackfillParams, len(mmClearBackfill.callArgs))
+	copy(argCopy, mmClearBackfill.callArgs)
+
+	mmClearBackfill.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockClearBackfillDone returns true if the count of the ClearBackfill invocations corresponds
+// the number of defined expectations
+func (m *QueueMock) MinimockClearBackfillDone() bool {
+	if m.ClearBackfillMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ClearBackfillMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ClearBackfillMock.invocationsDone()
+}
+
+// MinimockClearBackfillInspect logs each unmet expectation
+func (m *QueueMock) MinimockClearBackfillInspect() {
+	for _, e := range m.ClearBackfillMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to QueueMock.ClearBackfill at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterClearBackfillCounter := mm_atomic.LoadUint64(&m.afterClearBackfillCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ClearBackfillMock.defaultExpectation != nil && afterClearBackfillCounter < 1 {
+		if m.ClearBackfillMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to QueueMock.ClearBackfill at\n%s", m.ClearBackfillMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to QueueMock.ClearBackfill at\n%s with params: %#v", m.ClearBackfillMock.defaultExpectation.expectationOrigins.origin, *m.ClearBackfillMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcClearBackfill != nil && afterClearBackfillCounter < 1 {
+		m.t.Errorf("Expected call to QueueMock.ClearBackfill at\n%s", m.funcClearBackfillOrigin)
+	}
+
+	if !m.ClearBackfillMock.invocationsDone() && afterClearBackfillCounter > 0 {
+		m.t.Errorf("Expected %d calls to QueueMock.ClearBackfill at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ClearBackfillMock.expectedInvocations), m.ClearBackfillMock.expectedInvocationsOrigin, afterClearBackfillCounter)
+	}
 }
 
 type mQueueMockEnqueueJob struct {
@@ -3012,6 +3364,8 @@ func (m *QueueMock) MinimockUnlockTargetInspect() {
 func (m *QueueMock) MinimockFinish() {
 	m.finishOnce.Do(func() {
 		if !m.minimockDone() {
+			m.MinimockClearBackfillInspect()
+
 			m.MinimockEnqueueJobInspect()
 
 			m.MinimockForgetTargetInspect()
@@ -3050,6 +3404,7 @@ func (m *QueueMock) MinimockWait(timeout mm_time.Duration) {
 func (m *QueueMock) minimockDone() bool {
 	done := true
 	return done &&
+		m.MinimockClearBackfillDone() &&
 		m.MinimockEnqueueJobDone() &&
 		m.MinimockForgetTargetDone() &&
 		m.MinimockGetJobDone() &&

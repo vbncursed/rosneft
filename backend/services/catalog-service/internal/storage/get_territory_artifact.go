@@ -19,6 +19,7 @@ func (r *PG) GetTerritoryArtifact(ctx context.Context, slug string, lod uint32) 
 	const q = `SELECT ` + artifactSelectCols + `
 		FROM territory_artifacts a
 		JOIN territories t ON t.id = a.territory_id
+		` + plainJoin + `
 		WHERE t.slug = $1 AND a.lod = $2`
 
 	row := r.pool.QueryRow(ctx, q, slug, lod)

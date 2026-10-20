@@ -16,6 +16,7 @@ func (r *PG) ListModelArtifacts(ctx context.Context, slug string) ([]domain.Arti
 	const q = `SELECT ` + artifactSelectCols + `
 		FROM model_artifacts a
 		JOIN models m ON m.id = a.model_id
+		` + plainJoin + `
 		WHERE m.slug = $1
 		ORDER BY a.lod`
 

@@ -46,5 +46,9 @@ func (m *Mesh) markFailed(ctx context.Context, j domain.Job, cause error) error 
 	j.Status = domain.JobStatusFailed
 	j.ErrorMessage = cause.Error()
 	j.FailedOnSource = errors.Is(cause, domain.ErrBadSource)
+	if j.Backfill {
+		slog.WarnContext(ctx, "process: backfill failed", "job_id", j.ID, "kind", j.Kind, "slug", j.Slug,
+			"on_source", j.FailedOnSource, "err", cause)
+	}
 	return m.queue.SaveJob(ctx, j)
 }
