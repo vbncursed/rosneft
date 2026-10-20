@@ -16,13 +16,17 @@ const messages = (r: { current: { notices: readonly { message: string }[] } }) =
 
 let click: ReturnType<typeof vi.spyOn>;
 let hrefs: string[];
+let names: (string | null)[];
 let fetchMock: ReturnType<typeof vi.fn>;
 beforeEach(() => {
   vi.mocked(checkExport).mockReset();
   clearNotices();
   hrefs = [];
+  names = [];
   click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
     hrefs.push(this.getAttribute("href") ?? "");
+    names.push(this.getAttribute("download"));
+    expect(this.isConnected).toBe(true);
   });
   fetchMock = vi.fn();
   vi.stubGlobal("fetch", fetchMock);
@@ -44,6 +48,7 @@ describe("useTerritoryExport", () => {
     await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
     expect(checkExport).toHaveBeenCalledWith("ust-kut", variant);
     expect(hrefs).toEqual([href]);
+    expect(names).toEqual(["ust-kut.glb"]);
     expect(fetchMock).not.toHaveBeenCalled();
     expect(document.querySelector("a[download]")).toBeNull();
   });
