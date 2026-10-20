@@ -2,9 +2,11 @@ package httpapi
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"mime"
 	"net/http"
+	"slices"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
@@ -30,6 +32,11 @@ import (
 func (s *Server) ServeTerritoryExport(open glbexport.Opener) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+		variant, err := parseExportVariant(r.URL.Query())
+		if err != nil {
+			apperr.Write(w, http.StatusBadRequest, apperr.SlugInvalidInput, err.Error())
+			return
+		}
 		scopeAdminID, allAccess := authhttp.Scope(ctx)
 		if !allAccess && scopeAdminID == "" {
 			writeTerritoryMissing(w)
@@ -50,7 +57,11 @@ func (s *Server) ServeTerritoryExport(open glbexport.Opener) http.HandlerFunc {
 			return
 		}
 
-		placements, skipped := exportPlacements(bundle)
+		placements, skipped := exportPlacements(bundle, variant)
+		if variant == variantCompatible && slices.ContainsFunc(placements, func(p glbexport.Placement) bool { return p.Hash == "" }) {
+			apperr.Write(w, http.StatusConflict, apperr.SlugConflict, "compatible copy is not ready yet")
+			return
+		}
 		if skipped > 0 {
 			slogchi.AddContextAttributes(ctx, slog.Int("export_skipped", skipped))
 		}
@@ -72,12 +83,16 @@ func (s *Server) ServeTerritoryExport(open glbexport.Opener) http.HandlerFunc {
 			exportFailed(w, r, err)
 			return
 		}
+		if variant == variantCompatible && len(plan.Required) > 0 {
+			exportFailed(w, r, fmt.Errorf("compatible export requires %v", plan.Required))
+			return
+		}
 
 		h := w.Header()
 		h.Set("Content-Type", "model/gltf-binary")
 		// New slugs are [a-z0-9-], but nothing in the schema enforces it on old
 		// rows; FormatMediaType quotes or RFC 2231-encodes whatever is there.
-		h.Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": slug + ".glb"}))
+		h.Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": variant.filename(slug)}))
 		h.Set("Cache-Control", "no-store")
 		h.Set("Content-Length", strconv.FormatInt(plan.Size, 10))
 		w.WriteHeader(http.StatusOK)

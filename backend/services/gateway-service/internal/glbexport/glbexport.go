@@ -67,7 +67,8 @@ type Plan struct {
 	JSON      []byte // padded with spaces to 4
 	BinLength int64  // padded with zeros to 4; 0 means no BIN chunk is written
 	Segments  []Segment
-	Size      int64 // 12 + 8 + len(JSON) + (8 + BinLength if BinLength > 0)
+	Required  []string // the output's extensionsRequired, sorted
+	Size      int64    // 12 + 8 + len(JSON) + (8 + BinLength if BinLength > 0)
 }
 
 func malformed(format string, args ...any) error {

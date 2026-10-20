@@ -44,3 +44,16 @@ func (s *ConvertersSuite) TestAModelCarriesItsLOD0Bounds() {
 	bare := modelFromProto(&catalogv1.Model{Slug: "broken"})
 	assert.Assert(s.T(), bare.BBoxMin == nil && bare.BBoxMax == nil)
 }
+
+func (s *ConvertersSuite) TestATerritoryArtifactCarriesItsPlainHash() {
+	got := territoryArtifactFromProto(&catalogv1.TerritoryArtifact{Lod: 0, Hash: "h0", PlainHash: "p"})
+	assert.Equal(s.T(), got.PlainHash, "p")
+}
+
+func (s *ConvertersSuite) TestAModelLODChainCarriesPlainHash() {
+	got := modelFromProto(&catalogv1.Model{Slug: "pump", Artifacts: []*catalogv1.ModelArtifact{
+		{Lod: 0, Hash: "h0", PlainHash: "p"}, {Lod: 1, Hash: "h1"},
+	}})
+	assert.Equal(s.T(), got.LODs[0].PlainHash, "p")
+	assert.Equal(s.T(), got.LODs[1].PlainHash, "")
+}

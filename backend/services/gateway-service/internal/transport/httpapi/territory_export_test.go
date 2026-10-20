@@ -136,8 +136,12 @@ func (s *TerritoryExportSuite) blobs() map[string][]byte {
 }
 
 func (s *TerritoryExportSuite) get(h http.Handler) *httptest.ResponseRecorder {
+	return s.getPath(h, "/api/territories/ust-kut/export.glb")
+}
+
+func (s *TerritoryExportSuite) getPath(h http.Handler, target string) *httptest.ResponseRecorder {
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/territories/ust-kut/export.glb", nil))
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, target, nil))
 	return rec
 }
 
