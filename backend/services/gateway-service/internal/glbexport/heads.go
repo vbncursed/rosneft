@@ -44,6 +44,11 @@ func ReadHeads(ctx context.Context, open Opener, hashes []string) (map[string]He
 	if err := g.Wait(); err != nil {
 		return nil, err
 	}
+	// The loop stops launching on a cancelled ctx; with no read failing, that
+	// would hand back a partial map as success.
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	return heads, nil
 }
 

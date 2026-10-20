@@ -2,9 +2,12 @@ package asset
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -92,6 +95,72 @@ func (s *ClientSuite) TestNewRejectsBadURL() {
 		s.Run(in, func() {
 			_, err := New(in)
 			assert.Assert(s.T(), err != nil)
+		})
+	}
+}
+
+func (s *ClientSuite) TestWrongContentRangeIsAnError() {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Range", "bytes 0-49/50") // 206, but from the start
+		w.WriteHeader(http.StatusPartialContent)
+		_, _ = w.Write(s.blob)
+	}))
+	s.T().Cleanup(srv.Close)
+
+	rc, err := s.client(srv.URL).Open(s.T().Context(), "h", 10)
+
+	assert.ErrorIs(s.T(), err, ErrRangeIgnored)
+	assert.Assert(s.T(), rc == nil)
+}
+
+func (s *ClientSuite) TestDoesNotFollowRedirects() {
+	var elsewhere atomic.Bool
+	other := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { elsewhere.Store(true) }))
+	s.T().Cleanup(other.Close)
+	srv := httptest.NewServer(http.RedirectHandler(other.URL+"/assets/h", http.StatusFound))
+	s.T().Cleanup(srv.Close)
+
+	_, err := s.client(srv.URL).Open(s.T().Context(), "h", 0)
+
+	assert.ErrorContains(s.T(), err, "302")
+	assert.Assert(s.T(), !elsewhere.Load())
+}
+
+func (s *ClientSuite) TestStalledBodyEndsWithTheContext() {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Range", "bytes 0-49/50")
+		w.WriteHeader(http.StatusPartialContent)
+		w.(http.Flusher).Flush()
+		<-r.Context().Done() // headers sent, body never comes
+	}))
+	s.T().Cleanup(srv.Close)
+	ctx, cancel := context.WithCancel(s.T().Context())
+
+	rc, err := s.client(srv.URL).Open(ctx, "h", 0)
+	assert.NilError(s.T(), err)
+	defer func() { _ = rc.Close() }()
+	time.AfterFunc(10*time.Millisecond, cancel)
+	_, err = io.ReadAll(rc)
+
+	assert.ErrorIs(s.T(), err, context.Canceled)
+}
+
+func (s *ClientSuite) TestHostileHashStaysOneSegment() {
+	for _, hash := range []string{"../x", "..", "a?b", "%2f", "a#b"} {
+		s.Run(hash, func() {
+			var escaped, query string
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				escaped, query = r.URL.EscapedPath(), r.URL.RawQuery
+				http.NotFound(w, r)
+			}))
+			s.T().Cleanup(srv.Close)
+
+			_, _ = s.client(srv.URL).Open(s.T().Context(), hash, 0)
+
+			rest, ok := strings.CutPrefix(escaped, "/assets/")
+			assert.Assert(s.T(), ok, escaped)
+			assert.Assert(s.T(), !strings.Contains(rest, "/"), escaped)
+			assert.Equal(s.T(), query, "")
 		})
 	}
 }

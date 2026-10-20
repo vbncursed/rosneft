@@ -119,3 +119,17 @@ func (s *HeadsSuite) TestMalformedBlob() {
 	assert.ErrorIs(s.T(), err, ErrMalformed)
 	assert.ErrorContains(s.T(), err, "junk")
 }
+
+func (s *HeadsSuite) TestCancelledContextIsAnError() {
+	glb := triangleGLB(s.T())
+	open := func(context.Context, string, int64) (io.ReadCloser, error) {
+		return io.NopCloser(bytes.NewReader(glb)), nil // ignores ctx on purpose
+	}
+	ctx, cancel := context.WithCancel(s.T().Context())
+	cancel()
+
+	heads, err := ReadHeads(ctx, open, []string{"a", "b"})
+
+	assert.ErrorIs(s.T(), err, context.Canceled)
+	assert.Assert(s.T(), heads == nil)
+}
