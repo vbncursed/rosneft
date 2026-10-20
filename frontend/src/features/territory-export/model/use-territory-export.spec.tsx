@@ -62,6 +62,21 @@ describe("useTerritoryExport", () => {
     expect(messages(result)[0]).toContain("browser's downloads");
   });
 
+  it("points the desktop app's user at its save dialog, not at a browser download manager", async () => {
+    window.desktop = {} as NonNullable<typeof window.desktop>;
+    try {
+      vi.mocked(checkExport).mockResolvedValue({ filename: "ust-kut.glb", sizeBytes: 3 * 1_048_576 });
+      const { result } = exporter();
+      act(() => result.current.s.run("compressed"));
+      await waitFor(() => expect(messages(result)).toHaveLength(1));
+      expect(messages(result)[0]).toContain("Download started: ust-kut.glb (3 MB)");
+      expect(messages(result)[0]).toContain("choose where to save it");
+      expect(messages(result)[0]).not.toContain("browser");
+    } finally {
+      delete window.desktop;
+    }
+  });
+
   it("leaves the size out when the check reports none (chunked OBJ)", async () => {
     vi.mocked(checkExport).mockResolvedValue({ filename: "ust-kut-obj.zip" });
     const { result } = exporter();

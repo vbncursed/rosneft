@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { checkExport, exportDownloadUrl, type ExportVariant } from "@/entities/territory";
 import { messageOf } from "@/shared/api";
+import { desktopBridge } from "@/shared/lib/desktop";
 import { formatBytes } from "@/shared/lib/format-bytes";
 import { notify } from "@/shared/lib/notify";
 
@@ -25,7 +26,9 @@ export function useTerritoryExport(slug: string): { busy: boolean; run: (variant
       a.click();
       a.remove();
       const size = sizeBytes === undefined ? "" : ` (${formatBytes(sizeBytes)})`;
-      notify.info(`Download started: ${filename}${size} — see your browser's downloads`);
+      // The desktop shell has no download manager: its save dialog is what the reader meets next.
+      const where = desktopBridge() ? "choose where to save it" : "see your browser's downloads";
+      notify.info(`Download started: ${filename}${size} — ${where}`);
     } catch (err) {
       notify.error(messageOf(err, "Export failed"));
     } finally {
