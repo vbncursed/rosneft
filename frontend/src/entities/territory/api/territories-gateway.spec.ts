@@ -3,7 +3,8 @@ import { setCsrfToken } from "@/shared/api";
 import {
   createTerritory,
   deleteTerritory,
-  exportTerritory,
+  checkExport,
+  exportDownloadUrl,
   getTerritory,
   listTerritories,
   replaceTerritorySource,
@@ -88,24 +89,29 @@ describe("territories gateway", () => {
     expect(out.externalPanoramaUrl).toBe("https://tour.example");
   });
 
-  it("fetches the export as a blob from the slug's export.glb", async () => {
-    fetchMock.mockResolvedValueOnce(
-      new Response("glb", { status: 200, headers: { "Content-Type": "model/gltf-binary" } }),
-    );
-    const blob = await exportTerritory("ust-kut", "compressed");
-    expect(request()).toEqual({ url: "/api/territories/ust-kut/export.glb", method: "GET" });
-    expect(await blob.text()).toBe("glb");
+  it("checkExport asks the check route for the variant and returns its answer", async () => {
+    fetchMock.mockResolvedValueOnce(json({ filename: "ust-kut.glb", sizeBytes: 42 }));
+    expect(await checkExport("ust-kut", "compatible")).toEqual({ filename: "ust-kut.glb", sizeBytes: 42 });
+    expect(request()).toEqual({ url: "/api/territories/ust-kut/export-check?variant=compatible", method: "GET" });
   });
 
-  it("exportTerritory asks for the compatible variant by query", async () => {
-    fetchMock.mockResolvedValue(new Response("glb", { status: 200 }));
-    await exportTerritory("ust-kut", "compatible");
-    expect(request()).toEqual({ url: "/api/territories/ust-kut/export.glb?variant=compatible", method: "GET" });
+  it("checkExport rejects with the gateway's refusal", async () => {
+    fetchMock.mockResolvedValueOnce(json({ code: "conflict", message: "OBJ export is not ready yet" }, 409));
+    await expect(checkExport("ust-kut", "obj")).rejects.toMatchObject({
+      status: 409,
+      message: "OBJ export is not ready yet",
+    });
   });
 
-  it("exportTerritory asks for the OBJ archive by its own path", async () => {
-    fetchMock.mockResolvedValue(new Response("zip", { status: 200 }));
-    await exportTerritory("ust-kut", "obj");
-    expect(request()).toEqual({ url: "/api/territories/ust-kut/export.obj.zip", method: "GET" });
+  it.each([
+    ["compressed", "/api/territories/ust-kut/export.glb"],
+    ["compatible", "/api/territories/ust-kut/export.glb?variant=compatible"],
+    ["obj", "/api/territories/ust-kut/export.obj.zip"],
+  ] as const)("exportDownloadUrl(%s) is %s", (variant, url) => {
+    expect(exportDownloadUrl("ust-kut", variant)).toBe(url);
+  });
+
+  it("exportDownloadUrl encodes the slug", () => {
+    expect(exportDownloadUrl("a/b c", "obj")).toBe("/api/territories/a%2Fb%20c/export.obj.zip");
   });
 });

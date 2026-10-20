@@ -57,7 +57,7 @@ describe("ExportButton", () => {
   it("announces the busy state, which a disabled trigger cannot", () => {
     vi.mocked(useTerritoryExport).mockReturnValue({ busy: true, run });
     render(<ExportButton slug="ust-kut" />);
-    expect(screen.getByRole("status")).toHaveTextContent("Preparing download");
+    expect(screen.getByRole("status")).toHaveTextContent("Checking export");
   });
 
   it("announces nothing while idle", () => {

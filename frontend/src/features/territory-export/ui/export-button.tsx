@@ -4,7 +4,7 @@ import { Icon } from "@/shared/ui/icon";
 import { Menu } from "@/shared/ui/menu";
 import { useTerritoryExport } from "../model/use-territory-export";
 
-/** The export can take seconds, so the trigger spins: a press with no visible effect reads as a dead click. */
+/** The check can take seconds, so the trigger spins: a press with no visible effect reads as a dead click. */
 export function ExportButton({ slug }: { slug: string }) {
   const { busy, run } = useTerritoryExport(slug);
   const online = useOnline();
@@ -31,7 +31,7 @@ export function ExportButton({ slug }: { slug: string }) {
       />
       {/* A disabled trigger is skipped by screen readers and carries no aria-busy; this says why it went dead. */}
       <span role="status" className="sr-only">
-        {busy ? "Preparing download…" : ""}
+        {busy ? "Checking export…" : ""}
       </span>
     </>
   );

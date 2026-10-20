@@ -1,22 +1,37 @@
-import { useMutation } from "@tanstack/react-query";
-import { exportTerritory, type ExportVariant } from "@/entities/territory";
+import { useRef, useState } from "react";
+import { checkExport, exportDownloadUrl, type ExportVariant } from "@/entities/territory";
 import { messageOf } from "@/shared/api";
-import { saveBlob } from "@/shared/lib/download";
+import { formatBytes } from "@/shared/lib/format-bytes";
 import { notify } from "@/shared/lib/notify";
 
-const FILE_SUFFIX: Record<ExportVariant, string> = {
-  compressed: ".glb",
-  compatible: "-compatible.glb",
-  obj: "-obj.zip",
-};
-
-/** Fetches the territory as one file and hands it to the browser as `<slug>.glb`, `<slug>-compatible.glb` or `<slug>-obj.zip`. */
-// ponytail: the whole GLB or ZIP sits in memory as a Blob (as with the audit CSV), and the compatible GLB is about 3x larger; stream to disk (File System Access) once exports pass a few hundred MB.
+/**
+ * Asks the gateway whether the export can be built (its refusals arrive as toasts), then hands the download itself
+ * to the browser through a same-origin link. The file never passes through JS; busy ends at the click.
+ */
+// ponytail: no progress and no cancel here — the browser's download manager owns the transfer (files reach 800 MB); a reload no longer aborts it.
 export function useTerritoryExport(slug: string): { busy: boolean; run: (variant: ExportVariant) => void } {
-  const { isPending, mutate } = useMutation({
-    mutationFn: (variant: ExportVariant) => exportTerritory(slug, variant),
-    onSuccess: (blob, variant) => saveBlob(blob, `${slug}${FILE_SUFFIX[variant]}`),
-    onError: (err) => notify.error(messageOf(err, "Export failed")),
-  });
-  return { busy: isPending, run: mutate };
+  const [busy, setBusy] = useState(false);
+  const running = useRef(false);
+  const run = async (variant: ExportVariant) => {
+    if (running.current) return;
+    running.current = true;
+    setBusy(true);
+    try {
+      const { filename, sizeBytes } = await checkExport(slug, variant);
+      const a = document.createElement("a");
+      a.href = exportDownloadUrl(slug, variant);
+      a.download = filename;
+      document.body.append(a);
+      a.click();
+      a.remove();
+      const size = sizeBytes === undefined ? "" : ` (${formatBytes(sizeBytes)})`;
+      notify.info(`Download started: ${filename}${size} — see your browser's downloads`);
+    } catch (err) {
+      notify.error(messageOf(err, "Export failed"));
+    } finally {
+      running.current = false;
+      setBusy(false);
+    }
+  };
+  return { busy, run: (v) => void run(v) };
 }

@@ -587,6 +587,17 @@ export type Error = {
   message: string;
 };
 
+export type ExportCheck = {
+  /**
+   * The exact name the download will send in Content-Disposition
+   */
+  filename: string;
+  /**
+   * The download's exact Content-Length; omitted for the chunked OBJ ZIP
+   */
+  sizeBytes?: number;
+};
+
 export type AuthUser = {
   id: string;
   email: string;
@@ -1582,6 +1593,63 @@ export type ExportTerritoryObjResponses = {
 };
 
 export type ExportTerritoryObjResponse = ExportTerritoryObjResponses[keyof ExportTerritoryObjResponses];
+
+export type ExportTerritoryCheckData = {
+  body?: never;
+  path: {
+    slug: string;
+  };
+  query: {
+    /**
+     * `compressed`: meshopt geometry and KTX2 textures (export.glb). `compatible`: plain GLB (export.glb?variant=compatible). `obj`: baked OBJ in a ZIP (export.obj.zip). Exactly one value.
+     *
+     */
+    variant: 'compressed' | 'compatible' | 'obj';
+  };
+  url: '/api/territories/{slug}/export-check';
+};
+
+export type ExportTerritoryCheckErrors = {
+  /**
+   * Invalid request
+   */
+  400: Error;
+  /**
+   * Missing or invalid session token
+   */
+  401: Error;
+  /**
+   * Resource not found
+   */
+  404: Error;
+  /**
+   * The territory is not converted yet, or a plain copy is still being made
+   */
+  409: Error;
+  /**
+   * The export would exceed the GLB format's 4 GiB limit or the OBJ ceilings
+   */
+  422: Error;
+  /**
+   * Internal server error
+   */
+  500: Error;
+  /**
+   * The catalog could not be asked whether the caller may open the territory
+   */
+  503: Error;
+};
+
+export type ExportTerritoryCheckError = ExportTerritoryCheckErrors[keyof ExportTerritoryCheckErrors];
+
+export type ExportTerritoryCheckResponses = {
+  /**
+   * The export would succeed
+   */
+  200: ExportCheck;
+};
+
+export type ExportTerritoryCheckResponse = ExportTerritoryCheckResponses[keyof ExportTerritoryCheckResponses];
 
 export type GetSceneBundleData = {
   body?: never;
