@@ -1,0 +1,140 @@
+rule_files:
+  - rules.yml
+
+evaluation_interval: 1m
+
+tests:
+  # 10% free for 20m: Low fires, Critical does not.
+  - name: low
+    interval: 1m
+    input_series:
+      - series: blobstore_fs_size_bytes
+        values: "100e9+0x30"
+      - series: blobstore_fs_free_bytes
+        values: "10e9+0x30"
+    alert_rule_test:
+      # for: 10m edge: pending at 9m, firing from 10m.
+      - eval_time: 9m
+        alertname: DiskSpaceLow
+      - eval_time: 10m
+        alertname: DiskSpaceLow
+        exp_alerts:
+          - exp_labels: {severity: warning}
+            exp_annotations:
+              summary: "Disk below 15% free (10% left)"
+              description: "9.313GiB free on the filesystem holding blob-data, Postgres and docker. There is no blob GC, so this only grows."
+      - eval_time: 15m
+        alertname: DiskSpaceLow
+        exp_alerts:
+          - exp_labels: {severity: warning}
+            exp_annotations:
+              summary: "Disk below 15% free (10% left)"
+              description: "9.313GiB free on the filesystem holding blob-data, Postgres and docker. There is no blob GC, so this only grows."
+      - eval_time: 15m
+        alertname: DiskSpaceCritical
+      - eval_time: 15m
+        alertname: DiskFillingUp
+      - eval_time: 15m
+        alertname: DiskMetricMissing
+
+  - name: critical
+    interval: 1m
+    input_series:
+      - series: blobstore_fs_size_bytes
+        values: "100e9+0x30"
+      - series: blobstore_fs_free_bytes
+        values: "4e9+0x30"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: DiskSpaceCritical
+      - eval_time: 8m
+        alertname: DiskSpaceCritical
+        exp_alerts:
+          - exp_labels: {severity: critical}
+            exp_annotations:
+              summary: "Disk below 5% free (4% left)"
+              description: "3.725GiB free. Writes to Postgres and blob-data are about to fail."
+
+  # Plenty free (80%) but falling 1 GB/min: projected empty within a day.
+  - name: filling-up
+    interval: 1m
+    input_series:
+      - series: blobstore_fs_size_bytes
+        values: "100e9+0x80"
+      - series: blobstore_fs_free_bytes
+        values: "80e9-1e9x80"
+    alert_rule_test:
+      - eval_time: 40m
+        alertname: DiskFillingUp
+        exp_alerts:
+          - exp_labels: {severity: warning}
+            exp_annotations:
+              summary: "Disk projected to be full within 24h at the current rate"
+              description: "37.25GiB free now. A one-off bulk write (mesh backfill) can cause this once."
+      - eval_time: 40m
+        alertname: DiskSpaceLow
+
+  # Healthy and flat: nothing fires.
+  - name: healthy
+    interval: 1m
+    input_series:
+      - series: blobstore_fs_size_bytes
+        values: "100e9+0x60"
+      - series: blobstore_fs_free_bytes
+        values: "77e9+0x60"
+    alert_rule_test:
+      - {eval_time: 50m, alertname: DiskSpaceLow}
+      - {eval_time: 50m, alertname: DiskFillingUp}
+      - {eval_time: 50m, alertname: DiskMetricMissing}
+
+  # Series vanishes after 5m: Missing fires once it has been absent 15m.
+  - name: missing
+    interval: 1m
+    input_series:
+      - series: blobstore_fs_free_bytes
+        values: "50e9+0x5 _x40"
+    alert_rule_test:
+      # Last sample at 5m leaves the 5m lookback at 10m; for: 15m => fires at 25m.
+      - eval_time: 24m
+        alertname: DiskMetricMissing
+      - eval_time: 25m
+        alertname: DiskMetricMissing
+        exp_alerts:
+          - exp_labels: {severity: warning}
+            exp_annotations:
+              summary: "No disk metric: the DiskSpace alerts are blind"
+              description: "asset-service is not exporting blobstore_fs_free_bytes (down, unscraped, or statfs failing; see its log)."
+
+  # Exactly at each threshold: the comparisons are strict, nothing fires.
+  - name: at-low-threshold
+    interval: 1m
+    input_series:
+      - series: blobstore_fs_size_bytes
+        values: "100e9+0x30"
+      - series: blobstore_fs_free_bytes
+        values: "15e9+0x30"
+    alert_rule_test:
+      - {eval_time: 20m, alertname: DiskSpaceLow}
+
+  - name: at-critical-threshold
+    interval: 1m
+    input_series:
+      - series: blobstore_fs_size_bytes
+        values: "100e9+0x30"
+      - series: blobstore_fs_free_bytes
+        values: "5e9+0x30"
+    alert_rule_test:
+      - {eval_time: 20m, alertname: DiskSpaceCritical}
+
+  # Prod-sized backfill: 1.4 GB written over 3h with ~92 GB free. The 6h
+  # slope projects nowhere near zero, so DiskFillingUp stays quiet.
+  - name: backfill-burst
+    interval: 5m
+    input_series:
+      - series: blobstore_fs_size_bytes
+        values: "126e9+0x96"
+      - series: blobstore_fs_free_bytes
+        values: "92e9+0x24 92e9-38.9e6x36 90.6e9+0x36"
+    alert_rule_test:
+      - {eval_time: 5h, alertname: DiskFillingUp}
+      - {eval_time: 8h, alertname: DiskFillingUp}
