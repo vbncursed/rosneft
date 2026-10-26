@@ -66,6 +66,11 @@ describe("entityName", () => {
     expect(entityName(entry({ entity: "measurement", entityId: "42", entityLabel: "" }))).toBe("measurement #42");
   });
 
+  it("names a zone tag and a calibration by their ids", () => {
+    expect(entityName(entry({ entity: "zone_tag", entityId: "5", entityLabel: "" }))).toBe("zone tag #5");
+    expect(entityName(entry({ entity: "calibration", entityId: "9", entityLabel: "" }))).toBe("calibration #9");
+  });
+
   it("leaves a label-less row of any other kind blank", () => {
     expect(entityName(entry({ entity: "session", entityId: "", entityLabel: "" }))).toBe("");
     expect(entityName(entry({ entityLabel: "" }))).toBe("");

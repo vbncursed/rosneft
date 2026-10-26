@@ -5,6 +5,7 @@ import type { Model } from "@/entities/model";
 import { ModelAside, type ModelAsideProps } from "./model-aside";
 
 const MODEL: Model = {
+  tag: { slug: "tanks", title: "Tanks" },
   slug: "valve-assembly",
   title: "Valve Assembly",
   sourceBlobHash: "a".repeat(64),
@@ -27,6 +28,13 @@ const props = (over: Partial<ModelAsideProps> = {}): ModelAsideProps => ({
   artifacts: [artifact(0), artifact(1), artifact(2)],
   jobError: null,
   canWrite: true,
+  tags: [
+    { slug: "tanks", title: "Tanks" },
+    { slug: "pumps", title: "Pumps" },
+  ],
+  tagsError: null,
+  tagBusy: false,
+  onTag: vi.fn(),
   thumbnailBusy: false,
   onThumbnail: vi.fn(),
   onRemoveThumbnail: vi.fn(),
@@ -39,6 +47,22 @@ describe("ModelAside", () => {
     expect(screen.getByText("Gate valve.")).toBeInTheDocument();
     rerender(<ModelAside {...props()} />);
     expect(screen.getByText("No description.")).toBeInTheDocument();
+  });
+
+  it("shows the model's tag as a chip", () => {
+    render(<ModelAside {...props({ canWrite: false })} />);
+    expect(screen.getByText("Tanks")).toBeInTheDocument();
+  });
+
+  it("offers Change tag with model:write and reports the pick; read-only without it", async () => {
+    const onTag = vi.fn();
+    const { rerender } = render(<ModelAside {...props({ canWrite: true, onTag })} />);
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Change tag" }), "Pumps");
+    expect(onTag).toHaveBeenCalledWith("pumps");
+
+    rerender(<ModelAside {...props({ canWrite: false })} />);
+    expect(screen.queryByRole("combobox", { name: "Change tag" })).not.toBeInTheDocument();
+    expect(screen.getByText("Tanks")).toBeInTheDocument();
   });
 
   it("lists the About facts by label", () => {

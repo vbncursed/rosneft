@@ -1,6 +1,7 @@
 import { conversionStatusOf, lodLabel, totalSize, type LodSummary } from "@/entities/content";
 import { type ConversionStatus, type TargetJob } from "@/entities/conversion";
 import { formatBytes } from "@/shared/lib/format-bytes";
+import type { ModelTag } from "@/entities/model-tag";
 import { thumbnailUrl as urlOf, type Model } from "./model";
 
 export type ModelCardModel = {
@@ -8,6 +9,7 @@ export type ModelCardModel = {
   title: string;
   status: ConversionStatus;
   thumbnailUrl: string | null;
+  tag: ModelTag;
   usageCount: number;
   /** The footer's plain right-hand text — "—" only while nothing is converted. */
   size: string;
@@ -37,6 +39,7 @@ export function toModelCard(model: Model, artifacts: LodSummary[], job?: TargetJ
     title: model.title,
     status,
     thumbnailUrl: urlOf(model),
+    tag: model.tag,
     usageCount: model.usageCount,
     size: artifacts.length > 0 ? formatBytes(totalSize(artifacts)) : "—",
     lods: lodLabel(artifacts),

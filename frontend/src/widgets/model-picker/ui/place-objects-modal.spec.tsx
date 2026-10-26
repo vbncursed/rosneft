@@ -7,6 +7,7 @@ import { PlaceObjectsModal } from "./place-objects-modal";
 
 const options: ModelOption[] = [
   {
+    tag: { slug: "tanks", title: "Tanks" },
     slug: "tank",
     title: "storage-tank-500",
     chain: [
@@ -15,7 +16,7 @@ const options: ModelOption[] = [
       { lod: 2, hash: "c", size: 1 },
     ],
   },
-  { slug: "raw", title: "not-yet", chain: [] },
+  { slug: "raw", title: "not-yet", tag: { slug: "tanks", title: "Tanks" }, chain: [] },
 ];
 
 describe("PlaceObjectsModal", () => {
@@ -225,7 +226,14 @@ describe("PlaceObjectsModal", () => {
         open
         onClose={vi.fn()}
         territoryTitle="T"
-        options={[{ slug: "one", title: "single", chain: [{ lod: 0, hash: "a", size: 1_048_576 }] }]}
+        options={[
+          {
+            slug: "one",
+            title: "single",
+            tag: { slug: "tanks", title: "Tanks" },
+            chain: [{ lod: 0, hash: "a", size: 1_048_576 }],
+          },
+        ]}
         placing={null}
         onPlace={vi.fn()}
       />,

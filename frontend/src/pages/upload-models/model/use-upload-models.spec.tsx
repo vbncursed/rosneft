@@ -24,6 +24,8 @@ vi.mock("@tanstack/react-router", async (importOriginal) => ({
   useNavigate: () => navigate,
 }));
 
+const TAGS = [{ slug: "tanks", title: "Tanks" }];
+
 const PRINCIPAL = {
   id: "me",
   email: "me@x",
@@ -53,6 +55,7 @@ const wrapper = ({ children }: { children: ReactNode }) => (
 beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(["me"], PRINCIPAL);
+  client.setQueryData(["model-tags"], TAGS);
   runChunkedUpload.mockReset();
   createModel.mockReset();
   navigate.mockReset();
@@ -90,6 +93,7 @@ describe("useUploadModels", () => {
     const { result } = renderHook(() => useUploadModels(), { wrapper });
     act(() => result.current.onFiles([file("a.zip")]));
     act(() => result.current.onTitle(result.current.rows[0].id, "A"));
+    act(() => result.current.onTag("tanks"));
     act(() => result.current.onRun());
     await waitFor(() => expect(result.current.rows[0]?.status).toBe("done"));
 
@@ -114,6 +118,7 @@ describe("useUploadModels", () => {
     act(() => result.current.s.onTitle(a.id, "A"));
     act(() => result.current.s.onTitle(b.id, "B"));
 
+    act(() => result.current.s.onTag("tanks"));
     act(() => result.current.s.onRun());
     await waitFor(() => expect(result.current.s.running).toBe(false));
 
@@ -134,6 +139,7 @@ describe("useUploadModels", () => {
     act(() => result.current.onTitle(id, "A"));
     act(() => result.current.onThumbnail(id, file("thumb.png", 512)));
 
+    act(() => result.current.onTag("tanks"));
     act(() => result.current.onRun());
     await waitFor(() => expect(navigate).toHaveBeenCalled());
 
@@ -157,6 +163,7 @@ describe("useUploadModels", () => {
     act(() => result.current.onTitle(a.id, "A"));
     act(() => result.current.onTitle(b.id, "B"));
 
+    act(() => result.current.onTag("tanks"));
     act(() => result.current.onRun());
     await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: "/models" }));
   });
@@ -167,6 +174,7 @@ describe("useUploadModels", () => {
     act(() => result.current.onFiles([file("a.zip")]));
     act(() => result.current.onTitle(result.current.rows[0].id, "A"));
 
+    act(() => result.current.onTag("tanks"));
     act(() => result.current.onRun());
     await waitFor(() => expect(result.current.running).toBe(false));
     expect(navigate).not.toHaveBeenCalled();
@@ -195,6 +203,7 @@ describe("useUploadModels", () => {
     act(() => result.current.s.onTitle(a.id, "A"));
     act(() => result.current.s.onTitle(b.id, "B"));
 
+    act(() => result.current.s.onTag("tanks"));
     act(() => result.current.s.onRun());
     await waitFor(() => expect(result.current.s.rows.find((r) => r.id === a.id)?.status).toBe("uploading"));
 
@@ -233,6 +242,7 @@ describe("useUploadModels", () => {
     act(() => result.current.onTitle(b.id, "B"));
     act(() => result.current.onTitle(c.id, "C"));
 
+    act(() => result.current.onTag("tanks"));
     act(() => result.current.onRun());
     await waitFor(() => expect(result.current.rows.find((r) => r.id === a.id)?.status).toBe("done"));
     await waitFor(() => expect(result.current.rows.find((r) => r.id === b.id)?.status).toBe("uploading"));
@@ -260,9 +270,11 @@ describe("useUploadModels", () => {
     act(() => result.current.onFiles([file("a.zip")]));
     act(() => result.current.onTitle(result.current.rows[0].id, "A"));
 
+    act(() => result.current.onTag("tanks"));
     act(() => result.current.onRun());
     await waitFor(() => expect(result.current.rows[0].status).toBe("failed"));
 
+    act(() => result.current.onTag("tanks"));
     act(() => result.current.onRun());
     await waitFor(() => expect(navigate).toHaveBeenCalled());
     expect(result.current.rows[0].status).toBe("done");
@@ -275,6 +287,7 @@ describe("useUploadModels", () => {
     act(() => result.current.onFiles([file("a.zip", 1_000_000)]));
     act(() => result.current.onTitle(result.current.rows[0].id, "A"));
 
+    act(() => result.current.onTag("tanks"));
     act(() => result.current.onRun());
 
     expect(result.current.current?.row.status).toBe("uploading");
@@ -291,6 +304,7 @@ describe("useUploadModels", () => {
     act(() => result.current.onFiles([file("a.zip", 1_000_000)]));
     act(() => result.current.onTitle(result.current.rows[0].id, "A"));
 
+    act(() => result.current.onTag("tanks"));
     act(() => result.current.onRun());
 
     act(() => reportProgress?.({ bytes: 500_000, total: 1_000_000, chunk: 1, chunks: 2 }));
@@ -307,6 +321,7 @@ describe("useUploadModels", () => {
     const { result } = renderHook(() => useUploadModels(), { wrapper });
     act(() => result.current.onFiles([file("a.zip")]));
     act(() => result.current.onTitle(result.current.rows[0].id, "A"));
+    act(() => result.current.onTag("tanks"));
     act(() => result.current.onRun());
 
     act(() => reportStage?.("initiating"));
@@ -314,6 +329,51 @@ describe("useUploadModels", () => {
 
     act(() => reportStage?.("finalizing"));
     expect(result.current.rows[0].status).toBe("finalizing");
+  });
+
+  it("sends the one chosen tag with every row's create call, and a 400 fails only its own row", async () => {
+    runChunkedUpload.mockImplementation((f: File) => Promise.resolve({ hash: `h-${f.name}`, size: f.size }));
+    createModel.mockImplementation(({ sourceBlobHash }: { sourceBlobHash: string }) =>
+      sourceBlobHash === "h-a.zip"
+        ? Promise.reject(new HttpError(400, null, "unknown tag"))
+        : Promise.resolve({ model: { slug: "b", title: "B" }, job: { id: "job-b" } }),
+    );
+    const { result } = renderHook(() => useUploadModels(), { wrapper });
+    act(() => result.current.onFiles([file("a.zip"), file("b.zip")]));
+    const [a, b] = result.current.rows;
+    act(() => result.current.onTitle(a.id, "A"));
+    act(() => result.current.onTitle(b.id, "B"));
+    act(() => result.current.onTag("tanks"));
+    act(() => result.current.onRun());
+    await waitFor(() => expect(result.current.running).toBe(false));
+
+    expect(createModel).toHaveBeenCalledTimes(2);
+    for (const [input] of createModel.mock.calls) expect(input).toMatchObject({ tagSlug: "tanks" });
+    expect(result.current.rows.find((r) => r.id === a.id)).toMatchObject({ status: "failed", error: "unknown tag" });
+    expect(result.current.rows.find((r) => r.id === b.id)?.status).toBe("done");
+  });
+
+  it("reads the tag list and starts with no tag chosen", () => {
+    const { result } = renderHook(() => useUploadModels(), { wrapper });
+    expect(result.current.tags).toEqual(TAGS);
+    expect(result.current.tagSlug).toBeNull();
+    expect(result.current.tagsError).toBeNull();
+  });
+
+  it("reports a tag list that never loaded, and refuses to run without a tag", async () => {
+    client.removeQueries({ queryKey: ["model-tags"] });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve(new Response("{}", { status: 500 }))),
+    );
+    const { result } = renderHook(() => useUploadModels(), { wrapper });
+    await waitFor(() => expect(result.current.tagsError).toBe("Tags could not be loaded. Try again."));
+    expect(result.current.tags).toBeUndefined();
+    act(() => result.current.onFiles([file("a.zip")]));
+    act(() => result.current.onTitle(result.current.rows[0].id, "A"));
+    act(() => result.current.onRun());
+    expect(runChunkedUpload).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 
   it("says the whole page needs model:write when the viewer lacks the grant", () => {
@@ -327,6 +387,7 @@ describe("useUploadModels", () => {
     const { result } = renderHook(() => useUploadModels(), { wrapper });
     act(() => result.current.onFiles([file("bad.zip")]));
     act(() => result.current.onTitle(result.current.rows[0].id, "Bad"));
+    act(() => result.current.onTag("tanks"));
     act(() => result.current.onRun());
     await waitFor(() => expect(result.current.failedNames).toEqual(["bad.zip"]));
   });
@@ -339,6 +400,7 @@ describe("useUploadModels", () => {
     act(() => result.current.onFiles([file("a.zip")]));
     act(() => result.current.onTitle(result.current.rows[0].id, "A"));
 
+    act(() => result.current.onTag("tanks"));
     act(() => result.current.onRun());
     await waitFor(() => expect(navigate).toHaveBeenCalled());
     expect(spy).toHaveBeenCalledWith({ queryKey: ["models"] });
@@ -352,6 +414,7 @@ describe("useUploadModels", () => {
     act(() => result.current.onFiles([file("a.zip")]));
     act(() => result.current.onTitle(result.current.rows[0].id, "A"));
 
+    act(() => result.current.onTag("tanks"));
     act(() => result.current.onRun());
     await waitFor(() => expect(result.current.running).toBe(false));
     expect(spy).not.toHaveBeenCalled();

@@ -32,6 +32,13 @@ const props = (over: Partial<UploadModelsPageProps> = {}): UploadModelsPageProps
   stats: batchStats(ROWS),
   checks: MODEL_CHECKLIST,
   canUpload: true,
+  tags: [
+    { slug: "tanks", title: "Tanks" },
+    { slug: "pumps", title: "Pumps" },
+  ],
+  tagSlug: "tanks",
+  onTag: vi.fn(),
+  tagsError: null,
   failedNames: ["flare-stack.zip"],
   ...over,
 });
@@ -96,6 +103,19 @@ describe("UploadModelsPage", () => {
     const button = screen.getByRole("button", { name: "Upload 5 models" });
     await userEvent.click(button);
     expect(onRun).toHaveBeenCalledOnce();
+  });
+
+  it("keeps Upload disabled until a tag is chosen, and reports the pick", async () => {
+    const onTag = vi.fn();
+    render(<UploadModelsPage {...props({ tagSlug: null, onTag })} />);
+    expect(screen.getByRole("button", { name: "Upload 5 models" })).toBeDisabled();
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: /Tag for every model/ }), "Pumps");
+    expect(onTag).toHaveBeenCalledWith("pumps");
+  });
+
+  it("locks the tag while the batch runs", () => {
+    render(<UploadModelsPage {...props({ running: true })} />);
+    expect(screen.getByRole("combobox", { name: /Tag for every model/ })).toBeDisabled();
   });
 
   it("reads Uploading k of n… while running, and offers Cancel batch", async () => {

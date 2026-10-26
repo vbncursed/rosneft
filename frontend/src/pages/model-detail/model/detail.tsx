@@ -1,6 +1,7 @@
 import type { ConversionStatus } from "@/entities/conversion";
 import { assetUrl, totalSize, type Artifact } from "@/entities/content";
 import type { Model } from "@/entities/model";
+import type { ModelTag } from "@/entities/model-tag";
 import { formatSize, groupDigits } from "@/entities/scene";
 import { formatBytes } from "@/shared/lib/format-bytes";
 import { shortDate } from "@/shared/lib/short-date";
@@ -16,6 +17,11 @@ export type ModelDetailPageProps = {
   canDelete: boolean;
   canWrite: boolean;
   thumbnailBusy: boolean;
+  /** The tag list; `undefined` while it loads or after it failed. */
+  tags: ModelTag[] | undefined;
+  tagsError: string | null;
+  tagBusy: boolean;
+  onTag: (slug: string) => void;
   onDelete: () => void;
   onThumbnail: (file: File) => void;
   onRemoveThumbnail: () => void;

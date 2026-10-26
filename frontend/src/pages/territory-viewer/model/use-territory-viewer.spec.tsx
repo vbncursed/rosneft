@@ -103,6 +103,7 @@ const BUNDLE: SceneBundle = {
   placements: [placement(4)],
   modelOptions: [
     {
+      tag: { slug: "tanks", title: "Tanks" },
       slug: "storage-tank-500",
       title: "storage-tank-500",
       bboxMin: { x: 0, y: 0, z: 0 },

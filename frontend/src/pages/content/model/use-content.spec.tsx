@@ -27,7 +27,13 @@ const TERRITORY = {
   updatedAt: "2026-08-31T00:00:00Z",
   lods: [{ lod: 0, hash: "h", size: 1024 }],
 };
-const MODEL = { slug: "m-1", title: "M 1", sourceBlobHash: "b".repeat(64), lods: [] };
+const MODEL = {
+  slug: "m-1",
+  title: "M 1",
+  tag: { slug: "tanks", title: "Tanks" },
+  sourceBlobHash: "b".repeat(64),
+  lods: [],
+};
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 

@@ -17,6 +17,7 @@ const territory = (slug: string): TerritoryCardModel => ({
 });
 
 const model = (slug: string): ModelCardModel => ({
+  tag: { slug: "tanks", title: "Tanks" },
   slug,
   title: slug,
   status: "ready",

@@ -10,6 +10,20 @@ export type Vec3 = {
   z: number;
 };
 
+export type Vec2 = {
+  x: number;
+  y: number;
+};
+
+/**
+ * One entry of the fixed model tag list. Every model carries exactly one; a zone carries one to five. Code refers to a tag by slug.
+ *
+ */
+export type ModelTag = {
+  slug: string;
+  title: string;
+};
+
 export type Territory = {
   slug: string;
   title: string;
@@ -36,6 +50,7 @@ export type Model = {
   title: string;
   description?: string;
   sourceBlobHash: string;
+  tag: ModelTag;
   /**
    * Optional thumbnail image blob hash. Empty/absent = no thumbnail.
    * Fetch the image from /api/assets/{thumbnailBlobHash}.
@@ -258,6 +273,58 @@ export type MeasurementWrite = {
   closed: boolean;
 };
 
+/**
+ * A named rectangle on a territory, shared by everyone who can open it.
+ * Corners are in the territory's normalised scene space — the space
+ * measurements use — in drawing order. The drawing size is null when
+ * the drawing's scale is unknown.
+ *
+ */
+export type Zone = {
+  id: number;
+  title: string;
+  corners: [
+    Vec3,
+    Vec3,
+    Vec3,
+    Vec3
+  ];
+  tags: Array<ModelTag>;
+  drawingWidthM: number | null;
+  drawingHeightM: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
+ * Body for POST /api/territories/{slug}/zones. The title is trimmed and
+ * must be unique on the territory, compared case-insensitively. Corners
+ * are finite. One to five distinct tags, never `ungrouped`. Anything else
+ * is 400.
+ *
+ */
+export type ZoneCreate = {
+  title: string;
+  corners: [
+    Vec3,
+    Vec3,
+    Vec3,
+    Vec3
+  ];
+  tagSlugs: Array<string>;
+  drawingWidthM?: number;
+  drawingHeightM?: number;
+};
+
+/**
+ * Body for PATCH /api/territories/{slug}/zones/{id}. Omitted fields are left unchanged; tagSlugs replaces the whole set, under the rules of ZoneCreate.
+ *
+ */
+export type ZonePatch = {
+  title?: string;
+  tagSlugs?: Array<string>;
+};
+
 export type MeasurementsDeleted = {
   /**
    * How many measurements were removed.
@@ -394,6 +461,43 @@ export type Document = {
    */
   sourceBlobHash: string;
   createdAt?: string;
+  /**
+   * The document's calibration point pairs; null when it has none.
+   */
+  calibration: Calibration | null;
+};
+
+/**
+ * One pair: a point on the PDF page (pt, top-left origin, y down — the
+ * pdf.js viewport at scale 1, rotation 0) and the same point in the
+ * territory's normalised scene space, with its UTM easting and northing
+ * when known.
+ *
+ */
+export type CalibrationPoint = {
+  pdf: Vec2;
+  scene: Vec3;
+  /**
+   * The point's UTM coordinates; null when unknown.
+   */
+  utm: UtmPoint | null;
+};
+
+/**
+ * UTM easting and northing, in metres.
+ */
+export type UtmPoint = {
+  e: number;
+  n: number;
+};
+
+/**
+ * A document's calibration: 2 to 20 point pairs, all on one 1-based page. PUT replaces the whole set.
+ *
+ */
+export type Calibration = {
+  page: number;
+  points: Array<CalibrationPoint>;
 };
 
 /**
@@ -427,6 +531,22 @@ export type EntityCreate = {
 };
 
 /**
+ * Body for POST /api/models: the EntityCreate fields plus the model's
+ * tag. A missing, empty or unknown tagSlug is 400 — there is no default.
+ *
+ */
+export type ModelCreate = {
+  title: string;
+  description?: string;
+  sourceBlobHash: string;
+  /**
+   * Optional thumbnail image blob hash. Upload the image via /api/uploads first.
+   */
+  thumbnailBlobHash?: string;
+  tagSlug: string;
+};
+
+/**
  * Body for PATCH /api/models/{slug}. Updates mutable fields only; the
  * slug, the source archive and conversion are untouched. Omitted fields
  * are left unchanged.
@@ -442,6 +562,10 @@ export type ModelUpdate = {
    * New thumbnail blob hash; empty string clears it.
    */
   thumbnailBlobHash?: string;
+  /**
+   * New tag; an unknown one is refused with 400.
+   */
+  tagSlug?: string;
 };
 
 /**
@@ -497,6 +621,7 @@ export type ModelCreated = {
 export type AssetOption = {
   slug: string;
   title: string;
+  tag: ModelTag;
   /**
    * Optional thumbnail image blob hash for the picker. Empty/absent =
    * no thumbnail. Fetch from /api/assets/{thumbnailBlobHash}.
@@ -563,6 +688,10 @@ export type SceneBundle = {
     PanoramaPhase,
     PanoramaPhase
   ];
+  /**
+   * The territory's site zones, by id; empty when none.
+   */
+  zones: Array<Zone>;
 };
 
 export type UploadInitiate = {
@@ -2401,6 +2530,159 @@ export type UpdateMeasurementResponses = {
 
 export type UpdateMeasurementResponse = UpdateMeasurementResponses[keyof UpdateMeasurementResponses];
 
+export type ListZonesData = {
+  body?: never;
+  path: {
+    slug: string;
+  };
+  query?: never;
+  url: '/api/territories/{slug}/zones';
+};
+
+export type ListZonesErrors = {
+  /**
+   * Resource not found
+   */
+  404: Error;
+  /**
+   * Internal server error
+   */
+  500: Error;
+};
+
+export type ListZonesError = ListZonesErrors[keyof ListZonesErrors];
+
+export type ListZonesResponses = {
+  /**
+   * OK
+   */
+  200: Array<Zone>;
+};
+
+export type ListZonesResponse = ListZonesResponses[keyof ListZonesResponses];
+
+export type CreateZoneData = {
+  body: ZoneCreate;
+  path: {
+    slug: string;
+  };
+  query?: never;
+  url: '/api/territories/{slug}/zones';
+};
+
+export type CreateZoneErrors = {
+  /**
+   * Invalid request
+   */
+  400: Error;
+  /**
+   * Permission denied. Code `twofa_enrollment_required` means the account is required to carry a second factor and has not enrolled one: only /api/auth/me, /api/auth/logout and the /api/auth/2fa enrollment endpoints are reachable until it does.
+   *
+   */
+  403: Error;
+  /**
+   * Resource not found
+   */
+  404: Error;
+  /**
+   * Internal server error
+   */
+  500: Error;
+};
+
+export type CreateZoneError = CreateZoneErrors[keyof CreateZoneErrors];
+
+export type CreateZoneResponses = {
+  /**
+   * Created
+   */
+  201: Zone;
+};
+
+export type CreateZoneResponse = CreateZoneResponses[keyof CreateZoneResponses];
+
+export type DeleteZoneData = {
+  body?: never;
+  path: {
+    slug: string;
+    id: number;
+  };
+  query?: never;
+  url: '/api/territories/{slug}/zones/{id}';
+};
+
+export type DeleteZoneErrors = {
+  /**
+   * Invalid request
+   */
+  400: Error;
+  /**
+   * Permission denied. Code `twofa_enrollment_required` means the account is required to carry a second factor and has not enrolled one: only /api/auth/me, /api/auth/logout and the /api/auth/2fa enrollment endpoints are reachable until it does.
+   *
+   */
+  403: Error;
+  /**
+   * Resource not found
+   */
+  404: Error;
+  /**
+   * Internal server error
+   */
+  500: Error;
+};
+
+export type DeleteZoneError = DeleteZoneErrors[keyof DeleteZoneErrors];
+
+export type DeleteZoneResponses = {
+  /**
+   * Deleted
+   */
+  204: void;
+};
+
+export type DeleteZoneResponse = DeleteZoneResponses[keyof DeleteZoneResponses];
+
+export type UpdateZoneData = {
+  body: ZonePatch;
+  path: {
+    slug: string;
+    id: number;
+  };
+  query?: never;
+  url: '/api/territories/{slug}/zones/{id}';
+};
+
+export type UpdateZoneErrors = {
+  /**
+   * Invalid request
+   */
+  400: Error;
+  /**
+   * Permission denied. Code `twofa_enrollment_required` means the account is required to carry a second factor and has not enrolled one: only /api/auth/me, /api/auth/logout and the /api/auth/2fa enrollment endpoints are reachable until it does.
+   *
+   */
+  403: Error;
+  /**
+   * Resource not found
+   */
+  404: Error;
+  /**
+   * Internal server error
+   */
+  500: Error;
+};
+
+export type UpdateZoneError = UpdateZoneErrors[keyof UpdateZoneErrors];
+
+export type UpdateZoneResponses = {
+  /**
+   * OK
+   */
+  200: Zone;
+};
+
+export type UpdateZoneResponse = UpdateZoneResponses[keyof UpdateZoneResponses];
+
 export type ListPanoramasData = {
   body?: never;
   path: {
@@ -2754,6 +3036,88 @@ export type DeleteDocumentResponses = {
 
 export type DeleteDocumentResponse = DeleteDocumentResponses[keyof DeleteDocumentResponses];
 
+export type DeleteDocumentCalibrationData = {
+  body?: never;
+  path: {
+    slug: string;
+    id: number;
+  };
+  query?: never;
+  url: '/api/territories/{slug}/documents/{id}/calibration';
+};
+
+export type DeleteDocumentCalibrationErrors = {
+  /**
+   * Invalid request
+   */
+  400: Error;
+  /**
+   * Permission denied. Code `twofa_enrollment_required` means the account is required to carry a second factor and has not enrolled one: only /api/auth/me, /api/auth/logout and the /api/auth/2fa enrollment endpoints are reachable until it does.
+   *
+   */
+  403: Error;
+  /**
+   * Resource not found
+   */
+  404: Error;
+  /**
+   * Internal server error
+   */
+  500: Error;
+};
+
+export type DeleteDocumentCalibrationError = DeleteDocumentCalibrationErrors[keyof DeleteDocumentCalibrationErrors];
+
+export type DeleteDocumentCalibrationResponses = {
+  /**
+   * Deleted
+   */
+  204: void;
+};
+
+export type DeleteDocumentCalibrationResponse = DeleteDocumentCalibrationResponses[keyof DeleteDocumentCalibrationResponses];
+
+export type PutDocumentCalibrationData = {
+  body: Calibration;
+  path: {
+    slug: string;
+    id: number;
+  };
+  query?: never;
+  url: '/api/territories/{slug}/documents/{id}/calibration';
+};
+
+export type PutDocumentCalibrationErrors = {
+  /**
+   * Invalid request
+   */
+  400: Error;
+  /**
+   * Permission denied. Code `twofa_enrollment_required` means the account is required to carry a second factor and has not enrolled one: only /api/auth/me, /api/auth/logout and the /api/auth/2fa enrollment endpoints are reachable until it does.
+   *
+   */
+  403: Error;
+  /**
+   * Resource not found
+   */
+  404: Error;
+  /**
+   * Internal server error
+   */
+  500: Error;
+};
+
+export type PutDocumentCalibrationError = PutDocumentCalibrationErrors[keyof PutDocumentCalibrationErrors];
+
+export type PutDocumentCalibrationResponses = {
+  /**
+   * OK
+   */
+  200: Calibration;
+};
+
+export type PutDocumentCalibrationResponse = PutDocumentCalibrationResponses[keyof PutDocumentCalibrationResponses];
+
 export type ListModelsData = {
   body?: never;
   path?: never;
@@ -2780,7 +3144,7 @@ export type ListModelsResponses = {
 export type ListModelsResponse = ListModelsResponses[keyof ListModelsResponses];
 
 export type CreateModelData = {
-  body: EntityCreate;
+  body: ModelCreate;
   path?: never;
   query?: never;
   url: '/api/models';
@@ -2807,6 +3171,31 @@ export type CreateModelResponses = {
 };
 
 export type CreateModelResponse = CreateModelResponses[keyof CreateModelResponses];
+
+export type ListModelTagsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/model-tags';
+};
+
+export type ListModelTagsErrors = {
+  /**
+   * Internal server error
+   */
+  500: Error;
+};
+
+export type ListModelTagsError = ListModelTagsErrors[keyof ListModelTagsErrors];
+
+export type ListModelTagsResponses = {
+  /**
+   * OK
+   */
+  200: Array<ModelTag>;
+};
+
+export type ListModelTagsResponse = ListModelTagsResponses[keyof ListModelTagsResponses];
 
 export type DeleteModelData = {
   body?: never;

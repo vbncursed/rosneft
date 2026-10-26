@@ -27,6 +27,10 @@ export function ModelDetailPage({
   canDelete,
   canWrite,
   thumbnailBusy,
+  tags,
+  tagsError,
+  tagBusy,
+  onTag,
   onDelete,
   onThumbnail,
   onRemoveThumbnail,
@@ -85,6 +89,10 @@ export function ModelDetailPage({
           jobError={jobError}
           canWrite={canWrite}
           thumbnailBusy={thumbnailBusy}
+          tags={tags}
+          tagsError={tagsError}
+          tagBusy={tagBusy}
+          onTag={onTag}
           onThumbnail={onThumbnail}
           onRemoveThumbnail={onRemoveThumbnail}
           onEdit={onEdit}

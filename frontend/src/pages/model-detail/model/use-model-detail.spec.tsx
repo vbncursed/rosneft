@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HttpError } from "@/shared/api";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
-import { useModelDetail } from "./use-model-detail";
+import { useModelDetail, type ModelDetailState } from "./use-model-detail";
 
 const { getModel, updateModel, deleteModel, listArtifacts, listJobs, runChunkedUpload, navigate } = vi.hoisted(() => ({
   getModel: vi.fn(),
@@ -50,7 +50,11 @@ const PRINCIPAL = {
   onboardingToursSeen: [],
 };
 
-const MODEL = { slug: "valve", title: "Valve", sourceBlobHash: "a".repeat(64), usageCount: 2 };
+const TAGS = [
+  { slug: "tanks", title: "Tanks" },
+  { slug: "pumps", title: "Pumps" },
+];
+const MODEL = { slug: "valve", title: "Valve", tag: TAGS[0], sourceBlobHash: "a".repeat(64), usageCount: 2 };
 const ARTIFACT = {
   lod: 0,
   hash: "h0",
@@ -61,6 +65,11 @@ const ARTIFACT = {
   bboxMax: { x: 1, y: 1, z: 1 },
 };
 
+const readyOf = (r: { current: ModelDetailState }) => {
+  if (r.current.phase !== "ready") throw new Error("unreachable");
+  return r.current;
+};
+
 let client: QueryClient;
 const wrapper = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -69,6 +78,7 @@ const wrapper = ({ children }: { children: ReactNode }) => (
 beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(["me"], PRINCIPAL);
+  client.setQueryData(["model-tags"], TAGS);
   getModel.mockReset().mockResolvedValue(MODEL);
   updateModel.mockReset().mockResolvedValue(MODEL);
   deleteModel.mockReset().mockResolvedValue(undefined);
@@ -193,6 +203,58 @@ describe("useModelDetail", () => {
     await waitFor(() => expect(result.current.notices).toHaveLength(1));
     expect(result.current.notices[0]?.tone).toBe("error");
     expect(result.current.s.phase === "ready" && result.current.s.thumbnailBusy).toBe(false);
+  });
+
+  it("saves a new tag through updateModel and merges it into the model, the library and marks every scene stale", async () => {
+    const saved = { ...MODEL, tag: TAGS[1] };
+    updateModel.mockResolvedValue(saved);
+    client.setQueryData(["models"], [MODEL, { ...MODEL, slug: "other" }]);
+    client.setQueryData(["scene", "t1"], { modelOptions: [] });
+    const { result } = renderHook(() => useModelDetail("valve"), { wrapper });
+    await waitFor(() => expect(result.current.phase).toBe("ready"));
+    if (result.current.phase !== "ready") throw new Error("unreachable");
+
+    act(() => readyOf(result).onTag("pumps"));
+    await waitFor(() => expect(client.getQueryData<{ tag: unknown }>(["model", "valve"])?.tag).toEqual(TAGS[1]));
+
+    expect(updateModel).toHaveBeenCalledWith("valve", { tagSlug: "pumps" });
+    const list = client.getQueryData<{ slug: string; tag: unknown }[]>(["models"]);
+    expect(list?.find((m) => m.slug === "valve")?.tag).toEqual(TAGS[1]);
+    expect(list?.find((m) => m.slug === "other")?.tag).toEqual(TAGS[0]);
+    await waitFor(() => expect(client.getQueryState(["scene", "t1"])?.isInvalidated).toBe(true));
+  });
+
+  it("toasts a refused tag change and clears tagBusy", async () => {
+    updateModel.mockRejectedValue(new HttpError(400, null, "unknown tag"));
+    const { result } = renderHook(() => ({ s: useModelDetail("valve"), notices: useNotices() }), { wrapper });
+    await waitFor(() => expect(result.current.s.phase).toBe("ready"));
+    if (result.current.s.phase !== "ready") throw new Error("unreachable");
+
+    act(() => readyOf({ current: result.current.s }).onTag("pumps"));
+    await waitFor(() => expect(result.current.notices[0]?.message).toBe("unknown tag"));
+    if (result.current.s.phase !== "ready") throw new Error("unreachable");
+    expect(result.current.s.tagBusy).toBe(false);
+  });
+
+  it("hands over the tag list, or says it could not be loaded", async () => {
+    const { result } = renderHook(() => useModelDetail("valve"), { wrapper });
+    await waitFor(() => expect(result.current.phase).toBe("ready"));
+    if (result.current.phase !== "ready") throw new Error("unreachable");
+    expect(result.current.tags).toEqual(TAGS);
+    expect(result.current.tagsError).toBeNull();
+
+    client.clear();
+    client.setQueryData(["me"], PRINCIPAL);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve(new Response("{}", { status: 500 }))),
+    );
+    const failed = renderHook(() => useModelDetail("valve"), { wrapper });
+    await waitFor(() => expect(failed.result.current.phase).toBe("ready"));
+    if (failed.result.current.phase !== "ready") throw new Error("unreachable");
+    await waitFor(() => expect(readyOf(failed.result).tagsError).toBe("Tags could not be loaded. Try again."));
+    expect(failed.result.current.tags).toBeUndefined();
+    vi.unstubAllGlobals();
   });
 
   it("follows model:delete and model:write on the principal", async () => {

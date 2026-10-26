@@ -183,8 +183,18 @@ const PLACEMENTS = [
 ];
 
 const OPTIONS: ModelOption[] = [
-  { slug: "storage-tank-500", title: "storage-tank-500", chain: [{ lod: 0, hash: "m0", size: 8_800_000 }] },
-  { slug: "valve-assembly", title: "valve-assembly", chain: [{ lod: 0, hash: "m1", size: 2_100_000 }] },
+  {
+    slug: "storage-tank-500",
+    title: "storage-tank-500",
+    tag: { slug: "tanks", title: "Tanks" },
+    chain: [{ lod: 0, hash: "m0", size: 8_800_000 }],
+  },
+  {
+    slug: "valve-assembly",
+    title: "valve-assembly",
+    tag: { slug: "tanks", title: "Tanks" },
+    chain: [{ lod: 0, hash: "m1", size: 2_100_000 }],
+  },
 ];
 
 const VM: SceneViewModel = {

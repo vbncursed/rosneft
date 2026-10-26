@@ -1,4 +1,5 @@
 import type { LodSummary } from "@/entities/content";
+import type { ModelTag } from "@/entities/model-tag";
 
 /**
  * A placeable 3D asset overlaid onto a territory at a given transform.
@@ -10,6 +11,8 @@ export type Model = {
   title: string;
   description?: string;
   sourceBlobHash: string;
+  /** Every model carries exactly one tag. */
+  tag: ModelTag;
   /** Served through /api/assets/{hash}; empty or absent means no thumbnail. */
   thumbnailBlobHash?: string;
   createdAt?: string;

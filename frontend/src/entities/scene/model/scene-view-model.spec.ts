@@ -55,7 +55,14 @@ const bundle: SceneBundle = {
   territory,
   artifact,
   placements: [placement],
-  modelOptions: [{ slug: "tank", title: "storage-tank-500", chain: [{ lod: 0, hash: "m0", size: 5 }] }],
+  modelOptions: [
+    {
+      slug: "tank",
+      title: "storage-tank-500",
+      tag: { slug: "tanks", title: "Tanks" },
+      chain: [{ lod: 0, hash: "m0", size: 5 }],
+    },
+  ],
   panoramas: [panorama],
   documents: [document],
   measurements: [

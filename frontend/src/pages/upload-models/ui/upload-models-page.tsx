@@ -1,3 +1,4 @@
+import { TagSelect, type ModelTag } from "@/entities/model-tag";
 import { CHUNK_SIZE, type UploadProgress } from "@/entities/upload";
 import { StatTile } from "@/entities/metric";
 import { ThemeToggle } from "@/features/theme-toggle";
@@ -29,6 +30,12 @@ export type UploadModelsPageProps = {
   checks: ChecklistItem[];
   /** Whether the viewer holds model:write — without it the whole form is replaced by a callout. */
   canUpload: boolean;
+  /** The tag list; `undefined` while it loads or after it failed. */
+  tags: ModelTag[] | undefined;
+  /** The one tag the whole batch gets; `null` until the reader picks one. */
+  tagSlug: string | null;
+  onTag: (slug: string) => void;
+  tagsError: string | null;
   failedNames: string[];
 };
 
@@ -47,10 +54,14 @@ export function UploadModelsPage({
   stats,
   checks,
   canUpload,
+  tags,
+  tagSlug,
+  onTag,
+  tagsError,
   failedNames,
 }: UploadModelsPageProps) {
   const doneCount = rows.filter((r) => r.status === "done").length;
-  const canSubmit = canRun(rows, running);
+  const canSubmit = canRun(rows, running, tagSlug);
   const currentIndex = current ? rows.findIndex((r) => r.id === current.row.id) + 1 : 0;
   const plural = (n: number, word: string) => `${word}${n === 1 ? "" : "s"}`;
 
@@ -94,6 +105,14 @@ export function UploadModelsPage({
 
           <div className="grid items-start gap-5 lg:grid-cols-[minmax(440px,1fr)_minmax(300px,360px)]">
             <div className="flex flex-col gap-4">
+              <TagSelect
+                tags={tags}
+                value={tagSlug}
+                onChange={onTag}
+                error={tagsError ?? undefined}
+                disabled={running}
+                label="Tag for every model in this batch"
+              />
               <DropZone
                 label="Drop ZIP archives here"
                 hint="Or pick several at once — each becomes its own model."

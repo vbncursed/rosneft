@@ -4,6 +4,7 @@ import { toPlacement, toPlacementGroup, type Placement, type PlacementGroup, typ
 import { toTerritory, type Territory } from "@/entities/territory";
 import { toPanorama, toPhaseHidden, type Panorama, type PhaseHidden } from "@/entities/panorama";
 import { toDocument, type Document } from "@/entities/document";
+import { toModelTag, type ModelTag } from "@/entities/model-tag";
 import { toStoredChain, type StoredChain } from "@/entities/measurement";
 import type { LodArtifact } from "../model/lod";
 
@@ -27,6 +28,7 @@ export type ModelOption = {
   slug: string;
   title: string;
   thumbnailBlobHash?: string;
+  tag: ModelTag;
   bboxMin?: Vec3;
   bboxMax?: Vec3;
   chain: LodArtifact[];
@@ -65,6 +67,7 @@ const toOption = (o: OptionDto): ModelOption => ({
   slug: o.slug,
   title: o.title,
   thumbnailBlobHash: o.thumbnailBlobHash,
+  tag: toModelTag(o.tag),
   bboxMin: o.bboxMin,
   bboxMax: o.bboxMax,
   chain: o.artifacts ?? [],

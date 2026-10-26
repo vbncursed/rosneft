@@ -30,7 +30,13 @@ const TERRITORIES = [1, 2, 3, 4, 5].map((n) => ({
   lods: n === 5 ? [{ lod: 0, hash: "h", size: 1024 }] : [],
   ...(n === 3 ? {} : { updatedAt: `2026-09-0${n}T00:00:00Z` }),
 }));
-const MODEL = { slug: "m", title: "M", sourceBlobHash: "m".repeat(64), usageCount: 0 };
+const MODEL = {
+  slug: "m",
+  title: "M",
+  tag: { slug: "tanks", title: "Tanks" },
+  sourceBlobHash: "m".repeat(64),
+  usageCount: 0,
+};
 const ENTRIES = [1, 2, 3, 4, 5, 6].map((id) => ({
   id,
   at: "2026-09-08T10:00:00Z",

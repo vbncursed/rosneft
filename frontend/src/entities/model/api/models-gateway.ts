@@ -13,7 +13,7 @@ export const getModel = async (slug: string): Promise<Model> =>
 
 export type ModelPatch = Dto.ModelUpdate;
 
-/** The only mutable field the gateway takes: the thumbnail; `""` removes it. */
+/** Title, description, tag and thumbnail are mutable; a thumbnail of `""` removes it. */
 export const updateModel = async (slug: string, patch: ModelPatch): Promise<Model> =>
   toModel(await httpPatch<ModelDto>(`/api/models/${encodeURIComponent(slug)}`, patch));
 
@@ -21,9 +21,8 @@ export const updateModel = async (slug: string, patch: ModelPatch): Promise<Mode
 // message names them and reaches the operator as a toast.
 export const deleteModel = (slug: string): Promise<void> => httpDelete(`/api/models/${encodeURIComponent(slug)}`);
 
-// The same body the territory endpoint takes — typing against the shared DTO
-// rather than a hand-copied shape is what keeps the two from drifting.
-export type CreateModelInput = Dto.EntityCreate;
+// Typing against the shared DTO rather than a hand-copied shape keeps client and gateway from drifting.
+export type CreateModelInput = Dto.ModelCreate;
 
 /** Registers a model from a finalized upload and queues its conversion. */
 export async function createModel(input: CreateModelInput): Promise<{ model: Model; job: { id: string } }> {

@@ -20,8 +20,20 @@ const PRINCIPAL = {
   isOwner: false,
   onboardingToursSeen: [],
 };
-const M1 = { slug: "m-1", title: "M 1", sourceBlobHash: "a".repeat(64), usageCount: 6 };
-const M2 = { slug: "m-2", title: "M 2", sourceBlobHash: "b".repeat(64), usageCount: 0 };
+const M1 = {
+  slug: "m-1",
+  title: "M 1",
+  tag: { slug: "tanks", title: "Tanks" },
+  sourceBlobHash: "a".repeat(64),
+  usageCount: 6,
+};
+const M2 = {
+  slug: "m-2",
+  title: "M 2",
+  tag: { slug: "tanks", title: "Tanks" },
+  sourceBlobHash: "b".repeat(64),
+  usageCount: 0,
+};
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 

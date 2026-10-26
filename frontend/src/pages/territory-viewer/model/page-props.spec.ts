@@ -52,7 +52,12 @@ const TANK: ResolvedPlacement = {
 };
 
 const OPTIONS: ModelOption[] = [
-  { slug: "storage-tank-500", title: "storage-tank-500", chain: [{ lod: 0, hash: "m0", size: 1 }] },
+  {
+    slug: "storage-tank-500",
+    title: "storage-tank-500",
+    tag: { slug: "tanks", title: "Tanks" },
+    chain: [{ lod: 0, hash: "m0", size: 1 }],
+  },
 ];
 
 const VM: SceneViewModel = {

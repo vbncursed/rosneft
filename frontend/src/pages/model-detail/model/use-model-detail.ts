@@ -2,8 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { artifactsQuery, conversionStatusOf, listArtifacts } from "@/entities/content";
-import { useStaleOnFinish, jobsQuery, listJobs } from "@/entities/conversion";
-import { deleteModel, getModel, modelQuery, updateModel } from "@/entities/model";
+import { LIST_KEY, useStaleOnFinish, jobsQuery, listJobs } from "@/entities/conversion";
+import { mergeInto } from "@/features/edit-entity";
+import { deleteModel, getModel, modelQuery, updateModel, type Model } from "@/entities/model";
+import { modelTagsQuery } from "@/entities/model-tag";
 import { runChunkedUpload } from "@/entities/upload";
 import { meQuery } from "@/entities/user";
 import { HttpError, messageOf } from "@/shared/api";
@@ -42,6 +44,7 @@ export function useModelDetail(slug: string): ModelDetailState {
   const model = useQuery({ ...modelQuery(slug), queryFn: () => getModel(slug) });
   const artifacts = useQuery({ ...artifactsQuery("model", slug), queryFn: () => listArtifacts("model", slug) });
   const jobs = useQuery({ ...jobsQuery, queryFn: listJobs });
+  const tags = useQuery(modelTagsQuery());
   const [pending, setPending] = useState(false);
 
   // A finished job's new LODs ride on the lists, a model's on its artifacts.
@@ -67,6 +70,21 @@ export function useModelDetail(slug: string): ModelDetailState {
     onError: (err) => notify.error(messageOf(err)),
   });
 
+  // The tag lands in the model's query and its library row; a scene bundle
+  // lists the model with its tag too, but which bundles do is unknown, so
+  // every one is marked stale instead of patched.
+  const retag = useMutation({
+    mutationFn: (tagSlug: string) => updateModel(slug, { tagSlug }),
+    onSuccess: async (saved) => {
+      const withTag = <T extends { slug: string }>(m: T) => (m.slug === saved.slug ? { ...m, tag: saved.tag } : m);
+      await mergeInto<Model>(client, ["model", slug], (old) => old && withTag(old));
+      await mergeInto<Model[]>(client, [LIST_KEY.model], (old) => old?.map(withTag));
+      void client.invalidateQueries({ queryKey: ["scene"] });
+      notify.success("Tag changed");
+    },
+    onError: (err) => notify.error(messageOf(err)),
+  });
+
   const loading = model.isPending || artifacts.isPending || jobs.isPending;
   const modelError = unanswered(model);
   if (loading) return { phase: "loading" };
@@ -86,6 +104,10 @@ export function useModelDetail(slug: string): ModelDetailState {
     canDelete: can(me, "model:delete"),
     canWrite: can(me, "model:write"),
     thumbnailBusy: thumbnail.isPending,
+    tags: tags.data,
+    tagsError: unanswered(tags) ? "Tags could not be loaded. Try again." : null,
+    tagBusy: retag.isPending,
+    onTag: (tagSlug) => retag.mutate(tagSlug),
     onDelete: () => setPending(true),
     onThumbnail: (file) => thumbnail.mutate(file),
     onRemoveThumbnail: () => thumbnail.mutate(null),

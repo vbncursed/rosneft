@@ -31,7 +31,7 @@ const dto = {
       scale: { x: 1, y: 1, z: 1 },
     },
   ],
-  modelOptions: [{ slug: "m", title: "M", artifacts: [] }],
+  modelOptions: [{ slug: "m", title: "M", tag: { slug: "tanks", title: "Tanks" }, artifacts: [] }],
   panoramas: [
     {
       id: 9,

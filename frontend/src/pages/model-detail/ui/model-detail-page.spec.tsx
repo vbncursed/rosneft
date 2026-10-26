@@ -16,6 +16,7 @@ vi.mock("@/widgets/viewer-canvas", () => ({
 }));
 
 const MODEL: Model = {
+  tag: { slug: "tanks", title: "Tanks" },
   slug: "valve-assembly",
   title: "Valve Assembly",
   sourceBlobHash: "a".repeat(64),
@@ -40,6 +41,13 @@ const props = (over: Partial<ModelDetailPageProps> = {}): ModelDetailPageProps =
   jobError: null,
   canDelete: true,
   canWrite: true,
+  tags: [
+    { slug: "tanks", title: "Tanks" },
+    { slug: "pumps", title: "Pumps" },
+  ],
+  tagsError: null,
+  tagBusy: false,
+  onTag: vi.fn(),
   thumbnailBusy: false,
   onDelete: vi.fn(),
   onThumbnail: vi.fn(),

@@ -27,6 +27,7 @@ const CHAIN = [{ lod: 0, hash: "h0", size: 30 }];
 // bbox 4 long against a 40 m territory — a real-world scale of exactly 0.1.
 const options: ModelOption[] = [
   {
+    tag: { slug: "tanks", title: "Tanks" },
     slug: "tank",
     title: "storage-tank-500",
     bboxMin: { x: 0, y: 0, z: 0 },

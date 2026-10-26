@@ -76,6 +76,7 @@ function PlaceObjectsBody({
       slug: option.slug,
       title: option.title,
       thumbnailBlobHash: option.thumbnailBlobHash,
+      tag: option.tag,
       sourceBlobHash: "",
       usageCount: 0,
     },

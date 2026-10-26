@@ -41,6 +41,10 @@ export function ModelDetailScreen() {
         canDelete={s.canDelete}
         canWrite={s.canWrite}
         thumbnailBusy={s.thumbnailBusy}
+        tags={s.tags}
+        tagsError={s.tagsError}
+        tagBusy={s.tagBusy}
+        onTag={s.onTag}
         onDelete={s.onDelete}
         onThumbnail={s.onThumbnail}
         onRemoveThumbnail={s.onRemoveThumbnail}

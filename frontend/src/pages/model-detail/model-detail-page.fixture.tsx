@@ -4,6 +4,7 @@ import { ModelDetailPage } from "./ui/model-detail-page";
 const MODEL = {
   slug: "valve-assembly",
   title: "Valve Assembly",
+  tag: { slug: "tanks", title: "Tanks" },
   description:
     "Gate valve assembly with handwheel, flanged body and mounting bracket. Origin at the flange face, +Y up, metres.",
   sourceBlobHash: `9f1c${"0".repeat(56)}82ab`,
@@ -29,6 +30,12 @@ const ARTIFACTS = [
 
 const noop = () => {};
 
+const TAGS = [
+  { slug: "tanks", title: "Tanks" },
+  { slug: "pumps", title: "Pumps" },
+  { slug: "ungrouped", title: "Ungrouped" },
+];
+
 export default {
   // The hashes h0…h2 are fake, so through the dev proxy the viewport shows the
   // error card for valve-assembly-lod2.glb: that is this fixture's failure
@@ -43,6 +50,10 @@ export default {
         canDelete
         canWrite
         thumbnailBusy={false}
+        tags={TAGS}
+        tagsError={null}
+        tagBusy={false}
+        onTag={noop}
         onDelete={noop}
         onThumbnail={noop}
         onRemoveThumbnail={noop}
@@ -59,6 +70,10 @@ export default {
         canDelete
         canWrite
         thumbnailBusy={false}
+        tags={TAGS}
+        tagsError={null}
+        tagBusy={false}
+        onTag={noop}
         onDelete={noop}
         onThumbnail={noop}
         onRemoveThumbnail={noop}
@@ -75,6 +90,10 @@ export default {
         canDelete
         canWrite
         thumbnailBusy={false}
+        tags={TAGS}
+        tagsError={null}
+        tagBusy={false}
+        onTag={noop}
         onDelete={noop}
         onThumbnail={noop}
         onRemoveThumbnail={noop}
@@ -91,6 +110,10 @@ export default {
         canDelete
         canWrite
         thumbnailBusy={false}
+        tags={TAGS}
+        tagsError={null}
+        tagBusy={false}
+        onTag={noop}
         onDelete={noop}
         onThumbnail={noop}
         onRemoveThumbnail={noop}
