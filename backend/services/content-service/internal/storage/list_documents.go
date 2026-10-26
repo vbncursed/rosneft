@@ -38,5 +38,18 @@ func (r *PG) ListDocuments(ctx context.Context, territorySlug string) ([]domain.
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("storage.ListDocuments: iter: %w", err)
 	}
+	rows.Close() // release the connection before the calibration query
+
+	ids := make([]int64, len(out))
+	for i, d := range out {
+		ids[i] = d.ID
+	}
+	cals, err := r.loadCalibrations(ctx, ids)
+	if err != nil {
+		return nil, fmt.Errorf("storage.ListDocuments: calibration: %w", err)
+	}
+	for i := range out {
+		out[i].Calibration = cals[out[i].ID]
+	}
 	return out, nil
 }

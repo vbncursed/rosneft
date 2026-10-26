@@ -30,6 +30,8 @@ type Service interface {
 	ListDocuments(ctx context.Context, territorySlug string) ([]domain.Document, error)
 	CreateDocument(ctx context.Context, d domain.Document) (domain.Document, error)
 	DeleteDocument(ctx context.Context, territorySlug string, id int64) error
+	PutCalibration(ctx context.Context, territorySlug string, docID int64, c domain.Calibration) (domain.Calibration, error)
+	DeleteCalibration(ctx context.Context, territorySlug string, docID int64) error
 }
 
 // Server implements contentv1.ContentServiceServer over a Service.

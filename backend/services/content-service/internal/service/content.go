@@ -31,6 +31,11 @@ type Repository interface {
 	ListDocuments(ctx context.Context, territorySlug string) ([]domain.Document, error)
 	CreateDocument(ctx context.Context, d domain.Document) (domain.Document, error)
 	DeleteDocument(ctx context.Context, territorySlug string, id int64) error
+
+	// Both are scoped by territorySlug: a document of another territory is
+	// ErrDocumentNotFound, same as an unknown id.
+	PutDocumentCalibration(ctx context.Context, territorySlug string, documentID int64, c domain.Calibration) (domain.Calibration, error)
+	DeleteDocumentCalibration(ctx context.Context, territorySlug string, documentID int64) error
 }
 
 // Thumbnailer turns the image blob srcHash into a thumbnail blob and returns
