@@ -14,6 +14,8 @@ vi.mock("@/entities/document", async (importOriginal) => ({
   deleteCalibration: vi.fn(),
 }));
 
+const OFF_MODEL_NOTICE =
+  "This plan's survey coordinates do not fall on this model, so it cannot be aligned automatically. Add point pairs by hand — sizes are still checked against the drawing's own scale.";
 const MR1 = controlPoints(plan.text, plan.viewport);
 // A plan at exactly 6 pt/m over a 200 m model (100 m per scene unit).
 const BBOX = { min: { x: 499900, y: -5, z: -100 }, max: { x: 500100, y: 5, z: 100 } };
@@ -121,7 +123,7 @@ describe("useAlignment, manual", () => {
     for (const bbox of [far, null]) {
       const { result } = align({ bbox });
       expect(result.current.pairs).toEqual([]);
-      expect(result.current.notice).toBe("This plan's coordinates do not fall on this model");
+      expect(result.current.notice).toBe(OFF_MODEL_NOTICE);
       expect(result.current.fit).toBeNull();
       expect(result.current.canSave).toBe(false);
     }
@@ -130,6 +132,15 @@ describe("useAlignment, manual", () => {
   it("says when the page has no survey labels at all", () => {
     const { result } = align({ plan: { page: 1, controls: [] } });
     expect(result.current.notice).toBe("No survey labels on this page. Add point pairs by hand.");
+  });
+
+  it("checks the model's size against the plan's own scale from hand-made pairs", () => {
+    // EXACT is 1/6 m per pt; 600 pt on the plan = 10 scene units at 11 m/unit = 110 m: 10 % larger.
+    const { result } = align({ bbox: null, unitRatio: 11 });
+    pickPair(result, [0, 0], [0, 0]);
+    pickPair(result, [600, 0], [10, 0]);
+    expect(result.current.metresPerPt).toBeCloseTo(1 / 6, 9);
+    expect(result.current.scaleLine).toMatch(/^Model is 10\.0 % larger than the drawing/);
   });
 
   it("adds a pair from a plan click and then a scene point", () => {

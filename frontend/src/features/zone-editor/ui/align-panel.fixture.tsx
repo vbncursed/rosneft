@@ -30,7 +30,8 @@ export default {
   "manual, off the model": frame(
     <AlignPanel
       editor={editor({
-        notice: "This plan's coordinates do not fall on this model",
+        notice:
+          "This plan's survey coordinates do not fall on this model, so it cannot be aligned automatically. Add point pairs by hand — sizes are still checked against the drawing's own scale.",
         awaitingScenePick: true,
         pending: { x: 4, y: 4 },
       })}

@@ -11,7 +11,7 @@ type Item = { str: string; transform: number[] };
 
 const COORD = /^([EN])\s*:\s*(-?\d+(?:\.\d+)?)$/u;
 const ME = /^ME\d+$/u;
-const GENERAL_LABEL = "Plan point";
+export const GENERAL_LABEL = "Plan point";
 const SAME_COLUMN_PT = 1; // a label's lines share its left edge
 const LINES_BELOW_PT = 12; // and sit within a few text lines under it
 

@@ -3,7 +3,7 @@ import { deleteCalibration, putCalibration, type Calibration, type Document } fr
 import type { Vec3 } from "@/entities/placement";
 import {
   autoPairs,
-  drawingScale,
+  planScale,
   fitSimilarity,
   scaleDifference,
   type CalibrationPair,
@@ -18,7 +18,8 @@ import { scaleLine } from "./scale-line";
 
 /** The content service takes 2 to 20 points. */
 const MAX_PAIRS = 20;
-const OFF_MODEL = "This plan's coordinates do not fall on this model";
+const OFF_MODEL =
+  "This plan's survey coordinates do not fall on this model, so it cannot be aligned automatically. Add point pairs by hand — sizes are still checked against the drawing's own scale.";
 const NO_PAIRS: CalibrationPair[] = [];
 const NO_LABELS = "No survey labels on this page. Add point pairs by hand.";
 
@@ -70,7 +71,7 @@ export function useAlignment(p: AlignmentParams) {
   const notice = draft?.notice ?? null;
 
   const fit: FitResult | null = pairs.length ? fitSimilarity(pairs.map((q) => ({ pdf: q.pdf, scene: q.scene }))) : null;
-  const metresPerPt = drawingScale(pairs);
+  const metresPerPt = planScale(plan.controls, pairs);
   const fitted = fit?.ok ? fit : null;
   const line = fitted && metresPerPt !== null ? scaleLine(scaleDifference(fitted.fit, unitRatio, metresPerPt)) : null;
 

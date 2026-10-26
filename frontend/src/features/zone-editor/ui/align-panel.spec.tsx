@@ -66,8 +66,22 @@ describe("AlignPanel", () => {
   });
 
   it("says why the plan is not placed automatically", () => {
-    render(<AlignPanel editor={editor({}, { notice: "This plan's coordinates do not fall on this model" })} />);
-    expect(screen.getByText("This plan's coordinates do not fall on this model")).toBeInTheDocument();
+    render(
+      <AlignPanel
+        editor={editor(
+          {},
+          {
+            notice:
+              "This plan's survey coordinates do not fall on this model, so it cannot be aligned automatically. Add point pairs by hand — sizes are still checked against the drawing's own scale.",
+          },
+        )}
+      />,
+    );
+    expect(
+      screen.getByText(
+        "This plan's survey coordinates do not fall on this model, so it cannot be aligned automatically. Add point pairs by hand — sizes are still checked against the drawing's own scale.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("asks for the model click while a plan point waits, and can cancel it", async () => {
