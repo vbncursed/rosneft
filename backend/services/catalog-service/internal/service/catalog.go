@@ -80,6 +80,15 @@ type Repository interface {
 	DeleteMeasurement(ctx context.Context, territorySlug string, id int64) error
 	DeleteMeasurements(ctx context.Context, territorySlug string) (int, error)
 
+	// Every id-addressed zone call is scoped by the territory slug: a zone of
+	// another territory is ErrZoneNotFound. Tags arrive as slugs; storage
+	// resolves them in the write's own transaction, and a slug naming no tag is
+	// ErrInvalidInput.
+	ListZones(ctx context.Context, territorySlug string) ([]domain.Zone, error)
+	CreateZone(ctx context.Context, territorySlug string, z domain.ZoneCreate) (domain.Zone, error)
+	UpdateZone(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch) (domain.Zone, error)
+	DeleteZone(ctx context.Context, territorySlug string, id int64) error
+
 	// ListPanoramaIDs returns the IDs of panoramas on a territory. Panoramas
 	// themselves are owned by content-service; catalog only needs their IDs to
 	// validate placement visibility allowlists (read-only, shared DB).

@@ -41,6 +41,7 @@ func (s *RescaleSuite) TearDownSuite() { stopCatalogDB(s.ctr, s.pool) }
 func (s *RescaleSuite) SetupTest() {
 	ctx := s.T().Context()
 	_, err := s.pool.Exec(ctx, `DELETE FROM measurements; DELETE FROM placements; DELETE FROM panoramas;
+		DELETE FROM site_zones; DELETE FROM territory_documents;
 		UPDATE territories SET rescale_baseline_max = NULL, rescale_baseline_center_x = NULL,
 			rescale_baseline_center_y = NULL, rescale_baseline_center_z = NULL`)
 	assert.NilError(s.T(), err)
@@ -59,6 +60,20 @@ func (s *RescaleSuite) SetupTest() {
 			INSERT INTO panoramas (territory_id, slug, title, source_blob_hash, position_x, position_y, position_z)
 			SELECT id, 'pano', 'pano', 'pano', $2, $3, $4 FROM territories WHERE slug = $1`,
 			slug, panoramaAt.X, panoramaAt.Y, panoramaAt.Z)
+		assert.NilError(s.T(), err)
+		_, err = s.pg.CreateZone(ctx, slug, domain.ZoneCreate{Title: "Zone", Corners: zoneCorners, TagSlugs: []string{"camp"}})
+		assert.NilError(s.T(), err)
+		_, err = s.pool.Exec(ctx, `
+			WITH d AS (
+				INSERT INTO territory_documents (territory_id, title, source_blob_hash)
+				SELECT id, 'plan', 'plan' FROM territories WHERE slug = $1 RETURNING id
+			)
+			INSERT INTO document_calibration_points
+				(document_id, idx, page, pdf_x, pdf_y, scene_x, scene_y, scene_z, utm_e, utm_n)
+			SELECT d.id, 0, 1, $2, $3, $4, $5, $6, $7, $8 FROM d`,
+			slug, calibrationRow.pdfX, calibrationRow.pdfY,
+			calibrationRow.scene.X, calibrationRow.scene.Y, calibrationRow.scene.Z,
+			calibrationRow.utmE, calibrationRow.utmN)
 		assert.NilError(s.T(), err)
 		assert.NilError(s.T(), s.pg.SetTerritoryRescaleBaseline(ctx, slug, 10, domain.Vec3{}))
 	}
@@ -213,4 +228,73 @@ func (s *RescaleSuite) TestAMovedCenterAloneStillShifts() {
 	assert.NilError(s.T(), err)
 
 	assert.Equal(s.T(), s.positionX("a"), 2.0) // 1·1 + (0 − −5)·2/10
+}
+
+var zoneCorners = [4]domain.Vec3{{X: 1, Y: 2, Z: 3}, {X: -4, Y: 5, Z: -6}, {X: 0.5, Y: -0.25, Z: 0.75}, {X: 7, Y: 8, Z: 9}}
+
+var calibrationRow = struct {
+	pdfX, pdfY, utmE, utmN float64
+	scene                  domain.Vec3
+}{pdfX: 120.5, pdfY: 340.25, utmE: 500123.5, utmN: 6100456.25, scene: domain.Vec3{X: 0.3, Y: -0.2, Z: 0.9}}
+
+func (s *RescaleSuite) zoneCorners(slug string) [4]domain.Vec3 {
+	zones, err := s.pg.ListZones(s.T().Context(), slug)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(zones), 1)
+	return zones[0].Corners
+}
+
+func (s *RescaleSuite) calibration(slug string) (scene domain.Vec3, pdfX, pdfY, utmE, utmN float64) {
+	assert.NilError(s.T(), s.pool.QueryRow(s.T().Context(), `
+		SELECT c.scene_x, c.scene_y, c.scene_z, c.pdf_x, c.pdf_y, c.utm_e, c.utm_n
+		FROM document_calibration_points c
+		JOIN territory_documents d ON d.id = c.document_id
+		JOIN territories t ON t.id = d.territory_id
+		WHERE t.slug = $1`, slug).Scan(&scene.X, &scene.Y, &scene.Z, &pdfX, &pdfY, &utmE, &utmN))
+	return scene, pdfX, pdfY, utmE, utmN
+}
+
+func near(a, b float64) bool { return math.Abs(a-b) < 1e-9 }
+
+// A zone's corners and a calibration point's scene coordinates are scene-space
+// like a measurement's points: each coordinate becomes s·k + shift. The plan's
+// own coordinates (pdf, utm) are not scene space and stay put; so does every
+// row of another territory.
+func (s *RescaleSuite) TestRescaleMovesZonesAndCalibrationPoints() {
+	ctx := s.T().Context()
+	_, err := s.pool.Exec(ctx, `UPDATE territories SET rescale_baseline_max = NULL WHERE slug = 'a'`)
+	assert.NilError(s.T(), err)
+	assert.NilError(s.T(), s.pg.SetTerritoryRescaleBaseline(ctx, "a", oldMax, oldCenter))
+
+	_, err = s.pg.RescaleTerritoryPlacements(ctx, "a", newMax, newCenter)
+	assert.NilError(s.T(), err)
+
+	k := oldMax / newMax
+	shift := domain.Vec3{
+		X: (oldCenter.X - newCenter.X) * 2 / newMax,
+		Y: (oldCenter.Y - newCenter.Y) * 2 / newMax,
+		Z: (oldCenter.Z - newCenter.Z) * 2 / newMax,
+	}
+	moved := func(v domain.Vec3) domain.Vec3 {
+		return domain.Vec3{X: v.X*k + shift.X, Y: v.Y*k + shift.Y, Z: v.Z*k + shift.Z}
+	}
+	for i, got := range s.zoneCorners("a") {
+		want := moved(zoneCorners[i])
+		assert.Assert(s.T(), near(got.X, want.X) && near(got.Y, want.Y) && near(got.Z, want.Z),
+			"corner %d: want %+v, got %+v", i, want, got)
+	}
+	scene, pdfX, pdfY, utmE, utmN := s.calibration("a")
+	want := moved(calibrationRow.scene)
+	assert.Assert(s.T(), near(scene.X, want.X) && near(scene.Y, want.Y) && near(scene.Z, want.Z),
+		"calibration scene: want %+v, got %+v", want, scene)
+	assert.Equal(s.T(), pdfX, calibrationRow.pdfX)
+	assert.Equal(s.T(), pdfY, calibrationRow.pdfY)
+	assert.Equal(s.T(), utmE, calibrationRow.utmE)
+	assert.Equal(s.T(), utmN, calibrationRow.utmN)
+
+	assert.Equal(s.T(), s.zoneCorners("b"), zoneCorners)
+	sceneB, pdfXB, pdfYB, utmEB, utmNB := s.calibration("b")
+	assert.Equal(s.T(), sceneB, calibrationRow.scene)
+	assert.Equal(s.T(), [4]float64{pdfXB, pdfYB, utmEB, utmNB},
+		[4]float64{calibrationRow.pdfX, calibrationRow.pdfY, calibrationRow.utmE, calibrationRow.utmN})
 }

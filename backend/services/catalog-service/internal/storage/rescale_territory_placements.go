@@ -14,8 +14,9 @@ import (
 // statement. The converter normalizes s = (p − c)·2/M (c = bbox center, M =
 // max axis), so old scene space maps to the new one by
 // s' = s·(M/M') + (c − c')·2/M'. That is applied to every placement position,
-// measurement point (flat x,y,z triples) and panorama anchor; placement scale
-// takes the factor alone; rotations and yaw do not change (normalization does
+// measurement point and site-zone corner (flat x,y,z triples), panorama anchor
+// and document calibration point (scene_x/y/z; the plan's pdf_* and utm_* are
+// not scene space and stay); placement scale takes the factor alone; rotations and yaw do not change (normalization does
 // not rotate). The baseline is cleared in the same statement, so a retried
 // call finds nothing pending and cannot apply twice. The name predates
 // measurements and panoramas; mesh-worker calls it, so it stays.
@@ -32,12 +33,13 @@ import (
 // no-op that leaves the baseline intact for a later valid conversion. Returns
 // the number of placements changed.
 //
-// Wrapped in audittx.Run because it writes placements, measurements,
-// panoramas and territories, all audited. mesh-worker calls it with no actor
-// on ctx, so the entries are attributed to the system — correct, since no
-// human moved anything. panoramas is content-service's to write, but its DDL
-// is catalog's and the database is shared; doing it here keeps the whole
-// mapping in one transaction.
+// Wrapped in audittx.Run because it writes placements, measurements, zones,
+// calibration points, panoramas and territories, all audited. mesh-worker
+// calls it with no actor on ctx, so the entries are attributed to the system —
+// correct, since no human moved anything. panoramas and
+// document_calibration_points are content-service's to write, but their DDL is
+// catalog's and the database is shared; doing it here keeps the whole mapping
+// in one transaction.
 func (r *PG) RescaleTerritoryPlacements(ctx context.Context, slug string, newMax float64, newCenter domain.Vec3) (int, error) {
 	if newMax <= 0 {
 		return 0, nil
@@ -89,6 +91,25 @@ func (r *PG) RescaleTerritoryPlacements(ctx context.Context, slug string, newMax
 				updated_at = NOW()
 			FROM moved b
 			WHERE pn.territory_id = b.id
+		),
+		zoned AS (
+			UPDATE site_zones z SET
+				points = ARRAY(
+					SELECT v * b.k + CASE (i - 1) % 3 WHEN 0 THEN b.ox WHEN 1 THEN b.oy ELSE b.oz END
+					FROM unnest(z.points) WITH ORDINALITY AS u(v, i)
+					ORDER BY i
+				),
+				updated_at = NOW()
+			FROM moved b
+			WHERE z.territory_id = b.id
+		),
+		calibrated AS (
+			UPDATE document_calibration_points c SET
+				scene_x = c.scene_x * b.k + b.ox,
+				scene_y = c.scene_y * b.k + b.oy,
+				scene_z = c.scene_z * b.k + b.oz
+			FROM territory_documents d, moved b
+			WHERE c.document_id = d.id AND d.territory_id = b.id
 		),
 		cleared AS (
 			UPDATE territories t SET

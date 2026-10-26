@@ -61,6 +61,13 @@ type RepositoryMock struct {
 	beforeCreateTerritoryCounter uint64
 	CreateTerritoryMock          mRepositoryMockCreateTerritory
 
+	funcCreateZone          func(ctx context.Context, territorySlug string, z domain.ZoneCreate) (z1 domain.Zone, err error)
+	funcCreateZoneOrigin    string
+	inspectFuncCreateZone   func(ctx context.Context, territorySlug string, z domain.ZoneCreate)
+	afterCreateZoneCounter  uint64
+	beforeCreateZoneCounter uint64
+	CreateZoneMock          mRepositoryMockCreateZone
+
 	funcDeleteMeasurement          func(ctx context.Context, territorySlug string, id int64) (err error)
 	funcDeleteMeasurementOrigin    string
 	inspectFuncDeleteMeasurement   func(ctx context.Context, territorySlug string, id int64)
@@ -109,6 +116,13 @@ type RepositoryMock struct {
 	afterDeleteTerritoryArtifactsCounter  uint64
 	beforeDeleteTerritoryArtifactsCounter uint64
 	DeleteTerritoryArtifactsMock          mRepositoryMockDeleteTerritoryArtifacts
+
+	funcDeleteZone          func(ctx context.Context, territorySlug string, id int64) (err error)
+	funcDeleteZoneOrigin    string
+	inspectFuncDeleteZone   func(ctx context.Context, territorySlug string, id int64)
+	afterDeleteZoneCounter  uint64
+	beforeDeleteZoneCounter uint64
+	DeleteZoneMock          mRepositoryMockDeleteZone
 
 	funcGetModel          func(ctx context.Context, slug string) (m1 domain.Model, err error)
 	funcGetModelOrigin    string
@@ -214,6 +228,13 @@ type RepositoryMock struct {
 	afterListTerritoryArtifactsCounter  uint64
 	beforeListTerritoryArtifactsCounter uint64
 	ListTerritoryArtifactsMock          mRepositoryMockListTerritoryArtifacts
+
+	funcListZones          func(ctx context.Context, territorySlug string) (za1 []domain.Zone, err error)
+	funcListZonesOrigin    string
+	inspectFuncListZones   func(ctx context.Context, territorySlug string)
+	afterListZonesCounter  uint64
+	beforeListZonesCounter uint64
+	ListZonesMock          mRepositoryMockListZones
 
 	funcPlacementBatch          func(ctx context.Context, territorySlug string, key string, size int) (pa1 []domain.Placement, err error)
 	funcPlacementBatchOrigin    string
@@ -347,6 +368,13 @@ type RepositoryMock struct {
 	afterUpdateTerritoryCounter  uint64
 	beforeUpdateTerritoryCounter uint64
 	UpdateTerritoryMock          mRepositoryMockUpdateTerritory
+
+	funcUpdateZone          func(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch) (z1 domain.Zone, err error)
+	funcUpdateZoneOrigin    string
+	inspectFuncUpdateZone   func(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch)
+	afterUpdateZoneCounter  uint64
+	beforeUpdateZoneCounter uint64
+	UpdateZoneMock          mRepositoryMockUpdateZone
 }
 
 // NewRepositoryMock returns a mock for mm_service.Repository
@@ -375,6 +403,9 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 	m.CreateTerritoryMock = mRepositoryMockCreateTerritory{mock: m}
 	m.CreateTerritoryMock.callArgs = []*RepositoryMockCreateTerritoryParams{}
 
+	m.CreateZoneMock = mRepositoryMockCreateZone{mock: m}
+	m.CreateZoneMock.callArgs = []*RepositoryMockCreateZoneParams{}
+
 	m.DeleteMeasurementMock = mRepositoryMockDeleteMeasurement{mock: m}
 	m.DeleteMeasurementMock.callArgs = []*RepositoryMockDeleteMeasurementParams{}
 
@@ -395,6 +426,9 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 
 	m.DeleteTerritoryArtifactsMock = mRepositoryMockDeleteTerritoryArtifacts{mock: m}
 	m.DeleteTerritoryArtifactsMock.callArgs = []*RepositoryMockDeleteTerritoryArtifactsParams{}
+
+	m.DeleteZoneMock = mRepositoryMockDeleteZone{mock: m}
+	m.DeleteZoneMock.callArgs = []*RepositoryMockDeleteZoneParams{}
 
 	m.GetModelMock = mRepositoryMockGetModel{mock: m}
 	m.GetModelMock.callArgs = []*RepositoryMockGetModelParams{}
@@ -440,6 +474,9 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 
 	m.ListTerritoryArtifactsMock = mRepositoryMockListTerritoryArtifacts{mock: m}
 	m.ListTerritoryArtifactsMock.callArgs = []*RepositoryMockListTerritoryArtifactsParams{}
+
+	m.ListZonesMock = mRepositoryMockListZones{mock: m}
+	m.ListZonesMock.callArgs = []*RepositoryMockListZonesParams{}
 
 	m.PlacementBatchMock = mRepositoryMockPlacementBatch{mock: m}
 	m.PlacementBatchMock.callArgs = []*RepositoryMockPlacementBatchParams{}
@@ -497,6 +534,9 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 
 	m.UpdateTerritoryMock = mRepositoryMockUpdateTerritory{mock: m}
 	m.UpdateTerritoryMock.callArgs = []*RepositoryMockUpdateTerritoryParams{}
+
+	m.UpdateZoneMock = mRepositoryMockUpdateZone{mock: m}
+	m.UpdateZoneMock.callArgs = []*RepositoryMockUpdateZoneParams{}
 
 	t.Cleanup(m.MinimockFinish)
 
@@ -2620,6 +2660,380 @@ func (m *RepositoryMock) MinimockCreateTerritoryInspect() {
 	if !m.CreateTerritoryMock.invocationsDone() && afterCreateTerritoryCounter > 0 {
 		m.t.Errorf("Expected %d calls to RepositoryMock.CreateTerritory at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.CreateTerritoryMock.expectedInvocations), m.CreateTerritoryMock.expectedInvocationsOrigin, afterCreateTerritoryCounter)
+	}
+}
+
+type mRepositoryMockCreateZone struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockCreateZoneExpectation
+	expectations       []*RepositoryMockCreateZoneExpectation
+
+	callArgs []*RepositoryMockCreateZoneParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockCreateZoneExpectation specifies expectation struct of the Repository.CreateZone
+type RepositoryMockCreateZoneExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockCreateZoneParams
+	paramPtrs          *RepositoryMockCreateZoneParamPtrs
+	expectationOrigins RepositoryMockCreateZoneExpectationOrigins
+	results            *RepositoryMockCreateZoneResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockCreateZoneParams contains parameters of the Repository.CreateZone
+type RepositoryMockCreateZoneParams struct {
+	ctx           context.Context
+	territorySlug string
+	z             domain.ZoneCreate
+}
+
+// RepositoryMockCreateZoneParamPtrs contains pointers to parameters of the Repository.CreateZone
+type RepositoryMockCreateZoneParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+	z             *domain.ZoneCreate
+}
+
+// RepositoryMockCreateZoneResults contains results of the Repository.CreateZone
+type RepositoryMockCreateZoneResults struct {
+	z1  domain.Zone
+	err error
+}
+
+// RepositoryMockCreateZoneOrigins contains origins of expectations of the Repository.CreateZone
+type RepositoryMockCreateZoneExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originZ             string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmCreateZone *mRepositoryMockCreateZone) Optional() *mRepositoryMockCreateZone {
+	mmCreateZone.optional = true
+	return mmCreateZone
+}
+
+// Expect sets up expected params for Repository.CreateZone
+func (mmCreateZone *mRepositoryMockCreateZone) Expect(ctx context.Context, territorySlug string, z domain.ZoneCreate) *mRepositoryMockCreateZone {
+	if mmCreateZone.mock.funcCreateZone != nil {
+		mmCreateZone.mock.t.Fatalf("RepositoryMock.CreateZone mock is already set by Set")
+	}
+
+	if mmCreateZone.defaultExpectation == nil {
+		mmCreateZone.defaultExpectation = &RepositoryMockCreateZoneExpectation{}
+	}
+
+	if mmCreateZone.defaultExpectation.paramPtrs != nil {
+		mmCreateZone.mock.t.Fatalf("RepositoryMock.CreateZone mock is already set by ExpectParams functions")
+	}
+
+	mmCreateZone.defaultExpectation.params = &RepositoryMockCreateZoneParams{ctx, territorySlug, z}
+	mmCreateZone.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmCreateZone.expectations {
+		if minimock.Equal(e.params, mmCreateZone.defaultExpectation.params) {
+			mmCreateZone.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCreateZone.defaultExpectation.params)
+		}
+	}
+
+	return mmCreateZone
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.CreateZone
+func (mmCreateZone *mRepositoryMockCreateZone) ExpectCtxParam1(ctx context.Context) *mRepositoryMockCreateZone {
+	if mmCreateZone.mock.funcCreateZone != nil {
+		mmCreateZone.mock.t.Fatalf("RepositoryMock.CreateZone mock is already set by Set")
+	}
+
+	if mmCreateZone.defaultExpectation == nil {
+		mmCreateZone.defaultExpectation = &RepositoryMockCreateZoneExpectation{}
+	}
+
+	if mmCreateZone.defaultExpectation.params != nil {
+		mmCreateZone.mock.t.Fatalf("RepositoryMock.CreateZone mock is already set by Expect")
+	}
+
+	if mmCreateZone.defaultExpectation.paramPtrs == nil {
+		mmCreateZone.defaultExpectation.paramPtrs = &RepositoryMockCreateZoneParamPtrs{}
+	}
+	mmCreateZone.defaultExpectation.paramPtrs.ctx = &ctx
+	mmCreateZone.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmCreateZone
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Repository.CreateZone
+func (mmCreateZone *mRepositoryMockCreateZone) ExpectTerritorySlugParam2(territorySlug string) *mRepositoryMockCreateZone {
+	if mmCreateZone.mock.funcCreateZone != nil {
+		mmCreateZone.mock.t.Fatalf("RepositoryMock.CreateZone mock is already set by Set")
+	}
+
+	if mmCreateZone.defaultExpectation == nil {
+		mmCreateZone.defaultExpectation = &RepositoryMockCreateZoneExpectation{}
+	}
+
+	if mmCreateZone.defaultExpectation.params != nil {
+		mmCreateZone.mock.t.Fatalf("RepositoryMock.CreateZone mock is already set by Expect")
+	}
+
+	if mmCreateZone.defaultExpectation.paramPtrs == nil {
+		mmCreateZone.defaultExpectation.paramPtrs = &RepositoryMockCreateZoneParamPtrs{}
+	}
+	mmCreateZone.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmCreateZone.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmCreateZone
+}
+
+// ExpectZParam3 sets up expected param z for Repository.CreateZone
+func (mmCreateZone *mRepositoryMockCreateZone) ExpectZParam3(z domain.ZoneCreate) *mRepositoryMockCreateZone {
+	if mmCreateZone.mock.funcCreateZone != nil {
+		mmCreateZone.mock.t.Fatalf("RepositoryMock.CreateZone mock is already set by Set")
+	}
+
+	if mmCreateZone.defaultExpectation == nil {
+		mmCreateZone.defaultExpectation = &RepositoryMockCreateZoneExpectation{}
+	}
+
+	if mmCreateZone.defaultExpectation.params != nil {
+		mmCreateZone.mock.t.Fatalf("RepositoryMock.CreateZone mock is already set by Expect")
+	}
+
+	if mmCreateZone.defaultExpectation.paramPtrs == nil {
+		mmCreateZone.defaultExpectation.paramPtrs = &RepositoryMockCreateZoneParamPtrs{}
+	}
+	mmCreateZone.defaultExpectation.paramPtrs.z = &z
+	mmCreateZone.defaultExpectation.expectationOrigins.originZ = minimock.CallerInfo(1)
+
+	return mmCreateZone
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.CreateZone
+func (mmCreateZone *mRepositoryMockCreateZone) Inspect(f func(ctx context.Context, territorySlug string, z domain.ZoneCreate)) *mRepositoryMockCreateZone {
+	if mmCreateZone.mock.inspectFuncCreateZone != nil {
+		mmCreateZone.mock.t.Fatalf("Inspect function is already set for RepositoryMock.CreateZone")
+	}
+
+	mmCreateZone.mock.inspectFuncCreateZone = f
+
+	return mmCreateZone
+}
+
+// Return sets up results that will be returned by Repository.CreateZone
+func (mmCreateZone *mRepositoryMockCreateZone) Return(z1 domain.Zone, err error) *RepositoryMock {
+	if mmCreateZone.mock.funcCreateZone != nil {
+		mmCreateZone.mock.t.Fatalf("RepositoryMock.CreateZone mock is already set by Set")
+	}
+
+	if mmCreateZone.defaultExpectation == nil {
+		mmCreateZone.defaultExpectation = &RepositoryMockCreateZoneExpectation{mock: mmCreateZone.mock}
+	}
+	mmCreateZone.defaultExpectation.results = &RepositoryMockCreateZoneResults{z1, err}
+	mmCreateZone.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmCreateZone.mock
+}
+
+// Set uses given function f to mock the Repository.CreateZone method
+func (mmCreateZone *mRepositoryMockCreateZone) Set(f func(ctx context.Context, territorySlug string, z domain.ZoneCreate) (z1 domain.Zone, err error)) *RepositoryMock {
+	if mmCreateZone.defaultExpectation != nil {
+		mmCreateZone.mock.t.Fatalf("Default expectation is already set for the Repository.CreateZone method")
+	}
+
+	if len(mmCreateZone.expectations) > 0 {
+		mmCreateZone.mock.t.Fatalf("Some expectations are already set for the Repository.CreateZone method")
+	}
+
+	mmCreateZone.mock.funcCreateZone = f
+	mmCreateZone.mock.funcCreateZoneOrigin = minimock.CallerInfo(1)
+	return mmCreateZone.mock
+}
+
+// When sets expectation for the Repository.CreateZone which will trigger the result defined by the following
+// Then helper
+func (mmCreateZone *mRepositoryMockCreateZone) When(ctx context.Context, territorySlug string, z domain.ZoneCreate) *RepositoryMockCreateZoneExpectation {
+	if mmCreateZone.mock.funcCreateZone != nil {
+		mmCreateZone.mock.t.Fatalf("RepositoryMock.CreateZone mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockCreateZoneExpectation{
+		mock:               mmCreateZone.mock,
+		params:             &RepositoryMockCreateZoneParams{ctx, territorySlug, z},
+		expectationOrigins: RepositoryMockCreateZoneExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmCreateZone.expectations = append(mmCreateZone.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.CreateZone return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockCreateZoneExpectation) Then(z1 domain.Zone, err error) *RepositoryMock {
+	e.results = &RepositoryMockCreateZoneResults{z1, err}
+	return e.mock
+}
+
+// Times sets number of times Repository.CreateZone should be invoked
+func (mmCreateZone *mRepositoryMockCreateZone) Times(n uint64) *mRepositoryMockCreateZone {
+	if n == 0 {
+		mmCreateZone.mock.t.Fatalf("Times of RepositoryMock.CreateZone mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmCreateZone.expectedInvocations, n)
+	mmCreateZone.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmCreateZone
+}
+
+func (mmCreateZone *mRepositoryMockCreateZone) invocationsDone() bool {
+	if len(mmCreateZone.expectations) == 0 && mmCreateZone.defaultExpectation == nil && mmCreateZone.mock.funcCreateZone == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmCreateZone.mock.afterCreateZoneCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmCreateZone.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// CreateZone implements mm_service.Repository
+func (mmCreateZone *RepositoryMock) CreateZone(ctx context.Context, territorySlug string, z domain.ZoneCreate) (z1 domain.Zone, err error) {
+	mm_atomic.AddUint64(&mmCreateZone.beforeCreateZoneCounter, 1)
+	defer mm_atomic.AddUint64(&mmCreateZone.afterCreateZoneCounter, 1)
+
+	mmCreateZone.t.Helper()
+
+	if mmCreateZone.inspectFuncCreateZone != nil {
+		mmCreateZone.inspectFuncCreateZone(ctx, territorySlug, z)
+	}
+
+	mm_params := RepositoryMockCreateZoneParams{ctx, territorySlug, z}
+
+	// Record call args
+	mmCreateZone.CreateZoneMock.mutex.Lock()
+	mmCreateZone.CreateZoneMock.callArgs = append(mmCreateZone.CreateZoneMock.callArgs, &mm_params)
+	mmCreateZone.CreateZoneMock.mutex.Unlock()
+
+	for _, e := range mmCreateZone.CreateZoneMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.z1, e.results.err
+		}
+	}
+
+	if mmCreateZone.CreateZoneMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCreateZone.CreateZoneMock.defaultExpectation.Counter, 1)
+		mm_want := mmCreateZone.CreateZoneMock.defaultExpectation.params
+		mm_want_ptrs := mmCreateZone.CreateZoneMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockCreateZoneParams{ctx, territorySlug, z}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmCreateZone.t.Errorf("RepositoryMock.CreateZone got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCreateZone.CreateZoneMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmCreateZone.t.Errorf("RepositoryMock.CreateZone got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCreateZone.CreateZoneMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+			if mm_want_ptrs.z != nil && !minimock.Equal(*mm_want_ptrs.z, mm_got.z) {
+				mmCreateZone.t.Errorf("RepositoryMock.CreateZone got unexpected parameter z, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCreateZone.CreateZoneMock.defaultExpectation.expectationOrigins.originZ, *mm_want_ptrs.z, mm_got.z, minimock.Diff(*mm_want_ptrs.z, mm_got.z))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCreateZone.t.Errorf("RepositoryMock.CreateZone got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmCreateZone.CreateZoneMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmCreateZone.CreateZoneMock.defaultExpectation.results
+		if mm_results == nil {
+			mmCreateZone.t.Fatal("No results are set for the RepositoryMock.CreateZone")
+		}
+		return (*mm_results).z1, (*mm_results).err
+	}
+	if mmCreateZone.funcCreateZone != nil {
+		return mmCreateZone.funcCreateZone(ctx, territorySlug, z)
+	}
+	mmCreateZone.t.Fatalf("Unexpected call to RepositoryMock.CreateZone. %v %v %v", ctx, territorySlug, z)
+	return
+}
+
+// CreateZoneAfterCounter returns a count of finished RepositoryMock.CreateZone invocations
+func (mmCreateZone *RepositoryMock) CreateZoneAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCreateZone.afterCreateZoneCounter)
+}
+
+// CreateZoneBeforeCounter returns a count of RepositoryMock.CreateZone invocations
+func (mmCreateZone *RepositoryMock) CreateZoneBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCreateZone.beforeCreateZoneCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.CreateZone.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmCreateZone *mRepositoryMockCreateZone) Calls() []*RepositoryMockCreateZoneParams {
+	mmCreateZone.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockCreateZoneParams, len(mmCreateZone.callArgs))
+	copy(argCopy, mmCreateZone.callArgs)
+
+	mmCreateZone.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockCreateZoneDone returns true if the count of the CreateZone invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockCreateZoneDone() bool {
+	if m.CreateZoneMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.CreateZoneMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.CreateZoneMock.invocationsDone()
+}
+
+// MinimockCreateZoneInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockCreateZoneInspect() {
+	for _, e := range m.CreateZoneMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.CreateZone at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterCreateZoneCounter := mm_atomic.LoadUint64(&m.afterCreateZoneCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CreateZoneMock.defaultExpectation != nil && afterCreateZoneCounter < 1 {
+		if m.CreateZoneMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.CreateZone at\n%s", m.CreateZoneMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.CreateZone at\n%s with params: %#v", m.CreateZoneMock.defaultExpectation.expectationOrigins.origin, *m.CreateZoneMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCreateZone != nil && afterCreateZoneCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.CreateZone at\n%s", m.funcCreateZoneOrigin)
+	}
+
+	if !m.CreateZoneMock.invocationsDone() && afterCreateZoneCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.CreateZone at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.CreateZoneMock.expectedInvocations), m.CreateZoneMock.expectedInvocationsOrigin, afterCreateZoneCounter)
 	}
 }
 
@@ -5108,6 +5522,379 @@ func (m *RepositoryMock) MinimockDeleteTerritoryArtifactsInspect() {
 	if !m.DeleteTerritoryArtifactsMock.invocationsDone() && afterDeleteTerritoryArtifactsCounter > 0 {
 		m.t.Errorf("Expected %d calls to RepositoryMock.DeleteTerritoryArtifacts at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.DeleteTerritoryArtifactsMock.expectedInvocations), m.DeleteTerritoryArtifactsMock.expectedInvocationsOrigin, afterDeleteTerritoryArtifactsCounter)
+	}
+}
+
+type mRepositoryMockDeleteZone struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockDeleteZoneExpectation
+	expectations       []*RepositoryMockDeleteZoneExpectation
+
+	callArgs []*RepositoryMockDeleteZoneParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockDeleteZoneExpectation specifies expectation struct of the Repository.DeleteZone
+type RepositoryMockDeleteZoneExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockDeleteZoneParams
+	paramPtrs          *RepositoryMockDeleteZoneParamPtrs
+	expectationOrigins RepositoryMockDeleteZoneExpectationOrigins
+	results            *RepositoryMockDeleteZoneResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockDeleteZoneParams contains parameters of the Repository.DeleteZone
+type RepositoryMockDeleteZoneParams struct {
+	ctx           context.Context
+	territorySlug string
+	id            int64
+}
+
+// RepositoryMockDeleteZoneParamPtrs contains pointers to parameters of the Repository.DeleteZone
+type RepositoryMockDeleteZoneParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+	id            *int64
+}
+
+// RepositoryMockDeleteZoneResults contains results of the Repository.DeleteZone
+type RepositoryMockDeleteZoneResults struct {
+	err error
+}
+
+// RepositoryMockDeleteZoneOrigins contains origins of expectations of the Repository.DeleteZone
+type RepositoryMockDeleteZoneExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originId            string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmDeleteZone *mRepositoryMockDeleteZone) Optional() *mRepositoryMockDeleteZone {
+	mmDeleteZone.optional = true
+	return mmDeleteZone
+}
+
+// Expect sets up expected params for Repository.DeleteZone
+func (mmDeleteZone *mRepositoryMockDeleteZone) Expect(ctx context.Context, territorySlug string, id int64) *mRepositoryMockDeleteZone {
+	if mmDeleteZone.mock.funcDeleteZone != nil {
+		mmDeleteZone.mock.t.Fatalf("RepositoryMock.DeleteZone mock is already set by Set")
+	}
+
+	if mmDeleteZone.defaultExpectation == nil {
+		mmDeleteZone.defaultExpectation = &RepositoryMockDeleteZoneExpectation{}
+	}
+
+	if mmDeleteZone.defaultExpectation.paramPtrs != nil {
+		mmDeleteZone.mock.t.Fatalf("RepositoryMock.DeleteZone mock is already set by ExpectParams functions")
+	}
+
+	mmDeleteZone.defaultExpectation.params = &RepositoryMockDeleteZoneParams{ctx, territorySlug, id}
+	mmDeleteZone.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmDeleteZone.expectations {
+		if minimock.Equal(e.params, mmDeleteZone.defaultExpectation.params) {
+			mmDeleteZone.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmDeleteZone.defaultExpectation.params)
+		}
+	}
+
+	return mmDeleteZone
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.DeleteZone
+func (mmDeleteZone *mRepositoryMockDeleteZone) ExpectCtxParam1(ctx context.Context) *mRepositoryMockDeleteZone {
+	if mmDeleteZone.mock.funcDeleteZone != nil {
+		mmDeleteZone.mock.t.Fatalf("RepositoryMock.DeleteZone mock is already set by Set")
+	}
+
+	if mmDeleteZone.defaultExpectation == nil {
+		mmDeleteZone.defaultExpectation = &RepositoryMockDeleteZoneExpectation{}
+	}
+
+	if mmDeleteZone.defaultExpectation.params != nil {
+		mmDeleteZone.mock.t.Fatalf("RepositoryMock.DeleteZone mock is already set by Expect")
+	}
+
+	if mmDeleteZone.defaultExpectation.paramPtrs == nil {
+		mmDeleteZone.defaultExpectation.paramPtrs = &RepositoryMockDeleteZoneParamPtrs{}
+	}
+	mmDeleteZone.defaultExpectation.paramPtrs.ctx = &ctx
+	mmDeleteZone.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmDeleteZone
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Repository.DeleteZone
+func (mmDeleteZone *mRepositoryMockDeleteZone) ExpectTerritorySlugParam2(territorySlug string) *mRepositoryMockDeleteZone {
+	if mmDeleteZone.mock.funcDeleteZone != nil {
+		mmDeleteZone.mock.t.Fatalf("RepositoryMock.DeleteZone mock is already set by Set")
+	}
+
+	if mmDeleteZone.defaultExpectation == nil {
+		mmDeleteZone.defaultExpectation = &RepositoryMockDeleteZoneExpectation{}
+	}
+
+	if mmDeleteZone.defaultExpectation.params != nil {
+		mmDeleteZone.mock.t.Fatalf("RepositoryMock.DeleteZone mock is already set by Expect")
+	}
+
+	if mmDeleteZone.defaultExpectation.paramPtrs == nil {
+		mmDeleteZone.defaultExpectation.paramPtrs = &RepositoryMockDeleteZoneParamPtrs{}
+	}
+	mmDeleteZone.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmDeleteZone.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmDeleteZone
+}
+
+// ExpectIdParam3 sets up expected param id for Repository.DeleteZone
+func (mmDeleteZone *mRepositoryMockDeleteZone) ExpectIdParam3(id int64) *mRepositoryMockDeleteZone {
+	if mmDeleteZone.mock.funcDeleteZone != nil {
+		mmDeleteZone.mock.t.Fatalf("RepositoryMock.DeleteZone mock is already set by Set")
+	}
+
+	if mmDeleteZone.defaultExpectation == nil {
+		mmDeleteZone.defaultExpectation = &RepositoryMockDeleteZoneExpectation{}
+	}
+
+	if mmDeleteZone.defaultExpectation.params != nil {
+		mmDeleteZone.mock.t.Fatalf("RepositoryMock.DeleteZone mock is already set by Expect")
+	}
+
+	if mmDeleteZone.defaultExpectation.paramPtrs == nil {
+		mmDeleteZone.defaultExpectation.paramPtrs = &RepositoryMockDeleteZoneParamPtrs{}
+	}
+	mmDeleteZone.defaultExpectation.paramPtrs.id = &id
+	mmDeleteZone.defaultExpectation.expectationOrigins.originId = minimock.CallerInfo(1)
+
+	return mmDeleteZone
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.DeleteZone
+func (mmDeleteZone *mRepositoryMockDeleteZone) Inspect(f func(ctx context.Context, territorySlug string, id int64)) *mRepositoryMockDeleteZone {
+	if mmDeleteZone.mock.inspectFuncDeleteZone != nil {
+		mmDeleteZone.mock.t.Fatalf("Inspect function is already set for RepositoryMock.DeleteZone")
+	}
+
+	mmDeleteZone.mock.inspectFuncDeleteZone = f
+
+	return mmDeleteZone
+}
+
+// Return sets up results that will be returned by Repository.DeleteZone
+func (mmDeleteZone *mRepositoryMockDeleteZone) Return(err error) *RepositoryMock {
+	if mmDeleteZone.mock.funcDeleteZone != nil {
+		mmDeleteZone.mock.t.Fatalf("RepositoryMock.DeleteZone mock is already set by Set")
+	}
+
+	if mmDeleteZone.defaultExpectation == nil {
+		mmDeleteZone.defaultExpectation = &RepositoryMockDeleteZoneExpectation{mock: mmDeleteZone.mock}
+	}
+	mmDeleteZone.defaultExpectation.results = &RepositoryMockDeleteZoneResults{err}
+	mmDeleteZone.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmDeleteZone.mock
+}
+
+// Set uses given function f to mock the Repository.DeleteZone method
+func (mmDeleteZone *mRepositoryMockDeleteZone) Set(f func(ctx context.Context, territorySlug string, id int64) (err error)) *RepositoryMock {
+	if mmDeleteZone.defaultExpectation != nil {
+		mmDeleteZone.mock.t.Fatalf("Default expectation is already set for the Repository.DeleteZone method")
+	}
+
+	if len(mmDeleteZone.expectations) > 0 {
+		mmDeleteZone.mock.t.Fatalf("Some expectations are already set for the Repository.DeleteZone method")
+	}
+
+	mmDeleteZone.mock.funcDeleteZone = f
+	mmDeleteZone.mock.funcDeleteZoneOrigin = minimock.CallerInfo(1)
+	return mmDeleteZone.mock
+}
+
+// When sets expectation for the Repository.DeleteZone which will trigger the result defined by the following
+// Then helper
+func (mmDeleteZone *mRepositoryMockDeleteZone) When(ctx context.Context, territorySlug string, id int64) *RepositoryMockDeleteZoneExpectation {
+	if mmDeleteZone.mock.funcDeleteZone != nil {
+		mmDeleteZone.mock.t.Fatalf("RepositoryMock.DeleteZone mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockDeleteZoneExpectation{
+		mock:               mmDeleteZone.mock,
+		params:             &RepositoryMockDeleteZoneParams{ctx, territorySlug, id},
+		expectationOrigins: RepositoryMockDeleteZoneExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmDeleteZone.expectations = append(mmDeleteZone.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.DeleteZone return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockDeleteZoneExpectation) Then(err error) *RepositoryMock {
+	e.results = &RepositoryMockDeleteZoneResults{err}
+	return e.mock
+}
+
+// Times sets number of times Repository.DeleteZone should be invoked
+func (mmDeleteZone *mRepositoryMockDeleteZone) Times(n uint64) *mRepositoryMockDeleteZone {
+	if n == 0 {
+		mmDeleteZone.mock.t.Fatalf("Times of RepositoryMock.DeleteZone mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmDeleteZone.expectedInvocations, n)
+	mmDeleteZone.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmDeleteZone
+}
+
+func (mmDeleteZone *mRepositoryMockDeleteZone) invocationsDone() bool {
+	if len(mmDeleteZone.expectations) == 0 && mmDeleteZone.defaultExpectation == nil && mmDeleteZone.mock.funcDeleteZone == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmDeleteZone.mock.afterDeleteZoneCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmDeleteZone.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// DeleteZone implements mm_service.Repository
+func (mmDeleteZone *RepositoryMock) DeleteZone(ctx context.Context, territorySlug string, id int64) (err error) {
+	mm_atomic.AddUint64(&mmDeleteZone.beforeDeleteZoneCounter, 1)
+	defer mm_atomic.AddUint64(&mmDeleteZone.afterDeleteZoneCounter, 1)
+
+	mmDeleteZone.t.Helper()
+
+	if mmDeleteZone.inspectFuncDeleteZone != nil {
+		mmDeleteZone.inspectFuncDeleteZone(ctx, territorySlug, id)
+	}
+
+	mm_params := RepositoryMockDeleteZoneParams{ctx, territorySlug, id}
+
+	// Record call args
+	mmDeleteZone.DeleteZoneMock.mutex.Lock()
+	mmDeleteZone.DeleteZoneMock.callArgs = append(mmDeleteZone.DeleteZoneMock.callArgs, &mm_params)
+	mmDeleteZone.DeleteZoneMock.mutex.Unlock()
+
+	for _, e := range mmDeleteZone.DeleteZoneMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmDeleteZone.DeleteZoneMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmDeleteZone.DeleteZoneMock.defaultExpectation.Counter, 1)
+		mm_want := mmDeleteZone.DeleteZoneMock.defaultExpectation.params
+		mm_want_ptrs := mmDeleteZone.DeleteZoneMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockDeleteZoneParams{ctx, territorySlug, id}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmDeleteZone.t.Errorf("RepositoryMock.DeleteZone got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeleteZone.DeleteZoneMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmDeleteZone.t.Errorf("RepositoryMock.DeleteZone got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeleteZone.DeleteZoneMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
+				mmDeleteZone.t.Errorf("RepositoryMock.DeleteZone got unexpected parameter id, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeleteZone.DeleteZoneMock.defaultExpectation.expectationOrigins.originId, *mm_want_ptrs.id, mm_got.id, minimock.Diff(*mm_want_ptrs.id, mm_got.id))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmDeleteZone.t.Errorf("RepositoryMock.DeleteZone got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmDeleteZone.DeleteZoneMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmDeleteZone.DeleteZoneMock.defaultExpectation.results
+		if mm_results == nil {
+			mmDeleteZone.t.Fatal("No results are set for the RepositoryMock.DeleteZone")
+		}
+		return (*mm_results).err
+	}
+	if mmDeleteZone.funcDeleteZone != nil {
+		return mmDeleteZone.funcDeleteZone(ctx, territorySlug, id)
+	}
+	mmDeleteZone.t.Fatalf("Unexpected call to RepositoryMock.DeleteZone. %v %v %v", ctx, territorySlug, id)
+	return
+}
+
+// DeleteZoneAfterCounter returns a count of finished RepositoryMock.DeleteZone invocations
+func (mmDeleteZone *RepositoryMock) DeleteZoneAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDeleteZone.afterDeleteZoneCounter)
+}
+
+// DeleteZoneBeforeCounter returns a count of RepositoryMock.DeleteZone invocations
+func (mmDeleteZone *RepositoryMock) DeleteZoneBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDeleteZone.beforeDeleteZoneCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.DeleteZone.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmDeleteZone *mRepositoryMockDeleteZone) Calls() []*RepositoryMockDeleteZoneParams {
+	mmDeleteZone.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockDeleteZoneParams, len(mmDeleteZone.callArgs))
+	copy(argCopy, mmDeleteZone.callArgs)
+
+	mmDeleteZone.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockDeleteZoneDone returns true if the count of the DeleteZone invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockDeleteZoneDone() bool {
+	if m.DeleteZoneMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.DeleteZoneMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.DeleteZoneMock.invocationsDone()
+}
+
+// MinimockDeleteZoneInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockDeleteZoneInspect() {
+	for _, e := range m.DeleteZoneMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.DeleteZone at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterDeleteZoneCounter := mm_atomic.LoadUint64(&m.afterDeleteZoneCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.DeleteZoneMock.defaultExpectation != nil && afterDeleteZoneCounter < 1 {
+		if m.DeleteZoneMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.DeleteZone at\n%s", m.DeleteZoneMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.DeleteZone at\n%s with params: %#v", m.DeleteZoneMock.defaultExpectation.expectationOrigins.origin, *m.DeleteZoneMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcDeleteZone != nil && afterDeleteZoneCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.DeleteZone at\n%s", m.funcDeleteZoneOrigin)
+	}
+
+	if !m.DeleteZoneMock.invocationsDone() && afterDeleteZoneCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.DeleteZone at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.DeleteZoneMock.expectedInvocations), m.DeleteZoneMock.expectedInvocationsOrigin, afterDeleteZoneCounter)
 	}
 }
 
@@ -10346,6 +11133,349 @@ func (m *RepositoryMock) MinimockListTerritoryArtifactsInspect() {
 	if !m.ListTerritoryArtifactsMock.invocationsDone() && afterListTerritoryArtifactsCounter > 0 {
 		m.t.Errorf("Expected %d calls to RepositoryMock.ListTerritoryArtifacts at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.ListTerritoryArtifactsMock.expectedInvocations), m.ListTerritoryArtifactsMock.expectedInvocationsOrigin, afterListTerritoryArtifactsCounter)
+	}
+}
+
+type mRepositoryMockListZones struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockListZonesExpectation
+	expectations       []*RepositoryMockListZonesExpectation
+
+	callArgs []*RepositoryMockListZonesParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockListZonesExpectation specifies expectation struct of the Repository.ListZones
+type RepositoryMockListZonesExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockListZonesParams
+	paramPtrs          *RepositoryMockListZonesParamPtrs
+	expectationOrigins RepositoryMockListZonesExpectationOrigins
+	results            *RepositoryMockListZonesResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockListZonesParams contains parameters of the Repository.ListZones
+type RepositoryMockListZonesParams struct {
+	ctx           context.Context
+	territorySlug string
+}
+
+// RepositoryMockListZonesParamPtrs contains pointers to parameters of the Repository.ListZones
+type RepositoryMockListZonesParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+}
+
+// RepositoryMockListZonesResults contains results of the Repository.ListZones
+type RepositoryMockListZonesResults struct {
+	za1 []domain.Zone
+	err error
+}
+
+// RepositoryMockListZonesOrigins contains origins of expectations of the Repository.ListZones
+type RepositoryMockListZonesExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmListZones *mRepositoryMockListZones) Optional() *mRepositoryMockListZones {
+	mmListZones.optional = true
+	return mmListZones
+}
+
+// Expect sets up expected params for Repository.ListZones
+func (mmListZones *mRepositoryMockListZones) Expect(ctx context.Context, territorySlug string) *mRepositoryMockListZones {
+	if mmListZones.mock.funcListZones != nil {
+		mmListZones.mock.t.Fatalf("RepositoryMock.ListZones mock is already set by Set")
+	}
+
+	if mmListZones.defaultExpectation == nil {
+		mmListZones.defaultExpectation = &RepositoryMockListZonesExpectation{}
+	}
+
+	if mmListZones.defaultExpectation.paramPtrs != nil {
+		mmListZones.mock.t.Fatalf("RepositoryMock.ListZones mock is already set by ExpectParams functions")
+	}
+
+	mmListZones.defaultExpectation.params = &RepositoryMockListZonesParams{ctx, territorySlug}
+	mmListZones.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmListZones.expectations {
+		if minimock.Equal(e.params, mmListZones.defaultExpectation.params) {
+			mmListZones.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmListZones.defaultExpectation.params)
+		}
+	}
+
+	return mmListZones
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.ListZones
+func (mmListZones *mRepositoryMockListZones) ExpectCtxParam1(ctx context.Context) *mRepositoryMockListZones {
+	if mmListZones.mock.funcListZones != nil {
+		mmListZones.mock.t.Fatalf("RepositoryMock.ListZones mock is already set by Set")
+	}
+
+	if mmListZones.defaultExpectation == nil {
+		mmListZones.defaultExpectation = &RepositoryMockListZonesExpectation{}
+	}
+
+	if mmListZones.defaultExpectation.params != nil {
+		mmListZones.mock.t.Fatalf("RepositoryMock.ListZones mock is already set by Expect")
+	}
+
+	if mmListZones.defaultExpectation.paramPtrs == nil {
+		mmListZones.defaultExpectation.paramPtrs = &RepositoryMockListZonesParamPtrs{}
+	}
+	mmListZones.defaultExpectation.paramPtrs.ctx = &ctx
+	mmListZones.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmListZones
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Repository.ListZones
+func (mmListZones *mRepositoryMockListZones) ExpectTerritorySlugParam2(territorySlug string) *mRepositoryMockListZones {
+	if mmListZones.mock.funcListZones != nil {
+		mmListZones.mock.t.Fatalf("RepositoryMock.ListZones mock is already set by Set")
+	}
+
+	if mmListZones.defaultExpectation == nil {
+		mmListZones.defaultExpectation = &RepositoryMockListZonesExpectation{}
+	}
+
+	if mmListZones.defaultExpectation.params != nil {
+		mmListZones.mock.t.Fatalf("RepositoryMock.ListZones mock is already set by Expect")
+	}
+
+	if mmListZones.defaultExpectation.paramPtrs == nil {
+		mmListZones.defaultExpectation.paramPtrs = &RepositoryMockListZonesParamPtrs{}
+	}
+	mmListZones.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmListZones.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmListZones
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.ListZones
+func (mmListZones *mRepositoryMockListZones) Inspect(f func(ctx context.Context, territorySlug string)) *mRepositoryMockListZones {
+	if mmListZones.mock.inspectFuncListZones != nil {
+		mmListZones.mock.t.Fatalf("Inspect function is already set for RepositoryMock.ListZones")
+	}
+
+	mmListZones.mock.inspectFuncListZones = f
+
+	return mmListZones
+}
+
+// Return sets up results that will be returned by Repository.ListZones
+func (mmListZones *mRepositoryMockListZones) Return(za1 []domain.Zone, err error) *RepositoryMock {
+	if mmListZones.mock.funcListZones != nil {
+		mmListZones.mock.t.Fatalf("RepositoryMock.ListZones mock is already set by Set")
+	}
+
+	if mmListZones.defaultExpectation == nil {
+		mmListZones.defaultExpectation = &RepositoryMockListZonesExpectation{mock: mmListZones.mock}
+	}
+	mmListZones.defaultExpectation.results = &RepositoryMockListZonesResults{za1, err}
+	mmListZones.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmListZones.mock
+}
+
+// Set uses given function f to mock the Repository.ListZones method
+func (mmListZones *mRepositoryMockListZones) Set(f func(ctx context.Context, territorySlug string) (za1 []domain.Zone, err error)) *RepositoryMock {
+	if mmListZones.defaultExpectation != nil {
+		mmListZones.mock.t.Fatalf("Default expectation is already set for the Repository.ListZones method")
+	}
+
+	if len(mmListZones.expectations) > 0 {
+		mmListZones.mock.t.Fatalf("Some expectations are already set for the Repository.ListZones method")
+	}
+
+	mmListZones.mock.funcListZones = f
+	mmListZones.mock.funcListZonesOrigin = minimock.CallerInfo(1)
+	return mmListZones.mock
+}
+
+// When sets expectation for the Repository.ListZones which will trigger the result defined by the following
+// Then helper
+func (mmListZones *mRepositoryMockListZones) When(ctx context.Context, territorySlug string) *RepositoryMockListZonesExpectation {
+	if mmListZones.mock.funcListZones != nil {
+		mmListZones.mock.t.Fatalf("RepositoryMock.ListZones mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockListZonesExpectation{
+		mock:               mmListZones.mock,
+		params:             &RepositoryMockListZonesParams{ctx, territorySlug},
+		expectationOrigins: RepositoryMockListZonesExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmListZones.expectations = append(mmListZones.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.ListZones return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockListZonesExpectation) Then(za1 []domain.Zone, err error) *RepositoryMock {
+	e.results = &RepositoryMockListZonesResults{za1, err}
+	return e.mock
+}
+
+// Times sets number of times Repository.ListZones should be invoked
+func (mmListZones *mRepositoryMockListZones) Times(n uint64) *mRepositoryMockListZones {
+	if n == 0 {
+		mmListZones.mock.t.Fatalf("Times of RepositoryMock.ListZones mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmListZones.expectedInvocations, n)
+	mmListZones.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmListZones
+}
+
+func (mmListZones *mRepositoryMockListZones) invocationsDone() bool {
+	if len(mmListZones.expectations) == 0 && mmListZones.defaultExpectation == nil && mmListZones.mock.funcListZones == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmListZones.mock.afterListZonesCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmListZones.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ListZones implements mm_service.Repository
+func (mmListZones *RepositoryMock) ListZones(ctx context.Context, territorySlug string) (za1 []domain.Zone, err error) {
+	mm_atomic.AddUint64(&mmListZones.beforeListZonesCounter, 1)
+	defer mm_atomic.AddUint64(&mmListZones.afterListZonesCounter, 1)
+
+	mmListZones.t.Helper()
+
+	if mmListZones.inspectFuncListZones != nil {
+		mmListZones.inspectFuncListZones(ctx, territorySlug)
+	}
+
+	mm_params := RepositoryMockListZonesParams{ctx, territorySlug}
+
+	// Record call args
+	mmListZones.ListZonesMock.mutex.Lock()
+	mmListZones.ListZonesMock.callArgs = append(mmListZones.ListZonesMock.callArgs, &mm_params)
+	mmListZones.ListZonesMock.mutex.Unlock()
+
+	for _, e := range mmListZones.ListZonesMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.za1, e.results.err
+		}
+	}
+
+	if mmListZones.ListZonesMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmListZones.ListZonesMock.defaultExpectation.Counter, 1)
+		mm_want := mmListZones.ListZonesMock.defaultExpectation.params
+		mm_want_ptrs := mmListZones.ListZonesMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockListZonesParams{ctx, territorySlug}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmListZones.t.Errorf("RepositoryMock.ListZones got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListZones.ListZonesMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmListZones.t.Errorf("RepositoryMock.ListZones got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListZones.ListZonesMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmListZones.t.Errorf("RepositoryMock.ListZones got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmListZones.ListZonesMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmListZones.ListZonesMock.defaultExpectation.results
+		if mm_results == nil {
+			mmListZones.t.Fatal("No results are set for the RepositoryMock.ListZones")
+		}
+		return (*mm_results).za1, (*mm_results).err
+	}
+	if mmListZones.funcListZones != nil {
+		return mmListZones.funcListZones(ctx, territorySlug)
+	}
+	mmListZones.t.Fatalf("Unexpected call to RepositoryMock.ListZones. %v %v", ctx, territorySlug)
+	return
+}
+
+// ListZonesAfterCounter returns a count of finished RepositoryMock.ListZones invocations
+func (mmListZones *RepositoryMock) ListZonesAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListZones.afterListZonesCounter)
+}
+
+// ListZonesBeforeCounter returns a count of RepositoryMock.ListZones invocations
+func (mmListZones *RepositoryMock) ListZonesBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListZones.beforeListZonesCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.ListZones.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmListZones *mRepositoryMockListZones) Calls() []*RepositoryMockListZonesParams {
+	mmListZones.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockListZonesParams, len(mmListZones.callArgs))
+	copy(argCopy, mmListZones.callArgs)
+
+	mmListZones.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockListZonesDone returns true if the count of the ListZones invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockListZonesDone() bool {
+	if m.ListZonesMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ListZonesMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ListZonesMock.invocationsDone()
+}
+
+// MinimockListZonesInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockListZonesInspect() {
+	for _, e := range m.ListZonesMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.ListZones at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterListZonesCounter := mm_atomic.LoadUint64(&m.afterListZonesCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ListZonesMock.defaultExpectation != nil && afterListZonesCounter < 1 {
+		if m.ListZonesMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.ListZones at\n%s", m.ListZonesMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.ListZones at\n%s with params: %#v", m.ListZonesMock.defaultExpectation.expectationOrigins.origin, *m.ListZonesMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcListZones != nil && afterListZonesCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.ListZones at\n%s", m.funcListZonesOrigin)
+	}
+
+	if !m.ListZonesMock.invocationsDone() && afterListZonesCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.ListZones at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ListZonesMock.expectedInvocations), m.ListZonesMock.expectedInvocationsOrigin, afterListZonesCounter)
 	}
 }
 
@@ -17484,6 +18614,411 @@ func (m *RepositoryMock) MinimockUpdateTerritoryInspect() {
 	}
 }
 
+type mRepositoryMockUpdateZone struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockUpdateZoneExpectation
+	expectations       []*RepositoryMockUpdateZoneExpectation
+
+	callArgs []*RepositoryMockUpdateZoneParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockUpdateZoneExpectation specifies expectation struct of the Repository.UpdateZone
+type RepositoryMockUpdateZoneExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockUpdateZoneParams
+	paramPtrs          *RepositoryMockUpdateZoneParamPtrs
+	expectationOrigins RepositoryMockUpdateZoneExpectationOrigins
+	results            *RepositoryMockUpdateZoneResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockUpdateZoneParams contains parameters of the Repository.UpdateZone
+type RepositoryMockUpdateZoneParams struct {
+	ctx           context.Context
+	territorySlug string
+	id            int64
+	p             domain.ZonePatch
+}
+
+// RepositoryMockUpdateZoneParamPtrs contains pointers to parameters of the Repository.UpdateZone
+type RepositoryMockUpdateZoneParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+	id            *int64
+	p             *domain.ZonePatch
+}
+
+// RepositoryMockUpdateZoneResults contains results of the Repository.UpdateZone
+type RepositoryMockUpdateZoneResults struct {
+	z1  domain.Zone
+	err error
+}
+
+// RepositoryMockUpdateZoneOrigins contains origins of expectations of the Repository.UpdateZone
+type RepositoryMockUpdateZoneExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originId            string
+	originP             string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmUpdateZone *mRepositoryMockUpdateZone) Optional() *mRepositoryMockUpdateZone {
+	mmUpdateZone.optional = true
+	return mmUpdateZone
+}
+
+// Expect sets up expected params for Repository.UpdateZone
+func (mmUpdateZone *mRepositoryMockUpdateZone) Expect(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch) *mRepositoryMockUpdateZone {
+	if mmUpdateZone.mock.funcUpdateZone != nil {
+		mmUpdateZone.mock.t.Fatalf("RepositoryMock.UpdateZone mock is already set by Set")
+	}
+
+	if mmUpdateZone.defaultExpectation == nil {
+		mmUpdateZone.defaultExpectation = &RepositoryMockUpdateZoneExpectation{}
+	}
+
+	if mmUpdateZone.defaultExpectation.paramPtrs != nil {
+		mmUpdateZone.mock.t.Fatalf("RepositoryMock.UpdateZone mock is already set by ExpectParams functions")
+	}
+
+	mmUpdateZone.defaultExpectation.params = &RepositoryMockUpdateZoneParams{ctx, territorySlug, id, p}
+	mmUpdateZone.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmUpdateZone.expectations {
+		if minimock.Equal(e.params, mmUpdateZone.defaultExpectation.params) {
+			mmUpdateZone.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmUpdateZone.defaultExpectation.params)
+		}
+	}
+
+	return mmUpdateZone
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.UpdateZone
+func (mmUpdateZone *mRepositoryMockUpdateZone) ExpectCtxParam1(ctx context.Context) *mRepositoryMockUpdateZone {
+	if mmUpdateZone.mock.funcUpdateZone != nil {
+		mmUpdateZone.mock.t.Fatalf("RepositoryMock.UpdateZone mock is already set by Set")
+	}
+
+	if mmUpdateZone.defaultExpectation == nil {
+		mmUpdateZone.defaultExpectation = &RepositoryMockUpdateZoneExpectation{}
+	}
+
+	if mmUpdateZone.defaultExpectation.params != nil {
+		mmUpdateZone.mock.t.Fatalf("RepositoryMock.UpdateZone mock is already set by Expect")
+	}
+
+	if mmUpdateZone.defaultExpectation.paramPtrs == nil {
+		mmUpdateZone.defaultExpectation.paramPtrs = &RepositoryMockUpdateZoneParamPtrs{}
+	}
+	mmUpdateZone.defaultExpectation.paramPtrs.ctx = &ctx
+	mmUpdateZone.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmUpdateZone
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Repository.UpdateZone
+func (mmUpdateZone *mRepositoryMockUpdateZone) ExpectTerritorySlugParam2(territorySlug string) *mRepositoryMockUpdateZone {
+	if mmUpdateZone.mock.funcUpdateZone != nil {
+		mmUpdateZone.mock.t.Fatalf("RepositoryMock.UpdateZone mock is already set by Set")
+	}
+
+	if mmUpdateZone.defaultExpectation == nil {
+		mmUpdateZone.defaultExpectation = &RepositoryMockUpdateZoneExpectation{}
+	}
+
+	if mmUpdateZone.defaultExpectation.params != nil {
+		mmUpdateZone.mock.t.Fatalf("RepositoryMock.UpdateZone mock is already set by Expect")
+	}
+
+	if mmUpdateZone.defaultExpectation.paramPtrs == nil {
+		mmUpdateZone.defaultExpectation.paramPtrs = &RepositoryMockUpdateZoneParamPtrs{}
+	}
+	mmUpdateZone.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmUpdateZone.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmUpdateZone
+}
+
+// ExpectIdParam3 sets up expected param id for Repository.UpdateZone
+func (mmUpdateZone *mRepositoryMockUpdateZone) ExpectIdParam3(id int64) *mRepositoryMockUpdateZone {
+	if mmUpdateZone.mock.funcUpdateZone != nil {
+		mmUpdateZone.mock.t.Fatalf("RepositoryMock.UpdateZone mock is already set by Set")
+	}
+
+	if mmUpdateZone.defaultExpectation == nil {
+		mmUpdateZone.defaultExpectation = &RepositoryMockUpdateZoneExpectation{}
+	}
+
+	if mmUpdateZone.defaultExpectation.params != nil {
+		mmUpdateZone.mock.t.Fatalf("RepositoryMock.UpdateZone mock is already set by Expect")
+	}
+
+	if mmUpdateZone.defaultExpectation.paramPtrs == nil {
+		mmUpdateZone.defaultExpectation.paramPtrs = &RepositoryMockUpdateZoneParamPtrs{}
+	}
+	mmUpdateZone.defaultExpectation.paramPtrs.id = &id
+	mmUpdateZone.defaultExpectation.expectationOrigins.originId = minimock.CallerInfo(1)
+
+	return mmUpdateZone
+}
+
+// ExpectPParam4 sets up expected param p for Repository.UpdateZone
+func (mmUpdateZone *mRepositoryMockUpdateZone) ExpectPParam4(p domain.ZonePatch) *mRepositoryMockUpdateZone {
+	if mmUpdateZone.mock.funcUpdateZone != nil {
+		mmUpdateZone.mock.t.Fatalf("RepositoryMock.UpdateZone mock is already set by Set")
+	}
+
+	if mmUpdateZone.defaultExpectation == nil {
+		mmUpdateZone.defaultExpectation = &RepositoryMockUpdateZoneExpectation{}
+	}
+
+	if mmUpdateZone.defaultExpectation.params != nil {
+		mmUpdateZone.mock.t.Fatalf("RepositoryMock.UpdateZone mock is already set by Expect")
+	}
+
+	if mmUpdateZone.defaultExpectation.paramPtrs == nil {
+		mmUpdateZone.defaultExpectation.paramPtrs = &RepositoryMockUpdateZoneParamPtrs{}
+	}
+	mmUpdateZone.defaultExpectation.paramPtrs.p = &p
+	mmUpdateZone.defaultExpectation.expectationOrigins.originP = minimock.CallerInfo(1)
+
+	return mmUpdateZone
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.UpdateZone
+func (mmUpdateZone *mRepositoryMockUpdateZone) Inspect(f func(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch)) *mRepositoryMockUpdateZone {
+	if mmUpdateZone.mock.inspectFuncUpdateZone != nil {
+		mmUpdateZone.mock.t.Fatalf("Inspect function is already set for RepositoryMock.UpdateZone")
+	}
+
+	mmUpdateZone.mock.inspectFuncUpdateZone = f
+
+	return mmUpdateZone
+}
+
+// Return sets up results that will be returned by Repository.UpdateZone
+func (mmUpdateZone *mRepositoryMockUpdateZone) Return(z1 domain.Zone, err error) *RepositoryMock {
+	if mmUpdateZone.mock.funcUpdateZone != nil {
+		mmUpdateZone.mock.t.Fatalf("RepositoryMock.UpdateZone mock is already set by Set")
+	}
+
+	if mmUpdateZone.defaultExpectation == nil {
+		mmUpdateZone.defaultExpectation = &RepositoryMockUpdateZoneExpectation{mock: mmUpdateZone.mock}
+	}
+	mmUpdateZone.defaultExpectation.results = &RepositoryMockUpdateZoneResults{z1, err}
+	mmUpdateZone.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmUpdateZone.mock
+}
+
+// Set uses given function f to mock the Repository.UpdateZone method
+func (mmUpdateZone *mRepositoryMockUpdateZone) Set(f func(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch) (z1 domain.Zone, err error)) *RepositoryMock {
+	if mmUpdateZone.defaultExpectation != nil {
+		mmUpdateZone.mock.t.Fatalf("Default expectation is already set for the Repository.UpdateZone method")
+	}
+
+	if len(mmUpdateZone.expectations) > 0 {
+		mmUpdateZone.mock.t.Fatalf("Some expectations are already set for the Repository.UpdateZone method")
+	}
+
+	mmUpdateZone.mock.funcUpdateZone = f
+	mmUpdateZone.mock.funcUpdateZoneOrigin = minimock.CallerInfo(1)
+	return mmUpdateZone.mock
+}
+
+// When sets expectation for the Repository.UpdateZone which will trigger the result defined by the following
+// Then helper
+func (mmUpdateZone *mRepositoryMockUpdateZone) When(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch) *RepositoryMockUpdateZoneExpectation {
+	if mmUpdateZone.mock.funcUpdateZone != nil {
+		mmUpdateZone.mock.t.Fatalf("RepositoryMock.UpdateZone mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockUpdateZoneExpectation{
+		mock:               mmUpdateZone.mock,
+		params:             &RepositoryMockUpdateZoneParams{ctx, territorySlug, id, p},
+		expectationOrigins: RepositoryMockUpdateZoneExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmUpdateZone.expectations = append(mmUpdateZone.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.UpdateZone return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockUpdateZoneExpectation) Then(z1 domain.Zone, err error) *RepositoryMock {
+	e.results = &RepositoryMockUpdateZoneResults{z1, err}
+	return e.mock
+}
+
+// Times sets number of times Repository.UpdateZone should be invoked
+func (mmUpdateZone *mRepositoryMockUpdateZone) Times(n uint64) *mRepositoryMockUpdateZone {
+	if n == 0 {
+		mmUpdateZone.mock.t.Fatalf("Times of RepositoryMock.UpdateZone mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmUpdateZone.expectedInvocations, n)
+	mmUpdateZone.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmUpdateZone
+}
+
+func (mmUpdateZone *mRepositoryMockUpdateZone) invocationsDone() bool {
+	if len(mmUpdateZone.expectations) == 0 && mmUpdateZone.defaultExpectation == nil && mmUpdateZone.mock.funcUpdateZone == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmUpdateZone.mock.afterUpdateZoneCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmUpdateZone.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// UpdateZone implements mm_service.Repository
+func (mmUpdateZone *RepositoryMock) UpdateZone(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch) (z1 domain.Zone, err error) {
+	mm_atomic.AddUint64(&mmUpdateZone.beforeUpdateZoneCounter, 1)
+	defer mm_atomic.AddUint64(&mmUpdateZone.afterUpdateZoneCounter, 1)
+
+	mmUpdateZone.t.Helper()
+
+	if mmUpdateZone.inspectFuncUpdateZone != nil {
+		mmUpdateZone.inspectFuncUpdateZone(ctx, territorySlug, id, p)
+	}
+
+	mm_params := RepositoryMockUpdateZoneParams{ctx, territorySlug, id, p}
+
+	// Record call args
+	mmUpdateZone.UpdateZoneMock.mutex.Lock()
+	mmUpdateZone.UpdateZoneMock.callArgs = append(mmUpdateZone.UpdateZoneMock.callArgs, &mm_params)
+	mmUpdateZone.UpdateZoneMock.mutex.Unlock()
+
+	for _, e := range mmUpdateZone.UpdateZoneMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.z1, e.results.err
+		}
+	}
+
+	if mmUpdateZone.UpdateZoneMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmUpdateZone.UpdateZoneMock.defaultExpectation.Counter, 1)
+		mm_want := mmUpdateZone.UpdateZoneMock.defaultExpectation.params
+		mm_want_ptrs := mmUpdateZone.UpdateZoneMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockUpdateZoneParams{ctx, territorySlug, id, p}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmUpdateZone.t.Errorf("RepositoryMock.UpdateZone got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateZone.UpdateZoneMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmUpdateZone.t.Errorf("RepositoryMock.UpdateZone got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateZone.UpdateZoneMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
+				mmUpdateZone.t.Errorf("RepositoryMock.UpdateZone got unexpected parameter id, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateZone.UpdateZoneMock.defaultExpectation.expectationOrigins.originId, *mm_want_ptrs.id, mm_got.id, minimock.Diff(*mm_want_ptrs.id, mm_got.id))
+			}
+
+			if mm_want_ptrs.p != nil && !minimock.Equal(*mm_want_ptrs.p, mm_got.p) {
+				mmUpdateZone.t.Errorf("RepositoryMock.UpdateZone got unexpected parameter p, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateZone.UpdateZoneMock.defaultExpectation.expectationOrigins.originP, *mm_want_ptrs.p, mm_got.p, minimock.Diff(*mm_want_ptrs.p, mm_got.p))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmUpdateZone.t.Errorf("RepositoryMock.UpdateZone got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmUpdateZone.UpdateZoneMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmUpdateZone.UpdateZoneMock.defaultExpectation.results
+		if mm_results == nil {
+			mmUpdateZone.t.Fatal("No results are set for the RepositoryMock.UpdateZone")
+		}
+		return (*mm_results).z1, (*mm_results).err
+	}
+	if mmUpdateZone.funcUpdateZone != nil {
+		return mmUpdateZone.funcUpdateZone(ctx, territorySlug, id, p)
+	}
+	mmUpdateZone.t.Fatalf("Unexpected call to RepositoryMock.UpdateZone. %v %v %v %v", ctx, territorySlug, id, p)
+	return
+}
+
+// UpdateZoneAfterCounter returns a count of finished RepositoryMock.UpdateZone invocations
+func (mmUpdateZone *RepositoryMock) UpdateZoneAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdateZone.afterUpdateZoneCounter)
+}
+
+// UpdateZoneBeforeCounter returns a count of RepositoryMock.UpdateZone invocations
+func (mmUpdateZone *RepositoryMock) UpdateZoneBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdateZone.beforeUpdateZoneCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.UpdateZone.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmUpdateZone *mRepositoryMockUpdateZone) Calls() []*RepositoryMockUpdateZoneParams {
+	mmUpdateZone.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockUpdateZoneParams, len(mmUpdateZone.callArgs))
+	copy(argCopy, mmUpdateZone.callArgs)
+
+	mmUpdateZone.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockUpdateZoneDone returns true if the count of the UpdateZone invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockUpdateZoneDone() bool {
+	if m.UpdateZoneMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.UpdateZoneMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.UpdateZoneMock.invocationsDone()
+}
+
+// MinimockUpdateZoneInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockUpdateZoneInspect() {
+	for _, e := range m.UpdateZoneMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.UpdateZone at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterUpdateZoneCounter := mm_atomic.LoadUint64(&m.afterUpdateZoneCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.UpdateZoneMock.defaultExpectation != nil && afterUpdateZoneCounter < 1 {
+		if m.UpdateZoneMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.UpdateZone at\n%s", m.UpdateZoneMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.UpdateZone at\n%s with params: %#v", m.UpdateZoneMock.defaultExpectation.expectationOrigins.origin, *m.UpdateZoneMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcUpdateZone != nil && afterUpdateZoneCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.UpdateZone at\n%s", m.funcUpdateZoneOrigin)
+	}
+
+	if !m.UpdateZoneMock.invocationsDone() && afterUpdateZoneCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.UpdateZone at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.UpdateZoneMock.expectedInvocations), m.UpdateZoneMock.expectedInvocationsOrigin, afterUpdateZoneCounter)
+	}
+}
+
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *RepositoryMock) MinimockFinish() {
 	m.finishOnce.Do(func() {
@@ -17500,6 +19035,8 @@ func (m *RepositoryMock) MinimockFinish() {
 
 			m.MinimockCreateTerritoryInspect()
 
+			m.MinimockCreateZoneInspect()
+
 			m.MinimockDeleteMeasurementInspect()
 
 			m.MinimockDeleteMeasurementsInspect()
@@ -17513,6 +19050,8 @@ func (m *RepositoryMock) MinimockFinish() {
 			m.MinimockDeleteTerritoryInspect()
 
 			m.MinimockDeleteTerritoryArtifactsInspect()
+
+			m.MinimockDeleteZoneInspect()
 
 			m.MinimockGetModelInspect()
 
@@ -17543,6 +19082,8 @@ func (m *RepositoryMock) MinimockFinish() {
 			m.MinimockListTerritoryAdminsInspect()
 
 			m.MinimockListTerritoryArtifactsInspect()
+
+			m.MinimockListZonesInspect()
 
 			m.MinimockPlacementBatchInspect()
 
@@ -17581,6 +19122,8 @@ func (m *RepositoryMock) MinimockFinish() {
 			m.MinimockUpdatePlacementInspect()
 
 			m.MinimockUpdateTerritoryInspect()
+
+			m.MinimockUpdateZoneInspect()
 		}
 	})
 }
@@ -17610,6 +19153,7 @@ func (m *RepositoryMock) minimockDone() bool {
 		m.MinimockCreatePlacementGroupDone() &&
 		m.MinimockCreatePlacementsDone() &&
 		m.MinimockCreateTerritoryDone() &&
+		m.MinimockCreateZoneDone() &&
 		m.MinimockDeleteMeasurementDone() &&
 		m.MinimockDeleteMeasurementsDone() &&
 		m.MinimockDeleteModelDone() &&
@@ -17617,6 +19161,7 @@ func (m *RepositoryMock) minimockDone() bool {
 		m.MinimockDeletePlacementGroupDone() &&
 		m.MinimockDeleteTerritoryDone() &&
 		m.MinimockDeleteTerritoryArtifactsDone() &&
+		m.MinimockDeleteZoneDone() &&
 		m.MinimockGetModelDone() &&
 		m.MinimockGetModelArtifactDone() &&
 		m.MinimockGetTerritoryDone() &&
@@ -17632,6 +19177,7 @@ func (m *RepositoryMock) minimockDone() bool {
 		m.MinimockListTerritoriesDone() &&
 		m.MinimockListTerritoryAdminsDone() &&
 		m.MinimockListTerritoryArtifactsDone() &&
+		m.MinimockListZonesDone() &&
 		m.MinimockPlacementBatchDone() &&
 		m.MinimockRegisterModelArtifactDone() &&
 		m.MinimockRegisterTerritoryArtifactDone() &&
@@ -17650,5 +19196,6 @@ func (m *RepositoryMock) minimockDone() bool {
 		m.MinimockUpdateMeasurementDone() &&
 		m.MinimockUpdateModelDone() &&
 		m.MinimockUpdatePlacementDone() &&
-		m.MinimockUpdateTerritoryDone()
+		m.MinimockUpdateTerritoryDone() &&
+		m.MinimockUpdateZoneDone()
 }

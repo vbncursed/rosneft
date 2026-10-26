@@ -67,6 +67,11 @@ type Service interface {
 	UpdateMeasurement(ctx context.Context, m domain.Measurement) (domain.Measurement, error)
 	DeleteMeasurement(ctx context.Context, territorySlug string, id int64) error
 	DeleteMeasurements(ctx context.Context, territorySlug string) (int, error)
+
+	ListZones(ctx context.Context, territorySlug string) ([]domain.Zone, error)
+	CreateZone(ctx context.Context, territorySlug string, z domain.ZoneCreate) (domain.Zone, error)
+	UpdateZone(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch) (domain.Zone, error)
+	DeleteZone(ctx context.Context, territorySlug string, id int64) error
 }
 
 // Server implements catalogv1.CatalogServiceServer over a Service.
@@ -96,6 +101,7 @@ var statusByCode = map[codes.Code][]error{
 		domain.ErrPlacementNotFound,
 		domain.ErrMeasurementNotFound,
 		domain.ErrPlacementGroupNotFound,
+		domain.ErrZoneNotFound,
 	},
 }
 
