@@ -60,7 +60,7 @@ func (s *EnsureTriggersSuite) TearDownSuite() {
 // Each test starts from "audit has migrated, nobody else has". Dropping the
 // table drops its trigger with it.
 func (s *EnsureTriggersSuite) SetupTest() {
-	_, err := s.pool.Exec(s.T().Context(), `DROP TABLE IF EXISTS territories, measurements, placement_groups, panorama_phase_visibility`)
+	_, err := s.pool.Exec(s.T().Context(), `DROP TABLE IF EXISTS territories, measurements, placement_groups, panorama_phase_visibility, model_tags, site_zones, site_zone_tags, document_calibration_points`)
 	assert.NilError(s.T(), err)
 }
 
@@ -214,4 +214,80 @@ func (s *EnsureTriggersSuite) TestAttachesToPanoramaPhaseVisibilityWithNoIDOrLab
 	assert.Assert(s.T(), entityID == nil)
 	assert.Assert(s.T(), label == nil)
 	assert.Equal(s.T(), phase, "post")
+}
+
+// The site-zone tables are journalled like their catalog siblings: each write
+// lands exactly one row, in order. site_zone_tags and document_calibration_points
+// are composite-key joins, so their entries carry neither id nor label.
+func (s *EnsureTriggersSuite) TestSiteZoneTriggersFire() {
+	ctx := s.T().Context()
+	_, err := s.pool.Exec(ctx, `
+		CREATE TABLE model_tags (id BIGSERIAL PRIMARY KEY, title TEXT NOT NULL);
+		CREATE TABLE site_zones (id BIGSERIAL PRIMARY KEY, title TEXT NOT NULL);
+		CREATE TABLE site_zone_tags (
+			zone_id BIGINT NOT NULL,
+			tag_id BIGINT NOT NULL,
+			PRIMARY KEY (zone_id, tag_id));
+		CREATE TABLE document_calibration_points (
+			document_id BIGINT NOT NULL,
+			idx INT NOT NULL,
+			utm_e DOUBLE PRECISION,
+			utm_n DOUBLE PRECISION,
+			PRIMARY KEY (document_id, idx))`)
+	assert.NilError(s.T(), err)
+
+	var attached int
+	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT ensure_audit_triggers()`).Scan(&attached))
+	assert.Equal(s.T(), attached, 4)
+
+	writes := []string{
+		`INSERT INTO model_tags (title) VALUES ('Pipes')`,
+		`UPDATE model_tags SET title = 'Valves'`,
+		`DELETE FROM model_tags`,
+		`INSERT INTO site_zones (title) VALUES ('North')`,
+		`UPDATE site_zones SET title = 'South'`,
+		`DELETE FROM site_zones`,
+		`INSERT INTO site_zone_tags VALUES (1, 1)`,
+		`DELETE FROM site_zone_tags`,
+		`INSERT INTO document_calibration_points VALUES (7, 0, 1.0, 2.0)`,
+		`UPDATE document_calibration_points SET utm_e = 3.0`,
+		`DELETE FROM document_calibration_points`,
+	}
+	for _, stmt := range writes {
+		_, err := s.pool.Exec(ctx, stmt)
+		assert.NilError(s.T(), err, stmt)
+	}
+
+	actionsOf := func(entity string) []string {
+		rows, err := s.pool.Query(ctx,
+			`SELECT action FROM audit_log WHERE entity = $1 ORDER BY id`, entity)
+		assert.NilError(s.T(), err)
+		defer rows.Close()
+		var out []string
+		for rows.Next() {
+			var a string
+			assert.NilError(s.T(), rows.Scan(&a))
+			out = append(out, a)
+		}
+		assert.NilError(s.T(), rows.Err())
+		return out
+	}
+	assert.DeepEqual(s.T(), actionsOf("model_tag"),
+		[]string{"model_tag.insert", "model_tag.update", "model_tag.delete"})
+	assert.DeepEqual(s.T(), actionsOf("zone"),
+		[]string{"zone.insert", "zone.update", "zone.delete"})
+	assert.DeepEqual(s.T(), actionsOf("zone_tag"),
+		[]string{"zone_tag.insert", "zone_tag.delete"})
+	assert.DeepEqual(s.T(), actionsOf("calibration"),
+		[]string{"calibration.insert", "calibration.update", "calibration.delete"})
+
+	var label string
+	assert.NilError(s.T(), s.pool.QueryRow(ctx,
+		`SELECT entity_label FROM audit_log WHERE entity = 'zone' AND action = 'zone.insert'`).Scan(&label))
+	assert.Equal(s.T(), label, "North")
+
+	var zoneTagLabel *string
+	assert.NilError(s.T(), s.pool.QueryRow(ctx,
+		`SELECT entity_label FROM audit_log WHERE entity = 'zone_tag' LIMIT 1`).Scan(&zoneTagLabel))
+	assert.Assert(s.T(), zoneTagLabel == nil)
 }
