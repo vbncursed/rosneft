@@ -164,3 +164,12 @@ func TestCollectRefsSkipsModelTagRows(t *testing.T) {
 
 	assert.Equal(t, len(collectRefs(entries)), 0)
 }
+
+func TestCollectRefsNamesAModelsTag(t *testing.T) {
+	entries := []domain.AuditEntry{{Entity: "model", OldRow: `{"id":4,"tag_id":1}`, NewRow: `{"id":4,"tag_id":3}`}}
+
+	got := collectRefs(entries)
+
+	assert.Assert(t, hasRef(got, "model_tag", "1"))
+	assert.Assert(t, hasRef(got, "model_tag", "3"))
+}

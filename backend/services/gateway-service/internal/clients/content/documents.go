@@ -39,7 +39,7 @@ func (c *Client) CreateDocument(ctx context.Context, d domain.Document) (domain.
 func (c *Client) DeleteDocument(ctx context.Context, territorySlug string, id int64) error {
 	_, err := c.cc.DeleteDocument(ctx, &contentv1.DeleteDocumentRequest{Id: id, TerritorySlug: territorySlug})
 	if err != nil {
-		return fmt.Errorf("content.DeleteDocument: %w", grpcerr.MapStatus(err, domain.ErrDocumentNotFound))
+		return grpcerr.Refused("content.DeleteDocument", err, domain.ErrDocumentNotFound, domain.ErrTerritoryNotFound)
 	}
 	return nil
 }

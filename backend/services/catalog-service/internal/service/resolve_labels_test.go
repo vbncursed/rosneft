@@ -134,3 +134,22 @@ func (s *ResolveLabelsSuite) TestPlacementGroupIsAKind() {
 	assert.DeepEqual(s.T(), seen["placement_group"], []int64{4})
 	assert.Equal(s.T(), got["placement_group:4"], "North")
 }
+
+// Zones, model tags and documents appear in the journal by id (zone_tag,
+// models.tag_id, calibration points): each is a kind catalog can name.
+func (s *ResolveLabelsSuite) TestZoneTagAndDocumentAreKinds() {
+	var seen map[string][]int64
+	s.repo.ResolveLabelsMock.Set(
+		func(_ context.Context, byKind map[string][]int64) (map[string]string, error) {
+			seen = byKind
+			return map[string]string{"zone:7": "Camp", "model_tag:3": "Power generation", "document:9": "Plan"}, nil
+		})
+
+	got, err := s.svc.ResolveLabels(s.ctx, []domain.LabelRef{
+		{Kind: "zone", ID: 7}, {Kind: "model_tag", ID: 3}, {Kind: "document", ID: 9},
+	})
+
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), seen, map[string][]int64{"zone": {7}, "model_tag": {3}, "document": {9}})
+	assert.Equal(s.T(), got["document:9"], "Plan")
+}

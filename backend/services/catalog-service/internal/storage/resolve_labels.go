@@ -11,12 +11,16 @@ import (
 // panoramas is owned by content-service, not catalog. It lives in the same
 // shared DB and catalog already reads it read-only to validate placement
 // visibility allowlists (see ListPanoramaIDs); naming one of its rows is the
-// same kind of read, and it saves the audit path a second client.
+// same kind of read, and it saves the audit path a second client. The same goes
+// for territory_documents (a document is named by its title).
 var labelQueries = map[string]string{
 	"territory":       `SELECT id, slug FROM territories WHERE id = ANY($1)`,
 	"model":           `SELECT id, slug FROM models WHERE id = ANY($1)`,
 	"panorama":        `SELECT id, slug FROM panoramas WHERE id = ANY($1)`,
 	"placement_group": `SELECT id, title FROM placement_groups WHERE id = ANY($1)`,
+	"zone":            `SELECT id, title FROM site_zones WHERE id = ANY($1)`,
+	"model_tag":       `SELECT id, title FROM model_tags WHERE id = ANY($1)`,
+	"document":        `SELECT id, title FROM territory_documents WHERE id = ANY($1)`,
 }
 
 // ResolveLabels names ids per kind, keyed "<kind>:<id>". The service has

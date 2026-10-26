@@ -27,6 +27,8 @@ var refFields = map[string]map[string]string{
 		"visible_panorama_ids": "panorama",
 		"group_id":             "placement_group",
 	},
+	// A re-tag changes models.tag_id; the journal shows the tag's name.
+	"model": {"tag_id": "model_tag"},
 	// created_by is the author's uuid; it names a user wherever it appears.
 	"measurement":     {"territory_id": "territory", "created_by": "user"},
 	"placement_group": {"territory_id": "territory"},

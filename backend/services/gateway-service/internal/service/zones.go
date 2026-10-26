@@ -29,7 +29,7 @@ func (g *Gateway) CreateZone(ctx context.Context, territorySlug string, z domain
 
 // UpdateZone renames a zone or replaces its tags.
 func (g *Gateway) UpdateZone(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch) (domain.Zone, error) {
-	if err := checkZoneAddress(territorySlug, id); err != nil {
+	if err := checkAddress(territorySlug, id); err != nil {
 		return domain.Zone{}, err
 	}
 	return g.catalog.UpdateZone(ctx, territorySlug, id, p)
@@ -37,13 +37,13 @@ func (g *Gateway) UpdateZone(ctx context.Context, territorySlug string, id int64
 
 // DeleteZone removes a zone.
 func (g *Gateway) DeleteZone(ctx context.Context, territorySlug string, id int64) error {
-	if err := checkZoneAddress(territorySlug, id); err != nil {
+	if err := checkAddress(territorySlug, id); err != nil {
 		return err
 	}
 	return g.catalog.DeleteZone(ctx, territorySlug, id)
 }
 
-func checkZoneAddress(territorySlug string, id int64) error {
+func checkAddress(territorySlug string, id int64) error {
 	if territorySlug == "" {
 		return fmt.Errorf("%w: empty territory slug", domain.ErrInvalidInput)
 	}

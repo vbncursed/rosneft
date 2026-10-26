@@ -3,6 +3,7 @@
 package storage_test
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -196,4 +197,28 @@ func (s *ZonesSuite) TestDeleteTerritoryCascadesZones() {
 	listed, err := s.pg.ListZones(ctx, "a")
 	assert.NilError(s.T(), err)
 	assert.DeepEqual(s.T(), listed, []domain.Zone{survivor})
+}
+
+// The journal names zone_tag.zone_id, models.tag_id and a calibration's
+// document_id by the title of the row they point at; territory_documents is
+// content-owned but shares this database.
+func (s *ZonesSuite) TestResolveLabelsNamesZonesTagsAndDocuments() {
+	ctx := s.T().Context()
+	z := s.create("a", "N2 Area", "power")
+	var tagID, docID int64
+	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT id FROM model_tags WHERE slug = 'power'`).Scan(&tagID))
+	assert.NilError(s.T(), s.pool.QueryRow(ctx,
+		`INSERT INTO territory_documents (territory_id, title, source_blob_hash)
+		 SELECT id, 'Site plan', repeat('a', 64) FROM territories WHERE slug = 'a' RETURNING id`).Scan(&docID))
+
+	got, err := s.pg.ResolveLabels(ctx, map[string][]int64{"zone": {z.ID}, "model_tag": {tagID}, "document": {docID}})
+
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), got, map[string]string{
+		"zone:" + strconv.FormatInt(z.ID, 10):       "N2 Area",
+		"model_tag:" + strconv.FormatInt(tagID, 10): "Power generation",
+		"document:" + strconv.FormatInt(docID, 10):  "Site plan",
+	})
+	_, err = s.pool.Exec(ctx, `DELETE FROM territory_documents WHERE id = $1`, docID)
+	assert.NilError(s.T(), err)
 }

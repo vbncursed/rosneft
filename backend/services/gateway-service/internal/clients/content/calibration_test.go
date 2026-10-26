@@ -38,6 +38,12 @@ func (c *calibrationCC) DeleteDocumentCalibration(
 	return &contentv1.DeleteDocumentCalibrationResponse{}, c.err
 }
 
+func (c *calibrationCC) DeleteDocument(
+	context.Context, *contentv1.DeleteDocumentRequest, ...grpc.CallOption,
+) (*contentv1.DeleteDocumentResponse, error) {
+	return &contentv1.DeleteDocumentResponse{}, c.err
+}
+
 type CalibrationSuite struct{ suite.Suite }
 
 func TestCalibrationSuite(t *testing.T) { suite.Run(t, new(CalibrationSuite)) }
@@ -88,4 +94,14 @@ func (s *CalibrationSuite) TestDocumentCarriesItsCalibrationOrNil() {
 		{PDF: domain.Vec2{X: 1}, UTM: &domain.UTM{E: 5, N: 6}},
 	}})
 	assert.Assert(s.T(), without.Calibration == nil)
+}
+
+// A 404 body is content's own words, starting at the sentinel: no gRPC framing.
+func (s *CalibrationSuite) TestDeleteDocumentNotFoundBodyHasNoRPCText() {
+	cc := &calibrationCC{err: status.Error(codes.NotFound, "document not found")}
+
+	err := (&Client{cc: cc}).DeleteDocument(s.T().Context(), "yard", 9)
+
+	assert.ErrorIs(s.T(), err, domain.ErrDocumentNotFound)
+	assert.Equal(s.T(), err.Error(), "document not found")
 }
