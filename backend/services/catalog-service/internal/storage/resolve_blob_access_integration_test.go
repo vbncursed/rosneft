@@ -109,8 +109,8 @@ func (s *BlobAccessSuite) seedTerritory(ctx context.Context, name, srcHash, admi
 func (s *BlobAccessSuite) seedModel(ctx context.Context, slug, src, thumb, glb string) {
 	var id int64
 	err := s.pool.QueryRow(ctx,
-		`INSERT INTO models (slug, title, source_blob_hash, thumbnail_blob_hash)
-		 VALUES ($1,$1,$2,$3) RETURNING id`, slug, src, thumb).Scan(&id)
+		`INSERT INTO models (slug, title, source_blob_hash, thumbnail_blob_hash, tag_id)
+		 VALUES ($1,$1,$2,$3, (SELECT id FROM model_tags WHERE slug = 'ungrouped')) RETURNING id`, slug, src, thumb).Scan(&id)
 	assert.NilError(s.T(), err)
 	_, err = s.pool.Exec(ctx,
 		`INSERT INTO model_artifacts

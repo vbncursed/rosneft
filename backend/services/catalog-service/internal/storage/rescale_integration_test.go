@@ -32,7 +32,7 @@ func (s *RescaleSuite) SetupSuite() {
 	s.ctr, s.pool = startCatalogDB(&s.Suite)
 	s.pg = storage.New(s.pool)
 	_, err := s.pool.Exec(s.T().Context(),
-		`INSERT INTO models (slug, title, source_blob_hash) VALUES ('pump', 'pump', 'pump')`)
+		`INSERT INTO models (slug, title, source_blob_hash, tag_id) VALUES ('pump', 'pump', 'pump', (SELECT id FROM model_tags WHERE slug = 'ungrouped'))`)
 	assert.NilError(s.T(), err)
 }
 

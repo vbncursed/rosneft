@@ -43,6 +43,10 @@ type Repository interface {
 	GetModel(ctx context.Context, slug string) (domain.Model, error)
 	ListModels(ctx context.Context, withArtifacts bool) ([]domain.Model, error)
 	DeleteModel(ctx context.Context, slug string) error
+	ListModelTags(ctx context.Context) ([]domain.ModelTag, error)
+	// ResolveModelTags answers the tags for slugs, in no particular order; a
+	// slug with no tag is simply absent, and the caller decides what that means.
+	ResolveModelTags(ctx context.Context, slugs []string) ([]domain.ModelTag, error)
 	RegisterModelArtifact(ctx context.Context, a domain.Artifact) (domain.Artifact, error)
 	GetModelArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)
 	ListModelArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)

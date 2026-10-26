@@ -73,7 +73,7 @@ func (s *ModelsSuite) TestUpsertRejectsShellMetacharactersInSourceHash() {
 // legitimately means "no thumbnail" when empty (see openapi.yaml's
 // ModelUpdate.thumbnailBlobHash: "empty string clears it").
 func (s *ModelsSuite) TestUpsertAllowsEmptyThumbnailHash() {
-	in := domain.Model{Slug: "m1", Title: "Box", SourceBlobHash: validBlobHash}
+	in := domain.Model{Slug: "m1", Title: "Box", SourceBlobHash: validBlobHash, Tag: campTag}
 	s.repo.CreateModelMock.Expect(s.ctx, in).Return(in, nil)
 	_, err := s.svc.UpsertModel(s.ctx, in)
 	assert.NilError(s.T(), err)
@@ -88,7 +88,7 @@ func (s *ModelsSuite) TestUpsertRejectsMalformedThumbnailHash() {
 
 // An explicit slug is a plain insert under that slug (see the territory test).
 func (s *ModelsSuite) TestUpsertForwardsValidInput() {
-	in := domain.Model{Slug: "m1", Title: "Box", SourceBlobHash: validBlobHash}
+	in := domain.Model{Slug: "m1", Title: "Box", SourceBlobHash: validBlobHash, Tag: campTag}
 	s.repo.CreateModelMock.Expect(s.ctx, in).Return(in, nil)
 	out, err := s.svc.UpsertModel(s.ctx, in)
 	assert.NilError(s.T(), err)
@@ -96,16 +96,16 @@ func (s *ModelsSuite) TestUpsertForwardsValidInput() {
 }
 
 func (s *ModelsSuite) TestAnExplicitSlugTakenIsAConflict() {
-	in := domain.Model{Slug: "m1", Title: "Box", SourceBlobHash: validBlobHash}
+	in := domain.Model{Slug: "m1", Title: "Box", SourceBlobHash: validBlobHash, Tag: campTag}
 	s.repo.CreateModelMock.Expect(s.ctx, in).Return(domain.Model{}, domain.ErrSlugConflict)
 	_, err := s.svc.UpsertModel(s.ctx, in)
 	assert.ErrorIs(s.T(), err, domain.ErrSlugConflict)
 }
 
 func (s *ModelsSuite) TestCreateGeneratesSlugFromTitle() {
-	in := domain.Model{Title: "Насос K-200", SourceBlobHash: validBlobHash}
+	in := domain.Model{Title: "Насос K-200", SourceBlobHash: validBlobHash, Tag: campTag}
 	s.repo.CreateModelMock.
-		Expect(s.ctx, domain.Model{Slug: "nasos-k-200", Title: "Насос K-200", SourceBlobHash: validBlobHash}).
+		Expect(s.ctx, domain.Model{Slug: "nasos-k-200", Title: "Насос K-200", SourceBlobHash: validBlobHash, Tag: campTag}).
 		Return(domain.Model{Slug: "nasos-k-200"}, nil)
 	out, err := s.svc.UpsertModel(s.ctx, in)
 	assert.NilError(s.T(), err)
@@ -113,12 +113,12 @@ func (s *ModelsSuite) TestCreateGeneratesSlugFromTitle() {
 }
 
 func (s *ModelsSuite) TestCreateResolvesSlugCollision() {
-	taken := domain.Model{Slug: "box", Title: "Box", SourceBlobHash: validBlobHash}
-	free := domain.Model{Slug: "box-2", Title: "Box", SourceBlobHash: validBlobHash}
+	taken := domain.Model{Slug: "box", Title: "Box", SourceBlobHash: validBlobHash, Tag: campTag}
+	free := domain.Model{Slug: "box-2", Title: "Box", SourceBlobHash: validBlobHash, Tag: campTag}
 	s.repo.CreateModelMock.When(s.ctx, taken).Then(domain.Model{}, domain.ErrSlugConflict)
 	s.repo.CreateModelMock.When(s.ctx, free).Then(domain.Model{Slug: "box-2"}, nil)
 
-	out, err := s.svc.UpsertModel(s.ctx, domain.Model{Title: "Box", SourceBlobHash: validBlobHash})
+	out, err := s.svc.UpsertModel(s.ctx, domain.Model{Title: "Box", SourceBlobHash: validBlobHash, Tag: campTag})
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), out.Slug, "box-2")
 }
@@ -189,4 +189,50 @@ func (s *ModelsSuite) TestUpdateRefusesBadInputBeforeWriting() {
 			assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
 		})
 	}
+}
+
+var campTag = domain.ModelTag{Slug: "camp", Title: "Camp & accommodation"}
+
+func (s *ModelsSuite) TestUpsertModelRejectsMissingTag() {
+	_, err := s.svc.UpsertModel(s.ctx, domain.Model{Slug: "m1", Title: "Box", SourceBlobHash: validBlobHash})
+	assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
+	assert.ErrorContains(s.T(), err, "unknown model tag")
+	assert.Equal(s.T(), s.repo.CreateModelAfterCounter(), uint64(0))
+}
+
+func (s *ModelsSuite) TestUpsertModelPassesTagSlug() {
+	in := domain.Model{Slug: "m1", Title: "Box", SourceBlobHash: validBlobHash, Tag: domain.ModelTag{Slug: "camp"}}
+	s.repo.CreateModelMock.Expect(s.ctx, in).Return(domain.Model{Slug: "m1", Tag: campTag}, nil)
+	out, err := s.svc.UpsertModel(s.ctx, in)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), out.Tag, campTag)
+}
+
+func (s *ModelsSuite) TestUpdateModelChangesTag() {
+	patch := domain.ModelPatch{TagSlug: new("camp")}
+	s.repo.UpdateModelMock.Expect(s.ctx, "m1", patch).Return(domain.Model{Slug: "m1", Tag: campTag}, nil)
+	out, err := s.svc.UpdateModel(s.ctx, "m1", patch)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), out.Tag.Slug, "camp")
+}
+
+func (s *ModelsSuite) TestUpdateModelEmptyTagRejected() {
+	_, err := s.svc.UpdateModel(s.ctx, "m1", domain.ModelPatch{TagSlug: new("")})
+	assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
+	assert.ErrorContains(s.T(), err, "unknown model tag")
+}
+
+func (s *ModelsSuite) TestListModelTagsUngroupedLast() {
+	s.repo.ListModelTagsMock.Expect(s.ctx).Return([]domain.ModelTag{
+		{Slug: "ungrouped", Title: "Ungrouped"},
+		{Slug: "power", Title: "Power generation"},
+		{Slug: "camp", Title: "Camp & accommodation"},
+	}, nil)
+	got, err := s.svc.ListModelTags(s.ctx)
+	assert.NilError(s.T(), err)
+	slugs := make([]string, len(got))
+	for i, t := range got {
+		slugs[i] = t.Slug
+	}
+	assert.DeepEqual(s.T(), slugs, []string{"camp", "power", "ungrouped"})
 }

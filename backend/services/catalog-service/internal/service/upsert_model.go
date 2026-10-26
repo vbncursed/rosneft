@@ -19,6 +19,9 @@ func (c *Catalog) UpsertModel(ctx context.Context, m domain.Model) (domain.Model
 	if err := validateBlobHash(m.ThumbnailBlobHash, false); err != nil {
 		return domain.Model{}, fmt.Errorf("service.UpsertModel: %w", err)
 	}
+	if m.Tag.Slug == "" {
+		return domain.Model{}, fmt.Errorf("service.UpsertModel: %w: unknown model tag %q", domain.ErrInvalidInput, m.Tag.Slug)
+	}
 	if m.Slug != "" {
 		return c.repo.CreateModel(ctx, m)
 	}

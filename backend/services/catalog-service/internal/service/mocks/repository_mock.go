@@ -159,6 +159,13 @@ type RepositoryMock struct {
 	beforeListModelArtifactsCounter uint64
 	ListModelArtifactsMock          mRepositoryMockListModelArtifacts
 
+	funcListModelTags          func(ctx context.Context) (ma1 []domain.ModelTag, err error)
+	funcListModelTagsOrigin    string
+	inspectFuncListModelTags   func(ctx context.Context)
+	afterListModelTagsCounter  uint64
+	beforeListModelTagsCounter uint64
+	ListModelTagsMock          mRepositoryMockListModelTags
+
 	funcListModels          func(ctx context.Context, withArtifacts bool) (ma1 []domain.Model, err error)
 	funcListModelsOrigin    string
 	inspectFuncListModels   func(ctx context.Context, withArtifacts bool)
@@ -256,6 +263,13 @@ type RepositoryMock struct {
 	afterResolveLabelsCounter  uint64
 	beforeResolveLabelsCounter uint64
 	ResolveLabelsMock          mRepositoryMockResolveLabels
+
+	funcResolveModelTags          func(ctx context.Context, slugs []string) (ma1 []domain.ModelTag, err error)
+	funcResolveModelTagsOrigin    string
+	inspectFuncResolveModelTags   func(ctx context.Context, slugs []string)
+	afterResolveModelTagsCounter  uint64
+	beforeResolveModelTagsCounter uint64
+	ResolveModelTagsMock          mRepositoryMockResolveModelTags
 
 	funcResolveTerritorySlugs          func(ctx context.Context, ids []int64) (m1 map[int64]string, err error)
 	funcResolveTerritorySlugsOrigin    string
@@ -403,6 +417,9 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 	m.ListModelArtifactsMock = mRepositoryMockListModelArtifacts{mock: m}
 	m.ListModelArtifactsMock.callArgs = []*RepositoryMockListModelArtifactsParams{}
 
+	m.ListModelTagsMock = mRepositoryMockListModelTags{mock: m}
+	m.ListModelTagsMock.callArgs = []*RepositoryMockListModelTagsParams{}
+
 	m.ListModelsMock = mRepositoryMockListModels{mock: m}
 	m.ListModelsMock.callArgs = []*RepositoryMockListModelsParams{}
 
@@ -444,6 +461,9 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 
 	m.ResolveLabelsMock = mRepositoryMockResolveLabels{mock: m}
 	m.ResolveLabelsMock.callArgs = []*RepositoryMockResolveLabelsParams{}
+
+	m.ResolveModelTagsMock = mRepositoryMockResolveModelTags{mock: m}
+	m.ResolveModelTagsMock.callArgs = []*RepositoryMockResolveModelTagsParams{}
 
 	m.ResolveTerritorySlugsMock = mRepositoryMockResolveTerritorySlugs{mock: m}
 	m.ResolveTerritorySlugsMock.callArgs = []*RepositoryMockResolveTerritorySlugsParams{}
@@ -7585,6 +7605,318 @@ func (m *RepositoryMock) MinimockListModelArtifactsInspect() {
 	}
 }
 
+type mRepositoryMockListModelTags struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockListModelTagsExpectation
+	expectations       []*RepositoryMockListModelTagsExpectation
+
+	callArgs []*RepositoryMockListModelTagsParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockListModelTagsExpectation specifies expectation struct of the Repository.ListModelTags
+type RepositoryMockListModelTagsExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockListModelTagsParams
+	paramPtrs          *RepositoryMockListModelTagsParamPtrs
+	expectationOrigins RepositoryMockListModelTagsExpectationOrigins
+	results            *RepositoryMockListModelTagsResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockListModelTagsParams contains parameters of the Repository.ListModelTags
+type RepositoryMockListModelTagsParams struct {
+	ctx context.Context
+}
+
+// RepositoryMockListModelTagsParamPtrs contains pointers to parameters of the Repository.ListModelTags
+type RepositoryMockListModelTagsParamPtrs struct {
+	ctx *context.Context
+}
+
+// RepositoryMockListModelTagsResults contains results of the Repository.ListModelTags
+type RepositoryMockListModelTagsResults struct {
+	ma1 []domain.ModelTag
+	err error
+}
+
+// RepositoryMockListModelTagsOrigins contains origins of expectations of the Repository.ListModelTags
+type RepositoryMockListModelTagsExpectationOrigins struct {
+	origin    string
+	originCtx string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmListModelTags *mRepositoryMockListModelTags) Optional() *mRepositoryMockListModelTags {
+	mmListModelTags.optional = true
+	return mmListModelTags
+}
+
+// Expect sets up expected params for Repository.ListModelTags
+func (mmListModelTags *mRepositoryMockListModelTags) Expect(ctx context.Context) *mRepositoryMockListModelTags {
+	if mmListModelTags.mock.funcListModelTags != nil {
+		mmListModelTags.mock.t.Fatalf("RepositoryMock.ListModelTags mock is already set by Set")
+	}
+
+	if mmListModelTags.defaultExpectation == nil {
+		mmListModelTags.defaultExpectation = &RepositoryMockListModelTagsExpectation{}
+	}
+
+	if mmListModelTags.defaultExpectation.paramPtrs != nil {
+		mmListModelTags.mock.t.Fatalf("RepositoryMock.ListModelTags mock is already set by ExpectParams functions")
+	}
+
+	mmListModelTags.defaultExpectation.params = &RepositoryMockListModelTagsParams{ctx}
+	mmListModelTags.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmListModelTags.expectations {
+		if minimock.Equal(e.params, mmListModelTags.defaultExpectation.params) {
+			mmListModelTags.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmListModelTags.defaultExpectation.params)
+		}
+	}
+
+	return mmListModelTags
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.ListModelTags
+func (mmListModelTags *mRepositoryMockListModelTags) ExpectCtxParam1(ctx context.Context) *mRepositoryMockListModelTags {
+	if mmListModelTags.mock.funcListModelTags != nil {
+		mmListModelTags.mock.t.Fatalf("RepositoryMock.ListModelTags mock is already set by Set")
+	}
+
+	if mmListModelTags.defaultExpectation == nil {
+		mmListModelTags.defaultExpectation = &RepositoryMockListModelTagsExpectation{}
+	}
+
+	if mmListModelTags.defaultExpectation.params != nil {
+		mmListModelTags.mock.t.Fatalf("RepositoryMock.ListModelTags mock is already set by Expect")
+	}
+
+	if mmListModelTags.defaultExpectation.paramPtrs == nil {
+		mmListModelTags.defaultExpectation.paramPtrs = &RepositoryMockListModelTagsParamPtrs{}
+	}
+	mmListModelTags.defaultExpectation.paramPtrs.ctx = &ctx
+	mmListModelTags.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmListModelTags
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.ListModelTags
+func (mmListModelTags *mRepositoryMockListModelTags) Inspect(f func(ctx context.Context)) *mRepositoryMockListModelTags {
+	if mmListModelTags.mock.inspectFuncListModelTags != nil {
+		mmListModelTags.mock.t.Fatalf("Inspect function is already set for RepositoryMock.ListModelTags")
+	}
+
+	mmListModelTags.mock.inspectFuncListModelTags = f
+
+	return mmListModelTags
+}
+
+// Return sets up results that will be returned by Repository.ListModelTags
+func (mmListModelTags *mRepositoryMockListModelTags) Return(ma1 []domain.ModelTag, err error) *RepositoryMock {
+	if mmListModelTags.mock.funcListModelTags != nil {
+		mmListModelTags.mock.t.Fatalf("RepositoryMock.ListModelTags mock is already set by Set")
+	}
+
+	if mmListModelTags.defaultExpectation == nil {
+		mmListModelTags.defaultExpectation = &RepositoryMockListModelTagsExpectation{mock: mmListModelTags.mock}
+	}
+	mmListModelTags.defaultExpectation.results = &RepositoryMockListModelTagsResults{ma1, err}
+	mmListModelTags.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmListModelTags.mock
+}
+
+// Set uses given function f to mock the Repository.ListModelTags method
+func (mmListModelTags *mRepositoryMockListModelTags) Set(f func(ctx context.Context) (ma1 []domain.ModelTag, err error)) *RepositoryMock {
+	if mmListModelTags.defaultExpectation != nil {
+		mmListModelTags.mock.t.Fatalf("Default expectation is already set for the Repository.ListModelTags method")
+	}
+
+	if len(mmListModelTags.expectations) > 0 {
+		mmListModelTags.mock.t.Fatalf("Some expectations are already set for the Repository.ListModelTags method")
+	}
+
+	mmListModelTags.mock.funcListModelTags = f
+	mmListModelTags.mock.funcListModelTagsOrigin = minimock.CallerInfo(1)
+	return mmListModelTags.mock
+}
+
+// When sets expectation for the Repository.ListModelTags which will trigger the result defined by the following
+// Then helper
+func (mmListModelTags *mRepositoryMockListModelTags) When(ctx context.Context) *RepositoryMockListModelTagsExpectation {
+	if mmListModelTags.mock.funcListModelTags != nil {
+		mmListModelTags.mock.t.Fatalf("RepositoryMock.ListModelTags mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockListModelTagsExpectation{
+		mock:               mmListModelTags.mock,
+		params:             &RepositoryMockListModelTagsParams{ctx},
+		expectationOrigins: RepositoryMockListModelTagsExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmListModelTags.expectations = append(mmListModelTags.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.ListModelTags return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockListModelTagsExpectation) Then(ma1 []domain.ModelTag, err error) *RepositoryMock {
+	e.results = &RepositoryMockListModelTagsResults{ma1, err}
+	return e.mock
+}
+
+// Times sets number of times Repository.ListModelTags should be invoked
+func (mmListModelTags *mRepositoryMockListModelTags) Times(n uint64) *mRepositoryMockListModelTags {
+	if n == 0 {
+		mmListModelTags.mock.t.Fatalf("Times of RepositoryMock.ListModelTags mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmListModelTags.expectedInvocations, n)
+	mmListModelTags.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmListModelTags
+}
+
+func (mmListModelTags *mRepositoryMockListModelTags) invocationsDone() bool {
+	if len(mmListModelTags.expectations) == 0 && mmListModelTags.defaultExpectation == nil && mmListModelTags.mock.funcListModelTags == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmListModelTags.mock.afterListModelTagsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmListModelTags.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ListModelTags implements mm_service.Repository
+func (mmListModelTags *RepositoryMock) ListModelTags(ctx context.Context) (ma1 []domain.ModelTag, err error) {
+	mm_atomic.AddUint64(&mmListModelTags.beforeListModelTagsCounter, 1)
+	defer mm_atomic.AddUint64(&mmListModelTags.afterListModelTagsCounter, 1)
+
+	mmListModelTags.t.Helper()
+
+	if mmListModelTags.inspectFuncListModelTags != nil {
+		mmListModelTags.inspectFuncListModelTags(ctx)
+	}
+
+	mm_params := RepositoryMockListModelTagsParams{ctx}
+
+	// Record call args
+	mmListModelTags.ListModelTagsMock.mutex.Lock()
+	mmListModelTags.ListModelTagsMock.callArgs = append(mmListModelTags.ListModelTagsMock.callArgs, &mm_params)
+	mmListModelTags.ListModelTagsMock.mutex.Unlock()
+
+	for _, e := range mmListModelTags.ListModelTagsMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.ma1, e.results.err
+		}
+	}
+
+	if mmListModelTags.ListModelTagsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmListModelTags.ListModelTagsMock.defaultExpectation.Counter, 1)
+		mm_want := mmListModelTags.ListModelTagsMock.defaultExpectation.params
+		mm_want_ptrs := mmListModelTags.ListModelTagsMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockListModelTagsParams{ctx}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmListModelTags.t.Errorf("RepositoryMock.ListModelTags got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListModelTags.ListModelTagsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmListModelTags.t.Errorf("RepositoryMock.ListModelTags got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmListModelTags.ListModelTagsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmListModelTags.ListModelTagsMock.defaultExpectation.results
+		if mm_results == nil {
+			mmListModelTags.t.Fatal("No results are set for the RepositoryMock.ListModelTags")
+		}
+		return (*mm_results).ma1, (*mm_results).err
+	}
+	if mmListModelTags.funcListModelTags != nil {
+		return mmListModelTags.funcListModelTags(ctx)
+	}
+	mmListModelTags.t.Fatalf("Unexpected call to RepositoryMock.ListModelTags. %v", ctx)
+	return
+}
+
+// ListModelTagsAfterCounter returns a count of finished RepositoryMock.ListModelTags invocations
+func (mmListModelTags *RepositoryMock) ListModelTagsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListModelTags.afterListModelTagsCounter)
+}
+
+// ListModelTagsBeforeCounter returns a count of RepositoryMock.ListModelTags invocations
+func (mmListModelTags *RepositoryMock) ListModelTagsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListModelTags.beforeListModelTagsCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.ListModelTags.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmListModelTags *mRepositoryMockListModelTags) Calls() []*RepositoryMockListModelTagsParams {
+	mmListModelTags.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockListModelTagsParams, len(mmListModelTags.callArgs))
+	copy(argCopy, mmListModelTags.callArgs)
+
+	mmListModelTags.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockListModelTagsDone returns true if the count of the ListModelTags invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockListModelTagsDone() bool {
+	if m.ListModelTagsMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ListModelTagsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ListModelTagsMock.invocationsDone()
+}
+
+// MinimockListModelTagsInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockListModelTagsInspect() {
+	for _, e := range m.ListModelTagsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.ListModelTags at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterListModelTagsCounter := mm_atomic.LoadUint64(&m.afterListModelTagsCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ListModelTagsMock.defaultExpectation != nil && afterListModelTagsCounter < 1 {
+		if m.ListModelTagsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.ListModelTags at\n%s", m.ListModelTagsMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.ListModelTags at\n%s with params: %#v", m.ListModelTagsMock.defaultExpectation.expectationOrigins.origin, *m.ListModelTagsMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcListModelTags != nil && afterListModelTagsCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.ListModelTags at\n%s", m.funcListModelTagsOrigin)
+	}
+
+	if !m.ListModelTagsMock.invocationsDone() && afterListModelTagsCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.ListModelTags at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ListModelTagsMock.expectedInvocations), m.ListModelTagsMock.expectedInvocationsOrigin, afterListModelTagsCounter)
+	}
+}
+
 type mRepositoryMockListModels struct {
 	optional           bool
 	mock               *RepositoryMock
@@ -12635,6 +12967,349 @@ func (m *RepositoryMock) MinimockResolveLabelsInspect() {
 	}
 }
 
+type mRepositoryMockResolveModelTags struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockResolveModelTagsExpectation
+	expectations       []*RepositoryMockResolveModelTagsExpectation
+
+	callArgs []*RepositoryMockResolveModelTagsParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockResolveModelTagsExpectation specifies expectation struct of the Repository.ResolveModelTags
+type RepositoryMockResolveModelTagsExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockResolveModelTagsParams
+	paramPtrs          *RepositoryMockResolveModelTagsParamPtrs
+	expectationOrigins RepositoryMockResolveModelTagsExpectationOrigins
+	results            *RepositoryMockResolveModelTagsResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockResolveModelTagsParams contains parameters of the Repository.ResolveModelTags
+type RepositoryMockResolveModelTagsParams struct {
+	ctx   context.Context
+	slugs []string
+}
+
+// RepositoryMockResolveModelTagsParamPtrs contains pointers to parameters of the Repository.ResolveModelTags
+type RepositoryMockResolveModelTagsParamPtrs struct {
+	ctx   *context.Context
+	slugs *[]string
+}
+
+// RepositoryMockResolveModelTagsResults contains results of the Repository.ResolveModelTags
+type RepositoryMockResolveModelTagsResults struct {
+	ma1 []domain.ModelTag
+	err error
+}
+
+// RepositoryMockResolveModelTagsOrigins contains origins of expectations of the Repository.ResolveModelTags
+type RepositoryMockResolveModelTagsExpectationOrigins struct {
+	origin      string
+	originCtx   string
+	originSlugs string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmResolveModelTags *mRepositoryMockResolveModelTags) Optional() *mRepositoryMockResolveModelTags {
+	mmResolveModelTags.optional = true
+	return mmResolveModelTags
+}
+
+// Expect sets up expected params for Repository.ResolveModelTags
+func (mmResolveModelTags *mRepositoryMockResolveModelTags) Expect(ctx context.Context, slugs []string) *mRepositoryMockResolveModelTags {
+	if mmResolveModelTags.mock.funcResolveModelTags != nil {
+		mmResolveModelTags.mock.t.Fatalf("RepositoryMock.ResolveModelTags mock is already set by Set")
+	}
+
+	if mmResolveModelTags.defaultExpectation == nil {
+		mmResolveModelTags.defaultExpectation = &RepositoryMockResolveModelTagsExpectation{}
+	}
+
+	if mmResolveModelTags.defaultExpectation.paramPtrs != nil {
+		mmResolveModelTags.mock.t.Fatalf("RepositoryMock.ResolveModelTags mock is already set by ExpectParams functions")
+	}
+
+	mmResolveModelTags.defaultExpectation.params = &RepositoryMockResolveModelTagsParams{ctx, slugs}
+	mmResolveModelTags.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmResolveModelTags.expectations {
+		if minimock.Equal(e.params, mmResolveModelTags.defaultExpectation.params) {
+			mmResolveModelTags.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmResolveModelTags.defaultExpectation.params)
+		}
+	}
+
+	return mmResolveModelTags
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.ResolveModelTags
+func (mmResolveModelTags *mRepositoryMockResolveModelTags) ExpectCtxParam1(ctx context.Context) *mRepositoryMockResolveModelTags {
+	if mmResolveModelTags.mock.funcResolveModelTags != nil {
+		mmResolveModelTags.mock.t.Fatalf("RepositoryMock.ResolveModelTags mock is already set by Set")
+	}
+
+	if mmResolveModelTags.defaultExpectation == nil {
+		mmResolveModelTags.defaultExpectation = &RepositoryMockResolveModelTagsExpectation{}
+	}
+
+	if mmResolveModelTags.defaultExpectation.params != nil {
+		mmResolveModelTags.mock.t.Fatalf("RepositoryMock.ResolveModelTags mock is already set by Expect")
+	}
+
+	if mmResolveModelTags.defaultExpectation.paramPtrs == nil {
+		mmResolveModelTags.defaultExpectation.paramPtrs = &RepositoryMockResolveModelTagsParamPtrs{}
+	}
+	mmResolveModelTags.defaultExpectation.paramPtrs.ctx = &ctx
+	mmResolveModelTags.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmResolveModelTags
+}
+
+// ExpectSlugsParam2 sets up expected param slugs for Repository.ResolveModelTags
+func (mmResolveModelTags *mRepositoryMockResolveModelTags) ExpectSlugsParam2(slugs []string) *mRepositoryMockResolveModelTags {
+	if mmResolveModelTags.mock.funcResolveModelTags != nil {
+		mmResolveModelTags.mock.t.Fatalf("RepositoryMock.ResolveModelTags mock is already set by Set")
+	}
+
+	if mmResolveModelTags.defaultExpectation == nil {
+		mmResolveModelTags.defaultExpectation = &RepositoryMockResolveModelTagsExpectation{}
+	}
+
+	if mmResolveModelTags.defaultExpectation.params != nil {
+		mmResolveModelTags.mock.t.Fatalf("RepositoryMock.ResolveModelTags mock is already set by Expect")
+	}
+
+	if mmResolveModelTags.defaultExpectation.paramPtrs == nil {
+		mmResolveModelTags.defaultExpectation.paramPtrs = &RepositoryMockResolveModelTagsParamPtrs{}
+	}
+	mmResolveModelTags.defaultExpectation.paramPtrs.slugs = &slugs
+	mmResolveModelTags.defaultExpectation.expectationOrigins.originSlugs = minimock.CallerInfo(1)
+
+	return mmResolveModelTags
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.ResolveModelTags
+func (mmResolveModelTags *mRepositoryMockResolveModelTags) Inspect(f func(ctx context.Context, slugs []string)) *mRepositoryMockResolveModelTags {
+	if mmResolveModelTags.mock.inspectFuncResolveModelTags != nil {
+		mmResolveModelTags.mock.t.Fatalf("Inspect function is already set for RepositoryMock.ResolveModelTags")
+	}
+
+	mmResolveModelTags.mock.inspectFuncResolveModelTags = f
+
+	return mmResolveModelTags
+}
+
+// Return sets up results that will be returned by Repository.ResolveModelTags
+func (mmResolveModelTags *mRepositoryMockResolveModelTags) Return(ma1 []domain.ModelTag, err error) *RepositoryMock {
+	if mmResolveModelTags.mock.funcResolveModelTags != nil {
+		mmResolveModelTags.mock.t.Fatalf("RepositoryMock.ResolveModelTags mock is already set by Set")
+	}
+
+	if mmResolveModelTags.defaultExpectation == nil {
+		mmResolveModelTags.defaultExpectation = &RepositoryMockResolveModelTagsExpectation{mock: mmResolveModelTags.mock}
+	}
+	mmResolveModelTags.defaultExpectation.results = &RepositoryMockResolveModelTagsResults{ma1, err}
+	mmResolveModelTags.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmResolveModelTags.mock
+}
+
+// Set uses given function f to mock the Repository.ResolveModelTags method
+func (mmResolveModelTags *mRepositoryMockResolveModelTags) Set(f func(ctx context.Context, slugs []string) (ma1 []domain.ModelTag, err error)) *RepositoryMock {
+	if mmResolveModelTags.defaultExpectation != nil {
+		mmResolveModelTags.mock.t.Fatalf("Default expectation is already set for the Repository.ResolveModelTags method")
+	}
+
+	if len(mmResolveModelTags.expectations) > 0 {
+		mmResolveModelTags.mock.t.Fatalf("Some expectations are already set for the Repository.ResolveModelTags method")
+	}
+
+	mmResolveModelTags.mock.funcResolveModelTags = f
+	mmResolveModelTags.mock.funcResolveModelTagsOrigin = minimock.CallerInfo(1)
+	return mmResolveModelTags.mock
+}
+
+// When sets expectation for the Repository.ResolveModelTags which will trigger the result defined by the following
+// Then helper
+func (mmResolveModelTags *mRepositoryMockResolveModelTags) When(ctx context.Context, slugs []string) *RepositoryMockResolveModelTagsExpectation {
+	if mmResolveModelTags.mock.funcResolveModelTags != nil {
+		mmResolveModelTags.mock.t.Fatalf("RepositoryMock.ResolveModelTags mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockResolveModelTagsExpectation{
+		mock:               mmResolveModelTags.mock,
+		params:             &RepositoryMockResolveModelTagsParams{ctx, slugs},
+		expectationOrigins: RepositoryMockResolveModelTagsExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmResolveModelTags.expectations = append(mmResolveModelTags.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.ResolveModelTags return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockResolveModelTagsExpectation) Then(ma1 []domain.ModelTag, err error) *RepositoryMock {
+	e.results = &RepositoryMockResolveModelTagsResults{ma1, err}
+	return e.mock
+}
+
+// Times sets number of times Repository.ResolveModelTags should be invoked
+func (mmResolveModelTags *mRepositoryMockResolveModelTags) Times(n uint64) *mRepositoryMockResolveModelTags {
+	if n == 0 {
+		mmResolveModelTags.mock.t.Fatalf("Times of RepositoryMock.ResolveModelTags mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmResolveModelTags.expectedInvocations, n)
+	mmResolveModelTags.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmResolveModelTags
+}
+
+func (mmResolveModelTags *mRepositoryMockResolveModelTags) invocationsDone() bool {
+	if len(mmResolveModelTags.expectations) == 0 && mmResolveModelTags.defaultExpectation == nil && mmResolveModelTags.mock.funcResolveModelTags == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmResolveModelTags.mock.afterResolveModelTagsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmResolveModelTags.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ResolveModelTags implements mm_service.Repository
+func (mmResolveModelTags *RepositoryMock) ResolveModelTags(ctx context.Context, slugs []string) (ma1 []domain.ModelTag, err error) {
+	mm_atomic.AddUint64(&mmResolveModelTags.beforeResolveModelTagsCounter, 1)
+	defer mm_atomic.AddUint64(&mmResolveModelTags.afterResolveModelTagsCounter, 1)
+
+	mmResolveModelTags.t.Helper()
+
+	if mmResolveModelTags.inspectFuncResolveModelTags != nil {
+		mmResolveModelTags.inspectFuncResolveModelTags(ctx, slugs)
+	}
+
+	mm_params := RepositoryMockResolveModelTagsParams{ctx, slugs}
+
+	// Record call args
+	mmResolveModelTags.ResolveModelTagsMock.mutex.Lock()
+	mmResolveModelTags.ResolveModelTagsMock.callArgs = append(mmResolveModelTags.ResolveModelTagsMock.callArgs, &mm_params)
+	mmResolveModelTags.ResolveModelTagsMock.mutex.Unlock()
+
+	for _, e := range mmResolveModelTags.ResolveModelTagsMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.ma1, e.results.err
+		}
+	}
+
+	if mmResolveModelTags.ResolveModelTagsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmResolveModelTags.ResolveModelTagsMock.defaultExpectation.Counter, 1)
+		mm_want := mmResolveModelTags.ResolveModelTagsMock.defaultExpectation.params
+		mm_want_ptrs := mmResolveModelTags.ResolveModelTagsMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockResolveModelTagsParams{ctx, slugs}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmResolveModelTags.t.Errorf("RepositoryMock.ResolveModelTags got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmResolveModelTags.ResolveModelTagsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.slugs != nil && !minimock.Equal(*mm_want_ptrs.slugs, mm_got.slugs) {
+				mmResolveModelTags.t.Errorf("RepositoryMock.ResolveModelTags got unexpected parameter slugs, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmResolveModelTags.ResolveModelTagsMock.defaultExpectation.expectationOrigins.originSlugs, *mm_want_ptrs.slugs, mm_got.slugs, minimock.Diff(*mm_want_ptrs.slugs, mm_got.slugs))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmResolveModelTags.t.Errorf("RepositoryMock.ResolveModelTags got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmResolveModelTags.ResolveModelTagsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmResolveModelTags.ResolveModelTagsMock.defaultExpectation.results
+		if mm_results == nil {
+			mmResolveModelTags.t.Fatal("No results are set for the RepositoryMock.ResolveModelTags")
+		}
+		return (*mm_results).ma1, (*mm_results).err
+	}
+	if mmResolveModelTags.funcResolveModelTags != nil {
+		return mmResolveModelTags.funcResolveModelTags(ctx, slugs)
+	}
+	mmResolveModelTags.t.Fatalf("Unexpected call to RepositoryMock.ResolveModelTags. %v %v", ctx, slugs)
+	return
+}
+
+// ResolveModelTagsAfterCounter returns a count of finished RepositoryMock.ResolveModelTags invocations
+func (mmResolveModelTags *RepositoryMock) ResolveModelTagsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmResolveModelTags.afterResolveModelTagsCounter)
+}
+
+// ResolveModelTagsBeforeCounter returns a count of RepositoryMock.ResolveModelTags invocations
+func (mmResolveModelTags *RepositoryMock) ResolveModelTagsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmResolveModelTags.beforeResolveModelTagsCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.ResolveModelTags.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmResolveModelTags *mRepositoryMockResolveModelTags) Calls() []*RepositoryMockResolveModelTagsParams {
+	mmResolveModelTags.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockResolveModelTagsParams, len(mmResolveModelTags.callArgs))
+	copy(argCopy, mmResolveModelTags.callArgs)
+
+	mmResolveModelTags.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockResolveModelTagsDone returns true if the count of the ResolveModelTags invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockResolveModelTagsDone() bool {
+	if m.ResolveModelTagsMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ResolveModelTagsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ResolveModelTagsMock.invocationsDone()
+}
+
+// MinimockResolveModelTagsInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockResolveModelTagsInspect() {
+	for _, e := range m.ResolveModelTagsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.ResolveModelTags at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterResolveModelTagsCounter := mm_atomic.LoadUint64(&m.afterResolveModelTagsCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ResolveModelTagsMock.defaultExpectation != nil && afterResolveModelTagsCounter < 1 {
+		if m.ResolveModelTagsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.ResolveModelTags at\n%s", m.ResolveModelTagsMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.ResolveModelTags at\n%s with params: %#v", m.ResolveModelTagsMock.defaultExpectation.expectationOrigins.origin, *m.ResolveModelTagsMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcResolveModelTags != nil && afterResolveModelTagsCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.ResolveModelTags at\n%s", m.funcResolveModelTagsOrigin)
+	}
+
+	if !m.ResolveModelTagsMock.invocationsDone() && afterResolveModelTagsCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.ResolveModelTags at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ResolveModelTagsMock.expectedInvocations), m.ResolveModelTagsMock.expectedInvocationsOrigin, afterResolveModelTagsCounter)
+	}
+}
+
 type mRepositoryMockResolveTerritorySlugs struct {
 	optional           bool
 	mock               *RepositoryMock
@@ -16853,6 +17528,8 @@ func (m *RepositoryMock) MinimockFinish() {
 
 			m.MinimockListModelArtifactsInspect()
 
+			m.MinimockListModelTagsInspect()
+
 			m.MinimockListModelsInspect()
 
 			m.MinimockListPanoramaIDsInspect()
@@ -16880,6 +17557,8 @@ func (m *RepositoryMock) MinimockFinish() {
 			m.MinimockResolveBlobAccessInspect()
 
 			m.MinimockResolveLabelsInspect()
+
+			m.MinimockResolveModelTagsInspect()
 
 			m.MinimockResolveTerritorySlugsInspect()
 
@@ -16945,6 +17624,7 @@ func (m *RepositoryMock) minimockDone() bool {
 		m.MinimockGetTerritoryArtifactDone() &&
 		m.MinimockListMeasurementsDone() &&
 		m.MinimockListModelArtifactsDone() &&
+		m.MinimockListModelTagsDone() &&
 		m.MinimockListModelsDone() &&
 		m.MinimockListPanoramaIDsDone() &&
 		m.MinimockListPlacementGroupsDone() &&
@@ -16959,6 +17639,7 @@ func (m *RepositoryMock) minimockDone() bool {
 		m.MinimockRescaleTerritoryPlacementsDone() &&
 		m.MinimockResolveBlobAccessDone() &&
 		m.MinimockResolveLabelsDone() &&
+		m.MinimockResolveModelTagsDone() &&
 		m.MinimockResolveTerritorySlugsDone() &&
 		m.MinimockSetPlacementGroupHiddenDone() &&
 		m.MinimockSetPlacementVisibilityDone() &&

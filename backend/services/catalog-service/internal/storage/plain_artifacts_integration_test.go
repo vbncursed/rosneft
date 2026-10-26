@@ -74,7 +74,7 @@ func (s *PlainArtifactsSuite) seedTerritory(slug string) {
 
 func (s *PlainArtifactsSuite) seedModel(slug string) {
 	_, err := s.pool.Exec(s.T().Context(),
-		`INSERT INTO models (slug, title, source_blob_hash, thumbnail_blob_hash) VALUES ($1,$1,$2,'')`, slug, "src-"+slug)
+		`INSERT INTO models (slug, title, source_blob_hash, thumbnail_blob_hash, tag_id) VALUES ($1,$1,$2,'', (SELECT id FROM model_tags WHERE slug = 'ungrouped'))`, slug, "src-"+slug)
 	assert.NilError(s.T(), err)
 }
 

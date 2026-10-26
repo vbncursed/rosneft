@@ -12,6 +12,7 @@ func (s *Server) UpdateModel(ctx context.Context, req *catalogv1.UpdateModelRequ
 		Title:             req.Title,
 		Description:       req.Description,
 		ThumbnailBlobHash: req.ThumbnailBlobHash,
+		TagSlug:           req.TagSlug,
 	})
 	if err != nil {
 		return nil, mapError(err)

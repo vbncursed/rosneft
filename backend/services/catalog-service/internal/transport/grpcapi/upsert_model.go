@@ -13,7 +13,9 @@ func (s *Server) UpsertModel(ctx context.Context, req *catalogv1.UpsertModelRequ
 	if req.GetModel() == nil {
 		return nil, mapError(fmt.Errorf("%w: model is required", domain.ErrInvalidInput))
 	}
-	out, err := s.svc.UpsertModel(ctx, modelFromProto(req.GetModel()))
+	m := modelFromProto(req.GetModel())
+	m.Tag.Slug = req.GetTagSlug()
+	out, err := s.svc.UpsertModel(ctx, m)
 	if err != nil {
 		return nil, mapError(err)
 	}

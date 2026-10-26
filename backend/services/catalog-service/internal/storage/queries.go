@@ -2,6 +2,7 @@ package storage
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5/pgconn"
 
@@ -10,6 +11,11 @@ import (
 
 // pgUniqueViolation is Postgres' SQLSTATE for a unique-constraint breach.
 const pgUniqueViolation = "23505"
+
+// pgNotNullViolation is SQLSTATE 23502. A write that resolves its tag with a
+// subselect hits it on tag_id when the slug names no tag: there is no DEFAULT
+// and no fallback, so the refusal is the only outcome.
+const pgNotNullViolation = "23502"
 
 // pgRestrictViolation is what an explicit ON DELETE RESTRICT raises (SQLSTATE
 // 23001). 23503, foreign_key_violation, is the NO ACTION / insert-update code
@@ -25,11 +31,32 @@ func isUniqueViolation(err error) bool {
 	return ok && pgErr.Code == pgUniqueViolation
 }
 
-// entityColumns is the SELECT/RETURNING list for models. Territories carry
-// their own extra external_panorama_url column (see territoryColumns);
-// models carry thumbnail_blob_hash, slotted right after source_blob_hash to
-// match scanModel's Scan order.
-const entityColumns = `slug, title, description, source_blob_hash, thumbnail_blob_hash, created_at, updated_at`
+// isUnknownTag reports whether err is the tag_id NOT NULL breach of a write
+// whose tag slug resolved to nothing.
+func isUnknownTag(err error) bool {
+	pgErr, ok := errors.AsType[*pgconn.PgError](err)
+	return ok && pgErr.Code == pgNotNullViolation && pgErr.ColumnName == "tag_id"
+}
+
+// errUnknownTag is what a write with an unresolvable tag slug answers.
+func errUnknownTag(slug string) error {
+	return fmt.Errorf("%w: unknown model tag %q", domain.ErrInvalidInput, slug)
+}
+
+// entityColumns is the RETURNING list of a models write, unqualified. Territories
+// carry their own extra external_panorama_url column (see territoryColumns);
+// models carry thumbnail_blob_hash, slotted right after source_blob_hash, and
+// tag_id last. A write wraps it in a CTE named m and reads it back through
+// modelSelect, which joins the tag.
+const entityColumns = `slug, title, description, source_blob_hash, thumbnail_blob_hash, created_at, updated_at, tag_id`
+
+// modelSelect is the SELECT list over a models row aliased m joined to its tag
+// (model_tags aliased t), in scanModel's Scan order.
+const modelSelect = `m.slug, m.title, m.description, m.source_blob_hash, m.thumbnail_blob_hash, m.created_at, m.updated_at,
+       t.id, t.slug, t.title`
+
+// modelTagJoin attaches the tag to a models row aliased m.
+const modelTagJoin = `JOIN model_tags t ON t.id = m.tag_id`
 
 // territoryColumns is the territory-only SELECT/RETURNING list. Same as
 // entityColumns plus external_panorama_url, slotted right after
@@ -68,7 +95,8 @@ func scanTerritory(r rowScanner) (domain.Territory, error) {
 
 func scanModel(r rowScanner) (domain.Model, error) {
 	var m domain.Model
-	err := r.Scan(&m.Slug, &m.Title, &m.Description, &m.SourceBlobHash, &m.ThumbnailBlobHash, &m.CreatedAt, &m.UpdatedAt)
+	err := r.Scan(&m.Slug, &m.Title, &m.Description, &m.SourceBlobHash, &m.ThumbnailBlobHash, &m.CreatedAt, &m.UpdatedAt,
+		&m.Tag.ID, &m.Tag.Slug, &m.Tag.Title)
 	return m, err
 }
 
@@ -85,7 +113,8 @@ func scanTerritoryListed(r rowScanner) (domain.Territory, error) {
 // both ListModels' and GetModel's correlated-count query.
 func scanModelListed(r rowScanner) (domain.Model, error) {
 	var m domain.Model
-	err := r.Scan(&m.Slug, &m.Title, &m.Description, &m.SourceBlobHash, &m.ThumbnailBlobHash, &m.CreatedAt, &m.UpdatedAt, &m.UsageCount)
+	err := r.Scan(&m.Slug, &m.Title, &m.Description, &m.SourceBlobHash, &m.ThumbnailBlobHash, &m.CreatedAt, &m.UpdatedAt,
+		&m.Tag.ID, &m.Tag.Slug, &m.Tag.Title, &m.UsageCount)
 	return m, err
 }
 

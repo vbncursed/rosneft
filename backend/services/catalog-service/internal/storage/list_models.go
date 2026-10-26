@@ -10,9 +10,9 @@ import (
 // ListModels returns every model ordered by slug. withArtifacts attaches each
 // model's LOD chain (one extra query for the whole list).
 func (r *PG) ListModels(ctx context.Context, withArtifacts bool) ([]domain.Model, error) {
-	const q = `SELECT m.slug, m.title, m.description, m.source_blob_hash, m.thumbnail_blob_hash, m.created_at, m.updated_at,
+	const q = `SELECT ` + modelSelect + `,
        (SELECT COUNT(DISTINCT p.territory_id) FROM placements p WHERE p.model_id = m.id) AS usage_count
-FROM models m ORDER BY m.slug`
+FROM models m ` + modelTagJoin + ` ORDER BY m.slug`
 
 	rows, err := r.pool.Query(ctx, q)
 	if err != nil {

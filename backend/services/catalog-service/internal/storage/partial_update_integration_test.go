@@ -42,6 +42,7 @@ var (
 	seedModel = domain.Model{
 		Slug: "box", Title: "Box", Description: "desc",
 		SourceBlobHash: "model-source", ThumbnailBlobHash: "thumb",
+		Tag: domain.ModelTag{Slug: domain.UngroupedTagSlug},
 	}
 )
 
@@ -157,5 +158,6 @@ func bareTerritory(t domain.Territory) domain.Territory {
 
 func bareModel(m domain.Model) domain.Model {
 	m.CreatedAt, m.UpdatedAt, m.UsageCount = time.Time{}, time.Time{}, 0
+	m.Tag = domain.ModelTag{Slug: m.Tag.Slug}
 	return m
 }
