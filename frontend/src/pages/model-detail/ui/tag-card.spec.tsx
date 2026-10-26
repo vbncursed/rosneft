@@ -26,26 +26,27 @@ describe("TagCard", () => {
 
   it("is read-only without model:write", () => {
     render(<TagCard {...props({ canWrite: false })} />);
-    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Change tag" })).not.toBeInTheDocument();
   });
 
   it("offers Change tag with model:write, and reports the pick", async () => {
     const onTag = vi.fn();
     render(<TagCard {...props({ onTag })} />);
-    const select = screen.getByRole("combobox", { name: "Change tag" });
-    expect(select).toHaveValue("tanks");
-    await userEvent.selectOptions(select, "Pumps");
+    const select = screen.getByRole("button", { name: "Change tag" });
+    expect(select).toHaveTextContent("Tanks");
+    await userEvent.click(select);
+    await userEvent.click(screen.getByRole("option", { name: "Pumps" }));
     expect(onTag).toHaveBeenCalledWith("pumps");
   });
 
   it("locks the control while a save is in flight", () => {
     render(<TagCard {...props({ busy: true })} />);
-    expect(screen.getByRole("combobox", { name: "Change tag" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Change tag" })).toBeDisabled();
   });
 
   it("says so when the tag list could not be loaded", () => {
     render(<TagCard {...props({ tags: undefined, tagsError: "Tags could not be loaded. Try again." })} />);
-    expect(screen.getByRole("combobox", { name: "Change tag" })).toHaveAccessibleDescription(
+    expect(screen.getByRole("button", { name: "Change tag" })).toHaveAccessibleDescription(
       "Tags could not be loaded. Try again.",
     );
   });

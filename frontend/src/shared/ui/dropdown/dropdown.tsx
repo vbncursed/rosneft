@@ -22,6 +22,12 @@ export type DropdownProps<T extends string> = {
   ariaLabel?: string;
   disabled?: boolean;
   className?: string;
+  /** The trigger's id, so a <label htmlFor> can name it. */
+  id?: string;
+  /** Marks the trigger `aria-invalid` and draws its border in the error tone. */
+  invalid?: boolean;
+  /** Id of the hint or error text that describes the trigger. */
+  describedBy?: string;
 };
 
 export function Dropdown<T extends string>({
@@ -32,6 +38,9 @@ export function Dropdown<T extends string>({
   ariaLabel,
   disabled = false,
   className,
+  id,
+  invalid = false,
+  describedBy,
 }: DropdownProps<T>) {
   const listId = useId();
   const root = useRef<HTMLDivElement>(null);
@@ -82,12 +91,15 @@ export function Dropdown<T extends string>({
     <div ref={root} className={cx("relative", className)}>
       <button
         ref={button}
+        id={id}
         type="button"
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
         aria-label={ariaLabel}
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
         onClick={() => {
           setActive(selectedIndex);
           setOpen((o) => !o);
@@ -97,7 +109,7 @@ export function Dropdown<T extends string>({
           "flex w-full items-center justify-between gap-2.5 border bg-panel-2 px-3 py-2.5 text-[13px] transition-[color,background-color,border-color,scale] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent enabled:active:scale-[0.99]",
           disabled ? "cursor-not-allowed border-line text-dim opacity-55" : "cursor-pointer text-fg",
           open ? "rounded-t-control border-accent" : "rounded-control",
-          !open && !disabled && "border-line-2",
+          !open && !disabled && (invalid ? "border-bad" : "border-line-2"),
         )}
       >
         {label ? <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">{label}</span> : null}

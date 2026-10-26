@@ -151,3 +151,32 @@ describe("Dropdown · states", () => {
     expect(list.classList).toContain("motion-safe:starting:scale-y-[0.97]");
   });
 });
+
+describe("Dropdown · field wiring", () => {
+  it("takes its id, so a label can name it", () => {
+    render(
+      <>
+        <label htmlFor="pick">Pick one</label>
+        <Dropdown id="pick" options={OPTIONS} value="any" onChange={() => {}} />
+      </>,
+    );
+    expect(screen.getByRole("button", { name: "Pick one" })).toHaveAttribute("id", "pick");
+  });
+
+  it("flags itself invalid and points at its description", () => {
+    render(
+      <>
+        <Dropdown options={OPTIONS} value="any" onChange={() => {}} ariaLabel="Entity" invalid describedBy="why" />
+        <p id="why">Choose one.</p>
+      </>,
+    );
+    expect(trigger()).toBeInvalid();
+    expect(trigger()).toHaveAccessibleDescription("Choose one.");
+  });
+
+  it("is valid and undescribed by default", () => {
+    render(<Dropdown options={OPTIONS} value="any" onChange={() => {}} ariaLabel="Entity" />);
+    expect(trigger()).not.toHaveAttribute("aria-invalid");
+    expect(trigger()).not.toHaveAttribute("aria-describedby");
+  });
+});

@@ -57,11 +57,12 @@ describe("ModelAside", () => {
   it("offers Change tag with model:write and reports the pick; read-only without it", async () => {
     const onTag = vi.fn();
     const { rerender } = render(<ModelAside {...props({ canWrite: true, onTag })} />);
-    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Change tag" }), "Pumps");
+    await userEvent.click(screen.getByRole("button", { name: "Change tag" }));
+    await userEvent.click(screen.getByRole("option", { name: "Pumps" }));
     expect(onTag).toHaveBeenCalledWith("pumps");
 
     rerender(<ModelAside {...props({ canWrite: false })} />);
-    expect(screen.queryByRole("combobox", { name: "Change tag" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Change tag" })).not.toBeInTheDocument();
     expect(screen.getByText("Tanks")).toBeInTheDocument();
   });
 

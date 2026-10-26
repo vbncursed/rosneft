@@ -1,6 +1,6 @@
 import { useId } from "react";
 import { Field, describedBy } from "@/shared/ui/field";
-import { controlClass } from "@/shared/ui/text-field";
+import { Dropdown } from "@/shared/ui/dropdown";
 import type { ModelTag } from "../model/model-tag";
 
 export type TagSelectProps = {
@@ -14,30 +14,25 @@ export type TagSelectProps = {
   label?: string;
 };
 
+/** The placeholder is a disabled leading option: shown while nothing is chosen, never pickable. */
+const PLACEHOLDER = { value: "", label: "Choose a tag", disabled: true };
+
 /** A required single choice: the placeholder stays selected until the reader picks. */
 export function TagSelect({ tags, value, onChange, error, disabled, label = "Tag" }: TagSelectProps) {
   const id = useId();
+  const options = [PLACEHOLDER, ...(tags ?? []).map((t) => ({ value: t.slug, label: t.title }))];
   return (
     <Field id={id} label={label} error={error} required disabled={disabled}>
-      <select
+      <Dropdown
         id={id}
-        required
-        disabled={disabled || tags === undefined}
+        className="mt-[7px]"
+        options={options}
         value={value ?? ""}
-        onChange={(e) => onChange(e.target.value)}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy(id, undefined, error)}
-        className={controlClass({ invalid: Boolean(error) })}
-      >
-        <option value="" disabled>
-          Choose a tag
-        </option>
-        {tags?.map((t) => (
-          <option key={t.slug} value={t.slug}>
-            {t.title}
-          </option>
-        ))}
-      </select>
+        onChange={onChange}
+        disabled={disabled || tags === undefined}
+        invalid={Boolean(error)}
+        describedBy={describedBy(id, undefined, error)}
+      />
     </Field>
   );
 }

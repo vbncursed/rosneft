@@ -8,53 +8,66 @@ const TAGS = [
   { slug: "ungrouped", title: "Ungrouped" },
 ];
 
+const trigger = (name: string | RegExp = /Tag/) => screen.getByRole("button", { name });
+const open = (name?: string | RegExp) => userEvent.click(trigger(name));
+
 describe("TagSelect", () => {
-  it("lists every tag by title", () => {
+  it("lists every tag by title once opened", async () => {
     render(<TagSelect tags={TAGS} value="tanks" onChange={() => {}} />);
+    await open();
     expect(screen.getByRole("option", { name: "Tanks" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Ungrouped" })).toBeInTheDocument();
   });
 
-  it("selects the placeholder while nothing is chosen", () => {
+  it("shows the placeholder while nothing is chosen, and it cannot be picked", async () => {
+    const onChange = vi.fn();
+    render(<TagSelect tags={TAGS} value={null} onChange={onChange} />);
+    expect(trigger()).toHaveTextContent("Choose a tag");
+    await open();
+    await userEvent.click(screen.getByRole("option", { name: "Choose a tag" }));
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+  });
+
+  it("marks the field required", () => {
     render(<TagSelect tags={TAGS} value={null} onChange={() => {}} />);
-    expect(screen.getByRole("option", { name: "Choose a tag" })).toHaveProperty("selected", true);
-    expect(screen.getByRole("combobox", { name: /Tag/ })).toBeRequired();
+    expect(screen.getByText("*")).toHaveAttribute("aria-hidden", "true");
   });
 
   it("shows the chosen tag", () => {
     render(<TagSelect tags={TAGS} value="ungrouped" onChange={() => {}} />);
-    expect(screen.getByRole("combobox")).toHaveValue("ungrouped");
+    expect(trigger()).toHaveTextContent("Ungrouped");
   });
 
   it("reports the slug of the picked tag", async () => {
     const onChange = vi.fn();
     render(<TagSelect tags={TAGS} value={null} onChange={onChange} />);
-    await userEvent.selectOptions(screen.getByRole("combobox"), "Tanks");
+    await open();
+    await userEvent.click(screen.getByRole("option", { name: "Tanks" }));
     expect(onChange).toHaveBeenCalledWith("tanks");
   });
 
-  it("is disabled while the list loads, with only the placeholder to show", () => {
+  it("is disabled while the list loads, showing only the placeholder", () => {
     render(<TagSelect tags={undefined} value={null} onChange={() => {}} />);
-    expect(screen.getByRole("combobox")).toBeDisabled();
-    expect(screen.getAllByRole("option")).toHaveLength(1);
+    expect(trigger()).toBeDisabled();
+    expect(trigger()).toHaveTextContent("Choose a tag");
   });
 
   it("is disabled on request", () => {
     render(<TagSelect tags={TAGS} value="tanks" onChange={() => {}} disabled />);
-    expect(screen.getByRole("combobox")).toBeDisabled();
+    expect(trigger()).toBeDisabled();
   });
 
   it("describes the control with its error", () => {
     render(
       <TagSelect tags={undefined} value={null} onChange={() => {}} error="Tags could not be loaded. Try again." />,
     );
-    const select = screen.getByRole("combobox");
-    expect(select).toBeInvalid();
-    expect(select).toHaveAccessibleDescription("Tags could not be loaded. Try again.");
+    expect(trigger()).toBeInvalid();
+    expect(trigger()).toHaveAccessibleDescription("Tags could not be loaded. Try again.");
   });
 
   it("takes the caller's label", () => {
     render(<TagSelect tags={TAGS} value="tanks" onChange={() => {}} label="Change tag" />);
-    expect(screen.getByRole("combobox", { name: "Change tag" })).toBeInTheDocument();
+    expect(trigger("Change tag")).toBeInTheDocument();
   });
 });

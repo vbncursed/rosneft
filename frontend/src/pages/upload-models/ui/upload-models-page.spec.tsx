@@ -109,13 +109,14 @@ describe("UploadModelsPage", () => {
     const onTag = vi.fn();
     render(<UploadModelsPage {...props({ tagSlug: null, onTag })} />);
     expect(screen.getByRole("button", { name: "Upload 5 models" })).toBeDisabled();
-    await userEvent.selectOptions(screen.getByRole("combobox", { name: /Tag for every model/ }), "Pumps");
+    await userEvent.click(screen.getByRole("button", { name: /Tag for every model/ }));
+    await userEvent.click(screen.getByRole("option", { name: "Pumps" }));
     expect(onTag).toHaveBeenCalledWith("pumps");
   });
 
   it("locks the tag while the batch runs", () => {
     render(<UploadModelsPage {...props({ running: true })} />);
-    expect(screen.getByRole("combobox", { name: /Tag for every model/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Tag for every model/ })).toBeDisabled();
   });
 
   it("reads Uploading k of n… while running, and offers Cancel batch", async () => {
