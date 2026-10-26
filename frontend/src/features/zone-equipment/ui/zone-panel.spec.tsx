@@ -110,3 +110,22 @@ describe("ZonePanel", () => {
     expect(screen.queryByRole("button", { name: "Delete Tank row" })).toBeNull();
   });
 });
+
+describe("ZonePanel tour anchors", () => {
+  it("anchors the card, the equipment list and Place", () => {
+    render(panel());
+    expect(screen.getByRole("region", { name: "Zone Tank row" })).toHaveAttribute("data-tour", "zone-card");
+    expect(screen.getByRole("list", { name: "Equipment" })).toHaveAttribute("data-tour", "zone-equipment");
+    expect(screen.getAllByRole("button", { name: /^Place / })[0]).toHaveAttribute("data-tour", "zone-place");
+  });
+
+  it("draws no Place anchor without placement:create, so the step skips itself", () => {
+    const { container } = render(panel({ canPlace: false }));
+    expect(container.querySelector('[data-tour="zone-place"]')).toBeNull();
+  });
+
+  it("anchors Whole library when no model carries the tags", () => {
+    render(panel({ options: [] }));
+    expect(screen.getByRole("button", { name: "Whole library…" })).toHaveAttribute("data-tour", "zone-library");
+  });
+});

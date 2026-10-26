@@ -39,23 +39,25 @@ export function AlignPanel({ editor }: AlignPanelProps) {
       ) : null}
       {status === "loading" ? <p className="m-0 text-[12px] text-muted">Reading the plan…</p> : null}
       {a.notice ? <Callout tone="neutral">{a.notice}</Callout> : null}
-      {a.awaitingScenePick ? (
-        <>
-          <Callout tone="accent">Now click the same spot on the model.</Callout>
-          <Button size="sm" variant="secondary" onClick={a.cancelPending} className="self-start">
-            Cancel this point
+      <div data-tour="plan-add-pair" className="flex flex-col gap-3.5">
+        {a.awaitingScenePick ? (
+          <>
+            <Callout tone="accent">Now click the same spot on the model.</Callout>
+            <Button size="sm" variant="secondary" onClick={a.cancelPending} className="self-start">
+              Cancel this point
+            </Button>
+          </>
+        ) : (
+          <p className="m-0 text-[12px] text-muted">
+            Click a spot on the plan, then the same spot on the model. Drag a marker to fine-tune it.
+          </p>
+        )}
+        {placing || a.awaitingScenePick ? null : (
+          <Button size="sm" variant="secondary" onClick={() => setPlacing(true)} className="self-start">
+            Add a point pair
           </Button>
-        </>
-      ) : (
-        <p className="m-0 text-[12px] text-muted">
-          Click a spot on the plan, then the same spot on the model. Drag a marker to fine-tune it.
-        </p>
-      )}
-      {placing || a.awaitingScenePick ? null : (
-        <Button size="sm" variant="secondary" onClick={() => setPlacing(true)} className="self-start">
-          Add a point pair
-        </Button>
-      )}
+        )}
+      </div>
       {a.pairs.length > 0 ? (
         <ol className="m-0 flex list-none flex-col gap-1 p-0">
           {a.pairs.map((_, i) => (
@@ -87,7 +89,7 @@ export function AlignPanel({ editor }: AlignPanelProps) {
         )
       ) : null}
       {a.scaleLine ? <Callout tone={a.scaleWarn ? "warn" : "ok"}>{a.scaleLine}</Callout> : null}
-      <div className="flex gap-2">
+      <div data-tour="plan-save" className="flex gap-2">
         <Button variant="primary" disabled={!a.canSave} loading={a.saving} onClick={() => void a.save()}>
           Save alignment
         </Button>

@@ -21,6 +21,7 @@ export function ZoneForm({ rectName, canPlace, blocked = null, onCreate }: ZoneF
   return (
     <form
       aria-label="New zone"
+      data-tour="zone-form"
       className="flex flex-col gap-4"
       onSubmit={(e) => {
         e.preventDefault();

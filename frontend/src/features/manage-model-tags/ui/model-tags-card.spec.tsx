@@ -79,3 +79,20 @@ describe("ModelTagsCard", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("a model tag with this slug or title already exists");
   });
 });
+
+describe("ModelTagsCard tour", () => {
+  it("is the tour's anchor, and offers Replay only when it can restart one", async () => {
+    const onReplayTour = vi.fn();
+    const view = render(
+      <QueryClientProvider client={client}>
+        <ModelTagsCard onReplayTour={onReplayTour} />
+      </QueryClientProvider>,
+    );
+    expect(screen.getByRole("region", { name: "Tags" })).toHaveAttribute("data-tour", "content-tags");
+    await userEvent.click(screen.getByRole("button", { name: "Replay the tags tour" }));
+    expect(onReplayTour).toHaveBeenCalledOnce();
+    view.unmount();
+    mount();
+    expect(screen.queryByRole("button", { name: "Replay the tags tour" })).toBeNull();
+  });
+});

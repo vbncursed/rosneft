@@ -38,7 +38,13 @@ function Row({ title, canPlace, onPlace }: { title: string; canPlace: boolean; o
       {canPlace ? (
         <>
           <QuantityStepper value={count} onChange={setCount} max={MAX_COUNT} label={`Count of ${title}`} />
-          <Button size="sm" variant="secondary" aria-label={`Place ${title}`} onClick={() => onPlace(count)}>
+          <Button
+            size="sm"
+            variant="secondary"
+            aria-label={`Place ${title}`}
+            data-tour="zone-place"
+            onClick={() => onPlace(count)}
+          >
             Place
           </Button>
         </>
@@ -65,6 +71,7 @@ export function ZonePanel({
   return (
     <section
       aria-label={`Zone ${zone.title}`}
+      data-tour="zone-card"
       className="mb-3.5 flex flex-col gap-2.5 rounded-card border border-accent-line bg-panel-2 p-3"
     >
       <div className="flex items-center gap-2">
@@ -97,7 +104,7 @@ export function ZonePanel({
         {inside} {inside === 1 ? "placement" : "placements"} inside
       </p>
       {models.length > 0 ? (
-        <ul aria-label="Equipment" className="m-0 flex list-none flex-col gap-1.5 p-0">
+        <ul aria-label="Equipment" data-tour="zone-equipment" className="m-0 flex list-none flex-col gap-1.5 p-0">
           {models.map((m) => (
             <Row key={m.slug} title={m.title} canPlace={canPlace} onPlace={(count) => onPlace(m.slug, count)} />
           ))}
@@ -106,7 +113,7 @@ export function ZonePanel({
         <div className="flex flex-col items-start gap-2">
           <p className="m-0 text-[12px] text-muted">{EMPTY}</p>
           {canPlace ? (
-            <Button size="sm" variant="secondary" onClick={onWholeLibrary}>
+            <Button size="sm" variant="secondary" onClick={onWholeLibrary} data-tour="zone-library">
               Whole library…
             </Button>
           ) : null}

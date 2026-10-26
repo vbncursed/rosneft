@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { VIEWER_TOUR_STEPS_B } from "./viewer-tour-steps-b";
 
 describe("the viewer tour's package-B steps", () => {
-  it("visits the seven panorama and document controls, in order", () => {
+  it("visits the panorama, document and zone controls, in order", () => {
     expect(VIEWER_TOUR_STEPS_B.map((s) => s.id)).toEqual([
       "panorama-picker",
       "toggle-markers",
@@ -11,6 +11,7 @@ describe("the viewer tour's package-B steps", () => {
       "external-link",
       "add-panorama",
       "add-document",
+      "zones-section",
     ]);
   });
 

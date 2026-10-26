@@ -52,7 +52,7 @@ export function ViewerHeader({
 
       <div className="flex shrink-0 items-center gap-[9px]">
         {offline}
-        {download}
+        {download ? <span data-tour="download">{download}</span> : null}
         {guest ? <span className="font-mono text-[10px] text-muted">{GUEST_SENTENCE}</span> : null}
         {canReplace && onEdit ? (
           <Button variant="secondary" onClick={onEdit}>

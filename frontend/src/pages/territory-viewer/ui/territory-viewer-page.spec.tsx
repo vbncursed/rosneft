@@ -176,4 +176,19 @@ describe("TerritoryViewerPage", () => {
     }));
     expect(screen.getByRole("dialog", { name: /Tour step 3/ })).toBeInTheDocument();
   });
+  it.each(["plan", "card"] as const)("runs the zones' %s tour over everything else", (which) => {
+    page((p) => ({
+      ...p,
+      zoneTours: {
+        ...p.zoneTours,
+        [which]: {
+          ...p.zoneTours[which],
+          active: true,
+          step: { id: "x", center: true, title: "A zone", body: "About it." },
+          stepIndex: 0,
+        },
+      },
+    }));
+    expect(screen.getByRole("dialog", { name: /Tour step 1/ })).toBeInTheDocument();
+  });
 });

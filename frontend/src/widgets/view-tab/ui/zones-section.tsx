@@ -27,7 +27,7 @@ export function ZonesSection({ count, show, onToggle, plan }: ZonesSectionProps)
   const zonesId = useId();
   const planId = useId();
   return (
-    <section aria-label={ZONES_OVERLINE} className="flex flex-col gap-[9px]">
+    <section aria-label={ZONES_OVERLINE} data-tour="zones-section" className="flex flex-col gap-[9px]">
       <SectionHead overline={ZONES_OVERLINE} count={zonesCount(count)} />
       <div className={SWITCH_ROW}>
         <span id={zonesId} className={SWITCH_LABEL}>

@@ -46,3 +46,10 @@ describe("TagAddForm", () => {
     expect(screen.getByLabelText("Slug")).toHaveValue("camps");
   });
 });
+
+describe("TagAddForm tour anchor", () => {
+  it("is the tour's anchor for adding a tag", () => {
+    const { container } = render(<TagAddForm onCreate={vi.fn()} />);
+    expect(container.querySelector("form")).toHaveAttribute("data-tour", "content-tag-add");
+  });
+});

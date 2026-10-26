@@ -52,6 +52,17 @@ const state = (over: Partial<ContentState> = {}): ContentState => ({
   canManage: true,
   canCreateTerritory: true,
   canManageTags: true,
+  tagsTour: {
+    active: false,
+    step: null,
+    stepIndex: 0,
+    total: 2,
+    isLast: false,
+    next: vi.fn(),
+    prev: vi.fn(),
+    skip: vi.fn(),
+    restart: vi.fn(),
+  },
   canDelete: () => true,
   artifactsOf: () => [artifact()],
   jobOf: () => undefined,
@@ -284,5 +295,24 @@ describe("ContentScreen", () => {
     const dialog = screen.getByRole("dialog", { name: "Delete T 1?" });
     await userEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
     expect(s.confirm).toHaveBeenCalled();
+  });
+});
+
+describe("ContentScreen tags tour", () => {
+  it("draws the tour over the page while it runs", () => {
+    const tagsTour = {
+      active: true,
+      step: { id: "content-tags", center: true as const, title: "Model tags", body: "About tags." },
+      stepIndex: 0,
+      total: 2,
+      isLast: false,
+      next: vi.fn(),
+      prev: vi.fn(),
+      skip: vi.fn(),
+      restart: vi.fn(),
+    };
+    useContent.mockReturnValue(state({ tagsTour }));
+    render(<ContentScreen />);
+    expect(screen.getByRole("dialog", { name: "Tour step 1 of 2" })).toHaveAttribute("aria-modal", "true");
   });
 });

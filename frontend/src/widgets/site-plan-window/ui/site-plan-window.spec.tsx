@@ -293,3 +293,10 @@ describe("SitePlanWindow pairs", () => {
     expect(screen.getByRole("dialog")).toHaveClass("pointer-events-none");
   });
 });
+
+describe("SitePlanWindow tour anchor", () => {
+  it("anchors the tour on the sheet", () => {
+    render(<SitePlanWindow {...props()} />);
+    expect(screen.getByRole("group", { name: "Site plan sheet" })).toHaveAttribute("data-tour", "plan-sheet");
+  });
+});

@@ -108,6 +108,7 @@ export function SitePlanWindow({ frame, title = "Site plan", ...plan }: SitePlan
         ref={box}
         role="group"
         aria-label="Site plan sheet"
+        data-tour="plan-sheet"
         onPointerDown={down}
         onPointerMove={move}
         onPointerUp={up}

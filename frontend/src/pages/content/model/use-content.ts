@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import type { Tour } from "@/features/onboarding";
 import { totalSize, type ContentItem, type ContentKind, type LodSummary } from "@/entities/content";
 import { jobsQuery, LIST_KEY, useStaleOnFinish, type TargetJob } from "@/entities/conversion";
 import { deleteModel, modelsQuery } from "@/entities/model";
@@ -10,6 +11,7 @@ import { notify } from "@/shared/lib/notify";
 import { unanswered } from "@/shared/lib/unanswered";
 import { can } from "@/shared/session";
 import { toContentItem } from "./catalog";
+import { useTagsTour } from "./use-tags-tour";
 
 type Ref = { kind: ContentKind; slug: string };
 const keyOf = ({ kind, slug }: Ref) => `${kind}/${slug}`;
@@ -22,6 +24,8 @@ export type ContentState = {
   canManage: boolean;
   /** `model:write` — renaming and adding model tags. */
   canManageTags: boolean;
+  /** The Tags card's first-run tour; idle for anyone who cannot manage tags. */
+  tagsTour: Tour;
   /** `territory:create` — Root alone; `territory:write` edits but creates nothing. */
   canCreateTerritory: boolean;
   canDelete: (kind: ContentKind) => boolean;
@@ -100,6 +104,11 @@ export function useContent(): ContentState {
 
   // A finished job's new LODs ride on the lists, a model's on its artifacts.
   useStaleOnFinish(jobs.data);
+  const canManageTags = can(me, "model:write");
+  const tagsTour = useTagsTour({
+    seen: me?.onboardingToursSeen,
+    ready: canManageTags && !loading && !failed,
+  });
 
   return {
     status: loading ? "loading" : failed ? "unavailable" : "ready",
@@ -111,7 +120,8 @@ export function useContent(): ContentState {
     ),
     canManage: can(me, "territory:write") || can(me, "model:write"),
     canCreateTerritory: can(me, "territory:create"),
-    canManageTags: can(me, "model:write"),
+    canManageTags,
+    tagsTour,
     canDelete: (kind) => can(me, kind === "territory" ? "territory:delete" : "model:delete"),
     artifactsOf,
     jobOf,

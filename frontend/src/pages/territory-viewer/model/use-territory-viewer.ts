@@ -22,6 +22,7 @@ import { useViewerPanoramas } from "./use-viewer-panoramas";
 import { useViewerPlacements } from "./use-viewer-placements";
 import { useSceneDrop } from "./use-scene-drop";
 import { useViewerZones, useZoneInput } from "./use-viewer-zones";
+import { useZoneTours } from "./use-zone-tours";
 
 export type TerritoryViewerState =
   | { status: "loading" }
@@ -115,20 +116,22 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
   // panorama, where a whole panel of controls appears the viewer tour could
   // never point at. It waits for the viewer tour to finish first — both run
   // centred-first, and starting one over the other would fight for the panel.
-  const panoramaSeen = me.data?.onboardingToursSeen.includes(PANORAMA_TOUR) ?? true;
   const panoramaTour = useTour(PANORAMA_TOUR, PANORAMA_TOUR_STEPS, {
-    seen: panoramaSeen,
+    seen: me.data?.onboardingToursSeen.includes(PANORAMA_TOUR) ?? true,
     ready: mode.state.view.kind === "panorama" && !tour.active && me.data !== undefined,
   });
+  // The zones' two tours start from what the zones hook finds on screen, which
+  // is known only after it; `zoneTours.want` below hands that back.
+  const zoneTours = useZoneTours({ seen: me.data?.onboardingToursSeen, blocked: tour.active || panoramaTour.active });
   // The tour reveals a control before it points at one: its step names the tab
   // its anchor lives on, and an inactive tab is not in the DOM at all.
   const panel = useOverlaysPanel(
     mode.state.selectedId,
-    tour.step?.tab ?? panoramaTour.step?.tab,
-    tour.active || panoramaTour.active,
+    tour.step?.tab ?? panoramaTour.step?.tab ?? zoneTours.tab,
+    zoneTours.anyActive,
   );
   // Above the two lists: a finished upload opens its own section (`reveal`).
-  const sections = useViewSections(mode.state, tour.active || panoramaTour.active);
+  const sections = useViewSections(mode.state, zoneTours.anyActive);
 
   const panoramas = useViewerPanoramas({
     slug,
@@ -188,6 +191,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     expandPanel: useCallback(() => panel.setCollapsed(false), [panel]),
   });
 
+  zoneTours.want(zones.editorReady && grants.zoneWrite, zones.selected !== null);
   const handlers = usePageHandlers({
     mode,
     measure,
@@ -243,6 +247,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
       form: form.form,
       tour,
       panoramaTour,
+      zoneTours,
       panoramas,
       documents,
       zones,
@@ -261,7 +266,8 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
         ),
         now: failedAt ?? UNSTAMPED,
       },
-      on,
+      // The rail's Replay belongs to what is on screen: the editor, a zone's card, else the scene.
+      on: { ...on, onReplayTour: zoneTours.replayOf(tour).restart },
     }),
   };
 }

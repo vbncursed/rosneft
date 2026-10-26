@@ -36,6 +36,11 @@ const HEAD: TourStep[] = [
     body: "Return to the list of every territory and model.",
   },
   {
+    id: "download",
+    title: "Download the model",
+    body: "Save the territory with its placed objects as a GLB for web viewers or other 3D tools, or as an OBJ with textures for CAD. The browser's download manager takes over from there.",
+  },
+  {
     id: "reset-camera",
     title: "Reset the camera",
     body: "Frame the whole territory again after you have zoomed or panned away. Drag to rotate, scroll to zoom, right-drag to pan.",
@@ -49,6 +54,11 @@ const HEAD: TourStep[] = [
     id: "measure",
     title: "Measure distances",
     body: "Click two points on any surface to measure between them. Keep clicking to chain segments, and click the first dot to close the loop. A Clear button appears once you have drawn something.",
+  },
+  {
+    id: "lod-switcher",
+    title: "Level of detail",
+    body: "Auto loads finer detail as you zoom in. Pick a LOD to hold one level: a higher number is coarser and lighter, LOD 0 is the finest. A dot marks the level that is downloading.",
   },
   {
     id: "overlays-tabs",

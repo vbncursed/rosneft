@@ -128,6 +128,8 @@ export function useViewerZones(p: ViewerZonesParams) {
       onOpacity: session.setOpacity,
     },
     editing,
+    /** The editor is open and the plan layer has drawn its picture: its anchors exist. */
+    editorReady: editing !== null && session.plan !== null,
     closeEditor: session.close,
     onAlign: canWrite ? onAlign : undefined,
     setSlot,

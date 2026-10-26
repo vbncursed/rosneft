@@ -24,6 +24,7 @@ export function DocumentRow({ id, name, onOpen, onAlign, aligned = false }: Docu
           type="button"
           onClick={() => onAlign(id)}
           aria-label={aligned ? `Edit zones of ${name}` : `Align plan for ${name}`}
+          data-tour="document-align"
           className={BUTTON}
         >
           {aligned ? "Edit zones" : "Align plan"}

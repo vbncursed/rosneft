@@ -89,3 +89,10 @@ describe("ZoneForm", () => {
     vi.unstubAllGlobals();
   });
 });
+
+describe("ZoneForm tour anchor", () => {
+  it("is the tour's anchor for making a zone", () => {
+    view();
+    expect(screen.getByRole("form", { name: "New zone" })).toHaveAttribute("data-tour", "zone-form");
+  });
+});

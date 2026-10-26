@@ -35,7 +35,12 @@ export function TagAddForm({ onCreate }: TagAddFormProps) {
   };
 
   return (
-    <form onSubmit={submit} noValidate className="flex flex-col gap-2 border-t border-line px-4 py-3">
+    <form
+      onSubmit={submit}
+      noValidate
+      data-tour="content-tag-add"
+      className="flex flex-col gap-2 border-t border-line px-4 py-3"
+    >
       <div className="grid items-start gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto]">
         <TextField
           mono

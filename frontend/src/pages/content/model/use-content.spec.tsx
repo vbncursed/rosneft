@@ -249,3 +249,20 @@ describe("useContent", () => {
     expect(result.current.status).toBe("ready");
   });
 });
+
+describe("useContent tags tour", () => {
+  it("starts the Tags card tour once the page is ready for a tag manager", async () => {
+    const { result } = renderHook(() => useContent(), { wrapper });
+    expect(result.current.tagsTour.active).toBe(false);
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.tagsTour.active).toBe(true);
+    expect(result.current.tagsTour.step?.id).toBe("content-tags");
+  });
+
+  it("stays idle for a reader who cannot manage tags", async () => {
+    client.setQueryData(["me"], { ...PRINCIPAL, permissions: ["territory:write"] });
+    const { result } = renderHook(() => useContent(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.tagsTour.active).toBe(false);
+  });
+});

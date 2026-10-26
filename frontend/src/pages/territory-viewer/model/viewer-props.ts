@@ -135,6 +135,8 @@ export type TerritoryViewerPageProps = {
   tour: Tour;
   /** The panorama tour (Task 17); the viewer tour stands in until it is written. */
   panoramaTour: Tour;
+  /** The plan editor's and the zone card's tours; at most one is on screen. */
+  zoneTours: { plan: Tour; card: Tour };
   /** Nothing on screen yet and nothing failed — the skeleton card stands in. */
   loadingScene: boolean;
 };
@@ -246,6 +248,7 @@ export type PageParts = {
   form: PlacementFormView | null;
   tour: Tour;
   panoramaTour: Tour;
+  zoneTours: { plan: Tour; card: Tour };
   panoramas: PanoramaParts;
   documents: DocumentParts;
   zones: ZoneParts;

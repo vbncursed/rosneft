@@ -14,4 +14,7 @@ export interface TourStep {
   // Describes the page rather than one control: rendered centred, no spotlight,
   // no `data-tour` target to find.
   center?: true;
+  // Scroll the target into view before measuring it, for a target outside the
+  // Overlays panel that can sit below the fold (`tab` does this for panel steps).
+  reveal?: true;
 }

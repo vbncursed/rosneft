@@ -28,7 +28,7 @@ function anchor(id: string, box: { top: number; left: number; width: number; hei
 
 const tour = (over: Partial<Tour> = {}): Tour => ({
   active: true,
-  step: VIEWER_TOUR_STEPS[2],
+  step: VIEWER_TOUR_STEPS.find((s) => s.id === "reset-camera")!,
   stepIndex: 2,
   total: 8,
   isLast: false,
@@ -288,6 +288,13 @@ describe("TourOverlay", () => {
     const step = VIEWER_TOUR_STEPS.find((s) => s.id === "toggle-markers");
     render(<TourOverlay tour={tour({ step })} />);
 
+    expect(el.scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
+  });
+
+  it("scrolls a step flagged `reveal` into view even though it names no tab", () => {
+    const el = anchor("content-tags", { top: 1900, left: 100, width: 600, height: 300 });
+    el.scrollIntoView = vi.fn();
+    render(<TourOverlay tour={tour({ step: { id: "content-tags", title: "Model tags", body: "x", reveal: true } })} />);
     expect(el.scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
   });
 

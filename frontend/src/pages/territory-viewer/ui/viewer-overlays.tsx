@@ -221,7 +221,9 @@ export function ViewerOverlays({
         ) : null}
       </div>
 
-      {switcher ? <LodSwitcher {...switcher} className={`absolute top-3.5 ${PANEL_EDGE_MOVING}`} /> : null}
+      {switcher ? (
+        <LodSwitcher {...switcher} dataTour="lod-switcher" className={`absolute top-3.5 ${PANEL_EDGE_MOVING}`} />
+      ) : null}
 
       <div className={`${BOTTOM_ROW} ${measuring ? "bottom-[60px]" : "bottom-3.5"}`}>
         <StatsStrip items={strip.items} tone={strip.tone} accentLast={strip.accentLast} />

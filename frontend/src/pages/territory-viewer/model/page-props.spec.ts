@@ -171,6 +171,7 @@ const parts = (over: Partial<PageParts> = {}): PageParts => ({
   form: null,
   tour: TOUR,
   panoramaTour: TOUR,
+  zoneTours: { plan: TOUR, card: TOUR },
   panoramas: IDLE_PANORAMAS,
   documents: IDLE_DOCUMENTS,
   zones: IDLE_ZONES,
@@ -309,6 +310,15 @@ describe("pageProps · overlays", () => {
     // over the top of it, and the two are never both on screen.
     const props = pageProps(parts({ panoramaTour: { ...TOUR, active: true } }));
     expect(props.overlays.tools.every((t) => t.state === "idle")).toBe(true);
+  });
+
+  it("lights no tile while either zones tour runs, and hands both on", () => {
+    for (const which of ["plan", "card"] as const) {
+      const zoneTours = { plan: TOUR, card: TOUR, [which]: { ...TOUR, active: true } };
+      const props = pageProps(parts({ zoneTours }));
+      expect(props.overlays.tools.every((t) => t.state === "idle")).toBe(true);
+      expect(props.zoneTours).toBe(zoneTours);
+    }
   });
 
   it("says what the pointer does", () => {

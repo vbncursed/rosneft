@@ -126,7 +126,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
         // Either tour: the replay tile lit under the panorama tour would
         // start the viewer's over the top of it, and the two are never both
         // on screen.
-        tourActive: p.tour.active || p.panoramaTour.active,
+        tourActive: p.tour.active || p.panoramaTour.active || p.zoneTours.plan.active || p.zoneTours.card.active,
         view: mode.view,
         documentOpen: docs.window !== null,
         playing: view.playing,
@@ -226,6 +226,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
     upload: uploadProps(p),
     tour: p.tour,
     panoramaTour: p.panoramaTour,
+    zoneTours: p.zoneTours,
     loadingScene: !failed && report.shown === null,
   };
 }

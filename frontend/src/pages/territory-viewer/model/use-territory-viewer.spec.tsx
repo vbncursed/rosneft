@@ -996,5 +996,72 @@ describe("useTerritoryViewer", () => {
       expect(accept).toHaveBeenCalledWith({ x: 1, y: 2, z: 3 });
       expect(now(r).canvas.chains.filter((c) => c.serverId === undefined)).toEqual([]);
     });
+
+    describe("the zones' tours", () => {
+      const SEEN = ["viewer", "panorama"];
+
+      it("starts the card tour the first time a zone is clicked, and opens the panel for it", async () => {
+        const r = withZone();
+        await ready(r);
+        expect(now(r).zoneTours.card.active).toBe(false);
+        act(() => now(r).canvas.site.onSelectZone(5));
+        expect(now(r).zoneTours.card.active).toBe(true);
+        expect(now(r).zoneTours.card.step?.id).toBe("zone-card");
+        expect(now(r).panel?.collapsed).toBe(false);
+        expect(now(r).overlays.tools.find((t) => t.key === "tour")?.state).not.toBe("active");
+      });
+
+      it("stays shut for a reader who has seen it", async () => {
+        getMe.mockResolvedValue(principal({ onboardingToursSeen: [...SEEN, "zone-card"] }));
+        const r = withZone();
+        await ready(r);
+        act(() => now(r).canvas.site.onSelectZone(5));
+        expect(now(r).zoneTours.card.active).toBe(false);
+      });
+
+      it("waits for the viewer tour", async () => {
+        getMe.mockResolvedValue(principal({ onboardingToursSeen: [] }));
+        const r = withZone();
+        await ready(r);
+        act(() => now(r).canvas.site.onSelectZone(5));
+        expect(now(r).tour.active).toBe(true);
+        expect(now(r).zoneTours.card.active).toBe(false);
+      });
+
+      it("starts the plan tour once the editor has drawn the plan, on the View tab", async () => {
+        getMe.mockResolvedValue(principal({ permissions: ["zone:write"], onboardingToursSeen: SEEN }));
+        const r = withZone();
+        const state = await ready(r);
+        act(() => state.panel!.viewTab.documents.onAlign!(7));
+        // Opened, but the lazy plan layer has not drawn anything: no anchors yet, so no tour.
+        expect(now(r).zoneTours.plan.active).toBe(false);
+        const layer = (now(r).overlays.plan as ReactElement<{ children: ReactElement<PlanLayersProps> }>).props.children
+          .props;
+        act(() =>
+          layer.onPlan({
+            image: {} as ImageBitmap,
+            page: { width: 1, height: 1 },
+            similarity: null,
+            awaitingScenePick: false,
+          }),
+        );
+        expect(now(r).zoneTours.plan.active).toBe(true);
+        expect(now(r).zoneTours.plan.step?.id).toBe("document-align");
+        expect(now(r).panel?.tab).toBe("view");
+        expect(now(r).panel?.collapsed).toBe(false);
+      });
+
+      it("points the rail's Replay at the card while a zone is open, and at the viewer tour otherwise", async () => {
+        getMe.mockResolvedValue(principal({ onboardingToursSeen: [...SEEN, "zone-card"] }));
+        const r = withZone();
+        await ready(r);
+        act(() => now(r).overlays.onReplayTour());
+        expect(now(r).tour.active).toBe(true);
+        act(() => now(r).tour.skip());
+        act(() => now(r).canvas.site.onSelectZone(5));
+        act(() => now(r).overlays.onReplayTour());
+        expect(now(r).zoneTours.card.active).toBe(true);
+      });
+    });
   });
 });

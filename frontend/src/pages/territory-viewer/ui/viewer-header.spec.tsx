@@ -103,3 +103,14 @@ describe("ViewerHeader", () => {
     expect(screen.getByRole("button", { name: "download control" })).toBeInTheDocument();
   });
 });
+
+describe("ViewerHeader tour anchors", () => {
+  it("wraps the download slot in the tour's anchor, and draws none without one", () => {
+    const { container, rerender } = render(<ViewerHeader {...props({ download: <button>Download</button> })} />);
+    expect(container.querySelector('[data-tour="download"]')).toContainElement(
+      screen.getByRole("button", { name: "Download" }),
+    );
+    rerender(<ViewerHeader {...props()} />);
+    expect(container.querySelector('[data-tour="download"]')).toBeNull();
+  });
+});

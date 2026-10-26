@@ -157,3 +157,16 @@ describe("AlignPanel", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("The plan could not be read");
   });
 });
+
+describe("AlignPanel tour anchors", () => {
+  it("anchors the pair flow and the save row, and keeps the anchor while a point waits", () => {
+    const { container, rerender } = render(<AlignPanel editor={editor()} />);
+    const pair = container.querySelector('[data-tour="plan-add-pair"]')!;
+    expect(pair).toContainElement(screen.getByRole("button", { name: "Add a point pair" }));
+    expect(container.querySelector('[data-tour="plan-save"]')).toContainElement(
+      screen.getByRole("button", { name: "Save alignment" }),
+    );
+    rerender(<AlignPanel editor={editor({}, { awaitingScenePick: true })} />);
+    expect(container.querySelector('[data-tour="plan-add-pair"]')).toHaveTextContent("Now click the same spot");
+  });
+});

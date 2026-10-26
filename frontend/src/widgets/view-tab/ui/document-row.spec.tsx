@@ -41,3 +41,17 @@ describe("DocumentRow", () => {
     expect(screen.queryByRole("button", { name: /zones|Align/ })).toBeNull();
   });
 });
+
+describe("DocumentRow tour anchor", () => {
+  it("anchors the tour on the Align plan button, and on Edit zones once aligned", () => {
+    const { rerender } = render(<DocumentRow id={1} name="p.pdf" onOpen={vi.fn()} onAlign={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Align plan for p.pdf" })).toHaveAttribute("data-tour", "document-align");
+    rerender(<DocumentRow id={1} name="p.pdf" onOpen={vi.fn()} onAlign={vi.fn()} aligned />);
+    expect(screen.getByRole("button", { name: "Edit zones of p.pdf" })).toHaveAttribute("data-tour", "document-align");
+  });
+
+  it("has no anchor for a reader without the grant, so the tour step skips itself", () => {
+    const { container } = render(<DocumentRow id={1} name="p.pdf" onOpen={vi.fn()} />);
+    expect(container.querySelector('[data-tour="document-align"]')).toBeNull();
+  });
+});

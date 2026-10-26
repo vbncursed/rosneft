@@ -45,3 +45,10 @@ describe("ZonesSection", () => {
     expect(screen.getByText(NO_PLAN_NOTE)).toBeInTheDocument();
   });
 });
+
+describe("ZonesSection tour anchor", () => {
+  it("is the tour's anchor for the zones switches", () => {
+    render(<ZonesSection {...base()} />);
+    expect(screen.getByRole("region", { name: "Zones" })).toHaveAttribute("data-tour", "zones-section");
+  });
+});

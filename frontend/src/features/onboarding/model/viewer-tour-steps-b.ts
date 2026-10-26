@@ -1,8 +1,8 @@
 import type { TourStep } from "./tour-step";
 
-// The seven steps package B adds to the viewer tour, spliced between
+// The steps package B adds (panoramas, documents, and the zones switches) to the viewer tour, spliced between
 // `overlays-tabs` and `add-object` in `viewer-tour-steps.ts`. Split into its
-// own file — with its own spec — because the full sixteen-step list would
+// own file — with its own spec — because the full nineteen-step list would
 // push `viewer-tour-steps.ts` past the 200-line cap.
 //
 // `panorama-marker` names no tab: its target is the beacon drawn on the 3D
@@ -48,5 +48,11 @@ export const VIEWER_TOUR_STEPS_B: TourStep[] = [
     tab: "view",
     title: "Add a document",
     body: "Upload a PDF. It opens in a floating window over the scene, so you can place objects against it.",
+  },
+  {
+    id: "zones-section",
+    tab: "view",
+    title: "Zones and the site plan",
+    body: "Show zones draws the territory's zones over the model, and Show plan lays an aligned PDF on the ground. Click a zone to see which models fit it.",
   },
 ];
