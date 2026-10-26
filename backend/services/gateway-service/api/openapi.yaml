@@ -68,6 +68,32 @@ components:
         slug: { type: string }
         title: { type: string }
 
+    ModelTagCreate:
+      type: object
+      required: [slug, title]
+      properties:
+        slug:
+          type: string
+          description: Lowercase letters, digits and single hyphens, never at either end.
+          minLength: 2
+          maxLength: 40
+          pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+        title:
+          type: string
+          description: Trimmed by the server; 1 to 120 characters, unique case-insensitively.
+          minLength: 1
+          maxLength: 120
+
+    ModelTagUpdate:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          description: Trimmed by the server; 1 to 120 characters, unique case-insensitively.
+          minLength: 1
+          maxLength: 120
+
     Territory:
       type: object
       required: [slug, title, sourceBlobHash]
@@ -2672,6 +2698,55 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/ModelTag' }
+        '500': { $ref: '#/components/responses/Internal' }
+    post:
+      operationId: createModelTag
+      summary: Add a model tag
+      description: >
+        Adds a tag to the list. Tags are never deleted, so the slug is
+        permanent. The title is trimmed, 1 to 120 characters, and unique
+        (case-insensitively), like the slug. Needs `model:write`.
+      tags: [models]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ModelTagCreate' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ModelTag' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/model-tags/{slug}:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+    patch:
+      operationId: updateModelTag
+      summary: Rename a model tag
+      description: >
+        Changes the title only; the slug never changes and there is no delete
+        route. The `ungrouped` tag cannot be changed (400). Needs `model:write`.
+      tags: [models]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ModelTagUpdate' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ModelTag' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/Internal' }
 
   /api/models/{slug}:

@@ -26,6 +26,13 @@ type ServiceMock struct {
 	beforeCreateMeasurementCounter uint64
 	CreateMeasurementMock          mServiceMockCreateMeasurement
 
+	funcCreateModelTag          func(ctx context.Context, slug string, title string) (m1 domain.ModelTag, err error)
+	funcCreateModelTagOrigin    string
+	inspectFuncCreateModelTag   func(ctx context.Context, slug string, title string)
+	afterCreateModelTagCounter  uint64
+	beforeCreateModelTagCounter uint64
+	CreateModelTagMock          mServiceMockCreateModelTag
+
 	funcCreatePlacement          func(ctx context.Context, p domain.Placement) (p1 domain.Placement, err error)
 	funcCreatePlacementOrigin    string
 	inspectFuncCreatePlacement   func(ctx context.Context, p domain.Placement)
@@ -320,6 +327,13 @@ type ServiceMock struct {
 	beforeUpdateModelCounter uint64
 	UpdateModelMock          mServiceMockUpdateModel
 
+	funcUpdateModelTag          func(ctx context.Context, slug string, title string) (m1 domain.ModelTag, err error)
+	funcUpdateModelTagOrigin    string
+	inspectFuncUpdateModelTag   func(ctx context.Context, slug string, title string)
+	afterUpdateModelTagCounter  uint64
+	beforeUpdateModelTagCounter uint64
+	UpdateModelTagMock          mServiceMockUpdateModelTag
+
 	funcUpdatePlacement          func(ctx context.Context, p domain.Placement) (p1 domain.Placement, err error)
 	funcUpdatePlacementOrigin    string
 	inspectFuncUpdatePlacement   func(ctx context.Context, p domain.Placement)
@@ -366,6 +380,9 @@ func NewServiceMock(t minimock.Tester) *ServiceMock {
 
 	m.CreateMeasurementMock = mServiceMockCreateMeasurement{mock: m}
 	m.CreateMeasurementMock.callArgs = []*ServiceMockCreateMeasurementParams{}
+
+	m.CreateModelTagMock = mServiceMockCreateModelTag{mock: m}
+	m.CreateModelTagMock.callArgs = []*ServiceMockCreateModelTagParams{}
 
 	m.CreatePlacementMock = mServiceMockCreatePlacement{mock: m}
 	m.CreatePlacementMock.callArgs = []*ServiceMockCreatePlacementParams{}
@@ -492,6 +509,9 @@ func NewServiceMock(t minimock.Tester) *ServiceMock {
 
 	m.UpdateModelMock = mServiceMockUpdateModel{mock: m}
 	m.UpdateModelMock.callArgs = []*ServiceMockUpdateModelParams{}
+
+	m.UpdateModelTagMock = mServiceMockUpdateModelTag{mock: m}
+	m.UpdateModelTagMock.callArgs = []*ServiceMockUpdateModelTagParams{}
 
 	m.UpdatePlacementMock = mServiceMockUpdatePlacement{mock: m}
 	m.UpdatePlacementMock.callArgs = []*ServiceMockUpdatePlacementParams{}
@@ -853,6 +873,380 @@ func (m *ServiceMock) MinimockCreateMeasurementInspect() {
 	if !m.CreateMeasurementMock.invocationsDone() && afterCreateMeasurementCounter > 0 {
 		m.t.Errorf("Expected %d calls to ServiceMock.CreateMeasurement at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.CreateMeasurementMock.expectedInvocations), m.CreateMeasurementMock.expectedInvocationsOrigin, afterCreateMeasurementCounter)
+	}
+}
+
+type mServiceMockCreateModelTag struct {
+	optional           bool
+	mock               *ServiceMock
+	defaultExpectation *ServiceMockCreateModelTagExpectation
+	expectations       []*ServiceMockCreateModelTagExpectation
+
+	callArgs []*ServiceMockCreateModelTagParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// ServiceMockCreateModelTagExpectation specifies expectation struct of the Service.CreateModelTag
+type ServiceMockCreateModelTagExpectation struct {
+	mock               *ServiceMock
+	params             *ServiceMockCreateModelTagParams
+	paramPtrs          *ServiceMockCreateModelTagParamPtrs
+	expectationOrigins ServiceMockCreateModelTagExpectationOrigins
+	results            *ServiceMockCreateModelTagResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// ServiceMockCreateModelTagParams contains parameters of the Service.CreateModelTag
+type ServiceMockCreateModelTagParams struct {
+	ctx   context.Context
+	slug  string
+	title string
+}
+
+// ServiceMockCreateModelTagParamPtrs contains pointers to parameters of the Service.CreateModelTag
+type ServiceMockCreateModelTagParamPtrs struct {
+	ctx   *context.Context
+	slug  *string
+	title *string
+}
+
+// ServiceMockCreateModelTagResults contains results of the Service.CreateModelTag
+type ServiceMockCreateModelTagResults struct {
+	m1  domain.ModelTag
+	err error
+}
+
+// ServiceMockCreateModelTagOrigins contains origins of expectations of the Service.CreateModelTag
+type ServiceMockCreateModelTagExpectationOrigins struct {
+	origin      string
+	originCtx   string
+	originSlug  string
+	originTitle string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmCreateModelTag *mServiceMockCreateModelTag) Optional() *mServiceMockCreateModelTag {
+	mmCreateModelTag.optional = true
+	return mmCreateModelTag
+}
+
+// Expect sets up expected params for Service.CreateModelTag
+func (mmCreateModelTag *mServiceMockCreateModelTag) Expect(ctx context.Context, slug string, title string) *mServiceMockCreateModelTag {
+	if mmCreateModelTag.mock.funcCreateModelTag != nil {
+		mmCreateModelTag.mock.t.Fatalf("ServiceMock.CreateModelTag mock is already set by Set")
+	}
+
+	if mmCreateModelTag.defaultExpectation == nil {
+		mmCreateModelTag.defaultExpectation = &ServiceMockCreateModelTagExpectation{}
+	}
+
+	if mmCreateModelTag.defaultExpectation.paramPtrs != nil {
+		mmCreateModelTag.mock.t.Fatalf("ServiceMock.CreateModelTag mock is already set by ExpectParams functions")
+	}
+
+	mmCreateModelTag.defaultExpectation.params = &ServiceMockCreateModelTagParams{ctx, slug, title}
+	mmCreateModelTag.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmCreateModelTag.expectations {
+		if minimock.Equal(e.params, mmCreateModelTag.defaultExpectation.params) {
+			mmCreateModelTag.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCreateModelTag.defaultExpectation.params)
+		}
+	}
+
+	return mmCreateModelTag
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Service.CreateModelTag
+func (mmCreateModelTag *mServiceMockCreateModelTag) ExpectCtxParam1(ctx context.Context) *mServiceMockCreateModelTag {
+	if mmCreateModelTag.mock.funcCreateModelTag != nil {
+		mmCreateModelTag.mock.t.Fatalf("ServiceMock.CreateModelTag mock is already set by Set")
+	}
+
+	if mmCreateModelTag.defaultExpectation == nil {
+		mmCreateModelTag.defaultExpectation = &ServiceMockCreateModelTagExpectation{}
+	}
+
+	if mmCreateModelTag.defaultExpectation.params != nil {
+		mmCreateModelTag.mock.t.Fatalf("ServiceMock.CreateModelTag mock is already set by Expect")
+	}
+
+	if mmCreateModelTag.defaultExpectation.paramPtrs == nil {
+		mmCreateModelTag.defaultExpectation.paramPtrs = &ServiceMockCreateModelTagParamPtrs{}
+	}
+	mmCreateModelTag.defaultExpectation.paramPtrs.ctx = &ctx
+	mmCreateModelTag.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmCreateModelTag
+}
+
+// ExpectSlugParam2 sets up expected param slug for Service.CreateModelTag
+func (mmCreateModelTag *mServiceMockCreateModelTag) ExpectSlugParam2(slug string) *mServiceMockCreateModelTag {
+	if mmCreateModelTag.mock.funcCreateModelTag != nil {
+		mmCreateModelTag.mock.t.Fatalf("ServiceMock.CreateModelTag mock is already set by Set")
+	}
+
+	if mmCreateModelTag.defaultExpectation == nil {
+		mmCreateModelTag.defaultExpectation = &ServiceMockCreateModelTagExpectation{}
+	}
+
+	if mmCreateModelTag.defaultExpectation.params != nil {
+		mmCreateModelTag.mock.t.Fatalf("ServiceMock.CreateModelTag mock is already set by Expect")
+	}
+
+	if mmCreateModelTag.defaultExpectation.paramPtrs == nil {
+		mmCreateModelTag.defaultExpectation.paramPtrs = &ServiceMockCreateModelTagParamPtrs{}
+	}
+	mmCreateModelTag.defaultExpectation.paramPtrs.slug = &slug
+	mmCreateModelTag.defaultExpectation.expectationOrigins.originSlug = minimock.CallerInfo(1)
+
+	return mmCreateModelTag
+}
+
+// ExpectTitleParam3 sets up expected param title for Service.CreateModelTag
+func (mmCreateModelTag *mServiceMockCreateModelTag) ExpectTitleParam3(title string) *mServiceMockCreateModelTag {
+	if mmCreateModelTag.mock.funcCreateModelTag != nil {
+		mmCreateModelTag.mock.t.Fatalf("ServiceMock.CreateModelTag mock is already set by Set")
+	}
+
+	if mmCreateModelTag.defaultExpectation == nil {
+		mmCreateModelTag.defaultExpectation = &ServiceMockCreateModelTagExpectation{}
+	}
+
+	if mmCreateModelTag.defaultExpectation.params != nil {
+		mmCreateModelTag.mock.t.Fatalf("ServiceMock.CreateModelTag mock is already set by Expect")
+	}
+
+	if mmCreateModelTag.defaultExpectation.paramPtrs == nil {
+		mmCreateModelTag.defaultExpectation.paramPtrs = &ServiceMockCreateModelTagParamPtrs{}
+	}
+	mmCreateModelTag.defaultExpectation.paramPtrs.title = &title
+	mmCreateModelTag.defaultExpectation.expectationOrigins.originTitle = minimock.CallerInfo(1)
+
+	return mmCreateModelTag
+}
+
+// Inspect accepts an inspector function that has same arguments as the Service.CreateModelTag
+func (mmCreateModelTag *mServiceMockCreateModelTag) Inspect(f func(ctx context.Context, slug string, title string)) *mServiceMockCreateModelTag {
+	if mmCreateModelTag.mock.inspectFuncCreateModelTag != nil {
+		mmCreateModelTag.mock.t.Fatalf("Inspect function is already set for ServiceMock.CreateModelTag")
+	}
+
+	mmCreateModelTag.mock.inspectFuncCreateModelTag = f
+
+	return mmCreateModelTag
+}
+
+// Return sets up results that will be returned by Service.CreateModelTag
+func (mmCreateModelTag *mServiceMockCreateModelTag) Return(m1 domain.ModelTag, err error) *ServiceMock {
+	if mmCreateModelTag.mock.funcCreateModelTag != nil {
+		mmCreateModelTag.mock.t.Fatalf("ServiceMock.CreateModelTag mock is already set by Set")
+	}
+
+	if mmCreateModelTag.defaultExpectation == nil {
+		mmCreateModelTag.defaultExpectation = &ServiceMockCreateModelTagExpectation{mock: mmCreateModelTag.mock}
+	}
+	mmCreateModelTag.defaultExpectation.results = &ServiceMockCreateModelTagResults{m1, err}
+	mmCreateModelTag.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmCreateModelTag.mock
+}
+
+// Set uses given function f to mock the Service.CreateModelTag method
+func (mmCreateModelTag *mServiceMockCreateModelTag) Set(f func(ctx context.Context, slug string, title string) (m1 domain.ModelTag, err error)) *ServiceMock {
+	if mmCreateModelTag.defaultExpectation != nil {
+		mmCreateModelTag.mock.t.Fatalf("Default expectation is already set for the Service.CreateModelTag method")
+	}
+
+	if len(mmCreateModelTag.expectations) > 0 {
+		mmCreateModelTag.mock.t.Fatalf("Some expectations are already set for the Service.CreateModelTag method")
+	}
+
+	mmCreateModelTag.mock.funcCreateModelTag = f
+	mmCreateModelTag.mock.funcCreateModelTagOrigin = minimock.CallerInfo(1)
+	return mmCreateModelTag.mock
+}
+
+// When sets expectation for the Service.CreateModelTag which will trigger the result defined by the following
+// Then helper
+func (mmCreateModelTag *mServiceMockCreateModelTag) When(ctx context.Context, slug string, title string) *ServiceMockCreateModelTagExpectation {
+	if mmCreateModelTag.mock.funcCreateModelTag != nil {
+		mmCreateModelTag.mock.t.Fatalf("ServiceMock.CreateModelTag mock is already set by Set")
+	}
+
+	expectation := &ServiceMockCreateModelTagExpectation{
+		mock:               mmCreateModelTag.mock,
+		params:             &ServiceMockCreateModelTagParams{ctx, slug, title},
+		expectationOrigins: ServiceMockCreateModelTagExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmCreateModelTag.expectations = append(mmCreateModelTag.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Service.CreateModelTag return parameters for the expectation previously defined by the When method
+func (e *ServiceMockCreateModelTagExpectation) Then(m1 domain.ModelTag, err error) *ServiceMock {
+	e.results = &ServiceMockCreateModelTagResults{m1, err}
+	return e.mock
+}
+
+// Times sets number of times Service.CreateModelTag should be invoked
+func (mmCreateModelTag *mServiceMockCreateModelTag) Times(n uint64) *mServiceMockCreateModelTag {
+	if n == 0 {
+		mmCreateModelTag.mock.t.Fatalf("Times of ServiceMock.CreateModelTag mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmCreateModelTag.expectedInvocations, n)
+	mmCreateModelTag.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmCreateModelTag
+}
+
+func (mmCreateModelTag *mServiceMockCreateModelTag) invocationsDone() bool {
+	if len(mmCreateModelTag.expectations) == 0 && mmCreateModelTag.defaultExpectation == nil && mmCreateModelTag.mock.funcCreateModelTag == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmCreateModelTag.mock.afterCreateModelTagCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmCreateModelTag.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// CreateModelTag implements mm_grpcapi.Service
+func (mmCreateModelTag *ServiceMock) CreateModelTag(ctx context.Context, slug string, title string) (m1 domain.ModelTag, err error) {
+	mm_atomic.AddUint64(&mmCreateModelTag.beforeCreateModelTagCounter, 1)
+	defer mm_atomic.AddUint64(&mmCreateModelTag.afterCreateModelTagCounter, 1)
+
+	mmCreateModelTag.t.Helper()
+
+	if mmCreateModelTag.inspectFuncCreateModelTag != nil {
+		mmCreateModelTag.inspectFuncCreateModelTag(ctx, slug, title)
+	}
+
+	mm_params := ServiceMockCreateModelTagParams{ctx, slug, title}
+
+	// Record call args
+	mmCreateModelTag.CreateModelTagMock.mutex.Lock()
+	mmCreateModelTag.CreateModelTagMock.callArgs = append(mmCreateModelTag.CreateModelTagMock.callArgs, &mm_params)
+	mmCreateModelTag.CreateModelTagMock.mutex.Unlock()
+
+	for _, e := range mmCreateModelTag.CreateModelTagMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.m1, e.results.err
+		}
+	}
+
+	if mmCreateModelTag.CreateModelTagMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCreateModelTag.CreateModelTagMock.defaultExpectation.Counter, 1)
+		mm_want := mmCreateModelTag.CreateModelTagMock.defaultExpectation.params
+		mm_want_ptrs := mmCreateModelTag.CreateModelTagMock.defaultExpectation.paramPtrs
+
+		mm_got := ServiceMockCreateModelTagParams{ctx, slug, title}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmCreateModelTag.t.Errorf("ServiceMock.CreateModelTag got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCreateModelTag.CreateModelTagMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.slug != nil && !minimock.Equal(*mm_want_ptrs.slug, mm_got.slug) {
+				mmCreateModelTag.t.Errorf("ServiceMock.CreateModelTag got unexpected parameter slug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCreateModelTag.CreateModelTagMock.defaultExpectation.expectationOrigins.originSlug, *mm_want_ptrs.slug, mm_got.slug, minimock.Diff(*mm_want_ptrs.slug, mm_got.slug))
+			}
+
+			if mm_want_ptrs.title != nil && !minimock.Equal(*mm_want_ptrs.title, mm_got.title) {
+				mmCreateModelTag.t.Errorf("ServiceMock.CreateModelTag got unexpected parameter title, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCreateModelTag.CreateModelTagMock.defaultExpectation.expectationOrigins.originTitle, *mm_want_ptrs.title, mm_got.title, minimock.Diff(*mm_want_ptrs.title, mm_got.title))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCreateModelTag.t.Errorf("ServiceMock.CreateModelTag got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmCreateModelTag.CreateModelTagMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmCreateModelTag.CreateModelTagMock.defaultExpectation.results
+		if mm_results == nil {
+			mmCreateModelTag.t.Fatal("No results are set for the ServiceMock.CreateModelTag")
+		}
+		return (*mm_results).m1, (*mm_results).err
+	}
+	if mmCreateModelTag.funcCreateModelTag != nil {
+		return mmCreateModelTag.funcCreateModelTag(ctx, slug, title)
+	}
+	mmCreateModelTag.t.Fatalf("Unexpected call to ServiceMock.CreateModelTag. %v %v %v", ctx, slug, title)
+	return
+}
+
+// CreateModelTagAfterCounter returns a count of finished ServiceMock.CreateModelTag invocations
+func (mmCreateModelTag *ServiceMock) CreateModelTagAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCreateModelTag.afterCreateModelTagCounter)
+}
+
+// CreateModelTagBeforeCounter returns a count of ServiceMock.CreateModelTag invocations
+func (mmCreateModelTag *ServiceMock) CreateModelTagBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCreateModelTag.beforeCreateModelTagCounter)
+}
+
+// Calls returns a list of arguments used in each call to ServiceMock.CreateModelTag.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmCreateModelTag *mServiceMockCreateModelTag) Calls() []*ServiceMockCreateModelTagParams {
+	mmCreateModelTag.mutex.RLock()
+
+	argCopy := make([]*ServiceMockCreateModelTagParams, len(mmCreateModelTag.callArgs))
+	copy(argCopy, mmCreateModelTag.callArgs)
+
+	mmCreateModelTag.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockCreateModelTagDone returns true if the count of the CreateModelTag invocations corresponds
+// the number of defined expectations
+func (m *ServiceMock) MinimockCreateModelTagDone() bool {
+	if m.CreateModelTagMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.CreateModelTagMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.CreateModelTagMock.invocationsDone()
+}
+
+// MinimockCreateModelTagInspect logs each unmet expectation
+func (m *ServiceMock) MinimockCreateModelTagInspect() {
+	for _, e := range m.CreateModelTagMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to ServiceMock.CreateModelTag at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterCreateModelTagCounter := mm_atomic.LoadUint64(&m.afterCreateModelTagCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CreateModelTagMock.defaultExpectation != nil && afterCreateModelTagCounter < 1 {
+		if m.CreateModelTagMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to ServiceMock.CreateModelTag at\n%s", m.CreateModelTagMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to ServiceMock.CreateModelTag at\n%s with params: %#v", m.CreateModelTagMock.defaultExpectation.expectationOrigins.origin, *m.CreateModelTagMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCreateModelTag != nil && afterCreateModelTagCounter < 1 {
+		m.t.Errorf("Expected call to ServiceMock.CreateModelTag at\n%s", m.funcCreateModelTagOrigin)
+	}
+
+	if !m.CreateModelTagMock.invocationsDone() && afterCreateModelTagCounter > 0 {
+		m.t.Errorf("Expected %d calls to ServiceMock.CreateModelTag at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.CreateModelTagMock.expectedInvocations), m.CreateModelTagMock.expectedInvocationsOrigin, afterCreateModelTagCounter)
 	}
 }
 
@@ -16121,6 +16515,380 @@ func (m *ServiceMock) MinimockUpdateModelInspect() {
 	}
 }
 
+type mServiceMockUpdateModelTag struct {
+	optional           bool
+	mock               *ServiceMock
+	defaultExpectation *ServiceMockUpdateModelTagExpectation
+	expectations       []*ServiceMockUpdateModelTagExpectation
+
+	callArgs []*ServiceMockUpdateModelTagParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// ServiceMockUpdateModelTagExpectation specifies expectation struct of the Service.UpdateModelTag
+type ServiceMockUpdateModelTagExpectation struct {
+	mock               *ServiceMock
+	params             *ServiceMockUpdateModelTagParams
+	paramPtrs          *ServiceMockUpdateModelTagParamPtrs
+	expectationOrigins ServiceMockUpdateModelTagExpectationOrigins
+	results            *ServiceMockUpdateModelTagResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// ServiceMockUpdateModelTagParams contains parameters of the Service.UpdateModelTag
+type ServiceMockUpdateModelTagParams struct {
+	ctx   context.Context
+	slug  string
+	title string
+}
+
+// ServiceMockUpdateModelTagParamPtrs contains pointers to parameters of the Service.UpdateModelTag
+type ServiceMockUpdateModelTagParamPtrs struct {
+	ctx   *context.Context
+	slug  *string
+	title *string
+}
+
+// ServiceMockUpdateModelTagResults contains results of the Service.UpdateModelTag
+type ServiceMockUpdateModelTagResults struct {
+	m1  domain.ModelTag
+	err error
+}
+
+// ServiceMockUpdateModelTagOrigins contains origins of expectations of the Service.UpdateModelTag
+type ServiceMockUpdateModelTagExpectationOrigins struct {
+	origin      string
+	originCtx   string
+	originSlug  string
+	originTitle string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmUpdateModelTag *mServiceMockUpdateModelTag) Optional() *mServiceMockUpdateModelTag {
+	mmUpdateModelTag.optional = true
+	return mmUpdateModelTag
+}
+
+// Expect sets up expected params for Service.UpdateModelTag
+func (mmUpdateModelTag *mServiceMockUpdateModelTag) Expect(ctx context.Context, slug string, title string) *mServiceMockUpdateModelTag {
+	if mmUpdateModelTag.mock.funcUpdateModelTag != nil {
+		mmUpdateModelTag.mock.t.Fatalf("ServiceMock.UpdateModelTag mock is already set by Set")
+	}
+
+	if mmUpdateModelTag.defaultExpectation == nil {
+		mmUpdateModelTag.defaultExpectation = &ServiceMockUpdateModelTagExpectation{}
+	}
+
+	if mmUpdateModelTag.defaultExpectation.paramPtrs != nil {
+		mmUpdateModelTag.mock.t.Fatalf("ServiceMock.UpdateModelTag mock is already set by ExpectParams functions")
+	}
+
+	mmUpdateModelTag.defaultExpectation.params = &ServiceMockUpdateModelTagParams{ctx, slug, title}
+	mmUpdateModelTag.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmUpdateModelTag.expectations {
+		if minimock.Equal(e.params, mmUpdateModelTag.defaultExpectation.params) {
+			mmUpdateModelTag.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmUpdateModelTag.defaultExpectation.params)
+		}
+	}
+
+	return mmUpdateModelTag
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Service.UpdateModelTag
+func (mmUpdateModelTag *mServiceMockUpdateModelTag) ExpectCtxParam1(ctx context.Context) *mServiceMockUpdateModelTag {
+	if mmUpdateModelTag.mock.funcUpdateModelTag != nil {
+		mmUpdateModelTag.mock.t.Fatalf("ServiceMock.UpdateModelTag mock is already set by Set")
+	}
+
+	if mmUpdateModelTag.defaultExpectation == nil {
+		mmUpdateModelTag.defaultExpectation = &ServiceMockUpdateModelTagExpectation{}
+	}
+
+	if mmUpdateModelTag.defaultExpectation.params != nil {
+		mmUpdateModelTag.mock.t.Fatalf("ServiceMock.UpdateModelTag mock is already set by Expect")
+	}
+
+	if mmUpdateModelTag.defaultExpectation.paramPtrs == nil {
+		mmUpdateModelTag.defaultExpectation.paramPtrs = &ServiceMockUpdateModelTagParamPtrs{}
+	}
+	mmUpdateModelTag.defaultExpectation.paramPtrs.ctx = &ctx
+	mmUpdateModelTag.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmUpdateModelTag
+}
+
+// ExpectSlugParam2 sets up expected param slug for Service.UpdateModelTag
+func (mmUpdateModelTag *mServiceMockUpdateModelTag) ExpectSlugParam2(slug string) *mServiceMockUpdateModelTag {
+	if mmUpdateModelTag.mock.funcUpdateModelTag != nil {
+		mmUpdateModelTag.mock.t.Fatalf("ServiceMock.UpdateModelTag mock is already set by Set")
+	}
+
+	if mmUpdateModelTag.defaultExpectation == nil {
+		mmUpdateModelTag.defaultExpectation = &ServiceMockUpdateModelTagExpectation{}
+	}
+
+	if mmUpdateModelTag.defaultExpectation.params != nil {
+		mmUpdateModelTag.mock.t.Fatalf("ServiceMock.UpdateModelTag mock is already set by Expect")
+	}
+
+	if mmUpdateModelTag.defaultExpectation.paramPtrs == nil {
+		mmUpdateModelTag.defaultExpectation.paramPtrs = &ServiceMockUpdateModelTagParamPtrs{}
+	}
+	mmUpdateModelTag.defaultExpectation.paramPtrs.slug = &slug
+	mmUpdateModelTag.defaultExpectation.expectationOrigins.originSlug = minimock.CallerInfo(1)
+
+	return mmUpdateModelTag
+}
+
+// ExpectTitleParam3 sets up expected param title for Service.UpdateModelTag
+func (mmUpdateModelTag *mServiceMockUpdateModelTag) ExpectTitleParam3(title string) *mServiceMockUpdateModelTag {
+	if mmUpdateModelTag.mock.funcUpdateModelTag != nil {
+		mmUpdateModelTag.mock.t.Fatalf("ServiceMock.UpdateModelTag mock is already set by Set")
+	}
+
+	if mmUpdateModelTag.defaultExpectation == nil {
+		mmUpdateModelTag.defaultExpectation = &ServiceMockUpdateModelTagExpectation{}
+	}
+
+	if mmUpdateModelTag.defaultExpectation.params != nil {
+		mmUpdateModelTag.mock.t.Fatalf("ServiceMock.UpdateModelTag mock is already set by Expect")
+	}
+
+	if mmUpdateModelTag.defaultExpectation.paramPtrs == nil {
+		mmUpdateModelTag.defaultExpectation.paramPtrs = &ServiceMockUpdateModelTagParamPtrs{}
+	}
+	mmUpdateModelTag.defaultExpectation.paramPtrs.title = &title
+	mmUpdateModelTag.defaultExpectation.expectationOrigins.originTitle = minimock.CallerInfo(1)
+
+	return mmUpdateModelTag
+}
+
+// Inspect accepts an inspector function that has same arguments as the Service.UpdateModelTag
+func (mmUpdateModelTag *mServiceMockUpdateModelTag) Inspect(f func(ctx context.Context, slug string, title string)) *mServiceMockUpdateModelTag {
+	if mmUpdateModelTag.mock.inspectFuncUpdateModelTag != nil {
+		mmUpdateModelTag.mock.t.Fatalf("Inspect function is already set for ServiceMock.UpdateModelTag")
+	}
+
+	mmUpdateModelTag.mock.inspectFuncUpdateModelTag = f
+
+	return mmUpdateModelTag
+}
+
+// Return sets up results that will be returned by Service.UpdateModelTag
+func (mmUpdateModelTag *mServiceMockUpdateModelTag) Return(m1 domain.ModelTag, err error) *ServiceMock {
+	if mmUpdateModelTag.mock.funcUpdateModelTag != nil {
+		mmUpdateModelTag.mock.t.Fatalf("ServiceMock.UpdateModelTag mock is already set by Set")
+	}
+
+	if mmUpdateModelTag.defaultExpectation == nil {
+		mmUpdateModelTag.defaultExpectation = &ServiceMockUpdateModelTagExpectation{mock: mmUpdateModelTag.mock}
+	}
+	mmUpdateModelTag.defaultExpectation.results = &ServiceMockUpdateModelTagResults{m1, err}
+	mmUpdateModelTag.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmUpdateModelTag.mock
+}
+
+// Set uses given function f to mock the Service.UpdateModelTag method
+func (mmUpdateModelTag *mServiceMockUpdateModelTag) Set(f func(ctx context.Context, slug string, title string) (m1 domain.ModelTag, err error)) *ServiceMock {
+	if mmUpdateModelTag.defaultExpectation != nil {
+		mmUpdateModelTag.mock.t.Fatalf("Default expectation is already set for the Service.UpdateModelTag method")
+	}
+
+	if len(mmUpdateModelTag.expectations) > 0 {
+		mmUpdateModelTag.mock.t.Fatalf("Some expectations are already set for the Service.UpdateModelTag method")
+	}
+
+	mmUpdateModelTag.mock.funcUpdateModelTag = f
+	mmUpdateModelTag.mock.funcUpdateModelTagOrigin = minimock.CallerInfo(1)
+	return mmUpdateModelTag.mock
+}
+
+// When sets expectation for the Service.UpdateModelTag which will trigger the result defined by the following
+// Then helper
+func (mmUpdateModelTag *mServiceMockUpdateModelTag) When(ctx context.Context, slug string, title string) *ServiceMockUpdateModelTagExpectation {
+	if mmUpdateModelTag.mock.funcUpdateModelTag != nil {
+		mmUpdateModelTag.mock.t.Fatalf("ServiceMock.UpdateModelTag mock is already set by Set")
+	}
+
+	expectation := &ServiceMockUpdateModelTagExpectation{
+		mock:               mmUpdateModelTag.mock,
+		params:             &ServiceMockUpdateModelTagParams{ctx, slug, title},
+		expectationOrigins: ServiceMockUpdateModelTagExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmUpdateModelTag.expectations = append(mmUpdateModelTag.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Service.UpdateModelTag return parameters for the expectation previously defined by the When method
+func (e *ServiceMockUpdateModelTagExpectation) Then(m1 domain.ModelTag, err error) *ServiceMock {
+	e.results = &ServiceMockUpdateModelTagResults{m1, err}
+	return e.mock
+}
+
+// Times sets number of times Service.UpdateModelTag should be invoked
+func (mmUpdateModelTag *mServiceMockUpdateModelTag) Times(n uint64) *mServiceMockUpdateModelTag {
+	if n == 0 {
+		mmUpdateModelTag.mock.t.Fatalf("Times of ServiceMock.UpdateModelTag mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmUpdateModelTag.expectedInvocations, n)
+	mmUpdateModelTag.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmUpdateModelTag
+}
+
+func (mmUpdateModelTag *mServiceMockUpdateModelTag) invocationsDone() bool {
+	if len(mmUpdateModelTag.expectations) == 0 && mmUpdateModelTag.defaultExpectation == nil && mmUpdateModelTag.mock.funcUpdateModelTag == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmUpdateModelTag.mock.afterUpdateModelTagCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmUpdateModelTag.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// UpdateModelTag implements mm_grpcapi.Service
+func (mmUpdateModelTag *ServiceMock) UpdateModelTag(ctx context.Context, slug string, title string) (m1 domain.ModelTag, err error) {
+	mm_atomic.AddUint64(&mmUpdateModelTag.beforeUpdateModelTagCounter, 1)
+	defer mm_atomic.AddUint64(&mmUpdateModelTag.afterUpdateModelTagCounter, 1)
+
+	mmUpdateModelTag.t.Helper()
+
+	if mmUpdateModelTag.inspectFuncUpdateModelTag != nil {
+		mmUpdateModelTag.inspectFuncUpdateModelTag(ctx, slug, title)
+	}
+
+	mm_params := ServiceMockUpdateModelTagParams{ctx, slug, title}
+
+	// Record call args
+	mmUpdateModelTag.UpdateModelTagMock.mutex.Lock()
+	mmUpdateModelTag.UpdateModelTagMock.callArgs = append(mmUpdateModelTag.UpdateModelTagMock.callArgs, &mm_params)
+	mmUpdateModelTag.UpdateModelTagMock.mutex.Unlock()
+
+	for _, e := range mmUpdateModelTag.UpdateModelTagMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.m1, e.results.err
+		}
+	}
+
+	if mmUpdateModelTag.UpdateModelTagMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmUpdateModelTag.UpdateModelTagMock.defaultExpectation.Counter, 1)
+		mm_want := mmUpdateModelTag.UpdateModelTagMock.defaultExpectation.params
+		mm_want_ptrs := mmUpdateModelTag.UpdateModelTagMock.defaultExpectation.paramPtrs
+
+		mm_got := ServiceMockUpdateModelTagParams{ctx, slug, title}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmUpdateModelTag.t.Errorf("ServiceMock.UpdateModelTag got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateModelTag.UpdateModelTagMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.slug != nil && !minimock.Equal(*mm_want_ptrs.slug, mm_got.slug) {
+				mmUpdateModelTag.t.Errorf("ServiceMock.UpdateModelTag got unexpected parameter slug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateModelTag.UpdateModelTagMock.defaultExpectation.expectationOrigins.originSlug, *mm_want_ptrs.slug, mm_got.slug, minimock.Diff(*mm_want_ptrs.slug, mm_got.slug))
+			}
+
+			if mm_want_ptrs.title != nil && !minimock.Equal(*mm_want_ptrs.title, mm_got.title) {
+				mmUpdateModelTag.t.Errorf("ServiceMock.UpdateModelTag got unexpected parameter title, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateModelTag.UpdateModelTagMock.defaultExpectation.expectationOrigins.originTitle, *mm_want_ptrs.title, mm_got.title, minimock.Diff(*mm_want_ptrs.title, mm_got.title))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmUpdateModelTag.t.Errorf("ServiceMock.UpdateModelTag got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmUpdateModelTag.UpdateModelTagMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmUpdateModelTag.UpdateModelTagMock.defaultExpectation.results
+		if mm_results == nil {
+			mmUpdateModelTag.t.Fatal("No results are set for the ServiceMock.UpdateModelTag")
+		}
+		return (*mm_results).m1, (*mm_results).err
+	}
+	if mmUpdateModelTag.funcUpdateModelTag != nil {
+		return mmUpdateModelTag.funcUpdateModelTag(ctx, slug, title)
+	}
+	mmUpdateModelTag.t.Fatalf("Unexpected call to ServiceMock.UpdateModelTag. %v %v %v", ctx, slug, title)
+	return
+}
+
+// UpdateModelTagAfterCounter returns a count of finished ServiceMock.UpdateModelTag invocations
+func (mmUpdateModelTag *ServiceMock) UpdateModelTagAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdateModelTag.afterUpdateModelTagCounter)
+}
+
+// UpdateModelTagBeforeCounter returns a count of ServiceMock.UpdateModelTag invocations
+func (mmUpdateModelTag *ServiceMock) UpdateModelTagBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdateModelTag.beforeUpdateModelTagCounter)
+}
+
+// Calls returns a list of arguments used in each call to ServiceMock.UpdateModelTag.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmUpdateModelTag *mServiceMockUpdateModelTag) Calls() []*ServiceMockUpdateModelTagParams {
+	mmUpdateModelTag.mutex.RLock()
+
+	argCopy := make([]*ServiceMockUpdateModelTagParams, len(mmUpdateModelTag.callArgs))
+	copy(argCopy, mmUpdateModelTag.callArgs)
+
+	mmUpdateModelTag.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockUpdateModelTagDone returns true if the count of the UpdateModelTag invocations corresponds
+// the number of defined expectations
+func (m *ServiceMock) MinimockUpdateModelTagDone() bool {
+	if m.UpdateModelTagMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.UpdateModelTagMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.UpdateModelTagMock.invocationsDone()
+}
+
+// MinimockUpdateModelTagInspect logs each unmet expectation
+func (m *ServiceMock) MinimockUpdateModelTagInspect() {
+	for _, e := range m.UpdateModelTagMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to ServiceMock.UpdateModelTag at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterUpdateModelTagCounter := mm_atomic.LoadUint64(&m.afterUpdateModelTagCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.UpdateModelTagMock.defaultExpectation != nil && afterUpdateModelTagCounter < 1 {
+		if m.UpdateModelTagMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to ServiceMock.UpdateModelTag at\n%s", m.UpdateModelTagMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to ServiceMock.UpdateModelTag at\n%s with params: %#v", m.UpdateModelTagMock.defaultExpectation.expectationOrigins.origin, *m.UpdateModelTagMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcUpdateModelTag != nil && afterUpdateModelTagCounter < 1 {
+		m.t.Errorf("Expected call to ServiceMock.UpdateModelTag at\n%s", m.funcUpdateModelTagOrigin)
+	}
+
+	if !m.UpdateModelTagMock.invocationsDone() && afterUpdateModelTagCounter > 0 {
+		m.t.Errorf("Expected %d calls to ServiceMock.UpdateModelTag at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.UpdateModelTagMock.expectedInvocations), m.UpdateModelTagMock.expectedInvocationsOrigin, afterUpdateModelTagCounter)
+	}
+}
+
 type mServiceMockUpdatePlacement struct {
 	optional           bool
 	mock               *ServiceMock
@@ -17935,6 +18703,8 @@ func (m *ServiceMock) MinimockFinish() {
 		if !m.minimockDone() {
 			m.MinimockCreateMeasurementInspect()
 
+			m.MinimockCreateModelTagInspect()
+
 			m.MinimockCreatePlacementInspect()
 
 			m.MinimockCreatePlacementGroupInspect()
@@ -18019,6 +18789,8 @@ func (m *ServiceMock) MinimockFinish() {
 
 			m.MinimockUpdateModelInspect()
 
+			m.MinimockUpdateModelTagInspect()
+
 			m.MinimockUpdatePlacementInspect()
 
 			m.MinimockUpdateTerritoryInspect()
@@ -18052,6 +18824,7 @@ func (m *ServiceMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockCreateMeasurementDone() &&
+		m.MinimockCreateModelTagDone() &&
 		m.MinimockCreatePlacementDone() &&
 		m.MinimockCreatePlacementGroupDone() &&
 		m.MinimockCreatePlacementsDone() &&
@@ -18094,6 +18867,7 @@ func (m *ServiceMock) minimockDone() bool {
 		m.MinimockSetTerritoryRescaleBaselineDone() &&
 		m.MinimockUpdateMeasurementDone() &&
 		m.MinimockUpdateModelDone() &&
+		m.MinimockUpdateModelTagDone() &&
 		m.MinimockUpdatePlacementDone() &&
 		m.MinimockUpdateTerritoryDone() &&
 		m.MinimockUpdateZoneDone() &&

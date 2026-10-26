@@ -636,6 +636,21 @@ type ModelTag struct {
 	Title string `json:"title"`
 }
 
+// ModelTagCreate defines model for ModelTagCreate.
+type ModelTagCreate struct {
+	// Slug Lowercase letters, digits and single hyphens, never at either end.
+	Slug string `json:"slug"`
+
+	// Title Trimmed by the server; 1 to 120 characters, unique case-insensitively.
+	Title string `json:"title"`
+}
+
+// ModelTagUpdate defines model for ModelTagUpdate.
+type ModelTagUpdate struct {
+	// Title Trimmed by the server; 1 to 120 characters, unique case-insensitively.
+	Title string `json:"title"`
+}
+
 // ModelUpdate Body for PATCH /api/models/{slug}. Updates mutable fields only; the
 // slug, the source archive and conversion are untouched. Omitted fields
 // are left unchanged.
@@ -1150,6 +1165,12 @@ type AppendUploadChunkParams struct {
 	UploadOffset int64 `json:"Upload-Offset"`
 }
 
+// CreateModelTagJSONRequestBody defines body for CreateModelTag for application/json ContentType.
+type CreateModelTagJSONRequestBody = ModelTagCreate
+
+// UpdateModelTagJSONRequestBody defines body for UpdateModelTag for application/json ContentType.
+type UpdateModelTagJSONRequestBody = ModelTagUpdate
+
 // CreateModelJSONRequestBody defines body for CreateModel for application/json ContentType.
 type CreateModelJSONRequestBody = ModelCreate
 
@@ -1245,6 +1266,12 @@ type ServerInterface interface {
 	// ListModelTags List the model tags
 	// (GET /api/model-tags)
 	ListModelTags(w http.ResponseWriter, r *http.Request)
+	// CreateModelTag Add a model tag
+	// (POST /api/model-tags)
+	CreateModelTag(w http.ResponseWriter, r *http.Request)
+	// UpdateModelTag Rename a model tag
+	// (PATCH /api/model-tags/{slug})
+	UpdateModelTag(w http.ResponseWriter, r *http.Request, slug string)
 	// ListModels List models
 	// (GET /api/models)
 	ListModels(w http.ResponseWriter, r *http.Request)
@@ -1446,6 +1473,18 @@ func (_ Unimplemented) ListMyAudit(w http.ResponseWriter, r *http.Request, param
 // ListModelTags List the model tags
 // (GET /api/model-tags)
 func (_ Unimplemented) ListModelTags(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateModelTag Add a model tag
+// (POST /api/model-tags)
+func (_ Unimplemented) CreateModelTag(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateModelTag Rename a model tag
+// (PATCH /api/model-tags/{slug})
+func (_ Unimplemented) UpdateModelTag(w http.ResponseWriter, r *http.Request, slug string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2034,6 +2073,46 @@ func (siw *ServerInterfaceWrapper) ListModelTags(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListModelTags(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateModelTag operation middleware
+func (siw *ServerInterfaceWrapper) CreateModelTag(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateModelTag(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateModelTag operation middleware
+func (siw *ServerInterfaceWrapper) UpdateModelTag(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateModelTag(w, r, slug)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3979,6 +4058,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/api/model-tags", wrapper.ListModelTags)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/model-tags", wrapper.CreateModelTag)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/model-tags/{slug}", wrapper.UpdateModelTag)
+	})
+	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/models/{slug}", wrapper.DeleteModel)
 	})
 	r.Group(func(r chi.Router) {
@@ -4279,6 +4364,121 @@ func (response ListModelTags200JSONResponse) VisitListModelTagsResponse(w http.R
 type ListModelTags500JSONResponse struct{ InternalJSONResponse }
 
 func (response ListModelTags500JSONResponse) VisitListModelTagsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateModelTagRequestObject struct {
+	Body *CreateModelTagJSONRequestBody
+}
+
+type CreateModelTagResponseObject interface {
+	VisitCreateModelTagResponse(w http.ResponseWriter) error
+}
+
+type CreateModelTag201JSONResponse ModelTag
+
+func (response CreateModelTag201JSONResponse) VisitCreateModelTagResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateModelTag400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateModelTag400JSONResponse) VisitCreateModelTagResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateModelTag500JSONResponse struct{ InternalJSONResponse }
+
+func (response CreateModelTag500JSONResponse) VisitCreateModelTagResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateModelTagRequestObject struct {
+	Slug string `json:"slug"`
+	Body *UpdateModelTagJSONRequestBody
+}
+
+type UpdateModelTagResponseObject interface {
+	VisitUpdateModelTagResponse(w http.ResponseWriter) error
+}
+
+type UpdateModelTag200JSONResponse ModelTag
+
+func (response UpdateModelTag200JSONResponse) VisitUpdateModelTagResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateModelTag400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateModelTag400JSONResponse) VisitUpdateModelTagResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateModelTag404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateModelTag404JSONResponse) VisitUpdateModelTagResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateModelTag500JSONResponse struct{ InternalJSONResponse }
+
+func (response UpdateModelTag500JSONResponse) VisitUpdateModelTagResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -8037,6 +8237,12 @@ type StrictServerInterface interface {
 	// ListModelTags List the model tags
 	// (GET /api/model-tags)
 	ListModelTags(ctx context.Context, request ListModelTagsRequestObject) (ListModelTagsResponseObject, error)
+	// CreateModelTag Add a model tag
+	// (POST /api/model-tags)
+	CreateModelTag(ctx context.Context, request CreateModelTagRequestObject) (CreateModelTagResponseObject, error)
+	// UpdateModelTag Rename a model tag
+	// (PATCH /api/model-tags/{slug})
+	UpdateModelTag(ctx context.Context, request UpdateModelTagRequestObject) (UpdateModelTagResponseObject, error)
 	// ListModels List models
 	// (GET /api/models)
 	ListModels(ctx context.Context, request ListModelsRequestObject) (ListModelsResponseObject, error)
@@ -8345,6 +8551,70 @@ func (sh *strictHandler) ListModelTags(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListModelTagsResponseObject); ok {
 		if err := validResponse.VisitListModelTagsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateModelTag operation middleware
+func (sh *strictHandler) CreateModelTag(w http.ResponseWriter, r *http.Request) {
+	var request CreateModelTagRequestObject
+
+	var body CreateModelTagJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateModelTag(ctx, request.(CreateModelTagRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateModelTag")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateModelTagResponseObject); ok {
+		if err := validResponse.VisitCreateModelTagResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateModelTag operation middleware
+func (sh *strictHandler) UpdateModelTag(w http.ResponseWriter, r *http.Request, slug string) {
+	var request UpdateModelTagRequestObject
+
+	request.Slug = slug
+
+	var body UpdateModelTagJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateModelTag(ctx, request.(UpdateModelTagRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateModelTag")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateModelTagResponseObject); ok {
+		if err := validResponse.VisitUpdateModelTagResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

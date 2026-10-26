@@ -111,3 +111,16 @@ func (s *ZonesSuite) TestCalibrationRefusesEmptySlugAndBadID() {
 	assert.ErrorIs(s.T(), s.svc.DeleteDocumentCalibration(s.ctx, "", 9), domain.ErrInvalidInput)
 	assert.ErrorIs(s.T(), s.svc.DeleteDocumentCalibration(s.ctx, "yard", 0), domain.ErrInvalidInput)
 }
+
+func (s *ZonesSuite) TestModelTagWritesForward() {
+	s.cat.CreateModelTagMock.Expect(s.ctx, "welding", "Welding").Return(domain.ModelTag{Slug: "welding", Title: "Welding"}, nil)
+	s.cat.UpdateModelTagMock.Expect(s.ctx, "camp", "Camps").Return(domain.ModelTag{Slug: "camp", Title: "Camps"}, nil)
+
+	made, err := s.svc.CreateModelTag(s.ctx, "welding", "Welding")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), made.Slug, "welding")
+
+	renamed, err := s.svc.UpdateModelTag(s.ctx, "camp", "Camps")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), renamed.Title, "Camps")
+}

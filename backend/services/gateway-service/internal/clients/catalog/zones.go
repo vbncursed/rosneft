@@ -123,3 +123,21 @@ func modelTagsFromProto(in []*catalogv1.ModelTag) []domain.ModelTag {
 	}
 	return out
 }
+
+// CreateModelTag adds a tag to the list.
+func (c *Client) CreateModelTag(ctx context.Context, slug, title string) (domain.ModelTag, error) {
+	resp, err := c.cc.CreateModelTag(ctx, &catalogv1.CreateModelTagRequest{Slug: slug, Title: title})
+	if err != nil {
+		return domain.ModelTag{}, grpcerr.Refused("catalog.CreateModelTag", err, domain.ErrModelTagNotFound)
+	}
+	return modelTagFromProto(resp.GetTag()), nil
+}
+
+// UpdateModelTag retitles the tag with slug.
+func (c *Client) UpdateModelTag(ctx context.Context, slug, title string) (domain.ModelTag, error) {
+	resp, err := c.cc.UpdateModelTag(ctx, &catalogv1.UpdateModelTagRequest{Slug: slug, Title: title})
+	if err != nil {
+		return domain.ModelTag{}, grpcerr.Refused("catalog.UpdateModelTag", err, domain.ErrModelTagNotFound)
+	}
+	return modelTagFromProto(resp.GetTag()), nil
+}

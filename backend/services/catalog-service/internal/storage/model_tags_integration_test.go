@@ -60,6 +60,11 @@ func (s *ModelTagsSuite) TearDownSuite() {
 func (s *ModelTagsSuite) SetupTest() {
 	_, err := s.pool.Exec(s.T().Context(), `DELETE FROM models`)
 	assert.NilError(s.T(), err)
+	// The tag writes below touch the seeded list; put it back.
+	_, err = s.pool.Exec(s.T().Context(), `
+		DELETE FROM model_tags WHERE slug = 'welding';
+		UPDATE model_tags SET title = 'Camp & accommodation' WHERE slug = 'camp'`)
+	assert.NilError(s.T(), err)
 }
 
 func (s *ModelTagsSuite) create(slug, tag string) domain.Model {

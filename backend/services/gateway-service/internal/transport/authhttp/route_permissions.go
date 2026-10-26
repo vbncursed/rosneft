@@ -34,10 +34,13 @@ var routePerms = map[string][]string{
 	"DELETE /api/territories/{slug}": {"territory:delete"},
 	// Replacing the source model is a write on the territory: it feeds a
 	// reconversion, same grant as PATCH.
-	"POST /api/territories/{slug}/source":           {"territory:write"},
-	"POST /api/models":                              {"model:write"},
-	"PATCH /api/models/{slug}":                      {"model:write"},
-	"DELETE /api/models/{slug}":                     {"model:delete"},
+	"POST /api/territories/{slug}/source": {"territory:write"},
+	"POST /api/models":                    {"model:write"},
+	"PATCH /api/models/{slug}":            {"model:write"},
+	"DELETE /api/models/{slug}":           {"model:delete"},
+	// Tags are added and retitled, never deleted: there is no DELETE route.
+	"POST /api/model-tags":                          {"model:write"},
+	"PATCH /api/model-tags/{slug}":                  {"model:write"},
 	"POST /api/territories/{slug}/placements":       {"placement:create"},
 	"POST /api/territories/{slug}/placements/batch": {"placement:create"},
 	"PUT /api/territories/{slug}/placements/{id}":   {"placement:write"},

@@ -33,6 +33,7 @@ func isNotFound(err error) bool {
 		errors.Is(err, domain.ErrPanoramaNotFound) ||
 		errors.Is(err, domain.ErrDocumentNotFound) ||
 		errors.Is(err, domain.ErrZoneNotFound) ||
+		errors.Is(err, domain.ErrModelTagNotFound) ||
 		errors.Is(err, domain.ErrUploadNotFound)
 }
 

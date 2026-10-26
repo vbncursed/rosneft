@@ -63,6 +63,8 @@ const (
 	CatalogService_DeletePlacementGroup_FullMethodName        = "/rosneft.catalog.v1.CatalogService/DeletePlacementGroup"
 	CatalogService_SetPlacementGroupHidden_FullMethodName     = "/rosneft.catalog.v1.CatalogService/SetPlacementGroupHidden"
 	CatalogService_ListModelTags_FullMethodName               = "/rosneft.catalog.v1.CatalogService/ListModelTags"
+	CatalogService_CreateModelTag_FullMethodName              = "/rosneft.catalog.v1.CatalogService/CreateModelTag"
+	CatalogService_UpdateModelTag_FullMethodName              = "/rosneft.catalog.v1.CatalogService/UpdateModelTag"
 	CatalogService_ListZones_FullMethodName                   = "/rosneft.catalog.v1.CatalogService/ListZones"
 	CatalogService_CreateZone_FullMethodName                  = "/rosneft.catalog.v1.CatalogService/CreateZone"
 	CatalogService_UpdateZone_FullMethodName                  = "/rosneft.catalog.v1.CatalogService/UpdateZone"
@@ -156,6 +158,10 @@ type CatalogServiceClient interface {
 	SetPlacementGroupHidden(ctx context.Context, in *SetPlacementGroupHiddenRequest, opts ...grpc.CallOption) (*SetPlacementGroupHiddenResponse, error)
 	// The fixed model tag list, sorted by title with ungrouped last.
 	ListModelTags(ctx context.Context, in *ListModelTagsRequest, opts ...grpc.CallOption) (*ListModelTagsResponse, error)
+	// Tags are added and retitled, never deleted. A slug is permanent; the
+	// ungrouped tag cannot be changed.
+	CreateModelTag(ctx context.Context, in *CreateModelTagRequest, opts ...grpc.CallOption) (*CreateModelTagResponse, error)
+	UpdateModelTag(ctx context.Context, in *UpdateModelTagRequest, opts ...grpc.CallOption) (*UpdateModelTagResponse, error)
 	// Site zones are scoped by territory_slug like measurements: an id of
 	// another territory is NOT_FOUND, same as an unknown one.
 	ListZones(ctx context.Context, in *ListZonesRequest, opts ...grpc.CallOption) (*ListZonesResponse, error)
@@ -612,6 +618,26 @@ func (c *catalogServiceClient) ListModelTags(ctx context.Context, in *ListModelT
 	return out, nil
 }
 
+func (c *catalogServiceClient) CreateModelTag(ctx context.Context, in *CreateModelTagRequest, opts ...grpc.CallOption) (*CreateModelTagResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateModelTagResponse)
+	err := c.cc.Invoke(ctx, CatalogService_CreateModelTag_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) UpdateModelTag(ctx context.Context, in *UpdateModelTagRequest, opts ...grpc.CallOption) (*UpdateModelTagResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateModelTagResponse)
+	err := c.cc.Invoke(ctx, CatalogService_UpdateModelTag_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *catalogServiceClient) ListZones(ctx context.Context, in *ListZonesRequest, opts ...grpc.CallOption) (*ListZonesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListZonesResponse)
@@ -739,6 +765,10 @@ type CatalogServiceServer interface {
 	SetPlacementGroupHidden(context.Context, *SetPlacementGroupHiddenRequest) (*SetPlacementGroupHiddenResponse, error)
 	// The fixed model tag list, sorted by title with ungrouped last.
 	ListModelTags(context.Context, *ListModelTagsRequest) (*ListModelTagsResponse, error)
+	// Tags are added and retitled, never deleted. A slug is permanent; the
+	// ungrouped tag cannot be changed.
+	CreateModelTag(context.Context, *CreateModelTagRequest) (*CreateModelTagResponse, error)
+	UpdateModelTag(context.Context, *UpdateModelTagRequest) (*UpdateModelTagResponse, error)
 	// Site zones are scoped by territory_slug like measurements: an id of
 	// another territory is NOT_FOUND, same as an unknown one.
 	ListZones(context.Context, *ListZonesRequest) (*ListZonesResponse, error)
@@ -886,6 +916,12 @@ func (UnimplementedCatalogServiceServer) SetPlacementGroupHidden(context.Context
 }
 func (UnimplementedCatalogServiceServer) ListModelTags(context.Context, *ListModelTagsRequest) (*ListModelTagsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListModelTags not implemented")
+}
+func (UnimplementedCatalogServiceServer) CreateModelTag(context.Context, *CreateModelTagRequest) (*CreateModelTagResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateModelTag not implemented")
+}
+func (UnimplementedCatalogServiceServer) UpdateModelTag(context.Context, *UpdateModelTagRequest) (*UpdateModelTagResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateModelTag not implemented")
 }
 func (UnimplementedCatalogServiceServer) ListZones(context.Context, *ListZonesRequest) (*ListZonesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListZones not implemented")
@@ -1712,6 +1748,42 @@ func _CatalogService_ListModelTags_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CatalogService_CreateModelTag_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateModelTagRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).CreateModelTag(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_CreateModelTag_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).CreateModelTag(ctx, req.(*CreateModelTagRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_UpdateModelTag_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateModelTagRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).UpdateModelTag(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_UpdateModelTag_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).UpdateModelTag(ctx, req.(*UpdateModelTagRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _CatalogService_ListZones_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListZonesRequest)
 	if err := dec(in); err != nil {
@@ -1966,6 +2038,14 @@ var CatalogService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListModelTags",
 			Handler:    _CatalogService_ListModelTags_Handler,
+		},
+		{
+			MethodName: "CreateModelTag",
+			Handler:    _CatalogService_CreateModelTag_Handler,
+		},
+		{
+			MethodName: "UpdateModelTag",
+			Handler:    _CatalogService_UpdateModelTag_Handler,
 		},
 		{
 			MethodName: "ListZones",

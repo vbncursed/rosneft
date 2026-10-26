@@ -26,6 +26,13 @@ type CatalogMock struct {
 	beforeCreateMeasurementCounter uint64
 	CreateMeasurementMock          mCatalogMockCreateMeasurement
 
+	funcCreateModelTag          func(ctx context.Context, slug string, title string) (m1 domain.ModelTag, err error)
+	funcCreateModelTagOrigin    string
+	inspectFuncCreateModelTag   func(ctx context.Context, slug string, title string)
+	afterCreateModelTagCounter  uint64
+	beforeCreateModelTagCounter uint64
+	CreateModelTagMock          mCatalogMockCreateModelTag
+
 	funcCreatePlacement          func(ctx context.Context, p domain.Placement) (p1 domain.Placement, err error)
 	funcCreatePlacementOrigin    string
 	inspectFuncCreatePlacement   func(ctx context.Context, p domain.Placement)
@@ -299,6 +306,13 @@ type CatalogMock struct {
 	beforeUpdateModelCounter uint64
 	UpdateModelMock          mCatalogMockUpdateModel
 
+	funcUpdateModelTag          func(ctx context.Context, slug string, title string) (m1 domain.ModelTag, err error)
+	funcUpdateModelTagOrigin    string
+	inspectFuncUpdateModelTag   func(ctx context.Context, slug string, title string)
+	afterUpdateModelTagCounter  uint64
+	beforeUpdateModelTagCounter uint64
+	UpdateModelTagMock          mCatalogMockUpdateModelTag
+
 	funcUpdatePlacement          func(ctx context.Context, p domain.Placement) (p1 domain.Placement, err error)
 	funcUpdatePlacementOrigin    string
 	inspectFuncUpdatePlacement   func(ctx context.Context, p domain.Placement)
@@ -345,6 +359,9 @@ func NewCatalogMock(t minimock.Tester) *CatalogMock {
 
 	m.CreateMeasurementMock = mCatalogMockCreateMeasurement{mock: m}
 	m.CreateMeasurementMock.callArgs = []*CatalogMockCreateMeasurementParams{}
+
+	m.CreateModelTagMock = mCatalogMockCreateModelTag{mock: m}
+	m.CreateModelTagMock.callArgs = []*CatalogMockCreateModelTagParams{}
 
 	m.CreatePlacementMock = mCatalogMockCreatePlacement{mock: m}
 	m.CreatePlacementMock.callArgs = []*CatalogMockCreatePlacementParams{}
@@ -462,6 +479,9 @@ func NewCatalogMock(t minimock.Tester) *CatalogMock {
 
 	m.UpdateModelMock = mCatalogMockUpdateModel{mock: m}
 	m.UpdateModelMock.callArgs = []*CatalogMockUpdateModelParams{}
+
+	m.UpdateModelTagMock = mCatalogMockUpdateModelTag{mock: m}
+	m.UpdateModelTagMock.callArgs = []*CatalogMockUpdateModelTagParams{}
 
 	m.UpdatePlacementMock = mCatalogMockUpdatePlacement{mock: m}
 	m.UpdatePlacementMock.callArgs = []*CatalogMockUpdatePlacementParams{}
@@ -823,6 +843,380 @@ func (m *CatalogMock) MinimockCreateMeasurementInspect() {
 	if !m.CreateMeasurementMock.invocationsDone() && afterCreateMeasurementCounter > 0 {
 		m.t.Errorf("Expected %d calls to CatalogMock.CreateMeasurement at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.CreateMeasurementMock.expectedInvocations), m.CreateMeasurementMock.expectedInvocationsOrigin, afterCreateMeasurementCounter)
+	}
+}
+
+type mCatalogMockCreateModelTag struct {
+	optional           bool
+	mock               *CatalogMock
+	defaultExpectation *CatalogMockCreateModelTagExpectation
+	expectations       []*CatalogMockCreateModelTagExpectation
+
+	callArgs []*CatalogMockCreateModelTagParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// CatalogMockCreateModelTagExpectation specifies expectation struct of the Catalog.CreateModelTag
+type CatalogMockCreateModelTagExpectation struct {
+	mock               *CatalogMock
+	params             *CatalogMockCreateModelTagParams
+	paramPtrs          *CatalogMockCreateModelTagParamPtrs
+	expectationOrigins CatalogMockCreateModelTagExpectationOrigins
+	results            *CatalogMockCreateModelTagResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// CatalogMockCreateModelTagParams contains parameters of the Catalog.CreateModelTag
+type CatalogMockCreateModelTagParams struct {
+	ctx   context.Context
+	slug  string
+	title string
+}
+
+// CatalogMockCreateModelTagParamPtrs contains pointers to parameters of the Catalog.CreateModelTag
+type CatalogMockCreateModelTagParamPtrs struct {
+	ctx   *context.Context
+	slug  *string
+	title *string
+}
+
+// CatalogMockCreateModelTagResults contains results of the Catalog.CreateModelTag
+type CatalogMockCreateModelTagResults struct {
+	m1  domain.ModelTag
+	err error
+}
+
+// CatalogMockCreateModelTagOrigins contains origins of expectations of the Catalog.CreateModelTag
+type CatalogMockCreateModelTagExpectationOrigins struct {
+	origin      string
+	originCtx   string
+	originSlug  string
+	originTitle string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmCreateModelTag *mCatalogMockCreateModelTag) Optional() *mCatalogMockCreateModelTag {
+	mmCreateModelTag.optional = true
+	return mmCreateModelTag
+}
+
+// Expect sets up expected params for Catalog.CreateModelTag
+func (mmCreateModelTag *mCatalogMockCreateModelTag) Expect(ctx context.Context, slug string, title string) *mCatalogMockCreateModelTag {
+	if mmCreateModelTag.mock.funcCreateModelTag != nil {
+		mmCreateModelTag.mock.t.Fatalf("CatalogMock.CreateModelTag mock is already set by Set")
+	}
+
+	if mmCreateModelTag.defaultExpectation == nil {
+		mmCreateModelTag.defaultExpectation = &CatalogMockCreateModelTagExpectation{}
+	}
+
+	if mmCreateModelTag.defaultExpectation.paramPtrs != nil {
+		mmCreateModelTag.mock.t.Fatalf("CatalogMock.CreateModelTag mock is already set by ExpectParams functions")
+	}
+
+	mmCreateModelTag.defaultExpectation.params = &CatalogMockCreateModelTagParams{ctx, slug, title}
+	mmCreateModelTag.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmCreateModelTag.expectations {
+		if minimock.Equal(e.params, mmCreateModelTag.defaultExpectation.params) {
+			mmCreateModelTag.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCreateModelTag.defaultExpectation.params)
+		}
+	}
+
+	return mmCreateModelTag
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Catalog.CreateModelTag
+func (mmCreateModelTag *mCatalogMockCreateModelTag) ExpectCtxParam1(ctx context.Context) *mCatalogMockCreateModelTag {
+	if mmCreateModelTag.mock.funcCreateModelTag != nil {
+		mmCreateModelTag.mock.t.Fatalf("CatalogMock.CreateModelTag mock is already set by Set")
+	}
+
+	if mmCreateModelTag.defaultExpectation == nil {
+		mmCreateModelTag.defaultExpectation = &CatalogMockCreateModelTagExpectation{}
+	}
+
+	if mmCreateModelTag.defaultExpectation.params != nil {
+		mmCreateModelTag.mock.t.Fatalf("CatalogMock.CreateModelTag mock is already set by Expect")
+	}
+
+	if mmCreateModelTag.defaultExpectation.paramPtrs == nil {
+		mmCreateModelTag.defaultExpectation.paramPtrs = &CatalogMockCreateModelTagParamPtrs{}
+	}
+	mmCreateModelTag.defaultExpectation.paramPtrs.ctx = &ctx
+	mmCreateModelTag.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmCreateModelTag
+}
+
+// ExpectSlugParam2 sets up expected param slug for Catalog.CreateModelTag
+func (mmCreateModelTag *mCatalogMockCreateModelTag) ExpectSlugParam2(slug string) *mCatalogMockCreateModelTag {
+	if mmCreateModelTag.mock.funcCreateModelTag != nil {
+		mmCreateModelTag.mock.t.Fatalf("CatalogMock.CreateModelTag mock is already set by Set")
+	}
+
+	if mmCreateModelTag.defaultExpectation == nil {
+		mmCreateModelTag.defaultExpectation = &CatalogMockCreateModelTagExpectation{}
+	}
+
+	if mmCreateModelTag.defaultExpectation.params != nil {
+		mmCreateModelTag.mock.t.Fatalf("CatalogMock.CreateModelTag mock is already set by Expect")
+	}
+
+	if mmCreateModelTag.defaultExpectation.paramPtrs == nil {
+		mmCreateModelTag.defaultExpectation.paramPtrs = &CatalogMockCreateModelTagParamPtrs{}
+	}
+	mmCreateModelTag.defaultExpectation.paramPtrs.slug = &slug
+	mmCreateModelTag.defaultExpectation.expectationOrigins.originSlug = minimock.CallerInfo(1)
+
+	return mmCreateModelTag
+}
+
+// ExpectTitleParam3 sets up expected param title for Catalog.CreateModelTag
+func (mmCreateModelTag *mCatalogMockCreateModelTag) ExpectTitleParam3(title string) *mCatalogMockCreateModelTag {
+	if mmCreateModelTag.mock.funcCreateModelTag != nil {
+		mmCreateModelTag.mock.t.Fatalf("CatalogMock.CreateModelTag mock is already set by Set")
+	}
+
+	if mmCreateModelTag.defaultExpectation == nil {
+		mmCreateModelTag.defaultExpectation = &CatalogMockCreateModelTagExpectation{}
+	}
+
+	if mmCreateModelTag.defaultExpectation.params != nil {
+		mmCreateModelTag.mock.t.Fatalf("CatalogMock.CreateModelTag mock is already set by Expect")
+	}
+
+	if mmCreateModelTag.defaultExpectation.paramPtrs == nil {
+		mmCreateModelTag.defaultExpectation.paramPtrs = &CatalogMockCreateModelTagParamPtrs{}
+	}
+	mmCreateModelTag.defaultExpectation.paramPtrs.title = &title
+	mmCreateModelTag.defaultExpectation.expectationOrigins.originTitle = minimock.CallerInfo(1)
+
+	return mmCreateModelTag
+}
+
+// Inspect accepts an inspector function that has same arguments as the Catalog.CreateModelTag
+func (mmCreateModelTag *mCatalogMockCreateModelTag) Inspect(f func(ctx context.Context, slug string, title string)) *mCatalogMockCreateModelTag {
+	if mmCreateModelTag.mock.inspectFuncCreateModelTag != nil {
+		mmCreateModelTag.mock.t.Fatalf("Inspect function is already set for CatalogMock.CreateModelTag")
+	}
+
+	mmCreateModelTag.mock.inspectFuncCreateModelTag = f
+
+	return mmCreateModelTag
+}
+
+// Return sets up results that will be returned by Catalog.CreateModelTag
+func (mmCreateModelTag *mCatalogMockCreateModelTag) Return(m1 domain.ModelTag, err error) *CatalogMock {
+	if mmCreateModelTag.mock.funcCreateModelTag != nil {
+		mmCreateModelTag.mock.t.Fatalf("CatalogMock.CreateModelTag mock is already set by Set")
+	}
+
+	if mmCreateModelTag.defaultExpectation == nil {
+		mmCreateModelTag.defaultExpectation = &CatalogMockCreateModelTagExpectation{mock: mmCreateModelTag.mock}
+	}
+	mmCreateModelTag.defaultExpectation.results = &CatalogMockCreateModelTagResults{m1, err}
+	mmCreateModelTag.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmCreateModelTag.mock
+}
+
+// Set uses given function f to mock the Catalog.CreateModelTag method
+func (mmCreateModelTag *mCatalogMockCreateModelTag) Set(f func(ctx context.Context, slug string, title string) (m1 domain.ModelTag, err error)) *CatalogMock {
+	if mmCreateModelTag.defaultExpectation != nil {
+		mmCreateModelTag.mock.t.Fatalf("Default expectation is already set for the Catalog.CreateModelTag method")
+	}
+
+	if len(mmCreateModelTag.expectations) > 0 {
+		mmCreateModelTag.mock.t.Fatalf("Some expectations are already set for the Catalog.CreateModelTag method")
+	}
+
+	mmCreateModelTag.mock.funcCreateModelTag = f
+	mmCreateModelTag.mock.funcCreateModelTagOrigin = minimock.CallerInfo(1)
+	return mmCreateModelTag.mock
+}
+
+// When sets expectation for the Catalog.CreateModelTag which will trigger the result defined by the following
+// Then helper
+func (mmCreateModelTag *mCatalogMockCreateModelTag) When(ctx context.Context, slug string, title string) *CatalogMockCreateModelTagExpectation {
+	if mmCreateModelTag.mock.funcCreateModelTag != nil {
+		mmCreateModelTag.mock.t.Fatalf("CatalogMock.CreateModelTag mock is already set by Set")
+	}
+
+	expectation := &CatalogMockCreateModelTagExpectation{
+		mock:               mmCreateModelTag.mock,
+		params:             &CatalogMockCreateModelTagParams{ctx, slug, title},
+		expectationOrigins: CatalogMockCreateModelTagExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmCreateModelTag.expectations = append(mmCreateModelTag.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Catalog.CreateModelTag return parameters for the expectation previously defined by the When method
+func (e *CatalogMockCreateModelTagExpectation) Then(m1 domain.ModelTag, err error) *CatalogMock {
+	e.results = &CatalogMockCreateModelTagResults{m1, err}
+	return e.mock
+}
+
+// Times sets number of times Catalog.CreateModelTag should be invoked
+func (mmCreateModelTag *mCatalogMockCreateModelTag) Times(n uint64) *mCatalogMockCreateModelTag {
+	if n == 0 {
+		mmCreateModelTag.mock.t.Fatalf("Times of CatalogMock.CreateModelTag mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmCreateModelTag.expectedInvocations, n)
+	mmCreateModelTag.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmCreateModelTag
+}
+
+func (mmCreateModelTag *mCatalogMockCreateModelTag) invocationsDone() bool {
+	if len(mmCreateModelTag.expectations) == 0 && mmCreateModelTag.defaultExpectation == nil && mmCreateModelTag.mock.funcCreateModelTag == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmCreateModelTag.mock.afterCreateModelTagCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmCreateModelTag.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// CreateModelTag implements mm_service.Catalog
+func (mmCreateModelTag *CatalogMock) CreateModelTag(ctx context.Context, slug string, title string) (m1 domain.ModelTag, err error) {
+	mm_atomic.AddUint64(&mmCreateModelTag.beforeCreateModelTagCounter, 1)
+	defer mm_atomic.AddUint64(&mmCreateModelTag.afterCreateModelTagCounter, 1)
+
+	mmCreateModelTag.t.Helper()
+
+	if mmCreateModelTag.inspectFuncCreateModelTag != nil {
+		mmCreateModelTag.inspectFuncCreateModelTag(ctx, slug, title)
+	}
+
+	mm_params := CatalogMockCreateModelTagParams{ctx, slug, title}
+
+	// Record call args
+	mmCreateModelTag.CreateModelTagMock.mutex.Lock()
+	mmCreateModelTag.CreateModelTagMock.callArgs = append(mmCreateModelTag.CreateModelTagMock.callArgs, &mm_params)
+	mmCreateModelTag.CreateModelTagMock.mutex.Unlock()
+
+	for _, e := range mmCreateModelTag.CreateModelTagMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.m1, e.results.err
+		}
+	}
+
+	if mmCreateModelTag.CreateModelTagMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCreateModelTag.CreateModelTagMock.defaultExpectation.Counter, 1)
+		mm_want := mmCreateModelTag.CreateModelTagMock.defaultExpectation.params
+		mm_want_ptrs := mmCreateModelTag.CreateModelTagMock.defaultExpectation.paramPtrs
+
+		mm_got := CatalogMockCreateModelTagParams{ctx, slug, title}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmCreateModelTag.t.Errorf("CatalogMock.CreateModelTag got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCreateModelTag.CreateModelTagMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.slug != nil && !minimock.Equal(*mm_want_ptrs.slug, mm_got.slug) {
+				mmCreateModelTag.t.Errorf("CatalogMock.CreateModelTag got unexpected parameter slug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCreateModelTag.CreateModelTagMock.defaultExpectation.expectationOrigins.originSlug, *mm_want_ptrs.slug, mm_got.slug, minimock.Diff(*mm_want_ptrs.slug, mm_got.slug))
+			}
+
+			if mm_want_ptrs.title != nil && !minimock.Equal(*mm_want_ptrs.title, mm_got.title) {
+				mmCreateModelTag.t.Errorf("CatalogMock.CreateModelTag got unexpected parameter title, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCreateModelTag.CreateModelTagMock.defaultExpectation.expectationOrigins.originTitle, *mm_want_ptrs.title, mm_got.title, minimock.Diff(*mm_want_ptrs.title, mm_got.title))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCreateModelTag.t.Errorf("CatalogMock.CreateModelTag got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmCreateModelTag.CreateModelTagMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmCreateModelTag.CreateModelTagMock.defaultExpectation.results
+		if mm_results == nil {
+			mmCreateModelTag.t.Fatal("No results are set for the CatalogMock.CreateModelTag")
+		}
+		return (*mm_results).m1, (*mm_results).err
+	}
+	if mmCreateModelTag.funcCreateModelTag != nil {
+		return mmCreateModelTag.funcCreateModelTag(ctx, slug, title)
+	}
+	mmCreateModelTag.t.Fatalf("Unexpected call to CatalogMock.CreateModelTag. %v %v %v", ctx, slug, title)
+	return
+}
+
+// CreateModelTagAfterCounter returns a count of finished CatalogMock.CreateModelTag invocations
+func (mmCreateModelTag *CatalogMock) CreateModelTagAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCreateModelTag.afterCreateModelTagCounter)
+}
+
+// CreateModelTagBeforeCounter returns a count of CatalogMock.CreateModelTag invocations
+func (mmCreateModelTag *CatalogMock) CreateModelTagBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCreateModelTag.beforeCreateModelTagCounter)
+}
+
+// Calls returns a list of arguments used in each call to CatalogMock.CreateModelTag.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmCreateModelTag *mCatalogMockCreateModelTag) Calls() []*CatalogMockCreateModelTagParams {
+	mmCreateModelTag.mutex.RLock()
+
+	argCopy := make([]*CatalogMockCreateModelTagParams, len(mmCreateModelTag.callArgs))
+	copy(argCopy, mmCreateModelTag.callArgs)
+
+	mmCreateModelTag.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockCreateModelTagDone returns true if the count of the CreateModelTag invocations corresponds
+// the number of defined expectations
+func (m *CatalogMock) MinimockCreateModelTagDone() bool {
+	if m.CreateModelTagMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.CreateModelTagMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.CreateModelTagMock.invocationsDone()
+}
+
+// MinimockCreateModelTagInspect logs each unmet expectation
+func (m *CatalogMock) MinimockCreateModelTagInspect() {
+	for _, e := range m.CreateModelTagMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to CatalogMock.CreateModelTag at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterCreateModelTagCounter := mm_atomic.LoadUint64(&m.afterCreateModelTagCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CreateModelTagMock.defaultExpectation != nil && afterCreateModelTagCounter < 1 {
+		if m.CreateModelTagMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to CatalogMock.CreateModelTag at\n%s", m.CreateModelTagMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to CatalogMock.CreateModelTag at\n%s with params: %#v", m.CreateModelTagMock.defaultExpectation.expectationOrigins.origin, *m.CreateModelTagMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCreateModelTag != nil && afterCreateModelTagCounter < 1 {
+		m.t.Errorf("Expected call to CatalogMock.CreateModelTag at\n%s", m.funcCreateModelTagOrigin)
+	}
+
+	if !m.CreateModelTagMock.invocationsDone() && afterCreateModelTagCounter > 0 {
+		m.t.Errorf("Expected %d calls to CatalogMock.CreateModelTag at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.CreateModelTagMock.expectedInvocations), m.CreateModelTagMock.expectedInvocationsOrigin, afterCreateModelTagCounter)
 	}
 }
 
@@ -15000,6 +15394,380 @@ func (m *CatalogMock) MinimockUpdateModelInspect() {
 	}
 }
 
+type mCatalogMockUpdateModelTag struct {
+	optional           bool
+	mock               *CatalogMock
+	defaultExpectation *CatalogMockUpdateModelTagExpectation
+	expectations       []*CatalogMockUpdateModelTagExpectation
+
+	callArgs []*CatalogMockUpdateModelTagParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// CatalogMockUpdateModelTagExpectation specifies expectation struct of the Catalog.UpdateModelTag
+type CatalogMockUpdateModelTagExpectation struct {
+	mock               *CatalogMock
+	params             *CatalogMockUpdateModelTagParams
+	paramPtrs          *CatalogMockUpdateModelTagParamPtrs
+	expectationOrigins CatalogMockUpdateModelTagExpectationOrigins
+	results            *CatalogMockUpdateModelTagResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// CatalogMockUpdateModelTagParams contains parameters of the Catalog.UpdateModelTag
+type CatalogMockUpdateModelTagParams struct {
+	ctx   context.Context
+	slug  string
+	title string
+}
+
+// CatalogMockUpdateModelTagParamPtrs contains pointers to parameters of the Catalog.UpdateModelTag
+type CatalogMockUpdateModelTagParamPtrs struct {
+	ctx   *context.Context
+	slug  *string
+	title *string
+}
+
+// CatalogMockUpdateModelTagResults contains results of the Catalog.UpdateModelTag
+type CatalogMockUpdateModelTagResults struct {
+	m1  domain.ModelTag
+	err error
+}
+
+// CatalogMockUpdateModelTagOrigins contains origins of expectations of the Catalog.UpdateModelTag
+type CatalogMockUpdateModelTagExpectationOrigins struct {
+	origin      string
+	originCtx   string
+	originSlug  string
+	originTitle string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmUpdateModelTag *mCatalogMockUpdateModelTag) Optional() *mCatalogMockUpdateModelTag {
+	mmUpdateModelTag.optional = true
+	return mmUpdateModelTag
+}
+
+// Expect sets up expected params for Catalog.UpdateModelTag
+func (mmUpdateModelTag *mCatalogMockUpdateModelTag) Expect(ctx context.Context, slug string, title string) *mCatalogMockUpdateModelTag {
+	if mmUpdateModelTag.mock.funcUpdateModelTag != nil {
+		mmUpdateModelTag.mock.t.Fatalf("CatalogMock.UpdateModelTag mock is already set by Set")
+	}
+
+	if mmUpdateModelTag.defaultExpectation == nil {
+		mmUpdateModelTag.defaultExpectation = &CatalogMockUpdateModelTagExpectation{}
+	}
+
+	if mmUpdateModelTag.defaultExpectation.paramPtrs != nil {
+		mmUpdateModelTag.mock.t.Fatalf("CatalogMock.UpdateModelTag mock is already set by ExpectParams functions")
+	}
+
+	mmUpdateModelTag.defaultExpectation.params = &CatalogMockUpdateModelTagParams{ctx, slug, title}
+	mmUpdateModelTag.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmUpdateModelTag.expectations {
+		if minimock.Equal(e.params, mmUpdateModelTag.defaultExpectation.params) {
+			mmUpdateModelTag.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmUpdateModelTag.defaultExpectation.params)
+		}
+	}
+
+	return mmUpdateModelTag
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Catalog.UpdateModelTag
+func (mmUpdateModelTag *mCatalogMockUpdateModelTag) ExpectCtxParam1(ctx context.Context) *mCatalogMockUpdateModelTag {
+	if mmUpdateModelTag.mock.funcUpdateModelTag != nil {
+		mmUpdateModelTag.mock.t.Fatalf("CatalogMock.UpdateModelTag mock is already set by Set")
+	}
+
+	if mmUpdateModelTag.defaultExpectation == nil {
+		mmUpdateModelTag.defaultExpectation = &CatalogMockUpdateModelTagExpectation{}
+	}
+
+	if mmUpdateModelTag.defaultExpectation.params != nil {
+		mmUpdateModelTag.mock.t.Fatalf("CatalogMock.UpdateModelTag mock is already set by Expect")
+	}
+
+	if mmUpdateModelTag.defaultExpectation.paramPtrs == nil {
+		mmUpdateModelTag.defaultExpectation.paramPtrs = &CatalogMockUpdateModelTagParamPtrs{}
+	}
+	mmUpdateModelTag.defaultExpectation.paramPtrs.ctx = &ctx
+	mmUpdateModelTag.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmUpdateModelTag
+}
+
+// ExpectSlugParam2 sets up expected param slug for Catalog.UpdateModelTag
+func (mmUpdateModelTag *mCatalogMockUpdateModelTag) ExpectSlugParam2(slug string) *mCatalogMockUpdateModelTag {
+	if mmUpdateModelTag.mock.funcUpdateModelTag != nil {
+		mmUpdateModelTag.mock.t.Fatalf("CatalogMock.UpdateModelTag mock is already set by Set")
+	}
+
+	if mmUpdateModelTag.defaultExpectation == nil {
+		mmUpdateModelTag.defaultExpectation = &CatalogMockUpdateModelTagExpectation{}
+	}
+
+	if mmUpdateModelTag.defaultExpectation.params != nil {
+		mmUpdateModelTag.mock.t.Fatalf("CatalogMock.UpdateModelTag mock is already set by Expect")
+	}
+
+	if mmUpdateModelTag.defaultExpectation.paramPtrs == nil {
+		mmUpdateModelTag.defaultExpectation.paramPtrs = &CatalogMockUpdateModelTagParamPtrs{}
+	}
+	mmUpdateModelTag.defaultExpectation.paramPtrs.slug = &slug
+	mmUpdateModelTag.defaultExpectation.expectationOrigins.originSlug = minimock.CallerInfo(1)
+
+	return mmUpdateModelTag
+}
+
+// ExpectTitleParam3 sets up expected param title for Catalog.UpdateModelTag
+func (mmUpdateModelTag *mCatalogMockUpdateModelTag) ExpectTitleParam3(title string) *mCatalogMockUpdateModelTag {
+	if mmUpdateModelTag.mock.funcUpdateModelTag != nil {
+		mmUpdateModelTag.mock.t.Fatalf("CatalogMock.UpdateModelTag mock is already set by Set")
+	}
+
+	if mmUpdateModelTag.defaultExpectation == nil {
+		mmUpdateModelTag.defaultExpectation = &CatalogMockUpdateModelTagExpectation{}
+	}
+
+	if mmUpdateModelTag.defaultExpectation.params != nil {
+		mmUpdateModelTag.mock.t.Fatalf("CatalogMock.UpdateModelTag mock is already set by Expect")
+	}
+
+	if mmUpdateModelTag.defaultExpectation.paramPtrs == nil {
+		mmUpdateModelTag.defaultExpectation.paramPtrs = &CatalogMockUpdateModelTagParamPtrs{}
+	}
+	mmUpdateModelTag.defaultExpectation.paramPtrs.title = &title
+	mmUpdateModelTag.defaultExpectation.expectationOrigins.originTitle = minimock.CallerInfo(1)
+
+	return mmUpdateModelTag
+}
+
+// Inspect accepts an inspector function that has same arguments as the Catalog.UpdateModelTag
+func (mmUpdateModelTag *mCatalogMockUpdateModelTag) Inspect(f func(ctx context.Context, slug string, title string)) *mCatalogMockUpdateModelTag {
+	if mmUpdateModelTag.mock.inspectFuncUpdateModelTag != nil {
+		mmUpdateModelTag.mock.t.Fatalf("Inspect function is already set for CatalogMock.UpdateModelTag")
+	}
+
+	mmUpdateModelTag.mock.inspectFuncUpdateModelTag = f
+
+	return mmUpdateModelTag
+}
+
+// Return sets up results that will be returned by Catalog.UpdateModelTag
+func (mmUpdateModelTag *mCatalogMockUpdateModelTag) Return(m1 domain.ModelTag, err error) *CatalogMock {
+	if mmUpdateModelTag.mock.funcUpdateModelTag != nil {
+		mmUpdateModelTag.mock.t.Fatalf("CatalogMock.UpdateModelTag mock is already set by Set")
+	}
+
+	if mmUpdateModelTag.defaultExpectation == nil {
+		mmUpdateModelTag.defaultExpectation = &CatalogMockUpdateModelTagExpectation{mock: mmUpdateModelTag.mock}
+	}
+	mmUpdateModelTag.defaultExpectation.results = &CatalogMockUpdateModelTagResults{m1, err}
+	mmUpdateModelTag.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmUpdateModelTag.mock
+}
+
+// Set uses given function f to mock the Catalog.UpdateModelTag method
+func (mmUpdateModelTag *mCatalogMockUpdateModelTag) Set(f func(ctx context.Context, slug string, title string) (m1 domain.ModelTag, err error)) *CatalogMock {
+	if mmUpdateModelTag.defaultExpectation != nil {
+		mmUpdateModelTag.mock.t.Fatalf("Default expectation is already set for the Catalog.UpdateModelTag method")
+	}
+
+	if len(mmUpdateModelTag.expectations) > 0 {
+		mmUpdateModelTag.mock.t.Fatalf("Some expectations are already set for the Catalog.UpdateModelTag method")
+	}
+
+	mmUpdateModelTag.mock.funcUpdateModelTag = f
+	mmUpdateModelTag.mock.funcUpdateModelTagOrigin = minimock.CallerInfo(1)
+	return mmUpdateModelTag.mock
+}
+
+// When sets expectation for the Catalog.UpdateModelTag which will trigger the result defined by the following
+// Then helper
+func (mmUpdateModelTag *mCatalogMockUpdateModelTag) When(ctx context.Context, slug string, title string) *CatalogMockUpdateModelTagExpectation {
+	if mmUpdateModelTag.mock.funcUpdateModelTag != nil {
+		mmUpdateModelTag.mock.t.Fatalf("CatalogMock.UpdateModelTag mock is already set by Set")
+	}
+
+	expectation := &CatalogMockUpdateModelTagExpectation{
+		mock:               mmUpdateModelTag.mock,
+		params:             &CatalogMockUpdateModelTagParams{ctx, slug, title},
+		expectationOrigins: CatalogMockUpdateModelTagExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmUpdateModelTag.expectations = append(mmUpdateModelTag.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Catalog.UpdateModelTag return parameters for the expectation previously defined by the When method
+func (e *CatalogMockUpdateModelTagExpectation) Then(m1 domain.ModelTag, err error) *CatalogMock {
+	e.results = &CatalogMockUpdateModelTagResults{m1, err}
+	return e.mock
+}
+
+// Times sets number of times Catalog.UpdateModelTag should be invoked
+func (mmUpdateModelTag *mCatalogMockUpdateModelTag) Times(n uint64) *mCatalogMockUpdateModelTag {
+	if n == 0 {
+		mmUpdateModelTag.mock.t.Fatalf("Times of CatalogMock.UpdateModelTag mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmUpdateModelTag.expectedInvocations, n)
+	mmUpdateModelTag.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmUpdateModelTag
+}
+
+func (mmUpdateModelTag *mCatalogMockUpdateModelTag) invocationsDone() bool {
+	if len(mmUpdateModelTag.expectations) == 0 && mmUpdateModelTag.defaultExpectation == nil && mmUpdateModelTag.mock.funcUpdateModelTag == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmUpdateModelTag.mock.afterUpdateModelTagCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmUpdateModelTag.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// UpdateModelTag implements mm_service.Catalog
+func (mmUpdateModelTag *CatalogMock) UpdateModelTag(ctx context.Context, slug string, title string) (m1 domain.ModelTag, err error) {
+	mm_atomic.AddUint64(&mmUpdateModelTag.beforeUpdateModelTagCounter, 1)
+	defer mm_atomic.AddUint64(&mmUpdateModelTag.afterUpdateModelTagCounter, 1)
+
+	mmUpdateModelTag.t.Helper()
+
+	if mmUpdateModelTag.inspectFuncUpdateModelTag != nil {
+		mmUpdateModelTag.inspectFuncUpdateModelTag(ctx, slug, title)
+	}
+
+	mm_params := CatalogMockUpdateModelTagParams{ctx, slug, title}
+
+	// Record call args
+	mmUpdateModelTag.UpdateModelTagMock.mutex.Lock()
+	mmUpdateModelTag.UpdateModelTagMock.callArgs = append(mmUpdateModelTag.UpdateModelTagMock.callArgs, &mm_params)
+	mmUpdateModelTag.UpdateModelTagMock.mutex.Unlock()
+
+	for _, e := range mmUpdateModelTag.UpdateModelTagMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.m1, e.results.err
+		}
+	}
+
+	if mmUpdateModelTag.UpdateModelTagMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmUpdateModelTag.UpdateModelTagMock.defaultExpectation.Counter, 1)
+		mm_want := mmUpdateModelTag.UpdateModelTagMock.defaultExpectation.params
+		mm_want_ptrs := mmUpdateModelTag.UpdateModelTagMock.defaultExpectation.paramPtrs
+
+		mm_got := CatalogMockUpdateModelTagParams{ctx, slug, title}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmUpdateModelTag.t.Errorf("CatalogMock.UpdateModelTag got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateModelTag.UpdateModelTagMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.slug != nil && !minimock.Equal(*mm_want_ptrs.slug, mm_got.slug) {
+				mmUpdateModelTag.t.Errorf("CatalogMock.UpdateModelTag got unexpected parameter slug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateModelTag.UpdateModelTagMock.defaultExpectation.expectationOrigins.originSlug, *mm_want_ptrs.slug, mm_got.slug, minimock.Diff(*mm_want_ptrs.slug, mm_got.slug))
+			}
+
+			if mm_want_ptrs.title != nil && !minimock.Equal(*mm_want_ptrs.title, mm_got.title) {
+				mmUpdateModelTag.t.Errorf("CatalogMock.UpdateModelTag got unexpected parameter title, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateModelTag.UpdateModelTagMock.defaultExpectation.expectationOrigins.originTitle, *mm_want_ptrs.title, mm_got.title, minimock.Diff(*mm_want_ptrs.title, mm_got.title))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmUpdateModelTag.t.Errorf("CatalogMock.UpdateModelTag got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmUpdateModelTag.UpdateModelTagMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmUpdateModelTag.UpdateModelTagMock.defaultExpectation.results
+		if mm_results == nil {
+			mmUpdateModelTag.t.Fatal("No results are set for the CatalogMock.UpdateModelTag")
+		}
+		return (*mm_results).m1, (*mm_results).err
+	}
+	if mmUpdateModelTag.funcUpdateModelTag != nil {
+		return mmUpdateModelTag.funcUpdateModelTag(ctx, slug, title)
+	}
+	mmUpdateModelTag.t.Fatalf("Unexpected call to CatalogMock.UpdateModelTag. %v %v %v", ctx, slug, title)
+	return
+}
+
+// UpdateModelTagAfterCounter returns a count of finished CatalogMock.UpdateModelTag invocations
+func (mmUpdateModelTag *CatalogMock) UpdateModelTagAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdateModelTag.afterUpdateModelTagCounter)
+}
+
+// UpdateModelTagBeforeCounter returns a count of CatalogMock.UpdateModelTag invocations
+func (mmUpdateModelTag *CatalogMock) UpdateModelTagBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdateModelTag.beforeUpdateModelTagCounter)
+}
+
+// Calls returns a list of arguments used in each call to CatalogMock.UpdateModelTag.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmUpdateModelTag *mCatalogMockUpdateModelTag) Calls() []*CatalogMockUpdateModelTagParams {
+	mmUpdateModelTag.mutex.RLock()
+
+	argCopy := make([]*CatalogMockUpdateModelTagParams, len(mmUpdateModelTag.callArgs))
+	copy(argCopy, mmUpdateModelTag.callArgs)
+
+	mmUpdateModelTag.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockUpdateModelTagDone returns true if the count of the UpdateModelTag invocations corresponds
+// the number of defined expectations
+func (m *CatalogMock) MinimockUpdateModelTagDone() bool {
+	if m.UpdateModelTagMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.UpdateModelTagMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.UpdateModelTagMock.invocationsDone()
+}
+
+// MinimockUpdateModelTagInspect logs each unmet expectation
+func (m *CatalogMock) MinimockUpdateModelTagInspect() {
+	for _, e := range m.UpdateModelTagMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to CatalogMock.UpdateModelTag at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterUpdateModelTagCounter := mm_atomic.LoadUint64(&m.afterUpdateModelTagCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.UpdateModelTagMock.defaultExpectation != nil && afterUpdateModelTagCounter < 1 {
+		if m.UpdateModelTagMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to CatalogMock.UpdateModelTag at\n%s", m.UpdateModelTagMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to CatalogMock.UpdateModelTag at\n%s with params: %#v", m.UpdateModelTagMock.defaultExpectation.expectationOrigins.origin, *m.UpdateModelTagMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcUpdateModelTag != nil && afterUpdateModelTagCounter < 1 {
+		m.t.Errorf("Expected call to CatalogMock.UpdateModelTag at\n%s", m.funcUpdateModelTagOrigin)
+	}
+
+	if !m.UpdateModelTagMock.invocationsDone() && afterUpdateModelTagCounter > 0 {
+		m.t.Errorf("Expected %d calls to CatalogMock.UpdateModelTag at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.UpdateModelTagMock.expectedInvocations), m.UpdateModelTagMock.expectedInvocationsOrigin, afterUpdateModelTagCounter)
+	}
+}
+
 type mCatalogMockUpdatePlacement struct {
 	optional           bool
 	mock               *CatalogMock
@@ -16814,6 +17582,8 @@ func (m *CatalogMock) MinimockFinish() {
 		if !m.minimockDone() {
 			m.MinimockCreateMeasurementInspect()
 
+			m.MinimockCreateModelTagInspect()
+
 			m.MinimockCreatePlacementInspect()
 
 			m.MinimockCreatePlacementGroupInspect()
@@ -16892,6 +17662,8 @@ func (m *CatalogMock) MinimockFinish() {
 
 			m.MinimockUpdateModelInspect()
 
+			m.MinimockUpdateModelTagInspect()
+
 			m.MinimockUpdatePlacementInspect()
 
 			m.MinimockUpdateTerritoryInspect()
@@ -16925,6 +17697,7 @@ func (m *CatalogMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockCreateMeasurementDone() &&
+		m.MinimockCreateModelTagDone() &&
 		m.MinimockCreatePlacementDone() &&
 		m.MinimockCreatePlacementGroupDone() &&
 		m.MinimockCreatePlacementsDone() &&
@@ -16964,6 +17737,7 @@ func (m *CatalogMock) minimockDone() bool {
 		m.MinimockSetTerritoryRescaleBaselineDone() &&
 		m.MinimockUpdateMeasurementDone() &&
 		m.MinimockUpdateModelDone() &&
+		m.MinimockUpdateModelTagDone() &&
 		m.MinimockUpdatePlacementDone() &&
 		m.MinimockUpdateTerritoryDone() &&
 		m.MinimockUpdateZoneDone() &&
