@@ -46,7 +46,7 @@ const dto = {
       hidden: true,
     },
   ],
-  documents: [{ id: 8, territorySlug: "t", title: "Plot plan.pdf", sourceBlobHash: "d" }],
+  documents: [{ id: 8, territorySlug: "t", title: "Plot plan.pdf", sourceBlobHash: "d", calibration: null }],
   measurements: [
     {
       id: 5,
@@ -56,6 +56,23 @@ const dto = {
         { x: 1, y: 1, z: 1 },
       ],
       closed: false,
+      createdAt: "c",
+      updatedAt: "u",
+    },
+  ],
+  zones: [
+    {
+      id: 4,
+      title: "N2",
+      corners: [
+        { x: 0, y: 0, z: 0 },
+        { x: 1, y: 0, z: 0 },
+        { x: 1, y: 0, z: 1 },
+        { x: 0, y: 0, z: 1 },
+      ],
+      tags: [{ slug: "tanks", title: "Tanks" }],
+      drawingWidthM: 7.5,
+      drawingHeightM: null,
       createdAt: "c",
       updatedAt: "u",
     },
@@ -84,9 +101,19 @@ describe("getSceneBundle", () => {
     expect(bundle.placements[0]).toMatchObject({ id: 1, label: "", updatedAt: "", visiblePanoramaIds: [] });
     expect(bundle.modelOptions[0].chain).toEqual([]);
     expect(bundle.panoramas).toEqual([{ ...dto.panoramas[0], updatedAt: "", thumbnailBlobHash: null }]);
-    expect(bundle.documents).toEqual([{ ...dto.documents[0], createdAt: "" }]);
+    expect(bundle.documents).toEqual([{ ...dto.documents[0], createdAt: "", calibration: null }]);
     expect(bundle.measurements).toEqual([{ serverId: 5, points: dto.measurements[0].points, closed: false }]);
     expect(bundle.placementGroups).toEqual([{ id: 2, title: "Tank farm", hidden: true }]);
+  });
+
+  it("maps zones through their own mapper", async () => {
+    expect((await getSceneBundle("t")).zones).toEqual(dto.zones);
+  });
+
+  it("reads a bundle saved before zones as []", async () => {
+    const { zones: _z, ...beforeZones } = dto;
+    fetchMock.mockResolvedValueOnce(json(beforeZones));
+    expect((await getSceneBundle("t")).zones).toEqual([]);
   });
 
   it("maps the three phase flags into a lookup", async () => {

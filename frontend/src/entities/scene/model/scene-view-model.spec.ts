@@ -50,7 +50,14 @@ const panorama = {
   hidden: false,
   updatedAt: "",
 };
-const document = { id: 8, territorySlug: "t", title: "Plot plan.pdf", sourceBlobHash: "d", createdAt: "" };
+const document = {
+  id: 8,
+  territorySlug: "t",
+  title: "Plot plan.pdf",
+  sourceBlobHash: "d",
+  createdAt: "",
+  calibration: null,
+};
 const bundle: SceneBundle = {
   territory,
   artifact,
@@ -76,6 +83,7 @@ const bundle: SceneBundle = {
     },
   ],
   placementGroups: [],
+  zones: [],
   phaseHidden: { prior: false, current: false, post: false },
 };
 

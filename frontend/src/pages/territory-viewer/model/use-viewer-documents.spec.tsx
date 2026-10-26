@@ -31,6 +31,7 @@ const doc = (id: number, title: string): Document => ({
   title,
   sourceBlobHash: `d${id}`,
   createdAt: "2026-09-14T10:00:00Z",
+  calibration: null,
 });
 
 const DOCUMENTS = [doc(7, "Fire plan.pdf"), doc(8, "Layout.pdf")];

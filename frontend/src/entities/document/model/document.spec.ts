@@ -9,6 +9,7 @@ describe("documentFileName", () => {
       title: "Plot plan.pdf",
       sourceBlobHash: "h",
       createdAt: "",
+      calibration: null,
     };
     expect(documentFileName(doc)).toBe("Plot plan.pdf");
   });

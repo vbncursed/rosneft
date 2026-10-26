@@ -30,6 +30,7 @@ const CREATED: Document = {
   title: "Fire safety zones",
   sourceBlobHash: "abc",
   createdAt: "2026-09-14T10:00:00Z",
+  calibration: null,
 };
 
 const pdf = () =>

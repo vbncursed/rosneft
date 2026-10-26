@@ -37,6 +37,7 @@ const DOCUMENT: Document = {
   title: "plan-sheet-03.pdf",
   sourceBlobHash: "d1",
   createdAt: "2026-09-01T00:00:00Z",
+  calibration: null,
 };
 
 describe("TerritoryViewerPage", () => {

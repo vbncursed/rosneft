@@ -699,6 +699,7 @@ describe("pageProps · the LOD switcher goes where the level cannot be chosen", 
       title: "Fire plan.pdf",
       sourceBlobHash: "d7",
       createdAt: "2026-09-01T00:00:00Z",
+      calibration: null,
     };
     expect(pageProps({ ...p, documents: { ...p.documents, list: [active], active } }).overlays.switcher).toBeNull();
   });

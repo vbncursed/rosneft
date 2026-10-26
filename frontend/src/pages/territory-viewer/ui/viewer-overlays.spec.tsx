@@ -14,6 +14,7 @@ const DOC: Document = {
   title: FILE,
   sourceBlobHash: "h",
   createdAt: "2026-09-01T00:00:00Z",
+  calibration: null,
 };
 
 const documentWindow = (over: Partial<ViewerOverlaysProps["document"]> = {}) => ({

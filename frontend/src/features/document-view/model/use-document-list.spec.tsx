@@ -16,6 +16,7 @@ const document = (id: number, over: Partial<Document> = {}): Document => ({
   title: `doc-${id}.pdf`,
   sourceBlobHash: `h${id}`,
   createdAt: "t0",
+  calibration: null,
   ...over,
 });
 

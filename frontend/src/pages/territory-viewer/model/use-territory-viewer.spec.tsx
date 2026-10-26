@@ -134,6 +134,7 @@ const BUNDLE: SceneBundle = {
       title: "Fire plan.pdf",
       sourceBlobHash: "d7",
       createdAt: "2026-09-14T10:00:00Z",
+      calibration: null,
     },
   ],
   measurements: [
@@ -147,6 +148,7 @@ const BUNDLE: SceneBundle = {
     },
   ],
   placementGroups: [],
+  zones: [],
   phaseHidden: { prior: false, current: false, post: false },
 };
 

@@ -155,7 +155,14 @@ describe("usePageHandlers", () => {
     const { result } = mount({
       documents: {
         ...IDLE_DOCUMENTS,
-        active: { id: 7, territorySlug: "t", title: "Fire plan.pdf", sourceBlobHash: "d7", createdAt: "" },
+        active: {
+          id: 7,
+          territorySlug: "t",
+          title: "Fire plan.pdf",
+          sourceBlobHash: "d7",
+          createdAt: "",
+          calibration: null,
+        },
         window: "collapsed",
         onWindow,
       },
@@ -169,7 +176,14 @@ describe("usePageHandlers", () => {
     const { result } = mount({
       documents: {
         ...IDLE_DOCUMENTS,
-        active: { id: 7, territorySlug: "t", title: "Fire plan.pdf", sourceBlobHash: "d7", createdAt: "" },
+        active: {
+          id: 7,
+          territorySlug: "t",
+          title: "Fire plan.pdf",
+          sourceBlobHash: "d7",
+          createdAt: "",
+          calibration: null,
+        },
         window: "pip",
         onWindow,
       },

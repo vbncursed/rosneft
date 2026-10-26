@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const http = vi.hoisted(() => ({ httpGet: vi.fn(), httpPost: vi.fn(), httpDelete: vi.fn() }));
+const http = vi.hoisted(() => ({ httpGet: vi.fn(), httpPost: vi.fn(), httpPut: vi.fn(), httpDelete: vi.fn() }));
 vi.mock("@/shared/api", () => http);
 
-const { listDocuments, createDocument, deleteDocument } = await import("./documents-gateway");
+const { listDocuments, createDocument, deleteDocument, putCalibration, deleteCalibration } =
+  await import("./documents-gateway");
 
 const DTO = {
   id: 7,
@@ -11,6 +12,7 @@ const DTO = {
   title: "Plot plan.pdf",
   sourceBlobHash: "h",
   createdAt: "2026-09-14T10:00:00Z",
+  calibration: null,
 };
 
 describe("documents gateway", () => {
@@ -38,5 +40,18 @@ describe("documents gateway", () => {
   it("maps a missing createdAt to an empty string", async () => {
     http.httpGet.mockResolvedValue([{ ...DTO, createdAt: undefined }]);
     expect((await listDocuments("t"))[0].createdAt).toBe("");
+  });
+
+  it("puts a calibration to the document and maps the answer", async () => {
+    const c = { page: 1, points: [{ pdf: { x: 1, y: 2 }, scene: { x: 3, y: 4, z: 5 }, utm: null }] };
+    http.httpPut.mockResolvedValue(c);
+    expect(await putCalibration("t/1", 7, c)).toEqual(c);
+    expect(http.httpPut).toHaveBeenCalledWith("/api/territories/t%2F1/documents/7/calibration", c);
+  });
+
+  it("deletes a calibration", async () => {
+    http.httpDelete.mockResolvedValue(undefined);
+    await deleteCalibration("t", 7);
+    expect(http.httpDelete).toHaveBeenCalledWith("/api/territories/t/documents/7/calibration");
   });
 });
