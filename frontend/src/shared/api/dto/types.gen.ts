@@ -24,6 +24,24 @@ export type ModelTag = {
   title: string;
 };
 
+export type ModelTagCreate = {
+  /**
+   * Lowercase letters, digits and single hyphens, never at either end.
+   */
+  slug: string;
+  /**
+   * Trimmed by the server; 1 to 120 characters, unique case-insensitively.
+   */
+  title: string;
+};
+
+export type ModelTagUpdate = {
+  /**
+   * Trimmed by the server; 1 to 120 characters, unique case-insensitively.
+   */
+  title: string;
+};
+
 export type Territory = {
   slug: string;
   title: string;
@@ -3196,6 +3214,70 @@ export type ListModelTagsResponses = {
 };
 
 export type ListModelTagsResponse = ListModelTagsResponses[keyof ListModelTagsResponses];
+
+export type CreateModelTagData = {
+  body: ModelTagCreate;
+  path?: never;
+  query?: never;
+  url: '/api/model-tags';
+};
+
+export type CreateModelTagErrors = {
+  /**
+   * Invalid request
+   */
+  400: Error;
+  /**
+   * Internal server error
+   */
+  500: Error;
+};
+
+export type CreateModelTagError = CreateModelTagErrors[keyof CreateModelTagErrors];
+
+export type CreateModelTagResponses = {
+  /**
+   * Created
+   */
+  201: ModelTag;
+};
+
+export type CreateModelTagResponse = CreateModelTagResponses[keyof CreateModelTagResponses];
+
+export type UpdateModelTagData = {
+  body: ModelTagUpdate;
+  path: {
+    slug: string;
+  };
+  query?: never;
+  url: '/api/model-tags/{slug}';
+};
+
+export type UpdateModelTagErrors = {
+  /**
+   * Invalid request
+   */
+  400: Error;
+  /**
+   * Resource not found
+   */
+  404: Error;
+  /**
+   * Internal server error
+   */
+  500: Error;
+};
+
+export type UpdateModelTagError = UpdateModelTagErrors[keyof UpdateModelTagErrors];
+
+export type UpdateModelTagResponses = {
+  /**
+   * OK
+   */
+  200: ModelTag;
+};
+
+export type UpdateModelTagResponse = UpdateModelTagResponses[keyof UpdateModelTagResponses];
 
 export type DeleteModelData = {
   body?: never;

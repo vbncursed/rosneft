@@ -1,5 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { contentPath, type ContentItem } from "@/entities/content";
+import { ModelTagsCard } from "@/features/manage-model-tags";
 import { Callout } from "@/shared/ui/callout";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { Icon } from "@/shared/ui/icon";
@@ -105,6 +106,8 @@ export function ContentScreen() {
             }
           : {})}
       />
+
+      {s.canManageTags ? <ModelTagsCard /> : null}
 
       {s.pending ? (
         <ConfirmDialog

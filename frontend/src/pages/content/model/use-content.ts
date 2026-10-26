@@ -20,6 +20,8 @@ export type ContentState = {
   items: ContentItem[] | null;
   storageBytes: number;
   canManage: boolean;
+  /** `model:write` — renaming and adding model tags. */
+  canManageTags: boolean;
   /** `territory:create` — Root alone; `territory:write` edits but creates nothing. */
   canCreateTerritory: boolean;
   canDelete: (kind: ContentKind) => boolean;
@@ -109,6 +111,7 @@ export function useContent(): ContentState {
     ),
     canManage: can(me, "territory:write") || can(me, "model:write"),
     canCreateTerritory: can(me, "territory:create"),
+    canManageTags: can(me, "model:write"),
     canDelete: (kind) => can(me, kind === "territory" ? "territory:delete" : "model:delete"),
     artifactsOf,
     jobOf,

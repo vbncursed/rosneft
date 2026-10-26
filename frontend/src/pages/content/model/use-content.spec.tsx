@@ -107,6 +107,14 @@ describe("useContent", () => {
     expect(result.current.canCreateTerritory).toBe(true);
   });
 
+  it("offers tag management on model:write alone", async () => {
+    const { result } = renderHook(() => useContent(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.canManageTags).toBe(true);
+    client.setQueryData(["me"], { ...PRINCIPAL, permissions: ["territory:write"] });
+    await waitFor(() => expect(result.current.canManageTags).toBe(false));
+  });
+
   it("knows which kinds the viewer may delete", async () => {
     const { result } = renderHook(() => useContent(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
