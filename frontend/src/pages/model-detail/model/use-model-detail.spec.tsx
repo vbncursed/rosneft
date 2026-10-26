@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HttpError } from "@/shared/api";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useModelDetail, type ModelDetailState } from "./use-model-detail";
@@ -88,6 +88,8 @@ beforeEach(() => {
   navigate.mockReset();
   clearNotices();
 });
+
+afterEach(() => vi.unstubAllGlobals());
 
 describe("useModelDetail", () => {
   it("resolves ready with the model, artifacts and conversion status once every query answers", async () => {
@@ -254,7 +256,6 @@ describe("useModelDetail", () => {
     if (failed.result.current.phase !== "ready") throw new Error("unreachable");
     await waitFor(() => expect(readyOf(failed.result).tagsError).toBe("Tags could not be loaded. Try again."));
     expect(failed.result.current.tags).toBeUndefined();
-    vi.unstubAllGlobals();
   });
 
   it("follows model:delete and model:write on the principal", async () => {

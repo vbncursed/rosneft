@@ -2,12 +2,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { createModel, modelPath } from "@/entities/model";
-import { modelTagsQuery, type ModelTag } from "@/entities/model-tag";
 import { CHUNK_SIZE, runChunkedUpload, type UploadProgress, type UploadSample } from "@/entities/upload";
 import { meQuery } from "@/entities/user";
 import { messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
-import { unanswered } from "@/shared/lib/unanswered";
 import { can } from "@/shared/session";
 import type { ChecklistItem } from "@/shared/ui/checklist";
 import type { CoverageSegment } from "@/shared/ui/coverage-meter";
@@ -22,10 +20,9 @@ import {
   type CurrentStats,
   type QueueRow,
 } from "./batch";
+import { useBatchTag, type BatchTag } from "./use-batch-tag";
 
-const TAGS_ERROR = "Tags could not be loaded. Try again.";
-
-export type UploadModelsState = {
+export type UploadModelsState = BatchTag & {
   rows: QueueRow[];
   onFiles: (files: File[]) => void;
   onTitle: (id: string, title: string) => void;
@@ -40,12 +37,6 @@ export type UploadModelsState = {
   stats: { archives: string; total: string; failed: number };
   checks: ChecklistItem[];
   canUpload: boolean;
-  /** The tag list; `undefined` while it loads or after it failed. */
-  tags: ModelTag[] | undefined;
-  /** The one tag every model of this batch gets; `null` until the reader picks. */
-  tagSlug: string | null;
-  onTag: (slug: string) => void;
-  tagsError: string | null;
   failedNames: string[];
 };
 
@@ -60,8 +51,8 @@ export function useUploadModels(): UploadModelsState {
   const client = useQueryClient();
   const navigate = useNavigate();
   const [rows, setRows] = useState<QueueRow[]>([]);
-  const tags = useQuery(modelTagsQuery());
-  const [tagSlug, setTagSlug] = useState<string | null>(null);
+  const batchTag = useBatchTag();
+  const { tagSlug } = batchTag;
   const [running, setRunning] = useState(false);
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [progress, setProgress] = useState<UploadProgress | null>(null);
@@ -197,10 +188,7 @@ export function useUploadModels(): UploadModelsState {
     stats: batchStats(rows),
     checks: MODEL_CHECKLIST,
     canUpload: can(me, "model:write"),
-    tags: tags.data,
-    tagSlug,
-    onTag: setTagSlug,
-    tagsError: unanswered(tags) ? TAGS_ERROR : null,
+    ...batchTag,
     // A deliberate cancel is not a "fix the archive and re-add it" failure —
     // it does not get the bad-callout treatment.
     failedNames: rows.filter((r) => r.status === "failed" && r.error !== "cancelled").map((r) => r.file.name),
