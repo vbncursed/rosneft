@@ -87,6 +87,62 @@ describe("PlanLayers, editing", () => {
     expect(lastPlan(p)?.awaitingScenePick).toBe(false);
   });
 
+  it("publishes every rectangle as a ground outline once the plan is aligned, and none before", async () => {
+    const unaligned = props({ bbox: null });
+    render(<PlanLayers {...unaligned} />);
+    await screen.findAllByRole("button", { name: /^Rectangle / });
+    expect(lastPlan(unaligned)?.preview).toBeNull();
+
+    const p = props();
+    render(<PlanLayers {...p} />);
+    const rects = await screen.findAllByRole("button", { name: /^Rectangle / });
+    await waitFor(() => expect(lastPlan(p)?.preview?.outlines).toHaveLength(rects.length));
+    for (const o of lastPlan(p)!.preview!.outlines) for (const c of o.corners) expect(c.y).toBeCloseTo(0.1, 12);
+  });
+
+  it("settles: the editor re-renders on its own, and the preview it publishes keeps its identity", async () => {
+    const p = props();
+    render(<PlanLayers {...p} />);
+    await waitFor(() => expect(lastPlan(p)?.preview).toBeTruthy());
+    const [first, calls] = [lastPlan(p)!.preview, vi.mocked(p.onPlan).mock.calls.length];
+    await act(() => new Promise((done) => setTimeout(done, 60)));
+    expect(vi.mocked(p.onPlan).mock.calls.length).toBe(calls);
+    expect(lastPlan(p)!.preview).toBe(first);
+  });
+
+  it("picks the rectangle the canvas names, and says which in the preview and the zone form", async () => {
+    const p = props();
+    render(<PlanLayers {...p} />);
+    await waitFor(() => expect(lastPlan(p)?.preview).toBeTruthy());
+    const { outlines, onSelect } = lastPlan(p)!.preview!;
+    act(() => onSelect(outlines[1].index));
+    await waitFor(() => expect(lastPlan(p)?.preview?.selected).toBe(outlines[1].index));
+    expect(lastPlan(p)?.preview?.label).toMatch(/^Rectangle /);
+    act(() => lastPlan(p)!.preview!.onSelect(outlines[1].index));
+    await waitFor(() => expect(lastPlan(p)?.preview?.selected).toBeNull());
+  });
+
+  it("leaves out the rectangle that is already a saved zone", async () => {
+    const p = props();
+    render(<PlanLayers {...p} />);
+    await waitFor(() => expect(lastPlan(p)?.preview).toBeTruthy());
+    const [first, ...rest] = lastPlan(p)!.preview!.outlines;
+    const zone = {
+      id: 1,
+      title: "z",
+      corners: first.corners,
+      tags: [],
+      drawingWidthM: null,
+      drawingHeightM: null,
+      createdAt: "",
+      updatedAt: "",
+    };
+    const q = props({ zones: [zone] });
+    render(<PlanLayers {...q} />);
+    await waitFor(() => expect(lastPlan(q)?.preview?.outlines.map((o) => o.index)).not.toContain(first.index));
+    expect(lastPlan(q)!.preview!.outlines.length).toBeLessThan(rest.length + 1);
+  });
+
   it("puts the align panel and the zone form in the slot the Overlays panel offers", async () => {
     const slot = document.createElement("div");
     document.body.append(slot);

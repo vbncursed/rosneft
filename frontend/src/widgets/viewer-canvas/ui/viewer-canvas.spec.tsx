@@ -57,6 +57,7 @@ const props = {
     onSelectZone: vi.fn(),
     plan: null,
     planOpacity: 1,
+    preview: null,
     onGround: vi.fn(),
   },
   pickScene: false,

@@ -3,6 +3,7 @@ import type { Group } from "three";
 import type { SiteProps } from "../ui/props";
 import GroundProbe from "./ground-probe";
 import PlanOverlay from "./plan-overlay";
+import PlanPreviewLayer from "./plan-preview-layer";
 import ZonesLayer from "./zones-layer";
 
 interface SiteLayersProps {
@@ -47,6 +48,9 @@ export default function SiteLayers({ site, interactive, hidden, unitRatio, color
               selectedId={site.selectedZoneId}
               onSelect={site.onSelectZone}
             />
+          ) : null}
+          {site.preview ? (
+            <PlanPreviewLayer preview={site.preview} unitRatio={unitRatio} color={color} interactive={interactive} />
           ) : null}
           {site.plan && groundY !== null ? (
             <PlanOverlay image={site.plan.image} fit={site.plan.fit} groundY={groundY} opacity={site.planOpacity} />

@@ -33,6 +33,7 @@ const site = (over: Partial<SiteProps> = {}): SiteProps => ({
   onSelectZone: vi.fn(),
   plan: PLAN,
   planOpacity: 1,
+  preview: null,
   onGround: vi.fn(),
   ...over,
 });
@@ -69,6 +70,25 @@ describe("SiteLayers", () => {
     expect(plan).toHaveLength(1);
     // The box's top is 0.5 above its centre.
     expect((plan[0].instance as Mesh).geometry.getAttribute("position").getY(0)).toBeCloseTo(0.5, 10);
+  });
+
+  it("draws the candidate squares whether or not the saved zones are shown, and not inside a panorama", async () => {
+    const preview = {
+      outlines: [{ index: 0, corners: ZONE.corners as never }],
+      selected: null,
+      label: null,
+      onSelect: vi.fn(),
+    };
+    const shown = await mount({ preview, showZones: false });
+    expect(shown.named("PlanPreviewLayer")).toHaveLength(1);
+    expect(shown.named("ZonesLayer")).toHaveLength(0);
+    const inside = await mount({ preview }, true);
+    expect(inside.named("PlanPreviewLayer")).toHaveLength(0);
+  });
+
+  it("draws no candidate squares without a preview", async () => {
+    const { named } = await mount();
+    expect(named("PlanPreviewLayer")).toHaveLength(0);
   });
 
   it("hands the page the ground", async () => {

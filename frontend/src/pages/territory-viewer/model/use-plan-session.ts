@@ -3,7 +3,7 @@ import type { Calibration, Document } from "@/entities/document";
 import type { Similarity } from "@/entities/site-plan";
 import { notify } from "@/shared/lib/notify";
 import { useStoredChoice } from "@/shared/lib/use-stored-choice";
-import type { PlanLayer } from "@/widgets/viewer-canvas";
+import type { PlanLayer, PlanPreview } from "@/widgets/viewer-canvas";
 
 /** What the plan layer tells the page: the picture, where the page lies on the ground, and what the editor waits for. */
 export type PlanState = {
@@ -12,6 +12,8 @@ export type PlanState = {
   /** Null while the pairs do not give a fit. */
   similarity: Similarity | null;
   awaitingScenePick: boolean;
+  /** The editor's candidate squares on the ground; null from the saved plan, which has none. */
+  preview: PlanPreview | null;
 };
 
 export type PlanSessionParams = {
@@ -108,6 +110,7 @@ export function usePlanSession({ documents, canWrite }: PlanSessionParams) {
     plan,
     onPlan: setPlan,
     canvasPlan,
+    preview: editing === null ? null : (plan?.preview ?? null),
     pickScene: editing !== null && (plan?.awaitingScenePick ?? false),
     acceptRef,
     showPlan,

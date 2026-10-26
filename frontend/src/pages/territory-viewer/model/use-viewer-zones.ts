@@ -85,9 +85,10 @@ export function useViewerZones(p: ViewerZonesParams) {
       onSelectZone: list.select,
       plan: session.canvasPlan,
       planOpacity: session.opacity,
+      preview: session.preview,
       onGround: setGround,
     }),
-    [list.zones, list.show, list.selected?.id, list.select, session.canvasPlan, session.opacity],
+    [list.zones, list.show, list.selected?.id, list.select, session.canvasPlan, session.opacity, session.preview],
   );
 
   const document: Document | null = editing ?? (session.showPlan ? session.saved : null);

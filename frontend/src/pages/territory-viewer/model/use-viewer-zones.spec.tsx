@@ -142,6 +142,7 @@ describe("useViewerZones", () => {
         page: { width: 1, height: 1 },
         similarity: null,
         awaitingScenePick: true,
+        preview: null,
       }),
     );
     expect(result.current.z.pickScene).toBe(true);
@@ -157,6 +158,7 @@ describe("useViewerZones", () => {
         page: { width: 1, height: 1 },
         similarity: { scale: 1, rotation: 0, tx: 0, tz: 0 },
         awaitingScenePick: false,
+        preview: null,
       }),
     );
     expect(result.current.z.site.plan).not.toBeNull();

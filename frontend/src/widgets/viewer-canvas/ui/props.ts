@@ -4,6 +4,7 @@ import type { Panorama, PhaseHidden } from "@/entities/panorama";
 import type { PlacementGroup, PlacementTransform, ResolvedPlacement, Vec3 } from "@/entities/placement";
 import type { LodArtifact, LodChoice } from "@/entities/scene";
 import type { LodFailure } from "@/features/lod";
+import type { PreviewOutline } from "@/features/zone-editor";
 import type { Zone } from "@/entities/zone";
 import type { GizmoMode, ViewerMode } from "@/features/viewer-mode";
 import type { Ground } from "../three/ground-probe";
@@ -21,6 +22,15 @@ export type LodReport = {
 /** The aligned plan as the canvas draws it: the picture and where it lies on the ground. */
 export type PlanLayer = { image: ImageBitmap; fit: PlanFit };
 
+/** The plan editor's candidate squares on the ground; `selected` and `onSelect` speak the editor's rectangle indices. */
+export type PlanPreview = {
+  outlines: PreviewOutline[];
+  selected: number | null;
+  /** The picked rectangle's size label; only that one is written out. */
+  label: string | null;
+  onSelect: (index: number) => void;
+};
+
 /** The site zones feature, in one object so the page keeps one identity across a fold. */
 export type SiteProps = {
   zones: Zone[];
@@ -30,6 +40,8 @@ export type SiteProps = {
   /** Null draws no plan. */
   plan: PlanLayer | null;
   planOpacity: number;
+  /** Null while the editor is closed or its fit is not valid: nothing is previewed. */
+  preview: PlanPreview | null;
   /** The ground probe is ready: heights under a point, and the median. */
   onGround: (ground: Ground) => void;
 };

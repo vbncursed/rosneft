@@ -431,6 +431,8 @@ describe("useTerritoryViewer", () => {
         for (const key of Object.keys(first.canvas) as (keyof typeof first.canvas)[]) {
           expect(second.canvas[key], key).toBe(first.canvas[key]);
         }
+        // The candidate squares ride inside `site`; naming them pins that a fold never renews them.
+        expect(second.canvas.site.preview).toBe(first.canvas.site.preview);
       });
     });
   });
@@ -989,6 +991,7 @@ describe("useTerritoryViewer", () => {
           page: { width: 1, height: 1 },
           similarity: null,
           awaitingScenePick: true,
+          preview: null,
         }),
       );
       expect(now(r).canvas.pickScene).toBe(true);
@@ -1043,6 +1046,7 @@ describe("useTerritoryViewer", () => {
             page: { width: 1, height: 1 },
             similarity: null,
             awaitingScenePick: false,
+            preview: null,
           }),
         );
         expect(now(r).zoneTours.plan.active).toBe(true);

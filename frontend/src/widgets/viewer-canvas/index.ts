@@ -1,6 +1,6 @@
 import { lazy } from "react";
 
-export type { LodReport, ModelCanvasProps, PlanLayer, SiteProps, ViewerCanvasProps } from "./ui/props";
+export type { LodReport, ModelCanvasProps, PlanLayer, PlanPreview, SiteProps, ViewerCanvasProps } from "./ui/props";
 export type { Ground } from "./three/ground-probe";
 export type { PlanFit } from "./three/plan-overlay";
 

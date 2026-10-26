@@ -19,6 +19,7 @@ const STATE: PlanState = {
   page: { width: 100, height: 50 },
   similarity: { scale: 1, rotation: 0, tx: 0, tz: 0 },
   awaitingScenePick: false,
+  preview: null,
 };
 
 type Args = { documents: Document[]; canWrite?: boolean };
@@ -84,6 +85,38 @@ describe("usePlanSession, the editor", () => {
     const first = result.current.s.canvasPlan;
     act(() => result.current.s.onPlan({ ...STATE, similarity: { ...STATE.similarity! } }));
     expect(result.current.s.canvasPlan).toBe(first);
+  });
+});
+
+describe("usePlanSession, the candidate squares", () => {
+  const PREVIEW = {
+    outlines: [{ index: 0, corners: [0, 1, 2, 3].map((x) => ({ x, y: 0, z: 0 })) as never }],
+    selected: null,
+    label: null,
+    onSelect: vi.fn(),
+  };
+
+  it("passes the editor's preview on while it is open, and withdraws it with the editor", () => {
+    const { result } = session({ documents: [doc(1)] });
+    act(() => result.current.s.open(1));
+    act(() => result.current.s.onPlan({ ...STATE, preview: PREVIEW }));
+    expect(result.current.s.preview).toBe(PREVIEW);
+    act(() => result.current.s.close());
+    expect(result.current.s.preview).toBeNull();
+  });
+
+  it("keeps the very same preview across republishes of the same one", () => {
+    const { result } = session({ documents: [doc(1)] });
+    act(() => result.current.s.open(1));
+    act(() => result.current.s.onPlan({ ...STATE, preview: PREVIEW }));
+    act(() => result.current.s.onPlan({ ...STATE, awaitingScenePick: true, preview: PREVIEW }));
+    expect(result.current.s.preview).toBe(PREVIEW);
+  });
+
+  it("shows none for the saved plan that Show plan draws", () => {
+    const { result } = session({ documents: [doc(1, CAL)] });
+    act(() => result.current.s.onPlan({ ...STATE, preview: PREVIEW }));
+    expect(result.current.s.preview).toBeNull();
   });
 });
 

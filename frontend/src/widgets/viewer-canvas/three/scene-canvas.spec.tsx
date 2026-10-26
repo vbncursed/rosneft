@@ -136,6 +136,7 @@ const SITE: SiteProps = {
   onSelectZone: vi.fn(),
   plan: null,
   planOpacity: 1,
+  preview: null,
   onGround: vi.fn(),
 };
 
@@ -570,5 +571,54 @@ describe("SceneCanvas site zones", () => {
     expect(((zoneMesh(r).instance as Mesh).material as unknown as { color: Color }).color.getHexString()).toBe(
       "f97316",
     );
+  });
+});
+
+describe("SceneCanvas candidate squares", () => {
+  type Holder = { current: Object3D | null };
+  const PREVIEW = {
+    outlines: [{ index: 3, corners: ZONE.corners }],
+    selected: null,
+    label: null,
+    onSelect: vi.fn(),
+  };
+  const site = { ...SITE, preview: PREVIEW };
+  const root = (r: Awaited<ReturnType<typeof mount>>) =>
+    r.scene.findAll((n) => n.instance.name === "PlanPreviewLayer")[0]?.instance;
+  const feet = (r: Awaited<ReturnType<typeof mount>>) =>
+    r.scene.findAll((n) => n.instance.name === "PlanPreviewFeet")[0].instance as Mesh;
+
+  it("mounts beside the scene wrapper, never under it", async () => {
+    const r = await mount({
+      site,
+      free: true,
+      walk: true,
+      unitRatio: 18,
+      parentLods: [{ lod: 0, hash: "t0", size: 1 }],
+    });
+    const solid = (seen.freeCam as { solidRef: Holder }).solidRef.current;
+    expect(root(r)).toBeDefined();
+    expect(under(solid, root(r))).toBe(false);
+  });
+
+  it("answers a click only in plain orbit, and not while a plan point waits for the model", async () => {
+    expect(feet(await mount({ site })).raycast).toBe(MeshClass.prototype.raycast);
+    for (const over of [
+      { mode: "measure" as const },
+      { mode: "place" as const },
+      { free: true },
+      { calibrating: true },
+      { pickScene: true },
+      { move: { active: true, draggingId: null, livePos: null } },
+    ]) {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- each mount replaces the last one
+      const r = await mount({ site, ...over });
+      expect(feet(r).raycast, JSON.stringify(over)).not.toBe(MeshClass.prototype.raycast);
+    }
+  });
+
+  it("is gone inside a panorama and without a preview", async () => {
+    expect(root(await mount({ ...inside(), site }))).toBeUndefined();
+    expect(root(await mount())).toBeUndefined();
   });
 });

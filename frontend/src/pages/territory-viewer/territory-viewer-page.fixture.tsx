@@ -134,6 +134,7 @@ export const IDLE_ZONES: ZoneParts = {
     onSelectZone: noop,
     plan: null,
     planOpacity: 0.6,
+    preview: null,
     onGround: noop,
   },
   pickScene: false,

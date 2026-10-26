@@ -9,6 +9,7 @@ import type { DocumentWindowProps } from "@/widgets/document-window";
 import { AlignPanel, usePlanImage, useZoneEditor, ZoneForm } from "@/features/zone-editor";
 import { rectNames, SitePlanWindow } from "@/widgets/site-plan-window";
 import type { Ground } from "@/widgets/viewer-canvas";
+import { usePlanPreview } from "../model/use-plan-preview";
 import type { PlanState } from "../model/use-plan-session";
 
 export type PlanLayersProps = {
@@ -44,14 +45,15 @@ function usePublish(onPlan: PlanLayersProps["onPlan"], plan: PlanState | null) {
   const sim = plan?.similarity;
   const [scale, rotation, tx, tz] = [sim?.scale, sim?.rotation, sim?.tx, sim?.tz];
   const waiting = plan?.awaitingScenePick ?? false;
+  const preview = plan?.preview ?? null;
   useEffect(() => {
     if (!image || width === undefined || height === undefined) return onPlan(null);
     const similarity =
       scale === undefined || rotation === undefined || tx === undefined || tz === undefined
         ? null
         : { scale, rotation, tx, tz };
-    onPlan({ image, page: { width, height }, similarity, awaitingScenePick: waiting });
-  }, [onPlan, image, width, height, scale, rotation, tx, tz, waiting]);
+    onPlan({ image, page: { width, height }, similarity, awaitingScenePick: waiting, preview });
+  }, [onPlan, image, width, height, scale, rotation, tx, tz, waiting, preview]);
   useEffect(() => () => onPlan(null), [onPlan]);
 }
 
@@ -71,9 +73,24 @@ function Editor({ onPlan, acceptRef, ...p }: Omit<PlanLayersProps, "ground"> & {
   });
   const { alignment, fit, pageSize, image } = editor;
   const sim: Similarity | null = fit?.ok ? fit.fit : null;
+  const rectName =
+    editor.selected === null ? null : (rectNames(editor.rects, editor.metresPerPt)[editor.selected] ?? null);
+  const preview = usePlanPreview({
+    rects: editor.rects,
+    similarity: sim,
+    groundAt: ground.groundAt,
+    fallbackY: ground.fallbackY,
+    zones: p.zones,
+    unitRatio: p.unitRatio,
+    selected: editor.selected,
+    label: rectName,
+    selectRect: editor.selectRect,
+  });
   usePublish(
     onPlan,
-    image && pageSize ? { image, page: pageSize, similarity: sim, awaitingScenePick: editor.awaitingScenePick } : null,
+    image && pageSize
+      ? { image, page: pageSize, similarity: sim, awaitingScenePick: editor.awaitingScenePick, preview }
+      : null,
   );
 
   // A scene click reaches the editor through the page; the latest editor answers it.
@@ -89,8 +106,6 @@ function Editor({ onPlan, acceptRef, ...p }: Omit<PlanLayersProps, "ground"> & {
     };
   }, [waiting, acceptRef]);
 
-  const rectName =
-    editor.selected === null ? null : (rectNames(editor.rects, editor.metresPerPt)[editor.selected] ?? null);
   return (
     <>
       <SitePlanWindow
@@ -137,7 +152,10 @@ function Saved({ document, onPlan }: Pick<PlanLayersProps, "document" | "onPlan"
   const fit = document.calibration
     ? fitSimilarity(document.calibration.points.map((q) => ({ pdf: q.pdf, scene: q.scene })))
     : null;
-  usePublish(onPlan, image ? { ...image, similarity: fit?.ok ? fit.fit : null, awaitingScenePick: false } : null);
+  usePublish(
+    onPlan,
+    image ? { ...image, similarity: fit?.ok ? fit.fit : null, awaitingScenePick: false, preview: null } : null,
+  );
   return null;
 }
 
