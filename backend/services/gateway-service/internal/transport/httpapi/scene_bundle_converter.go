@@ -18,6 +18,7 @@ func sceneBundleToAPI(b domain.SceneBundle) SceneBundle {
 		out.Placements[i] = placementToAPI(p)
 	}
 	for i, m := range b.ModelOptions {
+		// shortcut: wired in Task 6 — Tag stays empty until the domain model carries it.
 		opt := AssetOption{
 			Slug:      m.Slug,
 			Title:     m.Title,

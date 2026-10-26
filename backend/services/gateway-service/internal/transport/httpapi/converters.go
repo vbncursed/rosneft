@@ -28,6 +28,7 @@ func territoryToAPI(t domain.Territory) Territory {
 	return out
 }
 
+// shortcut: wired in Task 6 — Tag stays empty until the domain model carries it.
 func modelToAPI(m domain.Model) Model {
 	out := Model{
 		Slug:           m.Slug,

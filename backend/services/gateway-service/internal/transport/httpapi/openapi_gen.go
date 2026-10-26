@@ -323,10 +323,9 @@ type Calibration struct {
 type CalibrationPoint struct {
 	Pdf   Vec2 `json:"pdf"`
 	Scene Vec3 `json:"scene"`
-	Utm   *struct {
-		E float64 `json:"e"`
-		N float64 `json:"n"`
-	} `json:"utm"`
+
+	// Utm The point's UTM coordinates; null when unknown.
+	Utm *UtmPoint `json:"utm"`
 }
 
 // ChangePasswordRequest defines model for ChangePasswordRequest.
@@ -1025,6 +1024,12 @@ type UploadSession struct {
 	Id          string  `json:"id"`
 	Offset      int64   `json:"offset"`
 	Size        int64   `json:"size"`
+}
+
+// UtmPoint UTM easting and northing, in metres.
+type UtmPoint struct {
+	E float64 `json:"e"`
+	N float64 `json:"n"`
 }
 
 // Vec2 defines model for Vec2.

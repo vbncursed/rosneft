@@ -99,7 +99,13 @@ func (s *SiteZonesSuite) TestModelTagsBackfillUngrouped() {
 	assert.NilError(s.T(), s.pool.QueryRow(ctx,
 		`SELECT t.slug FROM models m JOIN model_tags t ON t.id = m.tag_id WHERE m.id = $1`, old).Scan(&tag))
 	assert.Equal(s.T(), tag, "ungrouped")
-	assert.Equal(s.T(), s.id(`SELECT count(*) FROM model_tags`), int64(12))
+
+	var slugs []string
+	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT array_agg(slug ORDER BY slug) FROM model_tags`).Scan(&slugs))
+	assert.DeepEqual(s.T(), slugs, []string{
+		"camp", "flare", "lifting", "loading", "nitrogen", "power",
+		"process", "storage-tanks", "ungrouped", "utilities", "vehicles", "well-service",
+	})
 }
 
 // Spec §2 anti-goal: no DEFAULT, so a model written without a tag is refused.

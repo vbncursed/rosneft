@@ -107,6 +107,7 @@ func (s *Server) GetModelArtifact(ctx context.Context, req GetModelArtifactReque
 	return GetModelArtifact200JSONResponse(artifactToAPI(a, false)), nil
 }
 
+// shortcut: wired in Task 6 — body.TagSlug is dropped until the domain model carries it.
 func entityToModel(body ModelCreate) domain.Model {
 	desc := ""
 	if body.Description != nil {
