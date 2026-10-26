@@ -107,7 +107,7 @@ func (s *Server) GetModelArtifact(ctx context.Context, req GetModelArtifactReque
 	return GetModelArtifact200JSONResponse(artifactToAPI(a, false)), nil
 }
 
-func entityToModel(body EntityCreate) domain.Model {
+func entityToModel(body ModelCreate) domain.Model {
 	desc := ""
 	if body.Description != nil {
 		desc = *body.Description

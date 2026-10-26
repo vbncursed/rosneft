@@ -197,6 +197,9 @@ type AssetOption struct {
 	BboxMin *Vec3  `json:"bboxMin,omitempty"`
 	Slug    string `json:"slug"`
 
+	// Tag One entry of the fixed model tag list. Every model carries exactly one; a zone carries one to five. Code refers to a tag by slug.
+	Tag ModelTag `json:"tag"`
+
 	// ThumbnailBlobHash Optional thumbnail image blob hash for the picker. Empty/absent =
 	// no thumbnail. Fetch from /api/assets/{thumbnailBlobHash}.
 	ThumbnailBlobHash *string `json:"thumbnailBlobHash,omitempty"`
@@ -307,6 +310,25 @@ type AuthUser struct {
 // AuthUserStatus defines model for AuthUser.Status.
 type AuthUserStatus string
 
+// Calibration A document's calibration: 2 to 20 point pairs, all on one 1-based page. PUT replaces the whole set.
+type Calibration struct {
+	Page   int32              `json:"page"`
+	Points []CalibrationPoint `json:"points"`
+}
+
+// CalibrationPoint One pair: a point on the PDF page (pt, top-left origin, y down — the
+// pdf.js viewport at scale 1, rotation 0) and the same point in the
+// territory's normalised scene space, with its UTM easting and northing
+// when known.
+type CalibrationPoint struct {
+	Pdf   Vec2 `json:"pdf"`
+	Scene Vec3 `json:"scene"`
+	Utm   *struct {
+		E float64 `json:"e"`
+		N float64 `json:"n"`
+	} `json:"utm"`
+}
+
 // ChangePasswordRequest defines model for ChangePasswordRequest.
 type ChangePasswordRequest struct {
 	NewPassword string `json:"newPassword"`
@@ -368,8 +390,10 @@ type Disable2FARequest struct {
 // Document A PDF attached to a territory. Served as-is from BlobStore via
 // /api/assets/{sourceBlobHash}; not converted, not anchored in the scene.
 type Document struct {
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
-	Id        int64      `json:"id"`
+	// Calibration The document's calibration point pairs; null when it has none.
+	Calibration *Calibration `json:"calibration"`
+	CreatedAt   *time.Time   `json:"createdAt,omitempty"`
+	Id          int64        `json:"id"`
 
 	// SourceBlobHash BlobStore hash for the PDF; served via /api/assets/{hash}.
 	SourceBlobHash string `json:"sourceBlobHash"`
@@ -576,6 +600,9 @@ type Model struct {
 	Slug           string         `json:"slug"`
 	SourceBlobHash string         `json:"sourceBlobHash"`
 
+	// Tag One entry of the fixed model tag list. Every model carries exactly one; a zone carries one to five. Code refers to a tag by slug.
+	Tag ModelTag `json:"tag"`
+
 	// ThumbnailBlobHash Optional thumbnail image blob hash. Empty/absent = no thumbnail.
 	// Fetch the image from /api/assets/{thumbnailBlobHash}.
 	ThumbnailBlobHash *string    `json:"thumbnailBlobHash,omitempty"`
@@ -586,10 +613,28 @@ type Model struct {
 	UsageCount *int `json:"usageCount,omitempty"`
 }
 
+// ModelCreate Body for POST /api/models: the EntityCreate fields plus the model's
+// tag. A missing, empty or unknown tagSlug is 400 — there is no default.
+type ModelCreate struct {
+	Description    *string `json:"description,omitempty"`
+	SourceBlobHash string  `json:"sourceBlobHash"`
+	TagSlug        string  `json:"tagSlug"`
+
+	// ThumbnailBlobHash Optional thumbnail image blob hash. Upload the image via /api/uploads first.
+	ThumbnailBlobHash *string `json:"thumbnailBlobHash,omitempty"`
+	Title             string  `json:"title"`
+}
+
 // ModelCreated defines model for ModelCreated.
 type ModelCreated struct {
 	Job   Job   `json:"job"`
 	Model Model `json:"model"`
+}
+
+// ModelTag One entry of the fixed model tag list. Every model carries exactly one; a zone carries one to five. Code refers to a tag by slug.
+type ModelTag struct {
+	Slug  string `json:"slug"`
+	Title string `json:"title"`
 }
 
 // ModelUpdate Body for PATCH /api/models/{slug}. Updates mutable fields only; the
@@ -597,6 +642,9 @@ type ModelCreated struct {
 // are left unchanged.
 type ModelUpdate struct {
 	Description *string `json:"description,omitempty"`
+
+	// TagSlug New tag; an unknown one is refused with 400.
+	TagSlug *string `json:"tagSlug,omitempty"`
 
 	// ThumbnailBlobHash New thumbnail blob hash; empty string clears it.
 	ThumbnailBlobHash *string `json:"thumbnailBlobHash,omitempty"`
@@ -854,6 +902,9 @@ type SceneBundle struct {
 	PlacementGroups []PlacementGroup `json:"placementGroups"`
 	Placements      []Placement      `json:"placements"`
 	Territory       Territory        `json:"territory"`
+
+	// Zones The territory's site zones, by id; empty when none.
+	Zones []Zone `json:"zones"`
 }
 
 // SetRolePermissionsRequest defines model for SetRolePermissionsRequest.
@@ -976,11 +1027,50 @@ type UploadSession struct {
 	Size        int64   `json:"size"`
 }
 
+// Vec2 defines model for Vec2.
+type Vec2 struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+}
+
 // Vec3 defines model for Vec3.
 type Vec3 struct {
 	X float64 `json:"x"`
 	Y float64 `json:"y"`
 	Z float64 `json:"z"`
+}
+
+// Zone A named rectangle on a territory, shared by everyone who can open it.
+// Corners are in the territory's normalised scene space — the space
+// measurements use — in drawing order. The drawing size is null when
+// the drawing's scale is unknown.
+type Zone struct {
+	Corners        []Vec3     `json:"corners"`
+	CreatedAt      time.Time  `json:"createdAt"`
+	DrawingHeightM *float64   `json:"drawingHeightM"`
+	DrawingWidthM  *float64   `json:"drawingWidthM"`
+	Id             int64      `json:"id"`
+	Tags           []ModelTag `json:"tags"`
+	Title          string     `json:"title"`
+	UpdatedAt      time.Time  `json:"updatedAt"`
+}
+
+// ZoneCreate Body for POST /api/territories/{slug}/zones. The title is trimmed and
+// must be unique on the territory, compared case-insensitively. Corners
+// are finite. One to five distinct tags, never `ungrouped`. Anything else
+// is 400.
+type ZoneCreate struct {
+	Corners        []Vec3   `json:"corners"`
+	DrawingHeightM *float64 `json:"drawingHeightM,omitempty"`
+	DrawingWidthM  *float64 `json:"drawingWidthM,omitempty"`
+	TagSlugs       []string `json:"tagSlugs"`
+	Title          string   `json:"title"`
+}
+
+// ZonePatch Body for PATCH /api/territories/{slug}/zones/{id}. Omitted fields are left unchanged; tagSlugs replaces the whole set, under the rules of ZoneCreate.
+type ZonePatch struct {
+	TagSlugs *[]string `json:"tagSlugs,omitempty"`
+	Title    *string   `json:"title,omitempty"`
 }
 
 // BadRequest defines model for BadRequest.
@@ -1056,7 +1146,7 @@ type AppendUploadChunkParams struct {
 }
 
 // CreateModelJSONRequestBody defines body for CreateModel for application/json ContentType.
-type CreateModelJSONRequestBody = EntityCreate
+type CreateModelJSONRequestBody = ModelCreate
 
 // UpdateModelJSONRequestBody defines body for UpdateModel for application/json ContentType.
 type UpdateModelJSONRequestBody = ModelUpdate
@@ -1072,6 +1162,9 @@ type SetTerritoryAdminsJSONRequestBody = TerritoryAdmins
 
 // CreateDocumentJSONRequestBody defines body for CreateDocument for application/json ContentType.
 type CreateDocumentJSONRequestBody = DocumentCreate
+
+// PutDocumentCalibrationJSONRequestBody defines body for PutDocumentCalibration for application/json ContentType.
+type PutDocumentCalibrationJSONRequestBody = Calibration
 
 // CreateMeasurementJSONRequestBody defines body for CreateMeasurement for application/json ContentType.
 type CreateMeasurementJSONRequestBody = MeasurementWrite
@@ -1124,6 +1217,12 @@ type SetPlacementVisibilityJSONRequestBody = PlacementVisibilityUpdate
 // ReplaceTerritorySourceJSONRequestBody defines body for ReplaceTerritorySource for application/json ContentType.
 type ReplaceTerritorySourceJSONRequestBody = TerritorySourceReplace
 
+// CreateZoneJSONRequestBody defines body for CreateZone for application/json ContentType.
+type CreateZoneJSONRequestBody = ZoneCreate
+
+// UpdateZoneJSONRequestBody defines body for UpdateZone for application/json ContentType.
+type UpdateZoneJSONRequestBody = ZonePatch
+
 // InitiateUploadJSONRequestBody defines body for InitiateUpload for application/json ContentType.
 type InitiateUploadJSONRequestBody = UploadInitiate
 
@@ -1138,6 +1237,9 @@ type ServerInterface interface {
 	// ListMyAudit Read your own actions
 	// (GET /api/audit/mine)
 	ListMyAudit(w http.ResponseWriter, r *http.Request, params ListMyAuditParams)
+	// ListModelTags List the model tags
+	// (GET /api/model-tags)
+	ListModelTags(w http.ResponseWriter, r *http.Request)
 	// ListModels List models
 	// (GET /api/models)
 	ListModels(w http.ResponseWriter, r *http.Request)
@@ -1195,6 +1297,12 @@ type ServerInterface interface {
 	// DeleteDocument Remove a document
 	// (DELETE /api/territories/{slug}/documents/{id})
 	DeleteDocument(w http.ResponseWriter, r *http.Request, slug string, id int64)
+	// DeleteDocumentCalibration Remove a document's calibration
+	// (DELETE /api/territories/{slug}/documents/{id}/calibration)
+	DeleteDocumentCalibration(w http.ResponseWriter, r *http.Request, slug string, id int64)
+	// PutDocumentCalibration Replace a document's calibration
+	// (PUT /api/territories/{slug}/documents/{id}/calibration)
+	PutDocumentCalibration(w http.ResponseWriter, r *http.Request, slug string, id int64)
 	// ExportTerritoryCheck Check an export before downloading it
 	// (GET /api/territories/{slug}/export-check)
 	ExportTerritoryCheck(w http.ResponseWriter, r *http.Request, slug string, params ExportTerritoryCheckParams)
@@ -1276,6 +1384,18 @@ type ServerInterface interface {
 	// ReplaceTerritorySource Replace a territory's source archive and re-queue conversion
 	// (POST /api/territories/{slug}/source)
 	ReplaceTerritorySource(w http.ResponseWriter, r *http.Request, slug string)
+	// ListZones List site zones on a territory
+	// (GET /api/territories/{slug}/zones)
+	ListZones(w http.ResponseWriter, r *http.Request, slug string)
+	// CreateZone Create a site zone
+	// (POST /api/territories/{slug}/zones)
+	CreateZone(w http.ResponseWriter, r *http.Request, slug string)
+	// DeleteZone Remove a site zone
+	// (DELETE /api/territories/{slug}/zones/{id})
+	DeleteZone(w http.ResponseWriter, r *http.Request, slug string, id int64)
+	// UpdateZone Rename a site zone or replace its tags
+	// (PATCH /api/territories/{slug}/zones/{id})
+	UpdateZone(w http.ResponseWriter, r *http.Request, slug string, id int64)
 	// ListTerritoryAdmins Every visible territory's assigned admins in one call (Root only)
 	// (GET /api/territory-admins)
 	ListTerritoryAdmins(w http.ResponseWriter, r *http.Request)
@@ -1315,6 +1435,12 @@ func (_ Unimplemented) ListAuditActors(w http.ResponseWriter, r *http.Request) {
 // ListMyAudit Read your own actions
 // (GET /api/audit/mine)
 func (_ Unimplemented) ListMyAudit(w http.ResponseWriter, r *http.Request, params ListMyAuditParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListModelTags List the model tags
+// (GET /api/model-tags)
+func (_ Unimplemented) ListModelTags(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1429,6 +1555,18 @@ func (_ Unimplemented) CreateDocument(w http.ResponseWriter, r *http.Request, sl
 // DeleteDocument Remove a document
 // (DELETE /api/territories/{slug}/documents/{id})
 func (_ Unimplemented) DeleteDocument(w http.ResponseWriter, r *http.Request, slug string, id int64) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteDocumentCalibration Remove a document's calibration
+// (DELETE /api/territories/{slug}/documents/{id}/calibration)
+func (_ Unimplemented) DeleteDocumentCalibration(w http.ResponseWriter, r *http.Request, slug string, id int64) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// PutDocumentCalibration Replace a document's calibration
+// (PUT /api/territories/{slug}/documents/{id}/calibration)
+func (_ Unimplemented) PutDocumentCalibration(w http.ResponseWriter, r *http.Request, slug string, id int64) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1591,6 +1729,30 @@ func (_ Unimplemented) GetSceneBundle(w http.ResponseWriter, r *http.Request, sl
 // ReplaceTerritorySource Replace a territory's source archive and re-queue conversion
 // (POST /api/territories/{slug}/source)
 func (_ Unimplemented) ReplaceTerritorySource(w http.ResponseWriter, r *http.Request, slug string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListZones List site zones on a territory
+// (GET /api/territories/{slug}/zones)
+func (_ Unimplemented) ListZones(w http.ResponseWriter, r *http.Request, slug string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateZone Create a site zone
+// (POST /api/territories/{slug}/zones)
+func (_ Unimplemented) CreateZone(w http.ResponseWriter, r *http.Request, slug string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteZone Remove a site zone
+// (DELETE /api/territories/{slug}/zones/{id})
+func (_ Unimplemented) DeleteZone(w http.ResponseWriter, r *http.Request, slug string, id int64) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateZone Rename a site zone or replace its tags
+// (PATCH /api/territories/{slug}/zones/{id})
+func (_ Unimplemented) UpdateZone(w http.ResponseWriter, r *http.Request, slug string, id int64) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1853,6 +2015,20 @@ func (siw *ServerInterfaceWrapper) ListMyAudit(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListMyAudit(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListModelTags operation middleware
+func (siw *ServerInterfaceWrapper) ListModelTags(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListModelTags(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2326,6 +2502,76 @@ func (siw *ServerInterfaceWrapper) DeleteDocument(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeleteDocument(w, r, slug, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteDocumentCalibration operation middleware
+func (siw *ServerInterfaceWrapper) DeleteDocumentCalibration(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteDocumentCalibration(w, r, slug, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutDocumentCalibration operation middleware
+func (siw *ServerInterfaceWrapper) PutDocumentCalibration(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutDocumentCalibration(w, r, slug, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3176,6 +3422,128 @@ func (siw *ServerInterfaceWrapper) ReplaceTerritorySource(w http.ResponseWriter,
 	handler.ServeHTTP(w, r)
 }
 
+// ListZones operation middleware
+func (siw *ServerInterfaceWrapper) ListZones(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListZones(w, r, slug)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateZone operation middleware
+func (siw *ServerInterfaceWrapper) CreateZone(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateZone(w, r, slug)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteZone operation middleware
+func (siw *ServerInterfaceWrapper) DeleteZone(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteZone(w, r, slug, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateZone operation middleware
+func (siw *ServerInterfaceWrapper) UpdateZone(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateZone(w, r, slug, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListTerritoryAdmins operation middleware
 func (siw *ServerInterfaceWrapper) ListTerritoryAdmins(w http.ResponseWriter, r *http.Request) {
 
@@ -3549,6 +3917,18 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Put(options.BaseURL+"/api/territories/{slug}/measurements/{id}", wrapper.UpdateMeasurement)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/territories/{slug}/zones", wrapper.ListZones)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/territories/{slug}/zones", wrapper.CreateZone)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/territories/{slug}/zones/{id}", wrapper.DeleteZone)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/territories/{slug}/zones/{id}", wrapper.UpdateZone)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/territories/{slug}/panoramas", wrapper.ListPanoramas)
 	})
 	r.Group(func(r chi.Router) {
@@ -3579,10 +3959,19 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Delete(options.BaseURL+"/api/territories/{slug}/documents/{id}", wrapper.DeleteDocument)
 	})
 	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/territories/{slug}/documents/{id}/calibration", wrapper.DeleteDocumentCalibration)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/territories/{slug}/documents/{id}/calibration", wrapper.PutDocumentCalibration)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/models", wrapper.ListModels)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/models", wrapper.CreateModel)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/model-tags", wrapper.ListModelTags)
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/models/{slug}", wrapper.DeleteModel)
@@ -3850,6 +4239,41 @@ func (response ListMyAudit403JSONResponse) VisitListMyAuditResponse(w http.Respo
 type ListMyAudit500JSONResponse struct{ InternalJSONResponse }
 
 func (response ListMyAudit500JSONResponse) VisitListMyAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListModelTagsRequestObject struct {
+}
+
+type ListModelTagsResponseObject interface {
+	VisitListModelTagsResponse(w http.ResponseWriter) error
+}
+
+type ListModelTags200JSONResponse []ModelTag
+
+func (response ListModelTags200JSONResponse) VisitListModelTagsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListModelTags500JSONResponse struct{ InternalJSONResponse }
+
+func (response ListModelTags500JSONResponse) VisitListModelTagsResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -4879,6 +5303,159 @@ func (response DeleteDocument404JSONResponse) VisitDeleteDocumentResponse(w http
 type DeleteDocument500JSONResponse struct{ InternalJSONResponse }
 
 func (response DeleteDocument500JSONResponse) VisitDeleteDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteDocumentCalibrationRequestObject struct {
+	Slug string `json:"slug"`
+	Id   int64  `json:"id"`
+}
+
+type DeleteDocumentCalibrationResponseObject interface {
+	VisitDeleteDocumentCalibrationResponse(w http.ResponseWriter) error
+}
+
+type DeleteDocumentCalibration204Response struct {
+}
+
+func (response DeleteDocumentCalibration204Response) VisitDeleteDocumentCalibrationResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteDocumentCalibration400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response DeleteDocumentCalibration400JSONResponse) VisitDeleteDocumentCalibrationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteDocumentCalibration403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response DeleteDocumentCalibration403JSONResponse) VisitDeleteDocumentCalibrationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteDocumentCalibration404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response DeleteDocumentCalibration404JSONResponse) VisitDeleteDocumentCalibrationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteDocumentCalibration500JSONResponse struct{ InternalJSONResponse }
+
+func (response DeleteDocumentCalibration500JSONResponse) VisitDeleteDocumentCalibrationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PutDocumentCalibrationRequestObject struct {
+	Slug string `json:"slug"`
+	Id   int64  `json:"id"`
+	Body *PutDocumentCalibrationJSONRequestBody
+}
+
+type PutDocumentCalibrationResponseObject interface {
+	VisitPutDocumentCalibrationResponse(w http.ResponseWriter) error
+}
+
+type PutDocumentCalibration200JSONResponse Calibration
+
+func (response PutDocumentCalibration200JSONResponse) VisitPutDocumentCalibrationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PutDocumentCalibration400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response PutDocumentCalibration400JSONResponse) VisitPutDocumentCalibrationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PutDocumentCalibration403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response PutDocumentCalibration403JSONResponse) VisitPutDocumentCalibrationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PutDocumentCalibration404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response PutDocumentCalibration404JSONResponse) VisitPutDocumentCalibrationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PutDocumentCalibration500JSONResponse struct{ InternalJSONResponse }
+
+func (response PutDocumentCalibration500JSONResponse) VisitPutDocumentCalibrationResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -6814,6 +7391,288 @@ func (response ReplaceTerritorySource500JSONResponse) VisitReplaceTerritorySourc
 	return err
 }
 
+type ListZonesRequestObject struct {
+	Slug string `json:"slug"`
+}
+
+type ListZonesResponseObject interface {
+	VisitListZonesResponse(w http.ResponseWriter) error
+}
+
+type ListZones200JSONResponse []Zone
+
+func (response ListZones200JSONResponse) VisitListZonesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListZones404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListZones404JSONResponse) VisitListZonesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListZones500JSONResponse struct{ InternalJSONResponse }
+
+func (response ListZones500JSONResponse) VisitListZonesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateZoneRequestObject struct {
+	Slug string `json:"slug"`
+	Body *CreateZoneJSONRequestBody
+}
+
+type CreateZoneResponseObject interface {
+	VisitCreateZoneResponse(w http.ResponseWriter) error
+}
+
+type CreateZone201JSONResponse Zone
+
+func (response CreateZone201JSONResponse) VisitCreateZoneResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateZone400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateZone400JSONResponse) VisitCreateZoneResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateZone403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateZone403JSONResponse) VisitCreateZoneResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateZone404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response CreateZone404JSONResponse) VisitCreateZoneResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateZone500JSONResponse struct{ InternalJSONResponse }
+
+func (response CreateZone500JSONResponse) VisitCreateZoneResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteZoneRequestObject struct {
+	Slug string `json:"slug"`
+	Id   int64  `json:"id"`
+}
+
+type DeleteZoneResponseObject interface {
+	VisitDeleteZoneResponse(w http.ResponseWriter) error
+}
+
+type DeleteZone204Response struct {
+}
+
+func (response DeleteZone204Response) VisitDeleteZoneResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteZone400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response DeleteZone400JSONResponse) VisitDeleteZoneResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteZone403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response DeleteZone403JSONResponse) VisitDeleteZoneResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteZone404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response DeleteZone404JSONResponse) VisitDeleteZoneResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteZone500JSONResponse struct{ InternalJSONResponse }
+
+func (response DeleteZone500JSONResponse) VisitDeleteZoneResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateZoneRequestObject struct {
+	Slug string `json:"slug"`
+	Id   int64  `json:"id"`
+	Body *UpdateZoneJSONRequestBody
+}
+
+type UpdateZoneResponseObject interface {
+	VisitUpdateZoneResponse(w http.ResponseWriter) error
+}
+
+type UpdateZone200JSONResponse Zone
+
+func (response UpdateZone200JSONResponse) VisitUpdateZoneResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateZone400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateZone400JSONResponse) VisitUpdateZoneResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateZone403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateZone403JSONResponse) VisitUpdateZoneResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateZone404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateZone404JSONResponse) VisitUpdateZoneResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateZone500JSONResponse struct{ InternalJSONResponse }
+
+func (response UpdateZone500JSONResponse) VisitUpdateZoneResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListTerritoryAdminsRequestObject struct {
 }
 
@@ -7170,6 +8029,9 @@ type StrictServerInterface interface {
 	// ListMyAudit Read your own actions
 	// (GET /api/audit/mine)
 	ListMyAudit(ctx context.Context, request ListMyAuditRequestObject) (ListMyAuditResponseObject, error)
+	// ListModelTags List the model tags
+	// (GET /api/model-tags)
+	ListModelTags(ctx context.Context, request ListModelTagsRequestObject) (ListModelTagsResponseObject, error)
 	// ListModels List models
 	// (GET /api/models)
 	ListModels(ctx context.Context, request ListModelsRequestObject) (ListModelsResponseObject, error)
@@ -7227,6 +8089,12 @@ type StrictServerInterface interface {
 	// DeleteDocument Remove a document
 	// (DELETE /api/territories/{slug}/documents/{id})
 	DeleteDocument(ctx context.Context, request DeleteDocumentRequestObject) (DeleteDocumentResponseObject, error)
+	// DeleteDocumentCalibration Remove a document's calibration
+	// (DELETE /api/territories/{slug}/documents/{id}/calibration)
+	DeleteDocumentCalibration(ctx context.Context, request DeleteDocumentCalibrationRequestObject) (DeleteDocumentCalibrationResponseObject, error)
+	// PutDocumentCalibration Replace a document's calibration
+	// (PUT /api/territories/{slug}/documents/{id}/calibration)
+	PutDocumentCalibration(ctx context.Context, request PutDocumentCalibrationRequestObject) (PutDocumentCalibrationResponseObject, error)
 	// ExportTerritoryCheck Check an export before downloading it
 	// (GET /api/territories/{slug}/export-check)
 	ExportTerritoryCheck(ctx context.Context, request ExportTerritoryCheckRequestObject) (ExportTerritoryCheckResponseObject, error)
@@ -7308,6 +8176,18 @@ type StrictServerInterface interface {
 	// ReplaceTerritorySource Replace a territory's source archive and re-queue conversion
 	// (POST /api/territories/{slug}/source)
 	ReplaceTerritorySource(ctx context.Context, request ReplaceTerritorySourceRequestObject) (ReplaceTerritorySourceResponseObject, error)
+	// ListZones List site zones on a territory
+	// (GET /api/territories/{slug}/zones)
+	ListZones(ctx context.Context, request ListZonesRequestObject) (ListZonesResponseObject, error)
+	// CreateZone Create a site zone
+	// (POST /api/territories/{slug}/zones)
+	CreateZone(ctx context.Context, request CreateZoneRequestObject) (CreateZoneResponseObject, error)
+	// DeleteZone Remove a site zone
+	// (DELETE /api/territories/{slug}/zones/{id})
+	DeleteZone(ctx context.Context, request DeleteZoneRequestObject) (DeleteZoneResponseObject, error)
+	// UpdateZone Rename a site zone or replace its tags
+	// (PATCH /api/territories/{slug}/zones/{id})
+	UpdateZone(ctx context.Context, request UpdateZoneRequestObject) (UpdateZoneResponseObject, error)
 	// ListTerritoryAdmins Every visible territory's assigned admins in one call (Root only)
 	// (GET /api/territory-admins)
 	ListTerritoryAdmins(ctx context.Context, request ListTerritoryAdminsRequestObject) (ListTerritoryAdminsResponseObject, error)
@@ -7436,6 +8316,30 @@ func (sh *strictHandler) ListMyAudit(w http.ResponseWriter, r *http.Request, par
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListMyAuditResponseObject); ok {
 		if err := validResponse.VisitListMyAuditResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListModelTags operation middleware
+func (sh *strictHandler) ListModelTags(w http.ResponseWriter, r *http.Request) {
+	var request ListModelTagsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListModelTags(ctx, request.(ListModelTagsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListModelTags")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListModelTagsResponseObject); ok {
+		if err := validResponse.VisitListModelTagsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -7967,6 +8871,67 @@ func (sh *strictHandler) DeleteDocument(w http.ResponseWriter, r *http.Request, 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(DeleteDocumentResponseObject); ok {
 		if err := validResponse.VisitDeleteDocumentResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteDocumentCalibration operation middleware
+func (sh *strictHandler) DeleteDocumentCalibration(w http.ResponseWriter, r *http.Request, slug string, id int64) {
+	var request DeleteDocumentCalibrationRequestObject
+
+	request.Slug = slug
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteDocumentCalibration(ctx, request.(DeleteDocumentCalibrationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteDocumentCalibration")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteDocumentCalibrationResponseObject); ok {
+		if err := validResponse.VisitDeleteDocumentCalibrationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PutDocumentCalibration operation middleware
+func (sh *strictHandler) PutDocumentCalibration(w http.ResponseWriter, r *http.Request, slug string, id int64) {
+	var request PutDocumentCalibrationRequestObject
+
+	request.Slug = slug
+	request.Id = id
+
+	var body PutDocumentCalibrationJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PutDocumentCalibration(ctx, request.(PutDocumentCalibrationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PutDocumentCalibration")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PutDocumentCalibrationResponseObject); ok {
+		if err := validResponse.VisitPutDocumentCalibrationResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -8801,6 +9766,126 @@ func (sh *strictHandler) ReplaceTerritorySource(w http.ResponseWriter, r *http.R
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ReplaceTerritorySourceResponseObject); ok {
 		if err := validResponse.VisitReplaceTerritorySourceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListZones operation middleware
+func (sh *strictHandler) ListZones(w http.ResponseWriter, r *http.Request, slug string) {
+	var request ListZonesRequestObject
+
+	request.Slug = slug
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListZones(ctx, request.(ListZonesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListZones")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListZonesResponseObject); ok {
+		if err := validResponse.VisitListZonesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateZone operation middleware
+func (sh *strictHandler) CreateZone(w http.ResponseWriter, r *http.Request, slug string) {
+	var request CreateZoneRequestObject
+
+	request.Slug = slug
+
+	var body CreateZoneJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateZone(ctx, request.(CreateZoneRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateZone")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateZoneResponseObject); ok {
+		if err := validResponse.VisitCreateZoneResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteZone operation middleware
+func (sh *strictHandler) DeleteZone(w http.ResponseWriter, r *http.Request, slug string, id int64) {
+	var request DeleteZoneRequestObject
+
+	request.Slug = slug
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteZone(ctx, request.(DeleteZoneRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteZone")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteZoneResponseObject); ok {
+		if err := validResponse.VisitDeleteZoneResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateZone operation middleware
+func (sh *strictHandler) UpdateZone(w http.ResponseWriter, r *http.Request, slug string, id int64) {
+	var request UpdateZoneRequestObject
+
+	request.Slug = slug
+	request.Id = id
+
+	var body UpdateZoneJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateZone(ctx, request.(UpdateZoneRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateZone")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateZoneResponseObject); ok {
+		if err := validResponse.VisitUpdateZoneResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

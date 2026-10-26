@@ -92,6 +92,16 @@ service CatalogService {
   // drawn only when neither it nor its group is hidden. A group of another
   // territory is NOT_FOUND, same as an unknown one.
   rpc SetPlacementGroupHidden(SetPlacementGroupHiddenRequest) returns (SetPlacementGroupHiddenResponse);
+
+  // The fixed model tag list, sorted by title with ungrouped last.
+  rpc ListModelTags(ListModelTagsRequest) returns (ListModelTagsResponse);
+
+  // Site zones are scoped by territory_slug like measurements: an id of
+  // another territory is NOT_FOUND, same as an unknown one.
+  rpc ListZones(ListZonesRequest) returns (ListZonesResponse);
+  rpc CreateZone(CreateZoneRequest) returns (CreateZoneResponse);
+  rpc UpdateZone(UpdateZoneRequest) returns (UpdateZoneResponse);
+  rpc DeleteZone(DeleteZoneRequest) returns (DeleteZoneResponse);
 }
 
 // Vec3 represents a point in 3D space (used for bounding-box corners
@@ -135,6 +145,14 @@ message Model {
   uint32 usage_count = 8;
   // Every LOD artifact, sorted by lod. Filled by ListModels only.
   repeated ModelArtifact artifacts = 9;
+  // Exactly one tag; every model has it.
+  ModelTag tag = 10;
+}
+
+// ModelTag is one entry of the fixed tag list. Code refers to a tag by slug.
+message ModelTag {
+  string slug = 1;
+  string title = 2;
 }
 
 // TerritoryArtifact is a converted GLB output for one territory + LOD.
@@ -411,6 +429,8 @@ message GetModelResponse {
 
 message UpsertModelRequest {
   Model model = 1;
+  // Required: an unknown or empty slug is INVALID_ARGUMENT, never a default.
+  string tag_slug = 2;
 }
 message UpsertModelResponse {
   Model model = 1;
@@ -422,6 +442,7 @@ message UpdateModelRequest {
   optional string title = 2;
   optional string description = 3;
   optional string thumbnail_blob_hash = 4;
+  optional string tag_slug = 5;
 }
 message UpdateModelResponse {
   Model model = 1;
@@ -632,3 +653,64 @@ message SetPlacementGroupHiddenRequest {
 message SetPlacementGroupHiddenResponse {
   PlacementGroup group = 1;
 }
+
+// ─── Model tag and site zone RPCs ───────────────────────────────────────────
+
+message ListModelTagsRequest {}
+message ListModelTagsResponse {
+  repeated ModelTag tags = 1;
+}
+
+// Zone is a named rectangle in the territory's normalised scene space (the
+// space measurements use): four corners, 1–5 tags, never ungrouped. The
+// drawing size is absent when the drawing's scale is unknown.
+message Zone {
+  int64 id = 1;
+  string title = 2;
+  repeated Vec3 corners = 3;
+  repeated ModelTag tags = 4;
+  optional double drawing_width_m = 5;
+  optional double drawing_height_m = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message ListZonesRequest {
+  string territory_slug = 1;
+}
+message ListZonesResponse {
+  repeated Zone zones = 1;
+}
+
+// CreateZoneRequest carries no author: catalog records the caller from the
+// x-actor-id metadata. The title is trimmed; 1–120 characters must remain.
+message CreateZoneRequest {
+  string territory_slug = 1;
+  string title = 2;
+  repeated Vec3 corners = 3;
+  repeated string tag_slugs = 4;
+  optional double drawing_width_m = 5;
+  optional double drawing_height_m = 6;
+}
+message CreateZoneResponse {
+  Zone zone = 1;
+}
+
+// UpdateZoneRequest writes the title when present and replaces the tags when
+// set_tags is true (a repeated field cannot say "absent").
+message UpdateZoneRequest {
+  string territory_slug = 1;
+  int64 id = 2;
+  optional string title = 3;
+  repeated string tag_slugs = 4;
+  bool set_tags = 5;
+}
+message UpdateZoneResponse {
+  Zone zone = 1;
+}
+
+message DeleteZoneRequest {
+  string territory_slug = 1;
+  int64 id = 2;
+}
+message DeleteZoneResponse {}

@@ -76,6 +76,13 @@ var routePerms = map[string][]string{
 	"PUT /api/territories/{slug}/measurements/{id}":    {"measurement:write"},
 	"DELETE /api/territories/{slug}/measurements/{id}": {"measurement:delete"},
 	"DELETE /api/territories/{slug}/measurements":      {"measurement:delete"},
+	// Zones and the calibration that places them are one editing job: one
+	// grant, held by the Company Owner and the Scene Editor (auth 00020).
+	"POST /api/territories/{slug}/zones":                        {"zone:write"},
+	"PATCH /api/territories/{slug}/zones/{id}":                  {"zone:write"},
+	"DELETE /api/territories/{slug}/zones/{id}":                 {"zone:write"},
+	"PUT /api/territories/{slug}/documents/{id}/calibration":    {"zone:write"},
+	"DELETE /api/territories/{slug}/documents/{id}/calibration": {"zone:write"},
 }
 
 // RequirePermissionForRoute enforces routePerms against the principal. Routes

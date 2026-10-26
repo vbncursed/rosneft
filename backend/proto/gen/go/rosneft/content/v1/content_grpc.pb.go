@@ -19,17 +19,19 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ContentService_ListPanoramas_FullMethodName          = "/rosneft.content.v1.ContentService/ListPanoramas"
-	ContentService_CreatePanorama_FullMethodName         = "/rosneft.content.v1.ContentService/CreatePanorama"
-	ContentService_UpdatePanorama_FullMethodName         = "/rosneft.content.v1.ContentService/UpdatePanorama"
-	ContentService_DeletePanorama_FullMethodName         = "/rosneft.content.v1.ContentService/DeletePanorama"
-	ContentService_SetPanoramasHidden_FullMethodName     = "/rosneft.content.v1.ContentService/SetPanoramasHidden"
-	ContentService_SetPanoramasPhase_FullMethodName      = "/rosneft.content.v1.ContentService/SetPanoramasPhase"
-	ContentService_SetPanoramaPhaseHidden_FullMethodName = "/rosneft.content.v1.ContentService/SetPanoramaPhaseHidden"
-	ContentService_ListPanoramaPhases_FullMethodName     = "/rosneft.content.v1.ContentService/ListPanoramaPhases"
-	ContentService_ListDocuments_FullMethodName          = "/rosneft.content.v1.ContentService/ListDocuments"
-	ContentService_CreateDocument_FullMethodName         = "/rosneft.content.v1.ContentService/CreateDocument"
-	ContentService_DeleteDocument_FullMethodName         = "/rosneft.content.v1.ContentService/DeleteDocument"
+	ContentService_ListPanoramas_FullMethodName             = "/rosneft.content.v1.ContentService/ListPanoramas"
+	ContentService_CreatePanorama_FullMethodName            = "/rosneft.content.v1.ContentService/CreatePanorama"
+	ContentService_UpdatePanorama_FullMethodName            = "/rosneft.content.v1.ContentService/UpdatePanorama"
+	ContentService_DeletePanorama_FullMethodName            = "/rosneft.content.v1.ContentService/DeletePanorama"
+	ContentService_SetPanoramasHidden_FullMethodName        = "/rosneft.content.v1.ContentService/SetPanoramasHidden"
+	ContentService_SetPanoramasPhase_FullMethodName         = "/rosneft.content.v1.ContentService/SetPanoramasPhase"
+	ContentService_SetPanoramaPhaseHidden_FullMethodName    = "/rosneft.content.v1.ContentService/SetPanoramaPhaseHidden"
+	ContentService_ListPanoramaPhases_FullMethodName        = "/rosneft.content.v1.ContentService/ListPanoramaPhases"
+	ContentService_ListDocuments_FullMethodName             = "/rosneft.content.v1.ContentService/ListDocuments"
+	ContentService_CreateDocument_FullMethodName            = "/rosneft.content.v1.ContentService/CreateDocument"
+	ContentService_DeleteDocument_FullMethodName            = "/rosneft.content.v1.ContentService/DeleteDocument"
+	ContentService_PutDocumentCalibration_FullMethodName    = "/rosneft.content.v1.ContentService/PutDocumentCalibration"
+	ContentService_DeleteDocumentCalibration_FullMethodName = "/rosneft.content.v1.ContentService/DeleteDocumentCalibration"
 )
 
 // ContentServiceClient is the client API for ContentService service.
@@ -57,6 +59,11 @@ type ContentServiceClient interface {
 	ListDocuments(ctx context.Context, in *ListDocumentsRequest, opts ...grpc.CallOption) (*ListDocumentsResponse, error)
 	CreateDocument(ctx context.Context, in *CreateDocumentRequest, opts ...grpc.CallOption) (*CreateDocumentResponse, error)
 	DeleteDocument(ctx context.Context, in *DeleteDocumentRequest, opts ...grpc.CallOption) (*DeleteDocumentResponse, error)
+	// A document's calibration is scoped by territory_slug like DeleteDocument:
+	// a document of another territory is NOT_FOUND, same as an unknown one. Put
+	// replaces the whole set (2–20 points, all on one page) in one transaction.
+	PutDocumentCalibration(ctx context.Context, in *PutDocumentCalibrationRequest, opts ...grpc.CallOption) (*PutDocumentCalibrationResponse, error)
+	DeleteDocumentCalibration(ctx context.Context, in *DeleteDocumentCalibrationRequest, opts ...grpc.CallOption) (*DeleteDocumentCalibrationResponse, error)
 }
 
 type contentServiceClient struct {
@@ -177,6 +184,26 @@ func (c *contentServiceClient) DeleteDocument(ctx context.Context, in *DeleteDoc
 	return out, nil
 }
 
+func (c *contentServiceClient) PutDocumentCalibration(ctx context.Context, in *PutDocumentCalibrationRequest, opts ...grpc.CallOption) (*PutDocumentCalibrationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PutDocumentCalibrationResponse)
+	err := c.cc.Invoke(ctx, ContentService_PutDocumentCalibration_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *contentServiceClient) DeleteDocumentCalibration(ctx context.Context, in *DeleteDocumentCalibrationRequest, opts ...grpc.CallOption) (*DeleteDocumentCalibrationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteDocumentCalibrationResponse)
+	err := c.cc.Invoke(ctx, ContentService_DeleteDocumentCalibration_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ContentServiceServer is the server API for ContentService service.
 // All implementations must embed UnimplementedContentServiceServer
 // for forward compatibility.
@@ -202,6 +229,11 @@ type ContentServiceServer interface {
 	ListDocuments(context.Context, *ListDocumentsRequest) (*ListDocumentsResponse, error)
 	CreateDocument(context.Context, *CreateDocumentRequest) (*CreateDocumentResponse, error)
 	DeleteDocument(context.Context, *DeleteDocumentRequest) (*DeleteDocumentResponse, error)
+	// A document's calibration is scoped by territory_slug like DeleteDocument:
+	// a document of another territory is NOT_FOUND, same as an unknown one. Put
+	// replaces the whole set (2–20 points, all on one page) in one transaction.
+	PutDocumentCalibration(context.Context, *PutDocumentCalibrationRequest) (*PutDocumentCalibrationResponse, error)
+	DeleteDocumentCalibration(context.Context, *DeleteDocumentCalibrationRequest) (*DeleteDocumentCalibrationResponse, error)
 	mustEmbedUnimplementedContentServiceServer()
 }
 
@@ -244,6 +276,12 @@ func (UnimplementedContentServiceServer) CreateDocument(context.Context, *Create
 }
 func (UnimplementedContentServiceServer) DeleteDocument(context.Context, *DeleteDocumentRequest) (*DeleteDocumentResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteDocument not implemented")
+}
+func (UnimplementedContentServiceServer) PutDocumentCalibration(context.Context, *PutDocumentCalibrationRequest) (*PutDocumentCalibrationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PutDocumentCalibration not implemented")
+}
+func (UnimplementedContentServiceServer) DeleteDocumentCalibration(context.Context, *DeleteDocumentCalibrationRequest) (*DeleteDocumentCalibrationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteDocumentCalibration not implemented")
 }
 func (UnimplementedContentServiceServer) mustEmbedUnimplementedContentServiceServer() {}
 func (UnimplementedContentServiceServer) testEmbeddedByValue()                        {}
@@ -464,6 +502,42 @@ func _ContentService_DeleteDocument_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ContentService_PutDocumentCalibration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PutDocumentCalibrationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ContentServiceServer).PutDocumentCalibration(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ContentService_PutDocumentCalibration_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ContentServiceServer).PutDocumentCalibration(ctx, req.(*PutDocumentCalibrationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ContentService_DeleteDocumentCalibration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteDocumentCalibrationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ContentServiceServer).DeleteDocumentCalibration(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ContentService_DeleteDocumentCalibration_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ContentServiceServer).DeleteDocumentCalibration(ctx, req.(*DeleteDocumentCalibrationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ContentService_ServiceDesc is the grpc.ServiceDesc for ContentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -514,6 +588,14 @@ var ContentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteDocument",
 			Handler:    _ContentService_DeleteDocument_Handler,
+		},
+		{
+			MethodName: "PutDocumentCalibration",
+			Handler:    _ContentService_PutDocumentCalibration_Handler,
+		},
+		{
+			MethodName: "DeleteDocumentCalibration",
+			Handler:    _ContentService_DeleteDocumentCalibration_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

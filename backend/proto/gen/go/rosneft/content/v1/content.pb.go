@@ -1131,8 +1131,10 @@ type Document struct {
 	Title          string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
 	SourceBlobHash string                 `protobuf:"bytes,4,opt,name=source_blob_hash,json=sourceBlobHash,proto3" json:"source_blob_hash,omitempty"`
 	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Absent when the document is not calibrated.
+	Calibration   *Calibration `protobuf:"bytes,6,opt,name=calibration,proto3" json:"calibration,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Document) Reset() {
@@ -1200,6 +1202,162 @@ func (x *Document) GetCreatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Document) GetCalibration() *Calibration {
+	if x != nil {
+		return x.Calibration
+	}
+	return nil
+}
+
+// CalibrationPoint pairs a point on the PDF page (pt, top-left origin, y down:
+// pdf.js viewport at scale 1, rotation 0) with a point in the territory's
+// normalised scene space, optionally with its UTM easting/northing (both or
+// neither).
+type CalibrationPoint struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PdfX          float64                `protobuf:"fixed64,1,opt,name=pdf_x,json=pdfX,proto3" json:"pdf_x,omitempty"`
+	PdfY          float64                `protobuf:"fixed64,2,opt,name=pdf_y,json=pdfY,proto3" json:"pdf_y,omitempty"`
+	SceneX        float64                `protobuf:"fixed64,3,opt,name=scene_x,json=sceneX,proto3" json:"scene_x,omitempty"`
+	SceneY        float64                `protobuf:"fixed64,4,opt,name=scene_y,json=sceneY,proto3" json:"scene_y,omitempty"`
+	SceneZ        float64                `protobuf:"fixed64,5,opt,name=scene_z,json=sceneZ,proto3" json:"scene_z,omitempty"`
+	UtmE          *float64               `protobuf:"fixed64,6,opt,name=utm_e,json=utmE,proto3,oneof" json:"utm_e,omitempty"`
+	UtmN          *float64               `protobuf:"fixed64,7,opt,name=utm_n,json=utmN,proto3,oneof" json:"utm_n,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CalibrationPoint) Reset() {
+	*x = CalibrationPoint{}
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CalibrationPoint) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CalibrationPoint) ProtoMessage() {}
+
+func (x *CalibrationPoint) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CalibrationPoint.ProtoReflect.Descriptor instead.
+func (*CalibrationPoint) Descriptor() ([]byte, []int) {
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *CalibrationPoint) GetPdfX() float64 {
+	if x != nil {
+		return x.PdfX
+	}
+	return 0
+}
+
+func (x *CalibrationPoint) GetPdfY() float64 {
+	if x != nil {
+		return x.PdfY
+	}
+	return 0
+}
+
+func (x *CalibrationPoint) GetSceneX() float64 {
+	if x != nil {
+		return x.SceneX
+	}
+	return 0
+}
+
+func (x *CalibrationPoint) GetSceneY() float64 {
+	if x != nil {
+		return x.SceneY
+	}
+	return 0
+}
+
+func (x *CalibrationPoint) GetSceneZ() float64 {
+	if x != nil {
+		return x.SceneZ
+	}
+	return 0
+}
+
+func (x *CalibrationPoint) GetUtmE() float64 {
+	if x != nil && x.UtmE != nil {
+		return *x.UtmE
+	}
+	return 0
+}
+
+func (x *CalibrationPoint) GetUtmN() float64 {
+	if x != nil && x.UtmN != nil {
+		return *x.UtmN
+	}
+	return 0
+}
+
+// Calibration is a document's point pairs, all on one 1-based page.
+type Calibration struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Page          int32                  `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`
+	Points        []*CalibrationPoint    `protobuf:"bytes,2,rep,name=points,proto3" json:"points,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Calibration) Reset() {
+	*x = Calibration{}
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Calibration) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Calibration) ProtoMessage() {}
+
+func (x *Calibration) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Calibration.ProtoReflect.Descriptor instead.
+func (*Calibration) Descriptor() ([]byte, []int) {
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *Calibration) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *Calibration) GetPoints() []*CalibrationPoint {
+	if x != nil {
+		return x.Points
+	}
+	return nil
+}
+
 type ListDocumentsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TerritorySlug string                 `protobuf:"bytes,1,opt,name=territory_slug,json=territorySlug,proto3" json:"territory_slug,omitempty"`
@@ -1209,7 +1367,7 @@ type ListDocumentsRequest struct {
 
 func (x *ListDocumentsRequest) Reset() {
 	*x = ListDocumentsRequest{}
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[20]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1221,7 +1379,7 @@ func (x *ListDocumentsRequest) String() string {
 func (*ListDocumentsRequest) ProtoMessage() {}
 
 func (x *ListDocumentsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[20]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1234,7 +1392,7 @@ func (x *ListDocumentsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDocumentsRequest.ProtoReflect.Descriptor instead.
 func (*ListDocumentsRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{20}
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ListDocumentsRequest) GetTerritorySlug() string {
@@ -1253,7 +1411,7 @@ type ListDocumentsResponse struct {
 
 func (x *ListDocumentsResponse) Reset() {
 	*x = ListDocumentsResponse{}
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[21]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1265,7 +1423,7 @@ func (x *ListDocumentsResponse) String() string {
 func (*ListDocumentsResponse) ProtoMessage() {}
 
 func (x *ListDocumentsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[21]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1278,7 +1436,7 @@ func (x *ListDocumentsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDocumentsResponse.ProtoReflect.Descriptor instead.
 func (*ListDocumentsResponse) Descriptor() ([]byte, []int) {
-	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{21}
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ListDocumentsResponse) GetDocuments() []*Document {
@@ -1299,7 +1457,7 @@ type CreateDocumentRequest struct {
 
 func (x *CreateDocumentRequest) Reset() {
 	*x = CreateDocumentRequest{}
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[22]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1311,7 +1469,7 @@ func (x *CreateDocumentRequest) String() string {
 func (*CreateDocumentRequest) ProtoMessage() {}
 
 func (x *CreateDocumentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[22]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1324,7 +1482,7 @@ func (x *CreateDocumentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateDocumentRequest.ProtoReflect.Descriptor instead.
 func (*CreateDocumentRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{22}
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *CreateDocumentRequest) GetTerritorySlug() string {
@@ -1357,7 +1515,7 @@ type CreateDocumentResponse struct {
 
 func (x *CreateDocumentResponse) Reset() {
 	*x = CreateDocumentResponse{}
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[23]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1369,7 +1527,7 @@ func (x *CreateDocumentResponse) String() string {
 func (*CreateDocumentResponse) ProtoMessage() {}
 
 func (x *CreateDocumentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[23]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1382,7 +1540,7 @@ func (x *CreateDocumentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateDocumentResponse.ProtoReflect.Descriptor instead.
 func (*CreateDocumentResponse) Descriptor() ([]byte, []int) {
-	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{23}
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *CreateDocumentResponse) GetDocument() *Document {
@@ -1403,7 +1561,7 @@ type DeleteDocumentRequest struct {
 
 func (x *DeleteDocumentRequest) Reset() {
 	*x = DeleteDocumentRequest{}
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[24]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1415,7 +1573,7 @@ func (x *DeleteDocumentRequest) String() string {
 func (*DeleteDocumentRequest) ProtoMessage() {}
 
 func (x *DeleteDocumentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[24]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1428,7 +1586,7 @@ func (x *DeleteDocumentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteDocumentRequest.ProtoReflect.Descriptor instead.
 func (*DeleteDocumentRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{24}
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *DeleteDocumentRequest) GetId() int64 {
@@ -1453,7 +1611,7 @@ type DeleteDocumentResponse struct {
 
 func (x *DeleteDocumentResponse) Reset() {
 	*x = DeleteDocumentResponse{}
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[25]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1465,7 +1623,7 @@ func (x *DeleteDocumentResponse) String() string {
 func (*DeleteDocumentResponse) ProtoMessage() {}
 
 func (x *DeleteDocumentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_content_v1_content_proto_msgTypes[25]
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1478,7 +1636,199 @@ func (x *DeleteDocumentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteDocumentResponse.ProtoReflect.Descriptor instead.
 func (*DeleteDocumentResponse) Descriptor() ([]byte, []int) {
-	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{25}
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{27}
+}
+
+type PutDocumentCalibrationRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TerritorySlug string                 `protobuf:"bytes,1,opt,name=territory_slug,json=territorySlug,proto3" json:"territory_slug,omitempty"`
+	DocumentId    int64                  `protobuf:"varint,2,opt,name=document_id,json=documentId,proto3" json:"document_id,omitempty"`
+	Calibration   *Calibration           `protobuf:"bytes,3,opt,name=calibration,proto3" json:"calibration,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PutDocumentCalibrationRequest) Reset() {
+	*x = PutDocumentCalibrationRequest{}
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PutDocumentCalibrationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PutDocumentCalibrationRequest) ProtoMessage() {}
+
+func (x *PutDocumentCalibrationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PutDocumentCalibrationRequest.ProtoReflect.Descriptor instead.
+func (*PutDocumentCalibrationRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *PutDocumentCalibrationRequest) GetTerritorySlug() string {
+	if x != nil {
+		return x.TerritorySlug
+	}
+	return ""
+}
+
+func (x *PutDocumentCalibrationRequest) GetDocumentId() int64 {
+	if x != nil {
+		return x.DocumentId
+	}
+	return 0
+}
+
+func (x *PutDocumentCalibrationRequest) GetCalibration() *Calibration {
+	if x != nil {
+		return x.Calibration
+	}
+	return nil
+}
+
+type PutDocumentCalibrationResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Calibration   *Calibration           `protobuf:"bytes,1,opt,name=calibration,proto3" json:"calibration,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PutDocumentCalibrationResponse) Reset() {
+	*x = PutDocumentCalibrationResponse{}
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PutDocumentCalibrationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PutDocumentCalibrationResponse) ProtoMessage() {}
+
+func (x *PutDocumentCalibrationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PutDocumentCalibrationResponse.ProtoReflect.Descriptor instead.
+func (*PutDocumentCalibrationResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *PutDocumentCalibrationResponse) GetCalibration() *Calibration {
+	if x != nil {
+		return x.Calibration
+	}
+	return nil
+}
+
+type DeleteDocumentCalibrationRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TerritorySlug string                 `protobuf:"bytes,1,opt,name=territory_slug,json=territorySlug,proto3" json:"territory_slug,omitempty"`
+	DocumentId    int64                  `protobuf:"varint,2,opt,name=document_id,json=documentId,proto3" json:"document_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteDocumentCalibrationRequest) Reset() {
+	*x = DeleteDocumentCalibrationRequest{}
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteDocumentCalibrationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteDocumentCalibrationRequest) ProtoMessage() {}
+
+func (x *DeleteDocumentCalibrationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteDocumentCalibrationRequest.ProtoReflect.Descriptor instead.
+func (*DeleteDocumentCalibrationRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *DeleteDocumentCalibrationRequest) GetTerritorySlug() string {
+	if x != nil {
+		return x.TerritorySlug
+	}
+	return ""
+}
+
+func (x *DeleteDocumentCalibrationRequest) GetDocumentId() int64 {
+	if x != nil {
+		return x.DocumentId
+	}
+	return 0
+}
+
+type DeleteDocumentCalibrationResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteDocumentCalibrationResponse) Reset() {
+	*x = DeleteDocumentCalibrationResponse{}
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteDocumentCalibrationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteDocumentCalibrationResponse) ProtoMessage() {}
+
+func (x *DeleteDocumentCalibrationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_content_v1_content_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteDocumentCalibrationResponse.ProtoReflect.Descriptor instead.
+func (*DeleteDocumentCalibrationResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_content_v1_content_proto_rawDescGZIP(), []int{31}
 }
 
 var File_rosneft_content_v1_content_proto protoreflect.FileDescriptor
@@ -1563,14 +1913,28 @@ const file_rosneft_content_v1_content_proto_rawDesc = "" +
 	"\x19ListPanoramaPhasesRequest\x12%\n" +
 	"\x0eterritory_slug\x18\x01 \x01(\tR\rterritorySlug\"W\n" +
 	"\x1aListPanoramaPhasesResponse\x129\n" +
-	"\x06phases\x18\x01 \x03(\v2!.rosneft.content.v1.PanoramaPhaseR\x06phases\"\xbc\x01\n" +
+	"\x06phases\x18\x01 \x03(\v2!.rosneft.content.v1.PanoramaPhaseR\x06phases\"\xff\x01\n" +
 	"\bDocument\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12%\n" +
 	"\x0eterritory_slug\x18\x02 \x01(\tR\rterritorySlug\x12\x14\n" +
 	"\x05title\x18\x03 \x01(\tR\x05title\x12(\n" +
 	"\x10source_blob_hash\x18\x04 \x01(\tR\x0esourceBlobHash\x129\n" +
 	"\n" +
-	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"=\n" +
+	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12A\n" +
+	"\vcalibration\x18\x06 \x01(\v2\x1f.rosneft.content.v1.CalibrationR\vcalibration\"\xcf\x01\n" +
+	"\x10CalibrationPoint\x12\x13\n" +
+	"\x05pdf_x\x18\x01 \x01(\x01R\x04pdfX\x12\x13\n" +
+	"\x05pdf_y\x18\x02 \x01(\x01R\x04pdfY\x12\x17\n" +
+	"\ascene_x\x18\x03 \x01(\x01R\x06sceneX\x12\x17\n" +
+	"\ascene_y\x18\x04 \x01(\x01R\x06sceneY\x12\x17\n" +
+	"\ascene_z\x18\x05 \x01(\x01R\x06sceneZ\x12\x18\n" +
+	"\x05utm_e\x18\x06 \x01(\x01H\x00R\x04utmE\x88\x01\x01\x12\x18\n" +
+	"\x05utm_n\x18\a \x01(\x01H\x01R\x04utmN\x88\x01\x01B\b\n" +
+	"\x06_utm_eB\b\n" +
+	"\x06_utm_n\"_\n" +
+	"\vCalibration\x12\x12\n" +
+	"\x04page\x18\x01 \x01(\x05R\x04page\x12<\n" +
+	"\x06points\x18\x02 \x03(\v2$.rosneft.content.v1.CalibrationPointR\x06points\"=\n" +
 	"\x14ListDocumentsRequest\x12%\n" +
 	"\x0eterritory_slug\x18\x01 \x01(\tR\rterritorySlug\"S\n" +
 	"\x15ListDocumentsResponse\x12:\n" +
@@ -1584,7 +1948,19 @@ const file_rosneft_content_v1_content_proto_rawDesc = "" +
 	"\x15DeleteDocumentRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12%\n" +
 	"\x0eterritory_slug\x18\x02 \x01(\tR\rterritorySlug\"\x18\n" +
-	"\x16DeleteDocumentResponse2\xc6\t\n" +
+	"\x16DeleteDocumentResponse\"\xaa\x01\n" +
+	"\x1dPutDocumentCalibrationRequest\x12%\n" +
+	"\x0eterritory_slug\x18\x01 \x01(\tR\rterritorySlug\x12\x1f\n" +
+	"\vdocument_id\x18\x02 \x01(\x03R\n" +
+	"documentId\x12A\n" +
+	"\vcalibration\x18\x03 \x01(\v2\x1f.rosneft.content.v1.CalibrationR\vcalibration\"c\n" +
+	"\x1ePutDocumentCalibrationResponse\x12A\n" +
+	"\vcalibration\x18\x01 \x01(\v2\x1f.rosneft.content.v1.CalibrationR\vcalibration\"j\n" +
+	" DeleteDocumentCalibrationRequest\x12%\n" +
+	"\x0eterritory_slug\x18\x01 \x01(\tR\rterritorySlug\x12\x1f\n" +
+	"\vdocument_id\x18\x02 \x01(\x03R\n" +
+	"documentId\"#\n" +
+	"!DeleteDocumentCalibrationResponse2\xd2\v\n" +
 	"\x0eContentService\x12d\n" +
 	"\rListPanoramas\x12(.rosneft.content.v1.ListPanoramasRequest\x1a).rosneft.content.v1.ListPanoramasResponse\x12g\n" +
 	"\x0eCreatePanorama\x12).rosneft.content.v1.CreatePanoramaRequest\x1a*.rosneft.content.v1.CreatePanoramaResponse\x12g\n" +
@@ -1596,7 +1972,9 @@ const file_rosneft_content_v1_content_proto_rawDesc = "" +
 	"\x12ListPanoramaPhases\x12-.rosneft.content.v1.ListPanoramaPhasesRequest\x1a..rosneft.content.v1.ListPanoramaPhasesResponse\x12d\n" +
 	"\rListDocuments\x12(.rosneft.content.v1.ListDocumentsRequest\x1a).rosneft.content.v1.ListDocumentsResponse\x12g\n" +
 	"\x0eCreateDocument\x12).rosneft.content.v1.CreateDocumentRequest\x1a*.rosneft.content.v1.CreateDocumentResponse\x12g\n" +
-	"\x0eDeleteDocument\x12).rosneft.content.v1.DeleteDocumentRequest\x1a*.rosneft.content.v1.DeleteDocumentResponseBPZNgithub.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/content/v1;contentv1b\x06proto3"
+	"\x0eDeleteDocument\x12).rosneft.content.v1.DeleteDocumentRequest\x1a*.rosneft.content.v1.DeleteDocumentResponse\x12\x7f\n" +
+	"\x16PutDocumentCalibration\x121.rosneft.content.v1.PutDocumentCalibrationRequest\x1a2.rosneft.content.v1.PutDocumentCalibrationResponse\x12\x88\x01\n" +
+	"\x19DeleteDocumentCalibration\x124.rosneft.content.v1.DeleteDocumentCalibrationRequest\x1a5.rosneft.content.v1.DeleteDocumentCalibrationResponseBPZNgithub.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/content/v1;contentv1b\x06proto3"
 
 var (
 	file_rosneft_content_v1_content_proto_rawDescOnce sync.Once
@@ -1610,40 +1988,46 @@ func file_rosneft_content_v1_content_proto_rawDescGZIP() []byte {
 	return file_rosneft_content_v1_content_proto_rawDescData
 }
 
-var file_rosneft_content_v1_content_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_rosneft_content_v1_content_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_rosneft_content_v1_content_proto_goTypes = []any{
-	(*Vec3)(nil),                           // 0: rosneft.content.v1.Vec3
-	(*Panorama)(nil),                       // 1: rosneft.content.v1.Panorama
-	(*ListPanoramasRequest)(nil),           // 2: rosneft.content.v1.ListPanoramasRequest
-	(*ListPanoramasResponse)(nil),          // 3: rosneft.content.v1.ListPanoramasResponse
-	(*CreatePanoramaRequest)(nil),          // 4: rosneft.content.v1.CreatePanoramaRequest
-	(*CreatePanoramaResponse)(nil),         // 5: rosneft.content.v1.CreatePanoramaResponse
-	(*UpdatePanoramaRequest)(nil),          // 6: rosneft.content.v1.UpdatePanoramaRequest
-	(*UpdatePanoramaResponse)(nil),         // 7: rosneft.content.v1.UpdatePanoramaResponse
-	(*DeletePanoramaRequest)(nil),          // 8: rosneft.content.v1.DeletePanoramaRequest
-	(*DeletePanoramaResponse)(nil),         // 9: rosneft.content.v1.DeletePanoramaResponse
-	(*SetPanoramasHiddenRequest)(nil),      // 10: rosneft.content.v1.SetPanoramasHiddenRequest
-	(*SetPanoramasHiddenResponse)(nil),     // 11: rosneft.content.v1.SetPanoramasHiddenResponse
-	(*SetPanoramasPhaseRequest)(nil),       // 12: rosneft.content.v1.SetPanoramasPhaseRequest
-	(*SetPanoramasPhaseResponse)(nil),      // 13: rosneft.content.v1.SetPanoramasPhaseResponse
-	(*PanoramaPhase)(nil),                  // 14: rosneft.content.v1.PanoramaPhase
-	(*SetPanoramaPhaseHiddenRequest)(nil),  // 15: rosneft.content.v1.SetPanoramaPhaseHiddenRequest
-	(*SetPanoramaPhaseHiddenResponse)(nil), // 16: rosneft.content.v1.SetPanoramaPhaseHiddenResponse
-	(*ListPanoramaPhasesRequest)(nil),      // 17: rosneft.content.v1.ListPanoramaPhasesRequest
-	(*ListPanoramaPhasesResponse)(nil),     // 18: rosneft.content.v1.ListPanoramaPhasesResponse
-	(*Document)(nil),                       // 19: rosneft.content.v1.Document
-	(*ListDocumentsRequest)(nil),           // 20: rosneft.content.v1.ListDocumentsRequest
-	(*ListDocumentsResponse)(nil),          // 21: rosneft.content.v1.ListDocumentsResponse
-	(*CreateDocumentRequest)(nil),          // 22: rosneft.content.v1.CreateDocumentRequest
-	(*CreateDocumentResponse)(nil),         // 23: rosneft.content.v1.CreateDocumentResponse
-	(*DeleteDocumentRequest)(nil),          // 24: rosneft.content.v1.DeleteDocumentRequest
-	(*DeleteDocumentResponse)(nil),         // 25: rosneft.content.v1.DeleteDocumentResponse
-	(*timestamppb.Timestamp)(nil),          // 26: google.protobuf.Timestamp
+	(*Vec3)(nil),                              // 0: rosneft.content.v1.Vec3
+	(*Panorama)(nil),                          // 1: rosneft.content.v1.Panorama
+	(*ListPanoramasRequest)(nil),              // 2: rosneft.content.v1.ListPanoramasRequest
+	(*ListPanoramasResponse)(nil),             // 3: rosneft.content.v1.ListPanoramasResponse
+	(*CreatePanoramaRequest)(nil),             // 4: rosneft.content.v1.CreatePanoramaRequest
+	(*CreatePanoramaResponse)(nil),            // 5: rosneft.content.v1.CreatePanoramaResponse
+	(*UpdatePanoramaRequest)(nil),             // 6: rosneft.content.v1.UpdatePanoramaRequest
+	(*UpdatePanoramaResponse)(nil),            // 7: rosneft.content.v1.UpdatePanoramaResponse
+	(*DeletePanoramaRequest)(nil),             // 8: rosneft.content.v1.DeletePanoramaRequest
+	(*DeletePanoramaResponse)(nil),            // 9: rosneft.content.v1.DeletePanoramaResponse
+	(*SetPanoramasHiddenRequest)(nil),         // 10: rosneft.content.v1.SetPanoramasHiddenRequest
+	(*SetPanoramasHiddenResponse)(nil),        // 11: rosneft.content.v1.SetPanoramasHiddenResponse
+	(*SetPanoramasPhaseRequest)(nil),          // 12: rosneft.content.v1.SetPanoramasPhaseRequest
+	(*SetPanoramasPhaseResponse)(nil),         // 13: rosneft.content.v1.SetPanoramasPhaseResponse
+	(*PanoramaPhase)(nil),                     // 14: rosneft.content.v1.PanoramaPhase
+	(*SetPanoramaPhaseHiddenRequest)(nil),     // 15: rosneft.content.v1.SetPanoramaPhaseHiddenRequest
+	(*SetPanoramaPhaseHiddenResponse)(nil),    // 16: rosneft.content.v1.SetPanoramaPhaseHiddenResponse
+	(*ListPanoramaPhasesRequest)(nil),         // 17: rosneft.content.v1.ListPanoramaPhasesRequest
+	(*ListPanoramaPhasesResponse)(nil),        // 18: rosneft.content.v1.ListPanoramaPhasesResponse
+	(*Document)(nil),                          // 19: rosneft.content.v1.Document
+	(*CalibrationPoint)(nil),                  // 20: rosneft.content.v1.CalibrationPoint
+	(*Calibration)(nil),                       // 21: rosneft.content.v1.Calibration
+	(*ListDocumentsRequest)(nil),              // 22: rosneft.content.v1.ListDocumentsRequest
+	(*ListDocumentsResponse)(nil),             // 23: rosneft.content.v1.ListDocumentsResponse
+	(*CreateDocumentRequest)(nil),             // 24: rosneft.content.v1.CreateDocumentRequest
+	(*CreateDocumentResponse)(nil),            // 25: rosneft.content.v1.CreateDocumentResponse
+	(*DeleteDocumentRequest)(nil),             // 26: rosneft.content.v1.DeleteDocumentRequest
+	(*DeleteDocumentResponse)(nil),            // 27: rosneft.content.v1.DeleteDocumentResponse
+	(*PutDocumentCalibrationRequest)(nil),     // 28: rosneft.content.v1.PutDocumentCalibrationRequest
+	(*PutDocumentCalibrationResponse)(nil),    // 29: rosneft.content.v1.PutDocumentCalibrationResponse
+	(*DeleteDocumentCalibrationRequest)(nil),  // 30: rosneft.content.v1.DeleteDocumentCalibrationRequest
+	(*DeleteDocumentCalibrationResponse)(nil), // 31: rosneft.content.v1.DeleteDocumentCalibrationResponse
+	(*timestamppb.Timestamp)(nil),             // 32: google.protobuf.Timestamp
 }
 var file_rosneft_content_v1_content_proto_depIdxs = []int32{
 	0,  // 0: rosneft.content.v1.Panorama.position:type_name -> rosneft.content.v1.Vec3
-	26, // 1: rosneft.content.v1.Panorama.created_at:type_name -> google.protobuf.Timestamp
-	26, // 2: rosneft.content.v1.Panorama.updated_at:type_name -> google.protobuf.Timestamp
+	32, // 1: rosneft.content.v1.Panorama.created_at:type_name -> google.protobuf.Timestamp
+	32, // 2: rosneft.content.v1.Panorama.updated_at:type_name -> google.protobuf.Timestamp
 	1,  // 3: rosneft.content.v1.ListPanoramasResponse.panoramas:type_name -> rosneft.content.v1.Panorama
 	0,  // 4: rosneft.content.v1.CreatePanoramaRequest.position:type_name -> rosneft.content.v1.Vec3
 	1,  // 5: rosneft.content.v1.CreatePanoramaResponse.panorama:type_name -> rosneft.content.v1.Panorama
@@ -1651,36 +2035,44 @@ var file_rosneft_content_v1_content_proto_depIdxs = []int32{
 	1,  // 7: rosneft.content.v1.UpdatePanoramaResponse.panorama:type_name -> rosneft.content.v1.Panorama
 	14, // 8: rosneft.content.v1.SetPanoramaPhaseHiddenResponse.phase:type_name -> rosneft.content.v1.PanoramaPhase
 	14, // 9: rosneft.content.v1.ListPanoramaPhasesResponse.phases:type_name -> rosneft.content.v1.PanoramaPhase
-	26, // 10: rosneft.content.v1.Document.created_at:type_name -> google.protobuf.Timestamp
-	19, // 11: rosneft.content.v1.ListDocumentsResponse.documents:type_name -> rosneft.content.v1.Document
-	19, // 12: rosneft.content.v1.CreateDocumentResponse.document:type_name -> rosneft.content.v1.Document
-	2,  // 13: rosneft.content.v1.ContentService.ListPanoramas:input_type -> rosneft.content.v1.ListPanoramasRequest
-	4,  // 14: rosneft.content.v1.ContentService.CreatePanorama:input_type -> rosneft.content.v1.CreatePanoramaRequest
-	6,  // 15: rosneft.content.v1.ContentService.UpdatePanorama:input_type -> rosneft.content.v1.UpdatePanoramaRequest
-	8,  // 16: rosneft.content.v1.ContentService.DeletePanorama:input_type -> rosneft.content.v1.DeletePanoramaRequest
-	10, // 17: rosneft.content.v1.ContentService.SetPanoramasHidden:input_type -> rosneft.content.v1.SetPanoramasHiddenRequest
-	12, // 18: rosneft.content.v1.ContentService.SetPanoramasPhase:input_type -> rosneft.content.v1.SetPanoramasPhaseRequest
-	15, // 19: rosneft.content.v1.ContentService.SetPanoramaPhaseHidden:input_type -> rosneft.content.v1.SetPanoramaPhaseHiddenRequest
-	17, // 20: rosneft.content.v1.ContentService.ListPanoramaPhases:input_type -> rosneft.content.v1.ListPanoramaPhasesRequest
-	20, // 21: rosneft.content.v1.ContentService.ListDocuments:input_type -> rosneft.content.v1.ListDocumentsRequest
-	22, // 22: rosneft.content.v1.ContentService.CreateDocument:input_type -> rosneft.content.v1.CreateDocumentRequest
-	24, // 23: rosneft.content.v1.ContentService.DeleteDocument:input_type -> rosneft.content.v1.DeleteDocumentRequest
-	3,  // 24: rosneft.content.v1.ContentService.ListPanoramas:output_type -> rosneft.content.v1.ListPanoramasResponse
-	5,  // 25: rosneft.content.v1.ContentService.CreatePanorama:output_type -> rosneft.content.v1.CreatePanoramaResponse
-	7,  // 26: rosneft.content.v1.ContentService.UpdatePanorama:output_type -> rosneft.content.v1.UpdatePanoramaResponse
-	9,  // 27: rosneft.content.v1.ContentService.DeletePanorama:output_type -> rosneft.content.v1.DeletePanoramaResponse
-	11, // 28: rosneft.content.v1.ContentService.SetPanoramasHidden:output_type -> rosneft.content.v1.SetPanoramasHiddenResponse
-	13, // 29: rosneft.content.v1.ContentService.SetPanoramasPhase:output_type -> rosneft.content.v1.SetPanoramasPhaseResponse
-	16, // 30: rosneft.content.v1.ContentService.SetPanoramaPhaseHidden:output_type -> rosneft.content.v1.SetPanoramaPhaseHiddenResponse
-	18, // 31: rosneft.content.v1.ContentService.ListPanoramaPhases:output_type -> rosneft.content.v1.ListPanoramaPhasesResponse
-	21, // 32: rosneft.content.v1.ContentService.ListDocuments:output_type -> rosneft.content.v1.ListDocumentsResponse
-	23, // 33: rosneft.content.v1.ContentService.CreateDocument:output_type -> rosneft.content.v1.CreateDocumentResponse
-	25, // 34: rosneft.content.v1.ContentService.DeleteDocument:output_type -> rosneft.content.v1.DeleteDocumentResponse
-	24, // [24:35] is the sub-list for method output_type
-	13, // [13:24] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	32, // 10: rosneft.content.v1.Document.created_at:type_name -> google.protobuf.Timestamp
+	21, // 11: rosneft.content.v1.Document.calibration:type_name -> rosneft.content.v1.Calibration
+	20, // 12: rosneft.content.v1.Calibration.points:type_name -> rosneft.content.v1.CalibrationPoint
+	19, // 13: rosneft.content.v1.ListDocumentsResponse.documents:type_name -> rosneft.content.v1.Document
+	19, // 14: rosneft.content.v1.CreateDocumentResponse.document:type_name -> rosneft.content.v1.Document
+	21, // 15: rosneft.content.v1.PutDocumentCalibrationRequest.calibration:type_name -> rosneft.content.v1.Calibration
+	21, // 16: rosneft.content.v1.PutDocumentCalibrationResponse.calibration:type_name -> rosneft.content.v1.Calibration
+	2,  // 17: rosneft.content.v1.ContentService.ListPanoramas:input_type -> rosneft.content.v1.ListPanoramasRequest
+	4,  // 18: rosneft.content.v1.ContentService.CreatePanorama:input_type -> rosneft.content.v1.CreatePanoramaRequest
+	6,  // 19: rosneft.content.v1.ContentService.UpdatePanorama:input_type -> rosneft.content.v1.UpdatePanoramaRequest
+	8,  // 20: rosneft.content.v1.ContentService.DeletePanorama:input_type -> rosneft.content.v1.DeletePanoramaRequest
+	10, // 21: rosneft.content.v1.ContentService.SetPanoramasHidden:input_type -> rosneft.content.v1.SetPanoramasHiddenRequest
+	12, // 22: rosneft.content.v1.ContentService.SetPanoramasPhase:input_type -> rosneft.content.v1.SetPanoramasPhaseRequest
+	15, // 23: rosneft.content.v1.ContentService.SetPanoramaPhaseHidden:input_type -> rosneft.content.v1.SetPanoramaPhaseHiddenRequest
+	17, // 24: rosneft.content.v1.ContentService.ListPanoramaPhases:input_type -> rosneft.content.v1.ListPanoramaPhasesRequest
+	22, // 25: rosneft.content.v1.ContentService.ListDocuments:input_type -> rosneft.content.v1.ListDocumentsRequest
+	24, // 26: rosneft.content.v1.ContentService.CreateDocument:input_type -> rosneft.content.v1.CreateDocumentRequest
+	26, // 27: rosneft.content.v1.ContentService.DeleteDocument:input_type -> rosneft.content.v1.DeleteDocumentRequest
+	28, // 28: rosneft.content.v1.ContentService.PutDocumentCalibration:input_type -> rosneft.content.v1.PutDocumentCalibrationRequest
+	30, // 29: rosneft.content.v1.ContentService.DeleteDocumentCalibration:input_type -> rosneft.content.v1.DeleteDocumentCalibrationRequest
+	3,  // 30: rosneft.content.v1.ContentService.ListPanoramas:output_type -> rosneft.content.v1.ListPanoramasResponse
+	5,  // 31: rosneft.content.v1.ContentService.CreatePanorama:output_type -> rosneft.content.v1.CreatePanoramaResponse
+	7,  // 32: rosneft.content.v1.ContentService.UpdatePanorama:output_type -> rosneft.content.v1.UpdatePanoramaResponse
+	9,  // 33: rosneft.content.v1.ContentService.DeletePanorama:output_type -> rosneft.content.v1.DeletePanoramaResponse
+	11, // 34: rosneft.content.v1.ContentService.SetPanoramasHidden:output_type -> rosneft.content.v1.SetPanoramasHiddenResponse
+	13, // 35: rosneft.content.v1.ContentService.SetPanoramasPhase:output_type -> rosneft.content.v1.SetPanoramasPhaseResponse
+	16, // 36: rosneft.content.v1.ContentService.SetPanoramaPhaseHidden:output_type -> rosneft.content.v1.SetPanoramaPhaseHiddenResponse
+	18, // 37: rosneft.content.v1.ContentService.ListPanoramaPhases:output_type -> rosneft.content.v1.ListPanoramaPhasesResponse
+	23, // 38: rosneft.content.v1.ContentService.ListDocuments:output_type -> rosneft.content.v1.ListDocumentsResponse
+	25, // 39: rosneft.content.v1.ContentService.CreateDocument:output_type -> rosneft.content.v1.CreateDocumentResponse
+	27, // 40: rosneft.content.v1.ContentService.DeleteDocument:output_type -> rosneft.content.v1.DeleteDocumentResponse
+	29, // 41: rosneft.content.v1.ContentService.PutDocumentCalibration:output_type -> rosneft.content.v1.PutDocumentCalibrationResponse
+	31, // 42: rosneft.content.v1.ContentService.DeleteDocumentCalibration:output_type -> rosneft.content.v1.DeleteDocumentCalibrationResponse
+	30, // [30:43] is the sub-list for method output_type
+	17, // [17:30] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_rosneft_content_v1_content_proto_init() }
@@ -1688,13 +2080,14 @@ func file_rosneft_content_v1_content_proto_init() {
 	if File_rosneft_content_v1_content_proto != nil {
 		return
 	}
+	file_rosneft_content_v1_content_proto_msgTypes[20].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_rosneft_content_v1_content_proto_rawDesc), len(file_rosneft_content_v1_content_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   26,
+			NumMessages:   32,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -12,6 +12,7 @@ func sceneBundleToAPI(b domain.SceneBundle) SceneBundle {
 		Measurements:    measurementsToAPI(b.Measurements),
 		PlacementGroups: placementGroupsToAPI(b.PlacementGroups),
 		PanoramaPhases:  panoramaPhasesToAPI(b.PanoramaPhases),
+		Zones:           []Zone{}, // shortcut: always empty until Task 6 adds zones to the bundle
 	}
 	for i, p := range b.Placements {
 		out.Placements[i] = placementToAPI(p)

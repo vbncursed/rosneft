@@ -62,6 +62,11 @@ const (
 	CatalogService_RenamePlacementGroup_FullMethodName        = "/rosneft.catalog.v1.CatalogService/RenamePlacementGroup"
 	CatalogService_DeletePlacementGroup_FullMethodName        = "/rosneft.catalog.v1.CatalogService/DeletePlacementGroup"
 	CatalogService_SetPlacementGroupHidden_FullMethodName     = "/rosneft.catalog.v1.CatalogService/SetPlacementGroupHidden"
+	CatalogService_ListModelTags_FullMethodName               = "/rosneft.catalog.v1.CatalogService/ListModelTags"
+	CatalogService_ListZones_FullMethodName                   = "/rosneft.catalog.v1.CatalogService/ListZones"
+	CatalogService_CreateZone_FullMethodName                  = "/rosneft.catalog.v1.CatalogService/CreateZone"
+	CatalogService_UpdateZone_FullMethodName                  = "/rosneft.catalog.v1.CatalogService/UpdateZone"
+	CatalogService_DeleteZone_FullMethodName                  = "/rosneft.catalog.v1.CatalogService/DeleteZone"
 )
 
 // CatalogServiceClient is the client API for CatalogService service.
@@ -149,6 +154,14 @@ type CatalogServiceClient interface {
 	// drawn only when neither it nor its group is hidden. A group of another
 	// territory is NOT_FOUND, same as an unknown one.
 	SetPlacementGroupHidden(ctx context.Context, in *SetPlacementGroupHiddenRequest, opts ...grpc.CallOption) (*SetPlacementGroupHiddenResponse, error)
+	// The fixed model tag list, sorted by title with ungrouped last.
+	ListModelTags(ctx context.Context, in *ListModelTagsRequest, opts ...grpc.CallOption) (*ListModelTagsResponse, error)
+	// Site zones are scoped by territory_slug like measurements: an id of
+	// another territory is NOT_FOUND, same as an unknown one.
+	ListZones(ctx context.Context, in *ListZonesRequest, opts ...grpc.CallOption) (*ListZonesResponse, error)
+	CreateZone(ctx context.Context, in *CreateZoneRequest, opts ...grpc.CallOption) (*CreateZoneResponse, error)
+	UpdateZone(ctx context.Context, in *UpdateZoneRequest, opts ...grpc.CallOption) (*UpdateZoneResponse, error)
+	DeleteZone(ctx context.Context, in *DeleteZoneRequest, opts ...grpc.CallOption) (*DeleteZoneResponse, error)
 }
 
 type catalogServiceClient struct {
@@ -589,6 +602,56 @@ func (c *catalogServiceClient) SetPlacementGroupHidden(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *catalogServiceClient) ListModelTags(ctx context.Context, in *ListModelTagsRequest, opts ...grpc.CallOption) (*ListModelTagsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListModelTagsResponse)
+	err := c.cc.Invoke(ctx, CatalogService_ListModelTags_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) ListZones(ctx context.Context, in *ListZonesRequest, opts ...grpc.CallOption) (*ListZonesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListZonesResponse)
+	err := c.cc.Invoke(ctx, CatalogService_ListZones_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) CreateZone(ctx context.Context, in *CreateZoneRequest, opts ...grpc.CallOption) (*CreateZoneResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateZoneResponse)
+	err := c.cc.Invoke(ctx, CatalogService_CreateZone_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) UpdateZone(ctx context.Context, in *UpdateZoneRequest, opts ...grpc.CallOption) (*UpdateZoneResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateZoneResponse)
+	err := c.cc.Invoke(ctx, CatalogService_UpdateZone_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) DeleteZone(ctx context.Context, in *DeleteZoneRequest, opts ...grpc.CallOption) (*DeleteZoneResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteZoneResponse)
+	err := c.cc.Invoke(ctx, CatalogService_DeleteZone_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CatalogServiceServer is the server API for CatalogService service.
 // All implementations must embed UnimplementedCatalogServiceServer
 // for forward compatibility.
@@ -674,6 +737,14 @@ type CatalogServiceServer interface {
 	// drawn only when neither it nor its group is hidden. A group of another
 	// territory is NOT_FOUND, same as an unknown one.
 	SetPlacementGroupHidden(context.Context, *SetPlacementGroupHiddenRequest) (*SetPlacementGroupHiddenResponse, error)
+	// The fixed model tag list, sorted by title with ungrouped last.
+	ListModelTags(context.Context, *ListModelTagsRequest) (*ListModelTagsResponse, error)
+	// Site zones are scoped by territory_slug like measurements: an id of
+	// another territory is NOT_FOUND, same as an unknown one.
+	ListZones(context.Context, *ListZonesRequest) (*ListZonesResponse, error)
+	CreateZone(context.Context, *CreateZoneRequest) (*CreateZoneResponse, error)
+	UpdateZone(context.Context, *UpdateZoneRequest) (*UpdateZoneResponse, error)
+	DeleteZone(context.Context, *DeleteZoneRequest) (*DeleteZoneResponse, error)
 	mustEmbedUnimplementedCatalogServiceServer()
 }
 
@@ -812,6 +883,21 @@ func (UnimplementedCatalogServiceServer) DeletePlacementGroup(context.Context, *
 }
 func (UnimplementedCatalogServiceServer) SetPlacementGroupHidden(context.Context, *SetPlacementGroupHiddenRequest) (*SetPlacementGroupHiddenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetPlacementGroupHidden not implemented")
+}
+func (UnimplementedCatalogServiceServer) ListModelTags(context.Context, *ListModelTagsRequest) (*ListModelTagsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListModelTags not implemented")
+}
+func (UnimplementedCatalogServiceServer) ListZones(context.Context, *ListZonesRequest) (*ListZonesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListZones not implemented")
+}
+func (UnimplementedCatalogServiceServer) CreateZone(context.Context, *CreateZoneRequest) (*CreateZoneResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateZone not implemented")
+}
+func (UnimplementedCatalogServiceServer) UpdateZone(context.Context, *UpdateZoneRequest) (*UpdateZoneResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateZone not implemented")
+}
+func (UnimplementedCatalogServiceServer) DeleteZone(context.Context, *DeleteZoneRequest) (*DeleteZoneResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteZone not implemented")
 }
 func (UnimplementedCatalogServiceServer) mustEmbedUnimplementedCatalogServiceServer() {}
 func (UnimplementedCatalogServiceServer) testEmbeddedByValue()                        {}
@@ -1608,6 +1694,96 @@ func _CatalogService_SetPlacementGroupHidden_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CatalogService_ListModelTags_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListModelTagsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).ListModelTags(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_ListModelTags_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).ListModelTags(ctx, req.(*ListModelTagsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_ListZones_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListZonesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).ListZones(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_ListZones_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).ListZones(ctx, req.(*ListZonesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_CreateZone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateZoneRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).CreateZone(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_CreateZone_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).CreateZone(ctx, req.(*CreateZoneRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_UpdateZone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateZoneRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).UpdateZone(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_UpdateZone_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).UpdateZone(ctx, req.(*UpdateZoneRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_DeleteZone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteZoneRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).DeleteZone(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_DeleteZone_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).DeleteZone(ctx, req.(*DeleteZoneRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CatalogService_ServiceDesc is the grpc.ServiceDesc for CatalogService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1786,6 +1962,26 @@ var CatalogService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetPlacementGroupHidden",
 			Handler:    _CatalogService_SetPlacementGroupHidden_Handler,
+		},
+		{
+			MethodName: "ListModelTags",
+			Handler:    _CatalogService_ListModelTags_Handler,
+		},
+		{
+			MethodName: "ListZones",
+			Handler:    _CatalogService_ListZones_Handler,
+		},
+		{
+			MethodName: "CreateZone",
+			Handler:    _CatalogService_CreateZone_Handler,
+		},
+		{
+			MethodName: "UpdateZone",
+			Handler:    _CatalogService_UpdateZone_Handler,
+		},
+		{
+			MethodName: "DeleteZone",
+			Handler:    _CatalogService_DeleteZone_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
