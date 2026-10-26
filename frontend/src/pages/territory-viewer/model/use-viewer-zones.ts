@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type MutableRefObject } from "react";
+import { useCallback, useEffect, useMemo, useState, type MutableRefObject } from "react";
 import type { Calibration, Document } from "@/entities/document";
 import type { ResolvedPlacement } from "@/entities/placement";
 import type { SourceBbox } from "@/entities/territory";
@@ -6,6 +6,7 @@ import type { Zone } from "@/entities/zone";
 import type { PlacementOrigin } from "@/features/placements-editor";
 import { useZoneEquipment } from "@/features/zone-equipment";
 import type { DocumentParts } from "./overlay-parts";
+import type { PageHandlers } from "./viewer-props";
 import type { MeasurePoint } from "@/entities/measurement";
 import type { Ground, SiteProps } from "@/widgets/viewer-canvas";
 import type { PlanLayersProps } from "../ui/plan-layers";
@@ -135,27 +136,41 @@ export function useViewerZones(p: ViewerZonesParams) {
 }
 
 /**
- * What a click in the scene means to the page: picking a placement lets go of
- * the selected zone, and a point on the model goes to the alignment editor
- * while it is waiting for one (`accept` is set only then), to the ruler otherwise.
+ * What the keyboard and a click in the scene mean to the zones.
+ *
+ * A click on empty space or on a placement lets go of the selected zone; a
+ * point on the model goes to the alignment editor while it is waiting for one
+ * (`acceptRef` is set only then), to the ruler otherwise. Escape lets go of
+ * the zone before anything else claims it (an open document, the mode).
  */
-export function useSceneClicks(
-  accept: MutableRefObject<((point: MeasurePoint) => void) | null>,
-  selectZone: (id: number | null) => void,
-  onPick: (id: number | null) => void,
-  onMeasurePoint: (point: MeasurePoint) => void,
-) {
+export function useZoneInput(
+  zones: Pick<ZoneParts, "acceptRef" | "onSelect" | "selected">,
+  on: PageHandlers,
+  beforeEscape: MutableRefObject<() => boolean>,
+  documentsEscape: () => boolean,
+): PageHandlers {
+  const { acceptRef, onSelect, selected } = zones;
+  const { onPick, onMeasurePoint } = on;
+  useEffect(() => {
+    // oxlint-disable-next-line react/immutability -- the page's own handoff ref, written here because the zones hook is created after the mode reducer that reads it
+    beforeEscape.current = () => {
+      if (selected === null) return documentsEscape();
+      onSelect(null);
+      return true;
+    };
+  }, [beforeEscape, documentsEscape, onSelect, selected]);
   return {
+    ...on,
     onPick: useCallback(
       (id: number | null) => {
-        if (id !== null) selectZone(null);
+        onSelect(null);
         onPick(id);
       },
-      [selectZone, onPick],
+      [onSelect, onPick],
     ),
     onMeasurePoint: useCallback(
-      (point: MeasurePoint) => (accept.current ? accept.current(point) : onMeasurePoint(point)),
-      [accept, onMeasurePoint],
+      (point: MeasurePoint) => (acceptRef.current ? acceptRef.current(point) : onMeasurePoint(point)),
+      [acceptRef, onMeasurePoint],
     ),
   };
 }

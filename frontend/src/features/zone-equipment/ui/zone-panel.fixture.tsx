@@ -3,7 +3,7 @@ import { ZonePanel } from "./zone-panel";
 
 const noop = () => undefined;
 const frame = (node: React.ReactNode) => <div className="w-[320px] p-6">{node}</div>;
-const base = { zone: ZONE, inside: 3, canPlace: true, onPlace: noop, onWholeLibrary: noop };
+const base = { zone: ZONE, inside: 3, canPlace: true, onPlace: noop, onWholeLibrary: noop, onClose: noop };
 const SIZE = { text: "Drawing 10.0 × 5.0 m · Model 10.0 × 5.0 m (0 %)", warn: false };
 
 export default {

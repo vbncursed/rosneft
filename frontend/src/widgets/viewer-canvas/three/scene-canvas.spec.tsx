@@ -1,6 +1,15 @@
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { createElement, type ComponentType } from "react";
-import { Raycaster, Vector3, type BufferGeometry, type Color, type Mesh, type Object3D, type Scene } from "three";
+import {
+  Mesh as MeshClass,
+  Raycaster,
+  Vector3,
+  type BufferGeometry,
+  type Color,
+  type Mesh,
+  type Object3D,
+  type Scene,
+} from "three";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ALL_PHASES_SHOWN, type Panorama } from "@/entities/panorama";
 import type { Zone } from "@/entities/zone";
@@ -516,7 +525,7 @@ describe("SceneCanvas site zones", () => {
 
   it("answers a click on a zone in plain orbit only", async () => {
     const orbit = await mount();
-    expect(zoneMesh(orbit).props.onClick).toBeTypeOf("function");
+    expect((zoneMesh(orbit).instance as Mesh).raycast).toBe(MeshClass.prototype.raycast);
     for (const over of [
       { mode: "measure" as const },
       { mode: "place" as const },
@@ -527,7 +536,7 @@ describe("SceneCanvas site zones", () => {
     ]) {
       // oxlint-disable-next-line eslint/no-await-in-loop -- each mount replaces the last one
       const r = await mount(over);
-      expect(zoneMesh(r).props.onClick, JSON.stringify(over)).toBeUndefined();
+      expect((zoneMesh(r).instance as Mesh).raycast, JSON.stringify(over)).not.toBe(MeshClass.prototype.raycast);
     }
   });
 

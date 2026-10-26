@@ -175,6 +175,31 @@ describe("usePlanSession, Show plan", () => {
     expect(result.current.s.canvasPlan).toBeNull();
   });
 
+  it("drops the picture as soon as the aligned document goes or changes, so it never wears another's fit", () => {
+    const { result, rerender } = session({ documents: [doc(1, CAL)] });
+    act(() => result.current.s.toggleShowPlan());
+    act(() => result.current.s.onPlan(STATE));
+    expect(result.current.s.canvasPlan).not.toBeNull();
+
+    rerender({ documents: [doc(2, CAL)] });
+    expect(result.current.s.plan).toBeNull();
+    act(() => result.current.s.onPlan(STATE));
+    rerender({ documents: [doc(2, { page: 2, points: [] })] });
+    expect(result.current.s.plan).toBeNull();
+    act(() => result.current.s.onPlan(STATE));
+    rerender({ documents: [doc(2)] });
+    expect(result.current.s.plan).toBeNull();
+  });
+
+  it("keeps the picture when only the saved points change", () => {
+    const { result, rerender } = session({ documents: [doc(1, CAL)] });
+    act(() => result.current.s.onPlan(STATE));
+    rerender({
+      documents: [doc(1, { ...CAL, points: [{ pdf: { x: 1, y: 1 }, scene: { x: 0, y: 0, z: 0 }, utm: null }] })],
+    });
+    expect(result.current.s.plan).toBe(STATE);
+  });
+
   it("starts at 60 % and takes a new opacity", () => {
     const { result } = session({ documents: [doc(1, CAL)] });
     expect(result.current.s.opacity).toBe(0.6);

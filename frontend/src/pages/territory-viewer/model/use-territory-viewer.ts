@@ -21,7 +21,7 @@ import { useViewerDocuments } from "./use-viewer-documents";
 import { useViewerPanoramas } from "./use-viewer-panoramas";
 import { useViewerPlacements } from "./use-viewer-placements";
 import { useSceneDrop } from "./use-scene-drop";
-import { useSceneClicks, useViewerZones } from "./use-viewer-zones";
+import { useViewerZones, useZoneInput } from "./use-viewer-zones";
 
 export type TerritoryViewerState =
   | { status: "loading" }
@@ -160,7 +160,6 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
   });
   useEffect(() => {
     cycle.current = panoramas.onCycle;
-    beforeEscape.current = documents.escape;
   });
 
   const { editor, groups } = useViewerPlacements({
@@ -203,10 +202,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     canDeleteMeasurements: grants.measureDelete,
   });
   const { view, failedAt } = handlers;
-  const on = {
-    ...handlers.on,
-    ...useSceneClicks(zones.acceptRef, zones.onSelect, handlers.on.onPick, handlers.on.onMeasurePoint),
-  };
+  const on = useZoneInput(zones, handlers.on, beforeEscape, documents.escape);
 
   if (me.isPending || scene.isPending) return { status: "loading" };
   // Only the *scene's* 404 means "no such territory, or not this reader's". A

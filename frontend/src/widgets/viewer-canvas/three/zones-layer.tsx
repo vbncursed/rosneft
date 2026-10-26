@@ -1,6 +1,6 @@
 import { memo, useMemo } from "react";
 import { Html } from "@react-three/drei";
-import { DoubleSide } from "three";
+import { DoubleSide, Mesh } from "three";
 import { zoneCentre, type Zone } from "@/entities/zone";
 
 interface ZonesLayerProps {
@@ -39,15 +39,15 @@ function ZoneShape({
   return (
     <group>
       <mesh
-        raycast={interactive ? undefined : noRaycast}
-        onClick={
-          interactive
-            ? (e) => {
-                e.stopPropagation();
-                onSelect(zone.id);
-              }
-            : undefined
-        }
+        // Never `undefined`: R3F skips undefined props, so a mesh switched to no-op would stay that way.
+        // oxlint-disable-next-line typescript/unbound-method -- handed to three as the mesh's own raycast, called with the mesh as `this`
+        raycast={interactive ? Mesh.prototype.raycast : noRaycast}
+        // Always a handler, for the same reason: it only fires when the ray test can hit.
+        onClick={(e) => {
+          if (!interactive) return;
+          e.stopPropagation();
+          onSelect(zone.id);
+        }}
       >
         <bufferGeometry>
           <bufferAttribute attach="attributes-position" args={[positions, 3]} />

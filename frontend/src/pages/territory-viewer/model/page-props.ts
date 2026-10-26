@@ -1,14 +1,7 @@
 import { canEditSaved, computeUnitRatio } from "@/entities/measurement";
 import { groupByModel } from "@/entities/placement";
-import {
-  documentProps,
-  loadingLevel,
-  panoramaCanvasProps,
-  planLayer,
-  uploadProps,
-  viewTabProps,
-  zoneCard,
-} from "./page-props-b";
+import { documentProps, loadingLevel, panoramaCanvasProps, uploadProps, viewTabProps } from "./page-props-b";
+import { planLayer, zoneCard } from "./page-props-zones";
 import { memoLast } from "./memo-last";
 import { placementsPanelProps } from "./page-props-placements";
 import { freeKeys, loadingChip, measuringView, modeChip, stripItems } from "./strip-and-chips";

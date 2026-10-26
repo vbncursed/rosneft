@@ -13,6 +13,7 @@ const panel = (over: Partial<ZonePanelProps> = {}) => (
     canPlace
     onPlace={vi.fn()}
     onWholeLibrary={vi.fn()}
+    onClose={vi.fn()}
     {...over}
   />
 );
@@ -94,6 +95,13 @@ describe("ZonePanel", () => {
     expect(onDelete).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: "Delete" }));
     expect(onDelete).toHaveBeenCalledOnce();
+  });
+
+  it("closes from its own button", async () => {
+    const onClose = vi.fn();
+    render(panel({ onClose }));
+    await userEvent.click(screen.getByRole("button", { name: "Close Tank row" }));
+    expect(onClose).toHaveBeenCalledOnce();
   });
 
   it("shows neither without the handlers", () => {

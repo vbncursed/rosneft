@@ -14,12 +14,14 @@ import {
   type PlacementTransform,
   type PlacementUpdate,
   type ResolvedPlacement,
-  type Vec3,
 } from "@/entities/placement";
 import type { ModelOption } from "@/entities/scene";
 import { HttpError, messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
+import { rowPosition, sameOrigin, type PlacementOrigin } from "./placement-origin";
 import { useBulkWrites } from "./use-bulk-writes";
+
+export type { PlacementOrigin };
 
 export type PlacementsEditorParams = {
   slug: string;
@@ -32,18 +34,6 @@ export type PlacementsEditorParams = {
   /** Every successful mutation calls this; the page marks the scene bundle stale. */
   onChanged: () => void;
 };
-
-/** Where a batch starts and which way its row runs: a zone's centre and axis. */
-export type PlacementOrigin = { position: Vec3; yaw: number };
-
-const sameOrigin = (a: PlacementOrigin | null, b: PlacementOrigin | null) =>
-  a === b ||
-  (a !== null &&
-    b !== null &&
-    a.yaw === b.yaw &&
-    a.position.x === b.position.x &&
-    a.position.y === b.position.y &&
-    a.position.z === b.position.z);
 
 /** How big the batch in flight is. Null when nothing is being placed. */
 export type Placing = { total: number };
@@ -117,19 +107,9 @@ export function usePlacementsEditor({
           territoryMaxDim,
         );
         const step = 2 * scale * 1.1;
-        // From a zone the row starts at its centre and runs along its axis;
-        // rotating (a, 0, 0) about Y by yaw gives (a cos, 0, -a sin).
-        const at = (i: number): Vec3 =>
-          origin
-            ? {
-                x: origin.position.x + i * step * Math.cos(origin.yaw),
-                y: origin.position.y,
-                z: origin.position.z - i * step * Math.sin(origin.yaw),
-              }
-            : { x: i * step, y: 0, z: 0 };
         const items = Array.from({ length: total }, (_, i) => ({
           modelSlug,
-          position: at(i),
+          position: rowPosition(i, step, origin),
           ...(origin ? { rotation: { x: 0, y: origin.yaw, z: 0 } } : {}),
           scale: { x: scale, y: scale, z: scale },
           visiblePanoramaIds: panoramaIds,

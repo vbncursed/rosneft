@@ -947,6 +947,20 @@ describe("useTerritoryViewer", () => {
       expect(now(r).canvas.site.selectedZoneId).toBeNull();
     });
 
+    it("lets go of the zone on a click into empty space, and on Escape", async () => {
+      const r = withZone();
+      await ready(r);
+      act(() => now(r).canvas.site.onSelectZone(5));
+      act(() => now(r).canvas.onPick(null));
+      expect(now(r).canvas.site.selectedZoneId).toBeNull();
+
+      act(() => now(r).canvas.site.onSelectZone(5));
+      act(() => {
+        fireEvent.keyDown(window, { key: "Escape" });
+      });
+      expect(now(r).canvas.site.selectedZoneId).toBeNull();
+    });
+
     it("deletes a zone from its card and marks the bundle stale", async () => {
       getMe.mockResolvedValue(principal({ permissions: ["zone:write"] }));
       const r = withZone();

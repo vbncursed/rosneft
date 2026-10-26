@@ -1,5 +1,5 @@
 import { screen } from "@testing-library/react";
-import { Raycaster, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
+import { Mesh, Raycaster, Vector3, type Group, type MeshBasicMaterial } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Zone } from "@/entities/zone";
 import { createInPage, unmountInPage } from "./testing";
@@ -81,13 +81,26 @@ describe("ZonesLayer", () => {
     const r = await createInPage(layer({ onSelect, interactive: false }));
     await r.fireEvent(meshes(r)[0], "click", clickEvent());
     expect(onSelect).not.toHaveBeenCalled();
-    expect(meshes(r)[0].props.onClick).toBeUndefined();
+    expect((meshes(r)[0].instance as Mesh).raycast).not.toBe(Mesh.prototype.raycast);
 
     // A measure or place ray straight down through a zone must find nothing.
     const root = r.scene.findAll((n) => n.instance.name === "ZonesLayer")[0].instance;
     root.updateMatrixWorld(true);
     const ray = new Raycaster(new Vector3(0.5, 10, 0.5), new Vector3(0, -1, 0));
     expect(ray.intersectObject(root, true)).toHaveLength(0);
+  });
+
+  it("is hit by a ray and selects again after a stretch of non-interactive modes, without a remount", async () => {
+    const onSelect = vi.fn();
+    const r = await createInPage(layer({ onSelect }));
+    await r.update(layer({ onSelect, interactive: false }));
+    await r.update(layer({ onSelect, interactive: true }));
+    const root = r.scene.findAll((n) => n.instance.name === "ZonesLayer")[0].instance;
+    root.updateMatrixWorld(true);
+    const ray = new Raycaster(new Vector3(0.5, 10, 0.5), new Vector3(0, -1, 0));
+    expect(ray.intersectObject(root, true).length).toBeGreaterThan(0);
+    await r.fireEvent(meshes(r)[0], "click", clickEvent());
+    expect(onSelect).toHaveBeenCalledWith(1);
   });
 
   it("is hit by a ray while interactive", async () => {

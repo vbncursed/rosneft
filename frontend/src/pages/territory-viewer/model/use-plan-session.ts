@@ -55,6 +55,14 @@ export function usePlanSession({ documents, canWrite }: PlanSessionParams) {
   const editing = gone ? null : (open ?? null);
 
   const saved = documents.find((d) => d.calibration !== null) ?? null;
+  // The picture belongs to one document page: another (or none) must not wear the old one with its own fit.
+  // While editing, the editor republishes by itself, so only the saved plan is keyed.
+  const savedKey = editing || !saved ? null : `${saved.id}:${saved.sourceBlobHash}:${saved.calibration?.page}`;
+  const [seenKey, setSeenKey] = useState(savedKey);
+  if (savedKey !== seenKey) {
+    setSeenKey(savedKey);
+    setPlan(null);
+  }
   const showPlan = choice === "on";
   const drawn = editing !== null || (showPlan && saved !== null);
 

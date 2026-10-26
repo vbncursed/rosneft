@@ -5,6 +5,7 @@ import { modelsForZone, type Zone } from "@/entities/zone";
 import { Button } from "@/shared/ui/button";
 import { Callout } from "@/shared/ui/callout";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
+import { Icon } from "@/shared/ui/icon";
 import { QuantityStepper } from "@/shared/ui/quantity-stepper";
 
 export type ZonePanelProps = {
@@ -19,6 +20,8 @@ export type ZonePanelProps = {
   onPlace: (modelSlug: string, count: number) => void;
   /** Opens the whole model library, not just this zone's tags. */
   onWholeLibrary: () => void;
+  /** Lets go of the zone: the card closes. */
+  onClose: () => void;
   /** `zone:write` only. */
   onEdit?: () => void;
   onDelete?: () => void;
@@ -53,6 +56,7 @@ export function ZonePanel({
   canPlace,
   onPlace,
   onWholeLibrary,
+  onClose,
   onEdit,
   onDelete,
 }: ZonePanelProps) {
@@ -75,6 +79,9 @@ export function ZonePanel({
             Delete
           </Button>
         ) : null}
+        <Button shape="icon" size="xs" variant="ghost" aria-label={`Close ${zone.title}`} onClick={onClose}>
+          <Icon name="close" size={11} />
+        </Button>
       </div>
       <div className="flex flex-wrap gap-1.5">
         {zone.tags.map((tag) => (

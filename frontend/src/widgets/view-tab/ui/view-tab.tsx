@@ -7,8 +7,6 @@ import { Segmented, type SegmentedItem } from "@/shared/ui/segmented";
 import { Switch } from "@/shared/ui/switch";
 import {
   CALIBRATION_LINE,
-  DOCUMENTS_OVERLINE,
-  documentsCount,
   EXIT_CALIBRATION,
   MARKERS_ALL,
   MARKERS_OFF,
@@ -19,11 +17,10 @@ import {
   measurementsCount,
   MOVE_POINTS,
   PANORAMAS_OVERLINE,
-  UPLOAD_DOCUMENT_TITLE,
   UPLOAD_PANORAMA_TITLE,
 } from "../model/copy";
 import type { SectionFold } from "../model/use-section-folds";
-import { DocumentRow } from "./document-row";
+import { DocumentsSection, type DocumentsSectionProps } from "./documents-section";
 import { PanoramaPhaseList, type PanoramaPhasesView } from "./panorama-phase-list";
 import type { PanoramaRowView } from "./panorama-row";
 import { SectionHead } from "./section-head";
@@ -58,15 +55,7 @@ export type ViewTabProps = {
     /** Folds the rows only; the switches, the link and the editor stay. */
     fold: SectionFold;
   };
-  documents: {
-    rows: { id: number; name: string; /** Aligned to the model. */ aligned: boolean }[];
-    canUpload: boolean;
-    onUpload: () => void;
-    onOpen: (id: number) => void;
-    /** `zone:write` only: Align plan / Edit zones on a row. */
-    onAlign?: (id: number) => void;
-    fold: SectionFold;
-  };
+  documents: DocumentsSectionProps;
   /** Whether the site zones and the aligned plan are drawn over the model. */
   zones: ZonesSectionProps;
   /**
@@ -81,7 +70,6 @@ export type ViewTabProps = {
 const SECTION = "flex flex-col gap-[9px]";
 const SWITCH_ROW = "flex items-center justify-between gap-2.5";
 const SWITCH_LABEL = "font-mono text-[13px] text-fg";
-const LIST = "m-0 flex list-none flex-col gap-[9px] p-0";
 const KBD = "rounded-[4px] border border-accent-line px-[5px] py-px font-mono text-[10px]";
 
 const MARKER_ITEMS: SegmentedItem<MarkerMode>[] = [
@@ -107,7 +95,6 @@ const MARKER_ITEMS: SegmentedItem<MarkerMode>[] = [
 export function ViewTab({ details, panoramas, documents, zones, measurements, footer }: ViewTabProps) {
   const rulerId = useId();
   const panoramaListId = useId();
-  const documentListId = useId();
   // An empty list has nothing to open, so its head stays a plain head.
   const foldOf = (fold: SectionFold, id: string, rows: unknown[]) =>
     rows.length > 0 ? { ...fold, controls: id } : undefined;
@@ -201,35 +188,7 @@ export function ViewTab({ details, panoramas, documents, zones, measurements, fo
         {panoramas.editor}
       </section>
 
-      <section id="view-tab-documents" aria-label={DOCUMENTS_OVERLINE} className={SECTION}>
-        <SectionHead
-          overline={DOCUMENTS_OVERLINE}
-          count={documentsCount(documents.rows.length)}
-          fold={foldOf(documents.fold, documentListId, documents.rows)}
-          upload={
-            documents.canUpload
-              ? { title: UPLOAD_DOCUMENT_TITLE, tourId: "add-document", onClick: documents.onUpload }
-              : undefined
-          }
-        />
-        {documents.rows.length > 0 ? (
-          <ul id={documentListId} hidden={!documents.fold.open} role="list" className={LIST}>
-            {documents.fold.open
-              ? documents.rows.map((row) => (
-                  <li key={row.id}>
-                    <DocumentRow
-                      id={row.id}
-                      name={row.name}
-                      onOpen={documents.onOpen}
-                      onAlign={documents.onAlign}
-                      aligned={row.aligned}
-                    />
-                  </li>
-                ))
-              : null}
-          </ul>
-        ) : null}
-      </section>
+      <DocumentsSection {...documents} />
 
       <ZonesSection {...zones} />
 
