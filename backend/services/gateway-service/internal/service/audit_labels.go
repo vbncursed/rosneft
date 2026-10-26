@@ -19,6 +19,7 @@ var territoryOwners = map[string]struct{}{
 	"territory_assignment": {},
 	"placement_group":      {},
 	"panorama_phase":       {},
+	"zone":                 {},
 }
 
 // snapshot returns the row this entry describes: the new state, or the old one

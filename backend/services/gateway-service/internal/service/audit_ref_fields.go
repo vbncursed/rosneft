@@ -32,6 +32,12 @@ var refFields = map[string]map[string]string{
 	"placement_group": {"territory_id": "territory"},
 	"panorama":        {"territory_id": "territory"},
 	"document":        {"territory_id": "territory"},
+	// A zone belongs to a territory. Its tag and a calibration point have a
+	// composite key and no territory_id: they point at their zone and their
+	// document, and so are named through those.
+	"zone":        {"territory_id": "territory", "created_by": "user"},
+	"zone_tag":    {"zone_id": "zone", "tag_id": "model_tag"},
+	"calibration": {"document_id": "document"},
 	// A phase flag has no id of its own; its key is territory_id + phase.
 	"panorama_phase": {"territory_id": "territory"},
 }

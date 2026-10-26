@@ -58,6 +58,12 @@ type Catalog interface {
 	UpdateMeasurement(ctx context.Context, m domain.Measurement) (domain.Measurement, error)
 	DeleteMeasurement(ctx context.Context, territorySlug string, id int64) error
 	DeleteMeasurements(ctx context.Context, territorySlug string) (int, error)
+
+	ListModelTags(ctx context.Context) ([]domain.ModelTag, error)
+	ListZones(ctx context.Context, territorySlug string) ([]domain.Zone, error)
+	CreateZone(ctx context.Context, territorySlug string, z domain.ZoneCreate) (domain.Zone, error)
+	UpdateZone(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch) (domain.Zone, error)
+	DeleteZone(ctx context.Context, territorySlug string, id int64) error
 }
 
 // Content is the content-service client surface this service calls.
@@ -75,6 +81,8 @@ type Content interface {
 	ListDocuments(ctx context.Context, territorySlug string) ([]domain.Document, error)
 	CreateDocument(ctx context.Context, d domain.Document) (domain.Document, error)
 	DeleteDocument(ctx context.Context, territorySlug string, id int64) error
+	PutDocumentCalibration(ctx context.Context, territorySlug string, id int64, c domain.Calibration) (domain.Calibration, error)
+	DeleteDocumentCalibration(ctx context.Context, territorySlug string, id int64) error
 }
 
 // Mesh is the mesh client surface this service calls.

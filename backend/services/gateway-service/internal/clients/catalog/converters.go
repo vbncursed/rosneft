@@ -44,6 +44,7 @@ func modelFromProto(m *catalogv1.Model) domain.Model {
 		Description:       m.GetDescription(),
 		SourceBlobHash:    m.GetSourceBlobHash(),
 		ThumbnailBlobHash: m.GetThumbnailBlobHash(),
+		Tag:               modelTagFromProto(m.GetTag()),
 		CreatedAt:         m.GetCreatedAt().AsTime(),
 		UpdatedAt:         m.GetUpdatedAt().AsTime(),
 		UsageCount:        int(m.GetUsageCount()),

@@ -73,6 +73,14 @@ type Service interface {
 	ListDocuments(ctx context.Context, territorySlug string) ([]domain.Document, error)
 	CreateDocument(ctx context.Context, d domain.Document, scope domain.BlobScope) (domain.Document, error)
 	DeleteDocument(ctx context.Context, territorySlug string, id int64) error
+	PutDocumentCalibration(ctx context.Context, territorySlug string, id int64, c domain.Calibration) (domain.Calibration, error)
+	DeleteDocumentCalibration(ctx context.Context, territorySlug string, id int64) error
+
+	ListModelTags(ctx context.Context) ([]domain.ModelTag, error)
+	ListZones(ctx context.Context, territorySlug string) ([]domain.Zone, error)
+	CreateZone(ctx context.Context, territorySlug string, z domain.ZoneCreate) (domain.Zone, error)
+	UpdateZone(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch) (domain.Zone, error)
+	DeleteZone(ctx context.Context, territorySlug string, id int64) error
 
 	// ListAudit takes a scope the HANDLER already resolved — AuditScope for the
 	// company journal, AuditOwnScope for /api/audit/mine. Which route was called

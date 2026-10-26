@@ -42,14 +42,40 @@ func (s *ModelsSuite) TestGetRejectsEmptySlug() {
 func (s *ModelsSuite) TestCreateRejectsMissingFields() {
 	// Missing source hash, then missing title. The slug is no longer required —
 	// the catalog derives it from the title.
-	_, _, err := s.svc.CreateModel(s.ctx, domain.Model{Title: "x"}, rootScope)
+	_, _, err := s.svc.CreateModel(s.ctx, domain.Model{Title: "x", Tag: camp}, rootScope)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
-	_, _, err = s.svc.CreateModel(s.ctx, domain.Model{SourceBlobHash: "h"}, rootScope)
+	_, _, err = s.svc.CreateModel(s.ctx, domain.Model{SourceBlobHash: "h", Tag: camp}, rootScope)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
+var camp = domain.ModelTag{Slug: "camp"}
+
+// There is no default tag: a model without one is refused before any upload
+// check, catalog call or conversion (none is expected, so any would fail).
+func (s *ModelsSuite) TestCreateRefusesAMissingTagSlug() {
+	for _, slug := range []string{"", "   "} {
+		_, _, err := s.svc.CreateModel(s.ctx, domain.Model{Title: "Box", SourceBlobHash: "h", Tag: domain.ModelTag{Slug: slug}}, rootScope)
+		assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
+	}
+}
+
+func (s *ModelsSuite) TestUpdateRefusesABlankTagSlug() {
+	_, err := s.svc.UpdateModel(s.ctx, "m1", domain.ModelUpdate{TagSlug: new("  ")}, rootScope)
+	assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
+}
+
+func (s *ModelsSuite) TestUpdateForwardsTheTagSlug() {
+	sent := domain.ModelUpdate{TagSlug: new("camp")}
+	s.cat.UpdateModelMock.Expect(s.ctx, "m1", sent).Return(domain.Model{Slug: "m1", Tag: camp}, nil)
+
+	saved, err := s.svc.UpdateModel(s.ctx, "m1", sent, rootScope)
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), saved.Tag.Slug, "camp")
+}
+
 func (s *ModelsSuite) TestCreateUpsertsAndSubmitsJob() {
-	in := domain.Model{Slug: "m1", Title: "Box", SourceBlobHash: "h"}
+	in := domain.Model{Slug: "m1", Title: "Box", SourceBlobHash: "h", Tag: camp}
 	s.cat.UpsertModelMock.Expect(s.ctx, in).Return(in, nil)
 	s.mesh.SubmitConversionMock.Expect(s.ctx, domain.KindModel, "m1").
 		Return(domain.Job{ID: "job-1", Kind: domain.KindModel, Slug: "m1"}, nil)
@@ -99,13 +125,13 @@ func (s *ModelsSuite) TestUpdateTrimsTheTitleAndDescription() {
 // Create refuses a whitespace-only title as PATCH does, before any upload
 // check or catalog call, and trims what it does write.
 func (s *ModelsSuite) TestCreateRefusesABlankTitleAndTrimsTheRest() {
-	_, _, err := s.svc.CreateModel(s.ctx, domain.Model{Title: "   ", SourceBlobHash: "h"}, rootScope)
+	_, _, err := s.svc.CreateModel(s.ctx, domain.Model{Title: "   ", SourceBlobHash: "h", Tag: camp}, rootScope)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 
-	want := domain.Model{Title: "Box", Description: "Steel", SourceBlobHash: "h"}
+	want := domain.Model{Title: "Box", Description: "Steel", SourceBlobHash: "h", Tag: camp}
 	s.cat.UpsertModelMock.Expect(s.ctx, want).Return(domain.Model{Slug: "box", Title: "Box"}, nil)
 	s.mesh.SubmitConversionMock.Return(domain.Job{ID: "job-1"}, nil)
-	_, _, err = s.svc.CreateModel(s.ctx, domain.Model{Title: " Box ", Description: " Steel\n", SourceBlobHash: "h"}, rootScope)
+	_, _, err = s.svc.CreateModel(s.ctx, domain.Model{Title: " Box ", Description: " Steel\n", SourceBlobHash: "h", Tag: domain.ModelTag{Slug: " camp "}}, rootScope)
 	assert.NilError(s.T(), err)
 }
 

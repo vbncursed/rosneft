@@ -70,7 +70,7 @@ func (s *AuthorizeBlobSuite) TestEveryRouteRefusesAForeignHash() {
 			return err
 		}},
 		{name: "create model", call: func() error {
-			_, _, err := s.svc.CreateModel(s.ctx, domain.Model{Title: "m", SourceBlobHash: foreignHash}, s.company)
+			_, _, err := s.svc.CreateModel(s.ctx, domain.Model{Title: "m", SourceBlobHash: foreignHash, Tag: domain.ModelTag{Slug: "camp"}}, s.company)
 			return err
 		}},
 		{name: "update model thumbnail", call: func() error {
@@ -102,7 +102,7 @@ func (s *AuthorizeBlobSuite) TestCreateModelChecksTheThumbnailToo() {
 	s.upload.HasUploadedMock.When(s.ctx, ownHash).Then(true, nil)
 	s.unknown()
 	_, _, err := s.svc.CreateModel(s.ctx, domain.Model{
-		Title: "m", SourceBlobHash: ownHash, ThumbnailBlobHash: foreignHash,
+		Title: "m", SourceBlobHash: ownHash, ThumbnailBlobHash: foreignHash, Tag: domain.ModelTag{Slug: "camp"},
 	}, s.company)
 	assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
 }

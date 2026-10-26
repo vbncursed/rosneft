@@ -12,16 +12,16 @@ func sceneBundleToAPI(b domain.SceneBundle) SceneBundle {
 		Measurements:    measurementsToAPI(b.Measurements),
 		PlacementGroups: placementGroupsToAPI(b.PlacementGroups),
 		PanoramaPhases:  panoramaPhasesToAPI(b.PanoramaPhases),
-		Zones:           []Zone{}, // shortcut: always empty until Task 6 adds zones to the bundle
+		Zones:           zonesToAPI(b.Zones),
 	}
 	for i, p := range b.Placements {
 		out.Placements[i] = placementToAPI(p)
 	}
 	for i, m := range b.ModelOptions {
-		// shortcut: wired in Task 6 — Tag stays empty until the domain model carries it.
 		opt := AssetOption{
 			Slug:      m.Slug,
 			Title:     m.Title,
+			Tag:       modelTagToAPI(m.Tag),
 			Artifacts: lodChainToAPI(m.LODs),
 		}
 		if m.ThumbnailBlobHash != "" {

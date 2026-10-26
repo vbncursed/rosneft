@@ -40,6 +40,13 @@ type ContentMock struct {
 	beforeDeleteDocumentCounter uint64
 	DeleteDocumentMock          mContentMockDeleteDocument
 
+	funcDeleteDocumentCalibration          func(ctx context.Context, territorySlug string, id int64) (err error)
+	funcDeleteDocumentCalibrationOrigin    string
+	inspectFuncDeleteDocumentCalibration   func(ctx context.Context, territorySlug string, id int64)
+	afterDeleteDocumentCalibrationCounter  uint64
+	beforeDeleteDocumentCalibrationCounter uint64
+	DeleteDocumentCalibrationMock          mContentMockDeleteDocumentCalibration
+
 	funcDeletePanorama          func(ctx context.Context, territorySlug string, id int64) (err error)
 	funcDeletePanoramaOrigin    string
 	inspectFuncDeletePanorama   func(ctx context.Context, territorySlug string, id int64)
@@ -67,6 +74,13 @@ type ContentMock struct {
 	afterListPanoramasCounter  uint64
 	beforeListPanoramasCounter uint64
 	ListPanoramasMock          mContentMockListPanoramas
+
+	funcPutDocumentCalibration          func(ctx context.Context, territorySlug string, id int64, c domain.Calibration) (c2 domain.Calibration, err error)
+	funcPutDocumentCalibrationOrigin    string
+	inspectFuncPutDocumentCalibration   func(ctx context.Context, territorySlug string, id int64, c domain.Calibration)
+	afterPutDocumentCalibrationCounter  uint64
+	beforePutDocumentCalibrationCounter uint64
+	PutDocumentCalibrationMock          mContentMockPutDocumentCalibration
 
 	funcSetPanoramaPhaseHidden          func(ctx context.Context, territorySlug string, phase string, hidden bool) (p1 domain.PanoramaPhase, err error)
 	funcSetPanoramaPhaseHiddenOrigin    string
@@ -114,6 +128,9 @@ func NewContentMock(t minimock.Tester) *ContentMock {
 	m.DeleteDocumentMock = mContentMockDeleteDocument{mock: m}
 	m.DeleteDocumentMock.callArgs = []*ContentMockDeleteDocumentParams{}
 
+	m.DeleteDocumentCalibrationMock = mContentMockDeleteDocumentCalibration{mock: m}
+	m.DeleteDocumentCalibrationMock.callArgs = []*ContentMockDeleteDocumentCalibrationParams{}
+
 	m.DeletePanoramaMock = mContentMockDeletePanorama{mock: m}
 	m.DeletePanoramaMock.callArgs = []*ContentMockDeletePanoramaParams{}
 
@@ -125,6 +142,9 @@ func NewContentMock(t minimock.Tester) *ContentMock {
 
 	m.ListPanoramasMock = mContentMockListPanoramas{mock: m}
 	m.ListPanoramasMock.callArgs = []*ContentMockListPanoramasParams{}
+
+	m.PutDocumentCalibrationMock = mContentMockPutDocumentCalibration{mock: m}
+	m.PutDocumentCalibrationMock.callArgs = []*ContentMockPutDocumentCalibrationParams{}
 
 	m.SetPanoramaPhaseHiddenMock = mContentMockSetPanoramaPhaseHidden{mock: m}
 	m.SetPanoramaPhaseHiddenMock.callArgs = []*ContentMockSetPanoramaPhaseHiddenParams{}
@@ -1199,6 +1219,379 @@ func (m *ContentMock) MinimockDeleteDocumentInspect() {
 	if !m.DeleteDocumentMock.invocationsDone() && afterDeleteDocumentCounter > 0 {
 		m.t.Errorf("Expected %d calls to ContentMock.DeleteDocument at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.DeleteDocumentMock.expectedInvocations), m.DeleteDocumentMock.expectedInvocationsOrigin, afterDeleteDocumentCounter)
+	}
+}
+
+type mContentMockDeleteDocumentCalibration struct {
+	optional           bool
+	mock               *ContentMock
+	defaultExpectation *ContentMockDeleteDocumentCalibrationExpectation
+	expectations       []*ContentMockDeleteDocumentCalibrationExpectation
+
+	callArgs []*ContentMockDeleteDocumentCalibrationParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// ContentMockDeleteDocumentCalibrationExpectation specifies expectation struct of the Content.DeleteDocumentCalibration
+type ContentMockDeleteDocumentCalibrationExpectation struct {
+	mock               *ContentMock
+	params             *ContentMockDeleteDocumentCalibrationParams
+	paramPtrs          *ContentMockDeleteDocumentCalibrationParamPtrs
+	expectationOrigins ContentMockDeleteDocumentCalibrationExpectationOrigins
+	results            *ContentMockDeleteDocumentCalibrationResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// ContentMockDeleteDocumentCalibrationParams contains parameters of the Content.DeleteDocumentCalibration
+type ContentMockDeleteDocumentCalibrationParams struct {
+	ctx           context.Context
+	territorySlug string
+	id            int64
+}
+
+// ContentMockDeleteDocumentCalibrationParamPtrs contains pointers to parameters of the Content.DeleteDocumentCalibration
+type ContentMockDeleteDocumentCalibrationParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+	id            *int64
+}
+
+// ContentMockDeleteDocumentCalibrationResults contains results of the Content.DeleteDocumentCalibration
+type ContentMockDeleteDocumentCalibrationResults struct {
+	err error
+}
+
+// ContentMockDeleteDocumentCalibrationOrigins contains origins of expectations of the Content.DeleteDocumentCalibration
+type ContentMockDeleteDocumentCalibrationExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originId            string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmDeleteDocumentCalibration *mContentMockDeleteDocumentCalibration) Optional() *mContentMockDeleteDocumentCalibration {
+	mmDeleteDocumentCalibration.optional = true
+	return mmDeleteDocumentCalibration
+}
+
+// Expect sets up expected params for Content.DeleteDocumentCalibration
+func (mmDeleteDocumentCalibration *mContentMockDeleteDocumentCalibration) Expect(ctx context.Context, territorySlug string, id int64) *mContentMockDeleteDocumentCalibration {
+	if mmDeleteDocumentCalibration.mock.funcDeleteDocumentCalibration != nil {
+		mmDeleteDocumentCalibration.mock.t.Fatalf("ContentMock.DeleteDocumentCalibration mock is already set by Set")
+	}
+
+	if mmDeleteDocumentCalibration.defaultExpectation == nil {
+		mmDeleteDocumentCalibration.defaultExpectation = &ContentMockDeleteDocumentCalibrationExpectation{}
+	}
+
+	if mmDeleteDocumentCalibration.defaultExpectation.paramPtrs != nil {
+		mmDeleteDocumentCalibration.mock.t.Fatalf("ContentMock.DeleteDocumentCalibration mock is already set by ExpectParams functions")
+	}
+
+	mmDeleteDocumentCalibration.defaultExpectation.params = &ContentMockDeleteDocumentCalibrationParams{ctx, territorySlug, id}
+	mmDeleteDocumentCalibration.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmDeleteDocumentCalibration.expectations {
+		if minimock.Equal(e.params, mmDeleteDocumentCalibration.defaultExpectation.params) {
+			mmDeleteDocumentCalibration.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmDeleteDocumentCalibration.defaultExpectation.params)
+		}
+	}
+
+	return mmDeleteDocumentCalibration
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Content.DeleteDocumentCalibration
+func (mmDeleteDocumentCalibration *mContentMockDeleteDocumentCalibration) ExpectCtxParam1(ctx context.Context) *mContentMockDeleteDocumentCalibration {
+	if mmDeleteDocumentCalibration.mock.funcDeleteDocumentCalibration != nil {
+		mmDeleteDocumentCalibration.mock.t.Fatalf("ContentMock.DeleteDocumentCalibration mock is already set by Set")
+	}
+
+	if mmDeleteDocumentCalibration.defaultExpectation == nil {
+		mmDeleteDocumentCalibration.defaultExpectation = &ContentMockDeleteDocumentCalibrationExpectation{}
+	}
+
+	if mmDeleteDocumentCalibration.defaultExpectation.params != nil {
+		mmDeleteDocumentCalibration.mock.t.Fatalf("ContentMock.DeleteDocumentCalibration mock is already set by Expect")
+	}
+
+	if mmDeleteDocumentCalibration.defaultExpectation.paramPtrs == nil {
+		mmDeleteDocumentCalibration.defaultExpectation.paramPtrs = &ContentMockDeleteDocumentCalibrationParamPtrs{}
+	}
+	mmDeleteDocumentCalibration.defaultExpectation.paramPtrs.ctx = &ctx
+	mmDeleteDocumentCalibration.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmDeleteDocumentCalibration
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Content.DeleteDocumentCalibration
+func (mmDeleteDocumentCalibration *mContentMockDeleteDocumentCalibration) ExpectTerritorySlugParam2(territorySlug string) *mContentMockDeleteDocumentCalibration {
+	if mmDeleteDocumentCalibration.mock.funcDeleteDocumentCalibration != nil {
+		mmDeleteDocumentCalibration.mock.t.Fatalf("ContentMock.DeleteDocumentCalibration mock is already set by Set")
+	}
+
+	if mmDeleteDocumentCalibration.defaultExpectation == nil {
+		mmDeleteDocumentCalibration.defaultExpectation = &ContentMockDeleteDocumentCalibrationExpectation{}
+	}
+
+	if mmDeleteDocumentCalibration.defaultExpectation.params != nil {
+		mmDeleteDocumentCalibration.mock.t.Fatalf("ContentMock.DeleteDocumentCalibration mock is already set by Expect")
+	}
+
+	if mmDeleteDocumentCalibration.defaultExpectation.paramPtrs == nil {
+		mmDeleteDocumentCalibration.defaultExpectation.paramPtrs = &ContentMockDeleteDocumentCalibrationParamPtrs{}
+	}
+	mmDeleteDocumentCalibration.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmDeleteDocumentCalibration.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmDeleteDocumentCalibration
+}
+
+// ExpectIdParam3 sets up expected param id for Content.DeleteDocumentCalibration
+func (mmDeleteDocumentCalibration *mContentMockDeleteDocumentCalibration) ExpectIdParam3(id int64) *mContentMockDeleteDocumentCalibration {
+	if mmDeleteDocumentCalibration.mock.funcDeleteDocumentCalibration != nil {
+		mmDeleteDocumentCalibration.mock.t.Fatalf("ContentMock.DeleteDocumentCalibration mock is already set by Set")
+	}
+
+	if mmDeleteDocumentCalibration.defaultExpectation == nil {
+		mmDeleteDocumentCalibration.defaultExpectation = &ContentMockDeleteDocumentCalibrationExpectation{}
+	}
+
+	if mmDeleteDocumentCalibration.defaultExpectation.params != nil {
+		mmDeleteDocumentCalibration.mock.t.Fatalf("ContentMock.DeleteDocumentCalibration mock is already set by Expect")
+	}
+
+	if mmDeleteDocumentCalibration.defaultExpectation.paramPtrs == nil {
+		mmDeleteDocumentCalibration.defaultExpectation.paramPtrs = &ContentMockDeleteDocumentCalibrationParamPtrs{}
+	}
+	mmDeleteDocumentCalibration.defaultExpectation.paramPtrs.id = &id
+	mmDeleteDocumentCalibration.defaultExpectation.expectationOrigins.originId = minimock.CallerInfo(1)
+
+	return mmDeleteDocumentCalibration
+}
+
+// Inspect accepts an inspector function that has same arguments as the Content.DeleteDocumentCalibration
+func (mmDeleteDocumentCalibration *mContentMockDeleteDocumentCalibration) Inspect(f func(ctx context.Context, territorySlug string, id int64)) *mContentMockDeleteDocumentCalibration {
+	if mmDeleteDocumentCalibration.mock.inspectFuncDeleteDocumentCalibration != nil {
+		mmDeleteDocumentCalibration.mock.t.Fatalf("Inspect function is already set for ContentMock.DeleteDocumentCalibration")
+	}
+
+	mmDeleteDocumentCalibration.mock.inspectFuncDeleteDocumentCalibration = f
+
+	return mmDeleteDocumentCalibration
+}
+
+// Return sets up results that will be returned by Content.DeleteDocumentCalibration
+func (mmDeleteDocumentCalibration *mContentMockDeleteDocumentCalibration) Return(err error) *ContentMock {
+	if mmDeleteDocumentCalibration.mock.funcDeleteDocumentCalibration != nil {
+		mmDeleteDocumentCalibration.mock.t.Fatalf("ContentMock.DeleteDocumentCalibration mock is already set by Set")
+	}
+
+	if mmDeleteDocumentCalibration.defaultExpectation == nil {
+		mmDeleteDocumentCalibration.defaultExpectation = &ContentMockDeleteDocumentCalibrationExpectation{mock: mmDeleteDocumentCalibration.mock}
+	}
+	mmDeleteDocumentCalibration.defaultExpectation.results = &ContentMockDeleteDocumentCalibrationResults{err}
+	mmDeleteDocumentCalibration.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmDeleteDocumentCalibration.mock
+}
+
+// Set uses given function f to mock the Content.DeleteDocumentCalibration method
+func (mmDeleteDocumentCalibration *mContentMockDeleteDocumentCalibration) Set(f func(ctx context.Context, territorySlug string, id int64) (err error)) *ContentMock {
+	if mmDeleteDocumentCalibration.defaultExpectation != nil {
+		mmDeleteDocumentCalibration.mock.t.Fatalf("Default expectation is already set for the Content.DeleteDocumentCalibration method")
+	}
+
+	if len(mmDeleteDocumentCalibration.expectations) > 0 {
+		mmDeleteDocumentCalibration.mock.t.Fatalf("Some expectations are already set for the Content.DeleteDocumentCalibration method")
+	}
+
+	mmDeleteDocumentCalibration.mock.funcDeleteDocumentCalibration = f
+	mmDeleteDocumentCalibration.mock.funcDeleteDocumentCalibrationOrigin = minimock.CallerInfo(1)
+	return mmDeleteDocumentCalibration.mock
+}
+
+// When sets expectation for the Content.DeleteDocumentCalibration which will trigger the result defined by the following
+// Then helper
+func (mmDeleteDocumentCalibration *mContentMockDeleteDocumentCalibration) When(ctx context.Context, territorySlug string, id int64) *ContentMockDeleteDocumentCalibrationExpectation {
+	if mmDeleteDocumentCalibration.mock.funcDeleteDocumentCalibration != nil {
+		mmDeleteDocumentCalibration.mock.t.Fatalf("ContentMock.DeleteDocumentCalibration mock is already set by Set")
+	}
+
+	expectation := &ContentMockDeleteDocumentCalibrationExpectation{
+		mock:               mmDeleteDocumentCalibration.mock,
+		params:             &ContentMockDeleteDocumentCalibrationParams{ctx, territorySlug, id},
+		expectationOrigins: ContentMockDeleteDocumentCalibrationExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmDeleteDocumentCalibration.expectations = append(mmDeleteDocumentCalibration.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Content.DeleteDocumentCalibration return parameters for the expectation previously defined by the When method
+func (e *ContentMockDeleteDocumentCalibrationExpectation) Then(err error) *ContentMock {
+	e.results = &ContentMockDeleteDocumentCalibrationResults{err}
+	return e.mock
+}
+
+// Times sets number of times Content.DeleteDocumentCalibration should be invoked
+func (mmDeleteDocumentCalibration *mContentMockDeleteDocumentCalibration) Times(n uint64) *mContentMockDeleteDocumentCalibration {
+	if n == 0 {
+		mmDeleteDocumentCalibration.mock.t.Fatalf("Times of ContentMock.DeleteDocumentCalibration mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmDeleteDocumentCalibration.expectedInvocations, n)
+	mmDeleteDocumentCalibration.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmDeleteDocumentCalibration
+}
+
+func (mmDeleteDocumentCalibration *mContentMockDeleteDocumentCalibration) invocationsDone() bool {
+	if len(mmDeleteDocumentCalibration.expectations) == 0 && mmDeleteDocumentCalibration.defaultExpectation == nil && mmDeleteDocumentCalibration.mock.funcDeleteDocumentCalibration == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmDeleteDocumentCalibration.mock.afterDeleteDocumentCalibrationCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmDeleteDocumentCalibration.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// DeleteDocumentCalibration implements mm_service.Content
+func (mmDeleteDocumentCalibration *ContentMock) DeleteDocumentCalibration(ctx context.Context, territorySlug string, id int64) (err error) {
+	mm_atomic.AddUint64(&mmDeleteDocumentCalibration.beforeDeleteDocumentCalibrationCounter, 1)
+	defer mm_atomic.AddUint64(&mmDeleteDocumentCalibration.afterDeleteDocumentCalibrationCounter, 1)
+
+	mmDeleteDocumentCalibration.t.Helper()
+
+	if mmDeleteDocumentCalibration.inspectFuncDeleteDocumentCalibration != nil {
+		mmDeleteDocumentCalibration.inspectFuncDeleteDocumentCalibration(ctx, territorySlug, id)
+	}
+
+	mm_params := ContentMockDeleteDocumentCalibrationParams{ctx, territorySlug, id}
+
+	// Record call args
+	mmDeleteDocumentCalibration.DeleteDocumentCalibrationMock.mutex.Lock()
+	mmDeleteDocumentCalibration.DeleteDocumentCalibrationMock.callArgs = append(mmDeleteDocumentCalibration.DeleteDocumentCalibrationMock.callArgs, &mm_params)
+	mmDeleteDocumentCalibration.DeleteDocumentCalibrationMock.mutex.Unlock()
+
+	for _, e := range mmDeleteDocumentCalibration.DeleteDocumentCalibrationMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmDeleteDocumentCalibration.DeleteDocumentCalibrationMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmDeleteDocumentCalibration.DeleteDocumentCalibrationMock.defaultExpectation.Counter, 1)
+		mm_want := mmDeleteDocumentCalibration.DeleteDocumentCalibrationMock.defaultExpectation.params
+		mm_want_ptrs := mmDeleteDocumentCalibration.DeleteDocumentCalibrationMock.defaultExpectation.paramPtrs
+
+		mm_got := ContentMockDeleteDocumentCalibrationParams{ctx, territorySlug, id}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmDeleteDocumentCalibration.t.Errorf("ContentMock.DeleteDocumentCalibration got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeleteDocumentCalibration.DeleteDocumentCalibrationMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmDeleteDocumentCalibration.t.Errorf("ContentMock.DeleteDocumentCalibration got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeleteDocumentCalibration.DeleteDocumentCalibrationMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
+				mmDeleteDocumentCalibration.t.Errorf("ContentMock.DeleteDocumentCalibration got unexpected parameter id, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeleteDocumentCalibration.DeleteDocumentCalibrationMock.defaultExpectation.expectationOrigins.originId, *mm_want_ptrs.id, mm_got.id, minimock.Diff(*mm_want_ptrs.id, mm_got.id))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmDeleteDocumentCalibration.t.Errorf("ContentMock.DeleteDocumentCalibration got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmDeleteDocumentCalibration.DeleteDocumentCalibrationMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmDeleteDocumentCalibration.DeleteDocumentCalibrationMock.defaultExpectation.results
+		if mm_results == nil {
+			mmDeleteDocumentCalibration.t.Fatal("No results are set for the ContentMock.DeleteDocumentCalibration")
+		}
+		return (*mm_results).err
+	}
+	if mmDeleteDocumentCalibration.funcDeleteDocumentCalibration != nil {
+		return mmDeleteDocumentCalibration.funcDeleteDocumentCalibration(ctx, territorySlug, id)
+	}
+	mmDeleteDocumentCalibration.t.Fatalf("Unexpected call to ContentMock.DeleteDocumentCalibration. %v %v %v", ctx, territorySlug, id)
+	return
+}
+
+// DeleteDocumentCalibrationAfterCounter returns a count of finished ContentMock.DeleteDocumentCalibration invocations
+func (mmDeleteDocumentCalibration *ContentMock) DeleteDocumentCalibrationAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDeleteDocumentCalibration.afterDeleteDocumentCalibrationCounter)
+}
+
+// DeleteDocumentCalibrationBeforeCounter returns a count of ContentMock.DeleteDocumentCalibration invocations
+func (mmDeleteDocumentCalibration *ContentMock) DeleteDocumentCalibrationBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDeleteDocumentCalibration.beforeDeleteDocumentCalibrationCounter)
+}
+
+// Calls returns a list of arguments used in each call to ContentMock.DeleteDocumentCalibration.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmDeleteDocumentCalibration *mContentMockDeleteDocumentCalibration) Calls() []*ContentMockDeleteDocumentCalibrationParams {
+	mmDeleteDocumentCalibration.mutex.RLock()
+
+	argCopy := make([]*ContentMockDeleteDocumentCalibrationParams, len(mmDeleteDocumentCalibration.callArgs))
+	copy(argCopy, mmDeleteDocumentCalibration.callArgs)
+
+	mmDeleteDocumentCalibration.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockDeleteDocumentCalibrationDone returns true if the count of the DeleteDocumentCalibration invocations corresponds
+// the number of defined expectations
+func (m *ContentMock) MinimockDeleteDocumentCalibrationDone() bool {
+	if m.DeleteDocumentCalibrationMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.DeleteDocumentCalibrationMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.DeleteDocumentCalibrationMock.invocationsDone()
+}
+
+// MinimockDeleteDocumentCalibrationInspect logs each unmet expectation
+func (m *ContentMock) MinimockDeleteDocumentCalibrationInspect() {
+	for _, e := range m.DeleteDocumentCalibrationMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to ContentMock.DeleteDocumentCalibration at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterDeleteDocumentCalibrationCounter := mm_atomic.LoadUint64(&m.afterDeleteDocumentCalibrationCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.DeleteDocumentCalibrationMock.defaultExpectation != nil && afterDeleteDocumentCalibrationCounter < 1 {
+		if m.DeleteDocumentCalibrationMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to ContentMock.DeleteDocumentCalibration at\n%s", m.DeleteDocumentCalibrationMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to ContentMock.DeleteDocumentCalibration at\n%s with params: %#v", m.DeleteDocumentCalibrationMock.defaultExpectation.expectationOrigins.origin, *m.DeleteDocumentCalibrationMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcDeleteDocumentCalibration != nil && afterDeleteDocumentCalibrationCounter < 1 {
+		m.t.Errorf("Expected call to ContentMock.DeleteDocumentCalibration at\n%s", m.funcDeleteDocumentCalibrationOrigin)
+	}
+
+	if !m.DeleteDocumentCalibrationMock.invocationsDone() && afterDeleteDocumentCalibrationCounter > 0 {
+		m.t.Errorf("Expected %d calls to ContentMock.DeleteDocumentCalibration at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.DeleteDocumentCalibrationMock.expectedInvocations), m.DeleteDocumentCalibrationMock.expectedInvocationsOrigin, afterDeleteDocumentCalibrationCounter)
 	}
 }
 
@@ -2601,6 +2994,411 @@ func (m *ContentMock) MinimockListPanoramasInspect() {
 	if !m.ListPanoramasMock.invocationsDone() && afterListPanoramasCounter > 0 {
 		m.t.Errorf("Expected %d calls to ContentMock.ListPanoramas at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.ListPanoramasMock.expectedInvocations), m.ListPanoramasMock.expectedInvocationsOrigin, afterListPanoramasCounter)
+	}
+}
+
+type mContentMockPutDocumentCalibration struct {
+	optional           bool
+	mock               *ContentMock
+	defaultExpectation *ContentMockPutDocumentCalibrationExpectation
+	expectations       []*ContentMockPutDocumentCalibrationExpectation
+
+	callArgs []*ContentMockPutDocumentCalibrationParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// ContentMockPutDocumentCalibrationExpectation specifies expectation struct of the Content.PutDocumentCalibration
+type ContentMockPutDocumentCalibrationExpectation struct {
+	mock               *ContentMock
+	params             *ContentMockPutDocumentCalibrationParams
+	paramPtrs          *ContentMockPutDocumentCalibrationParamPtrs
+	expectationOrigins ContentMockPutDocumentCalibrationExpectationOrigins
+	results            *ContentMockPutDocumentCalibrationResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// ContentMockPutDocumentCalibrationParams contains parameters of the Content.PutDocumentCalibration
+type ContentMockPutDocumentCalibrationParams struct {
+	ctx           context.Context
+	territorySlug string
+	id            int64
+	c             domain.Calibration
+}
+
+// ContentMockPutDocumentCalibrationParamPtrs contains pointers to parameters of the Content.PutDocumentCalibration
+type ContentMockPutDocumentCalibrationParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+	id            *int64
+	c             *domain.Calibration
+}
+
+// ContentMockPutDocumentCalibrationResults contains results of the Content.PutDocumentCalibration
+type ContentMockPutDocumentCalibrationResults struct {
+	c2  domain.Calibration
+	err error
+}
+
+// ContentMockPutDocumentCalibrationOrigins contains origins of expectations of the Content.PutDocumentCalibration
+type ContentMockPutDocumentCalibrationExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originId            string
+	originC             string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmPutDocumentCalibration *mContentMockPutDocumentCalibration) Optional() *mContentMockPutDocumentCalibration {
+	mmPutDocumentCalibration.optional = true
+	return mmPutDocumentCalibration
+}
+
+// Expect sets up expected params for Content.PutDocumentCalibration
+func (mmPutDocumentCalibration *mContentMockPutDocumentCalibration) Expect(ctx context.Context, territorySlug string, id int64, c domain.Calibration) *mContentMockPutDocumentCalibration {
+	if mmPutDocumentCalibration.mock.funcPutDocumentCalibration != nil {
+		mmPutDocumentCalibration.mock.t.Fatalf("ContentMock.PutDocumentCalibration mock is already set by Set")
+	}
+
+	if mmPutDocumentCalibration.defaultExpectation == nil {
+		mmPutDocumentCalibration.defaultExpectation = &ContentMockPutDocumentCalibrationExpectation{}
+	}
+
+	if mmPutDocumentCalibration.defaultExpectation.paramPtrs != nil {
+		mmPutDocumentCalibration.mock.t.Fatalf("ContentMock.PutDocumentCalibration mock is already set by ExpectParams functions")
+	}
+
+	mmPutDocumentCalibration.defaultExpectation.params = &ContentMockPutDocumentCalibrationParams{ctx, territorySlug, id, c}
+	mmPutDocumentCalibration.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmPutDocumentCalibration.expectations {
+		if minimock.Equal(e.params, mmPutDocumentCalibration.defaultExpectation.params) {
+			mmPutDocumentCalibration.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmPutDocumentCalibration.defaultExpectation.params)
+		}
+	}
+
+	return mmPutDocumentCalibration
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Content.PutDocumentCalibration
+func (mmPutDocumentCalibration *mContentMockPutDocumentCalibration) ExpectCtxParam1(ctx context.Context) *mContentMockPutDocumentCalibration {
+	if mmPutDocumentCalibration.mock.funcPutDocumentCalibration != nil {
+		mmPutDocumentCalibration.mock.t.Fatalf("ContentMock.PutDocumentCalibration mock is already set by Set")
+	}
+
+	if mmPutDocumentCalibration.defaultExpectation == nil {
+		mmPutDocumentCalibration.defaultExpectation = &ContentMockPutDocumentCalibrationExpectation{}
+	}
+
+	if mmPutDocumentCalibration.defaultExpectation.params != nil {
+		mmPutDocumentCalibration.mock.t.Fatalf("ContentMock.PutDocumentCalibration mock is already set by Expect")
+	}
+
+	if mmPutDocumentCalibration.defaultExpectation.paramPtrs == nil {
+		mmPutDocumentCalibration.defaultExpectation.paramPtrs = &ContentMockPutDocumentCalibrationParamPtrs{}
+	}
+	mmPutDocumentCalibration.defaultExpectation.paramPtrs.ctx = &ctx
+	mmPutDocumentCalibration.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmPutDocumentCalibration
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Content.PutDocumentCalibration
+func (mmPutDocumentCalibration *mContentMockPutDocumentCalibration) ExpectTerritorySlugParam2(territorySlug string) *mContentMockPutDocumentCalibration {
+	if mmPutDocumentCalibration.mock.funcPutDocumentCalibration != nil {
+		mmPutDocumentCalibration.mock.t.Fatalf("ContentMock.PutDocumentCalibration mock is already set by Set")
+	}
+
+	if mmPutDocumentCalibration.defaultExpectation == nil {
+		mmPutDocumentCalibration.defaultExpectation = &ContentMockPutDocumentCalibrationExpectation{}
+	}
+
+	if mmPutDocumentCalibration.defaultExpectation.params != nil {
+		mmPutDocumentCalibration.mock.t.Fatalf("ContentMock.PutDocumentCalibration mock is already set by Expect")
+	}
+
+	if mmPutDocumentCalibration.defaultExpectation.paramPtrs == nil {
+		mmPutDocumentCalibration.defaultExpectation.paramPtrs = &ContentMockPutDocumentCalibrationParamPtrs{}
+	}
+	mmPutDocumentCalibration.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmPutDocumentCalibration.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmPutDocumentCalibration
+}
+
+// ExpectIdParam3 sets up expected param id for Content.PutDocumentCalibration
+func (mmPutDocumentCalibration *mContentMockPutDocumentCalibration) ExpectIdParam3(id int64) *mContentMockPutDocumentCalibration {
+	if mmPutDocumentCalibration.mock.funcPutDocumentCalibration != nil {
+		mmPutDocumentCalibration.mock.t.Fatalf("ContentMock.PutDocumentCalibration mock is already set by Set")
+	}
+
+	if mmPutDocumentCalibration.defaultExpectation == nil {
+		mmPutDocumentCalibration.defaultExpectation = &ContentMockPutDocumentCalibrationExpectation{}
+	}
+
+	if mmPutDocumentCalibration.defaultExpectation.params != nil {
+		mmPutDocumentCalibration.mock.t.Fatalf("ContentMock.PutDocumentCalibration mock is already set by Expect")
+	}
+
+	if mmPutDocumentCalibration.defaultExpectation.paramPtrs == nil {
+		mmPutDocumentCalibration.defaultExpectation.paramPtrs = &ContentMockPutDocumentCalibrationParamPtrs{}
+	}
+	mmPutDocumentCalibration.defaultExpectation.paramPtrs.id = &id
+	mmPutDocumentCalibration.defaultExpectation.expectationOrigins.originId = minimock.CallerInfo(1)
+
+	return mmPutDocumentCalibration
+}
+
+// ExpectCParam4 sets up expected param c for Content.PutDocumentCalibration
+func (mmPutDocumentCalibration *mContentMockPutDocumentCalibration) ExpectCParam4(c domain.Calibration) *mContentMockPutDocumentCalibration {
+	if mmPutDocumentCalibration.mock.funcPutDocumentCalibration != nil {
+		mmPutDocumentCalibration.mock.t.Fatalf("ContentMock.PutDocumentCalibration mock is already set by Set")
+	}
+
+	if mmPutDocumentCalibration.defaultExpectation == nil {
+		mmPutDocumentCalibration.defaultExpectation = &ContentMockPutDocumentCalibrationExpectation{}
+	}
+
+	if mmPutDocumentCalibration.defaultExpectation.params != nil {
+		mmPutDocumentCalibration.mock.t.Fatalf("ContentMock.PutDocumentCalibration mock is already set by Expect")
+	}
+
+	if mmPutDocumentCalibration.defaultExpectation.paramPtrs == nil {
+		mmPutDocumentCalibration.defaultExpectation.paramPtrs = &ContentMockPutDocumentCalibrationParamPtrs{}
+	}
+	mmPutDocumentCalibration.defaultExpectation.paramPtrs.c = &c
+	mmPutDocumentCalibration.defaultExpectation.expectationOrigins.originC = minimock.CallerInfo(1)
+
+	return mmPutDocumentCalibration
+}
+
+// Inspect accepts an inspector function that has same arguments as the Content.PutDocumentCalibration
+func (mmPutDocumentCalibration *mContentMockPutDocumentCalibration) Inspect(f func(ctx context.Context, territorySlug string, id int64, c domain.Calibration)) *mContentMockPutDocumentCalibration {
+	if mmPutDocumentCalibration.mock.inspectFuncPutDocumentCalibration != nil {
+		mmPutDocumentCalibration.mock.t.Fatalf("Inspect function is already set for ContentMock.PutDocumentCalibration")
+	}
+
+	mmPutDocumentCalibration.mock.inspectFuncPutDocumentCalibration = f
+
+	return mmPutDocumentCalibration
+}
+
+// Return sets up results that will be returned by Content.PutDocumentCalibration
+func (mmPutDocumentCalibration *mContentMockPutDocumentCalibration) Return(c2 domain.Calibration, err error) *ContentMock {
+	if mmPutDocumentCalibration.mock.funcPutDocumentCalibration != nil {
+		mmPutDocumentCalibration.mock.t.Fatalf("ContentMock.PutDocumentCalibration mock is already set by Set")
+	}
+
+	if mmPutDocumentCalibration.defaultExpectation == nil {
+		mmPutDocumentCalibration.defaultExpectation = &ContentMockPutDocumentCalibrationExpectation{mock: mmPutDocumentCalibration.mock}
+	}
+	mmPutDocumentCalibration.defaultExpectation.results = &ContentMockPutDocumentCalibrationResults{c2, err}
+	mmPutDocumentCalibration.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmPutDocumentCalibration.mock
+}
+
+// Set uses given function f to mock the Content.PutDocumentCalibration method
+func (mmPutDocumentCalibration *mContentMockPutDocumentCalibration) Set(f func(ctx context.Context, territorySlug string, id int64, c domain.Calibration) (c2 domain.Calibration, err error)) *ContentMock {
+	if mmPutDocumentCalibration.defaultExpectation != nil {
+		mmPutDocumentCalibration.mock.t.Fatalf("Default expectation is already set for the Content.PutDocumentCalibration method")
+	}
+
+	if len(mmPutDocumentCalibration.expectations) > 0 {
+		mmPutDocumentCalibration.mock.t.Fatalf("Some expectations are already set for the Content.PutDocumentCalibration method")
+	}
+
+	mmPutDocumentCalibration.mock.funcPutDocumentCalibration = f
+	mmPutDocumentCalibration.mock.funcPutDocumentCalibrationOrigin = minimock.CallerInfo(1)
+	return mmPutDocumentCalibration.mock
+}
+
+// When sets expectation for the Content.PutDocumentCalibration which will trigger the result defined by the following
+// Then helper
+func (mmPutDocumentCalibration *mContentMockPutDocumentCalibration) When(ctx context.Context, territorySlug string, id int64, c domain.Calibration) *ContentMockPutDocumentCalibrationExpectation {
+	if mmPutDocumentCalibration.mock.funcPutDocumentCalibration != nil {
+		mmPutDocumentCalibration.mock.t.Fatalf("ContentMock.PutDocumentCalibration mock is already set by Set")
+	}
+
+	expectation := &ContentMockPutDocumentCalibrationExpectation{
+		mock:               mmPutDocumentCalibration.mock,
+		params:             &ContentMockPutDocumentCalibrationParams{ctx, territorySlug, id, c},
+		expectationOrigins: ContentMockPutDocumentCalibrationExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmPutDocumentCalibration.expectations = append(mmPutDocumentCalibration.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Content.PutDocumentCalibration return parameters for the expectation previously defined by the When method
+func (e *ContentMockPutDocumentCalibrationExpectation) Then(c2 domain.Calibration, err error) *ContentMock {
+	e.results = &ContentMockPutDocumentCalibrationResults{c2, err}
+	return e.mock
+}
+
+// Times sets number of times Content.PutDocumentCalibration should be invoked
+func (mmPutDocumentCalibration *mContentMockPutDocumentCalibration) Times(n uint64) *mContentMockPutDocumentCalibration {
+	if n == 0 {
+		mmPutDocumentCalibration.mock.t.Fatalf("Times of ContentMock.PutDocumentCalibration mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmPutDocumentCalibration.expectedInvocations, n)
+	mmPutDocumentCalibration.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmPutDocumentCalibration
+}
+
+func (mmPutDocumentCalibration *mContentMockPutDocumentCalibration) invocationsDone() bool {
+	if len(mmPutDocumentCalibration.expectations) == 0 && mmPutDocumentCalibration.defaultExpectation == nil && mmPutDocumentCalibration.mock.funcPutDocumentCalibration == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmPutDocumentCalibration.mock.afterPutDocumentCalibrationCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmPutDocumentCalibration.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// PutDocumentCalibration implements mm_service.Content
+func (mmPutDocumentCalibration *ContentMock) PutDocumentCalibration(ctx context.Context, territorySlug string, id int64, c domain.Calibration) (c2 domain.Calibration, err error) {
+	mm_atomic.AddUint64(&mmPutDocumentCalibration.beforePutDocumentCalibrationCounter, 1)
+	defer mm_atomic.AddUint64(&mmPutDocumentCalibration.afterPutDocumentCalibrationCounter, 1)
+
+	mmPutDocumentCalibration.t.Helper()
+
+	if mmPutDocumentCalibration.inspectFuncPutDocumentCalibration != nil {
+		mmPutDocumentCalibration.inspectFuncPutDocumentCalibration(ctx, territorySlug, id, c)
+	}
+
+	mm_params := ContentMockPutDocumentCalibrationParams{ctx, territorySlug, id, c}
+
+	// Record call args
+	mmPutDocumentCalibration.PutDocumentCalibrationMock.mutex.Lock()
+	mmPutDocumentCalibration.PutDocumentCalibrationMock.callArgs = append(mmPutDocumentCalibration.PutDocumentCalibrationMock.callArgs, &mm_params)
+	mmPutDocumentCalibration.PutDocumentCalibrationMock.mutex.Unlock()
+
+	for _, e := range mmPutDocumentCalibration.PutDocumentCalibrationMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.c2, e.results.err
+		}
+	}
+
+	if mmPutDocumentCalibration.PutDocumentCalibrationMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmPutDocumentCalibration.PutDocumentCalibrationMock.defaultExpectation.Counter, 1)
+		mm_want := mmPutDocumentCalibration.PutDocumentCalibrationMock.defaultExpectation.params
+		mm_want_ptrs := mmPutDocumentCalibration.PutDocumentCalibrationMock.defaultExpectation.paramPtrs
+
+		mm_got := ContentMockPutDocumentCalibrationParams{ctx, territorySlug, id, c}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmPutDocumentCalibration.t.Errorf("ContentMock.PutDocumentCalibration got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmPutDocumentCalibration.PutDocumentCalibrationMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmPutDocumentCalibration.t.Errorf("ContentMock.PutDocumentCalibration got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmPutDocumentCalibration.PutDocumentCalibrationMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
+				mmPutDocumentCalibration.t.Errorf("ContentMock.PutDocumentCalibration got unexpected parameter id, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmPutDocumentCalibration.PutDocumentCalibrationMock.defaultExpectation.expectationOrigins.originId, *mm_want_ptrs.id, mm_got.id, minimock.Diff(*mm_want_ptrs.id, mm_got.id))
+			}
+
+			if mm_want_ptrs.c != nil && !minimock.Equal(*mm_want_ptrs.c, mm_got.c) {
+				mmPutDocumentCalibration.t.Errorf("ContentMock.PutDocumentCalibration got unexpected parameter c, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmPutDocumentCalibration.PutDocumentCalibrationMock.defaultExpectation.expectationOrigins.originC, *mm_want_ptrs.c, mm_got.c, minimock.Diff(*mm_want_ptrs.c, mm_got.c))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmPutDocumentCalibration.t.Errorf("ContentMock.PutDocumentCalibration got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmPutDocumentCalibration.PutDocumentCalibrationMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmPutDocumentCalibration.PutDocumentCalibrationMock.defaultExpectation.results
+		if mm_results == nil {
+			mmPutDocumentCalibration.t.Fatal("No results are set for the ContentMock.PutDocumentCalibration")
+		}
+		return (*mm_results).c2, (*mm_results).err
+	}
+	if mmPutDocumentCalibration.funcPutDocumentCalibration != nil {
+		return mmPutDocumentCalibration.funcPutDocumentCalibration(ctx, territorySlug, id, c)
+	}
+	mmPutDocumentCalibration.t.Fatalf("Unexpected call to ContentMock.PutDocumentCalibration. %v %v %v %v", ctx, territorySlug, id, c)
+	return
+}
+
+// PutDocumentCalibrationAfterCounter returns a count of finished ContentMock.PutDocumentCalibration invocations
+func (mmPutDocumentCalibration *ContentMock) PutDocumentCalibrationAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmPutDocumentCalibration.afterPutDocumentCalibrationCounter)
+}
+
+// PutDocumentCalibrationBeforeCounter returns a count of ContentMock.PutDocumentCalibration invocations
+func (mmPutDocumentCalibration *ContentMock) PutDocumentCalibrationBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmPutDocumentCalibration.beforePutDocumentCalibrationCounter)
+}
+
+// Calls returns a list of arguments used in each call to ContentMock.PutDocumentCalibration.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmPutDocumentCalibration *mContentMockPutDocumentCalibration) Calls() []*ContentMockPutDocumentCalibrationParams {
+	mmPutDocumentCalibration.mutex.RLock()
+
+	argCopy := make([]*ContentMockPutDocumentCalibrationParams, len(mmPutDocumentCalibration.callArgs))
+	copy(argCopy, mmPutDocumentCalibration.callArgs)
+
+	mmPutDocumentCalibration.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockPutDocumentCalibrationDone returns true if the count of the PutDocumentCalibration invocations corresponds
+// the number of defined expectations
+func (m *ContentMock) MinimockPutDocumentCalibrationDone() bool {
+	if m.PutDocumentCalibrationMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.PutDocumentCalibrationMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.PutDocumentCalibrationMock.invocationsDone()
+}
+
+// MinimockPutDocumentCalibrationInspect logs each unmet expectation
+func (m *ContentMock) MinimockPutDocumentCalibrationInspect() {
+	for _, e := range m.PutDocumentCalibrationMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to ContentMock.PutDocumentCalibration at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterPutDocumentCalibrationCounter := mm_atomic.LoadUint64(&m.afterPutDocumentCalibrationCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.PutDocumentCalibrationMock.defaultExpectation != nil && afterPutDocumentCalibrationCounter < 1 {
+		if m.PutDocumentCalibrationMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to ContentMock.PutDocumentCalibration at\n%s", m.PutDocumentCalibrationMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to ContentMock.PutDocumentCalibration at\n%s with params: %#v", m.PutDocumentCalibrationMock.defaultExpectation.expectationOrigins.origin, *m.PutDocumentCalibrationMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcPutDocumentCalibration != nil && afterPutDocumentCalibrationCounter < 1 {
+		m.t.Errorf("Expected call to ContentMock.PutDocumentCalibration at\n%s", m.funcPutDocumentCalibrationOrigin)
+	}
+
+	if !m.PutDocumentCalibrationMock.invocationsDone() && afterPutDocumentCalibrationCounter > 0 {
+		m.t.Errorf("Expected %d calls to ContentMock.PutDocumentCalibration at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.PutDocumentCalibrationMock.expectedInvocations), m.PutDocumentCalibrationMock.expectedInvocationsOrigin, afterPutDocumentCalibrationCounter)
 	}
 }
 
@@ -4172,6 +4970,8 @@ func (m *ContentMock) MinimockFinish() {
 
 			m.MinimockDeleteDocumentInspect()
 
+			m.MinimockDeleteDocumentCalibrationInspect()
+
 			m.MinimockDeletePanoramaInspect()
 
 			m.MinimockListDocumentsInspect()
@@ -4179,6 +4979,8 @@ func (m *ContentMock) MinimockFinish() {
 			m.MinimockListPanoramaPhasesInspect()
 
 			m.MinimockListPanoramasInspect()
+
+			m.MinimockPutDocumentCalibrationInspect()
 
 			m.MinimockSetPanoramaPhaseHiddenInspect()
 
@@ -4213,10 +5015,12 @@ func (m *ContentMock) minimockDone() bool {
 		m.MinimockCreateDocumentDone() &&
 		m.MinimockCreatePanoramaDone() &&
 		m.MinimockDeleteDocumentDone() &&
+		m.MinimockDeleteDocumentCalibrationDone() &&
 		m.MinimockDeletePanoramaDone() &&
 		m.MinimockListDocumentsDone() &&
 		m.MinimockListPanoramaPhasesDone() &&
 		m.MinimockListPanoramasDone() &&
+		m.MinimockPutDocumentCalibrationDone() &&
 		m.MinimockSetPanoramaPhaseHiddenDone() &&
 		m.MinimockSetPanoramasHiddenDone() &&
 		m.MinimockSetPanoramasPhaseDone() &&

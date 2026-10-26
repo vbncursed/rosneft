@@ -47,6 +47,13 @@ type CatalogMock struct {
 	beforeCreatePlacementsCounter uint64
 	CreatePlacementsMock          mCatalogMockCreatePlacements
 
+	funcCreateZone          func(ctx context.Context, territorySlug string, z domain.ZoneCreate) (z1 domain.Zone, err error)
+	funcCreateZoneOrigin    string
+	inspectFuncCreateZone   func(ctx context.Context, territorySlug string, z domain.ZoneCreate)
+	afterCreateZoneCounter  uint64
+	beforeCreateZoneCounter uint64
+	CreateZoneMock          mCatalogMockCreateZone
+
 	funcDeleteMeasurement          func(ctx context.Context, territorySlug string, id int64) (err error)
 	funcDeleteMeasurementOrigin    string
 	inspectFuncDeleteMeasurement   func(ctx context.Context, territorySlug string, id int64)
@@ -95,6 +102,13 @@ type CatalogMock struct {
 	afterDeleteTerritoryArtifactsCounter  uint64
 	beforeDeleteTerritoryArtifactsCounter uint64
 	DeleteTerritoryArtifactsMock          mCatalogMockDeleteTerritoryArtifacts
+
+	funcDeleteZone          func(ctx context.Context, territorySlug string, id int64) (err error)
+	funcDeleteZoneOrigin    string
+	inspectFuncDeleteZone   func(ctx context.Context, territorySlug string, id int64)
+	afterDeleteZoneCounter  uint64
+	beforeDeleteZoneCounter uint64
+	DeleteZoneMock          mCatalogMockDeleteZone
 
 	funcGetModel          func(ctx context.Context, slug string) (m1 domain.Model, err error)
 	funcGetModelOrigin    string
@@ -145,6 +159,13 @@ type CatalogMock struct {
 	beforeListModelArtifactsCounter uint64
 	ListModelArtifactsMock          mCatalogMockListModelArtifacts
 
+	funcListModelTags          func(ctx context.Context) (ma1 []domain.ModelTag, err error)
+	funcListModelTagsOrigin    string
+	inspectFuncListModelTags   func(ctx context.Context)
+	afterListModelTagsCounter  uint64
+	beforeListModelTagsCounter uint64
+	ListModelTagsMock          mCatalogMockListModelTags
+
 	funcListModels          func(ctx context.Context, withArtifacts bool) (ma1 []domain.Model, err error)
 	funcListModelsOrigin    string
 	inspectFuncListModels   func(ctx context.Context, withArtifacts bool)
@@ -186,6 +207,13 @@ type CatalogMock struct {
 	afterListTerritoryArtifactsCounter  uint64
 	beforeListTerritoryArtifactsCounter uint64
 	ListTerritoryArtifactsMock          mCatalogMockListTerritoryArtifacts
+
+	funcListZones          func(ctx context.Context, territorySlug string) (za1 []domain.Zone, err error)
+	funcListZonesOrigin    string
+	inspectFuncListZones   func(ctx context.Context, territorySlug string)
+	afterListZonesCounter  uint64
+	beforeListZonesCounter uint64
+	ListZonesMock          mCatalogMockListZones
 
 	funcRenamePlacementGroup          func(ctx context.Context, territorySlug string, id int64, title string) (p1 domain.PlacementGroup, err error)
 	funcRenamePlacementGroupOrigin    string
@@ -285,6 +313,13 @@ type CatalogMock struct {
 	beforeUpdateTerritoryCounter uint64
 	UpdateTerritoryMock          mCatalogMockUpdateTerritory
 
+	funcUpdateZone          func(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch) (z1 domain.Zone, err error)
+	funcUpdateZoneOrigin    string
+	inspectFuncUpdateZone   func(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch)
+	afterUpdateZoneCounter  uint64
+	beforeUpdateZoneCounter uint64
+	UpdateZoneMock          mCatalogMockUpdateZone
+
 	funcUpsertModel          func(ctx context.Context, m domain.Model) (m1 domain.Model, err error)
 	funcUpsertModelOrigin    string
 	inspectFuncUpsertModel   func(ctx context.Context, m domain.Model)
@@ -320,6 +355,9 @@ func NewCatalogMock(t minimock.Tester) *CatalogMock {
 	m.CreatePlacementsMock = mCatalogMockCreatePlacements{mock: m}
 	m.CreatePlacementsMock.callArgs = []*CatalogMockCreatePlacementsParams{}
 
+	m.CreateZoneMock = mCatalogMockCreateZone{mock: m}
+	m.CreateZoneMock.callArgs = []*CatalogMockCreateZoneParams{}
+
 	m.DeleteMeasurementMock = mCatalogMockDeleteMeasurement{mock: m}
 	m.DeleteMeasurementMock.callArgs = []*CatalogMockDeleteMeasurementParams{}
 
@@ -340,6 +378,9 @@ func NewCatalogMock(t minimock.Tester) *CatalogMock {
 
 	m.DeleteTerritoryArtifactsMock = mCatalogMockDeleteTerritoryArtifacts{mock: m}
 	m.DeleteTerritoryArtifactsMock.callArgs = []*CatalogMockDeleteTerritoryArtifactsParams{}
+
+	m.DeleteZoneMock = mCatalogMockDeleteZone{mock: m}
+	m.DeleteZoneMock.callArgs = []*CatalogMockDeleteZoneParams{}
 
 	m.GetModelMock = mCatalogMockGetModel{mock: m}
 	m.GetModelMock.callArgs = []*CatalogMockGetModelParams{}
@@ -362,6 +403,9 @@ func NewCatalogMock(t minimock.Tester) *CatalogMock {
 	m.ListModelArtifactsMock = mCatalogMockListModelArtifacts{mock: m}
 	m.ListModelArtifactsMock.callArgs = []*CatalogMockListModelArtifactsParams{}
 
+	m.ListModelTagsMock = mCatalogMockListModelTags{mock: m}
+	m.ListModelTagsMock.callArgs = []*CatalogMockListModelTagsParams{}
+
 	m.ListModelsMock = mCatalogMockListModels{mock: m}
 	m.ListModelsMock.callArgs = []*CatalogMockListModelsParams{}
 
@@ -379,6 +423,9 @@ func NewCatalogMock(t minimock.Tester) *CatalogMock {
 
 	m.ListTerritoryArtifactsMock = mCatalogMockListTerritoryArtifacts{mock: m}
 	m.ListTerritoryArtifactsMock.callArgs = []*CatalogMockListTerritoryArtifactsParams{}
+
+	m.ListZonesMock = mCatalogMockListZones{mock: m}
+	m.ListZonesMock.callArgs = []*CatalogMockListZonesParams{}
 
 	m.RenamePlacementGroupMock = mCatalogMockRenamePlacementGroup{mock: m}
 	m.RenamePlacementGroupMock.callArgs = []*CatalogMockRenamePlacementGroupParams{}
@@ -421,6 +468,9 @@ func NewCatalogMock(t minimock.Tester) *CatalogMock {
 
 	m.UpdateTerritoryMock = mCatalogMockUpdateTerritory{mock: m}
 	m.UpdateTerritoryMock.callArgs = []*CatalogMockUpdateTerritoryParams{}
+
+	m.UpdateZoneMock = mCatalogMockUpdateZone{mock: m}
+	m.UpdateZoneMock.callArgs = []*CatalogMockUpdateZoneParams{}
 
 	m.UpsertModelMock = mCatalogMockUpsertModel{mock: m}
 	m.UpsertModelMock.callArgs = []*CatalogMockUpsertModelParams{}
@@ -1895,6 +1945,380 @@ func (m *CatalogMock) MinimockCreatePlacementsInspect() {
 	if !m.CreatePlacementsMock.invocationsDone() && afterCreatePlacementsCounter > 0 {
 		m.t.Errorf("Expected %d calls to CatalogMock.CreatePlacements at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.CreatePlacementsMock.expectedInvocations), m.CreatePlacementsMock.expectedInvocationsOrigin, afterCreatePlacementsCounter)
+	}
+}
+
+type mCatalogMockCreateZone struct {
+	optional           bool
+	mock               *CatalogMock
+	defaultExpectation *CatalogMockCreateZoneExpectation
+	expectations       []*CatalogMockCreateZoneExpectation
+
+	callArgs []*CatalogMockCreateZoneParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// CatalogMockCreateZoneExpectation specifies expectation struct of the Catalog.CreateZone
+type CatalogMockCreateZoneExpectation struct {
+	mock               *CatalogMock
+	params             *CatalogMockCreateZoneParams
+	paramPtrs          *CatalogMockCreateZoneParamPtrs
+	expectationOrigins CatalogMockCreateZoneExpectationOrigins
+	results            *CatalogMockCreateZoneResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// CatalogMockCreateZoneParams contains parameters of the Catalog.CreateZone
+type CatalogMockCreateZoneParams struct {
+	ctx           context.Context
+	territorySlug string
+	z             domain.ZoneCreate
+}
+
+// CatalogMockCreateZoneParamPtrs contains pointers to parameters of the Catalog.CreateZone
+type CatalogMockCreateZoneParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+	z             *domain.ZoneCreate
+}
+
+// CatalogMockCreateZoneResults contains results of the Catalog.CreateZone
+type CatalogMockCreateZoneResults struct {
+	z1  domain.Zone
+	err error
+}
+
+// CatalogMockCreateZoneOrigins contains origins of expectations of the Catalog.CreateZone
+type CatalogMockCreateZoneExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originZ             string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmCreateZone *mCatalogMockCreateZone) Optional() *mCatalogMockCreateZone {
+	mmCreateZone.optional = true
+	return mmCreateZone
+}
+
+// Expect sets up expected params for Catalog.CreateZone
+func (mmCreateZone *mCatalogMockCreateZone) Expect(ctx context.Context, territorySlug string, z domain.ZoneCreate) *mCatalogMockCreateZone {
+	if mmCreateZone.mock.funcCreateZone != nil {
+		mmCreateZone.mock.t.Fatalf("CatalogMock.CreateZone mock is already set by Set")
+	}
+
+	if mmCreateZone.defaultExpectation == nil {
+		mmCreateZone.defaultExpectation = &CatalogMockCreateZoneExpectation{}
+	}
+
+	if mmCreateZone.defaultExpectation.paramPtrs != nil {
+		mmCreateZone.mock.t.Fatalf("CatalogMock.CreateZone mock is already set by ExpectParams functions")
+	}
+
+	mmCreateZone.defaultExpectation.params = &CatalogMockCreateZoneParams{ctx, territorySlug, z}
+	mmCreateZone.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmCreateZone.expectations {
+		if minimock.Equal(e.params, mmCreateZone.defaultExpectation.params) {
+			mmCreateZone.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCreateZone.defaultExpectation.params)
+		}
+	}
+
+	return mmCreateZone
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Catalog.CreateZone
+func (mmCreateZone *mCatalogMockCreateZone) ExpectCtxParam1(ctx context.Context) *mCatalogMockCreateZone {
+	if mmCreateZone.mock.funcCreateZone != nil {
+		mmCreateZone.mock.t.Fatalf("CatalogMock.CreateZone mock is already set by Set")
+	}
+
+	if mmCreateZone.defaultExpectation == nil {
+		mmCreateZone.defaultExpectation = &CatalogMockCreateZoneExpectation{}
+	}
+
+	if mmCreateZone.defaultExpectation.params != nil {
+		mmCreateZone.mock.t.Fatalf("CatalogMock.CreateZone mock is already set by Expect")
+	}
+
+	if mmCreateZone.defaultExpectation.paramPtrs == nil {
+		mmCreateZone.defaultExpectation.paramPtrs = &CatalogMockCreateZoneParamPtrs{}
+	}
+	mmCreateZone.defaultExpectation.paramPtrs.ctx = &ctx
+	mmCreateZone.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmCreateZone
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Catalog.CreateZone
+func (mmCreateZone *mCatalogMockCreateZone) ExpectTerritorySlugParam2(territorySlug string) *mCatalogMockCreateZone {
+	if mmCreateZone.mock.funcCreateZone != nil {
+		mmCreateZone.mock.t.Fatalf("CatalogMock.CreateZone mock is already set by Set")
+	}
+
+	if mmCreateZone.defaultExpectation == nil {
+		mmCreateZone.defaultExpectation = &CatalogMockCreateZoneExpectation{}
+	}
+
+	if mmCreateZone.defaultExpectation.params != nil {
+		mmCreateZone.mock.t.Fatalf("CatalogMock.CreateZone mock is already set by Expect")
+	}
+
+	if mmCreateZone.defaultExpectation.paramPtrs == nil {
+		mmCreateZone.defaultExpectation.paramPtrs = &CatalogMockCreateZoneParamPtrs{}
+	}
+	mmCreateZone.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmCreateZone.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmCreateZone
+}
+
+// ExpectZParam3 sets up expected param z for Catalog.CreateZone
+func (mmCreateZone *mCatalogMockCreateZone) ExpectZParam3(z domain.ZoneCreate) *mCatalogMockCreateZone {
+	if mmCreateZone.mock.funcCreateZone != nil {
+		mmCreateZone.mock.t.Fatalf("CatalogMock.CreateZone mock is already set by Set")
+	}
+
+	if mmCreateZone.defaultExpectation == nil {
+		mmCreateZone.defaultExpectation = &CatalogMockCreateZoneExpectation{}
+	}
+
+	if mmCreateZone.defaultExpectation.params != nil {
+		mmCreateZone.mock.t.Fatalf("CatalogMock.CreateZone mock is already set by Expect")
+	}
+
+	if mmCreateZone.defaultExpectation.paramPtrs == nil {
+		mmCreateZone.defaultExpectation.paramPtrs = &CatalogMockCreateZoneParamPtrs{}
+	}
+	mmCreateZone.defaultExpectation.paramPtrs.z = &z
+	mmCreateZone.defaultExpectation.expectationOrigins.originZ = minimock.CallerInfo(1)
+
+	return mmCreateZone
+}
+
+// Inspect accepts an inspector function that has same arguments as the Catalog.CreateZone
+func (mmCreateZone *mCatalogMockCreateZone) Inspect(f func(ctx context.Context, territorySlug string, z domain.ZoneCreate)) *mCatalogMockCreateZone {
+	if mmCreateZone.mock.inspectFuncCreateZone != nil {
+		mmCreateZone.mock.t.Fatalf("Inspect function is already set for CatalogMock.CreateZone")
+	}
+
+	mmCreateZone.mock.inspectFuncCreateZone = f
+
+	return mmCreateZone
+}
+
+// Return sets up results that will be returned by Catalog.CreateZone
+func (mmCreateZone *mCatalogMockCreateZone) Return(z1 domain.Zone, err error) *CatalogMock {
+	if mmCreateZone.mock.funcCreateZone != nil {
+		mmCreateZone.mock.t.Fatalf("CatalogMock.CreateZone mock is already set by Set")
+	}
+
+	if mmCreateZone.defaultExpectation == nil {
+		mmCreateZone.defaultExpectation = &CatalogMockCreateZoneExpectation{mock: mmCreateZone.mock}
+	}
+	mmCreateZone.defaultExpectation.results = &CatalogMockCreateZoneResults{z1, err}
+	mmCreateZone.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmCreateZone.mock
+}
+
+// Set uses given function f to mock the Catalog.CreateZone method
+func (mmCreateZone *mCatalogMockCreateZone) Set(f func(ctx context.Context, territorySlug string, z domain.ZoneCreate) (z1 domain.Zone, err error)) *CatalogMock {
+	if mmCreateZone.defaultExpectation != nil {
+		mmCreateZone.mock.t.Fatalf("Default expectation is already set for the Catalog.CreateZone method")
+	}
+
+	if len(mmCreateZone.expectations) > 0 {
+		mmCreateZone.mock.t.Fatalf("Some expectations are already set for the Catalog.CreateZone method")
+	}
+
+	mmCreateZone.mock.funcCreateZone = f
+	mmCreateZone.mock.funcCreateZoneOrigin = minimock.CallerInfo(1)
+	return mmCreateZone.mock
+}
+
+// When sets expectation for the Catalog.CreateZone which will trigger the result defined by the following
+// Then helper
+func (mmCreateZone *mCatalogMockCreateZone) When(ctx context.Context, territorySlug string, z domain.ZoneCreate) *CatalogMockCreateZoneExpectation {
+	if mmCreateZone.mock.funcCreateZone != nil {
+		mmCreateZone.mock.t.Fatalf("CatalogMock.CreateZone mock is already set by Set")
+	}
+
+	expectation := &CatalogMockCreateZoneExpectation{
+		mock:               mmCreateZone.mock,
+		params:             &CatalogMockCreateZoneParams{ctx, territorySlug, z},
+		expectationOrigins: CatalogMockCreateZoneExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmCreateZone.expectations = append(mmCreateZone.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Catalog.CreateZone return parameters for the expectation previously defined by the When method
+func (e *CatalogMockCreateZoneExpectation) Then(z1 domain.Zone, err error) *CatalogMock {
+	e.results = &CatalogMockCreateZoneResults{z1, err}
+	return e.mock
+}
+
+// Times sets number of times Catalog.CreateZone should be invoked
+func (mmCreateZone *mCatalogMockCreateZone) Times(n uint64) *mCatalogMockCreateZone {
+	if n == 0 {
+		mmCreateZone.mock.t.Fatalf("Times of CatalogMock.CreateZone mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmCreateZone.expectedInvocations, n)
+	mmCreateZone.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmCreateZone
+}
+
+func (mmCreateZone *mCatalogMockCreateZone) invocationsDone() bool {
+	if len(mmCreateZone.expectations) == 0 && mmCreateZone.defaultExpectation == nil && mmCreateZone.mock.funcCreateZone == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmCreateZone.mock.afterCreateZoneCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmCreateZone.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// CreateZone implements mm_service.Catalog
+func (mmCreateZone *CatalogMock) CreateZone(ctx context.Context, territorySlug string, z domain.ZoneCreate) (z1 domain.Zone, err error) {
+	mm_atomic.AddUint64(&mmCreateZone.beforeCreateZoneCounter, 1)
+	defer mm_atomic.AddUint64(&mmCreateZone.afterCreateZoneCounter, 1)
+
+	mmCreateZone.t.Helper()
+
+	if mmCreateZone.inspectFuncCreateZone != nil {
+		mmCreateZone.inspectFuncCreateZone(ctx, territorySlug, z)
+	}
+
+	mm_params := CatalogMockCreateZoneParams{ctx, territorySlug, z}
+
+	// Record call args
+	mmCreateZone.CreateZoneMock.mutex.Lock()
+	mmCreateZone.CreateZoneMock.callArgs = append(mmCreateZone.CreateZoneMock.callArgs, &mm_params)
+	mmCreateZone.CreateZoneMock.mutex.Unlock()
+
+	for _, e := range mmCreateZone.CreateZoneMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.z1, e.results.err
+		}
+	}
+
+	if mmCreateZone.CreateZoneMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCreateZone.CreateZoneMock.defaultExpectation.Counter, 1)
+		mm_want := mmCreateZone.CreateZoneMock.defaultExpectation.params
+		mm_want_ptrs := mmCreateZone.CreateZoneMock.defaultExpectation.paramPtrs
+
+		mm_got := CatalogMockCreateZoneParams{ctx, territorySlug, z}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmCreateZone.t.Errorf("CatalogMock.CreateZone got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCreateZone.CreateZoneMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmCreateZone.t.Errorf("CatalogMock.CreateZone got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCreateZone.CreateZoneMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+			if mm_want_ptrs.z != nil && !minimock.Equal(*mm_want_ptrs.z, mm_got.z) {
+				mmCreateZone.t.Errorf("CatalogMock.CreateZone got unexpected parameter z, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCreateZone.CreateZoneMock.defaultExpectation.expectationOrigins.originZ, *mm_want_ptrs.z, mm_got.z, minimock.Diff(*mm_want_ptrs.z, mm_got.z))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCreateZone.t.Errorf("CatalogMock.CreateZone got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmCreateZone.CreateZoneMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmCreateZone.CreateZoneMock.defaultExpectation.results
+		if mm_results == nil {
+			mmCreateZone.t.Fatal("No results are set for the CatalogMock.CreateZone")
+		}
+		return (*mm_results).z1, (*mm_results).err
+	}
+	if mmCreateZone.funcCreateZone != nil {
+		return mmCreateZone.funcCreateZone(ctx, territorySlug, z)
+	}
+	mmCreateZone.t.Fatalf("Unexpected call to CatalogMock.CreateZone. %v %v %v", ctx, territorySlug, z)
+	return
+}
+
+// CreateZoneAfterCounter returns a count of finished CatalogMock.CreateZone invocations
+func (mmCreateZone *CatalogMock) CreateZoneAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCreateZone.afterCreateZoneCounter)
+}
+
+// CreateZoneBeforeCounter returns a count of CatalogMock.CreateZone invocations
+func (mmCreateZone *CatalogMock) CreateZoneBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCreateZone.beforeCreateZoneCounter)
+}
+
+// Calls returns a list of arguments used in each call to CatalogMock.CreateZone.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmCreateZone *mCatalogMockCreateZone) Calls() []*CatalogMockCreateZoneParams {
+	mmCreateZone.mutex.RLock()
+
+	argCopy := make([]*CatalogMockCreateZoneParams, len(mmCreateZone.callArgs))
+	copy(argCopy, mmCreateZone.callArgs)
+
+	mmCreateZone.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockCreateZoneDone returns true if the count of the CreateZone invocations corresponds
+// the number of defined expectations
+func (m *CatalogMock) MinimockCreateZoneDone() bool {
+	if m.CreateZoneMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.CreateZoneMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.CreateZoneMock.invocationsDone()
+}
+
+// MinimockCreateZoneInspect logs each unmet expectation
+func (m *CatalogMock) MinimockCreateZoneInspect() {
+	for _, e := range m.CreateZoneMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to CatalogMock.CreateZone at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterCreateZoneCounter := mm_atomic.LoadUint64(&m.afterCreateZoneCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CreateZoneMock.defaultExpectation != nil && afterCreateZoneCounter < 1 {
+		if m.CreateZoneMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to CatalogMock.CreateZone at\n%s", m.CreateZoneMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to CatalogMock.CreateZone at\n%s with params: %#v", m.CreateZoneMock.defaultExpectation.expectationOrigins.origin, *m.CreateZoneMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCreateZone != nil && afterCreateZoneCounter < 1 {
+		m.t.Errorf("Expected call to CatalogMock.CreateZone at\n%s", m.funcCreateZoneOrigin)
+	}
+
+	if !m.CreateZoneMock.invocationsDone() && afterCreateZoneCounter > 0 {
+		m.t.Errorf("Expected %d calls to CatalogMock.CreateZone at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.CreateZoneMock.expectedInvocations), m.CreateZoneMock.expectedInvocationsOrigin, afterCreateZoneCounter)
 	}
 }
 
@@ -4383,6 +4807,379 @@ func (m *CatalogMock) MinimockDeleteTerritoryArtifactsInspect() {
 	if !m.DeleteTerritoryArtifactsMock.invocationsDone() && afterDeleteTerritoryArtifactsCounter > 0 {
 		m.t.Errorf("Expected %d calls to CatalogMock.DeleteTerritoryArtifacts at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.DeleteTerritoryArtifactsMock.expectedInvocations), m.DeleteTerritoryArtifactsMock.expectedInvocationsOrigin, afterDeleteTerritoryArtifactsCounter)
+	}
+}
+
+type mCatalogMockDeleteZone struct {
+	optional           bool
+	mock               *CatalogMock
+	defaultExpectation *CatalogMockDeleteZoneExpectation
+	expectations       []*CatalogMockDeleteZoneExpectation
+
+	callArgs []*CatalogMockDeleteZoneParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// CatalogMockDeleteZoneExpectation specifies expectation struct of the Catalog.DeleteZone
+type CatalogMockDeleteZoneExpectation struct {
+	mock               *CatalogMock
+	params             *CatalogMockDeleteZoneParams
+	paramPtrs          *CatalogMockDeleteZoneParamPtrs
+	expectationOrigins CatalogMockDeleteZoneExpectationOrigins
+	results            *CatalogMockDeleteZoneResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// CatalogMockDeleteZoneParams contains parameters of the Catalog.DeleteZone
+type CatalogMockDeleteZoneParams struct {
+	ctx           context.Context
+	territorySlug string
+	id            int64
+}
+
+// CatalogMockDeleteZoneParamPtrs contains pointers to parameters of the Catalog.DeleteZone
+type CatalogMockDeleteZoneParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+	id            *int64
+}
+
+// CatalogMockDeleteZoneResults contains results of the Catalog.DeleteZone
+type CatalogMockDeleteZoneResults struct {
+	err error
+}
+
+// CatalogMockDeleteZoneOrigins contains origins of expectations of the Catalog.DeleteZone
+type CatalogMockDeleteZoneExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originId            string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmDeleteZone *mCatalogMockDeleteZone) Optional() *mCatalogMockDeleteZone {
+	mmDeleteZone.optional = true
+	return mmDeleteZone
+}
+
+// Expect sets up expected params for Catalog.DeleteZone
+func (mmDeleteZone *mCatalogMockDeleteZone) Expect(ctx context.Context, territorySlug string, id int64) *mCatalogMockDeleteZone {
+	if mmDeleteZone.mock.funcDeleteZone != nil {
+		mmDeleteZone.mock.t.Fatalf("CatalogMock.DeleteZone mock is already set by Set")
+	}
+
+	if mmDeleteZone.defaultExpectation == nil {
+		mmDeleteZone.defaultExpectation = &CatalogMockDeleteZoneExpectation{}
+	}
+
+	if mmDeleteZone.defaultExpectation.paramPtrs != nil {
+		mmDeleteZone.mock.t.Fatalf("CatalogMock.DeleteZone mock is already set by ExpectParams functions")
+	}
+
+	mmDeleteZone.defaultExpectation.params = &CatalogMockDeleteZoneParams{ctx, territorySlug, id}
+	mmDeleteZone.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmDeleteZone.expectations {
+		if minimock.Equal(e.params, mmDeleteZone.defaultExpectation.params) {
+			mmDeleteZone.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmDeleteZone.defaultExpectation.params)
+		}
+	}
+
+	return mmDeleteZone
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Catalog.DeleteZone
+func (mmDeleteZone *mCatalogMockDeleteZone) ExpectCtxParam1(ctx context.Context) *mCatalogMockDeleteZone {
+	if mmDeleteZone.mock.funcDeleteZone != nil {
+		mmDeleteZone.mock.t.Fatalf("CatalogMock.DeleteZone mock is already set by Set")
+	}
+
+	if mmDeleteZone.defaultExpectation == nil {
+		mmDeleteZone.defaultExpectation = &CatalogMockDeleteZoneExpectation{}
+	}
+
+	if mmDeleteZone.defaultExpectation.params != nil {
+		mmDeleteZone.mock.t.Fatalf("CatalogMock.DeleteZone mock is already set by Expect")
+	}
+
+	if mmDeleteZone.defaultExpectation.paramPtrs == nil {
+		mmDeleteZone.defaultExpectation.paramPtrs = &CatalogMockDeleteZoneParamPtrs{}
+	}
+	mmDeleteZone.defaultExpectation.paramPtrs.ctx = &ctx
+	mmDeleteZone.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmDeleteZone
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Catalog.DeleteZone
+func (mmDeleteZone *mCatalogMockDeleteZone) ExpectTerritorySlugParam2(territorySlug string) *mCatalogMockDeleteZone {
+	if mmDeleteZone.mock.funcDeleteZone != nil {
+		mmDeleteZone.mock.t.Fatalf("CatalogMock.DeleteZone mock is already set by Set")
+	}
+
+	if mmDeleteZone.defaultExpectation == nil {
+		mmDeleteZone.defaultExpectation = &CatalogMockDeleteZoneExpectation{}
+	}
+
+	if mmDeleteZone.defaultExpectation.params != nil {
+		mmDeleteZone.mock.t.Fatalf("CatalogMock.DeleteZone mock is already set by Expect")
+	}
+
+	if mmDeleteZone.defaultExpectation.paramPtrs == nil {
+		mmDeleteZone.defaultExpectation.paramPtrs = &CatalogMockDeleteZoneParamPtrs{}
+	}
+	mmDeleteZone.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmDeleteZone.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmDeleteZone
+}
+
+// ExpectIdParam3 sets up expected param id for Catalog.DeleteZone
+func (mmDeleteZone *mCatalogMockDeleteZone) ExpectIdParam3(id int64) *mCatalogMockDeleteZone {
+	if mmDeleteZone.mock.funcDeleteZone != nil {
+		mmDeleteZone.mock.t.Fatalf("CatalogMock.DeleteZone mock is already set by Set")
+	}
+
+	if mmDeleteZone.defaultExpectation == nil {
+		mmDeleteZone.defaultExpectation = &CatalogMockDeleteZoneExpectation{}
+	}
+
+	if mmDeleteZone.defaultExpectation.params != nil {
+		mmDeleteZone.mock.t.Fatalf("CatalogMock.DeleteZone mock is already set by Expect")
+	}
+
+	if mmDeleteZone.defaultExpectation.paramPtrs == nil {
+		mmDeleteZone.defaultExpectation.paramPtrs = &CatalogMockDeleteZoneParamPtrs{}
+	}
+	mmDeleteZone.defaultExpectation.paramPtrs.id = &id
+	mmDeleteZone.defaultExpectation.expectationOrigins.originId = minimock.CallerInfo(1)
+
+	return mmDeleteZone
+}
+
+// Inspect accepts an inspector function that has same arguments as the Catalog.DeleteZone
+func (mmDeleteZone *mCatalogMockDeleteZone) Inspect(f func(ctx context.Context, territorySlug string, id int64)) *mCatalogMockDeleteZone {
+	if mmDeleteZone.mock.inspectFuncDeleteZone != nil {
+		mmDeleteZone.mock.t.Fatalf("Inspect function is already set for CatalogMock.DeleteZone")
+	}
+
+	mmDeleteZone.mock.inspectFuncDeleteZone = f
+
+	return mmDeleteZone
+}
+
+// Return sets up results that will be returned by Catalog.DeleteZone
+func (mmDeleteZone *mCatalogMockDeleteZone) Return(err error) *CatalogMock {
+	if mmDeleteZone.mock.funcDeleteZone != nil {
+		mmDeleteZone.mock.t.Fatalf("CatalogMock.DeleteZone mock is already set by Set")
+	}
+
+	if mmDeleteZone.defaultExpectation == nil {
+		mmDeleteZone.defaultExpectation = &CatalogMockDeleteZoneExpectation{mock: mmDeleteZone.mock}
+	}
+	mmDeleteZone.defaultExpectation.results = &CatalogMockDeleteZoneResults{err}
+	mmDeleteZone.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmDeleteZone.mock
+}
+
+// Set uses given function f to mock the Catalog.DeleteZone method
+func (mmDeleteZone *mCatalogMockDeleteZone) Set(f func(ctx context.Context, territorySlug string, id int64) (err error)) *CatalogMock {
+	if mmDeleteZone.defaultExpectation != nil {
+		mmDeleteZone.mock.t.Fatalf("Default expectation is already set for the Catalog.DeleteZone method")
+	}
+
+	if len(mmDeleteZone.expectations) > 0 {
+		mmDeleteZone.mock.t.Fatalf("Some expectations are already set for the Catalog.DeleteZone method")
+	}
+
+	mmDeleteZone.mock.funcDeleteZone = f
+	mmDeleteZone.mock.funcDeleteZoneOrigin = minimock.CallerInfo(1)
+	return mmDeleteZone.mock
+}
+
+// When sets expectation for the Catalog.DeleteZone which will trigger the result defined by the following
+// Then helper
+func (mmDeleteZone *mCatalogMockDeleteZone) When(ctx context.Context, territorySlug string, id int64) *CatalogMockDeleteZoneExpectation {
+	if mmDeleteZone.mock.funcDeleteZone != nil {
+		mmDeleteZone.mock.t.Fatalf("CatalogMock.DeleteZone mock is already set by Set")
+	}
+
+	expectation := &CatalogMockDeleteZoneExpectation{
+		mock:               mmDeleteZone.mock,
+		params:             &CatalogMockDeleteZoneParams{ctx, territorySlug, id},
+		expectationOrigins: CatalogMockDeleteZoneExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmDeleteZone.expectations = append(mmDeleteZone.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Catalog.DeleteZone return parameters for the expectation previously defined by the When method
+func (e *CatalogMockDeleteZoneExpectation) Then(err error) *CatalogMock {
+	e.results = &CatalogMockDeleteZoneResults{err}
+	return e.mock
+}
+
+// Times sets number of times Catalog.DeleteZone should be invoked
+func (mmDeleteZone *mCatalogMockDeleteZone) Times(n uint64) *mCatalogMockDeleteZone {
+	if n == 0 {
+		mmDeleteZone.mock.t.Fatalf("Times of CatalogMock.DeleteZone mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmDeleteZone.expectedInvocations, n)
+	mmDeleteZone.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmDeleteZone
+}
+
+func (mmDeleteZone *mCatalogMockDeleteZone) invocationsDone() bool {
+	if len(mmDeleteZone.expectations) == 0 && mmDeleteZone.defaultExpectation == nil && mmDeleteZone.mock.funcDeleteZone == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmDeleteZone.mock.afterDeleteZoneCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmDeleteZone.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// DeleteZone implements mm_service.Catalog
+func (mmDeleteZone *CatalogMock) DeleteZone(ctx context.Context, territorySlug string, id int64) (err error) {
+	mm_atomic.AddUint64(&mmDeleteZone.beforeDeleteZoneCounter, 1)
+	defer mm_atomic.AddUint64(&mmDeleteZone.afterDeleteZoneCounter, 1)
+
+	mmDeleteZone.t.Helper()
+
+	if mmDeleteZone.inspectFuncDeleteZone != nil {
+		mmDeleteZone.inspectFuncDeleteZone(ctx, territorySlug, id)
+	}
+
+	mm_params := CatalogMockDeleteZoneParams{ctx, territorySlug, id}
+
+	// Record call args
+	mmDeleteZone.DeleteZoneMock.mutex.Lock()
+	mmDeleteZone.DeleteZoneMock.callArgs = append(mmDeleteZone.DeleteZoneMock.callArgs, &mm_params)
+	mmDeleteZone.DeleteZoneMock.mutex.Unlock()
+
+	for _, e := range mmDeleteZone.DeleteZoneMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmDeleteZone.DeleteZoneMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmDeleteZone.DeleteZoneMock.defaultExpectation.Counter, 1)
+		mm_want := mmDeleteZone.DeleteZoneMock.defaultExpectation.params
+		mm_want_ptrs := mmDeleteZone.DeleteZoneMock.defaultExpectation.paramPtrs
+
+		mm_got := CatalogMockDeleteZoneParams{ctx, territorySlug, id}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmDeleteZone.t.Errorf("CatalogMock.DeleteZone got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeleteZone.DeleteZoneMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmDeleteZone.t.Errorf("CatalogMock.DeleteZone got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeleteZone.DeleteZoneMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
+				mmDeleteZone.t.Errorf("CatalogMock.DeleteZone got unexpected parameter id, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeleteZone.DeleteZoneMock.defaultExpectation.expectationOrigins.originId, *mm_want_ptrs.id, mm_got.id, minimock.Diff(*mm_want_ptrs.id, mm_got.id))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmDeleteZone.t.Errorf("CatalogMock.DeleteZone got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmDeleteZone.DeleteZoneMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmDeleteZone.DeleteZoneMock.defaultExpectation.results
+		if mm_results == nil {
+			mmDeleteZone.t.Fatal("No results are set for the CatalogMock.DeleteZone")
+		}
+		return (*mm_results).err
+	}
+	if mmDeleteZone.funcDeleteZone != nil {
+		return mmDeleteZone.funcDeleteZone(ctx, territorySlug, id)
+	}
+	mmDeleteZone.t.Fatalf("Unexpected call to CatalogMock.DeleteZone. %v %v %v", ctx, territorySlug, id)
+	return
+}
+
+// DeleteZoneAfterCounter returns a count of finished CatalogMock.DeleteZone invocations
+func (mmDeleteZone *CatalogMock) DeleteZoneAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDeleteZone.afterDeleteZoneCounter)
+}
+
+// DeleteZoneBeforeCounter returns a count of CatalogMock.DeleteZone invocations
+func (mmDeleteZone *CatalogMock) DeleteZoneBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDeleteZone.beforeDeleteZoneCounter)
+}
+
+// Calls returns a list of arguments used in each call to CatalogMock.DeleteZone.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmDeleteZone *mCatalogMockDeleteZone) Calls() []*CatalogMockDeleteZoneParams {
+	mmDeleteZone.mutex.RLock()
+
+	argCopy := make([]*CatalogMockDeleteZoneParams, len(mmDeleteZone.callArgs))
+	copy(argCopy, mmDeleteZone.callArgs)
+
+	mmDeleteZone.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockDeleteZoneDone returns true if the count of the DeleteZone invocations corresponds
+// the number of defined expectations
+func (m *CatalogMock) MinimockDeleteZoneDone() bool {
+	if m.DeleteZoneMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.DeleteZoneMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.DeleteZoneMock.invocationsDone()
+}
+
+// MinimockDeleteZoneInspect logs each unmet expectation
+func (m *CatalogMock) MinimockDeleteZoneInspect() {
+	for _, e := range m.DeleteZoneMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to CatalogMock.DeleteZone at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterDeleteZoneCounter := mm_atomic.LoadUint64(&m.afterDeleteZoneCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.DeleteZoneMock.defaultExpectation != nil && afterDeleteZoneCounter < 1 {
+		if m.DeleteZoneMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to CatalogMock.DeleteZone at\n%s", m.DeleteZoneMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to CatalogMock.DeleteZone at\n%s with params: %#v", m.DeleteZoneMock.defaultExpectation.expectationOrigins.origin, *m.DeleteZoneMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcDeleteZone != nil && afterDeleteZoneCounter < 1 {
+		m.t.Errorf("Expected call to CatalogMock.DeleteZone at\n%s", m.funcDeleteZoneOrigin)
+	}
+
+	if !m.DeleteZoneMock.invocationsDone() && afterDeleteZoneCounter > 0 {
+		m.t.Errorf("Expected %d calls to CatalogMock.DeleteZone at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.DeleteZoneMock.expectedInvocations), m.DeleteZoneMock.expectedInvocationsOrigin, afterDeleteZoneCounter)
 	}
 }
 
@@ -6880,6 +7677,318 @@ func (m *CatalogMock) MinimockListModelArtifactsInspect() {
 	}
 }
 
+type mCatalogMockListModelTags struct {
+	optional           bool
+	mock               *CatalogMock
+	defaultExpectation *CatalogMockListModelTagsExpectation
+	expectations       []*CatalogMockListModelTagsExpectation
+
+	callArgs []*CatalogMockListModelTagsParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// CatalogMockListModelTagsExpectation specifies expectation struct of the Catalog.ListModelTags
+type CatalogMockListModelTagsExpectation struct {
+	mock               *CatalogMock
+	params             *CatalogMockListModelTagsParams
+	paramPtrs          *CatalogMockListModelTagsParamPtrs
+	expectationOrigins CatalogMockListModelTagsExpectationOrigins
+	results            *CatalogMockListModelTagsResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// CatalogMockListModelTagsParams contains parameters of the Catalog.ListModelTags
+type CatalogMockListModelTagsParams struct {
+	ctx context.Context
+}
+
+// CatalogMockListModelTagsParamPtrs contains pointers to parameters of the Catalog.ListModelTags
+type CatalogMockListModelTagsParamPtrs struct {
+	ctx *context.Context
+}
+
+// CatalogMockListModelTagsResults contains results of the Catalog.ListModelTags
+type CatalogMockListModelTagsResults struct {
+	ma1 []domain.ModelTag
+	err error
+}
+
+// CatalogMockListModelTagsOrigins contains origins of expectations of the Catalog.ListModelTags
+type CatalogMockListModelTagsExpectationOrigins struct {
+	origin    string
+	originCtx string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmListModelTags *mCatalogMockListModelTags) Optional() *mCatalogMockListModelTags {
+	mmListModelTags.optional = true
+	return mmListModelTags
+}
+
+// Expect sets up expected params for Catalog.ListModelTags
+func (mmListModelTags *mCatalogMockListModelTags) Expect(ctx context.Context) *mCatalogMockListModelTags {
+	if mmListModelTags.mock.funcListModelTags != nil {
+		mmListModelTags.mock.t.Fatalf("CatalogMock.ListModelTags mock is already set by Set")
+	}
+
+	if mmListModelTags.defaultExpectation == nil {
+		mmListModelTags.defaultExpectation = &CatalogMockListModelTagsExpectation{}
+	}
+
+	if mmListModelTags.defaultExpectation.paramPtrs != nil {
+		mmListModelTags.mock.t.Fatalf("CatalogMock.ListModelTags mock is already set by ExpectParams functions")
+	}
+
+	mmListModelTags.defaultExpectation.params = &CatalogMockListModelTagsParams{ctx}
+	mmListModelTags.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmListModelTags.expectations {
+		if minimock.Equal(e.params, mmListModelTags.defaultExpectation.params) {
+			mmListModelTags.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmListModelTags.defaultExpectation.params)
+		}
+	}
+
+	return mmListModelTags
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Catalog.ListModelTags
+func (mmListModelTags *mCatalogMockListModelTags) ExpectCtxParam1(ctx context.Context) *mCatalogMockListModelTags {
+	if mmListModelTags.mock.funcListModelTags != nil {
+		mmListModelTags.mock.t.Fatalf("CatalogMock.ListModelTags mock is already set by Set")
+	}
+
+	if mmListModelTags.defaultExpectation == nil {
+		mmListModelTags.defaultExpectation = &CatalogMockListModelTagsExpectation{}
+	}
+
+	if mmListModelTags.defaultExpectation.params != nil {
+		mmListModelTags.mock.t.Fatalf("CatalogMock.ListModelTags mock is already set by Expect")
+	}
+
+	if mmListModelTags.defaultExpectation.paramPtrs == nil {
+		mmListModelTags.defaultExpectation.paramPtrs = &CatalogMockListModelTagsParamPtrs{}
+	}
+	mmListModelTags.defaultExpectation.paramPtrs.ctx = &ctx
+	mmListModelTags.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmListModelTags
+}
+
+// Inspect accepts an inspector function that has same arguments as the Catalog.ListModelTags
+func (mmListModelTags *mCatalogMockListModelTags) Inspect(f func(ctx context.Context)) *mCatalogMockListModelTags {
+	if mmListModelTags.mock.inspectFuncListModelTags != nil {
+		mmListModelTags.mock.t.Fatalf("Inspect function is already set for CatalogMock.ListModelTags")
+	}
+
+	mmListModelTags.mock.inspectFuncListModelTags = f
+
+	return mmListModelTags
+}
+
+// Return sets up results that will be returned by Catalog.ListModelTags
+func (mmListModelTags *mCatalogMockListModelTags) Return(ma1 []domain.ModelTag, err error) *CatalogMock {
+	if mmListModelTags.mock.funcListModelTags != nil {
+		mmListModelTags.mock.t.Fatalf("CatalogMock.ListModelTags mock is already set by Set")
+	}
+
+	if mmListModelTags.defaultExpectation == nil {
+		mmListModelTags.defaultExpectation = &CatalogMockListModelTagsExpectation{mock: mmListModelTags.mock}
+	}
+	mmListModelTags.defaultExpectation.results = &CatalogMockListModelTagsResults{ma1, err}
+	mmListModelTags.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmListModelTags.mock
+}
+
+// Set uses given function f to mock the Catalog.ListModelTags method
+func (mmListModelTags *mCatalogMockListModelTags) Set(f func(ctx context.Context) (ma1 []domain.ModelTag, err error)) *CatalogMock {
+	if mmListModelTags.defaultExpectation != nil {
+		mmListModelTags.mock.t.Fatalf("Default expectation is already set for the Catalog.ListModelTags method")
+	}
+
+	if len(mmListModelTags.expectations) > 0 {
+		mmListModelTags.mock.t.Fatalf("Some expectations are already set for the Catalog.ListModelTags method")
+	}
+
+	mmListModelTags.mock.funcListModelTags = f
+	mmListModelTags.mock.funcListModelTagsOrigin = minimock.CallerInfo(1)
+	return mmListModelTags.mock
+}
+
+// When sets expectation for the Catalog.ListModelTags which will trigger the result defined by the following
+// Then helper
+func (mmListModelTags *mCatalogMockListModelTags) When(ctx context.Context) *CatalogMockListModelTagsExpectation {
+	if mmListModelTags.mock.funcListModelTags != nil {
+		mmListModelTags.mock.t.Fatalf("CatalogMock.ListModelTags mock is already set by Set")
+	}
+
+	expectation := &CatalogMockListModelTagsExpectation{
+		mock:               mmListModelTags.mock,
+		params:             &CatalogMockListModelTagsParams{ctx},
+		expectationOrigins: CatalogMockListModelTagsExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmListModelTags.expectations = append(mmListModelTags.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Catalog.ListModelTags return parameters for the expectation previously defined by the When method
+func (e *CatalogMockListModelTagsExpectation) Then(ma1 []domain.ModelTag, err error) *CatalogMock {
+	e.results = &CatalogMockListModelTagsResults{ma1, err}
+	return e.mock
+}
+
+// Times sets number of times Catalog.ListModelTags should be invoked
+func (mmListModelTags *mCatalogMockListModelTags) Times(n uint64) *mCatalogMockListModelTags {
+	if n == 0 {
+		mmListModelTags.mock.t.Fatalf("Times of CatalogMock.ListModelTags mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmListModelTags.expectedInvocations, n)
+	mmListModelTags.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmListModelTags
+}
+
+func (mmListModelTags *mCatalogMockListModelTags) invocationsDone() bool {
+	if len(mmListModelTags.expectations) == 0 && mmListModelTags.defaultExpectation == nil && mmListModelTags.mock.funcListModelTags == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmListModelTags.mock.afterListModelTagsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmListModelTags.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ListModelTags implements mm_service.Catalog
+func (mmListModelTags *CatalogMock) ListModelTags(ctx context.Context) (ma1 []domain.ModelTag, err error) {
+	mm_atomic.AddUint64(&mmListModelTags.beforeListModelTagsCounter, 1)
+	defer mm_atomic.AddUint64(&mmListModelTags.afterListModelTagsCounter, 1)
+
+	mmListModelTags.t.Helper()
+
+	if mmListModelTags.inspectFuncListModelTags != nil {
+		mmListModelTags.inspectFuncListModelTags(ctx)
+	}
+
+	mm_params := CatalogMockListModelTagsParams{ctx}
+
+	// Record call args
+	mmListModelTags.ListModelTagsMock.mutex.Lock()
+	mmListModelTags.ListModelTagsMock.callArgs = append(mmListModelTags.ListModelTagsMock.callArgs, &mm_params)
+	mmListModelTags.ListModelTagsMock.mutex.Unlock()
+
+	for _, e := range mmListModelTags.ListModelTagsMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.ma1, e.results.err
+		}
+	}
+
+	if mmListModelTags.ListModelTagsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmListModelTags.ListModelTagsMock.defaultExpectation.Counter, 1)
+		mm_want := mmListModelTags.ListModelTagsMock.defaultExpectation.params
+		mm_want_ptrs := mmListModelTags.ListModelTagsMock.defaultExpectation.paramPtrs
+
+		mm_got := CatalogMockListModelTagsParams{ctx}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmListModelTags.t.Errorf("CatalogMock.ListModelTags got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListModelTags.ListModelTagsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmListModelTags.t.Errorf("CatalogMock.ListModelTags got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmListModelTags.ListModelTagsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmListModelTags.ListModelTagsMock.defaultExpectation.results
+		if mm_results == nil {
+			mmListModelTags.t.Fatal("No results are set for the CatalogMock.ListModelTags")
+		}
+		return (*mm_results).ma1, (*mm_results).err
+	}
+	if mmListModelTags.funcListModelTags != nil {
+		return mmListModelTags.funcListModelTags(ctx)
+	}
+	mmListModelTags.t.Fatalf("Unexpected call to CatalogMock.ListModelTags. %v", ctx)
+	return
+}
+
+// ListModelTagsAfterCounter returns a count of finished CatalogMock.ListModelTags invocations
+func (mmListModelTags *CatalogMock) ListModelTagsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListModelTags.afterListModelTagsCounter)
+}
+
+// ListModelTagsBeforeCounter returns a count of CatalogMock.ListModelTags invocations
+func (mmListModelTags *CatalogMock) ListModelTagsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListModelTags.beforeListModelTagsCounter)
+}
+
+// Calls returns a list of arguments used in each call to CatalogMock.ListModelTags.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmListModelTags *mCatalogMockListModelTags) Calls() []*CatalogMockListModelTagsParams {
+	mmListModelTags.mutex.RLock()
+
+	argCopy := make([]*CatalogMockListModelTagsParams, len(mmListModelTags.callArgs))
+	copy(argCopy, mmListModelTags.callArgs)
+
+	mmListModelTags.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockListModelTagsDone returns true if the count of the ListModelTags invocations corresponds
+// the number of defined expectations
+func (m *CatalogMock) MinimockListModelTagsDone() bool {
+	if m.ListModelTagsMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ListModelTagsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ListModelTagsMock.invocationsDone()
+}
+
+// MinimockListModelTagsInspect logs each unmet expectation
+func (m *CatalogMock) MinimockListModelTagsInspect() {
+	for _, e := range m.ListModelTagsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to CatalogMock.ListModelTags at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterListModelTagsCounter := mm_atomic.LoadUint64(&m.afterListModelTagsCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ListModelTagsMock.defaultExpectation != nil && afterListModelTagsCounter < 1 {
+		if m.ListModelTagsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to CatalogMock.ListModelTags at\n%s", m.ListModelTagsMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to CatalogMock.ListModelTags at\n%s with params: %#v", m.ListModelTagsMock.defaultExpectation.expectationOrigins.origin, *m.ListModelTagsMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcListModelTags != nil && afterListModelTagsCounter < 1 {
+		m.t.Errorf("Expected call to CatalogMock.ListModelTags at\n%s", m.funcListModelTagsOrigin)
+	}
+
+	if !m.ListModelTagsMock.invocationsDone() && afterListModelTagsCounter > 0 {
+		m.t.Errorf("Expected %d calls to CatalogMock.ListModelTags at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ListModelTagsMock.expectedInvocations), m.ListModelTagsMock.expectedInvocationsOrigin, afterListModelTagsCounter)
+	}
+}
+
 type mCatalogMockListModels struct {
 	optional           bool
 	mock               *CatalogMock
@@ -8966,6 +10075,349 @@ func (m *CatalogMock) MinimockListTerritoryArtifactsInspect() {
 	if !m.ListTerritoryArtifactsMock.invocationsDone() && afterListTerritoryArtifactsCounter > 0 {
 		m.t.Errorf("Expected %d calls to CatalogMock.ListTerritoryArtifacts at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.ListTerritoryArtifactsMock.expectedInvocations), m.ListTerritoryArtifactsMock.expectedInvocationsOrigin, afterListTerritoryArtifactsCounter)
+	}
+}
+
+type mCatalogMockListZones struct {
+	optional           bool
+	mock               *CatalogMock
+	defaultExpectation *CatalogMockListZonesExpectation
+	expectations       []*CatalogMockListZonesExpectation
+
+	callArgs []*CatalogMockListZonesParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// CatalogMockListZonesExpectation specifies expectation struct of the Catalog.ListZones
+type CatalogMockListZonesExpectation struct {
+	mock               *CatalogMock
+	params             *CatalogMockListZonesParams
+	paramPtrs          *CatalogMockListZonesParamPtrs
+	expectationOrigins CatalogMockListZonesExpectationOrigins
+	results            *CatalogMockListZonesResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// CatalogMockListZonesParams contains parameters of the Catalog.ListZones
+type CatalogMockListZonesParams struct {
+	ctx           context.Context
+	territorySlug string
+}
+
+// CatalogMockListZonesParamPtrs contains pointers to parameters of the Catalog.ListZones
+type CatalogMockListZonesParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+}
+
+// CatalogMockListZonesResults contains results of the Catalog.ListZones
+type CatalogMockListZonesResults struct {
+	za1 []domain.Zone
+	err error
+}
+
+// CatalogMockListZonesOrigins contains origins of expectations of the Catalog.ListZones
+type CatalogMockListZonesExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmListZones *mCatalogMockListZones) Optional() *mCatalogMockListZones {
+	mmListZones.optional = true
+	return mmListZones
+}
+
+// Expect sets up expected params for Catalog.ListZones
+func (mmListZones *mCatalogMockListZones) Expect(ctx context.Context, territorySlug string) *mCatalogMockListZones {
+	if mmListZones.mock.funcListZones != nil {
+		mmListZones.mock.t.Fatalf("CatalogMock.ListZones mock is already set by Set")
+	}
+
+	if mmListZones.defaultExpectation == nil {
+		mmListZones.defaultExpectation = &CatalogMockListZonesExpectation{}
+	}
+
+	if mmListZones.defaultExpectation.paramPtrs != nil {
+		mmListZones.mock.t.Fatalf("CatalogMock.ListZones mock is already set by ExpectParams functions")
+	}
+
+	mmListZones.defaultExpectation.params = &CatalogMockListZonesParams{ctx, territorySlug}
+	mmListZones.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmListZones.expectations {
+		if minimock.Equal(e.params, mmListZones.defaultExpectation.params) {
+			mmListZones.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmListZones.defaultExpectation.params)
+		}
+	}
+
+	return mmListZones
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Catalog.ListZones
+func (mmListZones *mCatalogMockListZones) ExpectCtxParam1(ctx context.Context) *mCatalogMockListZones {
+	if mmListZones.mock.funcListZones != nil {
+		mmListZones.mock.t.Fatalf("CatalogMock.ListZones mock is already set by Set")
+	}
+
+	if mmListZones.defaultExpectation == nil {
+		mmListZones.defaultExpectation = &CatalogMockListZonesExpectation{}
+	}
+
+	if mmListZones.defaultExpectation.params != nil {
+		mmListZones.mock.t.Fatalf("CatalogMock.ListZones mock is already set by Expect")
+	}
+
+	if mmListZones.defaultExpectation.paramPtrs == nil {
+		mmListZones.defaultExpectation.paramPtrs = &CatalogMockListZonesParamPtrs{}
+	}
+	mmListZones.defaultExpectation.paramPtrs.ctx = &ctx
+	mmListZones.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmListZones
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Catalog.ListZones
+func (mmListZones *mCatalogMockListZones) ExpectTerritorySlugParam2(territorySlug string) *mCatalogMockListZones {
+	if mmListZones.mock.funcListZones != nil {
+		mmListZones.mock.t.Fatalf("CatalogMock.ListZones mock is already set by Set")
+	}
+
+	if mmListZones.defaultExpectation == nil {
+		mmListZones.defaultExpectation = &CatalogMockListZonesExpectation{}
+	}
+
+	if mmListZones.defaultExpectation.params != nil {
+		mmListZones.mock.t.Fatalf("CatalogMock.ListZones mock is already set by Expect")
+	}
+
+	if mmListZones.defaultExpectation.paramPtrs == nil {
+		mmListZones.defaultExpectation.paramPtrs = &CatalogMockListZonesParamPtrs{}
+	}
+	mmListZones.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmListZones.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmListZones
+}
+
+// Inspect accepts an inspector function that has same arguments as the Catalog.ListZones
+func (mmListZones *mCatalogMockListZones) Inspect(f func(ctx context.Context, territorySlug string)) *mCatalogMockListZones {
+	if mmListZones.mock.inspectFuncListZones != nil {
+		mmListZones.mock.t.Fatalf("Inspect function is already set for CatalogMock.ListZones")
+	}
+
+	mmListZones.mock.inspectFuncListZones = f
+
+	return mmListZones
+}
+
+// Return sets up results that will be returned by Catalog.ListZones
+func (mmListZones *mCatalogMockListZones) Return(za1 []domain.Zone, err error) *CatalogMock {
+	if mmListZones.mock.funcListZones != nil {
+		mmListZones.mock.t.Fatalf("CatalogMock.ListZones mock is already set by Set")
+	}
+
+	if mmListZones.defaultExpectation == nil {
+		mmListZones.defaultExpectation = &CatalogMockListZonesExpectation{mock: mmListZones.mock}
+	}
+	mmListZones.defaultExpectation.results = &CatalogMockListZonesResults{za1, err}
+	mmListZones.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmListZones.mock
+}
+
+// Set uses given function f to mock the Catalog.ListZones method
+func (mmListZones *mCatalogMockListZones) Set(f func(ctx context.Context, territorySlug string) (za1 []domain.Zone, err error)) *CatalogMock {
+	if mmListZones.defaultExpectation != nil {
+		mmListZones.mock.t.Fatalf("Default expectation is already set for the Catalog.ListZones method")
+	}
+
+	if len(mmListZones.expectations) > 0 {
+		mmListZones.mock.t.Fatalf("Some expectations are already set for the Catalog.ListZones method")
+	}
+
+	mmListZones.mock.funcListZones = f
+	mmListZones.mock.funcListZonesOrigin = minimock.CallerInfo(1)
+	return mmListZones.mock
+}
+
+// When sets expectation for the Catalog.ListZones which will trigger the result defined by the following
+// Then helper
+func (mmListZones *mCatalogMockListZones) When(ctx context.Context, territorySlug string) *CatalogMockListZonesExpectation {
+	if mmListZones.mock.funcListZones != nil {
+		mmListZones.mock.t.Fatalf("CatalogMock.ListZones mock is already set by Set")
+	}
+
+	expectation := &CatalogMockListZonesExpectation{
+		mock:               mmListZones.mock,
+		params:             &CatalogMockListZonesParams{ctx, territorySlug},
+		expectationOrigins: CatalogMockListZonesExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmListZones.expectations = append(mmListZones.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Catalog.ListZones return parameters for the expectation previously defined by the When method
+func (e *CatalogMockListZonesExpectation) Then(za1 []domain.Zone, err error) *CatalogMock {
+	e.results = &CatalogMockListZonesResults{za1, err}
+	return e.mock
+}
+
+// Times sets number of times Catalog.ListZones should be invoked
+func (mmListZones *mCatalogMockListZones) Times(n uint64) *mCatalogMockListZones {
+	if n == 0 {
+		mmListZones.mock.t.Fatalf("Times of CatalogMock.ListZones mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmListZones.expectedInvocations, n)
+	mmListZones.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmListZones
+}
+
+func (mmListZones *mCatalogMockListZones) invocationsDone() bool {
+	if len(mmListZones.expectations) == 0 && mmListZones.defaultExpectation == nil && mmListZones.mock.funcListZones == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmListZones.mock.afterListZonesCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmListZones.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ListZones implements mm_service.Catalog
+func (mmListZones *CatalogMock) ListZones(ctx context.Context, territorySlug string) (za1 []domain.Zone, err error) {
+	mm_atomic.AddUint64(&mmListZones.beforeListZonesCounter, 1)
+	defer mm_atomic.AddUint64(&mmListZones.afterListZonesCounter, 1)
+
+	mmListZones.t.Helper()
+
+	if mmListZones.inspectFuncListZones != nil {
+		mmListZones.inspectFuncListZones(ctx, territorySlug)
+	}
+
+	mm_params := CatalogMockListZonesParams{ctx, territorySlug}
+
+	// Record call args
+	mmListZones.ListZonesMock.mutex.Lock()
+	mmListZones.ListZonesMock.callArgs = append(mmListZones.ListZonesMock.callArgs, &mm_params)
+	mmListZones.ListZonesMock.mutex.Unlock()
+
+	for _, e := range mmListZones.ListZonesMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.za1, e.results.err
+		}
+	}
+
+	if mmListZones.ListZonesMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmListZones.ListZonesMock.defaultExpectation.Counter, 1)
+		mm_want := mmListZones.ListZonesMock.defaultExpectation.params
+		mm_want_ptrs := mmListZones.ListZonesMock.defaultExpectation.paramPtrs
+
+		mm_got := CatalogMockListZonesParams{ctx, territorySlug}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmListZones.t.Errorf("CatalogMock.ListZones got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListZones.ListZonesMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmListZones.t.Errorf("CatalogMock.ListZones got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListZones.ListZonesMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmListZones.t.Errorf("CatalogMock.ListZones got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmListZones.ListZonesMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmListZones.ListZonesMock.defaultExpectation.results
+		if mm_results == nil {
+			mmListZones.t.Fatal("No results are set for the CatalogMock.ListZones")
+		}
+		return (*mm_results).za1, (*mm_results).err
+	}
+	if mmListZones.funcListZones != nil {
+		return mmListZones.funcListZones(ctx, territorySlug)
+	}
+	mmListZones.t.Fatalf("Unexpected call to CatalogMock.ListZones. %v %v", ctx, territorySlug)
+	return
+}
+
+// ListZonesAfterCounter returns a count of finished CatalogMock.ListZones invocations
+func (mmListZones *CatalogMock) ListZonesAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListZones.afterListZonesCounter)
+}
+
+// ListZonesBeforeCounter returns a count of CatalogMock.ListZones invocations
+func (mmListZones *CatalogMock) ListZonesBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListZones.beforeListZonesCounter)
+}
+
+// Calls returns a list of arguments used in each call to CatalogMock.ListZones.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmListZones *mCatalogMockListZones) Calls() []*CatalogMockListZonesParams {
+	mmListZones.mutex.RLock()
+
+	argCopy := make([]*CatalogMockListZonesParams, len(mmListZones.callArgs))
+	copy(argCopy, mmListZones.callArgs)
+
+	mmListZones.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockListZonesDone returns true if the count of the ListZones invocations corresponds
+// the number of defined expectations
+func (m *CatalogMock) MinimockListZonesDone() bool {
+	if m.ListZonesMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ListZonesMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ListZonesMock.invocationsDone()
+}
+
+// MinimockListZonesInspect logs each unmet expectation
+func (m *CatalogMock) MinimockListZonesInspect() {
+	for _, e := range m.ListZonesMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to CatalogMock.ListZones at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterListZonesCounter := mm_atomic.LoadUint64(&m.afterListZonesCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ListZonesMock.defaultExpectation != nil && afterListZonesCounter < 1 {
+		if m.ListZonesMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to CatalogMock.ListZones at\n%s", m.ListZonesMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to CatalogMock.ListZones at\n%s with params: %#v", m.ListZonesMock.defaultExpectation.expectationOrigins.origin, *m.ListZonesMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcListZones != nil && afterListZonesCounter < 1 {
+		m.t.Errorf("Expected call to CatalogMock.ListZones at\n%s", m.funcListZonesOrigin)
+	}
+
+	if !m.ListZonesMock.invocationsDone() && afterListZonesCounter > 0 {
+		m.t.Errorf("Expected %d calls to CatalogMock.ListZones at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ListZonesMock.expectedInvocations), m.ListZonesMock.expectedInvocationsOrigin, afterListZonesCounter)
 	}
 }
 
@@ -14265,6 +15717,411 @@ func (m *CatalogMock) MinimockUpdateTerritoryInspect() {
 	}
 }
 
+type mCatalogMockUpdateZone struct {
+	optional           bool
+	mock               *CatalogMock
+	defaultExpectation *CatalogMockUpdateZoneExpectation
+	expectations       []*CatalogMockUpdateZoneExpectation
+
+	callArgs []*CatalogMockUpdateZoneParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// CatalogMockUpdateZoneExpectation specifies expectation struct of the Catalog.UpdateZone
+type CatalogMockUpdateZoneExpectation struct {
+	mock               *CatalogMock
+	params             *CatalogMockUpdateZoneParams
+	paramPtrs          *CatalogMockUpdateZoneParamPtrs
+	expectationOrigins CatalogMockUpdateZoneExpectationOrigins
+	results            *CatalogMockUpdateZoneResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// CatalogMockUpdateZoneParams contains parameters of the Catalog.UpdateZone
+type CatalogMockUpdateZoneParams struct {
+	ctx           context.Context
+	territorySlug string
+	id            int64
+	p             domain.ZonePatch
+}
+
+// CatalogMockUpdateZoneParamPtrs contains pointers to parameters of the Catalog.UpdateZone
+type CatalogMockUpdateZoneParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+	id            *int64
+	p             *domain.ZonePatch
+}
+
+// CatalogMockUpdateZoneResults contains results of the Catalog.UpdateZone
+type CatalogMockUpdateZoneResults struct {
+	z1  domain.Zone
+	err error
+}
+
+// CatalogMockUpdateZoneOrigins contains origins of expectations of the Catalog.UpdateZone
+type CatalogMockUpdateZoneExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originId            string
+	originP             string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmUpdateZone *mCatalogMockUpdateZone) Optional() *mCatalogMockUpdateZone {
+	mmUpdateZone.optional = true
+	return mmUpdateZone
+}
+
+// Expect sets up expected params for Catalog.UpdateZone
+func (mmUpdateZone *mCatalogMockUpdateZone) Expect(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch) *mCatalogMockUpdateZone {
+	if mmUpdateZone.mock.funcUpdateZone != nil {
+		mmUpdateZone.mock.t.Fatalf("CatalogMock.UpdateZone mock is already set by Set")
+	}
+
+	if mmUpdateZone.defaultExpectation == nil {
+		mmUpdateZone.defaultExpectation = &CatalogMockUpdateZoneExpectation{}
+	}
+
+	if mmUpdateZone.defaultExpectation.paramPtrs != nil {
+		mmUpdateZone.mock.t.Fatalf("CatalogMock.UpdateZone mock is already set by ExpectParams functions")
+	}
+
+	mmUpdateZone.defaultExpectation.params = &CatalogMockUpdateZoneParams{ctx, territorySlug, id, p}
+	mmUpdateZone.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmUpdateZone.expectations {
+		if minimock.Equal(e.params, mmUpdateZone.defaultExpectation.params) {
+			mmUpdateZone.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmUpdateZone.defaultExpectation.params)
+		}
+	}
+
+	return mmUpdateZone
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Catalog.UpdateZone
+func (mmUpdateZone *mCatalogMockUpdateZone) ExpectCtxParam1(ctx context.Context) *mCatalogMockUpdateZone {
+	if mmUpdateZone.mock.funcUpdateZone != nil {
+		mmUpdateZone.mock.t.Fatalf("CatalogMock.UpdateZone mock is already set by Set")
+	}
+
+	if mmUpdateZone.defaultExpectation == nil {
+		mmUpdateZone.defaultExpectation = &CatalogMockUpdateZoneExpectation{}
+	}
+
+	if mmUpdateZone.defaultExpectation.params != nil {
+		mmUpdateZone.mock.t.Fatalf("CatalogMock.UpdateZone mock is already set by Expect")
+	}
+
+	if mmUpdateZone.defaultExpectation.paramPtrs == nil {
+		mmUpdateZone.defaultExpectation.paramPtrs = &CatalogMockUpdateZoneParamPtrs{}
+	}
+	mmUpdateZone.defaultExpectation.paramPtrs.ctx = &ctx
+	mmUpdateZone.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmUpdateZone
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Catalog.UpdateZone
+func (mmUpdateZone *mCatalogMockUpdateZone) ExpectTerritorySlugParam2(territorySlug string) *mCatalogMockUpdateZone {
+	if mmUpdateZone.mock.funcUpdateZone != nil {
+		mmUpdateZone.mock.t.Fatalf("CatalogMock.UpdateZone mock is already set by Set")
+	}
+
+	if mmUpdateZone.defaultExpectation == nil {
+		mmUpdateZone.defaultExpectation = &CatalogMockUpdateZoneExpectation{}
+	}
+
+	if mmUpdateZone.defaultExpectation.params != nil {
+		mmUpdateZone.mock.t.Fatalf("CatalogMock.UpdateZone mock is already set by Expect")
+	}
+
+	if mmUpdateZone.defaultExpectation.paramPtrs == nil {
+		mmUpdateZone.defaultExpectation.paramPtrs = &CatalogMockUpdateZoneParamPtrs{}
+	}
+	mmUpdateZone.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmUpdateZone.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmUpdateZone
+}
+
+// ExpectIdParam3 sets up expected param id for Catalog.UpdateZone
+func (mmUpdateZone *mCatalogMockUpdateZone) ExpectIdParam3(id int64) *mCatalogMockUpdateZone {
+	if mmUpdateZone.mock.funcUpdateZone != nil {
+		mmUpdateZone.mock.t.Fatalf("CatalogMock.UpdateZone mock is already set by Set")
+	}
+
+	if mmUpdateZone.defaultExpectation == nil {
+		mmUpdateZone.defaultExpectation = &CatalogMockUpdateZoneExpectation{}
+	}
+
+	if mmUpdateZone.defaultExpectation.params != nil {
+		mmUpdateZone.mock.t.Fatalf("CatalogMock.UpdateZone mock is already set by Expect")
+	}
+
+	if mmUpdateZone.defaultExpectation.paramPtrs == nil {
+		mmUpdateZone.defaultExpectation.paramPtrs = &CatalogMockUpdateZoneParamPtrs{}
+	}
+	mmUpdateZone.defaultExpectation.paramPtrs.id = &id
+	mmUpdateZone.defaultExpectation.expectationOrigins.originId = minimock.CallerInfo(1)
+
+	return mmUpdateZone
+}
+
+// ExpectPParam4 sets up expected param p for Catalog.UpdateZone
+func (mmUpdateZone *mCatalogMockUpdateZone) ExpectPParam4(p domain.ZonePatch) *mCatalogMockUpdateZone {
+	if mmUpdateZone.mock.funcUpdateZone != nil {
+		mmUpdateZone.mock.t.Fatalf("CatalogMock.UpdateZone mock is already set by Set")
+	}
+
+	if mmUpdateZone.defaultExpectation == nil {
+		mmUpdateZone.defaultExpectation = &CatalogMockUpdateZoneExpectation{}
+	}
+
+	if mmUpdateZone.defaultExpectation.params != nil {
+		mmUpdateZone.mock.t.Fatalf("CatalogMock.UpdateZone mock is already set by Expect")
+	}
+
+	if mmUpdateZone.defaultExpectation.paramPtrs == nil {
+		mmUpdateZone.defaultExpectation.paramPtrs = &CatalogMockUpdateZoneParamPtrs{}
+	}
+	mmUpdateZone.defaultExpectation.paramPtrs.p = &p
+	mmUpdateZone.defaultExpectation.expectationOrigins.originP = minimock.CallerInfo(1)
+
+	return mmUpdateZone
+}
+
+// Inspect accepts an inspector function that has same arguments as the Catalog.UpdateZone
+func (mmUpdateZone *mCatalogMockUpdateZone) Inspect(f func(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch)) *mCatalogMockUpdateZone {
+	if mmUpdateZone.mock.inspectFuncUpdateZone != nil {
+		mmUpdateZone.mock.t.Fatalf("Inspect function is already set for CatalogMock.UpdateZone")
+	}
+
+	mmUpdateZone.mock.inspectFuncUpdateZone = f
+
+	return mmUpdateZone
+}
+
+// Return sets up results that will be returned by Catalog.UpdateZone
+func (mmUpdateZone *mCatalogMockUpdateZone) Return(z1 domain.Zone, err error) *CatalogMock {
+	if mmUpdateZone.mock.funcUpdateZone != nil {
+		mmUpdateZone.mock.t.Fatalf("CatalogMock.UpdateZone mock is already set by Set")
+	}
+
+	if mmUpdateZone.defaultExpectation == nil {
+		mmUpdateZone.defaultExpectation = &CatalogMockUpdateZoneExpectation{mock: mmUpdateZone.mock}
+	}
+	mmUpdateZone.defaultExpectation.results = &CatalogMockUpdateZoneResults{z1, err}
+	mmUpdateZone.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmUpdateZone.mock
+}
+
+// Set uses given function f to mock the Catalog.UpdateZone method
+func (mmUpdateZone *mCatalogMockUpdateZone) Set(f func(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch) (z1 domain.Zone, err error)) *CatalogMock {
+	if mmUpdateZone.defaultExpectation != nil {
+		mmUpdateZone.mock.t.Fatalf("Default expectation is already set for the Catalog.UpdateZone method")
+	}
+
+	if len(mmUpdateZone.expectations) > 0 {
+		mmUpdateZone.mock.t.Fatalf("Some expectations are already set for the Catalog.UpdateZone method")
+	}
+
+	mmUpdateZone.mock.funcUpdateZone = f
+	mmUpdateZone.mock.funcUpdateZoneOrigin = minimock.CallerInfo(1)
+	return mmUpdateZone.mock
+}
+
+// When sets expectation for the Catalog.UpdateZone which will trigger the result defined by the following
+// Then helper
+func (mmUpdateZone *mCatalogMockUpdateZone) When(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch) *CatalogMockUpdateZoneExpectation {
+	if mmUpdateZone.mock.funcUpdateZone != nil {
+		mmUpdateZone.mock.t.Fatalf("CatalogMock.UpdateZone mock is already set by Set")
+	}
+
+	expectation := &CatalogMockUpdateZoneExpectation{
+		mock:               mmUpdateZone.mock,
+		params:             &CatalogMockUpdateZoneParams{ctx, territorySlug, id, p},
+		expectationOrigins: CatalogMockUpdateZoneExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmUpdateZone.expectations = append(mmUpdateZone.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Catalog.UpdateZone return parameters for the expectation previously defined by the When method
+func (e *CatalogMockUpdateZoneExpectation) Then(z1 domain.Zone, err error) *CatalogMock {
+	e.results = &CatalogMockUpdateZoneResults{z1, err}
+	return e.mock
+}
+
+// Times sets number of times Catalog.UpdateZone should be invoked
+func (mmUpdateZone *mCatalogMockUpdateZone) Times(n uint64) *mCatalogMockUpdateZone {
+	if n == 0 {
+		mmUpdateZone.mock.t.Fatalf("Times of CatalogMock.UpdateZone mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmUpdateZone.expectedInvocations, n)
+	mmUpdateZone.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmUpdateZone
+}
+
+func (mmUpdateZone *mCatalogMockUpdateZone) invocationsDone() bool {
+	if len(mmUpdateZone.expectations) == 0 && mmUpdateZone.defaultExpectation == nil && mmUpdateZone.mock.funcUpdateZone == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmUpdateZone.mock.afterUpdateZoneCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmUpdateZone.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// UpdateZone implements mm_service.Catalog
+func (mmUpdateZone *CatalogMock) UpdateZone(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch) (z1 domain.Zone, err error) {
+	mm_atomic.AddUint64(&mmUpdateZone.beforeUpdateZoneCounter, 1)
+	defer mm_atomic.AddUint64(&mmUpdateZone.afterUpdateZoneCounter, 1)
+
+	mmUpdateZone.t.Helper()
+
+	if mmUpdateZone.inspectFuncUpdateZone != nil {
+		mmUpdateZone.inspectFuncUpdateZone(ctx, territorySlug, id, p)
+	}
+
+	mm_params := CatalogMockUpdateZoneParams{ctx, territorySlug, id, p}
+
+	// Record call args
+	mmUpdateZone.UpdateZoneMock.mutex.Lock()
+	mmUpdateZone.UpdateZoneMock.callArgs = append(mmUpdateZone.UpdateZoneMock.callArgs, &mm_params)
+	mmUpdateZone.UpdateZoneMock.mutex.Unlock()
+
+	for _, e := range mmUpdateZone.UpdateZoneMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.z1, e.results.err
+		}
+	}
+
+	if mmUpdateZone.UpdateZoneMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmUpdateZone.UpdateZoneMock.defaultExpectation.Counter, 1)
+		mm_want := mmUpdateZone.UpdateZoneMock.defaultExpectation.params
+		mm_want_ptrs := mmUpdateZone.UpdateZoneMock.defaultExpectation.paramPtrs
+
+		mm_got := CatalogMockUpdateZoneParams{ctx, territorySlug, id, p}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmUpdateZone.t.Errorf("CatalogMock.UpdateZone got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateZone.UpdateZoneMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmUpdateZone.t.Errorf("CatalogMock.UpdateZone got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateZone.UpdateZoneMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
+				mmUpdateZone.t.Errorf("CatalogMock.UpdateZone got unexpected parameter id, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateZone.UpdateZoneMock.defaultExpectation.expectationOrigins.originId, *mm_want_ptrs.id, mm_got.id, minimock.Diff(*mm_want_ptrs.id, mm_got.id))
+			}
+
+			if mm_want_ptrs.p != nil && !minimock.Equal(*mm_want_ptrs.p, mm_got.p) {
+				mmUpdateZone.t.Errorf("CatalogMock.UpdateZone got unexpected parameter p, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateZone.UpdateZoneMock.defaultExpectation.expectationOrigins.originP, *mm_want_ptrs.p, mm_got.p, minimock.Diff(*mm_want_ptrs.p, mm_got.p))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmUpdateZone.t.Errorf("CatalogMock.UpdateZone got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmUpdateZone.UpdateZoneMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmUpdateZone.UpdateZoneMock.defaultExpectation.results
+		if mm_results == nil {
+			mmUpdateZone.t.Fatal("No results are set for the CatalogMock.UpdateZone")
+		}
+		return (*mm_results).z1, (*mm_results).err
+	}
+	if mmUpdateZone.funcUpdateZone != nil {
+		return mmUpdateZone.funcUpdateZone(ctx, territorySlug, id, p)
+	}
+	mmUpdateZone.t.Fatalf("Unexpected call to CatalogMock.UpdateZone. %v %v %v %v", ctx, territorySlug, id, p)
+	return
+}
+
+// UpdateZoneAfterCounter returns a count of finished CatalogMock.UpdateZone invocations
+func (mmUpdateZone *CatalogMock) UpdateZoneAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdateZone.afterUpdateZoneCounter)
+}
+
+// UpdateZoneBeforeCounter returns a count of CatalogMock.UpdateZone invocations
+func (mmUpdateZone *CatalogMock) UpdateZoneBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdateZone.beforeUpdateZoneCounter)
+}
+
+// Calls returns a list of arguments used in each call to CatalogMock.UpdateZone.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmUpdateZone *mCatalogMockUpdateZone) Calls() []*CatalogMockUpdateZoneParams {
+	mmUpdateZone.mutex.RLock()
+
+	argCopy := make([]*CatalogMockUpdateZoneParams, len(mmUpdateZone.callArgs))
+	copy(argCopy, mmUpdateZone.callArgs)
+
+	mmUpdateZone.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockUpdateZoneDone returns true if the count of the UpdateZone invocations corresponds
+// the number of defined expectations
+func (m *CatalogMock) MinimockUpdateZoneDone() bool {
+	if m.UpdateZoneMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.UpdateZoneMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.UpdateZoneMock.invocationsDone()
+}
+
+// MinimockUpdateZoneInspect logs each unmet expectation
+func (m *CatalogMock) MinimockUpdateZoneInspect() {
+	for _, e := range m.UpdateZoneMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to CatalogMock.UpdateZone at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterUpdateZoneCounter := mm_atomic.LoadUint64(&m.afterUpdateZoneCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.UpdateZoneMock.defaultExpectation != nil && afterUpdateZoneCounter < 1 {
+		if m.UpdateZoneMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to CatalogMock.UpdateZone at\n%s", m.UpdateZoneMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to CatalogMock.UpdateZone at\n%s with params: %#v", m.UpdateZoneMock.defaultExpectation.expectationOrigins.origin, *m.UpdateZoneMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcUpdateZone != nil && afterUpdateZoneCounter < 1 {
+		m.t.Errorf("Expected call to CatalogMock.UpdateZone at\n%s", m.funcUpdateZoneOrigin)
+	}
+
+	if !m.UpdateZoneMock.invocationsDone() && afterUpdateZoneCounter > 0 {
+		m.t.Errorf("Expected %d calls to CatalogMock.UpdateZone at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.UpdateZoneMock.expectedInvocations), m.UpdateZoneMock.expectedInvocationsOrigin, afterUpdateZoneCounter)
+	}
+}
+
 type mCatalogMockUpsertModel struct {
 	optional           bool
 	mock               *CatalogMock
@@ -14963,6 +16820,8 @@ func (m *CatalogMock) MinimockFinish() {
 
 			m.MinimockCreatePlacementsInspect()
 
+			m.MinimockCreateZoneInspect()
+
 			m.MinimockDeleteMeasurementInspect()
 
 			m.MinimockDeleteMeasurementsInspect()
@@ -14976,6 +16835,8 @@ func (m *CatalogMock) MinimockFinish() {
 			m.MinimockDeleteTerritoryInspect()
 
 			m.MinimockDeleteTerritoryArtifactsInspect()
+
+			m.MinimockDeleteZoneInspect()
 
 			m.MinimockGetModelInspect()
 
@@ -14991,6 +16852,8 @@ func (m *CatalogMock) MinimockFinish() {
 
 			m.MinimockListModelArtifactsInspect()
 
+			m.MinimockListModelTagsInspect()
+
 			m.MinimockListModelsInspect()
 
 			m.MinimockListPlacementGroupsInspect()
@@ -15002,6 +16865,8 @@ func (m *CatalogMock) MinimockFinish() {
 			m.MinimockListTerritoryAdminsInspect()
 
 			m.MinimockListTerritoryArtifactsInspect()
+
+			m.MinimockListZonesInspect()
 
 			m.MinimockRenamePlacementGroupInspect()
 
@@ -15030,6 +16895,8 @@ func (m *CatalogMock) MinimockFinish() {
 			m.MinimockUpdatePlacementInspect()
 
 			m.MinimockUpdateTerritoryInspect()
+
+			m.MinimockUpdateZoneInspect()
 
 			m.MinimockUpsertModelInspect()
 
@@ -15061,6 +16928,7 @@ func (m *CatalogMock) minimockDone() bool {
 		m.MinimockCreatePlacementDone() &&
 		m.MinimockCreatePlacementGroupDone() &&
 		m.MinimockCreatePlacementsDone() &&
+		m.MinimockCreateZoneDone() &&
 		m.MinimockDeleteMeasurementDone() &&
 		m.MinimockDeleteMeasurementsDone() &&
 		m.MinimockDeleteModelDone() &&
@@ -15068,6 +16936,7 @@ func (m *CatalogMock) minimockDone() bool {
 		m.MinimockDeletePlacementGroupDone() &&
 		m.MinimockDeleteTerritoryDone() &&
 		m.MinimockDeleteTerritoryArtifactsDone() &&
+		m.MinimockDeleteZoneDone() &&
 		m.MinimockGetModelDone() &&
 		m.MinimockGetModelArtifactDone() &&
 		m.MinimockGetTerritoryDone() &&
@@ -15075,12 +16944,14 @@ func (m *CatalogMock) minimockDone() bool {
 		m.MinimockGetTerritoryArtifactDone() &&
 		m.MinimockListMeasurementsDone() &&
 		m.MinimockListModelArtifactsDone() &&
+		m.MinimockListModelTagsDone() &&
 		m.MinimockListModelsDone() &&
 		m.MinimockListPlacementGroupsDone() &&
 		m.MinimockListPlacementsDone() &&
 		m.MinimockListTerritoriesDone() &&
 		m.MinimockListTerritoryAdminsDone() &&
 		m.MinimockListTerritoryArtifactsDone() &&
+		m.MinimockListZonesDone() &&
 		m.MinimockRenamePlacementGroupDone() &&
 		m.MinimockResolveBlobAccessDone() &&
 		m.MinimockResolveLabelsDone() &&
@@ -15095,6 +16966,7 @@ func (m *CatalogMock) minimockDone() bool {
 		m.MinimockUpdateModelDone() &&
 		m.MinimockUpdatePlacementDone() &&
 		m.MinimockUpdateTerritoryDone() &&
+		m.MinimockUpdateZoneDone() &&
 		m.MinimockUpsertModelDone() &&
 		m.MinimockUpsertTerritoryDone()
 }

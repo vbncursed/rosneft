@@ -39,20 +39,22 @@ func (c *Client) UpdateModel(ctx context.Context, slug string, u domain.ModelUpd
 		Title:             u.Title,
 		Description:       u.Description,
 		ThumbnailBlobHash: u.ThumbnailBlobHash,
+		TagSlug:           u.TagSlug,
 	})
 	if err != nil {
-		return domain.Model{}, fmt.Errorf("catalog.UpdateModel: %w", grpcerr.MapStatus(err, domain.ErrModelNotFound))
+		return domain.Model{}, grpcerr.Refused("catalog.UpdateModel", err, domain.ErrModelNotFound)
 	}
 	return modelFromProto(resp.GetModel()), nil
 }
 
-// UpsertModel creates a model (the RPC keeps its old name). The catalog derives
+// UpsertModel creates a model (the RPC keeps its old name) in the tag named by
+// m.Tag.Slug; an unknown one is a refusal in the catalog's words. The catalog derives
 // the slug from the title; it never rewrites an existing row — edits go
 // through UpdateModel.
 func (c *Client) UpsertModel(ctx context.Context, m domain.Model) (domain.Model, error) {
-	resp, err := c.cc.UpsertModel(ctx, &catalogv1.UpsertModelRequest{Model: modelToProto(m)})
+	resp, err := c.cc.UpsertModel(ctx, &catalogv1.UpsertModelRequest{Model: modelToProto(m), TagSlug: m.Tag.Slug})
 	if err != nil {
-		return domain.Model{}, fmt.Errorf("catalog.UpsertModel: %w", grpcerr.MapStatus(err, nil))
+		return domain.Model{}, grpcerr.Refused("catalog.UpsertModel", err, domain.ErrModelNotFound)
 	}
 	return modelFromProto(resp.GetModel()), nil
 }

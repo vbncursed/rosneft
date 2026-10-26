@@ -12,7 +12,7 @@ import (
 
 // GetSceneBundle is the single-shot composition for the viewer page. It
 // fans out its reads in parallel — territory, territory artifacts,
-// placements, placement groups, measurements, the model catalog, panoramas,
+// placements, placement groups, measurements, zones, the model catalog, panoramas,
 // panorama phase flags and documents — and stitches the result together.
 //
 // A missing LOD0 territory artifact is not an error: SceneBundle.Artifact
@@ -33,6 +33,7 @@ func (g *Gateway) GetSceneBundle(ctx context.Context, slug, scopeAdminID string)
 		measures   []domain.Measurement
 		groups     []domain.PlacementGroup
 		phases     []domain.PanoramaPhase
+		zones      []domain.Zone
 	)
 
 	gr, gctx := errgroup.WithContext(ctx)
@@ -77,6 +78,14 @@ func (g *Gateway) GetSceneBundle(ctx context.Context, slug, scopeAdminID string)
 		return nil
 	})
 	gr.Go(func() error {
+		z, err := g.catalog.ListZones(gctx, slug)
+		if err != nil && !errors.Is(err, domain.ErrTerritoryNotFound) {
+			return err
+		}
+		zones = z
+		return nil
+	})
+	gr.Go(func() error {
 		m, err := g.catalog.ListModels(gctx, true)
 		if err != nil {
 			return err
@@ -118,6 +127,7 @@ func (g *Gateway) GetSceneBundle(ctx context.Context, slug, scopeAdminID string)
 	bundle.Documents = nilToEmpty(documents)
 	bundle.Measurements = nilToEmpty(measures)
 	bundle.PlacementGroups = nilToEmpty(groups)
+	bundle.Zones = nilToEmpty(zones)
 	bundle.PanoramaPhases = phases
 	if phases == nil {
 		// No answer — a content-service without the RPC, or no such

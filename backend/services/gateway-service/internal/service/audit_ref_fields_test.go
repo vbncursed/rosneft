@@ -124,3 +124,43 @@ func TestCollectRefsNamesAPanoramaPhasesTerritory(t *testing.T) {
 	assert.Equal(t, len(got), 1)
 	assert.Assert(t, hasRef(got, "territory", "12"))
 }
+
+func TestCollectRefsNamesAZoneItsTerritoryAndAuthor(t *testing.T) {
+	entries := []domain.AuditEntry{
+		{Entity: "zone", NewRow: `{"id":7,"territory_id":12,"title":"Camp","created_by":"u-9"}`},
+	}
+
+	got := collectRefs(entries)
+
+	assert.Assert(t, hasRef(got, "territory", "12"))
+	assert.Assert(t, hasRef(got, "user", "u-9"))
+}
+
+// A zone's tag row has no id or territory of its own: it points at its zone and
+// its tag.
+func TestCollectRefsResolvesAZoneTagThroughItsZone(t *testing.T) {
+	entries := []domain.AuditEntry{{Entity: "zone_tag", NewRow: `{"zone_id":7,"tag_id":3}`}}
+
+	got := collectRefs(entries)
+
+	assert.Assert(t, hasRef(got, "zone", "7"))
+	assert.Assert(t, hasRef(got, "model_tag", "3"))
+}
+
+// A calibration point has a composite key and no label: it points at its
+// document.
+func TestCollectRefsResolvesACalibrationThroughItsDocument(t *testing.T) {
+	entries := []domain.AuditEntry{{Entity: "calibration", NewRow: `{"document_id":9,"idx":0,"page":1}`}}
+
+	got := collectRefs(entries)
+
+	assert.Equal(t, len(got), 1)
+	assert.Assert(t, hasRef(got, "document", "9"))
+}
+
+// model_tag rows hold only slug and title: nothing to resolve.
+func TestCollectRefsSkipsModelTagRows(t *testing.T) {
+	entries := []domain.AuditEntry{{Entity: "model_tag", NewRow: `{"id":3,"slug":"camp","title":"Camp"}`}}
+
+	assert.Equal(t, len(collectRefs(entries)), 0)
+}

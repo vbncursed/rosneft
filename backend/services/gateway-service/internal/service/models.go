@@ -26,13 +26,19 @@ func (g *Gateway) CreateModel(ctx context.Context, m domain.Model, scope domain.
 	if err := validateEntity(m.Title, m.SourceBlobHash); err != nil {
 		return domain.Model{}, domain.Job{}, err
 	}
+	// No default tag: a model is placed in a group on purpose.
+	if m.Tag.Slug = strings.TrimSpace(m.Tag.Slug); m.Tag.Slug == "" {
+		return domain.Model{}, domain.Job{}, fmt.Errorf("%w: tagSlug is required", domain.ErrInvalidInput)
+	}
 	m.Title, m.Description = strings.TrimSpace(m.Title), strings.TrimSpace(m.Description)
 	if err := g.authorizeBlobs(ctx, scope, m.SourceBlobHash, m.ThumbnailBlobHash); err != nil {
 		return domain.Model{}, domain.Job{}, err
 	}
+	// The catalog's refusal (an unknown tag) goes out unwrapped: its message
+	// starts at the sentinel and is the 400 body as it is.
 	saved, err := g.catalog.UpsertModel(ctx, m)
 	if err != nil {
-		return domain.Model{}, domain.Job{}, fmt.Errorf("create model: %w", err)
+		return domain.Model{}, domain.Job{}, err
 	}
 	job, err := g.mesh.SubmitConversion(ctx, domain.KindModel, saved.Slug)
 	if err != nil {
@@ -52,16 +58,17 @@ func (g *Gateway) UpdateModel(ctx context.Context, slug string, update domain.Mo
 	if update.Title, update.Description, err = trimDetails(update.Title, update.Description); err != nil {
 		return domain.Model{}, err
 	}
+	if update.TagSlug != nil {
+		if update.TagSlug = new(strings.TrimSpace(*update.TagSlug)); *update.TagSlug == "" {
+			return domain.Model{}, fmt.Errorf("%w: tagSlug must not be blank", domain.ErrInvalidInput)
+		}
+	}
 	if update.ThumbnailBlobHash != nil {
 		if err := g.authorizeBlobs(ctx, scope, *update.ThumbnailBlobHash); err != nil {
 			return domain.Model{}, err
 		}
 	}
-	saved, err := g.catalog.UpdateModel(ctx, slug, update)
-	if err != nil {
-		return domain.Model{}, fmt.Errorf("update model: %w", err)
-	}
-	return saved, nil
+	return g.catalog.UpdateModel(ctx, slug, update)
 }
 
 // DeleteModel removes a model by slug. Refuses if the model is still
