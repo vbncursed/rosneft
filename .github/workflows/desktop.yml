@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
       # package.json's packageManager field picks the Yarn release. After
       # setup-node, so the shim lands beside the Node this job runs. Every yarn
       # step runs inside desktop/: corepack reads the field from the working
@@ -58,7 +58,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
       # package.json's packageManager field picks the Yarn release. After
       # setup-node, so the shim lands beside the Node this job runs. Every yarn
       # step runs inside desktop/: corepack reads the field from the working
