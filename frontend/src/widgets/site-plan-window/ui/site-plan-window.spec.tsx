@@ -283,4 +283,13 @@ describe("SitePlanWindow pairs", () => {
     render(<SitePlanWindow {...props({ pending: { x: 5, y: 5 } })} />);
     expect(screen.getByRole("img", { name: "Plan point waiting for its spot on the model" })).toBeInTheDocument();
   });
+
+  // Docked over the canvas centre, the window hid the whole model on a laptop screen,
+  // so the click the editor waited for could not be made.
+  it("lets clicks through to the model while a plan point waits for it", () => {
+    const { rerender } = render(<SitePlanWindow {...props()} />);
+    expect(screen.getByRole("dialog")).not.toHaveClass("pointer-events-none");
+    rerender(<SitePlanWindow {...props({ pending: { x: 5, y: 5 } })} />);
+    expect(screen.getByRole("dialog")).toHaveClass("pointer-events-none");
+  });
 });

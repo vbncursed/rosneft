@@ -21,6 +21,8 @@ export type ViewportWindowProps = {
   onResizeStart?: (e: PointerEvent<HTMLElement>) => void;
   /** True while a drag runs: a transparent shield covers the body so an iframe cannot eat the pointer. */
   dragging?: boolean;
+  /** True while the reader must click the scene behind the window: the body fades and lets clicks through; the title bar still works. */
+  seeThrough?: boolean;
   children: ReactNode;
   className?: string;
 };
@@ -41,6 +43,7 @@ export function ViewportWindow({
   onMoveStart,
   onResizeStart,
   dragging = false,
+  seeThrough = false,
   children,
   className,
 }: ViewportWindowProps) {
@@ -51,14 +54,15 @@ export function ViewportWindow({
       aria-label={title}
       style={floating ? { left: geometry.x, top: geometry.y, width: geometry.w, height: geometry.h } : undefined}
       className={cx(
-        "pointer-events-auto absolute z-30 flex flex-col overflow-hidden rounded-card border border-line-2 bg-panel shadow-elevation",
+        "absolute z-30 flex flex-col overflow-hidden rounded-card border border-line-2",
+        seeThrough ? "pointer-events-none" : "pointer-events-auto bg-panel shadow-elevation",
         !floating && "inset-3.5",
         // The cursor holds over the whole window, iframe shield included.
         dragging && "cursor-grabbing",
         className,
       )}
     >
-      <div className="flex items-center gap-2.5 border-b border-line bg-panel-2 px-[11px] py-[9px]">
+      <div className="pointer-events-auto flex items-center gap-2.5 border-b border-line bg-panel-2 px-[11px] py-[9px]">
         {floating ? (
           // Pointer-only, like the corner: never focused, so its tooltip is hover-only.
           <Tooltip label="Drag to move">
@@ -90,7 +94,7 @@ export function ViewportWindow({
           </Tooltip>
         ))}
       </div>
-      <div className="relative min-h-0 flex-1 bg-panel-2">
+      <div className={cx("relative min-h-0 flex-1 bg-panel-2", seeThrough && "opacity-35")}>
         {children}
         {dragging ? <div data-testid="drag-shield" className="absolute inset-0" /> : null}
       </div>

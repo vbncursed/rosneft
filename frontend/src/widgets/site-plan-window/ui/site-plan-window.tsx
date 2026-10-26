@@ -102,7 +102,8 @@ export function SitePlanWindow({ frame, title = "Site plan", ...plan }: SitePlan
   const zoom = (factor: number) => change(zoomAt(view, factor, { x: size().w / 2, y: size().h / 2 }));
 
   return (
-    <ViewportWindow title={title} geometry={null} actions={[]} {...frame}>
+    // A plan point waiting for the model: the model is usually right under the docked window.
+    <ViewportWindow title={title} geometry={null} actions={[]} {...frame} seeThrough={Boolean(plan.pending)}>
       <div
         ref={box}
         role="group"
