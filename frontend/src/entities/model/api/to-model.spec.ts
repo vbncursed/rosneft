@@ -4,6 +4,11 @@ import { toModel } from "./to-model";
 const tag = { slug: "tanks", title: "Tanks" };
 
 describe("toModel", () => {
+  it("reads a snapshot saved before tags existed as ungrouped", () => {
+    const old = { slug: "m", title: "M", sourceBlobHash: "a".repeat(64) } as Parameters<typeof toModel>[0];
+    expect(toModel(old).tag).toEqual({ slug: "ungrouped", title: "Ungrouped" });
+  });
+
   it("maps the whole shape and drops empty optionals", () => {
     expect(
       toModel({

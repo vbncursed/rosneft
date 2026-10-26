@@ -106,6 +106,12 @@ describe("getSceneBundle", () => {
     expect(bundle.placementGroups).toEqual([{ id: 2, title: "Tank farm", hidden: true }]);
   });
 
+  it("reads option tags missing from an older snapshot as ungrouped", async () => {
+    const { tag: _tag, ...untagged } = dto.modelOptions[0];
+    fetchMock.mockResolvedValueOnce(json({ ...dto, modelOptions: [untagged] }));
+    expect((await getSceneBundle("t")).modelOptions[0].tag).toEqual({ slug: "ungrouped", title: "Ungrouped" });
+  });
+
   it("maps zones through their own mapper", async () => {
     expect((await getSceneBundle("t")).zones).toEqual(dto.zones);
   });
