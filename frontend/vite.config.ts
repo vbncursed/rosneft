@@ -6,6 +6,7 @@ import { defineConfig } from "vite";
 // Shared with src/architecture.spec.ts's EXEMPT — one policy, one list.
 import { EXEMPT_MODULES } from "./exempt-modules.ts";
 import { shellManifest } from "./build/shell-manifest.ts";
+import { pdfjsDev } from "./build/pdfjs-dev.ts";
 
 // These three.js packages ship no `exports` map, and vitest resolves no
 // `module` field (mainFields: []), so under test each loaded its `main` — a
@@ -29,7 +30,7 @@ const ESM_BUILDS = {
 };
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), shellManifest()],
+  plugins: [react(), tailwindcss(), shellManifest(), pdfjsDev()],
   resolve: {
     alias: { "@": path.resolve(import.meta.dirname, "src") },
   },
