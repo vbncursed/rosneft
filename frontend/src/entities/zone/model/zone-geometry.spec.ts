@@ -49,6 +49,27 @@ describe("zoneContains", () => {
   });
 });
 
+describe("zoneContains, degenerate zones", () => {
+  it("contains nothing when all corners coincide, not even that point", () => {
+    const P = { x: 1, y: 0, z: 1 };
+    const z = zone([P, P, P, P]);
+    expect(zoneContains(z, { x: 1, z: 1 })).toBe(false);
+    expect(zoneContains(z, { x: 5, z: 5 })).toBe(false);
+  });
+  it("contains nothing when the corners are collinear", () => {
+    const z = zone(
+      quad([
+        [0, 0],
+        [1, 0],
+        [2, 0],
+        [3, 0],
+      ]),
+    );
+    expect(zoneContains(z, { x: 1, z: 0 })).toBe(false);
+    expect(zoneContains(z, { x: 1, z: 1 })).toBe(false);
+  });
+});
+
 describe("zoneCentre", () => {
   it("is the mean of the corners, height included", () => {
     expect(

@@ -2,11 +2,21 @@ import type { Vec3 } from "@/entities/placement";
 import type { Zone } from "./zone";
 
 const EDGE_EPS = 1e-9;
+const MIN_AREA = 1e-9;
+
+const area = (zone: Zone) =>
+  Math.abs(
+    zone.corners.reduce((sum, a, i) => {
+      const b = zone.corners[(i + 1) % 4];
+      return sum + (a.x * b.z - b.x * a.z);
+    }, 0),
+  ) / 2;
 
 const side = (a: Vec3, b: Vec3) => Math.hypot(b.x - a.x, b.z - a.z);
 
 /** Inside the rectangle on the ground plane, an edge included; either winding. */
 export function zoneContains(zone: Zone, p: { x: number; z: number }): boolean {
+  if (area(zone) < MIN_AREA) return false; // a degenerate zone has no inside
   const crosses = zone.corners.map((a, i) => {
     const b = zone.corners[(i + 1) % 4];
     return (b.x - a.x) * (p.z - a.z) - (b.z - a.z) * (p.x - a.x);

@@ -12,7 +12,7 @@ const pctText = (pct: number) => {
 /** Drawn size against the model's, in words; the larger side deviation decides. Null without a drawing size. */
 export function sizeCheck(zone: Zone, unitRatio: number): { text: string; warn: boolean } | null {
   const { drawingWidthM: dw, drawingHeightM: dh } = zone;
-  if (dw === null || dh === null) return null;
+  if (dw === null || dh === null || dw <= 0 || dh <= 0) return null;
   const { width, height } = zoneSizeM(zone, unitRatio);
   const pcts = [((width - dw) / dw) * 100, ((height - dh) / dh) * 100];
   const pct = pcts.reduce((worst, p) => (Math.abs(p) > Math.abs(worst) ? p : worst));

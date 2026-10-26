@@ -32,5 +32,9 @@ describe("sizeCheck", () => {
   });
   it("does not warn at exactly 3 %", () => expect(sizeCheck(zone(10.3, 10, 10, 10), 1)?.warn).toBe(false));
   it("signs an increase with +", () => expect(sizeCheck(zone(7.65, 13, 7.5, 13), 1)?.text).toContain("(+2 %)"));
+  it("is null for a non-positive drawing size", () => {
+    expect(sizeCheck(zone(1, 1, 0, 5), 1)).toBeNull();
+    expect(sizeCheck(zone(1, 1, 5, -1), 1)).toBeNull();
+  });
   it("is null without a drawing size", () => expect(sizeCheck(zone(1, 1, null, null), 1)).toBeNull());
 });
