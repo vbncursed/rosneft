@@ -100,6 +100,21 @@ describe("useAlignment, automatic", () => {
   });
 });
 
+describe("useAlignment, reporting the calibration", () => {
+  it("hands the saved calibration to the page, and null when it is cleared", async () => {
+    const onCalibrated = vi.fn();
+    const saved = { page: 1, points: [] };
+    vi.mocked(putCalibration).mockResolvedValue(saved);
+    vi.mocked(deleteCalibration).mockResolvedValue(undefined);
+    const { result, rerender } = align({ onCalibrated });
+    await act(() => result.current.save());
+    expect(onCalibrated).toHaveBeenLastCalledWith(saved);
+    rerender({ onCalibrated, document: doc(saved) });
+    await act(() => result.current.clear());
+    expect(onCalibrated).toHaveBeenLastCalledWith(null);
+  });
+});
+
 describe("useAlignment, manual", () => {
   it("says so and starts empty when the plan is not on this model", () => {
     const far = { min: { x: 0, y: 0, z: 0 }, max: { x: 10, y: 10, z: 10 } };

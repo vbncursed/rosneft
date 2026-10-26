@@ -1,6 +1,14 @@
 import { canEditSaved, computeUnitRatio } from "@/entities/measurement";
 import { groupByModel } from "@/entities/placement";
-import { documentProps, loadingLevel, panoramaCanvasProps, uploadProps, viewTabProps } from "./page-props-b";
+import {
+  documentProps,
+  loadingLevel,
+  panoramaCanvasProps,
+  planLayer,
+  uploadProps,
+  viewTabProps,
+  zoneCard,
+} from "./page-props-b";
 import { memoLast } from "./memo-last";
 import { placementsPanelProps } from "./page-props-placements";
 import { freeKeys, loadingChip, measuringView, modeChip, stripItems } from "./strip-and-chips";
@@ -103,6 +111,8 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       retryVersion: view.retryVersion,
       focusRequest: view.focusRequest,
       ...panoramaCanvasProps(p, groups),
+      site: p.zones.site,
+      pickScene: p.zones.pickScene,
       onPick: on.onPick,
       onTransformCommit: on.onTransformCommit,
       onMeasurePoint: on.onMeasurePoint,
@@ -180,6 +190,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       switchTo3d: inside ? p.panoramas.onExit : null,
       document: docs.window,
       documentLayerRef: p.documents.layerRef,
+      plan: planLayer(p),
       error: error
         ? {
             copy: errorCopy(error, view.now),
@@ -207,6 +218,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
           placementsCount: p.placements.length,
           viewTab: viewTabProps(p),
           placements: placementsPanelProps(p, groups),
+          zone: zoneCard(p),
         },
 
     picker: {

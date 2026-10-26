@@ -10,11 +10,23 @@ const editor = (over: Partial<AlignPanelProps["editor"]> = {}, a: Parameters<typ
     page: 1,
     pageCount: 1,
     setPage: vi.fn(),
+    placing: false,
+    setPlacing: vi.fn(),
     alignment: alignmentStub(a),
     ...over,
   }) as AlignPanelProps["editor"];
 
 describe("AlignPanel", () => {
+  it("offers a way back to placing pairs once the rectangles are being picked, and only then", async () => {
+    const setPlacing = vi.fn();
+    const { rerender } = render(<AlignPanel editor={editor({ placing: false, setPlacing })} />);
+    await userEvent.click(screen.getByRole("button", { name: "Add a point pair" }));
+    expect(setPlacing).toHaveBeenCalledWith(true);
+
+    rerender(<AlignPanel editor={editor({ placing: true, setPlacing })} />);
+    expect(screen.queryByRole("button", { name: "Add a point pair" })).toBeNull();
+  });
+
   it("shows no page picker for a single-page plan", () => {
     render(<AlignPanel editor={editor()} />);
     expect(screen.queryByRole("combobox", { name: "Page" })).not.toBeInTheDocument();

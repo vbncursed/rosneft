@@ -32,6 +32,14 @@ describe("ZoneForm", () => {
     expect(screen.getByRole("button", { name: "Create zone" })).toBeDisabled();
   });
 
+  it("shows why a blocked rectangle cannot become a zone, and keeps Create disabled", async () => {
+    view({ blocked: "This rectangle has no area." });
+    await userEvent.type(screen.getByRole("textbox", { name: /Title/ }), "Tank row");
+    await userEvent.click(screen.getByRole("checkbox", { name: "Tanks" }));
+    expect(screen.getByText("This rectangle has no area.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create zone" })).toBeDisabled();
+  });
+
   it("never offers ungrouped", () => {
     view();
     expect(screen.queryByRole("checkbox", { name: "Ungrouped" })).not.toBeInTheDocument();

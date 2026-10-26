@@ -32,6 +32,7 @@ const OWNER: Grants = {
   measureCreate: true,
   measureWrite: true,
   measureDelete: true,
+  zoneWrite: true,
 };
 const EDITOR: Grants = {
   create: true,
@@ -46,6 +47,7 @@ const EDITOR: Grants = {
   measureCreate: true,
   measureWrite: false,
   measureDelete: false,
+  zoneWrite: false,
 };
 const GUEST: Grants = {
   create: false,
@@ -60,6 +62,7 @@ const GUEST: Grants = {
   measureCreate: false,
   measureWrite: false,
   measureDelete: false,
+  zoneWrite: false,
 };
 
 const pills = (over: Partial<Parameters<typeof headerPills>[0]> = {}) =>

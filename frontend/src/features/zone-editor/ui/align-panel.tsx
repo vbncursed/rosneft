@@ -7,11 +7,13 @@ import { SectionHeading } from "@/shared/ui/section-heading";
 import { controlClass } from "@/shared/ui/text-field";
 import type { ZoneEditor } from "../model/use-zone-editor";
 
-export type AlignPanelProps = { editor: Pick<ZoneEditor, "status" | "page" | "pageCount" | "setPage" | "alignment"> };
+export type AlignPanelProps = {
+  editor: Pick<ZoneEditor, "status" | "page" | "pageCount" | "setPage" | "alignment" | "placing" | "setPlacing">;
+};
 
 /** The plan-to-model alignment: pairs and their residuals, how well they fit, and the scale check. */
 export function AlignPanel({ editor }: AlignPanelProps) {
-  const { status, page, pageCount, setPage, alignment: a } = editor;
+  const { status, page, pageCount, setPage, placing, setPlacing, alignment: a } = editor;
   const pageId = useId();
   if (status === "error") {
     return <Callout tone="bad">The plan could not be read. Close it and open it again.</Callout>;
@@ -48,6 +50,11 @@ export function AlignPanel({ editor }: AlignPanelProps) {
         <p className="m-0 text-[12px] text-muted">
           Click a spot on the plan, then the same spot on the model. Drag a marker to fine-tune it.
         </p>
+      )}
+      {placing || a.awaitingScenePick ? null : (
+        <Button size="sm" variant="secondary" onClick={() => setPlacing(true)} className="self-start">
+          Add a point pair
+        </Button>
       )}
       {a.pairs.length > 0 ? (
         <ol className="m-0 flex list-none flex-col gap-1 p-0">

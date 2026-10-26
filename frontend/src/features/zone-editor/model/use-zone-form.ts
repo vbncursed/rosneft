@@ -13,9 +13,12 @@ export type ZoneForm = { title: string; tagSlugs: string[] };
 /** The zone form: a title, one to five tags (never `ungrouped`) and the server's verdict on them. */
 export function useZoneForm({
   canPlace,
+  blocked,
   onCreate,
 }: {
   canPlace: boolean;
+  /** Why the picked rectangle cannot become a zone; null when it can. */
+  blocked: string | null;
   onCreate: (form: ZoneForm) => Promise<void>;
 }) {
   const tagQuery = useQuery(modelTagsQuery());
@@ -58,7 +61,8 @@ export function useZoneForm({
       setSelected((now) => (now.includes(slug) ? now.filter((s) => s !== slug) : atLimit ? now : [...now, slug])),
     error,
     busy,
-    canCreate: canPlace && !busy && tags !== undefined && trimmed.length > 0 && selected.length > 0,
+    blocked,
+    canCreate: canPlace && blocked === null && !busy && tags !== undefined && trimmed.length > 0 && selected.length > 0,
     submit,
   };
 }

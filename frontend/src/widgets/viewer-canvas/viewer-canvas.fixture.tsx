@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import type { Chain } from "@/entities/measurement";
 import { ALL_PHASES_SHOWN } from "@/entities/panorama";
-import { ModelCanvas, ViewerCanvas } from "./index";
+import type { Zone } from "@/entities/zone";
+import { ModelCanvas, ViewerCanvas, type SiteProps } from "./index";
 
 const noop = () => undefined;
 
@@ -22,6 +23,32 @@ const RULER: Chain[] = [
 ];
 
 const NO_CHAINS: Chain[] = [];
+
+// A zone on the grid's floor, so the layer has something to draw without a mesh.
+const ZONE: Zone = {
+  id: 1,
+  title: "Tank row",
+  corners: [
+    { x: -1, y: -1.2, z: -1 },
+    { x: 1, y: -1.2, z: -1 },
+    { x: 1, y: -1.2, z: -0.2 },
+    { x: -1, y: -1.2, z: -0.2 },
+  ],
+  tags: [{ slug: "tanks", title: "Tanks" }],
+  drawingWidthM: null,
+  drawingHeightM: null,
+  createdAt: "",
+  updatedAt: "",
+};
+const SITE: SiteProps = {
+  zones: [ZONE],
+  showZones: true,
+  selectedZoneId: null,
+  onSelectZone: noop,
+  plan: null,
+  planOpacity: 1,
+  onGround: noop,
+};
 
 type CanvasProps = { chains?: Chain[]; showMeasurements?: boolean; measuring?: boolean; free?: boolean };
 
@@ -66,6 +93,8 @@ const Canvas = ({ chains = NO_CHAINS, showMeasurements = true, measuring = false
         move={{ active: false, draggingId: null, livePos: null }}
         cameraPositionRef={{ current: null }}
         cameraYawRef={{ current: null }}
+        site={SITE}
+        pickScene={false}
         onPick={noop}
         onPlayStop={noop}
         onWalkRefused={noop}

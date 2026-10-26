@@ -127,6 +127,7 @@ describe("toSceneViewModel", () => {
     const vm = toSceneViewModel(bundle)!;
     expect(vm.panoramas).toBe(bundle.panoramas);
     expect(vm.documents).toBe(bundle.documents);
+    expect(vm.zones).toBe(bundle.zones);
     expect(vm.measurements).toBe(bundle.measurements);
   });
 

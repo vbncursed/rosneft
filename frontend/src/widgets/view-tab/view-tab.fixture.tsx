@@ -29,8 +29,8 @@ const ROWS: PanoramaRowView[] = [
 ];
 
 const DOCUMENTS = [
-  { id: 3, name: "plan-sheet-03.pdf" },
-  { id: 4, name: "safety-zones.pdf" },
+  { id: 3, name: "plan-sheet-03.pdf", aligned: true },
+  { id: 4, name: "safety-zones.pdf", aligned: false },
 ];
 
 /** The panel body it is rendered into: 320 open, 300 at 1280 and below. */
@@ -60,7 +60,7 @@ function Live({
 }: {
   details?: Detail[];
   rows?: PanoramaRowView[];
-  documents?: { id: number; name: string }[];
+  documents?: { id: number; name: string; aligned: boolean }[];
   calibrating?: { title: string } | null;
   canWrite?: boolean;
   canMove?: boolean;
@@ -71,6 +71,9 @@ function Live({
   ruler?: boolean;
   phaseHidden?: PhaseHidden;
 }) {
+  const [showZones, setShowZones] = useState(true);
+  const [showPlan, setShowPlan] = useState(false);
+  const [planOpacity, setPlanOpacity] = useState(0.6);
   const [markers, setMarkers] = useState<MarkerMode>("all");
   const [moving, setMoving] = useState(false);
   const [showRuler, setShowRuler] = useState(ruler);
@@ -133,7 +136,20 @@ function Live({
           canUpload: canWrite,
           onUpload: () => {},
           onOpen: () => {},
+          onAlign: canWrite ? () => {} : undefined,
           fold: folds.documents,
+        }}
+        zones={{
+          count: 3,
+          show: showZones,
+          onToggle: () => setShowZones((on) => !on),
+          plan: {
+            available: canWrite,
+            show: showPlan,
+            onToggle: () => setShowPlan((on) => !on),
+            opacity: planOpacity,
+            onOpacity: setPlanOpacity,
+          },
         }}
         measurements={{ saved: 2, show: showRuler, onToggle: () => setShowRuler((on) => !on) }}
         footer={footer}

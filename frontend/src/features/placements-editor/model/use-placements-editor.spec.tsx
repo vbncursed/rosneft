@@ -99,6 +99,59 @@ describe("usePlacementsEditor", () => {
     expect(onChanged).toHaveBeenCalledOnce();
   });
 
+  describe("origin", () => {
+    const ORIGIN = { position: { x: 10, y: 2, z: -4 }, yaw: Math.PI / 2 };
+    const echo = () =>
+      vi
+        .mocked(createPlacements)
+        .mockImplementation(async (_slug, items) => items.map((body, i) => ({ ...placement(100 + i), ...body })));
+
+    it("create with an origin lays the row from the zone centre along its axis", async () => {
+      echo();
+      const { result } = editor();
+
+      await act(async () => {
+        await result.current.s.create("tank", 3, null, ORIGIN);
+      });
+
+      const items = vi.mocked(createPlacements).mock.calls[0][1];
+      const step = 0.22;
+      // A quarter turn about Y sends +x to -z.
+      expect(items.map((i) => i.position?.x)).toEqual([10, expect.closeTo(10, 10), expect.closeTo(10, 10)]);
+      expect(items.map((i) => i.position?.y)).toEqual([2, 2, 2]);
+      expect(items[0].position?.z).toBeCloseTo(-4, 10);
+      expect(items[1].position?.z).toBeCloseTo(-4 - step, 10);
+      expect(items[2].position?.z).toBeCloseTo(-4 - 2 * step, 10);
+      for (const item of items) expect(item.rotation).toEqual({ x: 0, y: Math.PI / 2, z: 0 });
+    });
+
+    it("create without an origin is unchanged", async () => {
+      echo();
+      const { result } = editor();
+
+      await act(async () => {
+        await result.current.s.create("tank", 2);
+      });
+
+      const items = vi.mocked(createPlacements).mock.calls[0][1];
+      expect(items[1].position).toEqual({ x: expect.closeTo(0.22, 10), y: 0, z: 0 });
+      expect(items[0]).not.toHaveProperty("rotation");
+    });
+
+    it("a retry keeps its key only at the same origin", async () => {
+      vi.mocked(createPlacements).mockRejectedValue(new HttpError(502, null, "bad gateway"));
+      const { result } = editor();
+      const keyOf = (call: number) => vi.mocked(createPlacements).mock.calls[call][2];
+
+      await act(async () => void (await result.current.s.create("tank", 1, null, ORIGIN)));
+      await act(async () => void (await result.current.s.create("tank", 1, null, { ...ORIGIN })));
+      await act(async () => void (await result.current.s.create("tank", 1, null, { ...ORIGIN, yaw: 0 })));
+
+      expect(keyOf(1)).toBe(keyOf(0));
+      expect(keyOf(2)).not.toBe(keyOf(0));
+    });
+  });
+
   it("exposes placing progress while the batch is in flight", async () => {
     let release!: () => void;
     vi.mocked(createPlacements).mockImplementationOnce(

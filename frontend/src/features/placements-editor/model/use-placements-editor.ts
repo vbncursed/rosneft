@@ -14,6 +14,7 @@ import {
   type PlacementTransform,
   type PlacementUpdate,
   type ResolvedPlacement,
+  type Vec3,
 } from "@/entities/placement";
 import type { ModelOption } from "@/entities/scene";
 import { HttpError, messageOf } from "@/shared/api";
@@ -31,6 +32,18 @@ export type PlacementsEditorParams = {
   /** Every successful mutation calls this; the page marks the scene bundle stale. */
   onChanged: () => void;
 };
+
+/** Where a batch starts and which way its row runs: a zone's centre and axis. */
+export type PlacementOrigin = { position: Vec3; yaw: number };
+
+const sameOrigin = (a: PlacementOrigin | null, b: PlacementOrigin | null) =>
+  a === b ||
+  (a !== null &&
+    b !== null &&
+    a.yaw === b.yaw &&
+    a.position.x === b.position.x &&
+    a.position.y === b.position.y &&
+    a.position.z === b.position.z);
 
 /** How big the batch in flight is. Null when nothing is being placed. */
 export type Placing = { total: number };
@@ -57,7 +70,13 @@ export function usePlacementsEditor({
   // same model × count × group placed again is that action retried, and must carry its
   // key: the batch may have landed with only the answer lost. Anything else, or
   // anything after a success, is a new action and gets a new key.
-  const unsettled = useRef<{ modelSlug: string; total: number; groupId: number | null; key: string } | null>(null);
+  const unsettled = useRef<{
+    modelSlug: string;
+    total: number;
+    groupId: number | null;
+    origin: PlacementOrigin | null;
+    key: string;
+  } | null>(null);
 
   const resolve = useCallback(
     (p: Placement): ResolvedPlacement => ({
@@ -70,13 +89,21 @@ export function usePlacementsEditor({
   );
 
   const create = useCallback(
-    async (modelSlug: string, count: number, groupId: number | null = null): Promise<number | null> => {
+    async (
+      modelSlug: string,
+      count: number,
+      groupId: number | null = null,
+      origin: PlacementOrigin | null = null,
+    ): Promise<number | null> => {
       const total = Math.max(1, Math.floor(count));
       const retried = unsettled.current;
       const action =
-        retried?.modelSlug === modelSlug && retried.total === total && retried.groupId === groupId
+        retried?.modelSlug === modelSlug &&
+        retried.total === total &&
+        retried.groupId === groupId &&
+        sameOrigin(retried.origin, origin)
           ? retried
-          : { modelSlug, total, groupId, key: crypto.randomUUID() };
+          : { modelSlug, total, groupId, origin, key: crypto.randomUUID() };
       unsettled.current = action;
       setMutation(creating);
       setPlacing({ total });
@@ -90,9 +117,20 @@ export function usePlacementsEditor({
           territoryMaxDim,
         );
         const step = 2 * scale * 1.1;
+        // From a zone the row starts at its centre and runs along its axis;
+        // rotating (a, 0, 0) about Y by yaw gives (a cos, 0, -a sin).
+        const at = (i: number): Vec3 =>
+          origin
+            ? {
+                x: origin.position.x + i * step * Math.cos(origin.yaw),
+                y: origin.position.y,
+                z: origin.position.z - i * step * Math.sin(origin.yaw),
+              }
+            : { x: i * step, y: 0, z: 0 };
         const items = Array.from({ length: total }, (_, i) => ({
           modelSlug,
-          position: { x: i * step, y: 0, z: 0 },
+          position: at(i),
+          ...(origin ? { rotation: { x: 0, y: origin.yaw, z: 0 } } : {}),
           scale: { x: scale, y: scale, z: scale },
           visiblePanoramaIds: panoramaIds,
           // A group's own Add (G-4); absent means No group.

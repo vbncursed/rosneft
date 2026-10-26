@@ -27,4 +27,17 @@ describe("DocumentRow", () => {
       "ease-out",
     );
   });
+
+  it("offers Align plan on an unaligned file and Edit zones on an aligned one, only when allowed", async () => {
+    const onAlign = vi.fn();
+    const { rerender } = render(<DocumentRow id={3} name="plan.pdf" onOpen={vi.fn()} onAlign={onAlign} />);
+    await userEvent.click(screen.getByRole("button", { name: "Align plan for plan.pdf" }));
+    expect(onAlign).toHaveBeenCalledWith(3);
+
+    rerender(<DocumentRow id={3} name="plan.pdf" onOpen={vi.fn()} onAlign={onAlign} aligned />);
+    expect(screen.getByRole("button", { name: "Edit zones of plan.pdf" })).toHaveTextContent("Edit zones");
+
+    rerender(<DocumentRow id={3} name="plan.pdf" onOpen={vi.fn()} aligned />);
+    expect(screen.queryByRole("button", { name: /zones|Align/ })).toBeNull();
+  });
 });

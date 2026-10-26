@@ -13,6 +13,7 @@ import type { UploadModalProps } from "@/widgets/upload-modal";
 import type { FoldedSection, SectionFold, ViewTabProps } from "@/widgets/view-tab";
 import type { LodReport, ViewerCanvasProps } from "@/widgets/viewer-canvas";
 import type { DocumentParts, PanoramaParts } from "./overlay-parts";
+import type { ZoneParts } from "./use-viewer-zones";
 import type { PlacementFormView } from "./use-placement-form";
 import type { ErrorCopy, Grants, HeaderPill, RailToolState } from "./viewer-view";
 
@@ -101,6 +102,12 @@ export type ViewerOverlaysProps = {
    * and dragged in, and `usePipWindow` measures it through this.
    */
   documentLayerRef: RefObject<HTMLDivElement | null>;
+  /**
+   * The plan layer, in the same floating layer as the document window: the
+   * alignment editor's window while a PDF is open for it, and otherwise just
+   * the aligned picture "Show plan" draws (no DOM). Null when neither.
+   */
+  plan: ReactNode;
 };
 
 export type ViewerPanelProps = {
@@ -112,6 +119,8 @@ export type ViewerPanelProps = {
   /** The whole View tab: the scene's facts, its panoramas and its documents. */
   viewTab: ViewTabProps;
   placements: PlacementsPanelProps;
+  /** Above whichever tab is open: the align card while the editor is, and the selected zone's card. */
+  zone: ReactNode;
 };
 
 export type TerritoryViewerPageProps = {
@@ -239,6 +248,7 @@ export type PageParts = {
   panoramaTour: Tour;
   panoramas: PanoramaParts;
   documents: DocumentParts;
+  zones: ZoneParts;
   panel: { tab: OverlaysTab; collapsed: boolean };
   /** The View tab's Panoramas and Documents folds (`useViewSections`). */
   sections: Record<FoldedSection, SectionFold>;

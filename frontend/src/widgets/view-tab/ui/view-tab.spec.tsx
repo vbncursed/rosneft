@@ -83,11 +83,17 @@ const base = (): ViewTabProps => ({
     fold: { open: true, locked: false, onToggle: vi.fn() },
   },
   documents: {
-    rows: [{ id: 3, name: "plan-sheet-03.pdf" }],
+    rows: [{ id: 3, name: "plan-sheet-03.pdf", aligned: false }],
     canUpload: false,
     onUpload: vi.fn(),
     onOpen: vi.fn(),
     fold: { open: true, locked: false, onToggle: vi.fn() },
+  },
+  zones: {
+    count: 2,
+    show: true,
+    onToggle: vi.fn(),
+    plan: { available: true, show: false, onToggle: vi.fn(), opacity: 0.6, onOpacity: vi.fn() },
   },
   measurements: { saved: 3, show: true, onToggle: vi.fn() },
   footer: null,
@@ -122,6 +128,26 @@ describe("ViewTab", () => {
     await userEvent.click(priorJob);
     expect(within(list).getAllByRole("button", { name: /^Show in this panorama: / })).toHaveLength(2);
     expect(screen.getByText("Control room, north door")).toBeInTheDocument();
+  });
+
+  it("draws the Zones section between Documents and Measurements", () => {
+    tab();
+    const sections = screen.getAllByRole("region").map((r) => r.getAttribute("aria-label"));
+    expect(sections.indexOf("Zones")).toBe(sections.indexOf("Documents") + 1);
+    expect(sections.indexOf("Measurements")).toBe(sections.indexOf("Zones") + 1);
+  });
+
+  it("offers Align plan on a row only with a handler, and hands it the id", async () => {
+    const { props } = tab((p) => {
+      p.documents.onAlign = vi.fn();
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Align plan for plan-sheet-03.pdf" }));
+    expect(props.documents.onAlign).toHaveBeenCalledWith(3);
+  });
+
+  it("offers no Align plan to a reader without the grant", () => {
+    tab();
+    expect(screen.queryByRole("button", { name: /Align plan/ })).toBeNull();
   });
 
   it("opens a document by id", async () => {

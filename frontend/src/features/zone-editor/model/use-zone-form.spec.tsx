@@ -25,10 +25,15 @@ const setup = (seed = true) => {
   return wrapper;
 };
 
-const form = (over: { canPlace?: boolean; onCreate?: () => Promise<void>; seed?: boolean } = {}) => {
+const form = (
+  over: { canPlace?: boolean; blocked?: string | null; onCreate?: () => Promise<void>; seed?: boolean } = {},
+) => {
   const onCreate = over.onCreate ?? vi.fn(async () => {});
   const hook = renderHook(
-    () => ({ f: useZoneForm({ canPlace: over.canPlace ?? true, onCreate }), notices: useNotices() }),
+    () => ({
+      f: useZoneForm({ canPlace: over.canPlace ?? true, blocked: over.blocked ?? null, onCreate }),
+      notices: useNotices(),
+    }),
     { wrapper: setup(over.seed) },
   );
   return { ...hook, onCreate };
@@ -40,6 +45,14 @@ afterEach(() => {
 });
 
 describe("useZoneForm", () => {
+  it("refuses to create while the rectangle is blocked, and says why", () => {
+    const { result } = form({ blocked: "This rectangle has no area." });
+    act(() => result.current.f.setTitle("Tank row"));
+    act(() => result.current.f.toggleTag("tanks"));
+    expect(result.current.f.canCreate).toBe(false);
+    expect(result.current.f.blocked).toBe("This rectangle has no area.");
+  });
+
   it("offers every tag but ungrouped", () => {
     const { result } = form();
     expect(result.current.f.tags?.map((t) => t.slug)).toEqual(TAGS.slice(0, 6).map((t) => t.slug));

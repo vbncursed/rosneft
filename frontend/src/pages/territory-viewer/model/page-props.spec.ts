@@ -3,7 +3,7 @@ import type { Chain } from "@/entities/measurement";
 import type { ResolvedPlacement } from "@/entities/placement";
 import type { LodChoice, ModelOption, SceneViewModel } from "@/entities/scene";
 import type { Tour } from "@/features/onboarding";
-import { basePageParts, IDLE_DOCUMENTS, IDLE_PANORAMAS } from "../territory-viewer-page.fixture";
+import { basePageParts, IDLE_DOCUMENTS, IDLE_PANORAMAS, IDLE_ZONES } from "../territory-viewer-page.fixture";
 import { pageProps, type PageHandlers, type PageParts } from "./page-props";
 import type { Grants } from "./viewer-view";
 
@@ -20,6 +20,7 @@ const OWNER: Grants = {
   measureCreate: true,
   measureWrite: true,
   measureDelete: true,
+  zoneWrite: true,
 };
 const GUEST: Grants = {
   create: false,
@@ -34,6 +35,7 @@ const GUEST: Grants = {
   measureCreate: false,
   measureWrite: false,
   measureDelete: false,
+  zoneWrite: false,
 };
 
 const TANK: ResolvedPlacement = {
@@ -76,6 +78,7 @@ const VM: SceneViewModel = {
   placements: [TANK],
   panoramas: [],
   documents: [],
+  zones: [],
   measurements: [],
   sourceBbox: null,
 };
@@ -170,6 +173,7 @@ const parts = (over: Partial<PageParts> = {}): PageParts => ({
   panoramaTour: TOUR,
   panoramas: IDLE_PANORAMAS,
   documents: IDLE_DOCUMENTS,
+  zones: IDLE_ZONES,
   panel: { tab: "view", collapsed: false },
   sections: {
     panoramas: { open: true, locked: false, onToggle: vi.fn() },

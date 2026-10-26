@@ -1,9 +1,10 @@
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { createElement, type ComponentType } from "react";
-import type { BufferGeometry, Color, Mesh, Object3D, Scene } from "three";
+import { Raycaster, Vector3, type BufferGeometry, type Color, type Mesh, type Object3D, type Scene } from "three";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ALL_PHASES_SHOWN, type Panorama } from "@/entities/panorama";
-import type { ViewerCanvasProps } from "../ui/props";
+import type { Zone } from "@/entities/zone";
+import type { SiteProps, ViewerCanvasProps } from "../ui/props";
 import SceneCanvas from "./scene-canvas";
 import { boundsStub, fakePlacement, lineColors } from "./testing";
 
@@ -103,6 +104,32 @@ const STILL = { active: false, draggingId: null, livePos: null };
 // jsdom has no ImageBitmap, and nothing here uploads one to a GL context.
 const fakeBitmap = () => ({ close: vi.fn() }) as unknown as ImageBitmap;
 
+const ZONE: Zone = {
+  id: 4,
+  title: "Tank row",
+  corners: [
+    { x: 0, y: 0, z: 0 },
+    { x: 1, y: 0, z: 0 },
+    { x: 1, y: 0, z: 1 },
+    { x: 0, y: 0, z: 1 },
+  ],
+  tags: [{ slug: "tanks", title: "Tanks" }],
+  drawingWidthM: null,
+  drawingHeightM: null,
+  createdAt: "",
+  updatedAt: "",
+};
+
+const SITE: SiteProps = {
+  zones: [ZONE],
+  showZones: true,
+  selectedZoneId: null,
+  onSelectZone: vi.fn(),
+  plan: null,
+  planOpacity: 1,
+  onGround: vi.fn(),
+};
+
 const props = (over: Partial<ViewerCanvasProps> = {}): ViewerCanvasProps => ({
   slug: "t",
   parentLods: [],
@@ -140,6 +167,8 @@ const props = (over: Partial<ViewerCanvasProps> = {}): ViewerCanvasProps => ({
   move: STILL,
   cameraPositionRef: { current: null },
   cameraYawRef: { current: null },
+  site: SITE,
+  pickScene: false,
   onPick: vi.fn(),
   onActivatePanorama: vi.fn(),
   onMarkerGrab: vi.fn(),
@@ -467,5 +496,70 @@ describe("SceneCanvas camera tracking", () => {
     const at = cameraPositionRef.current as unknown as { x: number; y: number; z: number };
     expect([at.x, at.y, at.z].map(Math.round)).toEqual([0, 0, 5]);
     expect(Math.abs(cameraYawRef.current as unknown as number)).toBeCloseTo(Math.PI);
+  });
+});
+
+describe("SceneCanvas site zones", () => {
+  type Holder = { current: Object3D | null };
+  const zonesRoot = (r: Awaited<ReturnType<typeof mount>>) =>
+    r.scene.findAll((n) => n.instance.name === "ZonesLayer")[0]?.instance;
+  const zoneMesh = (r: Awaited<ReturnType<typeof mount>>) =>
+    r.scene.findAll((n) => n.instance.type === "Mesh" && n.instance.parent?.parent?.name === "ZonesLayer")[0];
+  const down = () => new Raycaster(new Vector3(0.5, 10, 0.5), new Vector3(0, -1, 0));
+
+  it("mounts the zones beside the scene wrapper, never under it, so the walker cannot stand on one", async () => {
+    const r = await mount({ free: true, walk: true, unitRatio: 18, parentLods: [{ lod: 0, hash: "t0", size: 1 }] });
+    const solid = (seen.freeCam as { solidRef: Holder }).solidRef.current;
+    expect(zonesRoot(r)).toBeDefined();
+    expect(under(solid, zonesRoot(r))).toBe(false);
+  });
+
+  it("answers a click on a zone in plain orbit only", async () => {
+    const orbit = await mount();
+    expect(zoneMesh(orbit).props.onClick).toBeTypeOf("function");
+    for (const over of [
+      { mode: "measure" as const },
+      { mode: "place" as const },
+      { free: true },
+      { calibrating: true },
+      { pickScene: true },
+      { move: { active: true, draggingId: null, livePos: null } },
+    ]) {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- each mount replaces the last one
+      const r = await mount(over);
+      expect(zoneMesh(r).props.onClick, JSON.stringify(over)).toBeUndefined();
+    }
+  });
+
+  it("lets a measure or place ray pass through a zone", async () => {
+    for (const mode of ["measure", "place"] as const) {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- each mount replaces the last one
+      const r = await mount({ mode });
+      const root = zonesRoot(r);
+      root.updateMatrixWorld(true);
+      expect(down().intersectObject(root, true), mode).toHaveLength(0);
+    }
+  });
+
+  it("draws no zones inside a panorama, or when switched off", async () => {
+    expect(zonesRoot(await mount(inside()))).toBeUndefined();
+    expect(zonesRoot(await mount({ site: { ...SITE, showZones: false } }))).toBeUndefined();
+    expect(zonesRoot(await mount({ site: { ...SITE, zones: [] } }))).toBeDefined();
+  });
+
+  it("takes the next click on the model as a point when the page asks for one, even in orbit", async () => {
+    const onMeasurePoint = vi.fn();
+    const r = await mount({ pickScene: true, onMeasurePoint });
+    const wrapper = r.scene.findAll((n) => n.props.onClick !== undefined)[0];
+    await r.fireEvent(wrapper, "click", clickEvent({ x: 1, y: 2, z: 3 }));
+    expect(onMeasurePoint).toHaveBeenCalledWith({ x: 1, y: 2, z: 3 });
+    expect(seen.layer.measureMode).toBe(true);
+  });
+
+  it("colours the zones from the token accent", async () => {
+    const r = await mount();
+    expect(((zoneMesh(r).instance as Mesh).material as unknown as { color: Color }).color.getHexString()).toBe(
+      "f97316",
+    );
   });
 });

@@ -4,7 +4,10 @@ import type { Panorama, PhaseHidden } from "@/entities/panorama";
 import type { PlacementGroup, PlacementTransform, ResolvedPlacement, Vec3 } from "@/entities/placement";
 import type { LodArtifact, LodChoice } from "@/entities/scene";
 import type { LodFailure } from "@/features/lod";
+import type { Zone } from "@/entities/zone";
 import type { GizmoMode, ViewerMode } from "@/features/viewer-mode";
+import type { Ground } from "../three/ground-probe";
+import type { PlanFit } from "../three/plan-overlay";
 
 /** The territory's progressive state, reported outward for the chips, the switcher and the error card. */
 export type LodReport = {
@@ -13,6 +16,22 @@ export type LodReport = {
   percent: number | null;
   progressText: string | null;
   failure: LodFailure | null;
+};
+
+/** The aligned plan as the canvas draws it: the picture and where it lies on the ground. */
+export type PlanLayer = { image: ImageBitmap; fit: PlanFit };
+
+/** The site zones feature, in one object so the page keeps one identity across a fold. */
+export type SiteProps = {
+  zones: Zone[];
+  showZones: boolean;
+  selectedZoneId: number | null;
+  onSelectZone: (id: number | null) => void;
+  /** Null draws no plan. */
+  plan: PlanLayer | null;
+  planOpacity: number;
+  /** The ground probe is ready: heights under a point, and the median. */
+  onGround: (ground: Ground) => void;
 };
 
 export type ViewerCanvasProps = {
@@ -85,6 +104,13 @@ export type ViewerCanvasProps = {
   move: { active: boolean; draggingId: number | null; livePos: Vec3 | null };
   cameraPositionRef: RefObject<Vec3 | null>;
   cameraYawRef: RefObject<number | null>;
+  site: SiteProps;
+  /**
+   * The next click on the model is a point the page asked for (aligning a
+   * plan), not a measurement: the scene is hittable and the gizmo and zones
+   * stand aside, as they do in the point modes.
+   */
+  pickScene: boolean;
   onPick: (id: number | null) => void;
   onActivatePanorama: (id: number) => void;
   onMarkerGrab: (id: number) => void;

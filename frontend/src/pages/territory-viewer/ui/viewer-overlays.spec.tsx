@@ -69,6 +69,7 @@ const props = (over: Partial<ViewerOverlaysProps> = {}): ViewerOverlaysProps => 
   error: null,
   switchTo3d: null,
   document: null,
+  plan: null,
   documentLayerRef: { current: null },
   ...over,
 });

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { deleteCalibration, putCalibration, type Document } from "@/entities/document";
+import { deleteCalibration, putCalibration, type Calibration, type Document } from "@/entities/document";
 import type { Vec3 } from "@/entities/placement";
 import {
   autoPairs,
@@ -33,6 +33,8 @@ export type AlignmentParams = {
   groundAt: (x: number, z: number) => number | null;
   fallbackY: number;
   onChanged: () => void;
+  /** The calibration as saved (or null once removed), so the page's copy of the document follows. */
+  onCalibrated?: (calibration: Calibration | null) => void;
 };
 
 type Draft = { pairs: CalibrationPair[]; notice: string | null };
@@ -41,7 +43,7 @@ export type Alignment = ReturnType<typeof useAlignment>;
 
 /** The point pairs tying one PDF page to the scene, the fit they give, and what to tell the reader about it. */
 export function useAlignment(p: AlignmentParams) {
-  const { slug, document, plan, bbox, unitRatio, onChanged } = p;
+  const { slug, document, plan, bbox, unitRatio, onChanged, onCalibrated } = p;
   const { page } = plan;
   const [drafts, setDrafts] = useState<Record<number, Draft>>({});
   const [waiting, setWaiting] = useState<{ page: number; at: Pt } | null>(null);
@@ -85,8 +87,9 @@ export function useAlignment(p: AlignmentParams) {
     if (!fitted || saving) return;
     setSaving(true);
     try {
-      await putCalibration(slug, document.id, { page: plan.page, points: pairs });
+      const saved = await putCalibration(slug, document.id, { page: plan.page, points: pairs });
       notify.success("Alignment saved");
+      onCalibrated?.(saved);
       onChanged();
     } catch (err) {
       notify.error(messageOf(err, "Could not save the alignment. Try again."));
@@ -102,6 +105,7 @@ export function useAlignment(p: AlignmentParams) {
     try {
       await deleteCalibration(slug, document.id);
       notify.success("Alignment removed");
+      onCalibrated?.(null);
       onChanged();
     } catch (err) {
       notify.error(messageOf(err, "Could not remove the alignment. Try again."));

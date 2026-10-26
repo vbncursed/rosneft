@@ -136,6 +136,7 @@ export function ViewerOverlays({
   switchTo3d,
   document: doc,
   documentLayerRef,
+  plan,
 }: ViewerOverlaysProps) {
   const handlers: Record<RailTool, () => void> = {
     reset: onReset,
@@ -254,6 +255,7 @@ export function ViewerOverlays({
       >
         {/* The pill is the row's above, where the strip's width decides it. */}
         {doc ? <DocumentWindow {...doc} showPill={false} /> : null}
+        {plan}
       </div>
 
       {error ? (

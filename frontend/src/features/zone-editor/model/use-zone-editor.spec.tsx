@@ -1,18 +1,22 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Document } from "@/entities/document";
-import { loadPdfjs, openPdf, renderPage } from "@/entities/site-plan";
+import { detectRects, loadPdfjs, openPdf, renderPage, type PlanRect } from "@/entities/site-plan";
 import { createZone, type Zone } from "@/entities/zone";
 import { clearNotices } from "@/shared/lib/notify";
 import { fakeLib, fakePdf, UNIT_RATIO, UTM_BBOX } from "./plan-pdf.fixture";
 import { useZoneEditor } from "./use-zone-editor";
 
-vi.mock("@/entities/site-plan", async (importOriginal) => ({
-  ...(await importOriginal<object>()),
-  loadPdfjs: vi.fn(),
-  openPdf: vi.fn(),
-  renderPage: vi.fn(),
-}));
+vi.mock("@/entities/site-plan", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/entities/site-plan")>();
+  return {
+    ...actual,
+    loadPdfjs: vi.fn(),
+    openPdf: vi.fn(),
+    renderPage: vi.fn(),
+    detectRects: vi.fn(actual.detectRects),
+  };
+});
 vi.mock("@/entities/zone", async (importOriginal) => ({ ...(await importOriginal<object>()), createZone: vi.fn() }));
 
 const document: Document = {
@@ -25,18 +29,22 @@ const document: Document = {
 };
 
 let onChanged: ReturnType<typeof vi.fn<() => void>>;
-const editor = async (zones: Zone[] = [], pages = 1) => {
+let onZoneCreated: ReturnType<typeof vi.fn<(zone: Zone) => void>>;
+let onCalibrated: ReturnType<typeof vi.fn<() => void>>;
+const editor = async (zones: Zone[] = [], pages = 1, bbox: typeof UTM_BBOX | null = UTM_BBOX) => {
   vi.mocked(openPdf).mockResolvedValue(fakePdf(pages));
   const hook = renderHook(() =>
     useZoneEditor({
       slug: "t",
       document,
-      bbox: UTM_BBOX,
+      bbox,
       unitRatio: UNIT_RATIO,
       groundAt: () => 0.1,
       fallbackY: 0.5,
       zones,
       onChanged,
+      onZoneCreated,
+      onCalibrated,
     }),
   );
   await waitFor(() => expect(hook.result.current.image).not.toBeNull());
@@ -45,6 +53,8 @@ const editor = async (zones: Zone[] = [], pages = 1) => {
 
 beforeEach(() => {
   onChanged = vi.fn();
+  onZoneCreated = vi.fn();
+  onCalibrated = vi.fn();
   clearNotices();
   vi.mocked(loadPdfjs).mockResolvedValue(fakeLib);
   vi.mocked(renderPage).mockResolvedValue({ width: 10, height: 10, close: vi.fn() });
@@ -123,5 +133,58 @@ describe("useZoneEditor", () => {
     const { result } = await editor([zone]);
     expect(result.current.planZones).toHaveLength(1);
     expect(result.current.planZones[0].title).toBe("Crane");
+  });
+
+  it("hands the page the zone it created", async () => {
+    const created = { id: 12 } as Zone;
+    vi.mocked(createZone).mockResolvedValue(created);
+    const { result } = await editor();
+    act(() => result.current.selectRect(0));
+    await act(() => result.current.createZone({ title: "Tank row", tagSlugs: ["tanks"] }));
+    expect(onZoneCreated).toHaveBeenCalledWith(created);
+  });
+
+  describe("placing a pair", () => {
+    it("waits for pairs while the plan has none, and picks rectangles once it is aligned", async () => {
+      const unaligned = await editor([], 1, null);
+      expect(unaligned.result.current.placing).toBe(true);
+      const aligned = await editor();
+      expect(aligned.result.current.placing).toBe(false);
+    });
+
+    it("goes back to placing on request, and picks rectangles again when the pair is complete", async () => {
+      const { result } = await editor();
+      act(() => result.current.setPlacing(true));
+      expect(result.current.placing).toBe(true);
+      act(() => result.current.alignment.addPlanPoint({ x: 3, y: 4 }));
+      act(() => result.current.acceptScenePoint({ x: 0, y: 0, z: 0 }));
+      expect(result.current.placing).toBe(false);
+    });
+  });
+
+  describe("a rectangle with no area", () => {
+    const P = { x: 10, y: 10 };
+    const flat = {
+      corners: [P, P, P, P] as PlanRect["corners"],
+      widthPt: 0,
+      heightPt: 0,
+      angle: 0,
+    };
+
+    it("cannot become a zone, and says why", async () => {
+      vi.mocked(detectRects).mockReturnValueOnce([flat]);
+      const { result } = await editor();
+      expect(result.current.createBlock).toBeNull();
+      act(() => result.current.selectRect(0));
+      expect(result.current.createBlock).toBe("This rectangle has no area.");
+      await act(() => result.current.createZone({ title: "Flat", tagSlugs: ["tanks"] }));
+      expect(createZone).not.toHaveBeenCalled();
+    });
+
+    it("is not blocked when it has an area", async () => {
+      const { result } = await editor();
+      act(() => result.current.selectRect(0));
+      expect(result.current.createBlock).toBeNull();
+    });
   });
 });

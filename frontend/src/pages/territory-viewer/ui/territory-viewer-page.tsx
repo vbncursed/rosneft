@@ -65,6 +65,7 @@ export function TerritoryViewerPage({
             // the panel's root is a zero-height static block.
             tourId="overlays-tabs"
             view={<ViewTab {...panel.viewTab} />}
+            zone={panel.zone}
             placements={
               <div data-tour="objects-list">
                 <PlacementsPanel {...panel.placements} />

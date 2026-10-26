@@ -90,3 +90,10 @@ export const HIDDEN_NOTE = "(hidden)";
 
 /** The row's "Move to…" trigger, named after its panorama so no two rows share a name. */
 export const moveToPhaseLabel = (title: string) => `Move ${title} to another phase`;
+
+export const ZONES_OVERLINE = "Zones";
+export const ZONES_SWITCH = "Show zones";
+export const PLAN_SWITCH = "Show plan";
+export const PLAN_OPACITY = "Plan opacity";
+export const NO_PLAN_NOTE = "Align a PDF plan to the model to show it here.";
+export const zonesCount = (n: number) => `${n} ${n === 1 ? "zone" : "zones"}`;

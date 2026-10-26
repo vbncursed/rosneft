@@ -8,14 +8,16 @@ export type ZoneFormProps = {
   rectName: string | null;
   /** A rectangle is picked and the plan is aligned, so the zone can be placed. */
   canPlace: boolean;
+  /** Why the picked rectangle cannot become a zone (it has no area); null when it can. */
+  blocked?: string | null;
   onCreate: (form: ZoneFormValues) => Promise<void>;
 };
 
 const MAX_TITLE = 120;
 
 /** Names the picked rectangle and gives it one to five tags. */
-export function ZoneForm({ rectName, canPlace, onCreate }: ZoneFormProps) {
-  const f = useZoneForm({ canPlace, onCreate });
+export function ZoneForm({ rectName, canPlace, blocked = null, onCreate }: ZoneFormProps) {
+  const f = useZoneForm({ canPlace, blocked, onCreate });
   return (
     <form
       aria-label="New zone"
@@ -28,6 +30,7 @@ export function ZoneForm({ rectName, canPlace, onCreate }: ZoneFormProps) {
       <p className="m-0 text-[12px] text-muted">
         {rectName ? `Selected: ${rectName}` : "Pick a rectangle on the plan to make it a zone."}
       </p>
+      {f.blocked ? <p className="m-0 text-[12px] text-bad">{f.blocked}</p> : null}
       <TextField
         label="Title"
         required

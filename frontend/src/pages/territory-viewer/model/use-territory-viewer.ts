@@ -21,6 +21,7 @@ import { useViewerDocuments } from "./use-viewer-documents";
 import { useViewerPanoramas } from "./use-viewer-panoramas";
 import { useViewerPlacements } from "./use-viewer-placements";
 import { useSceneDrop } from "./use-scene-drop";
+import { useSceneClicks, useViewerZones } from "./use-viewer-zones";
 
 export type TerritoryViewerState =
   | { status: "loading" }
@@ -174,7 +175,21 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
   // is handed none: that is the one state where the block only reports.
   const form = usePlacementForm(editor, mode.select, grants.write ? mode.state.selectedId : null);
 
-  const { view, failedAt, on } = usePageHandlers({
+  const unitRatio = computeUnitRatio(dims);
+  const zones = useViewerZones({
+    slug,
+    initialZones: vm?.zones ?? [],
+    bbox: vm?.sourceBbox ?? null,
+    unitRatio,
+    documents,
+    placements: editor.placements,
+    create: editor.create,
+    canWrite: grants.zoneWrite,
+    onChanged,
+    expandPanel: useCallback(() => panel.setCollapsed(false), [panel]),
+  });
+
+  const handlers = usePageHandlers({
     mode,
     measure,
     editor,
@@ -187,6 +202,11 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     openSection: sections.reveal,
     canDeleteMeasurements: grants.measureDelete,
   });
+  const { view, failedAt } = handlers;
+  const on = {
+    ...handlers.on,
+    ...useSceneClicks(zones.acceptRef, zones.onSelect, handlers.on.onPick, handlers.on.onMeasurePoint),
+  };
 
   if (me.isPending || scene.isPending) return { status: "loading" };
   // Only the *scene's* 404 means "no such territory, or not this reader's". A
@@ -214,7 +234,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
         chains: measure.chains,
         activeChainId: measure.activeChainId,
         summary: {
-          ...measureSummary(measure.chains, computeUnitRatio(dims)),
+          ...measureSummary(measure.chains, unitRatio),
           unsaved: notSaved(measure.chains, measure.activeChainId, grants.measureCreate),
         },
         show: ruler.showMeasurements,
@@ -229,6 +249,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
       panoramaTour,
       panoramas,
       documents,
+      zones,
       panel: { tab: panel.tab, collapsed: panel.collapsed },
       sections,
       view: {

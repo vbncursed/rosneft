@@ -27,6 +27,7 @@ import { DocumentRow } from "./document-row";
 import { PanoramaPhaseList, type PanoramaPhasesView } from "./panorama-phase-list";
 import type { PanoramaRowView } from "./panorama-row";
 import { SectionHead } from "./section-head";
+import { ZonesSection, type ZonesSectionProps } from "./zones-section";
 import { ExternalLink, type ExternalLinkProps } from "./external-link";
 
 export type ViewTabProps = {
@@ -58,12 +59,16 @@ export type ViewTabProps = {
     fold: SectionFold;
   };
   documents: {
-    rows: { id: number; name: string }[];
+    rows: { id: number; name: string; /** Aligned to the model. */ aligned: boolean }[];
     canUpload: boolean;
     onUpload: () => void;
     onOpen: (id: number) => void;
+    /** `zone:write` only: Align plan / Edit zones on a row. */
+    onAlign?: (id: number) => void;
     fold: SectionFold;
   };
+  /** Whether the site zones and the aligned plan are drawn over the model. */
+  zones: ZonesSectionProps;
   /**
    * The ruler's switch. Hiding it keeps every chain; measure mode draws them
    * regardless, and that is the canvas's call, not this one's.
@@ -99,7 +104,7 @@ const MARKER_ITEMS: SegmentedItem<MarkerMode>[] = [
  * `aria-controls` always names a real element. It keeps none of its rows,
  * because every row holds an `<img>` and each page render re-rendered them all.
  */
-export function ViewTab({ details, panoramas, documents, measurements, footer }: ViewTabProps) {
+export function ViewTab({ details, panoramas, documents, zones, measurements, footer }: ViewTabProps) {
   const rulerId = useId();
   const panoramaListId = useId();
   const documentListId = useId();
@@ -212,13 +217,21 @@ export function ViewTab({ details, panoramas, documents, measurements, footer }:
             {documents.fold.open
               ? documents.rows.map((row) => (
                   <li key={row.id}>
-                    <DocumentRow id={row.id} name={row.name} onOpen={documents.onOpen} />
+                    <DocumentRow
+                      id={row.id}
+                      name={row.name}
+                      onOpen={documents.onOpen}
+                      onAlign={documents.onAlign}
+                      aligned={row.aligned}
+                    />
                   </li>
                 ))
               : null}
           </ul>
         ) : null}
       </section>
+
+      <ZonesSection {...zones} />
 
       {/* Not in the mock: the ruler has no section there, and no switch. */}
       <section aria-label={MEASUREMENTS_OVERLINE} className={SECTION}>

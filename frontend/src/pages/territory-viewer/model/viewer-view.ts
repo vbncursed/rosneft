@@ -49,6 +49,7 @@ export type Grants = {
   measureCreate: boolean;
   measureWrite: boolean;
   measureDelete: boolean;
+  zoneWrite: boolean;
 };
 
 /** What `me` may do on this page — `null` (not answered yet) may do nothing. */
@@ -65,6 +66,7 @@ export const grantsOf = (me: Principal | null): Grants => ({
   measureCreate: can(me, "measurement:create"),
   measureWrite: can(me, "measurement:write"),
   measureDelete: can(me, "measurement:delete"),
+  zoneWrite: can(me, "zone:write"),
 });
 
 /** The three measurement grants, in the shape the sync plan reads. */

@@ -34,6 +34,16 @@ export default {
       <ZoneForm rectName={null} canPlace={false} onCreate={async () => {}} />
     </Frame>
   ),
+  "rectangle with no area": (
+    <Frame seed>
+      <ZoneForm
+        rectName="Rectangle 0.0 × 0.0 m"
+        canPlace
+        blocked="This rectangle has no area."
+        onCreate={async () => {}}
+      />
+    </Frame>
+  ),
   "title already taken": (
     <Frame seed>
       <ZoneForm

@@ -17,6 +17,7 @@ import Lighting from "./lighting";
 import MeasurementLayer from "./measurement-layer";
 import PanoramaScene from "./panorama-scene";
 import PlacementsLayer from "./placements-layer";
+import SiteLayers from "./site-layers";
 
 export type SceneCanvasProps = ViewerCanvasProps & { colors: SceneColors };
 
@@ -56,6 +57,8 @@ export default function SceneCanvas({
   move,
   cameraPositionRef,
   cameraYawRef,
+  site,
+  pickScene,
   colors,
   onPick,
   onActivatePanorama,
@@ -73,7 +76,7 @@ export default function SceneCanvas({
 }: SceneCanvasProps) {
   // Orbit is the only mode that edits a selection; every other mode is
   // picking points, so the gizmo hides and clicks reach the wrapper group.
-  const pointMode = mode !== "orbit";
+  const pointMode = mode !== "orbit" || pickScene;
 
   const bgArgs = useMemo<[string]>(() => [colors.background], [colors.background]);
   const gridArgs = useMemo<[number, number, string, string]>(() => [6, 24, colors.grid, colors.grid], [colors.grid]);
@@ -219,6 +222,17 @@ export default function SceneCanvas({
           />
         ) : null}
       </AutoLodClock>
+
+      {/* Beside the wrapper, not in it: a zone or the plan is never solid for the walker, never framed by Bounds,
+          and no measure or place ray can reach it. */}
+      <SiteLayers
+        site={site}
+        interactive={!pointMode && !move.active && !free && !calibrating}
+        hidden={activePanorama !== null}
+        unitRatio={unitRatio}
+        color={colors.accent}
+        territoryRef={territoryRef}
+      />
 
       <MeasurementLayer
         // Measure mode wins over the switch: nobody measures blind.

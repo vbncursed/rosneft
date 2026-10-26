@@ -88,4 +88,13 @@ describe("useDocumentList", () => {
     expect(result.current.s.documents.map((d) => d.id)).toEqual([1, 2]);
     expect(result.current.s.pendingId).toBeNull();
   });
+
+  it("takes a saved calibration in, or drops it, on the one document and no other", () => {
+    const { result } = list([document(1), document(2)]);
+    const calibration = { page: 2, points: [] };
+    act(() => result.current.s.setCalibration(1, calibration));
+    expect(result.current.s.documents.map((d) => d.calibration)).toEqual([calibration, null]);
+    act(() => result.current.s.setCalibration(1, null));
+    expect(result.current.s.documents.map((d) => d.calibration)).toEqual([null, null]);
+  });
 });

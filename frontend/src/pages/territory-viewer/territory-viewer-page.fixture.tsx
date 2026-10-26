@@ -7,6 +7,7 @@ import { VIEWER_TOUR_STEPS } from "@/features/onboarding";
 import { CatalogShell } from "@/widgets/catalog-shell";
 import { pageProps, type PageHandlers, type PageParts } from "./model/page-props";
 import type { DocumentParts, PanoramaParts } from "./model/overlay-parts";
+import type { ZoneParts } from "./model/use-viewer-zones";
 import type { Grants } from "./model/viewer-view";
 import { TerritoryViewerPage } from "./ui/territory-viewer-page";
 import { ViewerLoading } from "./ui/territory-viewer-screen";
@@ -96,6 +97,7 @@ export const IDLE_DOCUMENTS: DocumentParts = {
   window: "pip",
   pip: { geo: { x: 866, y: 386, w: 560, h: 400 }, dragging: false, startMove: noop, startResize: noop },
   onOpen: noop,
+  setCalibration: noop,
   onWindow: noop,
   onDelete: noop,
   onExit: noop,
@@ -117,6 +119,34 @@ export const IDLE_DOCUMENTS: DocumentParts = {
   },
 };
 
+/** No zones, no plan, nothing selected: the page as it was before the feature, for every state that is not about it. */
+export const IDLE_ZONES: ZoneParts = {
+  list: [],
+  selected: null,
+  onSelect: noop,
+  onDelete: async () => {},
+  show: true,
+  onToggleShow: noop,
+  site: {
+    zones: [],
+    showZones: true,
+    selectedZoneId: null,
+    onSelectZone: noop,
+    plan: null,
+    planOpacity: 0.6,
+    onGround: noop,
+  },
+  pickScene: false,
+  acceptRef: { current: null },
+  equipment: { sizeLine: null, inside: 0, onPlace: noop },
+  plan: { available: false, show: false, onToggle: noop, opacity: 0.6, onOpacity: noop },
+  editing: null,
+  closeEditor: noop,
+  onAlign: undefined,
+  setSlot: noop,
+  layer: null,
+};
+
 const OWNER: Grants = {
   create: true,
   write: true,
@@ -130,6 +160,7 @@ const OWNER: Grants = {
   measureCreate: true,
   measureWrite: true,
   measureDelete: true,
+  zoneWrite: true,
 };
 export const GUEST: Grants = {
   create: false,
@@ -144,6 +175,7 @@ export const GUEST: Grants = {
   measureCreate: false,
   measureWrite: false,
   measureDelete: false,
+  zoneWrite: false,
 };
 export const NO_DELETE: Grants = {
   create: true,
@@ -158,6 +190,7 @@ export const NO_DELETE: Grants = {
   measureCreate: true,
   measureWrite: true,
   measureDelete: false,
+  zoneWrite: false,
 };
 
 const at = (id: number, modelSlug: string, x: number): ResolvedPlacement => ({
@@ -213,6 +246,7 @@ const VM: SceneViewModel = {
   placements: PLACEMENTS,
   panoramas: [],
   documents: [],
+  zones: [],
   measurements: [],
   sourceBbox: null,
 };
@@ -292,6 +326,7 @@ export const basePageParts = (): PageParts => ({
   panoramaTour: IDLE_TOUR,
   panoramas: IDLE_PANORAMAS,
   documents: IDLE_DOCUMENTS,
+  zones: IDLE_ZONES,
   panel: { tab: "placements", collapsed: false },
   // Open, so a fixture shows the lists; the fold itself is the View tab's own fixture.
   sections: {

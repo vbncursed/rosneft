@@ -283,4 +283,27 @@ describe("OverlaysPanel · tooltip", () => {
     expect(collapse).not.toHaveAttribute("title");
     expect(hoverTip(collapse)).toHaveTextContent("Collapse Overlays panel");
   });
+
+  it("draws the zone card above the open tab, whichever it is, and nothing when there is none", () => {
+    const props = {
+      onTabChange: vi.fn(),
+      collapsed: false,
+      onCollapsedChange: vi.fn(),
+      placementsCount: 0,
+      view: <p>view body</p>,
+      placements: <p>placements body</p>,
+    };
+    const { rerender } = render(<OverlaysPanel {...props} tab="view" zone={<p>zone card</p>} />);
+    const body = screen.getByRole("tabpanel");
+    expect(body).toContainElement(screen.getByText("zone card"));
+    expect(screen.getByText("zone card").compareDocumentPosition(screen.getByText("view body"))).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+
+    rerender(<OverlaysPanel {...props} tab="placements" zone={<p>zone card</p>} />);
+    expect(screen.getByText("zone card")).toBeInTheDocument();
+
+    rerender(<OverlaysPanel {...props} tab="placements" />);
+    expect(screen.queryByText("zone card")).toBeNull();
+  });
 });
