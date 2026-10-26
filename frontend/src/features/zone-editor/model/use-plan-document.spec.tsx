@@ -60,6 +60,45 @@ describe("usePlanDocument", () => {
     expect(result.current.controls).not.toBeNull();
   });
 
+  it("never exposes a closed picture when the reader pages away and straight back", async () => {
+    vi.mocked(openPdf).mockResolvedValue(fakePdf(2));
+    const closes: ReturnType<typeof vi.fn>[] = [];
+    vi.mocked(renderPage).mockImplementation(async () => {
+      const close = vi.fn();
+      closes.push(close);
+      return { width: 10, height: 10, close };
+    });
+    const { result } = renderHook(() => usePlanDocument(doc()));
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    const first = result.current.image;
+    act(() => result.current.setPage(2));
+    act(() => result.current.setPage(1));
+    expect(result.current.image).toBeNull();
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.image).not.toBe(first);
+    expect(closes[0]).toHaveBeenCalled();
+    expect(closes.at(-1)).not.toHaveBeenCalled();
+  });
+
+  it("frees the document when the dialog goes away", async () => {
+    const pdf = { ...fakePdf(), destroy: vi.fn(async () => {}) };
+    vi.mocked(openPdf).mockResolvedValue(pdf);
+    const { result, unmount } = renderHook(() => usePlanDocument(doc()));
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    unmount();
+    expect(pdf.destroy).toHaveBeenCalledOnce();
+  });
+
+  it("frees a document that opens after the dialog has gone", async () => {
+    const pdf = { ...fakePdf(), destroy: vi.fn(async () => {}) };
+    let open!: (p: typeof pdf) => void;
+    vi.mocked(openPdf).mockReturnValue(new Promise((resolve) => (open = resolve)));
+    const { unmount } = renderHook(() => usePlanDocument(doc()));
+    unmount();
+    await act(async () => open(pdf));
+    expect(pdf.destroy).toHaveBeenCalledOnce();
+  });
+
   it("reports a document that cannot be opened", async () => {
     vi.mocked(openPdf).mockRejectedValue(new Error("bad pdf"));
     const { result } = renderHook(() => usePlanDocument(doc()));

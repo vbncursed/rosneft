@@ -13,11 +13,13 @@ export type RectOverlayProps = {
   /** The view's zoom, so strokes and titles keep their on-screen size. */
   k: number;
   pageSize: { width: number; height: number };
+  /** True while a click must reach the sheet (placing a pair): the buttons stop catching the pointer. */
+  passThrough: boolean;
   onSelect: (index: number) => void;
 };
 
 // A rectangle is identified by where it sits on the page.
-const rectKey = (r: PlanRect) => `${r.corners[0].x},${r.corners[0].y}`;
+const rectKey = (r: PlanRect) => r.corners.map((c) => `${c.x},${c.y}`).join(";");
 const points = (corners: Pt[]) => corners.map((c) => `${c.x},${c.y}`).join(" ");
 const centre = (corners: Pt[]): Pt => ({
   x: corners.reduce((s, c) => s + c.x, 0) / corners.length,
@@ -25,7 +27,16 @@ const centre = (corners: Pt[]): Pt => ({
 });
 
 /** Zones as filled outlines with their titles, detected rectangles as outlines, and a real button over each rectangle. */
-export function RectOverlay({ rects, zones, selected, metresPerPt, k, pageSize, onSelect }: RectOverlayProps) {
+export function RectOverlay({
+  rects,
+  zones,
+  selected,
+  metresPerPt,
+  k,
+  pageSize,
+  passThrough,
+  onSelect,
+}: RectOverlayProps) {
   const names = rectNames(rects, metresPerPt);
   return (
     <>
@@ -72,7 +83,14 @@ export function RectOverlay({ rects, zones, selected, metresPerPt, k, pageSize, 
             aria-label={names[i]}
             aria-pressed={selected === i}
             onClick={() => onSelect(i)}
-            style={{ left: x0, top: y0, width: x1 - x0, height: y1 - y0, clipPath: `polygon(${clip.join(",")})` }}
+            style={{
+              left: x0,
+              top: y0,
+              width: x1 - x0,
+              height: y1 - y0,
+              clipPath: `polygon(${clip.join(",")})`,
+              pointerEvents: passThrough ? "none" : undefined,
+            }}
             className="absolute cursor-pointer bg-transparent hover:bg-accent/25 focus-visible:bg-accent/30 aria-pressed:bg-accent/15"
           />
         );

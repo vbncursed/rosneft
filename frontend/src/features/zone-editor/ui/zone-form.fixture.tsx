@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
+import { HttpError } from "@/shared/api";
 import { ZoneForm } from "./zone-form";
 
 const TAGS = [
@@ -38,7 +39,7 @@ export default {
       <ZoneForm
         rectName="Rectangle 7.5 × 13.0 m"
         canPlace
-        onCreate={() => Promise.reject(new Error("a zone titled Tank row already exists"))}
+        onCreate={() => Promise.reject(new HttpError(400, null, "a zone titled Tank row already exists"))}
       />
     </Frame>
   ),

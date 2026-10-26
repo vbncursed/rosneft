@@ -17,6 +17,8 @@ export interface PdfPage {
 export interface PdfDocument {
   numPages: number;
   getPage(n: number): Promise<PdfPage>;
+  /** Frees the worker's copy of the document. */
+  destroy?(): Promise<void>;
 }
 
 export interface PdfjsLib {

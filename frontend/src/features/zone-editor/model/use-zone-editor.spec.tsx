@@ -60,6 +60,14 @@ describe("useZoneEditor", () => {
     expect(result.current.page).toBe(1);
   });
 
+  it("adds a pair from a plan click and a scene point handed to the editor", async () => {
+    const { result } = await editor();
+    const before = result.current.pairs.length;
+    act(() => result.current.alignment.addPlanPoint({ x: 3, y: 4 }));
+    act(() => result.current.acceptScenePoint({ x: 0, y: 0, z: 0 }));
+    expect(result.current.pairs).toHaveLength(before + 1);
+  });
+
   it("selects a rectangle, and a second press on it lets go", async () => {
     const { result } = await editor();
     act(() => result.current.selectRect(1));

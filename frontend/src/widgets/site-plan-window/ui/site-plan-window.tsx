@@ -17,6 +17,8 @@ export type SitePlanWindowProps = {
   pending?: Pt | null;
   selected: number | null;
   metresPerPt?: number | null;
+  /** True while a click on the sheet starts a pair: rectangles then let the click through. */
+  placing?: boolean;
   onSelectRect: (index: number) => void;
   onDragPair: (index: number, to: Pt) => void;
   /** A click on the bare sheet, in page points. */
@@ -27,6 +29,8 @@ export type SitePlanWindowProps = {
 };
 
 const ZOOM_STEP = 1.25;
+const WHEEL_SENSITIVITY = 0.0015;
+const WHEEL_MAX_FACTOR = 2;
 const CLICK_SLOP_PX = 4;
 
 /** The site plan on a pan-and-zoom sheet: detected rectangles to pick, saved zones filled, pair markers to drag. */
@@ -46,7 +50,9 @@ export function SitePlanWindow({ frame, title = "Site plan", ...plan }: SitePlan
   const fit = () => setView(fitView(size(), pageSize));
 
   useLayoutEffect(() => {
-    if (!touched.current) fit();
+    // A page of another size starts fitted, whatever the last page was panned to.
+    touched.current = false;
+    fit();
     const el = box.current;
     if (!el) return;
     const watch = new ResizeObserver(() => !touched.current && fit());
@@ -69,11 +75,14 @@ export function SitePlanWindow({ frame, title = "Site plan", ...plan }: SitePlan
   };
   const down = (e: PointerEvent) => {
     if ((e.target as HTMLElement).closest("button")) return;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
     press.current = { x: e.clientX, y: e.clientY, moved: false };
   };
   const move = (e: PointerEvent) => {
     const p = press.current;
     if (!p) return;
+    // The button was let go somewhere we never heard about: the press is over.
+    if (e.buttons === 0) return void (press.current = null);
     if (Math.hypot(e.clientX - p.x, e.clientY - p.y) > CLICK_SLOP_PX) p.moved = true;
     if (!p.moved) return;
     change(panBy(view, e.clientX - p.x, e.clientY - p.y));
@@ -84,8 +93,12 @@ export function SitePlanWindow({ frame, title = "Site plan", ...plan }: SitePlan
     press.current = null;
     if (p && !p.moved) onPlanClick(toPage(view, local(e.clientX, e.clientY)));
   };
-  const wheel = (e: WheelEvent) =>
-    change(zoomAt(view, e.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP, local(e.clientX, e.clientY)));
+  const endPress = () => void (press.current = null);
+  // Scaled by the delta, so a trackpad's stream of small events zooms gently.
+  const wheel = (e: WheelEvent) => {
+    const factor = Math.min(WHEEL_MAX_FACTOR, Math.max(1 / WHEEL_MAX_FACTOR, Math.exp(-e.deltaY * WHEEL_SENSITIVITY)));
+    change(zoomAt(view, factor, local(e.clientX, e.clientY)));
+  };
   const zoom = (factor: number) => change(zoomAt(view, factor, { x: size().w / 2, y: size().h / 2 }));
 
   return (
@@ -97,6 +110,8 @@ export function SitePlanWindow({ frame, title = "Site plan", ...plan }: SitePlan
         onPointerDown={down}
         onPointerMove={move}
         onPointerUp={up}
+        onPointerCancel={endPress}
+        onLostPointerCapture={endPress}
         onWheel={wheel}
         className="absolute inset-0 cursor-crosshair touch-none select-none overflow-hidden"
       >
@@ -116,6 +131,7 @@ export function SitePlanWindow({ frame, title = "Site plan", ...plan }: SitePlan
             metresPerPt={plan.metresPerPt ?? null}
             k={view.k}
             pageSize={pageSize}
+            passThrough={plan.placing ?? false}
             onSelect={plan.onSelectRect}
           />
           <PairMarkers
@@ -126,6 +142,13 @@ export function SitePlanWindow({ frame, title = "Site plan", ...plan }: SitePlan
             onDrag={plan.onDragPair}
           />
         </div>
+        {plan.zones.length > 0 ? (
+          <ul aria-label="Saved zones" className="sr-only">
+            {plan.zones.map((z) => (
+              <li key={z.id}>{z.title}</li>
+            ))}
+          </ul>
+        ) : null}
         <div className="absolute bottom-3 left-3 flex gap-1.5">
           <Button shape="icon" size="sm" variant="secondary" aria-label="Zoom in" onClick={() => zoom(ZOOM_STEP)}>
             <Icon name="plus" size={12} />

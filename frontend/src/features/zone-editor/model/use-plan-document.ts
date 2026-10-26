@@ -46,12 +46,18 @@ export function usePlanDocument(document: Document): PlanDocument {
 
   useEffect(() => {
     let live = true;
+    let opened: PdfDocument | null = null;
     openPdf(assetUrl(document.sourceBlobHash)).then(
-      (opened) => live && setPdf(opened),
+      (doc) => {
+        opened = doc;
+        if (live) setPdf(doc);
+        else void doc.destroy?.();
+      },
       () => live && setFailedPage(WHOLE_DOCUMENT),
     );
     return () => {
       live = false;
+      void opened?.destroy?.();
     };
   }, [document.sourceBlobHash]);
 
@@ -78,7 +84,10 @@ export function usePlanDocument(document: Document): PlanDocument {
     })().catch(() => live && setFailedPage(page));
     return () => {
       live = false;
-      bitmap?.close();
+      // The picture is closed with the effect, so the state must not keep it.
+      const closing = bitmap;
+      closing?.close();
+      setData((now) => (now?.image === closing ? null : now));
     };
   }, [pdf, page]);
 

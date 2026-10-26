@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PlanRect } from "@/entities/site-plan";
@@ -87,7 +87,32 @@ describe("SitePlanWindow zones", () => {
       { x: 10, y: 40 },
     ];
     render(<SitePlanWindow {...props({ zones: [{ id: 3, title: "Crane pad", corners }] })} />);
-    expect(screen.getByText("Crane pad")).toBeInTheDocument();
+    expect(screen.getAllByText("Crane pad")).toHaveLength(2);
+  });
+
+  it("lists the saved zones for a screen reader, since the drawing is hidden from one", () => {
+    const corners = [
+      { x: 10, y: 10 },
+      { x: 60, y: 10 },
+      { x: 60, y: 40 },
+      { x: 10, y: 40 },
+    ];
+    const zones = [
+      { id: 3, title: "Crane pad", corners },
+      { id: 4, title: "Tank row", corners },
+    ];
+    render(<SitePlanWindow {...props({ zones })} />);
+    const list = screen.getByRole("list", { name: "Saved zones" });
+    expect(
+      within(list)
+        .getAllByRole("listitem")
+        .map((li) => li.textContent),
+    ).toEqual(["Crane pad", "Tank row"]);
+  });
+
+  it("lists nothing when there are no zones", () => {
+    render(<SitePlanWindow {...props()} />);
+    expect(screen.queryByRole("list", { name: "Saved zones" })).not.toBeInTheDocument();
   });
 });
 
@@ -106,25 +131,117 @@ describe("SitePlanWindow sheet", () => {
     const onPlanClick = vi.fn();
     render(<SitePlanWindow {...props({ onPlanClick })} />);
     fireEvent.pointerDown(sheet(), { clientX: 100, clientY: 100 });
-    fireEvent.pointerMove(sheet(), { clientX: 140, clientY: 100 });
+    fireEvent.pointerMove(sheet(), { clientX: 140, clientY: 100, buttons: 1 });
     fireEvent.pointerUp(sheet(), { clientX: 140, clientY: 100 });
     expect(onPlanClick).not.toHaveBeenCalled();
   });
 
-  it("zooms with the buttons and the wheel, and fits again", async () => {
+  const clickAt = (x: number, y: number) => {
+    fireEvent.pointerDown(sheet(), { clientX: x, clientY: y });
+    fireEvent.pointerUp(sheet(), { clientX: x, clientY: y });
+  };
+
+  it("pans by the drag distance, and the next click lands on the moved sheet", () => {
+    const onPlanClick = vi.fn();
+    render(<SitePlanWindow {...props({ onPlanClick })} />);
+    fireEvent.pointerDown(sheet(), { clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(sheet(), { clientX: 140, clientY: 120, buttons: 1 });
+    fireEvent.pointerUp(sheet(), { clientX: 140, clientY: 120 });
+    clickAt(140, 120);
+    expect(onPlanClick).toHaveBeenLastCalledWith({ x: 100, y: 100 });
+  });
+
+  it("ends a pan whose button was let go out of sight, instead of panning on hover", () => {
+    const onPlanClick = vi.fn();
+    render(<SitePlanWindow {...props({ onPlanClick })} />);
+    fireEvent.pointerDown(sheet(), { clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(sheet(), { clientX: 140, clientY: 100, buttons: 1 });
+    fireEvent.pointerMove(sheet(), { clientX: 200, clientY: 100, buttons: 0 });
+    fireEvent.pointerMove(sheet(), { clientX: 300, clientY: 100, buttons: 0 });
+    clickAt(40, 0);
+    // Panned by the first 40 only.
+    expect(onPlanClick).toHaveBeenLastCalledWith({ x: 0, y: 0 });
+  });
+
+  it("ends the press on a cancelled or lost pointer", () => {
+    const onPlanClick = vi.fn();
+    render(<SitePlanWindow {...props({ onPlanClick })} />);
+    for (const end of [fireEvent.pointerCancel, fireEvent.lostPointerCapture]) {
+      fireEvent.pointerDown(sheet(), { clientX: 10, clientY: 10 });
+      end(sheet());
+      fireEvent.pointerUp(sheet(), { clientX: 10, clientY: 10 });
+    }
+    expect(onPlanClick).not.toHaveBeenCalled();
+  });
+
+  it("captures the pointer so a release outside the sheet still arrives", () => {
+    render(<SitePlanWindow {...props()} />);
+    const capture = vi.fn();
+    sheet().setPointerCapture = capture;
+    fireEvent.pointerDown(sheet(), { pointerId: 7, clientX: 10, clientY: 10 });
+    expect(capture).toHaveBeenCalledWith(7);
+  });
+
+  it("lets a click through the rectangles while a pair is being placed", async () => {
+    const [onPlanClick, onSelectRect] = [vi.fn(), vi.fn()];
+    render(<SitePlanWindow {...props({ onPlanClick, onSelectRect, placing: true })} />);
+    const frame = screen.getByRole("button", { name: /^Rectangle 7\.5/ });
+    expect(frame).toHaveStyle({ pointerEvents: "none" });
+    await expect(userEvent.click(frame)).rejects.toThrow(/pointer-events/);
+    clickAt(70, 70);
+    expect(onPlanClick).toHaveBeenCalledWith({ x: 70, y: 70 });
+    expect(onSelectRect).not.toHaveBeenCalled();
+  });
+
+  it("keeps the rectangles pressable otherwise", () => {
+    render(<SitePlanWindow {...props()} />);
+    expect(screen.getByRole("button", { name: /^Rectangle 7\.5/ })).not.toHaveStyle({ pointerEvents: "none" });
+  });
+
+  it("refits a page of another size even after a pan", () => {
+    const onPlanClick = vi.fn();
+    const { rerender } = render(<SitePlanWindow {...props({ onPlanClick })} />);
+    fireEvent.pointerDown(sheet(), { clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(sheet(), { clientX: 160, clientY: 100, buttons: 1 });
+    fireEvent.pointerUp(sheet(), { clientX: 160, clientY: 100 });
+    rerender(<SitePlanWindow {...props({ onPlanClick, pageSize: { width: 800, height: 500 } })} />);
+    clickAt(20, 30);
+    expect(onPlanClick).toHaveBeenLastCalledWith({ x: 20, y: 30 });
+  });
+
+  it("zooms about the centre with the buttons, and fits again", async () => {
     const onPlanClick = vi.fn();
     render(<SitePlanWindow {...props({ onPlanClick })} />);
     await userEvent.click(screen.getByRole("button", { name: "Zoom in" }));
-    // At 1.25x with the page centred on a zero-size box, 0,0 on screen is no longer page 0,0.
-    fireEvent.pointerDown(sheet(), { clientX: 0, clientY: 0 });
-    fireEvent.pointerUp(sheet(), { clientX: 0, clientY: 0 });
-    expect(onPlanClick.mock.calls[0][0].x).toBeLessThan(0.01);
-    fireEvent.wheel(sheet(), { deltaY: 100, clientX: 0, clientY: 0 });
+    clickAt(125, 125);
+    expect(onPlanClick.mock.calls[0][0].x).toBeCloseTo(100, 9);
     await userEvent.click(screen.getByRole("button", { name: "Zoom out" }));
+    clickAt(125, 125);
+    expect(onPlanClick.mock.calls[1][0].x).toBeCloseTo(125, 9);
+    await userEvent.click(screen.getByRole("button", { name: "Zoom in" }));
     await userEvent.click(screen.getByRole("button", { name: "Fit the page" }));
-    fireEvent.pointerDown(sheet(), { clientX: 20, clientY: 30 });
-    fireEvent.pointerUp(sheet(), { clientX: 20, clientY: 30 });
+    clickAt(20, 30);
     expect(onPlanClick).toHaveBeenLastCalledWith({ x: 20, y: 30 });
+  });
+
+  it("zooms the wheel by its delta, about the cursor", () => {
+    const onPlanClick = vi.fn();
+    render(<SitePlanWindow {...props({ onPlanClick })} />);
+    fireEvent.wheel(sheet(), { deltaY: -100, clientX: 100, clientY: 100 });
+    clickAt(200, 200);
+    // k = e^0.15; the point under the cursor stays at page (100, 100).
+    expect(onPlanClick.mock.calls[0][0].x).toBeCloseTo(100 + 100 / Math.exp(0.15), 9);
+  });
+
+  it("zooms a small trackpad delta gently, and a huge one only by the cap", () => {
+    const onPlanClick = vi.fn();
+    render(<SitePlanWindow {...props({ onPlanClick })} />);
+    fireEvent.wheel(sheet(), { deltaY: -2, clientX: 0, clientY: 0 });
+    clickAt(100, 0);
+    expect(onPlanClick.mock.calls[0][0].x).toBeCloseTo(100 / Math.exp(0.003), 9);
+    fireEvent.wheel(sheet(), { deltaY: -100000, clientX: 0, clientY: 0 });
+    clickAt(100, 0);
+    expect(onPlanClick.mock.calls[1][0].x).toBeCloseTo(100 / (Math.exp(0.003) * 2), 9);
   });
 
   it("draws the page picture when it has one", () => {
@@ -155,9 +272,9 @@ describe("SitePlanWindow pairs", () => {
     render(<SitePlanWindow {...props({ pairs: [{ pdf: { x: 10, y: 10 } }], onDragPair })} />);
     const marker = screen.getByRole("button", { name: "Move plan point 1" });
     fireEvent.pointerDown(marker, { clientX: 10, clientY: 10 });
-    fireEvent.pointerMove(marker, { clientX: 33, clientY: 44 });
+    fireEvent.pointerMove(marker, { clientX: 33, clientY: 44, buttons: 1 });
     fireEvent.pointerUp(marker);
-    fireEvent.pointerMove(marker, { clientX: 99, clientY: 99 });
+    fireEvent.pointerMove(marker, { clientX: 99, clientY: 99, buttons: 1 });
     expect(onDragPair).toHaveBeenCalledTimes(1);
     expect(onDragPair).toHaveBeenCalledWith(0, { x: 33, y: 44 });
   });

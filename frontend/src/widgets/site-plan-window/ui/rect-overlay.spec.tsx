@@ -22,6 +22,7 @@ const base = {
   selected: null,
   metresPerPt: 0.5,
   k: 2,
+  passThrough: false,
   pageSize: { width: 200, height: 100 },
   onSelect: vi.fn(),
 };
@@ -39,6 +40,17 @@ describe("RectOverlay", () => {
     render(<RectOverlay {...base} onSelect={onSelect} />);
     await userEvent.click(screen.getAllByRole("button")[1]);
     expect(onSelect).toHaveBeenCalledWith(1);
+  });
+
+  it("lets the pointer through its buttons on request", () => {
+    render(<RectOverlay {...base} passThrough />);
+    for (const b of screen.getAllByRole("button")) expect(b).toHaveStyle({ pointerEvents: "none" });
+  });
+
+  it("keys two rectangles that share a corner apart", () => {
+    const wide = { ...rect(0), corners: [...rect(0).corners.slice(0, 1), ...rect(100).corners.slice(1)] } as PlanRect;
+    expect(() => render(<RectOverlay {...base} rects={[rect(0), wide]} />)).not.toThrow();
+    expect(screen.getAllByRole("button")).toHaveLength(2);
   });
 
   it("titles each zone at its centre", () => {

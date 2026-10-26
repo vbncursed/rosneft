@@ -40,6 +40,16 @@ describe("TagMultiSelect", () => {
     expect(screen.getByRole("checkbox", { name: "Tanks" })).toBeEnabled();
   });
 
+  it("explains an empty list instead of showing a blank group", () => {
+    render(<TagMultiSelect {...props({ tags: [] })} />);
+    expect(screen.getByText(/No tags are available for zones yet/)).toBeInTheDocument();
+  });
+
+  it("says nothing of the sort while the list is still loading", () => {
+    render(<TagMultiSelect {...props({ tags: undefined })} />);
+    expect(screen.queryByText(/No tags are available/)).not.toBeInTheDocument();
+  });
+
   it("offers no choice and a way to retry when the list failed", async () => {
     const onRetry = vi.fn();
     render(<TagMultiSelect {...props({ tags: undefined, error: "Tags could not be loaded. Try again.", onRetry })} />);

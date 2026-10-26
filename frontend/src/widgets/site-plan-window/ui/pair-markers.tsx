@@ -32,8 +32,12 @@ const place = (at: Pt, k: number) => ({
 export function PairMarkers({ pairs, pending, k, toPage, onDrag }: PairMarkersProps) {
   const dragging = useRef<number | null>(null);
   const move = (i: number, e: PointerEvent) => {
-    if (dragging.current === i) onDrag(i, toPage(e.clientX, e.clientY));
+    if (dragging.current !== i) return;
+    // Released out of our sight (outside the window): the drag is over.
+    if (e.buttons === 0) return void (dragging.current = null);
+    onDrag(i, toPage(e.clientX, e.clientY));
   };
+  const end = () => void (dragging.current = null);
   const nudge = (i: number, e: KeyboardEvent) => {
     const by = NUDGE[e.key];
     if (!by) return;
@@ -55,7 +59,9 @@ export function PairMarkers({ pairs, pending, k, toPage, onDrag }: PairMarkersPr
             e.currentTarget.setPointerCapture?.(e.pointerId);
           }}
           onPointerMove={(e) => move(i, e)}
-          onPointerUp={() => (dragging.current = null)}
+          onPointerUp={end}
+          onPointerCancel={end}
+          onLostPointerCapture={end}
           onKeyDown={(e) => nudge(i, e)}
         >
           {i + 1}

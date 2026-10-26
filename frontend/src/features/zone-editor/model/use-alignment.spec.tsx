@@ -197,6 +197,33 @@ describe("useAlignment, pages and saved sets", () => {
   });
 });
 
+describe("useAlignment, paging back", () => {
+  it("keeps a page's pairs when the reader returns to it", () => {
+    const { result, rerender } = align({ bbox: null });
+    pickPair(result, [5, 5], [2, 2]);
+    rerender({ bbox: null, plan: { page: 2, controls: [] } });
+    expect(result.current.pairs).toEqual([]);
+    rerender({ bbox: null, plan: { page: 1, controls: [] } });
+    expect(result.current.pairs).toHaveLength(1);
+  });
+
+  it("keeps the draft while the same page is read again", () => {
+    const { result, rerender } = align({ bbox: null });
+    pickPair(result, [5, 5], [2, 2]);
+    rerender({ bbox: null, plan: { page: 1, controls: null } });
+    expect(result.current.pairs).toHaveLength(1);
+    rerender({ bbox: null, plan: { page: 1, controls: [] } });
+    expect(result.current.pairs).toHaveLength(1);
+  });
+
+  it("does not carry a waiting plan point to another page", () => {
+    const { result, rerender } = align({ bbox: null });
+    act(() => result.current.addPlanPoint({ x: 1, y: 1 }));
+    rerender({ bbox: null, plan: { page: 2, controls: [] } });
+    expect(result.current.awaitingScenePick).toBe(false);
+  });
+});
+
 describe("useAlignment, save and clear", () => {
   it("PUTs every pair with the page, then reports", async () => {
     vi.mocked(putCalibration).mockResolvedValue({ page: 2, points: [] });

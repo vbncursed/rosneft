@@ -29,6 +29,11 @@ export function TagMultiSelect({ tags, selected, atLimit, max, error, onToggle, 
         </div>
       ) : (
         <>
+          {tags?.length === 0 ? (
+            <p className="mb-0 mt-1 text-[12px] text-muted">
+              No tags are available for zones yet. Ask an administrator to add one.
+            </p>
+          ) : null}
           <p className="mb-2 mt-1 text-[11px] text-dim">
             Pick 1 to {max}: models with these tags can be placed here. {selected.length} of {max} chosen.
           </p>

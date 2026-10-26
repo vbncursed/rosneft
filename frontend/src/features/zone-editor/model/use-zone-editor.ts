@@ -1,6 +1,5 @@
 import { useState } from "react";
 import type { Document } from "@/entities/document";
-import type { Vec3 } from "@/entities/placement";
 import { zoneFromRect } from "@/entities/site-plan";
 import type { SourceBbox } from "@/entities/territory";
 import { createZone, type Zone } from "@/entities/zone";
@@ -63,7 +62,7 @@ export function useZoneEditor(params: ZoneEditorParams) {
     scaleLine: alignment.scaleLine,
     metresPerPt,
     awaitingScenePick: alignment.awaitingScenePick,
-    acceptScenePoint: (p: Vec3) => alignment.acceptScenePoint(p),
+    acceptScenePoint: alignment.acceptScenePoint,
     save: alignment.save,
     clear: alignment.clear,
     createZone: createZoneFromSelection,
