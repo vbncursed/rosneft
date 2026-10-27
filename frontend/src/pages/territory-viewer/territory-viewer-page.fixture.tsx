@@ -127,6 +127,7 @@ export const IDLE_ZONES: ZoneParts = {
   pick: null,
   onAddObjects: undefined,
   onDelete: async () => {},
+  onUpdate: async () => {},
   show: true,
   onToggleShow: noop,
   site: {

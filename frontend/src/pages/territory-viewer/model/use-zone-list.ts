@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
-import { deleteZone, type Zone } from "@/entities/zone";
-import { messageOf } from "@/shared/api";
+import { deleteZone, patchZone, type Zone } from "@/entities/zone";
+import { HttpError, messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
 import { useStoredSwitch } from "@/shared/lib/use-stored-switch";
 
@@ -44,12 +44,33 @@ export function useZoneList({ slug, initial, onChanged }: ZoneListParams) {
     [slug, onChanged],
   );
 
+  // The zone's own row is replaced, so the label, the card, the picker's tag filter and the plan all read the new copy.
+  const update = useCallback(
+    async (id: number, patch: { title?: string; tagSlugs?: string[] }) => {
+      try {
+        add(await patchZone(slug, id, patch));
+        notify.success("Zone updated");
+      } catch (err) {
+        // Gone for someone else: drop it here too. Any other refusal goes back to the form.
+        if (!(err instanceof HttpError && err.status === 404)) throw err;
+        setZones((prev) => prev.filter((z) => z.id !== id));
+        setSelectedId((now) => (now === id ? null : now));
+        notify.info("This zone no longer exists");
+      } finally {
+        onChanged();
+      }
+    },
+    // oxlint-disable-next-line react/memo-dependencies -- false positive: oxlint does not see the onChanged call inside finally
+    [slug, add, onChanged],
+  );
+
   return {
     zones,
     selected: zones.find((z) => z.id === selectedId) ?? null,
     select,
     add,
     remove,
+    update,
     show,
     toggleShow,
   };

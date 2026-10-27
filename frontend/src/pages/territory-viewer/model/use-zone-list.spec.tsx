@@ -1,11 +1,15 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { deleteZone, type Zone } from "@/entities/zone";
+import { deleteZone, patchZone, type Zone } from "@/entities/zone";
 import { HttpError } from "@/shared/api";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useZoneList } from "./use-zone-list";
 
-vi.mock("@/entities/zone", async (importOriginal) => ({ ...(await importOriginal<object>()), deleteZone: vi.fn() }));
+vi.mock("@/entities/zone", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  deleteZone: vi.fn(),
+  patchZone: vi.fn(),
+}));
 
 const zone = (id: number): Zone => ({
   id,
@@ -31,6 +35,7 @@ beforeEach(() => {
   localStorage.clear();
   onChanged = vi.fn();
   vi.mocked(deleteZone).mockReset();
+  vi.mocked(patchZone).mockReset();
   clearNotices();
 });
 
@@ -79,6 +84,38 @@ describe("useZoneList", () => {
     expect(result.current.s.zones.map((z) => z.id)).toEqual([1, 2]);
     expect(result.current.notices[0]?.message).toBe("You don't have permission to do this");
     // A refused delete may mean the row is gone for another reason: the bundle is stale either way.
+    expect(onChanged).toHaveBeenCalledOnce();
+  });
+
+  it("replaces a saved zone in place, keeps it selected, says so and marks the bundle stale", async () => {
+    const saved = { ...zone(2), title: "Renamed", tags: [{ slug: "pumps", title: "Pumps" }] };
+    vi.mocked(patchZone).mockResolvedValue(saved);
+    const { result } = list();
+    act(() => result.current.s.select(2));
+    await act(() => result.current.s.update(2, { title: "Renamed" }));
+    expect(patchZone).toHaveBeenCalledWith("t", 2, { title: "Renamed" });
+    expect(result.current.s.zones.map((z) => z.title)).toEqual(["Zone 1", "Renamed"]);
+    expect(result.current.s.selected).toEqual(saved);
+    expect(result.current.notices[0]?.message).toBe("Zone updated");
+    expect(onChanged).toHaveBeenCalledOnce();
+  });
+
+  it("hands a refusal back to the form and leaves the list as it was", async () => {
+    vi.mocked(patchZone).mockRejectedValue(new HttpError(400, null, "a zone with this title already exists"));
+    const { result } = list();
+    await expect(act(() => result.current.s.update(1, { title: "Zone 2" }))).rejects.toThrow("already exists");
+    expect(result.current.s.zones.map((z) => z.title)).toEqual(["Zone 1", "Zone 2"]);
+    expect(result.current.notices).toHaveLength(0);
+  });
+
+  it("drops a zone someone else deleted, lets go of it and says so", async () => {
+    vi.mocked(patchZone).mockRejectedValue(new HttpError(404, null, "zone not found"));
+    const { result } = list();
+    act(() => result.current.s.select(1));
+    await act(() => result.current.s.update(1, { title: "X" }));
+    expect(result.current.s.zones.map((z) => z.id)).toEqual([2]);
+    expect(result.current.s.selected).toBeNull();
+    expect(result.current.notices[0]).toMatchObject({ tone: "info" });
     expect(onChanged).toHaveBeenCalledOnce();
   });
 

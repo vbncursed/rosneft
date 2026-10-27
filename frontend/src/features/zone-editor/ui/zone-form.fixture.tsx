@@ -1,7 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { HttpError } from "@/shared/api";
+import type { Zone } from "@/entities/zone";
+import { ZoneEditForm } from "./zone-edit-form";
 import { ZoneForm } from "./zone-form";
+
+const ZONE = { id: 1, title: "Tank row", tags: [{ slug: "tanks", title: "Tanks" }] } as Zone;
 
 const TAGS = [
   { slug: "tanks", title: "Tanks" },
@@ -50,6 +54,20 @@ export default {
         rectName="Rectangle 7.5 × 13.0 m"
         canPlace
         onCreate={() => Promise.reject(new HttpError(400, null, "a zone titled Tank row already exists"))}
+      />
+    </Frame>
+  ),
+  "editing a saved zone": (
+    <Frame seed>
+      <ZoneEditForm zone={ZONE} onSave={async () => {}} onDone={() => {}} />
+    </Frame>
+  ),
+  "edit: title already taken": (
+    <Frame seed>
+      <ZoneEditForm
+        zone={ZONE}
+        onSave={() => Promise.reject(new HttpError(400, null, "a zone with this title already exists"))}
+        onDone={() => {}}
       />
     </Frame>
   ),

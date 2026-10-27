@@ -1,9 +1,11 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Calibration, Document } from "@/entities/document";
-import type { Zone } from "@/entities/zone";
+import { modelsForZone, patchZone, type Zone } from "@/entities/zone";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useViewerZones, type ViewerZonesParams } from "./use-viewer-zones";
+
+vi.mock("@/entities/zone", async (importOriginal) => ({ ...(await importOriginal<object>()), patchZone: vi.fn() }));
 
 const CAL: Calibration = { page: 1, points: [] };
 const doc = (id: number, calibration: Calibration | null = null): Document => ({
@@ -212,5 +214,31 @@ describe("useViewerZones, the model picker", () => {
     act(() => result.current.z.site.onSelectZone(7));
     await act(async () => result.current.z.pick?.onPlace("tank-500", 1));
     expect(result.current.z.pick?.zone.id).toBe(7);
+  });
+});
+
+describe("useViewerZones, a saved edit", () => {
+  const OPTIONS = [
+    { slug: "tank", tag: { slug: "tanks", title: "Tanks" } },
+    { slug: "pump", tag: { slug: "pumps", title: "Pumps" } },
+  ];
+
+  it("reaches the list, the selected zone, the canvas's zones and the picker's tag filter at once", async () => {
+    const saved: Zone = { ...ZONE, title: "Pump row", tags: [{ slug: "pumps", title: "Pumps" }] };
+    vi.mocked(patchZone).mockResolvedValue(saved);
+    const params = base();
+    const { result } = zones(params);
+    act(() => result.current.z.site.onSelectZone(ZONE.id));
+    expect(modelsForZone(OPTIONS, result.current.z.pick!.zone).map((o) => o.slug)).toEqual(["tank"]);
+
+    await act(() => result.current.z.onUpdate(ZONE.id, { title: "Pump row", tagSlugs: ["pumps"] }));
+
+    expect(patchZone).toHaveBeenCalledWith("t", ZONE.id, { title: "Pump row", tagSlugs: ["pumps"] });
+    expect(result.current.z.list[0]?.title).toBe("Pump row");
+    expect(result.current.z.selected?.title).toBe("Pump row");
+    expect(result.current.z.site.zones[0]?.title).toBe("Pump row");
+    expect(result.current.z.pick?.zone.title).toBe("Pump row");
+    expect(modelsForZone(OPTIONS, result.current.z.pick!.zone).map((o) => o.slug)).toEqual(["pump"]);
+    expect(params.onChanged).toHaveBeenCalledOnce();
   });
 });

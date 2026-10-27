@@ -3,6 +3,7 @@ import { modelsForZone } from "@/entities/zone";
 import { ZonePanel } from "@/features/zone-equipment";
 import type { PlaceObjectsModalProps } from "@/widgets/model-picker";
 import { PlanLayersLazy } from "../ui/plan-layers-lazy";
+import { ZoneEditFormLazy } from "../ui/zone-edit-lazy";
 import type { PageParts } from "./viewer-props";
 
 /** The plan layer, loaded on demand; nothing mounts, and nothing loads, while there is no plan to read. */
@@ -26,6 +27,7 @@ export function zoneCard(p: PageParts): ReactNode {
       {zones.editing ? <div ref={zones.setSlot} data-testid="plan-editor-slot" /> : null}
       {selected ? (
         <ZonePanel
+          key={selected.id}
           zone={selected}
           sizeLine={zones.equipment.sizeLine}
           inside={zones.equipment.inside}
@@ -33,6 +35,19 @@ export function zoneCard(p: PageParts): ReactNode {
           onClose={() => zones.onSelect(null)}
           onEdit={zones.onAlign && aligned ? () => zones.onAlign?.(aligned.id) : undefined}
           onDelete={p.grants.zoneWrite ? () => void zones.onDelete(selected.id) : undefined}
+          renderEdit={
+            p.grants.zoneWrite
+              ? (done) => (
+                  <Suspense fallback={null}>
+                    <ZoneEditFormLazy
+                      zone={selected}
+                      onSave={(patch) => zones.onUpdate(selected.id, patch)}
+                      onDone={done}
+                    />
+                  </Suspense>
+                )
+              : undefined
+          }
         />
       ) : null}
     </>

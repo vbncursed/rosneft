@@ -120,6 +120,7 @@ export function useViewerZones(p: ViewerZonesParams) {
     pick: picker.pick,
     onAddObjects: picker.onAddObjects,
     onDelete: list.remove,
+    onUpdate: list.update,
     show: list.show,
     onToggleShow: list.toggleShow,
     site,

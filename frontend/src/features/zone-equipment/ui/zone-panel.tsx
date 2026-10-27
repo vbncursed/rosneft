@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { TagChip } from "@/entities/model-tag";
 import type { Zone } from "@/entities/zone";
 import { Button } from "@/shared/ui/button";
@@ -18,38 +18,75 @@ export type ZonePanelProps = {
   /** `zone:write` only. */
   onEdit?: () => void;
   onDelete?: () => void;
+  /** `zone:write`: the form that renames the zone and changes its tags, shown in place of the title and tags; `done` leaves it. */
+  renderEdit?: (done: () => void) => ReactNode;
 };
 
 /** One zone in the Overlays panel: what it is, how big, how full, and the way into the models it can take. */
-export function ZonePanel({ zone, sizeLine, inside, onAddObjects, onClose, onEdit, onDelete }: ZonePanelProps) {
+export function ZonePanel({
+  zone,
+  sizeLine,
+  inside,
+  onAddObjects,
+  onClose,
+  onEdit,
+  onDelete,
+  renderEdit,
+}: ZonePanelProps) {
   const [asking, setAsking] = useState(false);
+  const [editing, setEditing] = useState(false);
   return (
     <section
       aria-label={`Zone ${zone.title}`}
       data-tour="zone-card"
       className="mb-3.5 flex flex-col gap-2.5 rounded-card border border-accent-line bg-panel-2 p-3"
     >
-      <div className="flex items-center gap-2">
-        <h3 className="m-0 min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{zone.title}</h3>
-        {onEdit ? (
-          <Button size="sm" variant="secondary" onClick={onEdit}>
-            Edit zones
-          </Button>
-        ) : null}
-        {onDelete ? (
-          <Button size="sm" variant="secondary" aria-label={`Delete ${zone.title}`} onClick={() => setAsking(true)}>
-            Delete
-          </Button>
-        ) : null}
-        <Button shape="icon" size="xs" variant="ghost" aria-label={`Close ${zone.title}`} onClick={onClose}>
-          <Icon name="close" size={11} />
-        </Button>
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {zone.tags.map((tag) => (
-          <TagChip key={tag.slug} tag={tag} />
-        ))}
-      </div>
+      {editing && renderEdit ? (
+        renderEdit(() => setEditing(false))
+      ) : (
+        <>
+          <div className="flex items-center gap-2">
+            <h3 className="m-0 min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{zone.title}</h3>
+            <Button shape="icon" size="xs" variant="ghost" aria-label={`Close ${zone.title}`} onClick={onClose}>
+              <Icon name="close" size={11} />
+            </Button>
+          </div>
+          {renderEdit || onEdit || onDelete ? (
+            <div className="flex flex-wrap gap-2">
+              {renderEdit ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  aria-label={`Edit ${zone.title}`}
+                  onClick={() => setEditing(true)}
+                >
+                  Edit
+                </Button>
+              ) : null}
+              {onEdit ? (
+                <Button size="sm" variant="secondary" onClick={onEdit}>
+                  Edit zones
+                </Button>
+              ) : null}
+              {onDelete ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  aria-label={`Delete ${zone.title}`}
+                  onClick={() => setAsking(true)}
+                >
+                  Delete
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+          <div className="flex flex-wrap gap-1.5">
+            {zone.tags.map((tag) => (
+              <TagChip key={tag.slug} tag={tag} />
+            ))}
+          </div>
+        </>
+      )}
       {sizeLine ? (
         <Callout tone={sizeLine.warn ? "warn" : "neutral"} size="note">
           {sizeLine.text}

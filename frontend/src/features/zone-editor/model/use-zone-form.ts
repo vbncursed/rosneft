@@ -1,16 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { modelTagsQuery, UNGROUPED_TAG_SLUG } from "@/entities/model-tag";
 import { HttpError } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
-import { unanswered } from "@/shared/lib/unanswered";
+import { useZoneFields, type ZoneForm } from "./use-zone-fields";
 
-export const MAX_ZONE_TAGS = 5;
-const TAGS_ERROR = "Tags could not be loaded. Try again.";
+export { MAX_ZONE_TAGS, type ZoneForm } from "./use-zone-fields";
 
-export type ZoneForm = { title: string; tagSlugs: string[] };
-
-/** The zone form: a title, one to five tags (never `ungrouped`) and the server's verdict on them. */
+/** The new-zone form: the shared fields plus the create call and the rectangle it waits for. */
 export function useZoneForm({
   canPlace,
   blocked,
@@ -21,25 +16,17 @@ export function useZoneForm({
   blocked: string | null;
   onCreate: (form: ZoneForm) => Promise<void>;
 }) {
-  const tagQuery = useQuery(modelTagsQuery());
-  const [title, setTitleState] = useState("");
-  const [selected, setSelected] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const f = useZoneFields({ title: "", tagSlugs: [] });
   const [busy, setBusy] = useState(false);
-
-  const tags = tagQuery.data?.filter((t) => t.slug !== UNGROUPED_TAG_SLUG);
-  const atLimit = selected.length >= MAX_ZONE_TAGS;
-  const trimmed = title.trim();
 
   async function submit() {
     setBusy(true);
     try {
-      await onCreate({ title: trimmed, tagSlugs: selected });
-      setTitleState("");
-      setSelected([]);
+      await onCreate({ title: f.trimmed, tagSlugs: f.selected });
+      f.reset();
     } catch (err) {
       // A refusal (a title already taken) belongs under the field; an outage does not.
-      if (err instanceof HttpError && err.status < 500) setError(err.message);
+      if (err instanceof HttpError && err.status < 500) f.setError(err.message);
       else notify.error("Could not create the zone. Try again.");
     } finally {
       setBusy(false);
@@ -47,22 +34,11 @@ export function useZoneForm({
   }
 
   return {
-    title,
-    setTitle: (t: string) => {
-      setTitleState(t);
-      setError(null);
-    },
-    tags,
-    tagsError: unanswered(tagQuery) ? TAGS_ERROR : null,
-    retryTags: () => void tagQuery.refetch(),
-    selected,
-    atLimit,
-    toggleTag: (slug: string) =>
-      setSelected((now) => (now.includes(slug) ? now.filter((s) => s !== slug) : atLimit ? now : [...now, slug])),
-    error,
+    ...f,
     busy,
     blocked,
-    canCreate: canPlace && blocked === null && !busy && tags !== undefined && trimmed.length > 0 && selected.length > 0,
+    canCreate:
+      canPlace && blocked === null && !busy && f.tags !== undefined && f.trimmed.length > 0 && f.selected.length > 0,
     submit,
   };
 }

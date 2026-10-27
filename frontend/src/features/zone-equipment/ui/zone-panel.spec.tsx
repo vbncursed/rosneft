@@ -83,6 +83,35 @@ describe("ZonePanel", () => {
   });
 });
 
+describe("ZonePanel edit", () => {
+  const renderEdit = (done: () => void) => (
+    <form aria-label="Edit form">
+      <button type="button" onClick={done}>
+        Cancel
+      </button>
+    </form>
+  );
+
+  it("offers Edit only to a reader who can write zones", () => {
+    const { unmount } = render(panel());
+    expect(screen.queryByRole("button", { name: "Edit Tank row" })).toBeNull();
+    unmount();
+    render(panel({ renderEdit }));
+    expect(screen.getByRole("button", { name: "Edit Tank row" })).toBeInTheDocument();
+  });
+
+  it("swaps the title and tags for the form, and back when it is done", async () => {
+    render(panel({ renderEdit }));
+    await userEvent.click(screen.getByRole("button", { name: "Edit Tank row" }));
+    expect(screen.getByRole("form", { name: "Edit form" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Tank row" })).toBeNull();
+    expect(screen.queryByText("Tanks")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("heading", { name: "Tank row" })).toBeInTheDocument();
+    expect(screen.getByText("Tanks")).toBeInTheDocument();
+  });
+});
+
 describe("ZonePanel tour anchors", () => {
   it("anchors the card and Add objects", () => {
     render(panel());
