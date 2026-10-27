@@ -42,10 +42,56 @@ describe("pickZone", () => {
 
   it("takes the later zone of two with the same footprint", () => {
     const twin = { corners: rect(0, 0, 10, 10) };
-    expect(pickZone([hit(0, 5), hit(1, 5)], [big, twin])?.index).toBe(1);
+    expect(pickZone([hit(0, 5), hit(0, 9), hit(1, 5), hit(1, 9)], [big, twin])?.index).toBe(1);
   });
 
   it("does not care in what order the hits come", () => {
     expect(pickZone([hit(1, 7), hit(0, 9), hit(1, 6), hit(0, 5)], [big, small])?.index).toBe(1);
+  });
+
+  describe("a ray that crosses more than one prism along its length", () => {
+    // Two prisms side by side: the ray leaves A through its back wall and only then reaches B.
+    const a = { corners: rect(0, 0, 10, 10) };
+    const b = { corners: rect(10, 0, 2, 2) };
+    const stretch = (zone: number, enter: number, exit: number) => [hit(zone, enter), hit(zone, exit)];
+
+    it("stays with the zone it enters first when the next one only starts where it ends", () => {
+      expect(pickZone([...stretch(0, 5, 9), ...stretch(1, 9, 12)], [a, b])?.index).toBe(0);
+    });
+
+    it("does the same for a shallow ray, whose stretches are long", () => {
+      expect(pickZone([...stretch(0, 5, 20), ...stretch(1, 20, 40)], [a, b])?.index).toBe(0);
+    });
+
+    it("stays with the first zone when the second is only grazed at a corner behind it", () => {
+      expect(pickZone([...stretch(0, 5, 9), ...stretch(1, 9.2, 9.2000001)], [a, b])?.index).toBe(0);
+    });
+
+    it("picks the inner zone when its stretch lies within the outer one's", () => {
+      const inner = { corners: rect(4, 4, 1, 1) };
+      expect(pickZone([...stretch(0, 5, 9), ...stretch(1, 6, 7)], [a, inner])?.index).toBe(1);
+    });
+
+    it("picks the smaller of two that really overlap along the ray", () => {
+      expect(pickZone([...stretch(0, 5, 9), ...stretch(1, 8, 12)], [a, b])?.index).toBe(1);
+    });
+
+    it("takes the later of two coincident zones", () => {
+      const twin = { corners: rect(0, 0, 10, 10) };
+      expect(pickZone([...stretch(0, 5, 9), ...stretch(1, 5, 9)], [a, twin])?.index).toBe(1);
+    });
+  });
+
+  describe("a zone with no area", () => {
+    const flat = { corners: [0, 1, 2, 3].map((x) => ({ x, y: 0, z: 0 })) as Corners };
+    const wide = { corners: rect(0, 0, 10, 10) };
+
+    it("never wins over a real zone it overlaps", () => {
+      expect(pickZone([hit(0, 5), hit(0, 9), hit(1, 6), hit(1, 7)], [wide, flat])?.index).toBe(0);
+    });
+
+    it("is not pickable on its own: a collinear zone has no footprint to click", () => {
+      expect(pickZone([hit(0, 5), hit(0, 9)], [flat])).toBeNull();
+    });
   });
 });
