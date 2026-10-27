@@ -949,6 +949,78 @@ describe("useTerritoryViewer", () => {
       expect(now(r).canvas.site.selectedZoneId).toBeNull();
     });
 
+    describe("the zone's model picker", () => {
+      const CRANE = {
+        tag: { slug: "cranes", title: "Cranes" },
+        slug: "tower-crane",
+        title: "tower-crane",
+        bboxMin: { x: 0, y: 0, z: 0 },
+        bboxMax: { x: 3, y: 3, z: 3 },
+        chain: [{ lod: 0, hash: "c0", size: 1 }],
+      };
+      const withLibrary = () => {
+        client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+        client.setQueryData(["scene", SLUG], {
+          ...BUNDLE,
+          zones: [ZONE],
+          modelOptions: [...BUNDLE.modelOptions, CRANE],
+        });
+        return renderHook(() => useTerritoryViewer(SLUG), { wrapper });
+      };
+
+      it("draws the zones for a reader who can only read, with no plan session and no plan layer", async () => {
+        getMe.mockResolvedValue(principal({ permissions: ["territory:read"] }));
+        const state = await ready(withLibrary());
+        expect(state.canvas.site.zones.map((z) => z.id)).toEqual([5]);
+        expect(state.canvas.site.showZones).toBe(true);
+        expect(state.overlays.plan).toBeNull();
+      });
+
+      it("opens the add-objects picker on a click, filtered to the zone's tags, with the whole library one switch away", async () => {
+        getMe.mockResolvedValue(principal({ permissions: ["territory:read", "placement:create"] }));
+        const r = withLibrary();
+        await ready(r);
+        expect(now(r).picker.open).toBe(false);
+        act(() => now(r).canvas.site.onSelectZone(5));
+        const { picker } = now(r);
+        expect(picker.open).toBe(true);
+        expect(picker.zone?.title).toBe("Tank row");
+        expect(picker.zone?.models.map((m) => m.slug)).toEqual(["storage-tank-500"]);
+        expect(picker.options.map((m) => m.slug)).toEqual(["storage-tank-500", "tower-crane"]);
+      });
+
+      it("opens no picker for a reader without placement:create, but still gives the card", async () => {
+        getMe.mockResolvedValue(principal({ permissions: ["territory:read"] }));
+        const r = withLibrary();
+        await ready(r);
+        act(() => now(r).canvas.site.onSelectZone(5));
+        expect(now(r).picker.open).toBe(false);
+        expect(now(r).picker.zone).toBeUndefined();
+        expect(now(r).panel?.zone).not.toBeNull();
+      });
+
+      it("places at the zone's centre along its long axis, and closes", async () => {
+        getMe.mockResolvedValue(principal({ permissions: ["territory:read", "placement:create"] }));
+        createPlacements.mockResolvedValue([placement(10)]);
+        const r = withLibrary();
+        await ready(r);
+        act(() => now(r).canvas.site.onSelectZone(5));
+        await act(async () => now(r).picker.onPlace("storage-tank-500", 1));
+        expect(createPlacements).toHaveBeenCalledWith(
+          SLUG,
+          [
+            expect.objectContaining({
+              modelSlug: "storage-tank-500",
+              position: { x: expect.closeTo(0.1, 10), y: 0, z: expect.closeTo(0.05, 10) },
+              rotation: { x: 0, y: expect.closeTo(0, 10), z: 0 },
+            }),
+          ],
+          expect.any(String),
+        );
+        expect(now(r).picker.open).toBe(false);
+      });
+    });
+
     it("lets go of the zone on a click into empty space, and on Escape", async () => {
       const r = withZone();
       await ready(r);

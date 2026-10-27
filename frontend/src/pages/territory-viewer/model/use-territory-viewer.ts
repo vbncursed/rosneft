@@ -187,6 +187,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     placements: editor.placements,
     create: editor.create,
     canWrite: grants.zoneWrite,
+    canPlace: grants.create,
     onChanged,
     expandPanel: useCallback(() => panel.setCollapsed(false), [panel]),
   });

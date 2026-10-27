@@ -1,25 +1,18 @@
 import { useState } from "react";
 import { TagChip } from "@/entities/model-tag";
-import type { ModelOption } from "@/entities/scene";
-import { modelsForZone, type Zone } from "@/entities/zone";
+import type { Zone } from "@/entities/zone";
 import { Button } from "@/shared/ui/button";
 import { Callout } from "@/shared/ui/callout";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { Icon } from "@/shared/ui/icon";
-import { QuantityStepper } from "@/shared/ui/quantity-stepper";
 
 export type ZonePanelProps = {
   zone: Zone;
   /** The drawing's size against the model's; null without a drawing size. */
   sizeLine: { text: string; warn: boolean } | null;
   inside: number;
-  /** Every placeable model; the panel keeps the ones that carry the zone's tags. */
-  options: Pick<ModelOption, "slug" | "title" | "tag">[];
-  /** `placement:create`: without it the list is read-only. */
-  canPlace: boolean;
-  onPlace: (modelSlug: string, count: number) => void;
-  /** Opens the whole model library, not just this zone's tags. */
-  onWholeLibrary: () => void;
+  /** `placement:create`: opens the model list filtered to this zone's tags. Absent, the card offers no placing. */
+  onAddObjects?: () => void;
   /** Lets go of the zone: the card closes. */
   onClose: () => void;
   /** `zone:write` only. */
@@ -27,47 +20,9 @@ export type ZonePanelProps = {
   onDelete?: () => void;
 };
 
-const MAX_COUNT = 99;
-const EMPTY = "No catalog models carry this zone's tags.";
-
-function Row({ title, canPlace, onPlace }: { title: string; canPlace: boolean; onPlace: (count: number) => void }) {
-  const [count, setCount] = useState(1);
-  return (
-    <li className="flex items-center gap-2 rounded-[9px] border border-line bg-panel px-2.5 py-2">
-      <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-fg">{title}</span>
-      {canPlace ? (
-        <>
-          <QuantityStepper value={count} onChange={setCount} max={MAX_COUNT} label={`Count of ${title}`} />
-          <Button
-            size="sm"
-            variant="secondary"
-            aria-label={`Place ${title}`}
-            data-tour="zone-place"
-            onClick={() => onPlace(count)}
-          >
-            Place
-          </Button>
-        </>
-      ) : null}
-    </li>
-  );
-}
-
-/** One zone in the Overlays panel: what it is, how big, how full, and the equipment it can take. */
-export function ZonePanel({
-  zone,
-  sizeLine,
-  inside,
-  options,
-  canPlace,
-  onPlace,
-  onWholeLibrary,
-  onClose,
-  onEdit,
-  onDelete,
-}: ZonePanelProps) {
+/** One zone in the Overlays panel: what it is, how big, how full, and the way into the models it can take. */
+export function ZonePanel({ zone, sizeLine, inside, onAddObjects, onClose, onEdit, onDelete }: ZonePanelProps) {
   const [asking, setAsking] = useState(false);
-  const models = modelsForZone(options, zone);
   return (
     <section
       aria-label={`Zone ${zone.title}`}
@@ -103,22 +58,11 @@ export function ZonePanel({
       <p className="m-0 font-mono text-[11px] text-muted">
         {inside} {inside === 1 ? "placement" : "placements"} inside
       </p>
-      {models.length > 0 ? (
-        <ul aria-label="Equipment" data-tour="zone-equipment" className="m-0 flex list-none flex-col gap-1.5 p-0">
-          {models.map((m) => (
-            <Row key={m.slug} title={m.title} canPlace={canPlace} onPlace={(count) => onPlace(m.slug, count)} />
-          ))}
-        </ul>
-      ) : (
-        <div className="flex flex-col items-start gap-2">
-          <p className="m-0 text-[12px] text-muted">{EMPTY}</p>
-          {canPlace ? (
-            <Button size="sm" variant="secondary" onClick={onWholeLibrary} data-tour="zone-library">
-              Whole library…
-            </Button>
-          ) : null}
-        </div>
-      )}
+      {onAddObjects ? (
+        <Button size="sm" variant="secondary" onClick={onAddObjects} data-tour="zone-place">
+          Add objects
+        </Button>
+      ) : null}
       <ConfirmDialog
         open={asking}
         title={`Delete ${zone.title}?`}

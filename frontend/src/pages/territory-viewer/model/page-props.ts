@@ -1,7 +1,7 @@
 import { canEditSaved, computeUnitRatio } from "@/entities/measurement";
 import { groupByModel } from "@/entities/placement";
 import { documentProps, loadingLevel, panoramaCanvasProps, uploadProps, viewTabProps } from "./page-props-b";
-import { planLayer, zoneCard } from "./page-props-zones";
+import { planLayer, zoneCard, zonePicker } from "./page-props-zones";
 import { memoLast } from "./memo-last";
 import { placementsPanelProps } from "./page-props-placements";
 import { freeKeys, loadingChip, measuringView, modeChip, stripItems } from "./strip-and-chips";
@@ -214,7 +214,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
           zone: zoneCard(p),
         },
 
-    picker: {
+    picker: zonePicker(p) ?? {
       open: view.pickerOpen,
       onClose: on.onClosePicker,
       territoryTitle: title,

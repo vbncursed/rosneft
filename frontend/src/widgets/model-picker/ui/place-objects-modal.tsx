@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { ModelOption } from "@/entities/scene";
 import { Button } from "@/shared/ui/button";
 import { Modal } from "@/shared/ui/modal";
 import { ProgressBar } from "@/shared/ui/progress-bar";
 import { QuantityStepper } from "@/shared/ui/quantity-stepper";
 import { SearchField } from "@/shared/ui/search-field";
+import { Switch } from "@/shared/ui/switch";
 import { ModelPicker } from "./model-picker";
 
 export type PlaceObjectsModalProps = {
@@ -15,9 +16,15 @@ export type PlaceObjectsModalProps = {
   /** Non-null while the batch is being written, in one request. */
   placing: { total: number } | null;
   onPlace: (slug: string, count: number) => void;
+  /**
+   * Opened from a zone: `models` are the ones that carry its tags. They are
+   * what the grid shows until the reader asks for the whole library.
+   */
+  zone?: { title: string; models: ModelOption[] };
 };
 
 const MAX = 99;
+const SHOW_ALL = "Show all models";
 
 /**
  * The card's sub line: "3 LODs · 8.0 MB", or why there is no chain to measure.
@@ -59,13 +66,17 @@ function PlaceObjectsBody({
   options,
   placing,
   onPlace,
+  zone,
 }: Omit<PlaceObjectsModalProps, "open">) {
   const [query, setQuery] = useState("");
+  const [showAll, setShowAll] = useState(false);
+  const allId = useId();
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [count, setCount] = useState(1);
 
   const needle = query.trim().toLowerCase();
-  const shown = options.filter((o) => o.title.toLowerCase().includes(needle));
+  const pool = zone && !showAll ? zone.models : options;
+  const shown = pool.filter((o) => o.title.toLowerCase().includes(needle));
   const selected = options.find((o) => o.slug === selectedSlug) ?? null;
 
   const models = shown.map((option) => ({
@@ -89,8 +100,12 @@ function PlaceObjectsBody({
       open
       onClose={onClose}
       size="lg"
-      title={`Add objects to ${territoryTitle}`}
-      description="Pick a model from the library, set how many instances to drop, then place them in the viewport."
+      title={`Add objects to ${zone?.title ?? territoryTitle}`}
+      description={
+        zone && !showAll
+          ? "The models that carry this zone's tags. Set how many to drop; they land at the zone's centre."
+          : "Pick a model from the library, set how many instances to drop, then place them in the viewport."
+      }
       footer={
         <div className="flex w-full items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
@@ -134,6 +149,14 @@ function PlaceObjectsBody({
         label="Search the model library"
         placeholder="Search the model library"
       />
+      {zone ? (
+        <div className="flex items-center justify-between gap-2.5">
+          <span id={allId} className="font-mono text-[11px] text-muted">
+            {SHOW_ALL}
+          </span>
+          <Switch checked={showAll} onChange={setShowAll} label={SHOW_ALL} labelledBy={allId} />
+        </div>
+      ) : null}
       {/* The grid is the one part that scrolls. The dialog is overflow-visible
           (Modal's dropdown rule) under the UA's viewport max-height, so a long
           library spilled past its frame with nothing to scroll; min-h-0 lets
@@ -143,7 +166,11 @@ function PlaceObjectsBody({
           models={models}
           columns={4}
           thumb="band"
-          emptyCopy="Nothing matches your search."
+          emptyCopy={
+            zone && !showAll && zone.models.length === 0
+              ? "No catalog model carries this zone's tags."
+              : "Nothing matches your search."
+          }
           selectedSlug={selectedSlug}
           onSelect={setSelectedSlug}
         />

@@ -53,10 +53,17 @@ describe("useZoneEquipment", () => {
     });
   });
 
+  it("hands back what the placing answers, so a caller can tell a failure", async () => {
+    const create = vi.fn().mockResolvedValueOnce(5).mockResolvedValueOnce(null);
+    const { result } = hook(zone(), [], 50, create);
+    await expect(result.current.onPlace("tank", 1)).resolves.toBe(5);
+    await expect(result.current.onPlace("tank", 1)).resolves.toBeNull();
+  });
+
   it("places nothing without a zone", async () => {
     const create = vi.fn();
     const { result } = hook(null, [], 50, create);
-    await act(async () => result.current.onPlace("tank", 1));
+    await act(async () => expect(await result.current.onPlace("tank", 1)).toBeNull());
     expect(create).not.toHaveBeenCalled();
     expect(result.current.inside).toBe(0);
     expect(result.current.sizeLine).toBeNull();

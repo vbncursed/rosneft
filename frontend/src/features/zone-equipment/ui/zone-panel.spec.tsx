@@ -1,7 +1,7 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { OPTIONS, ZONE } from "./zone-options.fixture";
+import { ZONE } from "./zone-options.fixture";
 import { ZonePanel, type ZonePanelProps } from "./zone-panel";
 
 const panel = (over: Partial<ZonePanelProps> = {}) => (
@@ -9,10 +9,7 @@ const panel = (over: Partial<ZonePanelProps> = {}) => (
     zone={ZONE}
     sizeLine={{ text: "Drawing 10.0 × 5.0 m · Model 10.0 × 5.0 m (0 %)", warn: false }}
     inside={3}
-    options={OPTIONS}
-    canPlace
-    onPlace={vi.fn()}
-    onWholeLibrary={vi.fn()}
+    onAddObjects={vi.fn()}
     onClose={vi.fn()}
     {...over}
   />
@@ -34,49 +31,24 @@ describe("ZonePanel", () => {
     expect(screen.queryByText(/Drawing/)).toBeNull();
   });
 
-  it("lists only the models that carry one of the zone's tags", () => {
+  it("carries no equipment list of its own: the model list is the picker's, opened from the zone", () => {
     render(panel());
-    const list = screen.getByRole("list", { name: "Equipment" });
-    expect(
-      within(list)
-        .getAllByRole("listitem")
-        .map((li) => li.textContent),
-    ).toEqual(
-      expect.arrayContaining([expect.stringContaining("storage-tank-500"), expect.stringContaining("transfer-pump")]),
-    );
-    expect(within(list).queryByText("overhead-crane")).toBeNull();
-    expect(within(list).queryByText("loose-barrel")).toBeNull();
-    expect(within(list).getAllByRole("listitem")).toHaveLength(2);
-  });
-
-  it("places the model with the chosen count, once", async () => {
-    const onPlace = vi.fn();
-    render(panel({ onPlace }));
-    await userEvent.click(screen.getByRole("button", { name: "Increase count of storage-tank-500" }));
-    await userEvent.click(screen.getByRole("button", { name: "Place storage-tank-500" }));
-    expect(onPlace).toHaveBeenCalledOnce();
-    expect(onPlace).toHaveBeenCalledWith("tank-500", 2);
-  });
-
-  it("offers no Place buttons without placement:create", () => {
-    render(panel({ canPlace: false }));
-    expect(screen.queryByRole("button", { name: /^Place / })).toBeNull();
-    expect(screen.getByText("storage-tank-500")).toBeInTheDocument();
-  });
-
-  it("explains an empty list and offers the whole library", async () => {
-    const onWholeLibrary = vi.fn();
-    render(panel({ options: [OPTIONS[2]], onWholeLibrary }));
-    expect(screen.getByText("No catalog models carry this zone's tags.")).toBeInTheDocument();
     expect(screen.queryByRole("list", { name: "Equipment" })).toBeNull();
-    await userEvent.click(screen.getByRole("button", { name: "Whole library…" }));
-    expect(onWholeLibrary).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("button", { name: /^Place / })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Whole library…" })).toBeNull();
   });
 
-  it("does not offer the whole library to a reader who cannot place", () => {
-    render(panel({ options: [], canPlace: false }));
-    expect(screen.getByText("No catalog models carry this zone's tags.")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Whole library…" })).toBeNull();
+  it("reopens the filtered model list from Add objects, once", async () => {
+    const onAddObjects = vi.fn();
+    render(panel({ onAddObjects }));
+    await userEvent.click(screen.getByRole("button", { name: "Add objects" }));
+    expect(onAddObjects).toHaveBeenCalledOnce();
+  });
+
+  it("offers no Add objects without placement:create", () => {
+    render(panel({ onAddObjects: undefined }));
+    expect(screen.queryByRole("button", { name: "Add objects" })).toBeNull();
+    expect(screen.getByText("3 placements inside")).toBeInTheDocument();
   });
 
   it("prints a size warning as it is worded", () => {
@@ -112,20 +84,14 @@ describe("ZonePanel", () => {
 });
 
 describe("ZonePanel tour anchors", () => {
-  it("anchors the card, the equipment list and Place", () => {
+  it("anchors the card and Add objects", () => {
     render(panel());
     expect(screen.getByRole("region", { name: "Zone Tank row" })).toHaveAttribute("data-tour", "zone-card");
-    expect(screen.getByRole("list", { name: "Equipment" })).toHaveAttribute("data-tour", "zone-equipment");
-    expect(screen.getAllByRole("button", { name: /^Place / })[0]).toHaveAttribute("data-tour", "zone-place");
+    expect(screen.getByRole("button", { name: "Add objects" })).toHaveAttribute("data-tour", "zone-place");
   });
 
-  it("draws no Place anchor without placement:create, so the step skips itself", () => {
-    const { container } = render(panel({ canPlace: false }));
+  it("draws no Add objects anchor without placement:create, so the step skips itself", () => {
+    const { container } = render(panel({ onAddObjects: undefined }));
     expect(container.querySelector('[data-tour="zone-place"]')).toBeNull();
-  });
-
-  it("anchors Whole library when no model carries the tags", () => {
-    render(panel({ options: [] }));
-    expect(screen.getByRole("button", { name: "Whole library…" })).toHaveAttribute("data-tour", "zone-library");
   });
 });

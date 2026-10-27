@@ -41,6 +41,7 @@ const base = (): ViewerZonesParams => ({
   placements: [],
   create: vi.fn().mockResolvedValue(1),
   canWrite: true,
+  canPlace: true,
   onChanged: vi.fn(),
   expandPanel: vi.fn(),
 });
@@ -103,11 +104,11 @@ describe("useViewerZones", () => {
     expect(result.current.z.equipment.sizeLine?.warn).toBe(false);
   });
 
-  it("places from the selected zone", () => {
+  it("places from the selected zone", async () => {
     const params = base();
     const { result } = zones(params);
     act(() => result.current.z.onSelect(7));
-    act(() => result.current.z.equipment.onPlace("tank-500", 2));
+    await act(async () => result.current.z.equipment.onPlace("tank-500", 2));
     expect(params.create).toHaveBeenCalledWith("tank-500", 2, null, {
       position: { x: expect.closeTo(0.1, 10), y: 0, z: expect.closeTo(0.05, 10) },
       yaw: expect.closeTo(0, 10),
@@ -144,5 +145,70 @@ describe("useViewerZones", () => {
     expect(result.current.z.editorReady).toBe(false);
     expect(result.current.z.pickScene).toBe(false);
     expect(result.current.notices.map((n) => [n.tone, n.message])).toEqual([["info", "The plan was removed."]]);
+  });
+});
+
+describe("useViewerZones, the model picker", () => {
+  it("selects the zone a canvas click names and opens the picker on it, for a reader who can place", () => {
+    const { result } = zones();
+    expect(result.current.z.pick).toBeNull();
+    act(() => result.current.z.site.onSelectZone(7));
+    expect(result.current.z.selected?.id).toBe(7);
+    expect(result.current.z.pick?.zone.id).toBe(7);
+  });
+
+  it("selects the zone and opens no picker for a reader without placement:create", () => {
+    const { result } = zones({ canPlace: false });
+    act(() => result.current.z.site.onSelectZone(7));
+    expect(result.current.z.selected?.id).toBe(7);
+    expect(result.current.z.pick).toBeNull();
+    expect(result.current.z.onAddObjects).toBeUndefined();
+  });
+
+  it("keeps the zone selected, not toggled off, when the same zone is clicked again", () => {
+    const { result } = zones();
+    act(() => result.current.z.site.onSelectZone(7));
+    act(() => result.current.z.pick?.onClose());
+    expect(result.current.z.pick).toBeNull();
+    act(() => result.current.z.site.onSelectZone(7));
+    expect(result.current.z.selected?.id).toBe(7);
+    expect(result.current.z.pick?.zone.id).toBe(7);
+  });
+
+  it("closes the picker with the zone, and does not reopen it for the next zone selected from the panel", () => {
+    const { result } = zones();
+    act(() => result.current.z.site.onSelectZone(7));
+    act(() => result.current.z.onSelect(null));
+    expect(result.current.z.pick).toBeNull();
+    act(() => result.current.z.onSelect(7));
+    expect(result.current.z.pick).toBeNull();
+  });
+
+  it("reopens it from the card's Add objects", () => {
+    const { result } = zones();
+    act(() => result.current.z.site.onSelectZone(7));
+    act(() => result.current.z.pick?.onClose());
+    act(() => result.current.z.onAddObjects?.());
+    expect(result.current.z.pick?.zone.id).toBe(7);
+  });
+
+  it("places at the zone's centre along its long axis with the same origin as before, then closes", async () => {
+    const params = base();
+    const { result } = zones(params);
+    act(() => result.current.z.site.onSelectZone(7));
+    await act(async () => result.current.z.pick?.onPlace("tank-500", 2));
+    expect(params.create).toHaveBeenCalledWith("tank-500", 2, null, {
+      position: { x: expect.closeTo(0.1, 10), y: 0, z: expect.closeTo(0.05, 10) },
+      yaw: expect.closeTo(0, 10),
+    });
+    expect(result.current.z.pick).toBeNull();
+  });
+
+  it("stays open when the placing failed, so the reader can try again", async () => {
+    const params = { ...base(), create: vi.fn().mockResolvedValue(null) };
+    const { result } = zones(params);
+    act(() => result.current.z.site.onSelectZone(7));
+    await act(async () => result.current.z.pick?.onPlace("tank-500", 1));
+    expect(result.current.z.pick?.zone.id).toBe(7);
   });
 });
