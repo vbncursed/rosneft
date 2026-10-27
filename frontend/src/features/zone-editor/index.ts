@@ -2,5 +2,4 @@ export { useZoneEditor, type ZoneEditor, type ZoneEditorParams } from "./model/u
 export { type PlanZone } from "./model/plan-zones";
 export { AlignPanel, type AlignPanelProps } from "./ui/align-panel";
 export { ZoneForm, type ZoneFormProps } from "./ui/zone-form";
-export { usePlanImage, type PlanImage } from "./model/use-plan-image";
 export { previewOutlines, type PreviewOutline } from "./model/preview-outlines";

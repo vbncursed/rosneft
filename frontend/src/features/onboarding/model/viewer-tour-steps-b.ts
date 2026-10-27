@@ -53,6 +53,6 @@ export const VIEWER_TOUR_STEPS_B: TourStep[] = [
     id: "zones-section",
     tab: "view",
     title: "Zones and the site plan",
-    body: "Show zones draws the territory's zones over the model, and Show plan lays an aligned PDF on the ground. Click a zone to see which models fit it.",
+    body: "Show zones draws the territory's zones over the model as translucent boxes. Click a zone to see which models fit it.",
   },
 ];

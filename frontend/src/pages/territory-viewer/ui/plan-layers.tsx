@@ -2,11 +2,11 @@ import { useEffect, useRef, type MutableRefObject } from "react";
 import { createPortal } from "react-dom";
 import type { Calibration, Document } from "@/entities/document";
 import type { Vec3 } from "@/entities/placement";
-import { fitSimilarity, type Similarity } from "@/entities/site-plan";
+import type { Similarity } from "@/entities/site-plan";
 import type { SourceBbox } from "@/entities/territory";
 import type { Zone } from "@/entities/zone";
 import type { DocumentWindowProps } from "@/widgets/document-window";
-import { AlignPanel, usePlanImage, useZoneEditor, ZoneForm } from "@/features/zone-editor";
+import { AlignPanel, useZoneEditor, ZoneForm } from "@/features/zone-editor";
 import { rectNames, SitePlanWindow } from "@/widgets/site-plan-window";
 import type { Ground } from "@/widgets/viewer-canvas";
 import { usePlanPreview } from "../model/use-plan-preview";
@@ -14,9 +14,8 @@ import type { PlanState } from "../model/use-plan-session";
 
 export type PlanLayersProps = {
   slug: string;
-  /** The PDF the layer reads: the one being edited, or the aligned one "Show plan" draws. */
+  /** The PDF the editor is open on. */
   document: Document;
-  editing: boolean;
   bbox: SourceBbox | null;
   /** Metres per scene unit. */
   unitRatio: number;
@@ -38,22 +37,14 @@ export type PlanLayersProps = {
 
 const A4_LANDSCAPE = { width: 842, height: 595 };
 
-/** Publishes the plan to the page when its picture, size, fit or wait changes, and withdraws it on unmount. */
+/** Tells the page the editor has drawn its picture and what it waits for; withdraws it on unmount. */
 function usePublish(onPlan: PlanLayersProps["onPlan"], plan: PlanState | null) {
   const image = plan?.image;
-  const [width, height] = [plan?.page.width, plan?.page.height];
-  const sim = plan?.similarity;
-  const [scale, rotation, tx, tz] = [sim?.scale, sim?.rotation, sim?.tx, sim?.tz];
   const waiting = plan?.awaitingScenePick ?? false;
   const preview = plan?.preview ?? null;
   useEffect(() => {
-    if (!image || width === undefined || height === undefined) return onPlan(null);
-    const similarity =
-      scale === undefined || rotation === undefined || tx === undefined || tz === undefined
-        ? null
-        : { scale, rotation, tx, tz };
-    onPlan({ image, page: { width, height }, similarity, awaitingScenePick: waiting, preview });
-  }, [onPlan, image, width, height, scale, rotation, tx, tz, waiting, preview]);
+    onPlan(image ? { image, awaitingScenePick: waiting, preview } : null);
+  }, [onPlan, image, waiting, preview]);
   useEffect(() => () => onPlan(null), [onPlan]);
 }
 
@@ -86,12 +77,7 @@ function Editor({ onPlan, acceptRef, ...p }: Omit<PlanLayersProps, "ground"> & {
     label: rectName,
     selectRect: editor.selectRect,
   });
-  usePublish(
-    onPlan,
-    image && pageSize
-      ? { image, page: pageSize, similarity: sim, awaitingScenePick: editor.awaitingScenePick, preview }
-      : null,
-  );
+  usePublish(onPlan, image ? { image, awaitingScenePick: editor.awaitingScenePick, preview } : null);
 
   // A scene click reaches the editor through the page; the latest editor answers it.
   const latest = useRef(editor);
@@ -147,24 +133,11 @@ function Editor({ onPlan, acceptRef, ...p }: Omit<PlanLayersProps, "ground"> & {
   );
 }
 
-function Saved({ document, onPlan }: Pick<PlanLayersProps, "document" | "onPlan">) {
-  const image = usePlanImage(document);
-  const fit = document.calibration
-    ? fitSimilarity(document.calibration.points.map((q) => ({ pdf: q.pdf, scene: q.scene })))
-    : null;
-  usePublish(
-    onPlan,
-    image ? { ...image, similarity: fit?.ok ? fit.fit : null, awaitingScenePick: false, preview: null } : null,
-  );
-  return null;
-}
-
 /**
- * The plan side of the viewer, loaded on demand so pdf.js's reader stays out
- * of the page's own chunk: the alignment editor while a PDF is open for it,
- * and otherwise just the aligned picture that "Show plan" draws.
+ * The plan editor, loaded on demand so pdf.js's reader stays out of the page's
+ * own chunk. It draws no picture in the scene: the PDF lives in its window, and
+ * the scene shows only the zones and the editor's candidate rectangles.
  */
 export default function PlanLayers(props: PlanLayersProps) {
-  if (!props.editing) return <Saved document={props.document} onPlan={props.onPlan} />;
   return props.ground ? <Editor {...props} ground={props.ground} /> : null;
 }

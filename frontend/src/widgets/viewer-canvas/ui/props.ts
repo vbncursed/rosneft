@@ -8,7 +8,6 @@ import type { PreviewOutline } from "@/features/zone-editor";
 import type { Zone } from "@/entities/zone";
 import type { GizmoMode, ViewerMode } from "@/features/viewer-mode";
 import type { Ground } from "../three/ground-probe";
-import type { PlanFit } from "../three/plan-overlay";
 
 /** The territory's progressive state, reported outward for the chips, the switcher and the error card. */
 export type LodReport = {
@@ -18,9 +17,6 @@ export type LodReport = {
   progressText: string | null;
   failure: LodFailure | null;
 };
-
-/** The aligned plan as the canvas draws it: the picture and where it lies on the ground. */
-export type PlanLayer = { image: ImageBitmap; fit: PlanFit };
 
 /** The plan editor's candidate squares on the ground; `selected` and `onSelect` speak the editor's rectangle indices. */
 export type PlanPreview = {
@@ -37,9 +33,6 @@ export type SiteProps = {
   showZones: boolean;
   selectedZoneId: number | null;
   onSelectZone: (id: number | null) => void;
-  /** Null draws no plan. */
-  plan: PlanLayer | null;
-  planOpacity: number;
   /** Null while the editor is closed or its fit is not valid: nothing is previewed. */
   preview: PlanPreview | null;
   /** The ground probe is ready: heights under a point, and the median. */

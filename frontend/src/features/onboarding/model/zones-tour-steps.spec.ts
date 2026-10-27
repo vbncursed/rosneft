@@ -49,13 +49,8 @@ describe("the plan editor tour's steps", () => {
 });
 
 describe("the zone card tour's steps", () => {
-  it("walks the card from what it says to the library", () => {
-    expect(ZONE_CARD_TOUR_STEPS.map((s) => s.id)).toEqual([
-      "zone-card",
-      "zone-equipment",
-      "zone-place",
-      "zone-library",
-    ]);
+  it("walks the card, then the Add objects button that reopens the filtered list", () => {
+    expect(ZONE_CARD_TOUR_STEPS.map((s) => s.id)).toEqual(["zone-card", "zone-place"]);
   });
 
   it("keeps every id unique and worded, all on the view tab", () => {

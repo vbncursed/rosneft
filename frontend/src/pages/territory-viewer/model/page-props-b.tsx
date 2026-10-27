@@ -69,7 +69,6 @@ export function viewTabProps(p: PageParts): ViewTabProps {
       count: p.zones.list.length,
       show: p.zones.show,
       onToggle: p.zones.onToggleShow,
-      plan: p.zones.plan,
     },
     measurements: {
       saved: measure.chains.filter((c) => c.serverId != null).length,

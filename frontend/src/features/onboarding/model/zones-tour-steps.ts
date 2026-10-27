@@ -50,13 +50,13 @@ export const PLAN_TOUR_STEPS: TourStep[] = [
   {
     id: "zones-section",
     tab: "view",
-    title: "Show zones and Show plan",
-    body: "Show zones draws every zone over the model. Show plan draws the aligned PDF on the ground, with an opacity slider.",
+    title: "Show zones",
+    body: "Show zones draws every zone over the model as a 3 m high translucent box, so you can see it and click it from any angle. The PDF itself is not drawn in the scene.",
   },
 ];
 
 // The second: it starts the first time a reader clicks a zone, for anyone who
-// can see zones. Place steps need `placement:create` and skip without it.
+// can see zones. The place step needs `placement:create` and skips without it.
 export const ZONE_CARD_TOUR_STEPS: TourStep[] = [
   {
     id: "zone-card",
@@ -65,21 +65,9 @@ export const ZONE_CARD_TOUR_STEPS: TourStep[] = [
     body: "Its tags, how its size compares with the drawing, and how many placed objects sit inside. Click empty space or press Esc to let go of it.",
   },
   {
-    id: "zone-equipment",
-    tab: "view",
-    title: "Models for this zone",
-    body: "Only the library models that carry the zone's tags are offered here, never the whole library.",
-  },
-  {
     id: "zone-place",
     tab: "view",
-    title: "Place from the zone",
-    body: "Set a count and press Place: the objects land at the zone's centre, where you can move them.",
-  },
-  {
-    id: "zone-library",
-    tab: "view",
-    title: "Whole library",
-    body: "When no model carries the zone's tags, Whole library… opens the full model picker instead.",
+    title: "Add objects to the zone",
+    body: "Clicking a zone opens the model list filtered to its tags, so you see what can be placed there. Add objects reopens that list; the objects land at the zone's centre, where you can move them.",
   },
 ];

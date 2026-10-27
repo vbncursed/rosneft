@@ -72,8 +72,6 @@ function Live({
   phaseHidden?: PhaseHidden;
 }) {
   const [showZones, setShowZones] = useState(true);
-  const [showPlan, setShowPlan] = useState(false);
-  const [planOpacity, setPlanOpacity] = useState(0.6);
   const [markers, setMarkers] = useState<MarkerMode>("all");
   const [moving, setMoving] = useState(false);
   const [showRuler, setShowRuler] = useState(ruler);
@@ -143,13 +141,6 @@ function Live({
           count: 3,
           show: showZones,
           onToggle: () => setShowZones((on) => !on),
-          plan: {
-            available: canWrite,
-            show: showPlan,
-            onToggle: () => setShowPlan((on) => !on),
-            opacity: planOpacity,
-            onOpacity: setPlanOpacity,
-          },
         }}
         measurements={{ saved: 2, show: showRuler, onToggle: () => setShowRuler((on) => !on) }}
         footer={footer}

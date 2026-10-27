@@ -45,8 +45,6 @@ const SITE: SiteProps = {
   showZones: true,
   selectedZoneId: null,
   onSelectZone: noop,
-  plan: null,
-  planOpacity: 1,
   preview: null,
   onGround: noop,
 };

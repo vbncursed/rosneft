@@ -919,7 +919,7 @@ describe("useTerritoryViewer", () => {
     });
 
     it("has no plan to show until a document is aligned", async () => {
-      expect((await ready(withZone())).panel?.viewTab.zones.plan.available).toBe(false);
+      expect((await ready(withZone())).panel?.viewTab.zones).not.toHaveProperty("plan");
     });
 
     it("offers Align plan to a zone:write reader only", async () => {
@@ -985,15 +985,7 @@ describe("useTerritoryViewer", () => {
         .props;
       const accept = vi.fn();
       layer.acceptRef.current = accept;
-      act(() =>
-        layer.onPlan({
-          image: {} as ImageBitmap,
-          page: { width: 1, height: 1 },
-          similarity: null,
-          awaitingScenePick: true,
-          preview: null,
-        }),
-      );
+      act(() => layer.onPlan({ image: {} as ImageBitmap, awaitingScenePick: true, preview: null }));
       expect(now(r).canvas.pickScene).toBe(true);
       act(() => now(r).canvas.onMeasurePoint({ x: 1, y: 2, z: 3 }));
       expect(accept).toHaveBeenCalledWith({ x: 1, y: 2, z: 3 });
@@ -1040,15 +1032,7 @@ describe("useTerritoryViewer", () => {
         expect(now(r).zoneTours.plan.active).toBe(false);
         const layer = (now(r).overlays.plan as ReactElement<{ children: ReactElement<PlanLayersProps> }>).props.children
           .props;
-        act(() =>
-          layer.onPlan({
-            image: {} as ImageBitmap,
-            page: { width: 1, height: 1 },
-            similarity: null,
-            awaitingScenePick: false,
-            preview: null,
-          }),
-        );
+        act(() => layer.onPlan({ image: {} as ImageBitmap, awaitingScenePick: false, preview: null }));
         expect(now(r).zoneTours.plan.active).toBe(true);
         expect(now(r).zoneTours.plan.step?.id).toBe("document-align");
         expect(now(r).panel?.tab).toBe("view");

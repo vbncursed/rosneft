@@ -93,7 +93,6 @@ const base = (): ViewTabProps => ({
     count: 2,
     show: true,
     onToggle: vi.fn(),
-    plan: { available: true, show: false, onToggle: vi.fn(), opacity: 0.6, onOpacity: vi.fn() },
   },
   measurements: { saved: 3, show: true, onToggle: vi.fn() },
   footer: null,

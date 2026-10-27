@@ -1,8 +1,7 @@
-import { useCallback, useState, type RefObject } from "react";
+import type { RefObject } from "react";
 import type { Group } from "three";
 import type { SiteProps } from "../ui/props";
 import GroundProbe from "./ground-probe";
-import PlanOverlay from "./plan-overlay";
 import PlanPreviewLayer from "./plan-preview-layer";
 import ZonesLayer from "./zones-layer";
 
@@ -20,23 +19,13 @@ interface SiteLayersProps {
 /**
  * Everything the site-zones feature draws, and the probe that places it. It
  * sits beside the scene wrapper, never inside: the wrapper is what the walker
- * collides with and what Bounds frames.
+ * collides with and what Bounds frames. It reads nothing from the plan editor
+ * or pdf.js: the zones are part of the viewer for every reader.
  */
 export default function SiteLayers({ site, interactive, hidden, unitRatio, color, territoryRef }: SiteLayersProps) {
-  const { onGround } = site;
-  // The plan lies at the median ground height, known once the probe has run.
-  const [groundY, setGroundY] = useState<number | null>(null);
-  const ready = useCallback(
-    (ground: Parameters<typeof onGround>[0]) => {
-      setGroundY(ground.fallbackY);
-      onGround(ground);
-    },
-    [onGround],
-  );
-
   return (
     <>
-      <GroundProbe root={territoryRef} onReady={ready} />
+      <GroundProbe root={territoryRef} onReady={site.onGround} />
       {hidden ? null : (
         <>
           {site.showZones ? (
@@ -51,9 +40,6 @@ export default function SiteLayers({ site, interactive, hidden, unitRatio, color
           ) : null}
           {site.preview ? (
             <PlanPreviewLayer preview={site.preview} unitRatio={unitRatio} color={color} interactive={interactive} />
-          ) : null}
-          {site.plan && groundY !== null ? (
-            <PlanOverlay image={site.plan.image} fit={site.plan.fit} groundY={groundY} opacity={site.planOpacity} />
           ) : null}
         </>
       )}

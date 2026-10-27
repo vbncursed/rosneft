@@ -134,8 +134,6 @@ const SITE: SiteProps = {
   showZones: true,
   selectedZoneId: null,
   onSelectZone: vi.fn(),
-  plan: null,
-  planOpacity: 1,
   preview: null,
   onGround: vi.fn(),
 };

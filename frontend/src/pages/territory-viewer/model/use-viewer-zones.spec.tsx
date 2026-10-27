@@ -70,22 +70,13 @@ describe("useViewerZones", () => {
     expect(params.documents.onExit).toHaveBeenCalledOnce();
     expect(params.expandPanel).toHaveBeenCalledOnce();
     expect(result.current.z.editing?.id).toBe(1);
-    expect(result.current.z.layer).toMatchObject({ editing: true, document: { id: 1 }, slug: "t" });
+    expect(result.current.z.layer).toMatchObject({ document: { id: 1 }, slug: "t" });
   });
 
-  it("draws nothing of the plan until the reader asks for it", () => {
+  it("mounts no plan layer until the editor is opened, even when a document is aligned", () => {
     const { result } = zones();
     expect(result.current.z.layer).toBeNull();
-    act(() => result.current.z.plan.onToggle());
-    expect(result.current.z.layer).toMatchObject({ editing: false, document: { id: 2 } });
-    expect(result.current.z.plan.available).toBe(true);
-  });
-
-  it("has no plan to show when nothing is aligned", () => {
-    const { result } = zones({ documents: { ...base().documents, list: [doc(1)] } });
-    expect(result.current.z.plan.available).toBe(false);
-    act(() => result.current.z.plan.onToggle());
-    expect(result.current.z.layer).toBeNull();
+    expect(result.current.z.site.zones).toBeDefined();
   });
 
   it("keeps the document list's copy in step with the calibration the editor saves", () => {
@@ -136,15 +127,7 @@ describe("useViewerZones", () => {
     const { result } = zones();
     expect(result.current.z.pickScene).toBe(false);
     act(() => result.current.z.onAlign?.(1));
-    act(() =>
-      result.current.z.layer?.onPlan({
-        image: {} as ImageBitmap,
-        page: { width: 1, height: 1 },
-        similarity: null,
-        awaitingScenePick: true,
-        preview: null,
-      }),
-    );
+    act(() => result.current.z.layer?.onPlan({ image: {} as ImageBitmap, awaitingScenePick: true, preview: null }));
     expect(result.current.z.pickScene).toBe(true);
   });
 
@@ -152,21 +135,13 @@ describe("useViewerZones", () => {
     const params = base();
     const { result, rerender } = zones(params);
     act(() => result.current.z.onAlign?.(2));
-    act(() =>
-      result.current.z.layer?.onPlan({
-        image: {} as ImageBitmap,
-        page: { width: 1, height: 1 },
-        similarity: { scale: 1, rotation: 0, tx: 0, tz: 0 },
-        awaitingScenePick: false,
-        preview: null,
-      }),
-    );
-    expect(result.current.z.site.plan).not.toBeNull();
+    act(() => result.current.z.layer?.onPlan({ image: {} as ImageBitmap, awaitingScenePick: false, preview: null }));
+    expect(result.current.z.editorReady).toBe(true);
 
     rerender({ ...params, documents: { ...params.documents, list: [doc(1)] } });
     expect(result.current.z.editing).toBeNull();
     expect(result.current.z.layer).toBeNull();
-    expect(result.current.z.site.plan).toBeNull();
+    expect(result.current.z.editorReady).toBe(false);
     expect(result.current.z.pickScene).toBe(false);
     expect(result.current.notices.map((n) => [n.tone, n.message])).toEqual([["info", "The plan was removed."]]);
   });

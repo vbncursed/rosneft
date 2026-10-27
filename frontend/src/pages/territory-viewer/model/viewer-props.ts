@@ -104,8 +104,7 @@ export type ViewerOverlaysProps = {
   documentLayerRef: RefObject<HTMLDivElement | null>;
   /**
    * The plan layer, in the same floating layer as the document window: the
-   * alignment editor's window while a PDF is open for it, and otherwise just
-   * the aligned picture "Show plan" draws (no DOM). Null when neither.
+   * alignment editor's window while a PDF is open for it. Null otherwise.
    */
   plan: ReactNode;
 };

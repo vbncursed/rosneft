@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type MutableRefObject } from "react";
-import type { Calibration, Document } from "@/entities/document";
+import type { Calibration } from "@/entities/document";
 import type { ResolvedPlacement } from "@/entities/placement";
 import type { SourceBbox } from "@/entities/territory";
 import type { Zone } from "@/entities/zone";
@@ -46,7 +46,7 @@ export function useViewerZones(p: ViewerZonesParams) {
   const session = usePlanSession({ documents: documents.list, canWrite });
   const [ground, setGround] = useState<Ground | null>(null);
   const [slot, setSlot] = useState<HTMLElement | null>(null);
-  const { editing, saved, onPlan, onCalibrated } = session;
+  const { editing, onPlan, onCalibrated } = session;
 
   const equipment = useZoneEquipment({
     zone: list.selected,
@@ -83,19 +83,15 @@ export function useViewerZones(p: ViewerZonesParams) {
       showZones: list.show,
       selectedZoneId: list.selected?.id ?? null,
       onSelectZone: list.select,
-      plan: session.canvasPlan,
-      planOpacity: session.opacity,
       preview: session.preview,
       onGround: setGround,
     }),
-    [list.zones, list.show, list.selected?.id, list.select, session.canvasPlan, session.opacity, session.preview],
+    [list.zones, list.show, list.selected?.id, list.select, session.preview],
   );
 
-  const document: Document | null = editing ?? (session.showPlan ? session.saved : null);
-  const layer: PlanLayersProps | null = document && {
+  const layer: PlanLayersProps | null = editing && {
     slug,
-    document,
-    editing: editing !== null,
+    document: editing,
     bbox: p.bbox,
     unitRatio: p.unitRatio,
     ground,
@@ -121,13 +117,6 @@ export function useViewerZones(p: ViewerZonesParams) {
     pickScene: session.pickScene,
     acceptRef: session.acceptRef,
     equipment,
-    plan: {
-      available: saved !== null,
-      show: session.showPlan,
-      onToggle: session.toggleShowPlan,
-      opacity: session.opacity,
-      onOpacity: session.setOpacity,
-    },
     editing,
     /** The editor is open and the plan layer has drawn its picture: its anchors exist. */
     editorReady: editing !== null && session.plan !== null,

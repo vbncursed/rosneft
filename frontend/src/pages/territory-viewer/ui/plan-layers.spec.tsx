@@ -36,7 +36,6 @@ const pip = {
 const props = (over: Partial<PlanLayersProps> = {}): PlanLayersProps => ({
   slug: "t",
   document: doc(),
-  editing: true,
   bbox: UTM_BBOX,
   unitRatio: UNIT_RATIO,
   ground: GROUND,
@@ -79,11 +78,10 @@ describe("PlanLayers, editing", () => {
     expect(p.onClose).toHaveBeenCalledOnce();
   });
 
-  it("publishes the picture and the fit the automatic pairs give", async () => {
+  it("publishes that the picture is drawn, and what the editor waits for", async () => {
     const p = props();
     render(<PlanLayers {...p} />);
-    await waitFor(() => expect(lastPlan(p)?.similarity).toBeTruthy());
-    expect(lastPlan(p)?.image).toBeDefined();
+    await waitFor(() => expect(lastPlan(p)?.image).toBeDefined());
     expect(lastPlan(p)?.awaitingScenePick).toBe(false);
   });
 
@@ -201,31 +199,5 @@ describe("PlanLayers, editing", () => {
   it("waits for the ground before it opens the editor", () => {
     render(<PlanLayers {...props({ ground: null })} />);
     expect(screen.queryByRole("dialog")).toBeNull();
-  });
-});
-
-describe("PlanLayers, drawing a saved plan", () => {
-  const saved = doc({
-    page: 1,
-    points: [
-      { pdf: { x: 0, y: 0 }, scene: { x: 0, y: 0, z: 0 }, utm: null },
-      { pdf: { x: 100, y: 0 }, scene: { x: 1, y: 0, z: 0 }, utm: null },
-    ],
-  });
-
-  it("publishes the aligned picture and the fit of the saved pairs, and shows no window", async () => {
-    const p = props({ document: saved, editing: false });
-    render(<PlanLayers {...p} />);
-    await waitFor(() => expect(lastPlan(p)?.similarity).toBeTruthy());
-    expect(lastPlan(p)?.similarity?.scale).toBeCloseTo(0.01, 10);
-    expect(lastPlan(p)?.awaitingScenePick).toBe(false);
-    expect(screen.queryByRole("dialog")).toBeNull();
-  });
-
-  it("publishes no fit for pairs that do not give one", async () => {
-    const p = props({ document: doc({ page: 1, points: [] }), editing: false });
-    render(<PlanLayers {...p} />);
-    await waitFor(() => expect(lastPlan(p)).not.toBeNull());
-    expect(lastPlan(p)?.similarity).toBeNull();
   });
 });
