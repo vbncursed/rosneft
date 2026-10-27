@@ -3,12 +3,12 @@ module github.com/vbncursed/rosneft/backend/services/gateway-service
 go 1.27.3
 
 require (
-	github.com/andybalholm/brotli v1.2.6
-	github.com/getkin/kin-openapi v0.151.0
+	github.com/andybalholm/brotli v1.2.7
+	github.com/getkin/kin-openapi v0.152.0
 	github.com/go-chi/chi/v5 v5.5.0
 	github.com/go-chi/cors v1.2.2
 	github.com/gojuno/minimock/v3 v3.4.7
-	github.com/oapi-codegen/runtime v1.7.0
+	github.com/oapi-codegen/runtime v1.8.0
 	github.com/qmuntal/gltf v0.29.0
 	github.com/samber/slog-chi v1.19.1
 	github.com/spf13/cobra v1.10.2
