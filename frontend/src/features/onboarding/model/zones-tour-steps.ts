@@ -62,7 +62,7 @@ export const ZONE_CARD_TOUR_STEPS: TourStep[] = [
     id: "zone-card",
     tab: "view",
     title: "A zone",
-    body: "Its tags, how its size compares with the drawing, and how many placed objects sit inside. With zone:write, Edit renames it or changes its tags. If you can edit zones, Edit renames it or changes its tags. Click empty space or press Esc to let go of it.",
+    body: "Its tags, how its size compares with the drawing, and how many placed objects sit inside. If you can edit zones, Edit details renames it or changes its tags. Click empty space or press Esc to let go of it.",
   },
   {
     id: "zone-place",

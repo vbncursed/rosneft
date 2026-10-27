@@ -2,6 +2,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { useKeyboardShortcuts } from "@/features/viewer-mode/model/use-keyboard-shortcuts";
+import { clearNotices, useNotices } from "@/shared/lib/notify";
 import type { Zone } from "@/entities/zone";
 import { HttpError } from "@/shared/api";
 import { ZoneEditForm } from "./zone-edit-form";
@@ -17,7 +19,18 @@ const TAGS = [
   { slug: "ungrouped", title: "Ungrouped" },
 ];
 
-const view = (over: { onSave?: () => Promise<void>; onDone?: () => void; seed?: boolean } = {}) => {
+function Ladder({ onEscape }: { onEscape: () => void }) {
+  useKeyboardShortcuts({ Escape: onEscape });
+  return null;
+}
+
+function Toasts() {
+  return useNotices().map((n) => <p key={n.id}>{n.message}</p>);
+}
+
+const view = (
+  over: { onSave?: () => Promise<void>; onDone?: () => void; seed?: boolean; ladder?: () => void } = {},
+) => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   if (over.seed !== false) client.setQueryData(["model-tags"], TAGS);
   const onDone = over.onDone ?? vi.fn();
@@ -26,6 +39,8 @@ const view = (over: { onSave?: () => Promise<void>; onDone?: () => void; seed?: 
   render(
     <div onKeyDown={parentKey}>
       <QueryClientProvider client={client}>
+        {over.ladder ? <Ladder onEscape={over.ladder} /> : null}
+        <Toasts />
         <ZoneEditForm zone={ZONE} onSave={onSave} onDone={onDone} />
       </QueryClientProvider>
     </div>,
@@ -87,12 +102,38 @@ describe("ZoneEditForm", () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 
-  it("cancels on Escape and keeps the key from the viewer", async () => {
-    const { onDone, parentKey } = view();
-    screen.getByRole("textbox", { name: /Title/ }).focus();
+  it("starts with the cursor in Title", () => {
+    view();
+    expect(screen.getByRole("textbox", { name: /Title/ })).toHaveFocus();
+  });
+
+  it("shows a refusal that is not about the title (a 403) as a notice, never under Title", async () => {
+    clearNotices();
+    view({ onSave: () => Promise.reject(new HttpError(403, null, "You don't have permission to do this")) });
+    await userEvent.type(screen.getByRole("textbox", { name: /Title/ }), "2");
+    await userEvent.click(save());
+    expect(await screen.findByText("You don't have permission to do this")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: /Title/ })).not.toBeInvalid();
+  });
+
+  it("cancels on Escape without the viewer's own Escape ladder (a window listener) ever seeing it", async () => {
+    const ladder = vi.fn();
+    const { onDone } = view({ ladder });
+    // Typing in Title, and a button in the form: both are real native keydowns that bubble to window.
     await userEvent.keyboard("{Escape}");
-    expect(onDone).toHaveBeenCalledOnce();
-    expect(parentKey).not.toHaveBeenCalled();
+    expect(onDone).toHaveBeenCalledTimes(1);
+    screen.getByRole("button", { name: "Cancel" }).focus();
+    await userEvent.keyboard("{Escape}");
+    expect(onDone).toHaveBeenCalledTimes(2);
+    expect(ladder).not.toHaveBeenCalled();
+  });
+
+  it("leaves Escape to the viewer when the focus is outside the form", async () => {
+    const ladder = vi.fn();
+    view({ ladder });
+    (document.activeElement as HTMLElement).blur();
+    await userEvent.keyboard("{Escape}");
+    expect(ladder).toHaveBeenCalledOnce();
   });
 
   it("offers Reload tags and no Save when the tag list failed", async () => {

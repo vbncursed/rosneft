@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { TagChip } from "@/entities/model-tag";
 import type { Zone } from "@/entities/zone";
 import { Button } from "@/shared/ui/button";
@@ -20,6 +20,8 @@ export type ZonePanelProps = {
   onDelete?: () => void;
   /** `zone:write`: the form that renames the zone and changes its tags, shown in place of the title and tags; `done` leaves it. */
   renderEdit?: (done: () => void) => ReactNode;
+  /** The pointer or focus reached Edit details: the page may warm what the form needs. */
+  onEditIntent?: () => void;
 };
 
 /** One zone in the Overlays panel: what it is, how big, how full, and the way into the models it can take. */
@@ -32,9 +34,17 @@ export function ZonePanel({
   onEdit,
   onDelete,
   renderEdit,
+  onEditIntent,
 }: ZonePanelProps) {
   const [asking, setAsking] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [refocus, setRefocus] = useState(false);
+  // The read view's Edit details is a fresh node once the form is gone; it takes the focus as it mounts.
+  const takeFocus = useCallback((node: HTMLButtonElement | null) => (refocus ? node?.focus() : undefined), [refocus]);
+  const finishEdit = useCallback(() => {
+    setRefocus(true);
+    setEditing(false);
+  }, []);
   return (
     <section
       aria-label={`Zone ${zone.title}`}
@@ -42,7 +52,7 @@ export function ZonePanel({
       className="mb-3.5 flex flex-col gap-2.5 rounded-card border border-accent-line bg-panel-2 p-3"
     >
       {editing && renderEdit ? (
-        renderEdit(() => setEditing(false))
+        renderEdit(finishEdit)
       ) : (
         <>
           <div className="flex items-center gap-2">
@@ -55,12 +65,19 @@ export function ZonePanel({
             <div className="flex flex-wrap gap-2">
               {renderEdit ? (
                 <Button
+                  ref={takeFocus}
                   size="sm"
                   variant="secondary"
-                  aria-label={`Edit ${zone.title}`}
-                  onClick={() => setEditing(true)}
+                  aria-label={`Edit details of ${zone.title}`}
+                  onPointerEnter={onEditIntent}
+                  onPointerDown={onEditIntent}
+                  onFocus={onEditIntent}
+                  onClick={() => {
+                    setRefocus(false);
+                    setEditing(true);
+                  }}
                 >
-                  Edit
+                  Edit details
                 </Button>
               ) : null}
               {onEdit ? (

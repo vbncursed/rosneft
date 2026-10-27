@@ -77,6 +77,15 @@ describe("useZoneEdit", () => {
     expect(result.current.f.busy).toBe(false);
   });
 
+  it("reports a 403 as a notice with the server's words, not under the field", async () => {
+    const onSave = vi.fn().mockRejectedValue(new HttpError(403, null, "You don't have permission to do this"));
+    const { result } = edit(onSave);
+    act(() => result.current.f.setTitle("Other"));
+    await act(() => result.current.f.submit());
+    expect(result.current.f.error).toBeNull();
+    expect(result.current.notices[0]).toMatchObject({ tone: "error", message: "You don't have permission to do this" });
+  });
+
   it("reports a 5xx as a notice, not under the field", async () => {
     const onSave = vi.fn().mockRejectedValue(new HttpError(503, null, "internal"));
     const { result } = edit(onSave);

@@ -29,8 +29,9 @@ export function useZoneEdit({
       await onSave(patch);
       onDone();
     } catch (err) {
-      // A refusal (a title already taken) belongs under the field; an outage does not.
-      if (err instanceof HttpError && err.status < 500) f.setError(err.message);
+      // Only a 400 is about the Title (a name already taken); a 403 or an outage is not, and goes to a toast.
+      if (err instanceof HttpError && err.status === 400) f.setError(err.message);
+      else if (err instanceof HttpError && err.status < 500) notify.error(err.message);
       else notify.error("Could not update the zone. Try again.");
     } finally {
       inFlight.current = false;

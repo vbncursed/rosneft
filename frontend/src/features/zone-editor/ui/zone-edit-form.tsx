@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import type { Zone } from "@/entities/zone";
 import { Button } from "@/shared/ui/button";
 import { TextField } from "@/shared/ui/text-field";
@@ -18,9 +19,13 @@ const MAX_TITLE = 120;
 /** Renames a saved zone and changes its tags; Escape cancels and is not passed on to the viewer. */
 export function ZoneEditForm({ zone, onSave, onDone }: ZoneEditFormProps) {
   const f = useZoneEdit({ zone, onSave, onDone });
+  const form = useRef<HTMLFormElement>(null);
+  // The reader pressed Edit details to type: the cursor starts in Title.
+  useEffect(() => form.current?.querySelector("input")?.focus(), []);
   return (
     <form
-      aria-label={`Edit ${zone.title}`}
+      ref={form}
+      aria-label={`Edit details of ${zone.title}`}
       className="flex flex-col gap-3"
       onSubmit={(e) => {
         e.preventDefault();

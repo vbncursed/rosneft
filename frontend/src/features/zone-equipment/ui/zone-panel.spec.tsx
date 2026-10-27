@@ -94,21 +94,53 @@ describe("ZonePanel edit", () => {
 
   it("offers Edit only to a reader who can write zones", () => {
     const { unmount } = render(panel());
-    expect(screen.queryByRole("button", { name: "Edit Tank row" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Edit details of Tank row" })).toBeNull();
     unmount();
     render(panel({ renderEdit }));
-    expect(screen.getByRole("button", { name: "Edit Tank row" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit details of Tank row" })).toBeInTheDocument();
   });
 
   it("swaps the title and tags for the form, and back when it is done", async () => {
     render(panel({ renderEdit }));
-    await userEvent.click(screen.getByRole("button", { name: "Edit Tank row" }));
+    await userEvent.click(screen.getByRole("button", { name: "Edit details of Tank row" }));
     expect(screen.getByRole("form", { name: "Edit form" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Tank row" })).toBeNull();
     expect(screen.queryByText("Tanks")).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.getByRole("heading", { name: "Tank row" })).toBeInTheDocument();
     expect(screen.getByText("Tanks")).toBeInTheDocument();
+  });
+});
+
+describe("ZonePanel edit focus and intent", () => {
+  const renderEdit = (done: () => void) => (
+    <button type="button" onClick={done}>
+      Done editing
+    </button>
+  );
+
+  it("labels the button Edit details, apart from Edit zones", () => {
+    render(panel({ renderEdit, onEdit: vi.fn() }));
+    expect(screen.getByRole("button", { name: "Edit details of Tank row" })).toHaveTextContent("Edit details");
+    expect(screen.getByRole("button", { name: "Edit zones" })).toBeInTheDocument();
+  });
+
+  it("puts focus back on Edit details once the form is done", async () => {
+    render(panel({ renderEdit }));
+    await userEvent.click(screen.getByRole("button", { name: "Edit details of Tank row" }));
+    await userEvent.click(screen.getByRole("button", { name: "Done editing" }));
+    expect(screen.getByRole("button", { name: "Edit details of Tank row" })).toHaveFocus();
+  });
+
+  it("tells the page when the pointer or focus reaches Edit details, so it can warm the form", async () => {
+    const onEditIntent = vi.fn();
+    render(panel({ renderEdit, onEditIntent }));
+    const edit = screen.getByRole("button", { name: "Edit details of Tank row" });
+    await userEvent.hover(edit);
+    expect(onEditIntent).toHaveBeenCalledTimes(1);
+    onEditIntent.mockClear();
+    edit.focus();
+    expect(onEditIntent).toHaveBeenCalledTimes(1);
   });
 });
 
