@@ -15,7 +15,7 @@ interface PlanPreviewLayerProps {
   interactive: boolean;
 }
 
-// Under the zones' lift, so a ray from above meets a saved zone first and its click wins.
+// Under the zones' lift; the zones stand aside (not interactive) while this layer exists, so its click wins.
 const LIFT_M = 0.06;
 const LINE_OPACITY = 0.7;
 const FOOTPRINT_OPACITY = 0.07;

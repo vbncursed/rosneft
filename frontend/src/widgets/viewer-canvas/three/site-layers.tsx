@@ -33,7 +33,8 @@ export default function SiteLayers({ site, interactive, hidden, unitRatio, color
               zones={site.zones}
               unitRatio={unitRatio}
               color={color}
-              interactive={interactive}
+              // While the editor previews its rectangles, a click belongs to them, not to a prism over the same ground.
+              interactive={interactive && site.preview === null}
               selectedId={site.selectedZoneId}
               onSelect={site.onSelectZone}
             />

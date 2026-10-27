@@ -75,6 +75,20 @@ describe("SiteLayers", () => {
     expect(inside.named("PlanPreviewLayer")).toHaveLength(0);
   });
 
+  it("hands the click to the candidate squares while the editor previews them", async () => {
+    const preview = {
+      outlines: [{ index: 0, corners: ZONE.corners as never }],
+      selected: null,
+      label: null,
+      onSelect: vi.fn(),
+    };
+    const open = await mount({ preview });
+    const faces = open.named("ZoneFaces")[0].instance as Mesh;
+    expect(faces.raycast).not.toBe(Mesh.prototype.raycast);
+    const closed = await mount();
+    expect((closed.named("ZoneFaces")[0].instance as Mesh).raycast).toBe(Mesh.prototype.raycast);
+  });
+
   it("draws no candidate squares without a preview", async () => {
     const { named } = await mount();
     expect(named("PlanPreviewLayer")).toHaveLength(0);

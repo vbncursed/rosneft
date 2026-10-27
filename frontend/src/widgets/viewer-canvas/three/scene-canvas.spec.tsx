@@ -511,8 +511,7 @@ describe("SceneCanvas site zones", () => {
   type Holder = { current: Object3D | null };
   const zonesRoot = (r: Awaited<ReturnType<typeof mount>>) =>
     r.scene.findAll((n) => n.instance.name === "ZonesLayer")[0]?.instance;
-  const zoneMesh = (r: Awaited<ReturnType<typeof mount>>) =>
-    r.scene.findAll((n) => n.instance.type === "Mesh" && n.instance.parent?.parent?.name === "ZonesLayer")[0];
+  const zoneMesh = (r: Awaited<ReturnType<typeof mount>>) => r.scene.findAll((n) => n.instance.name === "ZoneFaces")[0];
   const down = () => new Raycaster(new Vector3(0.5, 10, 0.5), new Vector3(0, -1, 0));
 
   it("mounts the zones beside the scene wrapper, never under it, so the walker cannot stand on one", async () => {
@@ -552,7 +551,8 @@ describe("SceneCanvas site zones", () => {
   it("draws no zones inside a panorama, or when switched off", async () => {
     expect(zonesRoot(await mount(inside()))).toBeUndefined();
     expect(zonesRoot(await mount({ site: { ...SITE, showZones: false } }))).toBeUndefined();
-    expect(zonesRoot(await mount({ site: { ...SITE, zones: [] } }))).toBeDefined();
+    expect(zonesRoot(await mount({ site: { ...SITE, zones: [] } }))).toBeUndefined();
+    expect(zonesRoot(await mount())).toBeDefined();
   });
 
   it("takes the next click on the model as a point when the page asks for one, even in orbit", async () => {
