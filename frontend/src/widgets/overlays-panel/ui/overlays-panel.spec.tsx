@@ -63,6 +63,23 @@ describe("OverlaysPanel", () => {
     expect(screen.getByRole("tab", { name: "Placements (4)" })).toHaveAttribute("aria-controls", body.id);
   });
 
+  // jsdom has no layout, so this pins the class; the scroll itself was proven
+  // in Chromium at 1440×780 (a Tags checkbox scrolled the aside 274px).
+  it("is the containing block of its own absolute children, so focusing one never scrolls the clipped aside", () => {
+    render(
+      <OverlaysPanel
+        tab="view"
+        onTabChange={vi.fn()}
+        collapsed={false}
+        onCollapsedChange={vi.fn()}
+        placementsCount={0}
+        view={<p>view body</p>}
+        placements={null}
+      />,
+    );
+    expect(screen.getByRole("tabpanel")).toHaveClass("relative");
+  });
+
   it("collapses into the rail and back", async () => {
     const onCollapsedChange = vi.fn();
     const { rerender } = render(

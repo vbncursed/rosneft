@@ -129,14 +129,16 @@ export function OverlaysPanel({
               </div>
             ) : null}
             {/* tabIndex 0: the body scrolls, and a keyboard reader cannot reach a
-                long placements list without a focusable scroll container. */}
+                long placements list without a focusable scroll container.
+                relative: an sr-only checkbox inside is absolute; anchored
+                outside this scroller, its focus scrolled the clipped aside. */}
             <div
               id={PANEL_ID}
               role="tabpanel"
               aria-labelledby={`${PANEL_ID}-${tab}`}
               tabIndex={0}
               onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 0)}
-              className="flex-1 overflow-auto scroll-pt-[26px] p-3.5"
+              className="relative flex-1 overflow-auto scroll-pt-[26px] p-3.5"
             >
               {zone}
               {tab === "view" ? view : placements}
