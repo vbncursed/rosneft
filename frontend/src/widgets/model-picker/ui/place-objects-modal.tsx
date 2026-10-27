@@ -102,8 +102,8 @@ function PlaceObjectsBody({
       size="lg"
       title={`Add objects to ${zone?.title ?? territoryTitle}`}
       description={
-        zone && !showAll
-          ? "The models that carry this zone's tags. Set how many to drop; they land at the zone's centre."
+        zone
+          ? `${showAll ? "The whole library." : "The models that carry this zone's tags."} Set how many to drop; they land at the zone's centre.`
           : "Pick a model from the library, set how many instances to drop, then place them in the viewport."
       }
       footer={
