@@ -3,6 +3,7 @@ import { Html } from "@react-three/drei";
 import { DoubleSide, Mesh, type BufferGeometry } from "three";
 import type { PreviewOutline } from "@/features/zone-editor";
 import type { PlanPreview } from "../ui/props";
+import { pickOutline } from "./pick-outline";
 import { footprintsGeometry, loopGeometry, segmentsGeometry } from "./plan-preview-geometry";
 
 interface PlanPreviewLayerProps {
@@ -80,10 +81,11 @@ function PlanPreviewLayerImpl({ preview, unitRatio, color, interactive }: PlanPr
         raycast={interactive ? Mesh.prototype.raycast : noRaycast}
         // Always a handler, for the same reason: it only fires when the ray test can hit.
         onClick={(e) => {
-          const hit = interactive ? outlines[Math.floor((e.faceIndex ?? -1) / 2)] : undefined;
-          if (!hit) return;
+          // The merged mesh reports only its nearest triangle, which of two nested rectangles in one plane is arbitrary.
+          const hit = interactive ? pickOutline(outlines, e.point) : null;
+          if (hit === null) return;
           e.stopPropagation();
-          onSelect(hit.index);
+          onSelect(hit);
         }}
       >
         <meshBasicMaterial color={color} transparent opacity={FOOTPRINT_OPACITY} depthWrite={false} side={DoubleSide} />

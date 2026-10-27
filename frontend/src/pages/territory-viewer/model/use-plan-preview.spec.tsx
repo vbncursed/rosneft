@@ -94,6 +94,13 @@ describe("usePlanPreview", () => {
     expect(a).not.toHaveBeenCalled();
   });
 
+  it("keeps the output for a fresh but equal rectangles array each render", () => {
+    const { result, rerender } = preview(params());
+    const first = result.current;
+    rerender(params({ rects: RECTS.map((r) => ({ ...r })) }));
+    expect(result.current).toBe(first);
+  });
+
   it("is steady for an editor that has no rectangles yet and builds a fresh empty list each render", () => {
     const { result, rerender } = preview(params({ rects: [] }));
     rerender(params({ rects: [] }));

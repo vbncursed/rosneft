@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PlanRect, Similarity } from "@/entities/site-plan";
 import { previewOutlines } from "@/features/zone-editor";
-import type { Zone } from "@/entities/zone";
 import type { PlanPreview } from "@/widgets/viewer-canvas";
 
 export type PlanPreviewParams = Omit<Parameters<typeof previewOutlines>[0], "fit"> & {
@@ -11,9 +10,11 @@ export type PlanPreviewParams = Omit<Parameters<typeof previewOutlines>[0], "fit
   /** The picked rectangle's size label. */
   label: string | null;
   selectRect: (index: number) => void;
-  zones: Zone[];
-  rects: PlanRect[];
 };
+
+const sameCorners = (a: PlanRect, b: PlanRect) =>
+  a.corners.every((c, k) => c.x === b.corners[k].x && c.y === b.corners[k].y);
+const sameRects = (a: PlanRect[], b: PlanRect[]) => a.length === b.length && a.every((r, i) => sameCorners(r, b[i]));
 
 /**
  * What the canvas draws of the editor's rectangles: null until there is a fit
@@ -24,7 +25,10 @@ export type PlanPreviewParams = Omit<Parameters<typeof previewOutlines>[0], "fit
  * render would publish again forever).
  */
 export function usePlanPreview(p: PlanPreviewParams): PlanPreview | null {
-  const { rects, groundAt, fallbackY, zones, unitRatio, selected, label } = p;
+  // A fresh array with the same corners (the editor may rebuild its list) is the same rectangles.
+  const [rects, setRects] = useState(p.rects);
+  if (rects !== p.rects && !sameRects(rects, p.rects)) setRects(p.rects);
+  const { groundAt, fallbackY, zones, unitRatio, selected, label } = p;
   const [scale, rotation, tx, tz] = [p.similarity?.scale, p.similarity?.rotation, p.similarity?.tx, p.similarity?.tz];
   const outlines = useMemo(
     () =>

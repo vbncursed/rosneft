@@ -18,12 +18,30 @@ export type PreviewParams = {
 /** Corners this close (metres, on the ground plane) are the same corner. */
 const SAME_CORNER_M = 0.5;
 
+const areaOf = (c: Vec3[]) =>
+  Math.abs(c.reduce((s, p, k) => s + (p.x * c[(k + 1) % c.length].z - c[(k + 1) % c.length].x * p.z), 0)) / 2;
+const centreOf = (c: Vec3[]) => ({
+  x: c.reduce((s, p) => s + p.x, 0) / c.length,
+  z: c.reduce((s, p) => s + p.z, 0) / c.length,
+});
+/** The areas of one rectangle and its zone may differ by this much (relative) and still be the same shape. */
+const AREA_TOLERANCE = 0.2;
+
 // A rectangle "is" a zone when every one of its corners has a zone corner within
-// SAME_CORNER_M. Corner sets, not positions in the list: a zone may start from
-// any corner, and heights are ignored because the ground was probed again.
+// SAME_CORNER_M, AND the centres lie within it too, AND the areas agree within
+// AREA_TOLERANCE. Corner sets, not positions in the list: a zone may start from
+// any corner, and heights are ignored because the ground was probed again. The
+// centre and area guard the sub-metre case, where corners 0.5 m apart can
+// belong to a thinner or shifted rectangle that is not the zone.
 function isZone(corners: Vec3[], zones: Zone[], tol: number): boolean {
-  const near = (a: Vec3, b: Vec3) => Math.hypot(a.x - b.x, a.z - b.z) <= tol;
-  return zones.some((z) => corners.every((c) => z.corners.some((zc) => near(c, zc))));
+  const near = (a: { x: number; z: number }, b: { x: number; z: number }) => Math.hypot(a.x - b.x, a.z - b.z) <= tol;
+  const [area, centre] = [areaOf(corners), centreOf(corners)];
+  return zones.some(
+    (z) =>
+      corners.every((c) => z.corners.some((zc) => near(c, zc))) &&
+      near(centre, centreOf(z.corners)) &&
+      Math.abs(areaOf(z.corners) - area) <= AREA_TOLERANCE * Math.max(area, areaOf(z.corners)),
+  );
 }
 
 /**

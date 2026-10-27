@@ -36,7 +36,7 @@ const ray = (r: Page, x: number) => {
   root(r).updateMatrixWorld(true);
   return new Raycaster(new Vector3(x, 10, 0.5), new Vector3(0, -1, 0)).intersectObject(root(r), true);
 };
-const click = (faceIndex: number) => ({ stopPropagation: vi.fn(), faceIndex });
+const click = (x: number, z = 0.5) => ({ stopPropagation: vi.fn(), faceIndex: 0, point: { x, y: 3, z } });
 
 describe("PlanPreviewLayer", () => {
   it("draws all outlines as one merged line geometry and one merged footprint mesh", async () => {
@@ -80,16 +80,29 @@ describe("PlanPreviewLayer", () => {
   it("selects the rectangle under the clicked triangle, by its editor index", async () => {
     const onSelect = vi.fn();
     const r = await createInPage(layer({ onSelect }));
-    await r.fireEvent(feet(r), "click", click(3));
+    await r.fireEvent(feet(r), "click", click(5.5));
     expect(onSelect).toHaveBeenCalledWith(7);
-    await r.fireEvent(feet(r), "click", click(5));
+    await r.fireEvent(feet(r), "click", click(10.5));
     expect(onSelect).toHaveBeenLastCalledWith(9);
+  });
+
+  it("selects the inner of two nested rectangles under the point, and the outer one elsewhere", async () => {
+    const onSelect = vi.fn();
+    const nested = [
+      outline(1, 0),
+      { index: 8, corners: outline(8, 0.25).corners.map((c) => ({ ...c, z: c.z * 0.5 + 0.25, x: c.x + 0.1 })) },
+    ];
+    const r = await createInPage(layer({ onSelect, outlines: nested as PreviewOutline[] }));
+    await r.fireEvent(feet(r), "click", click(0.6, 0.5));
+    expect(onSelect).toHaveBeenLastCalledWith(8);
+    await r.fireEvent(feet(r), "click", click(0.1, 0.9));
+    expect(onSelect).toHaveBeenLastCalledWith(1);
   });
 
   it("answers no click and no ray when not interactive", async () => {
     const onSelect = vi.fn();
     const r = await createInPage(layer({ onSelect }, false));
-    await r.fireEvent(feet(r), "click", click(0));
+    await r.fireEvent(feet(r), "click", click(0.5));
     expect(onSelect).not.toHaveBeenCalled();
     expect(ray(r, 0.5)).toHaveLength(0);
   });
@@ -100,7 +113,7 @@ describe("PlanPreviewLayer", () => {
     await r.update(layer({ onSelect }, false));
     await r.update(layer({ onSelect }, true));
     expect(ray(r, 5.5).length).toBeGreaterThan(0);
-    await r.fireEvent(feet(r), "click", click(2));
+    await r.fireEvent(feet(r), "click", click(5.5));
     expect(onSelect).toHaveBeenCalledWith(7);
   });
 

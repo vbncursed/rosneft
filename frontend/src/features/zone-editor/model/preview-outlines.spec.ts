@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import plan from "@/entities/site-plan/model/__data__/mr1-plan.json";
-import { applyFit, detectRects, extractPaths, MIN_SIDE_PT_UNSCALED, zoneFromRect } from "@/entities/site-plan";
+import {
+  applyFit,
+  detectRects,
+  type PlanRect,
+  extractPaths,
+  MIN_SIDE_PT_UNSCALED,
+  zoneFromRect,
+} from "@/entities/site-plan";
 import type { Zone } from "@/entities/zone";
 import { previewOutlines } from "./preview-outlines";
 
@@ -60,6 +67,27 @@ describe("previewOutlines", () => {
     const moved = saved.corners.map((p) => ({ ...p, x: p.x + 2 / 50 }));
     const out = previewOutlines({ ...base, zones: [zoneOf(moved as Zone["corners"])] });
     expect(out).toHaveLength(RECTS.length);
+  });
+
+  it("keeps a sub-metre rectangle whose corners sit near a zone's but whose shape is another", () => {
+    const rect = (w: number, h: number): PlanRect => ({
+      corners: [
+        { x: 100, y: 100 },
+        { x: 100 + w, y: 100 },
+        { x: 100 + w, y: 100 + h },
+        { x: 100, y: 100 + h },
+      ],
+      widthPt: w,
+      heightPt: h,
+      angle: 0,
+    });
+    const fit = { scale: 0.01, rotation: 0, tx: 0, tz: 0 };
+    const [thin, square] = [rect(5, 80), rect(80, 80)];
+    const zone = zoneFromRect({ rect: square, fit, groundAt: () => 0, fallbackY: 0, metresPerPt: null });
+    // 0.05 x 0.8 scene units at 50 m/unit: corners 2.5 m apart is too far, so shrink the unit to make them near.
+    const args = { fit, groundAt: () => 0, fallbackY: 0, unitRatio: 1 };
+    const out = previewOutlines({ ...args, rects: [thin, square], zones: [zoneOf(zone.corners)] });
+    expect(out.map((o) => o.index)).toEqual([0]);
   });
 
   it("draws nothing without rectangles", () => {
