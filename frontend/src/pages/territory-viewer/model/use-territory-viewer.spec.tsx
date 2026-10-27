@@ -976,12 +976,15 @@ describe("useTerritoryViewer", () => {
         expect(state.overlays.plan).toBeNull();
       });
 
-      it("opens the add-objects picker on a click, filtered to the zone's tags, with the whole library one switch away", async () => {
+      it("opens the add-objects picker from the card's button, not the click, filtered to the zone's tags, with the whole library one switch away", async () => {
         getMe.mockResolvedValue(principal({ permissions: ["territory:read", "placement:create"] }));
         const r = withLibrary();
         await ready(r);
         expect(now(r).picker.open).toBe(false);
         act(() => now(r).canvas.site.onSelectZone(5));
+        expect(now(r).picker.open).toBe(false);
+        render(<>{now(r).panel!.zone}</>);
+        await userEvent.click(screen.getByRole("button", { name: "Add objects" }));
         const { picker } = now(r);
         expect(picker.open).toBe(true);
         expect(picker.zone?.title).toBe("Tank row");
@@ -997,6 +1000,8 @@ describe("useTerritoryViewer", () => {
         expect(now(r).picker.open).toBe(false);
         expect(now(r).picker.zone).toBeUndefined();
         expect(now(r).panel?.zone).not.toBeNull();
+        render(<>{now(r).panel!.zone}</>);
+        expect(screen.queryByRole("button", { name: "Add objects" })).toBeNull();
       });
 
       it("places at the zone's centre along its long axis, and closes", async () => {
@@ -1005,6 +1010,8 @@ describe("useTerritoryViewer", () => {
         const r = withLibrary();
         await ready(r);
         act(() => now(r).canvas.site.onSelectZone(5));
+        render(<>{now(r).panel!.zone}</>);
+        await userEvent.click(screen.getByRole("button", { name: "Add objects" }));
         await act(async () => now(r).picker.onPlace("storage-tank-500", 1));
         expect(createPlacements).toHaveBeenCalledWith(
           SLUG,
@@ -1072,17 +1079,14 @@ describe("useTerritoryViewer", () => {
         await ready(r);
         expect(now(r).zoneTours.card.active).toBe(false);
         act(() => now(r).canvas.site.onSelectZone(5));
-        // The picker opened on the click is a modal dialog; the tour waits for it to close.
-        expect(now(r).picker.open).toBe(true);
-        expect(now(r).zoneTours.card.active).toBe(false);
-        act(() => now(r).picker.onClose());
+        expect(now(r).picker.open).toBe(false);
         expect(now(r).zoneTours.card.active).toBe(true);
         expect(now(r).zoneTours.card.step?.id).toBe("zone-card");
         expect(now(r).panel?.collapsed).toBe(false);
         expect(now(r).overlays.tools.find((t) => t.key === "tour")?.state).not.toBe("active");
       });
 
-      it("starts the card tour at once for a reader who gets no picker, and after the picker closes for one who does", async () => {
+      it("starts the card tour right after the click, with or without placement:create", async () => {
         getMe.mockResolvedValue(principal({ permissions: ["territory:read"], onboardingToursSeen: SEEN }));
         const reader = withZone();
         await ready(reader);
@@ -1094,8 +1098,7 @@ describe("useTerritoryViewer", () => {
         const r = withZone();
         await ready(r);
         act(() => now(r).canvas.site.onSelectZone(5));
-        expect(now(r).zoneTours.card.active).toBe(false);
-        act(() => now(r).picker.onClose());
+        expect(now(r).picker.open).toBe(false);
         expect(now(r).zoneTours.card.active).toBe(true);
       });
 

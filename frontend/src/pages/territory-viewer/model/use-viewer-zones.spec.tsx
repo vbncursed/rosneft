@@ -153,12 +153,13 @@ describe("useViewerZones", () => {
 });
 
 describe("useViewerZones, the model picker", () => {
-  it("selects the zone a canvas click names and opens the picker on it, for a reader who can place", () => {
+  it("selects the zone a canvas click names and opens no picker, offering Add objects to a reader who can place", () => {
     const { result } = zones();
     expect(result.current.z.pick).toBeNull();
     act(() => result.current.z.site.onSelectZone(7));
     expect(result.current.z.selected?.id).toBe(7);
-    expect(result.current.z.pick?.zone.id).toBe(7);
+    expect(result.current.z.pick).toBeNull();
+    expect(result.current.z.onAddObjects).toBeDefined();
   });
 
   it("selects the zone and opens no picker for a reader without placement:create", () => {
@@ -172,16 +173,15 @@ describe("useViewerZones, the model picker", () => {
   it("keeps the zone selected, not toggled off, when the same zone is clicked again", () => {
     const { result } = zones();
     act(() => result.current.z.site.onSelectZone(7));
-    act(() => result.current.z.pick?.onClose());
-    expect(result.current.z.pick).toBeNull();
     act(() => result.current.z.site.onSelectZone(7));
     expect(result.current.z.selected?.id).toBe(7);
-    expect(result.current.z.pick?.zone.id).toBe(7);
+    expect(result.current.z.pick).toBeNull();
   });
 
   it("closes the picker with the zone, and does not reopen it for the next zone selected from the panel", () => {
     const { result } = zones();
     act(() => result.current.z.site.onSelectZone(7));
+    act(() => result.current.z.onAddObjects?.());
     act(() => result.current.z.onSelect(null));
     expect(result.current.z.pick).toBeNull();
     act(() => result.current.z.onSelect(7));
@@ -191,7 +191,9 @@ describe("useViewerZones, the model picker", () => {
   it("reopens it from the card's Add objects", () => {
     const { result } = zones();
     act(() => result.current.z.site.onSelectZone(7));
+    act(() => result.current.z.onAddObjects?.());
     act(() => result.current.z.pick?.onClose());
+    expect(result.current.z.selected?.id).toBe(7);
     act(() => result.current.z.onAddObjects?.());
     expect(result.current.z.pick?.zone.id).toBe(7);
   });
@@ -200,6 +202,7 @@ describe("useViewerZones, the model picker", () => {
     const params = base();
     const { result } = zones(params);
     act(() => result.current.z.site.onSelectZone(7));
+    act(() => result.current.z.onAddObjects?.());
     await act(async () => result.current.z.pick?.onPlace("tank-500", 2));
     expect(params.create).toHaveBeenCalledWith("tank-500", 2, null, {
       position: { x: expect.closeTo(0.1, 10), y: 0, z: expect.closeTo(0.05, 10) },
@@ -212,6 +215,7 @@ describe("useViewerZones, the model picker", () => {
     const params = { ...base(), create: vi.fn().mockResolvedValue(null) };
     const { result } = zones(params);
     act(() => result.current.z.site.onSelectZone(7));
+    act(() => result.current.z.onAddObjects?.());
     await act(async () => result.current.z.pick?.onPlace("tank-500", 1));
     expect(result.current.z.pick?.zone.id).toBe(7);
   });
@@ -229,6 +233,7 @@ describe("useViewerZones, a saved edit", () => {
     const params = base();
     const { result } = zones(params);
     act(() => result.current.z.site.onSelectZone(ZONE.id));
+    act(() => result.current.z.onAddObjects?.());
     expect(modelsForZone(OPTIONS, result.current.z.pick!.zone).map((o) => o.slug)).toEqual(["tank"]);
 
     await act(() => result.current.z.onUpdate(ZONE.id, { title: "Pump row", tagSlugs: ["pumps"] }));

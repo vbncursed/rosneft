@@ -68,6 +68,6 @@ export const ZONE_CARD_TOUR_STEPS: TourStep[] = [
     id: "zone-place",
     tab: "view",
     title: "Add objects to the zone",
-    body: "Clicking a zone opens the model list filtered to its tags, so you see what can be placed there. Add objects reopens that list; the objects land at the zone's centre, where you can move them.",
+    body: "The card's Add objects button opens the list of models whose tags this zone carries, so you see what can be placed there. The objects land at the zone's centre, where you can move them.",
   },
 ];

@@ -26,14 +26,15 @@ const picker = (canPlace = true, place = vi.fn().mockResolvedValue(3)) =>
   });
 
 describe("useZonePicker", () => {
-  it("selects the clicked zone and opens the picker on it", () => {
+  it("selects the clicked zone and opens no picker", () => {
     const { result } = picker();
     act(() => result.current.p.clicked(2));
     expect(result.current.selected?.id).toBe(2);
-    expect(result.current.p.pick?.zone.id).toBe(2);
+    expect(result.current.p.pick).toBeNull();
+    expect(result.current.p.onAddObjects).toBeDefined();
   });
 
-  it("selects and opens nothing more for a reader who cannot place", () => {
+  it("offers no Add objects to a reader who cannot place", () => {
     const { result } = picker(false);
     act(() => result.current.p.clicked(2));
     expect(result.current.selected?.id).toBe(2);
@@ -41,48 +42,47 @@ describe("useZonePicker", () => {
     expect(result.current.p.onAddObjects).toBeUndefined();
   });
 
-  it("keeps the zone selected when it is clicked again after the picker closed", () => {
+  it("opens the picker on the selected zone from Add objects, and again after it closed", () => {
     const { result } = picker();
     act(() => result.current.p.clicked(1));
+    act(() => result.current.p.onAddObjects?.());
+    expect(result.current.p.pick?.zone.id).toBe(1);
     act(() => result.current.p.pick?.onClose());
-    act(() => result.current.p.clicked(1));
+    expect(result.current.p.pick).toBeNull();
     expect(result.current.selected?.id).toBe(1);
+    act(() => result.current.p.onAddObjects?.());
     expect(result.current.p.pick?.zone.id).toBe(1);
   });
 
-  it("follows a click on another zone", () => {
+  it("follows a click on another zone without opening anything", () => {
     const { result } = picker();
     act(() => result.current.p.clicked(1));
     act(() => result.current.p.clicked(2));
-    expect(result.current.p.pick?.zone.id).toBe(2);
+    expect(result.current.selected?.id).toBe(2);
+    expect(result.current.p.pick).toBeNull();
   });
 
   it("closes with the zone and does not reopen when the panel selects it again", () => {
     const { result } = picker();
     act(() => result.current.p.clicked(1));
+    act(() => result.current.p.onAddObjects?.());
     act(() => result.current.select(null));
     expect(result.current.p.pick).toBeNull();
     act(() => result.current.select(1));
     expect(result.current.p.pick).toBeNull();
   });
 
-  it("reopens from Add objects", () => {
-    const { result } = picker();
-    act(() => result.current.p.clicked(1));
-    act(() => result.current.p.pick?.onClose());
-    act(() => result.current.p.onAddObjects?.());
-    expect(result.current.p.pick?.zone.id).toBe(1);
-  });
-
   it("closes after a placing that landed, and stays open after a refused one", async () => {
     const landed = picker(true, vi.fn().mockResolvedValue(3));
     act(() => landed.result.current.p.clicked(1));
+    act(() => landed.result.current.p.onAddObjects?.());
     await act(async () => landed.result.current.p.pick?.onPlace("tank", 2));
     expect(landed.result.current.p.pick).toBeNull();
 
     const place = vi.fn().mockResolvedValue(null);
     const refused = picker(true, place);
     act(() => refused.result.current.p.clicked(1));
+    act(() => refused.result.current.p.onAddObjects?.());
     await act(async () => refused.result.current.p.pick?.onPlace("tank", 2));
     expect(place).toHaveBeenCalledWith("tank", 2);
     expect(refused.result.current.p.pick?.zone.id).toBe(1);

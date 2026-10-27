@@ -5,16 +5,15 @@ export type ZonePickerParams = {
   selected: Zone | null;
   /** The list's own toggle: selecting the selected zone lets go of it. */
   select: (id: number | null) => void;
-  /** `placement:create`: without it a click selects and opens nothing. */
+  /** `placement:create`: without it the card has no Add objects button. */
   canPlace: boolean;
   /** Places at the zone's centre; the id of the last object, null when it was refused. */
   place: (modelSlug: string, count: number) => Promise<number | null>;
 };
 
 /**
- * Which zone the add-objects picker is open for. A canvas click selects the zone (never toggles it off)
- * and, for a reader who can place, opens the picker on it; the picker counts only while that zone is
- * still the selected one.
+ * Which zone the add-objects picker is open for. A canvas click only selects the zone (never toggles it
+ * off); the card's Add objects button opens the picker, which counts only while that zone is still selected.
  */
 export function useZonePicker({ selected, select, canPlace, place }: ZonePickerParams) {
   const [pickingId, setPickingId] = useState<number | null>(null);
@@ -25,9 +24,8 @@ export function useZonePicker({ selected, select, canPlace, place }: ZonePickerP
   const clicked = useCallback(
     (id: number | null) => {
       if (id !== selectedId) select(id);
-      if (canPlace && id !== null) setPickingId(id);
     },
-    [selectedId, select, canPlace],
+    [selectedId, select],
   );
   const onClose = useCallback(() => setPickingId(null), []);
   const onPlace = useCallback(

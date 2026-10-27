@@ -28,7 +28,7 @@ export type ViewerZonesParams = {
   create: (modelSlug: string, count: number, groupId: number | null, origin: PlacementOrigin) => Promise<number | null>;
   /** `zone:write`. */
   canWrite: boolean;
-  /** `placement:create`: a click on a zone then opens the model picker filtered to its tags. */
+  /** `placement:create`: the zone card then offers Add objects, which opens the model picker filtered to its tags. */
   canPlace: boolean;
   onChanged: () => void;
   /** The align panel and the zone card live in the Overlays panel, which must be open for them. */
