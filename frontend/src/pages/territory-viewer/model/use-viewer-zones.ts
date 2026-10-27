@@ -12,6 +12,7 @@ import type { Ground, SiteProps } from "@/widgets/viewer-canvas";
 import type { PlanLayersProps } from "../ui/plan-layers";
 import { usePlanSession } from "./use-plan-session";
 import { useZoneList } from "./use-zone-list";
+import { useZonePicker } from "./use-zone-picker";
 
 export type ViewerZonesParams = {
   slug: string;
@@ -57,37 +58,9 @@ export function useViewerZones(p: ViewerZonesParams) {
     create: p.create,
   });
 
-  // The zone the picker is open for; it counts only while that zone is the selected one.
-  const [pickingId, setPickingId] = useState<number | null>(null);
   const { selected, select } = list;
   const selectedId = selected?.id ?? null;
-  // Letting go of the zone (or the zone going) closes its picker for good, so selecting it again from the panel does not reopen it.
-  if (pickingId !== null && pickingId !== selectedId) setPickingId(null);
-  // A click always selects (the panel's own toggle would let go of a zone already selected) and, for a reader who can place, opens the picker on it.
-  const clicked = useCallback(
-    (id: number | null) => {
-      if (id !== selectedId) select(id);
-      if (canPlace && id !== null) setPickingId(id);
-    },
-    [selectedId, select, canPlace],
-  );
-  const closePicker = useCallback(() => setPickingId(null), []);
-  const { onPlace: placeInZone } = equipment;
-  const placeFromPicker = useCallback(
-    async (modelSlug: string, count: number) => {
-      // A refused placing keeps the picker, and the toast says why.
-      if ((await placeInZone(modelSlug, count)) !== null) setPickingId(null);
-    },
-    [placeInZone],
-  );
-  const onAddObjects = useCallback(() => setPickingId(selectedId), [selectedId]);
-  const pick = useMemo(
-    () =>
-      canPlace && selected && pickingId === selected.id
-        ? { zone: selected, onClose: closePicker, onPlace: placeFromPicker }
-        : null,
-    [canPlace, selected, pickingId, closePicker, placeFromPicker],
-  );
+  const picker = useZonePicker({ selected, select, canPlace, place: equipment.onPlace });
 
   const { open } = session;
   const { onExit } = documents;
@@ -116,11 +89,11 @@ export function useViewerZones(p: ViewerZonesParams) {
       zones: list.zones,
       showZones: list.show,
       selectedZoneId: selectedId,
-      onSelectZone: clicked,
+      onSelectZone: picker.clicked,
       preview: session.preview,
       onGround: setGround,
     }),
-    [list.zones, list.show, selectedId, clicked, session.preview],
+    [list.zones, list.show, selectedId, picker.clicked, session.preview],
   );
 
   const layer: PlanLayersProps | null = editing && {
@@ -144,8 +117,8 @@ export function useViewerZones(p: ViewerZonesParams) {
     list: list.zones,
     selected,
     onSelect: select,
-    pick,
-    onAddObjects: canPlace && selected ? onAddObjects : undefined,
+    pick: picker.pick,
+    onAddObjects: picker.onAddObjects,
     onDelete: list.remove,
     show: list.show,
     onToggleShow: list.toggleShow,

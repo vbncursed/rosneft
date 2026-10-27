@@ -77,7 +77,9 @@ describe("useViewerZones", () => {
   it("mounts no plan layer until the editor is opened, even when a document is aligned", () => {
     const { result } = zones();
     expect(result.current.z.layer).toBeNull();
-    expect(result.current.z.site.zones).toBeDefined();
+    // The zones are still the canvas's, drawn with no plan session behind them.
+    expect(result.current.z.site.zones.map((z) => z.id)).toEqual([7]);
+    expect(result.current.z.site.showZones).toBe(true);
   });
 
   it("keeps the document list's copy in step with the calibration the editor saves", () => {

@@ -1,10 +1,11 @@
-import { memo, useMemo } from "react";
+import { memo, useEffect, useMemo } from "react";
 import { Html } from "@react-three/drei";
 import type { ThreeEvent } from "@react-three/fiber";
-import { DoubleSide, Mesh, type Object3D } from "three";
+import { BufferAttribute, BufferGeometry, DoubleSide, Mesh, Raycaster, type Object3D } from "three";
 import { zoneCentre, type Zone } from "@/entities/zone";
 import { CLICK_SLOP_PX } from "../model/free-cam";
-import { prismGeometry, zoneHeight, zoneOfTriangle, type PrismGeometry } from "./zone-prism-geometry";
+import { pickZone, type RayHit } from "./zone-pick";
+import { prismGeometry, zoneHeight } from "./zone-prism-geometry";
 
 interface ZonesLayerProps {
   zones: Zone[];
@@ -22,27 +23,42 @@ const FILL_OPACITY = 0.2;
 const SELECTED_OPACITY = 0.45;
 const EDGE_OPACITY = 0.9;
 const noRaycast = () => undefined;
+const NONE_F = new Float32Array(0);
+const NONE_I = new Uint32Array(0);
 
 const isPlacement = (o: Object3D | null): boolean =>
   o !== null && (o.userData.placementId !== undefined || isPlacement(o.parent));
 
 /**
- * A placement standing inside the prism, or in front of its far side, takes
- * the click: the zone's walls are nearer than the object in them, and without
- * this nothing under a zone could be picked. One behind the prism does not.
+ * R3F keeps one hit per object, so a prism shows up in `intersections` as its nearest wall only. The
+ * whole crossing (every wall the ray meets) is the mesh's own raycast against the event's ray.
  */
-function placementInside(e: ThreeEvent<MouseEvent>): boolean {
-  const own = e.intersections.filter((i) => i.object === e.object);
-  const exit = Math.max(...own.map((i) => i.distance));
-  return e.intersections.some((i) => isPlacement(i.object) && i.distance < exit);
+function crossing(e: ThreeEvent<MouseEvent>): RayHit[] {
+  const caster = new Raycaster();
+  caster.ray.copy(e.ray);
+  return caster
+    .intersectObject(e.object, false)
+    .flatMap((h) => (h.faceIndex == null ? [] : [{ faceIndex: h.faceIndex, distance: h.distance }]));
 }
 
-const Faces = ({ g }: { g: PrismGeometry }) => (
-  <bufferGeometry>
-    <bufferAttribute attach="attributes-position" args={[g.positions, 3]} />
-    <bufferAttribute attach="index" args={[g.faces, 1]} />
-  </bufferGeometry>
-);
+/** A placement between the prism's near wall and its far one takes the click: it stands inside the zone. */
+const placementInside = (e: ThreeEvent<MouseEvent>, exit: number) =>
+  e.intersections.some((i) => isPlacement(i.object) && i.distance < exit);
+
+/**
+ * A geometry of its own per set of arrays, disposed when they change. Reusing one geometry and swapping
+ * its attributes keeps three's cached bounding sphere, and a zone added outside it would never be hit.
+ */
+function useGeometry(positions: Float32Array, index: Uint32Array) {
+  const geometry = useMemo(() => {
+    const g = new BufferGeometry();
+    g.setAttribute("position", new BufferAttribute(positions, 3));
+    g.setIndex(new BufferAttribute(index, 1));
+    return g;
+  }, [positions, index]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  return geometry;
+}
 
 function ZoneLabel({ zone, height }: { zone: Zone; height: number }) {
   const c = zoneCentre(zone);
@@ -77,13 +93,17 @@ function ZonesLayerImpl({ zones, unitRatio, color, interactive, selectedId, onSe
     [zones, height],
   );
   const picked = zones.find((z) => z.id === selectedId) ?? null;
-  const pickedGeometry = useMemo(() => (picked ? prismGeometry([picked.corners], height) : null), [picked, height]);
+  const pickedPrism = useMemo(() => (picked ? prismGeometry([picked.corners], height) : null), [picked, height]);
+  const faces = useGeometry(all.positions, all.faces);
+  const edges = useGeometry(all.positions, all.edges);
+  const selected = useGeometry(pickedPrism?.positions ?? NONE_F, pickedPrism?.faces ?? NONE_I);
 
   if (zones.length === 0) return null;
   return (
     <group name="ZonesLayer" position={[0, lift, 0]}>
       <mesh
         name="ZoneFaces"
+        geometry={faces}
         frustumCulled={false}
         // Never `undefined`: R3F skips undefined props, so a mesh switched to no-op would stay that way.
         // oxlint-disable-next-line typescript/unbound-method -- handed to three as the mesh's own raycast, called with the mesh as `this`
@@ -91,19 +111,17 @@ function ZonesLayerImpl({ zones, unitRatio, color, interactive, selectedId, onSe
         // Always a handler, for the same reason: it only fires when the ray test can hit.
         onClick={(e) => {
           // A press that travelled is an orbit, not a pick.
-          if (!interactive || e.delta >= CLICK_SLOP_PX || placementInside(e)) return;
-          const zone = zones[zoneOfTriangle(e.faceIndex ?? 0)];
-          if (!zone) return;
+          if (!interactive || e.delta >= CLICK_SLOP_PX) return;
+          const target = pickZone(crossing(e), zones);
+          if (!target || placementInside(e, target.exit)) return;
           e.stopPropagation();
-          onSelect(zone.id);
+          onSelect(zones[target.index].id);
         }}
       >
-        <Faces g={all} />
         <meshBasicMaterial color={color} transparent depthWrite={false} opacity={FILL_OPACITY} side={DoubleSide} />
       </mesh>
-      {pickedGeometry ? (
-        <mesh name="ZoneSelected" raycast={noRaycast} frustumCulled={false}>
-          <Faces g={pickedGeometry} />
+      {pickedPrism ? (
+        <mesh name="ZoneSelected" geometry={selected} raycast={noRaycast} frustumCulled={false}>
           <meshBasicMaterial
             color={color}
             transparent
@@ -113,11 +131,7 @@ function ZonesLayerImpl({ zones, unitRatio, color, interactive, selectedId, onSe
           />
         </mesh>
       ) : null}
-      <lineSegments raycast={noRaycast} frustumCulled={false}>
-        <bufferGeometry>
-          <bufferAttribute attach="attributes-position" args={[all.positions, 3]} />
-          <bufferAttribute attach="index" args={[all.edges, 1]} />
-        </bufferGeometry>
+      <lineSegments geometry={edges} raycast={noRaycast} frustumCulled={false}>
         <lineBasicMaterial color={color} transparent opacity={EDGE_OPACITY} depthWrite={false} />
       </lineSegments>
       {zones.map((zone) => (

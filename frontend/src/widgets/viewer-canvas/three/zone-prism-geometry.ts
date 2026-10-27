@@ -7,8 +7,8 @@ import type { Vec3 } from "@/entities/placement";
  */
 export const ZONE_HEIGHT_M = 3;
 
-/** Triangles in one zone's faces: the top (2) and four sides (2 each). */
-export const FACE_TRIANGLES = 10;
+/** Triangles in one zone's faces: the top (2), four sides (2 each) and the underside (2). */
+export const FACE_TRIANGLES = 12;
 const VERTICES = 8;
 
 /** The height in scene units; an unknown scale (`unitRatio` not positive) reads as one unit per metre. */
@@ -21,15 +21,20 @@ export const zoneOfTriangle = (faceIndex: number) => Math.floor(faceIndex / FACE
 export type PrismGeometry = {
   /** Per zone: its four corners at their own height, then the same four raised by the height. */
   positions: Float32Array;
-  /** Top and sides; the underside stays open, nothing is ever seen or hit from below the ground. */
+  /** Top, sides, underside: closed, so a ray that enters through the top has a far wall to leave by. */
   faces: Uint32Array;
   /** The twelve edges as line-segment pairs. */
   edges: Uint32Array;
 };
 
+// A corner with no usable ground height stands at zero rather than poisoning the whole merged buffer with NaN.
 const finite = (n: number) => (Number.isFinite(n) ? n : 0);
 
-/** The faces and edges of every zone's prism as three flat arrays: one merged mesh and one merged outline. */
+/**
+ * The faces and edges of every zone's prism as three flat arrays: one merged mesh and one merged outline.
+ * shortcut: the corners are taken as a convex quad in drawing order (the top is the fan 4,5,6 / 4,6,7), which
+ * every saved zone is (four corners of a rectangle on the plan); upgrade when zones can be drawn freehand.
+ */
 export function prismGeometry(zones: [Vec3, Vec3, Vec3, Vec3][], height: number): PrismGeometry {
   const positions = new Float32Array(zones.length * VERTICES * 3);
   const faces = new Uint32Array(zones.length * FACE_TRIANGLES * 3);
@@ -48,6 +53,7 @@ export function prismGeometry(zones: [Vec3, Vec3, Vec3, Vec3][], height: number)
       const j = (i + 1) % 4;
       tri.push(i, j, j + 4, i, j + 4, i + 4);
     }
+    tri.push(0, 2, 1, 0, 3, 2);
     faces.set(
       tri.map((v) => base + v),
       z * FACE_TRIANGLES * 3,

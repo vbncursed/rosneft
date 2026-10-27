@@ -918,7 +918,7 @@ describe("useTerritoryViewer", () => {
       expect(localStorage.getItem("andrey.zones")).toBe("hidden");
     });
 
-    it("has no plan to show until a document is aligned", async () => {
+    it("has no plan switch in the Zones section, whatever is aligned", async () => {
       expect((await ready(withZone())).panel?.viewTab.zones).not.toHaveProperty("plan");
     });
 
@@ -1072,10 +1072,31 @@ describe("useTerritoryViewer", () => {
         await ready(r);
         expect(now(r).zoneTours.card.active).toBe(false);
         act(() => now(r).canvas.site.onSelectZone(5));
+        // The picker opened on the click is a modal dialog; the tour waits for it to close.
+        expect(now(r).picker.open).toBe(true);
+        expect(now(r).zoneTours.card.active).toBe(false);
+        act(() => now(r).picker.onClose());
         expect(now(r).zoneTours.card.active).toBe(true);
         expect(now(r).zoneTours.card.step?.id).toBe("zone-card");
         expect(now(r).panel?.collapsed).toBe(false);
         expect(now(r).overlays.tools.find((t) => t.key === "tour")?.state).not.toBe("active");
+      });
+
+      it("starts the card tour at once for a reader who gets no picker, and after the picker closes for one who does", async () => {
+        getMe.mockResolvedValue(principal({ permissions: ["territory:read"], onboardingToursSeen: SEEN }));
+        const reader = withZone();
+        await ready(reader);
+        act(() => now(reader).canvas.site.onSelectZone(5));
+        expect(now(reader).picker.open).toBe(false);
+        expect(now(reader).zoneTours.card.active).toBe(true);
+
+        getMe.mockResolvedValue(principal({ permissions: ["placement:create"], onboardingToursSeen: SEEN }));
+        const r = withZone();
+        await ready(r);
+        act(() => now(r).canvas.site.onSelectZone(5));
+        expect(now(r).zoneTours.card.active).toBe(false);
+        act(() => now(r).picker.onClose());
+        expect(now(r).zoneTours.card.active).toBe(true);
       });
 
       it("stays shut for a reader who has seen it", async () => {

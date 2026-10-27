@@ -40,15 +40,17 @@ describe("prismGeometry", () => {
     }
   });
 
-  it("closes the top and the four sides with ten triangles, and leaves the underside open", () => {
+  it("closes the prism with twelve triangles: the top, four sides and the underside", () => {
     const g = prismGeometry([flat()], 1);
-    expect(FACE_TRIANGLES).toBe(10);
-    expect(g.faces).toHaveLength(FACE_TRIANGLES * 3);
-    expect([...g.faces.slice(0, 6)]).toEqual([4, 5, 6, 4, 6, 7]);
-    const top = new Set(g.faces.slice(6));
-    expect([...top].every((v) => v >= 0 && v < 8)).toBe(true);
-    // Every side quad joins a bottom edge to the matching top edge.
-    for (let i = 0; i < 4; i++) expect([...g.faces.slice(6 + i * 6, 12 + i * 6)]).toContain(i);
+    expect(FACE_TRIANGLES).toBe(12);
+    expect([...g.faces]).toEqual([
+      // top: the raised ring as a fan
+      4, 5, 6, 4, 6, 7,
+      // sides: each bottom edge joined to its raised edge
+      0, 1, 5, 0, 5, 4, 1, 2, 6, 1, 6, 5, 2, 3, 7, 2, 7, 6, 3, 0, 4, 3, 4, 7,
+      // underside
+      0, 2, 1, 0, 3, 2,
+    ]);
   });
 
   it("outlines the twelve edges: four below, four above and four posts", () => {
@@ -68,7 +70,7 @@ describe("prismGeometry", () => {
     expect(g.positions).toHaveLength(16 * 3);
     expect(Math.max(...g.faces.slice(0, FACE_TRIANGLES * 3))).toBeLessThan(8);
     expect(Math.min(...g.faces.slice(FACE_TRIANGLES * 3))).toBeGreaterThanOrEqual(8);
-    expect([zoneOfTriangle(0), zoneOfTriangle(9), zoneOfTriangle(10), zoneOfTriangle(19)]).toEqual([0, 0, 1, 1]);
+    expect([zoneOfTriangle(0), zoneOfTriangle(11), zoneOfTriangle(12), zoneOfTriangle(23)]).toEqual([0, 0, 1, 1]);
   });
 
   it("is empty for no zones", () => {

@@ -192,7 +192,8 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     expandPanel: useCallback(() => panel.setCollapsed(false), [panel]),
   });
 
-  zoneTours.want(zones.editorReady && grants.zoneWrite, zones.selected !== null);
+  // The card tour waits for the picker a zone click opens: two aria-modal layers fight over Tab and Escape.
+  zoneTours.want(zones.editorReady && grants.zoneWrite, zones.selected !== null && zones.pick === null);
   const handlers = usePageHandlers({
     mode,
     measure,

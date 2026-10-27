@@ -309,11 +309,29 @@ describe("PlaceObjectsModal, opened from a zone", () => {
     expect(screen.getByRole("button", { name: /transfer-pump/ })).toBeInTheDocument();
   });
 
-  it("searches inside whichever list is showing", async () => {
+  it("searches inside whichever list is showing, and says which", async () => {
     open([options[0], pumps]);
-    await userEvent.type(screen.getByRole("searchbox", { name: "Search the model library" }), "pump");
+    expect(screen.queryByRole("searchbox", { name: "Search the model library" })).toBeNull();
+    await userEvent.type(screen.getByRole("searchbox", { name: "Search this zone's models" }), "pump");
     expect(screen.getByRole("button", { name: /transfer-pump/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /storage-tank-500/ })).toBeNull();
+  });
+
+  it("names the whole library in the search field once it is showing", async () => {
+    open([options[0]]);
+    await userEvent.click(screen.getByRole("switch", { name: "Show all models" }));
+    expect(screen.getByRole("searchbox", { name: "Search the model library" })).toBeInTheDocument();
+  });
+
+  it("drops the choice when the switch flips, so Place never puts a model the list no longer shows", async () => {
+    const onPlace = vi.fn();
+    open([options[0]], onPlace);
+    await userEvent.click(screen.getByRole("switch", { name: "Show all models" }));
+    await userEvent.click(screen.getByRole("button", { name: /transfer-pump/ }));
+    expect(screen.getByRole("button", { name: "Place" })).toBeEnabled();
+    await userEvent.click(screen.getByRole("switch", { name: "Show all models" }));
+    expect(screen.getByRole("button", { name: "Place" })).toBeDisabled();
+    expect(onPlace).not.toHaveBeenCalled();
   });
 
   it("places the chosen model with its count", async () => {

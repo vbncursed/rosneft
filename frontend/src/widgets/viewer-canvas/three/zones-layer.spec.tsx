@@ -1,5 +1,15 @@
 import { screen } from "@testing-library/react";
-import { DoubleSide, Group, Mesh, Raycaster, Vector3, type LineSegments, type MeshBasicMaterial } from "three";
+import {
+  DoubleSide,
+  Group,
+  Mesh,
+  Raycaster,
+  Vector3,
+  type LineSegments,
+  type MeshBasicMaterial,
+  type Object3D,
+  type Ray,
+} from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Zone } from "@/entities/zone";
 import { createInPage, unmountInPage } from "./testing";
@@ -43,8 +53,39 @@ const materialOf = (node: { instance: unknown }) => (node.instance as Mesh).mate
 const vertexCount = (node: { instance: unknown }) => (node.instance as Mesh).geometry.getAttribute("position").count;
 const rootOf = (r: Awaited<ReturnType<typeof createInPage>>) =>
   r.scene.findAll((n) => n.instance.name === "ZonesLayer")[0].instance;
-// The zones' faces are one merged mesh: the triangle a ray hits says which zone, ten to a zone.
-const click = (over: object = {}) => ({ stopPropagation: vi.fn(), faceIndex: 0, intersections: [], ...over });
+const click = (over: object = {}) => ({ stopPropagation: vi.fn(), intersections: [], ...over });
+
+/**
+ * A click as R3F 9 delivers it: it raycasts every object that has a handler, keeps one hit per
+ * object (the nearest: its dedupe is by object, so a prism contributes a single wall), sorts by
+ * distance and bubbles each hit up to the handlers on its ancestors, nearest first, until one
+ * stops the event. `ray` is the world ray. The tree is the real rendered one.
+ */
+async function realClick(r: Awaited<ReturnType<typeof createInPage>>, ray: Ray, handlers: Object3D[]) {
+  const caster = new Raycaster();
+  caster.ray.copy(ray);
+  const seen = new Set<string>();
+  const hits = caster
+    .intersectObjects(handlers, true)
+    .filter((h) => !seen.has(h.object.uuid) && seen.add(h.object.uuid));
+  const intersections = hits.flatMap((hit) => {
+    const chain: Object3D[] = [];
+    for (let o: Object3D | null = hit.object; o; o = o.parent) if (handlers.includes(o)) chain.push(o);
+    return chain.map((eventObject) => ({ ...hit, eventObject }));
+  });
+  let stopped = false;
+  for (const hit of intersections) {
+    if (stopped) break;
+    const node = r.scene.findAll((n) => n.instance === hit.eventObject)[0];
+    await r.fireEvent(node, "click", {
+      ...hit,
+      intersections,
+      ray: caster.ray,
+      stopPropagation: () => (stopped = true),
+    });
+  }
+}
+const down = (x: number, z: number) => new Raycaster(new Vector3(x, 10, z), new Vector3(0, -1, 0)).ray;
 
 describe("ZonesLayer", () => {
   it("draws every zone as one translucent prism mesh that writes no depth, so it never hides the ground or a placement", async () => {
@@ -93,55 +134,91 @@ describe("ZonesLayer", () => {
     expect(labels[0].instance.position.y).toBeCloseTo(3 + 3 / 50, 10);
   });
 
-  it("selects the zone whose triangle was clicked, when interactive", async () => {
+  it("selects the zone a real click lands on, when interactive", async () => {
     const onSelect = vi.fn();
     const r = await createInPage(layer({ onSelect }));
-    await r.fireEvent(faces(r)[0], "click", click({ faceIndex: 13 }));
+    await realClick(r, down(5.5, 0.5), [faces(r)[0].instance]);
     expect(onSelect).toHaveBeenCalledWith(2);
-    await r.fireEvent(faces(r)[0], "click", click({ faceIndex: 4 }));
+    await realClick(r, down(0.5, 0.5), [faces(r)[0].instance]);
     expect(onSelect).toHaveBeenLastCalledWith(1);
   });
 
   it("ignores a press that travelled: that was an orbit, not a click", async () => {
     const onSelect = vi.fn();
     const r = await createInPage(layer({ onSelect }));
-    await r.fireEvent(faces(r)[0], "click", click({ delta: 12 }));
+    await r.fireEvent(faces(r)[0], "click", click({ delta: 12, ray: down(0.5, 0.5) }));
     expect(onSelect).not.toHaveBeenCalled();
   });
 
-  it("lets a placement inside the prism take the click", async () => {
-    const onSelect = vi.fn();
-    const r = await createInPage(layer({ onSelect }));
-    const tank = new Group();
-    tank.userData.placementId = 9;
-    const hull = new Mesh();
-    tank.add(hull);
-    const zoneMesh = faces(r)[0].instance;
-    const ev = click({
-      object: zoneMesh,
-      // Zone top at 5, the placement at 6, the zone's far side at 9: the tank stands inside it.
-      intersections: [
-        { object: zoneMesh, distance: 5 },
-        { object: hull, distance: 6 },
-        { object: zoneMesh, distance: 9 },
-      ],
-    });
-    await r.fireEvent(faces(r)[0], "click", ev);
-    expect(onSelect).not.toHaveBeenCalled();
-    expect(ev.stopPropagation).not.toHaveBeenCalled();
+  describe("with a placement standing inside a prism", () => {
+    const withTank = async (onSelect: () => void, onTank: () => void, y = 3.03) => {
+      const r = await createInPage(
+        <>
+          {layer({ onSelect })}
+          <group name="tank" userData={{ placementId: 9 }} onClick={onTank} position={[0.5, y, 0.5]}>
+            <mesh>
+              <boxGeometry args={[0.04, 0.04, 0.04]} />
+            </mesh>
+          </group>
+        </>,
+      );
+      const tank = r.scene.findAll((n) => n.instance.name === "tank")[0].instance;
+      for (const root of [tank, rootOf(r)]) root.updateMatrixWorld(true);
+      return { r, tank };
+    };
 
-    // The same tank far behind the zone does not take it.
-    const behind = click({
-      object: zoneMesh,
-      intersections: [
-        { object: zoneMesh, distance: 5 },
-        { object: zoneMesh, distance: 9 },
-        { object: hull, distance: 20 },
-      ],
+    it("lets the placement take the click and does not select the zone", async () => {
+      const [onSelect, onTank] = [vi.fn(), vi.fn()];
+      const { r, tank } = await withTank(onSelect, onTank);
+      await realClick(r, down(0.5, 0.5), [faces(r)[0].instance, tank]);
+      expect(onTank).toHaveBeenCalledOnce();
+      expect(onSelect).not.toHaveBeenCalled();
     });
-    await r.fireEvent(faces(r)[0], "click", behind);
-    expect(onSelect).toHaveBeenCalledWith(1);
-    expect(behind.stopPropagation).toHaveBeenCalled();
+
+    it("selects the zone, not the placement, on a part of the prism the placement is not behind", async () => {
+      const [onSelect, onTank] = [vi.fn(), vi.fn()];
+      const { r, tank } = await withTank(onSelect, onTank);
+      await realClick(r, down(0.1, 0.1), [faces(r)[0].instance, tank]);
+      expect(onSelect).toHaveBeenCalledWith(1);
+      expect(onTank).not.toHaveBeenCalled();
+    });
+
+    it("selects the zone when the placement is behind the prism, under its floor", async () => {
+      const [onSelect, onTank] = [vi.fn(), vi.fn()];
+      const { r, tank } = await withTank(onSelect, onTank, 2.5);
+      await realClick(r, down(0.5, 0.5), [faces(r)[0].instance, tank]);
+      expect(onSelect).toHaveBeenCalledWith(1);
+      expect(onTank).not.toHaveBeenCalled();
+    });
+  });
+
+  it("picks the small zone nested in a big one, and the big one where only its wall is under the ray", async () => {
+    const onSelect = vi.fn();
+    const big = {
+      ...zone(1, "Big"),
+      corners: zone(1, "Big").corners.map((c) => ({ ...c, x: c.x * 10, z: c.z * 10 })) as Zone["corners"],
+    };
+    const small = {
+      ...zone(2, "Small"),
+      corners: zone(2, "Small").corners.map((c) => ({ ...c, x: c.x * 0.2 + 4, z: c.z * 0.2 + 4 })) as Zone["corners"],
+    };
+    const r = await createInPage(layer({ onSelect, zones: [big, small] }));
+    await realClick(r, down(4.1, 4.1), [faces(r)[0].instance]);
+    expect(onSelect).toHaveBeenLastCalledWith(2);
+    await realClick(r, down(8, 8), [faces(r)[0].instance]);
+    expect(onSelect).toHaveBeenLastCalledWith(1);
+  });
+
+  it("is hit by a ray at a zone added far from the others, without a remount", async () => {
+    const onSelect = vi.fn();
+    const r = await createInPage(layer({ onSelect, zones: [zone(1, "Near")] }));
+    // The first ray makes three compute the old geometry's bounds.
+    rootOf(r).updateMatrixWorld(true);
+    await realClick(r, down(0.5, 0.5), [faces(r)[0].instance]);
+    await r.update(layer({ onSelect, zones: [zone(1, "Near"), zone(2, "Far", 500)] }));
+    rootOf(r).updateMatrixWorld(true);
+    await realClick(r, down(500.5, 0.5), [faces(r)[0].instance]);
+    expect(onSelect).toHaveBeenLastCalledWith(2);
   });
 
   it("answers no click and offers nothing to a raycast when not interactive", async () => {
@@ -167,7 +244,7 @@ describe("ZonesLayer", () => {
     root.updateMatrixWorld(true);
     const ray = new Raycaster(new Vector3(0.5, 10, 0.5), new Vector3(0, -1, 0));
     expect(ray.intersectObject(root, true).length).toBeGreaterThan(0);
-    await r.fireEvent(faces(r)[0], "click", click());
+    await realClick(r, down(0.5, 0.5), [faces(r)[0].instance]);
     expect(onSelect).toHaveBeenCalledWith(1);
   });
 

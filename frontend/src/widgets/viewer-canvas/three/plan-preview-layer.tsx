@@ -20,7 +20,7 @@ const LIFT_M = 0.06;
 const LINE_OPACITY = 0.7;
 const FOOTPRINT_OPACITY = 0.07;
 const PICKED_OPACITY = 0.55;
-// Above the plan picture and the zones, which sit at 0.
+// Above the zones, which sit at 0.
 const ORDER = 2;
 const noRaycast = () => undefined;
 

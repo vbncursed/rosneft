@@ -75,6 +75,7 @@ function PlaceObjectsBody({
   const [count, setCount] = useState(1);
 
   const needle = query.trim().toLowerCase();
+  const searchLabel = zone && !showAll ? "Search this zone's models" : "Search the model library";
   const pool = zone && !showAll ? zone.models : options;
   const shown = pool.filter((o) => o.title.toLowerCase().includes(needle));
   const selected = options.find((o) => o.slug === selectedSlug) ?? null;
@@ -143,18 +144,22 @@ function PlaceObjectsBody({
         </div>
       }
     >
-      <SearchField
-        value={query}
-        onChange={setQuery}
-        label="Search the model library"
-        placeholder="Search the model library"
-      />
+      <SearchField value={query} onChange={setQuery} label={searchLabel} placeholder={searchLabel} />
       {zone ? (
         <div className="flex items-center justify-between gap-2.5">
           <span id={allId} className="font-mono text-[11px] text-muted">
             {SHOW_ALL}
           </span>
-          <Switch checked={showAll} onChange={setShowAll} label={SHOW_ALL} labelledBy={allId} />
+          <Switch
+            checked={showAll}
+            onChange={(next) => {
+              setShowAll(next);
+              // The chosen model may not be in the list the switch brings back.
+              setSelectedSlug(null);
+            }}
+            label={SHOW_ALL}
+            labelledBy={allId}
+          />
         </div>
       ) : null}
       {/* The grid is the one part that scrolls. The dialog is overflow-visible
