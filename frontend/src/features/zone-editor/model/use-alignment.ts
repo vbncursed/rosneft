@@ -100,11 +100,15 @@ export function useAlignment(p: AlignmentParams) {
   }
 
   async function clear() {
-    setPairs(() => []);
-    setPending(null);
-    if (!document.calibration) return;
+    const discard = () => {
+      setPairs(() => []);
+      setPending(null);
+    };
+    // The saved set belongs to one page; from any other page only this page's draft goes.
+    if (document.calibration?.page !== page) return discard();
     try {
       await deleteCalibration(slug, document.id);
+      discard();
       notify.success("Alignment removed");
       onCalibrated?.(null);
       onChanged();

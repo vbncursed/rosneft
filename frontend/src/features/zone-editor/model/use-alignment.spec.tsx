@@ -285,6 +285,28 @@ describe("useAlignment, save and clear", () => {
     expect(onChanged).toHaveBeenCalledOnce();
   });
 
+  it("keeps the pairs when the delete fails, since the server still holds the alignment", async () => {
+    vi.mocked(deleteCalibration).mockRejectedValue(new HttpError(500, null, "internal error"));
+    const points: CalibrationPair[] = [
+      { pdf: { x: 0, y: 0 }, scene: { x: 0, y: 0, z: 0 }, utm: null },
+      { pdf: { x: 600, y: 0 }, scene: { x: 1, y: 0, z: 0 }, utm: null },
+    ];
+    const { result } = align({ document: doc({ page: 1, points }) });
+    await act(() => result.current.clear());
+    expect(result.current.pairs).toEqual(points);
+    expect(onChanged).not.toHaveBeenCalled();
+    expect(result.current.notices[0]).toMatchObject({ tone: "error" });
+  });
+
+  it("only drops the draft, and deletes nothing, when the saved alignment is for another page", async () => {
+    const saved = { page: 1, points: [] };
+    const { result } = align({ document: doc(saved), plan: { page: 2, controls: EXACT } });
+    expect(result.current.pairs).toHaveLength(3);
+    await act(() => result.current.clear());
+    expect(deleteCalibration).not.toHaveBeenCalled();
+    expect(result.current.pairs).toEqual([]);
+  });
+
   it("only empties the pairs when nothing was saved", async () => {
     const { result } = align();
     await act(() => result.current.clear());
