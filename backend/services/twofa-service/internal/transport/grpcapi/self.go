@@ -23,6 +23,9 @@ func (s *Server) Setup(ctx context.Context, req *twofav1.SetupRequest) (*twofav1
 	if err := requireUser(req.GetUserId()); err != nil {
 		return nil, err
 	}
+	if req.GetLabel() == "" {
+		return nil, mapErr(fmt.Errorf("%w: label is required", domain.ErrInvalidInput))
+	}
 	secret, url, err := s.svc.Setup(ctx, req.GetUserId(), req.GetLabel())
 	if err != nil {
 		return nil, mapErr(err)

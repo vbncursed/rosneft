@@ -112,3 +112,11 @@ func TestSelfRPCsRejectAnEmptyUserIDWithoutTouchingTheService(t *testing.T) {
 		})
 	}
 }
+
+func TestSetupRejectsAnEmptyLabelWithoutTouchingTheService(t *testing.T) {
+	svc := &fakeService{}
+	_, err := grpcapi.New(svc).Setup(context.Background(), &twofav1.SetupRequest{UserId: "u-1"})
+	assert.Equal(t, status.Code(err), codes.InvalidArgument)
+	assert.Equal(t, status.Convert(err).Message(), "invalid input: label is required")
+	assert.Equal(t, svc.calls, 0)
+}
