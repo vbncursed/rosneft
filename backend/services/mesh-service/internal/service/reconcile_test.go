@@ -333,9 +333,11 @@ func (s *ReconcileSuite) TestRetriesConvertedTargetWhoseRunningJobWasAbandoned()
 		updatedAt time.Time
 		locked    bool
 		want      int
+		submits   int // TryLockTarget calls: a live job must not even reach submit
 	}{
-		{"stale running job, claim lapsed", time.Now().Add(-service.TargetLockTTL - time.Minute), true, 1},
-		{"fresh running job, claim held", time.Now(), false, 0},
+		{"stale running job, claim lapsed", time.Now().Add(-service.TargetLockTTL - time.Minute), true, 1, 1},
+		{"stale running job, claim still held", time.Now().Add(-service.TargetLockTTL - time.Minute), false, 0, 1},
+		{"progressing running job, claim held", time.Now().Add(-time.Minute), false, 0, 0},
 	}
 	for _, tc := range tests {
 		s.Run(tc.name, func() {
@@ -356,6 +358,7 @@ func (s *ReconcileSuite) TestRetriesConvertedTargetWhoseRunningJobWasAbandoned()
 
 			assert.NilError(s.T(), err)
 			assert.Equal(s.T(), n, tc.want)
+			assert.Equal(s.T(), len(s.queue.TryLockTargetMock.Calls()), tc.submits)
 		})
 	}
 }
