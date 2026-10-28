@@ -4,6 +4,7 @@ import "errors"
 
 // Sentinel errors propagated across layers; transport maps each to a gRPC code.
 var (
+	ErrInvalidInput        = errors.New("invalid input")
 	ErrNotFound            = errors.New("twofa credential not found")
 	ErrTwoFAAlreadyEnabled = errors.New("2fa already enabled")
 	ErrTwoFANotEnabled     = errors.New("2fa not enabled")

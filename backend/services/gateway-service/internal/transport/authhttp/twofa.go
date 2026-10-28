@@ -12,7 +12,7 @@ import (
 // twoFactorStatus answers what the account screen shows about 2FA. A GET, so
 // no CSRF; there is nothing to parameterise — the user is the session's.
 func (h *Handlers) twoFactorStatus(w http.ResponseWriter, r *http.Request) {
-	st, err := h.twofa.Status(r.Context(), sessionToken(r))
+	st, err := h.twofa.Status(r.Context(), principalUserID(r.Context()))
 	if err != nil {
 		fail(w, r, err)
 		return
@@ -31,7 +31,15 @@ func (h *Handlers) twoFactorStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) setup2FA(w http.ResponseWriter, r *http.Request) {
-	secret, url, err := h.twofa.Setup(r.Context(), sessionToken(r))
+	// The principal carries no login, and the authenticator labels the entry
+	// with it. Setup is a once-per-enrolment call, so one GetMe here costs far
+	// less than the one twofa used to make on every RPC.
+	me, err := h.client.GetMe(r.Context(), sessionToken(r))
+	if err != nil {
+		fail(w, r, err)
+		return
+	}
+	secret, url, err := h.twofa.Setup(r.Context(), principalUserID(r.Context()), me.GetUsername())
 	if err != nil {
 		fail(w, r, err)
 		return
@@ -44,7 +52,7 @@ func (h *Handlers) enable2FA(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	codes, err := h.twofa.Enable(r.Context(), sessionToken(r), req.Code)
+	codes, err := h.twofa.Enable(r.Context(), principalUserID(r.Context()), req.Code)
 	if err != nil {
 		fail(w, r, err)
 		return
@@ -57,7 +65,7 @@ func (h *Handlers) disable2FA(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	if err := h.twofa.Disable(r.Context(), sessionToken(r), req.Code); err != nil {
+	if err := h.twofa.Disable(r.Context(), principalUserID(r.Context()), req.Code); err != nil {
 		fail(w, r, err)
 		return
 	}
@@ -69,7 +77,7 @@ func (h *Handlers) regenerate2FA(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	codes, err := h.twofa.Regenerate(r.Context(), sessionToken(r), req.Code)
+	codes, err := h.twofa.Regenerate(r.Context(), principalUserID(r.Context()), req.Code)
 	if err != nil {
 		fail(w, r, err)
 		return

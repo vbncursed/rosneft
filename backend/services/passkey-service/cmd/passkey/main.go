@@ -40,7 +40,6 @@ func newRootCmd() *cobra.Command {
 	flags.StringSlice("rp-origins", nil, "allowed WebAuthn origins (scheme+host)")
 	flags.String("rp-name", "Andrey", "WebAuthn Relying Party display name")
 	flags.Duration("ceremony-ttl", 5*time.Minute, "in-flight ceremony state TTL")
-	flags.String("auth-grpc-addr", "auth:9004", "auth-service gRPC address (identity resolution)")
 	flags.String("log-level", "info", "log level: debug|info|warn|error")
 	flags.String("log-format", "json", "log format: json|text")
 	flags.Bool("auto-migrate", true, "run goose migrations on startup")

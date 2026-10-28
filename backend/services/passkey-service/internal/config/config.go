@@ -22,7 +22,6 @@ type Config struct {
 	RPOrigins       []string      `mapstructure:"rp-origins"` // allowed origins, scheme+host
 	RPName          string        `mapstructure:"rp-name"`    // display name shown by authenticators
 	CeremonyTTL     time.Duration `mapstructure:"ceremony-ttl"`
-	AuthGRPCAddr    string        `mapstructure:"auth-grpc-addr"`
 	LogLevel        string        `mapstructure:"log-level"`
 	LogFormat       string        `mapstructure:"log-format"`
 	AutoMigrate     bool          `mapstructure:"auto-migrate"`
@@ -44,7 +43,6 @@ func Load(cmd *cobra.Command) (Config, error) {
 	v.SetDefault("redis-db", 3)
 	v.SetDefault("rp-name", "Andrey")
 	v.SetDefault("ceremony-ttl", 5*time.Minute)
-	v.SetDefault("auth-grpc-addr", "auth:9004")
 	v.SetDefault("log-level", "info")
 	v.SetDefault("log-format", "json")
 	v.SetDefault("auto-migrate", true)

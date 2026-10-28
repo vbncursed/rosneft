@@ -45,11 +45,10 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	}
 	defer func() { _ = rdb.Close() }()
 
-	handler, authClient, err := InitService(pool, rdb, cfg)
+	handler, err := InitService(pool, rdb, cfg)
 	if err != nil {
 		return err
 	}
-	defer func() { _ = authClient.Close() }()
 
 	grpcSrv, healthSrv := InitGRPCServer( //nolint:contextcheck // false positive: the recovery stream interceptor takes its context from the stream (ss.Context()) per request, not from this bootstrap ctx
 		handler,

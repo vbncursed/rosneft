@@ -5,11 +5,14 @@ package rosneft.passkey.v1;
 option go_package = "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/passkey/v1;passkeyv1";
 
 // PasskeyService owns WebAuthn credentials + ceremonies. It NEVER mints a
-// session. The gateway calls the management RPCs (token-authenticated, resolved
-// via auth.GetMe). auth-service calls the login RPCs during passwordless login;
-// FinishLogin returns a VERIFIED user id, and auth mints the session.
+// session, and it is a leaf: it calls no other service. The gateway, which has
+// already authenticated the caller, passes the resolved user id to the
+// management RPCs. auth-service calls the login RPCs during passwordless login;
+// FinishLogin returns a VERIFIED user id, and auth mints the session. Every
+// caller is trusted to name the right user, so only those two may reach this
+// service.
 service PasskeyService {
-  // Management surface (gateway-called, token-authenticated).
+  // Management surface (gateway-called, with the user id it authenticated).
   rpc BeginRegistration(BeginRegistrationRequest) returns (BeginRegistrationResponse);
   rpc FinishRegistration(FinishRegistrationRequest) returns (FinishRegistrationResponse);
   rpc ListCredentials(ListCredentialsRequest) returns (ListCredentialsResponse);
@@ -19,34 +22,48 @@ service PasskeyService {
   rpc BeginLogin(BeginLoginRequest) returns (BeginLoginResponse);
   rpc FinishLogin(FinishLoginRequest) returns (FinishLoginResponse);
   // CredentialedUsers answers "which of these users have at least one passkey".
-  // Internal surface (no token) because it is keyed on ids, not on the caller:
-  // ListCredentials resolves the caller via auth.GetMe and so cannot answer for
-  // anybody else. Returns ids only — never names, counts, or key material.
+  // Internal surface because it is keyed on a set of ids, not on one caller:
+  // ListCredentials answers for a single user_id only. Returns ids only —
+  // never names, counts, or key material.
   rpc CredentialedUsers(CredentialedUsersRequest) returns (CredentialedUsersResponse);
 }
 
 // options_json is the raw PublicKeyCredentialCreationOptions/RequestOptions
 // JSON the browser feeds to navigator.credentials. flow_id keys the stashed
 // ceremony state (challenge) in Redis.
-message BeginRegistrationRequest { string token = 1; }
+message BeginRegistrationRequest {
+  reserved 1;
+  reserved "token";
+  string user_id = 2;
+  // The user's login, shown by authenticators in the passkey picker.
+  string display_name = 3;
+}
 message BeginRegistrationResponse {
   string options_json = 1;
   string flow_id = 2;
 }
 message FinishRegistrationRequest {
-  string token = 1;
+  reserved 1;
+  reserved "token";
   string flow_id = 2;
   string credential_json = 3; // navigator.credentials.create() result, JSON
   string name = 4;            // user-supplied label, e.g. "MacBook Touch ID"
+  string user_id = 5;
 }
 message FinishRegistrationResponse { Credential credential = 1; }
 
-message ListCredentialsRequest { string token = 1; }
+message ListCredentialsRequest {
+  reserved 1;
+  reserved "token";
+  string user_id = 2;
+}
 message ListCredentialsResponse { repeated Credential credentials = 1; }
 
 message DeleteCredentialRequest {
-  string token = 1;
+  reserved 1;
+  reserved "token";
   string credential_id = 2; // base64url credential id
+  string user_id = 3;
 }
 message DeleteCredentialResponse {}
 

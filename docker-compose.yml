@@ -8,6 +8,7 @@ services:
   postgres:
     restart: unless-stopped
     image: postgres:18.6
+    networks: [default, identity]
     environment:
       <<: *tz
       POSTGRES_DB: andrey
@@ -26,6 +27,7 @@ services:
   redis:
     restart: unless-stopped
     image: redis:8.10.2
+    networks: [default, identity]
     environment:
       <<: *tz
     ports:
@@ -45,6 +47,7 @@ services:
       context: ./backend
       dockerfile: services/gateway-service/Dockerfile
     image: ghcr.io/vbncursed/andrey-gateway:${ANDREY_TAG:-local}
+    networks: [default, identity]
     depends_on:
       # Only these two: without them the gateway is useless. Everything else
       # relies on the retry policy every gRPC client carries — that is what
@@ -125,6 +128,7 @@ services:
       context: ./backend
       dockerfile: services/auth-service/Dockerfile
     image: ghcr.io/vbncursed/andrey-auth:${ANDREY_TAG:-local}
+    networks: [default, identity]
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -158,6 +162,7 @@ services:
       context: ./backend
       dockerfile: services/twofa-service/Dockerfile
     image: ghcr.io/vbncursed/andrey-twofa:${ANDREY_TAG:-local}
+    networks: [identity]
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -170,7 +175,6 @@ services:
       TWOFA_DB_DSN: "postgres://andrey:andrey@postgres:5432/andrey?sslmode=disable"
       TWOFA_REDIS_ADDR: "redis:6379"
       TWOFA_REDIS_DB: "2"
-      TWOFA_AUTH_GRPC_ADDR: "auth:9004"
       TWOFA_ISSUER: "Andrey"
       # CHANGE IN PROD: inject a real 32-byte key (openssl rand -hex 32) via the
       # deploy environment; this local-only value encrypts TOTP secrets at rest.
@@ -189,6 +193,7 @@ services:
       context: ./backend
       dockerfile: services/passkey-service/Dockerfile
     image: ghcr.io/vbncursed/andrey-passkey:${ANDREY_TAG:-local}
+    networks: [identity]
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -201,7 +206,6 @@ services:
       PASSKEY_DB_DSN: "postgres://andrey:andrey@postgres:5432/andrey?sslmode=disable"
       PASSKEY_REDIS_ADDR: "redis:6379"
       PASSKEY_REDIS_DB: "3"
-      PASSKEY_AUTH_GRPC_ADDR: "auth:9004"
       # CHANGE IN PROD: RP_ID must equal the domain in the browser address bar,
       # RP_ORIGINS the full scheme+host. Prod: andrey.vbncursed.fun / https://andrey.vbncursed.fun
       PASSKEY_RP_ID: "localhost"
@@ -408,6 +412,7 @@ services:
   prometheus:
     restart: unless-stopped
     image: prom/prometheus:v3.15.0
+    networks: [default, identity]
     environment:
       <<: *tz
     command:
@@ -444,6 +449,17 @@ services:
 # listens on :3000, the origin PASSKEY_RP_ORIGINS lists above; Prometheus
 # stays compose-internal and the SPA reads it through the gateway's
 # owner-gated /api/metrics/query.
+
+# twofa and passkey trust the user_id a caller sends (no call back to auth),
+# so who can reach :9006 / :9008 is the whole access control. Only gateway and
+# auth (the callers) plus postgres/redis (their stores) and prometheus (scrapes
+# :9101) join `identity`; twofa and passkey are on it alone. Every other
+# container, mesh-worker parsing uploads included, stays on `default` and
+# cannot even resolve `twofa` or `passkey`. A service added here can act on any
+# user's 2FA and passkeys: needs a reason. twofa and passkey share the network
+# and so can reach each other; they have no reason to (known limit).
+networks:
+  identity:
 
 volumes:
   postgres-data:
