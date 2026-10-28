@@ -370,3 +370,28 @@ func (s *ProcessJobSuite) TestFailureIsSavedAfterTheContextIsCancelled() {
 
 	assert.Assert(s.T(), slices.Contains(persisted, domain.JobStatusFailed), "persisted %v", persisted)
 }
+
+// SIGTERM after the last LOD is registered but before the Succeeded write must
+// not leave the job Running: 30 minutes later the stale rule would reconvert
+// the whole target for nothing.
+func (s *ProcessJobSuite) TestSuccessIsSavedAfterTheContextIsCancelled() {
+	ctx, cancel := context.WithCancel(s.ctx)
+	s.stubConversion()
+	s.stubSourceHashes("h1")
+	s.converter.ConvertLODsMock.Set(func(context.Context, string, string) ([]domain.ConversionResult, error) {
+		cancel() // the signal lands before the terminal write; the stores ignore ctx until SaveJob
+		return []domain.ConversionResult{{ArtifactHash: "lod0"}}, nil
+	})
+	var persisted []domain.JobStatus
+	s.queue.SaveJobMock.Set(func(ctx context.Context, j domain.Job) error {
+		if ctx.Err() != nil {
+			return ctx.Err() // a real store refuses a cancelled context
+		}
+		persisted = append(persisted, j.Status)
+		return nil
+	})
+
+	_ = s.svc.ProcessJob(ctx, "job-1")
+
+	assert.Assert(s.T(), slices.Contains(persisted, domain.JobStatusSucceeded), "persisted %v", persisted)
+}
