@@ -6,8 +6,17 @@ import (
 	passkeyv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/passkey/v1"
 )
 
-func (c *Client) BeginRegistration(ctx context.Context, token string) (optionsJSON, flowID string, err error) {
-	resp, err := c.cc.BeginRegistration(ctx, &passkeyv1.BeginRegistrationRequest{Token: token})
+// The management calls below take the user id the gateway already
+// authenticated; passkey-service trusts it and calls no one to check.
+
+// BeginRegistration starts enrolment; displayName is the login authenticators show.
+func (c *Client) BeginRegistration(
+	ctx context.Context,
+	userID, displayName string,
+) (optionsJSON, flowID string, err error) {
+	resp, err := c.cc.BeginRegistration(ctx, &passkeyv1.BeginRegistrationRequest{
+		UserId: userID, DisplayName: displayName,
+	})
 	if err != nil {
 		return "", "", err
 	}
@@ -16,10 +25,10 @@ func (c *Client) BeginRegistration(ctx context.Context, token string) (optionsJS
 
 func (c *Client) FinishRegistration(
 	ctx context.Context,
-	token, flowID, credentialJSON, name string,
+	userID, flowID, credentialJSON, name string,
 ) (*passkeyv1.Credential, error) {
 	resp, err := c.cc.FinishRegistration(ctx, &passkeyv1.FinishRegistrationRequest{
-		Token: token, FlowId: flowID, CredentialJson: credentialJSON, Name: name,
+		UserId: userID, FlowId: flowID, CredentialJson: credentialJSON, Name: name,
 	})
 	if err != nil {
 		return nil, err
@@ -27,8 +36,8 @@ func (c *Client) FinishRegistration(
 	return resp.GetCredential(), nil
 }
 
-func (c *Client) ListCredentials(ctx context.Context, token string) ([]*passkeyv1.Credential, error) {
-	resp, err := c.cc.ListCredentials(ctx, &passkeyv1.ListCredentialsRequest{Token: token})
+func (c *Client) ListCredentials(ctx context.Context, userID string) ([]*passkeyv1.Credential, error) {
+	resp, err := c.cc.ListCredentials(ctx, &passkeyv1.ListCredentialsRequest{UserId: userID})
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +45,7 @@ func (c *Client) ListCredentials(ctx context.Context, token string) ([]*passkeyv
 }
 
 // CredentialedUsers reports which of userIDs own at least one passkey. Unlike
-// ListCredentials it is keyed on ids rather than on the caller's token, which
+// ListCredentials it is keyed on a set of ids rather than on one caller, which
 // is what lets the admin console ask about somebody else.
 func (c *Client) CredentialedUsers(ctx context.Context, userIDs []string) ([]string, error) {
 	resp, err := c.cc.CredentialedUsers(ctx, &passkeyv1.CredentialedUsersRequest{UserIds: userIDs})
@@ -46,7 +55,7 @@ func (c *Client) CredentialedUsers(ctx context.Context, userIDs []string) ([]str
 	return resp.GetUserIdsWithCredentials(), nil
 }
 
-func (c *Client) DeleteCredential(ctx context.Context, token, credID string) error {
-	_, err := c.cc.DeleteCredential(ctx, &passkeyv1.DeleteCredentialRequest{Token: token, CredentialId: credID})
+func (c *Client) DeleteCredential(ctx context.Context, userID, credID string) error {
+	_, err := c.cc.DeleteCredential(ctx, &passkeyv1.DeleteCredentialRequest{UserId: userID, CredentialId: credID})
 	return err
 }

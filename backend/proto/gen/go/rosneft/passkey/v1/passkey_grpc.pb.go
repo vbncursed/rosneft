@@ -33,11 +33,14 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // PasskeyService owns WebAuthn credentials + ceremonies. It NEVER mints a
-// session. The gateway calls the management RPCs (token-authenticated, resolved
-// via auth.GetMe). auth-service calls the login RPCs during passwordless login;
-// FinishLogin returns a VERIFIED user id, and auth mints the session.
+// session, and it is a leaf: it calls no other service. The gateway, which has
+// already authenticated the caller, passes the resolved user id to the
+// management RPCs. auth-service calls the login RPCs during passwordless login;
+// FinishLogin returns a VERIFIED user id, and auth mints the session. Every
+// caller is trusted to name the right user, so only those two may reach this
+// service.
 type PasskeyServiceClient interface {
-	// Management surface (gateway-called, token-authenticated).
+	// Management surface (gateway-called, with the user id it authenticated).
 	BeginRegistration(ctx context.Context, in *BeginRegistrationRequest, opts ...grpc.CallOption) (*BeginRegistrationResponse, error)
 	FinishRegistration(ctx context.Context, in *FinishRegistrationRequest, opts ...grpc.CallOption) (*FinishRegistrationResponse, error)
 	ListCredentials(ctx context.Context, in *ListCredentialsRequest, opts ...grpc.CallOption) (*ListCredentialsResponse, error)
@@ -46,9 +49,9 @@ type PasskeyServiceClient interface {
 	BeginLogin(ctx context.Context, in *BeginLoginRequest, opts ...grpc.CallOption) (*BeginLoginResponse, error)
 	FinishLogin(ctx context.Context, in *FinishLoginRequest, opts ...grpc.CallOption) (*FinishLoginResponse, error)
 	// CredentialedUsers answers "which of these users have at least one passkey".
-	// Internal surface (no token) because it is keyed on ids, not on the caller:
-	// ListCredentials resolves the caller via auth.GetMe and so cannot answer for
-	// anybody else. Returns ids only — never names, counts, or key material.
+	// Internal surface because it is keyed on a set of ids, not on one caller:
+	// ListCredentials answers for a single user_id only. Returns ids only —
+	// never names, counts, or key material.
 	CredentialedUsers(ctx context.Context, in *CredentialedUsersRequest, opts ...grpc.CallOption) (*CredentialedUsersResponse, error)
 }
 
@@ -135,11 +138,14 @@ func (c *passkeyServiceClient) CredentialedUsers(ctx context.Context, in *Creden
 // for forward compatibility.
 //
 // PasskeyService owns WebAuthn credentials + ceremonies. It NEVER mints a
-// session. The gateway calls the management RPCs (token-authenticated, resolved
-// via auth.GetMe). auth-service calls the login RPCs during passwordless login;
-// FinishLogin returns a VERIFIED user id, and auth mints the session.
+// session, and it is a leaf: it calls no other service. The gateway, which has
+// already authenticated the caller, passes the resolved user id to the
+// management RPCs. auth-service calls the login RPCs during passwordless login;
+// FinishLogin returns a VERIFIED user id, and auth mints the session. Every
+// caller is trusted to name the right user, so only those two may reach this
+// service.
 type PasskeyServiceServer interface {
-	// Management surface (gateway-called, token-authenticated).
+	// Management surface (gateway-called, with the user id it authenticated).
 	BeginRegistration(context.Context, *BeginRegistrationRequest) (*BeginRegistrationResponse, error)
 	FinishRegistration(context.Context, *FinishRegistrationRequest) (*FinishRegistrationResponse, error)
 	ListCredentials(context.Context, *ListCredentialsRequest) (*ListCredentialsResponse, error)
@@ -148,9 +154,9 @@ type PasskeyServiceServer interface {
 	BeginLogin(context.Context, *BeginLoginRequest) (*BeginLoginResponse, error)
 	FinishLogin(context.Context, *FinishLoginRequest) (*FinishLoginResponse, error)
 	// CredentialedUsers answers "which of these users have at least one passkey".
-	// Internal surface (no token) because it is keyed on ids, not on the caller:
-	// ListCredentials resolves the caller via auth.GetMe and so cannot answer for
-	// anybody else. Returns ids only — never names, counts, or key material.
+	// Internal surface because it is keyed on a set of ids, not on one caller:
+	// ListCredentials answers for a single user_id only. Returns ids only —
+	// never names, counts, or key material.
 	CredentialedUsers(context.Context, *CredentialedUsersRequest) (*CredentialedUsersResponse, error)
 	mustEmbedUnimplementedPasskeyServiceServer()
 }

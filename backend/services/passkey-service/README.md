@@ -7,9 +7,11 @@ login.
 `passkey` is **not** exposed on the host. It binds `passkey:9008` on the
 Compose network. Two callers reach it:
 
-- **gateway-service** — the management surface (`/api/auth/passkey/*`), passing
-  the caller's Bearer token straight through; passkey resolves it via
-  `auth.GetMe`.
+- **gateway-service** — the management surface (`/api/auth/passkey/*`). The
+  gateway has already authenticated the session, so it passes the resolved
+  `user_id` (plus the login as `display_name` on `BeginRegistration`); passkey
+  calls no other service. An empty `user_id` (or `display_name`) is
+  `InvalidArgument`.
 - **auth-service** — the login surface, during passwordless login. `FinishLogin`
   returns a **verified user id**, never a session. auth-service is the only
   service allowed to mint sessions.
@@ -32,11 +34,11 @@ are unary.
 
 | RPC | Request → Response | Caller | Description |
 | --- | --- | --- | --- |
-| `BeginRegistration` | `{token}` → `{options_json, flow_id}` | gateway | Resolves the token via `auth.GetMe`, builds `PublicKeyCredentialCreationOptions` (excluding already-enrolled credentials), stashes the challenge in Redis under `flow_id`. |
-| `FinishRegistration` | `{token, flow_id, credential_json, name}` → `{credential}` | gateway | Verifies the attestation against the stashed challenge and stores the credential with the user-supplied label (e.g. `"MacBook Touch ID"`). |
-| `ListCredentials` | `{token}` → `{credentials[]}` | gateway | Every passkey enrolled by the token's user (base64url id, name, `created_at`, `last_used_at`). |
-| `DeleteCredential` | `{token, credential_id}` → `{}` | gateway | Removes one credential. The gateway additionally requires **step-up re-authentication** (a TOTP code when the user has 2FA) before calling this. |
-| `BeginLogin` | `{}` → `{options_json, flow_id}` | auth | **Usernameless** — builds discoverable-credential request options with no `allowCredentials` list, so the authenticator picks the account. No token involved. |
+| `BeginRegistration` | `{user_id, display_name}` → `{options_json, flow_id}` | gateway | Builds `PublicKeyCredentialCreationOptions` (excluding already-enrolled credentials), stashes the challenge in Redis under `flow_id`. |
+| `FinishRegistration` | `{user_id, flow_id, credential_json, name}` → `{credential}` | gateway | Verifies the attestation against the stashed challenge and stores the credential with the user-supplied label (e.g. `"MacBook Touch ID"`). |
+| `ListCredentials` | `{user_id}` → `{credentials[]}` | gateway | Every passkey enrolled by that user (base64url id, name, `created_at`, `last_used_at`). |
+| `DeleteCredential` | `{user_id, credential_id}` → `{}` | gateway | Removes one credential. The gateway additionally requires **step-up re-authentication** (a TOTP code when the user has 2FA) before calling this. |
+| `BeginLogin` | `{}` → `{options_json, flow_id}` | auth | **Usernameless** — builds discoverable-credential request options with no `allowCredentials` list, so the authenticator picks the account. No user is named. |
 | `FinishLogin` | `{flow_id, assertion_json}` → `{user_id}` | auth | Verifies the assertion, bumps the sign counter, writes back BS + `last_used_at`, and returns the **verified** user id. Explicitly **not** a session. |
 
 ### Error mapping
@@ -46,6 +48,7 @@ Sentinels in `internal/domain/errors.go` translate to gRPC codes in
 
 | Sentinel | gRPC code |
 | --- | --- |
+| `ErrInvalidInput` (empty `user_id` / `display_name`) | `InvalidArgument` |
 | `ErrNotFound` (credential missing) | `NotFound` |
 | `ErrCeremonyExpired` (unknown or TTL-expired `flow_id`) | `FailedPrecondition` |
 | `ErrAssertionInvalid` | `Unauthenticated` |
@@ -118,7 +121,6 @@ default). Defaults shown.
 | `PASSKEY_RP_ORIGINS` | — | **required** — comma-separated allowed origins, scheme+host(+port): `http://localhost:3000`, `https://andrey.vbncursed.fun` |
 | `PASSKEY_RP_NAME` | `Andrey` | Display name shown by the authenticator prompt |
 | `PASSKEY_CEREMONY_TTL` | `5m` | How long a `flow_id` stays valid |
-| `PASSKEY_AUTH_GRPC_ADDR` | `auth:9004` | auth-service, for `GetMe` token resolution |
 | `PASSKEY_AUTO_MIGRATE` | `true` | Run goose migrations on boot |
 | `PASSKEY_LOG_LEVEL` | `info` | `debug` / `info` / `warn` / `error` |
 | `PASSKEY_LOG_FORMAT` | `json` | `json` / `text` |
@@ -137,7 +139,6 @@ cmd/passkey/           # Cobra root command; dispatches to bootstrap
 internal/
   bootstrap/           # config → logger → postgres → redis → service → gRPC
   ceremony/            # Redis-backed challenge store keyed by flow_id
-  clients/auth/        # auth-service gRPC client (GetMe token resolution)
   config/              # Viper layered config, PASSKEY_* env vars
   domain/              # Credential value type + error sentinels
   migrate/             # goose runner + embedded migrations/
@@ -191,3 +192,22 @@ make lint
 Service-level coverage lives in `internal/service/passkey/*_test.go` against
 minimock-generated `Store` / `Ceremonies` / `Engine` mocks — no Postgres, Redis,
 or authenticator required.
+
+## Trust boundary
+
+passkey trusts the `user_id` it is given: it has no session check of its own, so
+whoever can reach `:9008` can register a credential on any user's account and
+then log in as that user without a password, or list and delete anyone's
+credentials. That reachability is the whole access control, and it is enforced
+by the `identity` network in `docker-compose.yml`, not by this README: passkey
+is on `identity` alone, and only `gateway`, `auth`, `postgres`, `redis` and
+`prometheus` (which scrapes `:9101`) share it. Every other container
+(mesh-worker parsing uploads, upload, asset, ...) cannot resolve `passkey` at all.
+
+`twofa` is on the same network, so it can reach passkey and vice versa. They
+have no reason to talk, and a compromised one could call the other; a second
+network would isolate them, and is left out as complexity this does not yet earn.
+
+The port is `expose`d only and must never be published. If a service is ever
+added to `identity`, treat it as able to act on any user's passkeys and 2FA and
+give the change a reason.

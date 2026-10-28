@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
-	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/password"
 )
 
 // Login authenticates by email-or-username + password. Returns a session token
@@ -38,11 +37,15 @@ func (s *Service) Login(ctx context.Context, identifier, plain string) (string, 
 	u, err := s.users.GetByIdentifier(ctx, identifier)
 	if err != nil {
 		// Unknown user is an auth failure, not a 404 — don't leak existence.
+		// The verify below is for time alone: without it this path returns in
+		// microseconds and a known user's takes tens of ms, which gives the
+		// existence away.
+		_, _ = s.verify(plain, s.dummyHash())
 		_ = s.sessions.RegisterFail(ctx, identifier)
 		metricLogins.WithLabelValues("failed").Inc()
 		return "", "", domain.ErrInvalidCredential
 	}
-	ok, err := password.Verify(plain, u.PasswordHash)
+	ok, err := s.verify(plain, u.PasswordHash)
 	if err != nil {
 		return "", "", fmt.Errorf("auth.Login: verify: %w", err)
 	}

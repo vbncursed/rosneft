@@ -44,7 +44,15 @@ func (h *Handlers) passkeyLoginFinish(w http.ResponseWriter, r *http.Request) {
 // --- passkey enrollment + management (authenticated; passkey-service) ---
 
 func (h *Handlers) passkeyRegisterBegin(w http.ResponseWriter, r *http.Request) {
-	opts, flowID, err := h.passkey.BeginRegistration(r.Context(), sessionToken(r))
+	// The principal carries no login, and authenticators display it. Begin is a
+	// once-per-enrolment call, so one GetMe here costs far less than the one
+	// passkey used to make on every management RPC.
+	me, err := h.client.GetMe(r.Context(), sessionToken(r))
+	if err != nil {
+		fail(w, r, err)
+		return
+	}
+	opts, flowID, err := h.passkey.BeginRegistration(r.Context(), principalUserID(r.Context()), me.GetUsername())
 	if err != nil {
 		fail(w, r, err)
 		return
@@ -61,7 +69,9 @@ func (h *Handlers) passkeyRegisterFinish(w http.ResponseWriter, r *http.Request)
 	if !decode(w, r, &req) {
 		return
 	}
-	c, err := h.passkey.FinishRegistration(r.Context(), sessionToken(r), req.FlowID, req.CredentialJSON, req.Name)
+	c, err := h.passkey.FinishRegistration(
+		r.Context(), principalUserID(r.Context()), req.FlowID, req.CredentialJSON, req.Name,
+	)
 	if err != nil {
 		fail(w, r, err)
 		return
@@ -70,7 +80,7 @@ func (h *Handlers) passkeyRegisterFinish(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *Handlers) passkeyList(w http.ResponseWriter, r *http.Request) {
-	creds, err := h.passkey.ListCredentials(r.Context(), sessionToken(r))
+	creds, err := h.passkey.ListCredentials(r.Context(), principalUserID(r.Context()))
 	if err != nil {
 		fail(w, r, err)
 		return
@@ -110,7 +120,7 @@ func (h *Handlers) passkeyDelete(w http.ResponseWriter, r *http.Request) {
 		apperr.Write(w, http.StatusForbidden, apperr.SlugForbidden, "re-authentication failed")
 		return
 	}
-	if err := h.passkey.DeleteCredential(r.Context(), sessionToken(r), chi.URLParam(r, "id")); err != nil {
+	if err := h.passkey.DeleteCredential(r.Context(), uid, chi.URLParam(r, "id")); err != nil {
 		fail(w, r, err)
 		return
 	}

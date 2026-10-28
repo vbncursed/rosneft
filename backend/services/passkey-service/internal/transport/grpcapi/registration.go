@@ -10,11 +10,13 @@ func (s *Server) BeginRegistration(
 	ctx context.Context,
 	req *passkeyv1.BeginRegistrationRequest,
 ) (*passkeyv1.BeginRegistrationResponse, error) {
-	uid, name, err := s.identity.Resolve(ctx, req.GetToken())
-	if err != nil {
-		return nil, mapErr(err)
+	if err := requireField("user_id", req.GetUserId()); err != nil {
+		return nil, err
 	}
-	opts, flowID, err := s.svc.BeginRegistration(ctx, uid, name)
+	if err := requireField("display_name", req.GetDisplayName()); err != nil {
+		return nil, err
+	}
+	opts, flowID, err := s.svc.BeginRegistration(ctx, req.GetUserId(), req.GetDisplayName())
 	if err != nil {
 		return nil, mapErr(err)
 	}
@@ -25,11 +27,10 @@ func (s *Server) FinishRegistration(
 	ctx context.Context,
 	req *passkeyv1.FinishRegistrationRequest,
 ) (*passkeyv1.FinishRegistrationResponse, error) {
-	uid, _, err := s.identity.Resolve(ctx, req.GetToken())
-	if err != nil {
-		return nil, mapErr(err)
+	if err := requireField("user_id", req.GetUserId()); err != nil {
+		return nil, err
 	}
-	c, err := s.svc.FinishRegistration(ctx, uid, req.GetFlowId(), req.GetCredentialJson(), req.GetName())
+	c, err := s.svc.FinishRegistration(ctx, req.GetUserId(), req.GetFlowId(), req.GetCredentialJson(), req.GetName())
 	if err != nil {
 		return nil, mapErr(err)
 	}
