@@ -43,8 +43,8 @@ const BackfillRetryAfter = 5 * time.Minute
 // (territory or model) that does not already have a LOD0 artifact, or whose
 // LOD0 has no plain GLB copy (the backfill for targets converted before the
 // compatible export existed: the ordinary job writes the copy). The backfill
-// goes one target per pass and only while no other job is live; a pass runs
-// every tick and right after each successful job.
+// goes one target per pass and only while no other job is live (so does the
+// failed-replace retry below); a pass runs every tick and right after each successful job.
 // Idempotent at the catalog level — re-running on a fully-converted catalog
 // is a no-op aside from the read pass.
 //
@@ -100,22 +100,22 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 		if has && hasPlain && !m.replaceFailed(last, seen) {
 			continue
 		}
+		// ponytail: one retry or backfill per pass, and only on an idle worker,
+		// so an upload never queues behind the whole catalog and no queued
+		// backfill outlives MaxQueueWait (which would queue it twice).
+		// The worker also runs a pass right after every successful job,
+		// so a succeeding backlog drains back to back: ceiling is one
+		// conversion per target (~1 min each), not 12 targets an hour.
+		// Targets whose latest job failed wait BackfillRetryAfter, so
+		// only a success drains at once.
+		if has && (queued > 0 || skewed || anyLive(ctx, index, m.liveNow)) {
+			continue
+		}
 		reason := "no lod0"
 		if has && hasPlain {
 			reason = "failed replace"
 		} else if has {
 			reason = "no plain copy"
-			// ponytail: one backfill per pass, and only on an idle worker, so
-			// an upload never queues behind the whole catalog and no queued
-			// backfill outlives MaxQueueWait (which would queue it twice).
-			// The worker also runs a pass right after every successful job,
-			// so a succeeding backlog drains back to back: ceiling is one
-			// conversion per target (~1 min each), not 12 targets an hour.
-			// Targets whose latest job failed wait BackfillRetryAfter, so
-			// only a success drains at once.
-			if queued > 0 || skewed || anyLive(ctx, index, m.liveNow) {
-				continue
-			}
 			if seen && m.now().Sub(last.UpdatedAt) < BackfillRetryAfter {
 				// Every conversion writes the plain copy, so one that just
 				// succeeded without it means the catalog drops plain_hash
