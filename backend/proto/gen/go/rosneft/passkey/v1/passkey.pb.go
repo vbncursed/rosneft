@@ -25,8 +25,10 @@ const (
 // JSON the browser feeds to navigator.credentials. flow_id keys the stashed
 // ceremony state (challenge) in Redis.
 type BeginRegistrationRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	UserId string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	// The user's login, shown by authenticators in the passkey picker.
+	DisplayName   string `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -61,9 +63,16 @@ func (*BeginRegistrationRequest) Descriptor() ([]byte, []int) {
 	return file_rosneft_passkey_v1_passkey_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *BeginRegistrationRequest) GetToken() string {
+func (x *BeginRegistrationRequest) GetUserId() string {
 	if x != nil {
-		return x.Token
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *BeginRegistrationRequest) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
 	}
 	return ""
 }
@@ -122,10 +131,10 @@ func (x *BeginRegistrationResponse) GetFlowId() string {
 
 type FinishRegistrationRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	Token          string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
 	FlowId         string                 `protobuf:"bytes,2,opt,name=flow_id,json=flowId,proto3" json:"flow_id,omitempty"`
 	CredentialJson string                 `protobuf:"bytes,3,opt,name=credential_json,json=credentialJson,proto3" json:"credential_json,omitempty"` // navigator.credentials.create() result, JSON
 	Name           string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`                                           // user-supplied label, e.g. "MacBook Touch ID"
+	UserId         string                 `protobuf:"bytes,5,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -160,13 +169,6 @@ func (*FinishRegistrationRequest) Descriptor() ([]byte, []int) {
 	return file_rosneft_passkey_v1_passkey_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *FinishRegistrationRequest) GetToken() string {
-	if x != nil {
-		return x.Token
-	}
-	return ""
-}
-
 func (x *FinishRegistrationRequest) GetFlowId() string {
 	if x != nil {
 		return x.FlowId
@@ -184,6 +186,13 @@ func (x *FinishRegistrationRequest) GetCredentialJson() string {
 func (x *FinishRegistrationRequest) GetName() string {
 	if x != nil {
 		return x.Name
+	}
+	return ""
+}
+
+func (x *FinishRegistrationRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
 	}
 	return ""
 }
@@ -234,7 +243,7 @@ func (x *FinishRegistrationResponse) GetCredential() *Credential {
 
 type ListCredentialsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -269,9 +278,9 @@ func (*ListCredentialsRequest) Descriptor() ([]byte, []int) {
 	return file_rosneft_passkey_v1_passkey_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *ListCredentialsRequest) GetToken() string {
+func (x *ListCredentialsRequest) GetUserId() string {
 	if x != nil {
-		return x.Token
+		return x.UserId
 	}
 	return ""
 }
@@ -322,8 +331,8 @@ func (x *ListCredentialsResponse) GetCredentials() []*Credential {
 
 type DeleteCredentialRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
 	CredentialId  string                 `protobuf:"bytes,2,opt,name=credential_id,json=credentialId,proto3" json:"credential_id,omitempty"` // base64url credential id
+	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -358,16 +367,16 @@ func (*DeleteCredentialRequest) Descriptor() ([]byte, []int) {
 	return file_rosneft_passkey_v1_passkey_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *DeleteCredentialRequest) GetToken() string {
+func (x *DeleteCredentialRequest) GetCredentialId() string {
 	if x != nil {
-		return x.Token
+		return x.CredentialId
 	}
 	return ""
 }
 
-func (x *DeleteCredentialRequest) GetCredentialId() string {
+func (x *DeleteCredentialRequest) GetUserId() string {
 	if x != nil {
-		return x.CredentialId
+		return x.UserId
 	}
 	return ""
 }
@@ -752,28 +761,29 @@ var File_rosneft_passkey_v1_passkey_proto protoreflect.FileDescriptor
 
 const file_rosneft_passkey_v1_passkey_proto_rawDesc = "" +
 	"\n" +
-	" rosneft/passkey/v1/passkey.proto\x12\x12rosneft.passkey.v1\"0\n" +
-	"\x18BeginRegistrationRequest\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\"W\n" +
+	" rosneft/passkey/v1/passkey.proto\x12\x12rosneft.passkey.v1\"c\n" +
+	"\x18BeginRegistrationRequest\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12!\n" +
+	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayNameJ\x04\b\x01\x10\x02R\x05token\"W\n" +
 	"\x19BeginRegistrationResponse\x12!\n" +
 	"\foptions_json\x18\x01 \x01(\tR\voptionsJson\x12\x17\n" +
-	"\aflow_id\x18\x02 \x01(\tR\x06flowId\"\x87\x01\n" +
-	"\x19FinishRegistrationRequest\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\x12\x17\n" +
+	"\aflow_id\x18\x02 \x01(\tR\x06flowId\"\x97\x01\n" +
+	"\x19FinishRegistrationRequest\x12\x17\n" +
 	"\aflow_id\x18\x02 \x01(\tR\x06flowId\x12'\n" +
 	"\x0fcredential_json\x18\x03 \x01(\tR\x0ecredentialJson\x12\x12\n" +
-	"\x04name\x18\x04 \x01(\tR\x04name\"\\\n" +
+	"\x04name\x18\x04 \x01(\tR\x04name\x12\x17\n" +
+	"\auser_id\x18\x05 \x01(\tR\x06userIdJ\x04\b\x01\x10\x02R\x05token\"\\\n" +
 	"\x1aFinishRegistrationResponse\x12>\n" +
 	"\n" +
 	"credential\x18\x01 \x01(\v2\x1e.rosneft.passkey.v1.CredentialR\n" +
-	"credential\".\n" +
-	"\x16ListCredentialsRequest\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\"[\n" +
+	"credential\">\n" +
+	"\x16ListCredentialsRequest\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userIdJ\x04\b\x01\x10\x02R\x05token\"[\n" +
 	"\x17ListCredentialsResponse\x12@\n" +
-	"\vcredentials\x18\x01 \x03(\v2\x1e.rosneft.passkey.v1.CredentialR\vcredentials\"T\n" +
-	"\x17DeleteCredentialRequest\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\x12#\n" +
-	"\rcredential_id\x18\x02 \x01(\tR\fcredentialId\"\x1a\n" +
+	"\vcredentials\x18\x01 \x03(\v2\x1e.rosneft.passkey.v1.CredentialR\vcredentials\"d\n" +
+	"\x17DeleteCredentialRequest\x12#\n" +
+	"\rcredential_id\x18\x02 \x01(\tR\fcredentialId\x12\x17\n" +
+	"\auser_id\x18\x03 \x01(\tR\x06userIdJ\x04\b\x01\x10\x02R\x05token\"\x1a\n" +
 	"\x18DeleteCredentialResponse\"\x13\n" +
 	"\x11BeginLoginRequest\"P\n" +
 	"\x12BeginLoginResponse\x12!\n" +

@@ -43,6 +43,13 @@ func (sessionAuth) ValidateToken(
 	return &authv1.ValidateTokenResponse{UserId: "u-7"}, nil
 }
 
+func (sessionAuth) VerifyPassword(
+	_ context.Context,
+	req *authv1.VerifyPasswordRequest,
+) (*authv1.VerifyPasswordResponse, error) {
+	return &authv1.VerifyPasswordResponse{Valid: req.GetToken() == goodToken && req.GetPassword() == "pw"}, nil
+}
+
 func (sessionAuth) GetMe(_ context.Context, req *authv1.GetMeRequest) (*authv1.User, error) {
 	if req.GetToken() != goodToken {
 		return nil, status.Error(codes.Unauthenticated, "bad session")
@@ -113,22 +120,24 @@ type TwoFARoutesSuite struct {
 
 func TestTwoFARoutesSuite(t *testing.T) { suite.Run(t, new(TwoFARoutesSuite)) }
 
-func serve(s *TwoFARoutesSuite, register func(*grpc.Server)) string {
+func serve(t *testing.T, register func(*grpc.Server)) string {
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
-	assert.NilError(s.T(), err)
+	assert.NilError(t, err)
 	srv := grpc.NewServer()
 	register(srv)
 	go func() { _ = srv.Serve(lis) }()
-	s.T().Cleanup(srv.Stop)
+	t.Cleanup(srv.Stop)
 	return lis.Addr().String()
 }
 
 func (s *TwoFARoutesSuite) SetupTest() {
 	s.rec = &recordingTwoFA{}
-	authClient, err := auth.Dial(serve(s, func(g *grpc.Server) { authv1.RegisterAuthServiceServer(g, sessionAuth{}) }))
+	authClient, err := auth.Dial(
+		serve(s.T(), func(g *grpc.Server) { authv1.RegisterAuthServiceServer(g, sessionAuth{}) }),
+	)
 	assert.NilError(s.T(), err)
 	s.T().Cleanup(func() { _ = authClient.Close() })
-	twofaClient, err := twofa.Dial(serve(s, func(g *grpc.Server) { twofav1.RegisterTwoFAServiceServer(g, s.rec) }))
+	twofaClient, err := twofa.Dial(serve(s.T(), func(g *grpc.Server) { twofav1.RegisterTwoFAServiceServer(g, s.rec) }))
 	assert.NilError(s.T(), err)
 	s.T().Cleanup(func() { _ = twofaClient.Close() })
 	auditClient, err := audit.Dial("127.0.0.1:1")

@@ -13,11 +13,10 @@ func (s *Server) ListCredentials(
 	ctx context.Context,
 	req *passkeyv1.ListCredentialsRequest,
 ) (*passkeyv1.ListCredentialsResponse, error) {
-	uid, _, err := s.identity.Resolve(ctx, req.GetToken())
-	if err != nil {
-		return nil, mapErr(err)
+	if err := requireField("user_id", req.GetUserId()); err != nil {
+		return nil, err
 	}
-	creds, err := s.svc.List(ctx, uid)
+	creds, err := s.svc.List(ctx, req.GetUserId())
 	if err != nil {
 		return nil, mapErr(err)
 	}
@@ -32,11 +31,10 @@ func (s *Server) DeleteCredential(
 	ctx context.Context,
 	req *passkeyv1.DeleteCredentialRequest,
 ) (*passkeyv1.DeleteCredentialResponse, error) {
-	uid, _, err := s.identity.Resolve(ctx, req.GetToken())
-	if err != nil {
-		return nil, mapErr(err)
+	if err := requireField("user_id", req.GetUserId()); err != nil {
+		return nil, err
 	}
-	if err := s.svc.Delete(ctx, uid, req.GetCredentialId()); err != nil {
+	if err := s.svc.Delete(ctx, req.GetUserId(), req.GetCredentialId()); err != nil {
 		return nil, mapErr(err)
 	}
 	return &passkeyv1.DeleteCredentialResponse{}, nil
