@@ -91,7 +91,8 @@ internal/
    territories, right after LOD0 is registered it calls
    `RescaleTerritoryPlacements(slug, newMaxAxis)` so existing placements stay
    1:1 with the replacement mesh: placements never move for a mesh that was not
-   published. A failure after LOD0 fails the job and the reconciler retries it;
+   published. A failure or worker death after LOD0 is retried by the reconciler
+   (a Running job with no write inside `TargetLockTTL` counts as dead);
    the catalog applies a pending baseline once, so the repeat is a no-op (models
    carry no placements).
 5. Worker writes each LOD GLB to BlobStore (content-addressed, SHA-256 filename)

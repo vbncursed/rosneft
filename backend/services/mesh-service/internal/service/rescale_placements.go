@@ -11,11 +11,10 @@ import (
 // and panoramas 1:1 with a freshly converted replacement mesh, passing LOD0's
 // source-bbox max axis and center. It runs right AFTER LOD0 is registered
 // (and before the other LODs): rescaling first left placements moved for a mesh
-// that never got published when the blob put or registration failed, and a
-// replace-source target keeps its old LOD0, so the reconciler never retried.
-// Now a failed publish leaves the placements on the old mesh's scale, and a
-// failure after it fails the job, which the reconciler retries
-// (ReconcileMissingArtifacts, failed non-input jobs). The retry is safe: the
+// that never got published when the blob put or registration failed. Now a
+// failed publish leaves the placements on the old mesh's scale, and a failure
+// or worker death after it is retried by the reconciler
+// (ReconcileMissingArtifacts, failed or abandoned jobs on a converted target). The retry is safe: the
 // catalog applies a pending baseline once and clears it, so a repeat call is
 // its documented no-op. Models carry no placements, so it is a no-op for
 // them.
