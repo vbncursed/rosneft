@@ -150,7 +150,13 @@ func (m *Mesh) runConversion(ctx context.Context, j *domain.Job) (string, error)
 //
 // LOD0's plain GLB is written after the LOD and before the registration, so
 // the catalog never records a mapping that names a missing blob.
-func (m *Mesh) persistLOD(ctx context.Context, kind domain.Kind, slug string, lod uint32, r domain.ConversionResult) error {
+func (m *Mesh) persistLOD(
+	ctx context.Context,
+	kind domain.Kind,
+	slug string,
+	lod uint32,
+	r domain.ConversionResult,
+) error {
 	if _, err := m.blobs.Put(ctx, r.ArtifactHash, r.ContentType, bytes.NewReader(r.Content)); err != nil {
 		return fmt.Errorf("blobstore put lod=%d: %w", lod, err)
 	}

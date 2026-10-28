@@ -15,7 +15,11 @@ const maxPlacementBatch = 100
 // catalog transaction. Every item is pinned to territorySlug (the territory the
 // route's gate checked) whatever it carried. key, when not empty, makes the
 // batch idempotent on the territory; the catalog decides the replay.
-func (g *Gateway) CreatePlacements(ctx context.Context, territorySlug, key string, items []domain.Placement) ([]domain.Placement, error) {
+func (g *Gateway) CreatePlacements(
+	ctx context.Context,
+	territorySlug, key string,
+	items []domain.Placement,
+) ([]domain.Placement, error) {
 	if len(items) == 0 || len(items) > maxPlacementBatch {
 		return nil, fmt.Errorf("%w: a batch holds 1 to %d placements, got %d",
 			domain.ErrInvalidInput, maxPlacementBatch, len(items))

@@ -64,7 +64,10 @@ func (s *TerritoryExportSuite) TestVariantIsValidated() {
 		s.Run(q, func() {
 			svc := &exportServiceStub{bundle: s.compatBundle()}
 
-			rec := s.getPath(s.router(svc, scoped, exportOpener(s.compatBlobs(), nil)), "/api/territories/ust-kut/export.glb"+q)
+			rec := s.getPath(
+				s.router(svc, scoped, exportOpener(s.compatBlobs(), nil)),
+				"/api/territories/ust-kut/export.glb"+q,
+			)
 
 			assert.Equal(s.T(), rec.Code, http.StatusBadRequest)
 			assert.Assert(s.T(), strings.Contains(rec.Body.String(), `"code":"invalid_input"`), rec.Body.String())
@@ -80,11 +83,18 @@ func (s *TerritoryExportSuite) TestMissingPlainIs409() {
 	model.ModelOptions[0].LODs[0].PlainHash = ""
 	for name, b := range map[string]domain.SceneBundle{"territory": territory, "model": model} {
 		s.Run(name, func() {
-			rec := s.getPath(s.router(&exportServiceStub{bundle: b}, scoped, exportOpener(s.compatBlobs(), nil)), compatURL)
+			rec := s.getPath(
+				s.router(&exportServiceStub{bundle: b}, scoped, exportOpener(s.compatBlobs(), nil)),
+				compatURL,
+			)
 
 			assert.Equal(s.T(), rec.Code, http.StatusConflict)
 			assert.Assert(s.T(), strings.Contains(rec.Body.String(), `"code":"conflict"`), rec.Body.String())
-			assert.Assert(s.T(), strings.Contains(rec.Body.String(), "compatible copy is not ready yet"), rec.Body.String())
+			assert.Assert(
+				s.T(),
+				strings.Contains(rec.Body.String(), "compatible copy is not ready yet"),
+				rec.Body.String(),
+			)
 		})
 	}
 }
@@ -92,7 +102,10 @@ func (s *TerritoryExportSuite) TestMissingPlainIs409() {
 // Review Focus 3: only exported placements count.
 func (s *TerritoryExportSuite) TestHiddenPlacementWithoutPlainDoesNotBlock() {
 	b := s.compatBundle()
-	b.ModelOptions = append(b.ModelOptions, domain.AssetOption{Slug: "old", LODs: []domain.LodArtifact{{LOD: 0, Hash: "old"}}})
+	b.ModelOptions = append(
+		b.ModelOptions,
+		domain.AssetOption{Slug: "old", LODs: []domain.LodArtifact{{LOD: 0, Hash: "old"}}},
+	)
 	b.Placements = append(b.Placements,
 		domain.Placement{ID: 5, ModelSlug: "old", Label: "hidden", Hidden: true},
 		domain.Placement{ID: 6, ModelSlug: "old", Label: "in hidden group", GroupID: new(int64(1))},
@@ -113,11 +126,19 @@ func (s *TerritoryExportSuite) TestCompressedIgnoresMissingPlain() {
 
 // Anti-goal: a "compatible" file that still needs an extension never ships.
 func (s *TerritoryExportSuite) TestCompatibleThatStillRequiresAnExtensionIs500() {
-	withExt := strings.Replace(triJSON, `"scene":0,`, `"extensionsUsed":["KHR_texture_basisu"],"extensionsRequired":["KHR_texture_basisu"],"scene":0,`, 1)
+	withExt := strings.Replace(
+		triJSON,
+		`"scene":0,`,
+		`"extensionsUsed":["KHR_texture_basisu"],"extensionsRequired":["KHR_texture_basisu"],"scene":0,`,
+		1,
+	)
 	blobs := s.compatBlobs()
 	blobs["tank-p"] = glb(strings.Replace(withExt, "%d", "36", 1), bytes.Repeat([]byte{7}, 36), 36)
 
-	rec := s.getPath(s.router(&exportServiceStub{bundle: s.compatBundle()}, scoped, exportOpener(blobs, nil)), compatURL)
+	rec := s.getPath(
+		s.router(&exportServiceStub{bundle: s.compatBundle()}, scoped, exportOpener(blobs, nil)),
+		compatURL,
+	)
 
 	assert.Equal(s.T(), rec.Code, http.StatusInternalServerError)
 	assert.Equal(s.T(), strings.TrimSpace(rec.Body.String()), `{"code":"internal","message":"internal error"}`)

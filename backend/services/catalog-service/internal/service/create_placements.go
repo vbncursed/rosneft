@@ -18,7 +18,11 @@ const maxPlacementBatch = 100
 // against the territory once for the whole batch. A non-empty key makes the
 // batch idempotent on the territory: a batch already stored under it is
 // answered before the panorama check.
-func (c *Catalog) CreatePlacements(ctx context.Context, territorySlug, key string, items []domain.Placement) ([]domain.Placement, error) {
+func (c *Catalog) CreatePlacements(
+	ctx context.Context,
+	territorySlug, key string,
+	items []domain.Placement,
+) ([]domain.Placement, error) {
 	if len(items) == 0 || len(items) > maxPlacementBatch {
 		return nil, fmt.Errorf("service.CreatePlacements: %w: a batch holds 1 to %d placements, got %d",
 			domain.ErrInvalidInput, maxPlacementBatch, len(items))

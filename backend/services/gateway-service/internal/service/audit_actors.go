@@ -18,7 +18,11 @@ import (
 // Unlike the entry labels, a resolution failure here is returned rather than
 // swallowed: an unlabelled dropdown is a list of uuids to pick from blindly,
 // which is worse than an honest error.
-func (g *Gateway) ListAuditActors(ctx context.Context, p domain.AuditPrincipal, token string) ([]domain.AuditActor, error) {
+func (g *Gateway) ListAuditActors(
+	ctx context.Context,
+	p domain.AuditPrincipal,
+	token string,
+) ([]domain.AuditActor, error) {
 	sc, err := AuditScope(p)
 	if err != nil {
 		return nil, err

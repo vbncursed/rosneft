@@ -17,7 +17,12 @@ import (
 // there already has is ErrInvalidInput.
 //
 // Wrapped in audittx.Run so the audit trigger can attribute the change.
-func (r *PG) RenamePlacementGroup(ctx context.Context, territorySlug string, id int64, title string) (domain.PlacementGroup, error) {
+func (r *PG) RenamePlacementGroup(
+	ctx context.Context,
+	territorySlug string,
+	id int64,
+	title string,
+) (domain.PlacementGroup, error) {
 	const q = `
 		WITH g AS (
 			UPDATE placement_groups g SET title = $3, updated_at = NOW()
@@ -40,9 +45,15 @@ func (r *PG) RenamePlacementGroup(ctx context.Context, territorySlug string, id 
 	case errors.Is(err, pgx.ErrNoRows):
 		return domain.PlacementGroup{}, domain.ErrPlacementGroupNotFound
 	case isGroupTitleViolation(err):
-		return domain.PlacementGroup{}, fmt.Errorf("storage.RenamePlacementGroup: %w: a group title is 1 to 120 characters", domain.ErrInvalidInput)
+		return domain.PlacementGroup{}, fmt.Errorf(
+			"storage.RenamePlacementGroup: %w: a group title is 1 to 120 characters",
+			domain.ErrInvalidInput,
+		)
 	case isGroupTitleTaken(err):
-		return domain.PlacementGroup{}, fmt.Errorf("storage.RenamePlacementGroup: %w: a group with this title already exists", domain.ErrInvalidInput)
+		return domain.PlacementGroup{}, fmt.Errorf(
+			"storage.RenamePlacementGroup: %w: a group with this title already exists",
+			domain.ErrInvalidInput,
+		)
 	}
 	return domain.PlacementGroup{}, fmt.Errorf("storage.RenamePlacementGroup: %w", err)
 }

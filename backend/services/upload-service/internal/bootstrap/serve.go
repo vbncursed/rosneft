@@ -40,7 +40,9 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	}
 	svc := InitService(cfg, store, blobs)
 
-	grpcSrv := grpcutil.NewServer(logger) //nolint:contextcheck // false positive: the recovery stream interceptor takes its context from the stream (ss.Context()) per request, not from this bootstrap ctx
+	grpcSrv := grpcutil.NewServer( //nolint:contextcheck // false positive: the recovery stream interceptor takes its context from the stream (ss.Context()) per request, not from this bootstrap ctx
+		logger,
+	)
 	grpctransport.New(svc).Register(grpcSrv)
 
 	healthSrv := health.NewServer()

@@ -41,7 +41,13 @@ func (h *Handlers) updateRole(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	role, err := h.client.UpdateRole(r.Context(), sessionToken(r), chi.URLParam(r, "slug"), req.Title, req.PermissionSlugs)
+	role, err := h.client.UpdateRole(
+		r.Context(),
+		sessionToken(r),
+		chi.URLParam(r, "slug"),
+		req.Title,
+		req.PermissionSlugs,
+	)
 	if err != nil {
 		fail(w, r, err)
 		return

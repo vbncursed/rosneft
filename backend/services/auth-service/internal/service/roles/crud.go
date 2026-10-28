@@ -14,7 +14,11 @@ func (s *Service) List(ctx context.Context, scopeAdminID string, allAccess bool)
 
 // Create makes a new role stamped with the creator's group (ownerAdminID; empty
 // for Root = global).
-func (s *Service) Create(ctx context.Context, actorID, ownerAdminID, slug, title string, permSlugs []string) (domain.Role, error) {
+func (s *Service) Create(
+	ctx context.Context,
+	actorID, ownerAdminID, slug, title string,
+	permSlugs []string,
+) (domain.Role, error) {
 	if title == "" {
 		return domain.Role{}, fmt.Errorf("roles.Create: %w: title required", domain.ErrInvalidInput)
 	}
@@ -24,13 +28,22 @@ func (s *Service) Create(ctx context.Context, actorID, ownerAdminID, slug, title
 	if slug == "" {
 		return s.createWithDerivedSlug(ctx, ownerAdminID, title, permSlugs)
 	}
-	return s.store.Create(ctx, domain.Role{Slug: slug, Title: title, PermissionSlugs: permSlugs, OwnerAdminID: ownerAdminID})
+	return s.store.Create(
+		ctx,
+		domain.Role{Slug: slug, Title: title, PermissionSlugs: permSlugs, OwnerAdminID: ownerAdminID},
+	)
 }
 
 // Update renames a role and, when u.ReplacePermissions is set, replaces its
 // grants in the same store transaction. Grants are checked as SetPermissions
 // checks them: a non-owner cannot hand out what it lacks.
-func (s *Service) Update(ctx context.Context, actorID string, u domain.RoleUpdate, scopeAdminID string, allAccess bool) (domain.Role, error) {
+func (s *Service) Update(
+	ctx context.Context,
+	actorID string,
+	u domain.RoleUpdate,
+	scopeAdminID string,
+	allAccess bool,
+) (domain.Role, error) {
 	if u.Slug == "" || u.Title == "" {
 		return domain.Role{}, fmt.Errorf("roles.Update: %w: slug and title required", domain.ErrInvalidInput)
 	}

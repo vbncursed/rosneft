@@ -15,11 +15,20 @@ import (
 // stubTerritoryConversion stubs a territory conversion with two LODs and
 // records, in s.order, every catalog write that matters: "register:<lod>"
 // and "rescale". registerErr/rescaleErr, when set for a call, fail it.
-func (s *ProcessJobSuite) stubTerritoryConversion(registerErr func(lod uint32) error, rescaleErr func() error) *[]string {
+func (s *ProcessJobSuite) stubTerritoryConversion(
+	registerErr func(lod uint32) error,
+	rescaleErr func() error,
+) *[]string {
 	order := &[]string{}
-	s.queue.GetJobMock.Return(domain.Job{ID: "job-1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusPending}, nil)
+	s.queue.GetJobMock.Return(
+		domain.Job{ID: "job-1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusPending},
+		nil,
+	)
 	s.queue.UnlockTargetMock.Return(nil)
-	s.catalog.GetTargetMock.Return(domain.ConversionTarget{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"}, nil)
+	s.catalog.GetTargetMock.Return(
+		domain.ConversionTarget{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
+		nil,
+	)
 	s.blobs.GetMock.Set(func(context.Context, string) (io.ReadCloser, blobstore.Blob, error) {
 		return io.NopCloser(bytes.NewReader(objZip(s.T()))), blobstore.Blob{}, nil
 	})
@@ -44,7 +53,10 @@ func noErr(uint32) error { return nil }
 // A replace-source job whose LOD0 never reached the catalog must leave the
 // placements on the old scale: the old mesh is still the published one.
 func (s *ProcessJobSuite) TestFailedPublishDoesNotRescalePlacements() {
-	order := s.stubTerritoryConversion(func(uint32) error { return errors.New("catalog down") }, func() error { return nil })
+	order := s.stubTerritoryConversion(
+		func(uint32) error { return errors.New("catalog down") },
+		func() error { return nil },
+	)
 	s.catalog.RescaleTerritoryPlacementsMock.Optional()
 
 	assert.ErrorContains(s.T(), s.svc.ProcessJob(s.ctx, "job-1"), "register artifact lod=0")

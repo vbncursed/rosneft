@@ -24,7 +24,11 @@ type Service interface {
 
 	SetPanoramasHidden(ctx context.Context, territorySlug string, ids []int64, hidden bool) (int, error)
 	SetPanoramasPhase(ctx context.Context, territorySlug string, ids []int64, phase string) (int, error)
-	SetPanoramaPhaseHidden(ctx context.Context, territorySlug, phase string, hidden bool) (domain.PanoramaPhaseVisibility, error)
+	SetPanoramaPhaseHidden(
+		ctx context.Context,
+		territorySlug, phase string,
+		hidden bool,
+	) (domain.PanoramaPhaseVisibility, error)
 	ListPanoramaPhases(ctx context.Context, territorySlug string) ([]domain.PanoramaPhaseVisibility, error)
 
 	ListDocuments(ctx context.Context, territorySlug string) ([]domain.Document, error)

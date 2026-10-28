@@ -11,7 +11,11 @@ import (
 
 // ListTerritories proxies to catalog, scoped to scopeAdminID (empty = all).
 // withArtifacts asks for each LOD chain — only a caller that renders it should.
-func (g *Gateway) ListTerritories(ctx context.Context, scopeAdminID string, withArtifacts bool) ([]domain.Territory, error) {
+func (g *Gateway) ListTerritories(
+	ctx context.Context,
+	scopeAdminID string,
+	withArtifacts bool,
+) ([]domain.Territory, error) {
 	return g.catalog.ListTerritories(ctx, scopeAdminID, withArtifacts)
 }
 
@@ -27,7 +31,11 @@ func (g *Gateway) GetTerritory(ctx context.Context, slug, scopeAdminID string) (
 // CreateTerritory creates the territory in the catalog and queues a
 // conversion job. Returns both — the frontend uses the job ID to subscribe
 // to /api/jobs/{id}/events for progress.
-func (g *Gateway) CreateTerritory(ctx context.Context, t domain.Territory, scope domain.BlobScope) (domain.Territory, domain.Job, error) {
+func (g *Gateway) CreateTerritory(
+	ctx context.Context,
+	t domain.Territory,
+	scope domain.BlobScope,
+) (domain.Territory, domain.Job, error) {
 	if err := validateEntity(t.Title, t.SourceBlobHash); err != nil {
 		return domain.Territory{}, domain.Job{}, err
 	}
@@ -50,7 +58,11 @@ func (g *Gateway) CreateTerritory(ctx context.Context, t domain.Territory, scope
 // re-queues a conversion, keeping the same territory (and therefore its
 // placements). The existing artifacts are cleared so the viewer shows the
 // conversion screen until the new mesh lands — mirroring the create flow.
-func (g *Gateway) ReplaceTerritorySource(ctx context.Context, slug, sourceBlobHash string, scope domain.BlobScope) (domain.Territory, domain.Job, error) {
+func (g *Gateway) ReplaceTerritorySource(
+	ctx context.Context,
+	slug, sourceBlobHash string,
+	scope domain.BlobScope,
+) (domain.Territory, domain.Job, error) {
 	if slug == "" {
 		return domain.Territory{}, domain.Job{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
 	}
@@ -132,7 +144,11 @@ func artifactCenter(a domain.Artifact) domain.Vec3 {
 // all back would revert a source replace that landed in between. The source
 // hash is dropped — it changes only through ReplaceTerritorySource, which
 // checks the caller may use the blob.
-func (g *Gateway) UpdateTerritory(ctx context.Context, slug string, update domain.TerritoryUpdate) (domain.Territory, error) {
+func (g *Gateway) UpdateTerritory(
+	ctx context.Context,
+	slug string,
+	update domain.TerritoryUpdate,
+) (domain.Territory, error) {
 	if slug == "" {
 		return domain.Territory{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
 	}

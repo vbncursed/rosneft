@@ -9,7 +9,10 @@ import (
 	catalogv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/catalog/v1"
 )
 
-func (s *Server) UpsertTerritory(ctx context.Context, req *catalogv1.UpsertTerritoryRequest) (*catalogv1.UpsertTerritoryResponse, error) {
+func (s *Server) UpsertTerritory(
+	ctx context.Context,
+	req *catalogv1.UpsertTerritoryRequest,
+) (*catalogv1.UpsertTerritoryResponse, error) {
 	if req.GetTerritory() == nil {
 		return nil, mapError(fmt.Errorf("%w: territory is required", domain.ErrInvalidInput))
 	}

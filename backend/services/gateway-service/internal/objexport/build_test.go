@@ -32,16 +32,36 @@ func (s *BuildSuite) TestRefusals() {
 		mutate func(d *gltf.Document, binLen int)
 		want   error
 	}{
-		{"extension", func(d *gltf.Document, _ int) { d.ExtensionsUsed = []string{"KHR_texture_transform"} }, ErrUnsupported},
-		{"points mode", func(d *gltf.Document, _ int) { d.Meshes[0].Primitives[0].Mode = gltf.PrimitivePoints }, ErrUnsupported},
+		{
+			"extension",
+			func(d *gltf.Document, _ int) { d.ExtensionsUsed = []string{"KHR_texture_transform"} },
+			ErrUnsupported,
+		},
+		{
+			"points mode",
+			func(d *gltf.Document, _ int) { d.Meshes[0].Primitives[0].Mode = gltf.PrimitivePoints },
+			ErrUnsupported,
+		},
 		{"normalized uv", func(d *gltf.Document, _ int) { d.Accessors[1].Normalized = true }, ErrUnsupported},
-		{"sparse accessor", func(d *gltf.Document, _ int) { d.Accessors[0].Sparse = &gltf.Sparse{Count: 1} }, ErrUnsupported},
-		{"texCoord 1", func(d *gltf.Document, _ int) { d.Materials[0].PBRMetallicRoughness.BaseColorTexture.TexCoord = 1 }, ErrUnsupported},
+		{
+			"sparse accessor",
+			func(d *gltf.Document, _ int) { d.Accessors[0].Sparse = &gltf.Sparse{Count: 1} },
+			ErrUnsupported,
+		},
+		{
+			"texCoord 1",
+			func(d *gltf.Document, _ int) { d.Materials[0].PBRMetallicRoughness.BaseColorTexture.TexCoord = 1 },
+			ErrUnsupported,
+		},
 		{"gif image", func(d *gltf.Document, _ int) { d.Images[0].MimeType = "image/gif" }, ErrUnsupported},
 		{"no indices", func(d *gltf.Document, _ int) { d.Meshes[0].Primitives[0].Indices = nil }, ErrUnsupported},
 		{"position as VEC2", func(d *gltf.Document, _ int) { d.Accessors[0].Type = gltf.AccessorVec2 }, ErrUnsupported},
 		{"view on buffer 1", func(d *gltf.Document, _ int) { d.BufferViews[0].Buffer = 1 }, ErrUnsupported},
-		{"accessor view past the BIN", func(d *gltf.Document, binLen int) { d.BufferViews[0].ByteOffset = binLen - 35 }, ErrMalformed},
+		{
+			"accessor view past the BIN",
+			func(d *gltf.Document, binLen int) { d.BufferViews[0].ByteOffset = binLen - 35 },
+			ErrMalformed,
+		},
 		{"view range overflows int64", func(d *gltf.Document, _ int) {
 			d.BufferViews[0].ByteOffset, d.BufferViews[0].ByteLength = math.MaxInt, math.MaxInt
 		}, ErrMalformed},
@@ -58,7 +78,11 @@ func (s *BuildSuite) TestRefusals() {
 			doc, bin := validDoc()
 			tc.mutate(doc, len(bin))
 
-			_, err := Build([]glbexport.Placement{place("x", "x")}, map[string]glbexport.Head{"x": loose(doc, int64(len(bin)))}, testOpts())
+			_, err := Build(
+				[]glbexport.Placement{place("x", "x")},
+				map[string]glbexport.Head{"x": loose(doc, int64(len(bin)))},
+				testOpts(),
+			)
 
 			assert.ErrorIs(s.T(), err, tc.want)
 		})
@@ -68,7 +92,11 @@ func (s *BuildSuite) TestRefusals() {
 func (s *BuildSuite) TestValidDocBuilds() {
 	doc, bin := validDoc()
 
-	_, err := Build([]glbexport.Placement{place("x", "x")}, map[string]glbexport.Head{"x": loose(doc, int64(len(bin)))}, testOpts())
+	_, err := Build(
+		[]glbexport.Placement{place("x", "x")},
+		map[string]glbexport.Head{"x": loose(doc, int64(len(bin)))},
+		testOpts(),
+	)
 
 	assert.NilError(s.T(), err)
 }
@@ -82,9 +110,12 @@ func (s *BuildSuite) TestMissingHeadIsAnError() {
 // bigDoc declares pos vertices and idx uint32 indices without any bytes.
 func bigDoc(pos, idx int) (glbexport.Head, *gltf.Document) {
 	doc := &gltf.Document{
-		Scene: new(0), Scenes: []*gltf.Scene{{Nodes: []int{0}}},
+		Scene:  new(0),
+		Scenes: []*gltf.Scene{{Nodes: []int{0}}},
 		Nodes:  []*gltf.Node{{Mesh: new(0)}},
-		Meshes: []*gltf.Mesh{{Primitives: []*gltf.Primitive{{Attributes: gltf.PrimitiveAttributes{"POSITION": 0}, Indices: new(1)}}}},
+		Meshes: []*gltf.Mesh{
+			{Primitives: []*gltf.Primitive{{Attributes: gltf.PrimitiveAttributes{"POSITION": 0}, Indices: new(1)}}},
+		},
 		Accessors: []*gltf.Accessor{
 			{BufferView: new(0), ComponentType: gltf.ComponentFloat, Type: gltf.AccessorVec3, Count: pos},
 			{BufferView: new(1), ComponentType: gltf.ComponentUint, Type: gltf.AccessorScalar, Count: idx},
@@ -118,9 +149,24 @@ func (s *BuildSuite) TestCeilings() {
 		heads map[string]glbexport.Head
 		want  error
 	}{
-		{"vertices at the ceiling", []glbexport.Placement{place("t", "t")}, map[string]glbexport.Head{"t": atVerts}, nil},
-		{"one vertex over", []glbexport.Placement{place("t", "t")}, map[string]glbexport.Head{"t": overVerts}, ErrTooLarge},
-		{"one face over", []glbexport.Placement{place("t", "t")}, map[string]glbexport.Head{"t": overFaces}, ErrTooLarge},
+		{
+			"vertices at the ceiling",
+			[]glbexport.Placement{place("t", "t")},
+			map[string]glbexport.Head{"t": atVerts},
+			nil,
+		},
+		{
+			"one vertex over",
+			[]glbexport.Placement{place("t", "t")},
+			map[string]glbexport.Head{"t": overVerts},
+			ErrTooLarge,
+		},
+		{
+			"one face over",
+			[]glbexport.Placement{place("t", "t")},
+			map[string]glbexport.Head{"t": overFaces},
+			ErrTooLarge,
+		},
 		{"sum across placements", three, map[string]glbexport.Head{"t": small, "m": model}, ErrTooLarge},
 		{"placements times nodes", crowd, map[string]glbexport.Head{"n": manyNodes}, ErrTooLarge},
 	}

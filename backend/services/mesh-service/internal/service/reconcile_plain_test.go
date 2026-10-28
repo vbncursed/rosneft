@@ -104,7 +104,10 @@ func (s *ReconcileSuite) TestQueuesOnePlainBackfillPerTick() {
 // write inside TargetLockTTL: its worker is gone) does not hold the backfill.
 func (s *ReconcileSuite) TestAbandonedJobDoesNotHoldThePlainBackfill() {
 	old := time.Now().Add(-service.MaxQueueWait)
-	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"}}, nil)
+	s.catalog.ListTargetsMock.Return(
+		[]domain.ConversionTarget{{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"}},
+		nil,
+	)
 	s.catalog.HasLOD0Mock.Return(true, false, nil)
 	s.allowSubmit()
 	s.queue.ListTargetJobsMock.Return([]domain.Job{
@@ -144,7 +147,10 @@ func (s *ReconcileSuite) TestMarksThePlainBackfillJobButNotAFirstConversion() {
 	} {
 		s.SetupTest()
 		var saved []domain.Job
-		s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"}}, nil)
+		s.catalog.ListTargetsMock.Return(
+			[]domain.ConversionTarget{{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"}},
+			nil,
+		)
 		s.catalog.HasLOD0Mock.Return(tc.has, tc.hasPlain, nil)
 		s.queue.TryLockTargetMock.Return(true, nil)
 		s.queue.SaveJobMock.Set(func(_ context.Context, j domain.Job) error { saved = append(saved, j); return nil })
@@ -164,11 +170,21 @@ func (s *ReconcileSuite) TestMarksThePlainBackfillJobButNotAFirstConversion() {
 // A backfill that failed on its source is still left alone, so hiding it from
 // the list cannot start a requeue loop.
 func (s *ReconcileSuite) TestSkipsABackfillThatFailedOnItsSource() {
-	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"}}, nil)
+	s.catalog.ListTargetsMock.Return(
+		[]domain.ConversionTarget{{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"}},
+		nil,
+	)
 	s.catalog.HasLOD0Mock.Return(true, false, nil)
-	s.queue.ListTargetJobsMock.Return([]domain.Job{{
-		ID: "j1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusFailed, FailedOnSource: true, Backfill: true,
-	}}, nil)
+	s.queue.ListTargetJobsMock.Return([]domain.Job{
+		{
+			ID:             "j1",
+			Kind:           domain.KindTerritory,
+			Slug:           "t1",
+			Status:         domain.JobStatusFailed,
+			FailedOnSource: true,
+			Backfill:       true,
+		},
+	}, nil)
 
 	n, err := s.svc.ReconcileMissingArtifacts(s.ctx)
 
@@ -196,10 +212,12 @@ func (s *ReconcileSuite) TestPlainBackfillBacksOffFromARecentFailure() {
 		}, nil)
 		s.catalog.HasLOD0Mock.Return(true, false, nil)
 		var locked []string
-		s.queue.TryLockTargetMock.Set(func(_ context.Context, _ domain.Kind, slug string, _ time.Duration) (bool, error) {
-			locked = append(locked, slug)
-			return true, nil
-		})
+		s.queue.TryLockTargetMock.Set(
+			func(_ context.Context, _ domain.Kind, slug string, _ time.Duration) (bool, error) {
+				locked = append(locked, slug)
+				return true, nil
+			},
+		)
 		s.queue.SaveJobMock.Return(nil)
 		s.queue.EnqueueJobMock.Return(nil)
 		s.queue.GetJobMock.Return(domain.Job{}, nil)

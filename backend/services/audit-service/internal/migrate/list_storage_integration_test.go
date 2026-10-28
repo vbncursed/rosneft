@@ -77,7 +77,10 @@ func (s *ListStorageSuite) TestCountIgnoresPagingAndHonoursTheActor() {
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(first), 2)
 
-	nA, err := s.store.Count(s.T().Context(), domain.Filter{AllCompanies: true, ActorID: actorA, Cursor: first[1].ID, Limit: 2})
+	nA, err := s.store.Count(
+		s.T().Context(),
+		domain.Filter{AllCompanies: true, ActorID: actorA, Cursor: first[1].ID, Limit: 2},
+	)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), nA, int64(3))
 

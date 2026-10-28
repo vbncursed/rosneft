@@ -6,14 +6,21 @@ import (
 	authv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/auth/v1"
 )
 
-func (c *Client) CreateUser(ctx context.Context, token, email, username, password string, roles []string) (*authv1.User, error) {
+func (c *Client) CreateUser(
+	ctx context.Context,
+	token, email, username, password string,
+	roles []string,
+) (*authv1.User, error) {
 	return c.cc.CreateUser(ctx, &authv1.CreateUserRequest{
 		Token: token, Email: email, Username: username, Password: password, RoleSlugs: roles,
 	})
 }
 
 func (c *Client) ListUsers(ctx context.Context, token, status string, includeDeleted bool) ([]*authv1.User, error) {
-	resp, err := c.cc.ListUsers(ctx, &authv1.ListUsersRequest{Token: token, Status: status, IncludeDeleted: includeDeleted})
+	resp, err := c.cc.ListUsers(
+		ctx,
+		&authv1.ListUsersRequest{Token: token, Status: status, IncludeDeleted: includeDeleted},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -24,8 +31,16 @@ func (c *Client) GetUser(ctx context.Context, token, id string) (*authv1.User, e
 	return c.cc.GetUser(ctx, &authv1.GetUserRequest{Token: token, Id: id})
 }
 
-func (c *Client) UpdateUser(ctx context.Context, token, id string, roles []string, email, username string) (*authv1.User, error) {
-	return c.cc.UpdateUser(ctx, &authv1.UpdateUserRequest{Token: token, Id: id, RoleSlugs: roles, Email: email, Username: username})
+func (c *Client) UpdateUser(
+	ctx context.Context,
+	token, id string,
+	roles []string,
+	email, username string,
+) (*authv1.User, error) {
+	return c.cc.UpdateUser(
+		ctx,
+		&authv1.UpdateUserRequest{Token: token, Id: id, RoleSlugs: roles, Email: email, Username: username},
+	)
 }
 
 // FreezeUser passes the actor's session token; the auth-service resolves the

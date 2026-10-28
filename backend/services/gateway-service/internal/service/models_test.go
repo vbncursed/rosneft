@@ -30,7 +30,14 @@ func (s *ModelsSuite) SetupTest() {
 	mc := minimock.NewController(s.T())
 	s.cat = mocks.NewCatalogMock(mc)
 	s.mesh = mocks.NewMeshMock(mc)
-	s.svc = service.New(s.cat, mocks.NewContentMock(mc), s.mesh, mocks.NewUploadMock(mc), mocks.NewAuditMock(mc), mocks.NewAuthMock(mc))
+	s.svc = service.New(
+		s.cat,
+		mocks.NewContentMock(mc),
+		s.mesh,
+		mocks.NewUploadMock(mc),
+		mocks.NewAuditMock(mc),
+		mocks.NewAuthMock(mc),
+	)
 	s.ctx = s.T().Context()
 }
 
@@ -92,7 +99,12 @@ func (s *ModelsSuite) TestUpdateTrimsTheTitleAndDescription() {
 	s.cat.UpdateModelMock.Expect(s.ctx, "m1", domain.ModelUpdate{Title: new("Crate"), Description: new("")}).
 		Return(domain.Model{Slug: "m1", Title: "Crate"}, nil)
 
-	_, err := s.svc.UpdateModel(s.ctx, "m1", domain.ModelUpdate{Title: new("  Crate "), Description: new("   ")}, rootScope)
+	_, err := s.svc.UpdateModel(
+		s.ctx,
+		"m1",
+		domain.ModelUpdate{Title: new("  Crate "), Description: new("   ")},
+		rootScope,
+	)
 	assert.NilError(s.T(), err)
 }
 
@@ -105,7 +117,11 @@ func (s *ModelsSuite) TestCreateRefusesABlankTitleAndTrimsTheRest() {
 	want := domain.Model{Title: "Box", Description: "Steel", SourceBlobHash: "h"}
 	s.cat.UpsertModelMock.Expect(s.ctx, want).Return(domain.Model{Slug: "box", Title: "Box"}, nil)
 	s.mesh.SubmitConversionMock.Return(domain.Job{ID: "job-1"}, nil)
-	_, _, err = s.svc.CreateModel(s.ctx, domain.Model{Title: " Box ", Description: " Steel\n", SourceBlobHash: "h"}, rootScope)
+	_, _, err = s.svc.CreateModel(
+		s.ctx,
+		domain.Model{Title: " Box ", Description: " Steel\n", SourceBlobHash: "h"},
+		rootScope,
+	)
 	assert.NilError(s.T(), err)
 }
 

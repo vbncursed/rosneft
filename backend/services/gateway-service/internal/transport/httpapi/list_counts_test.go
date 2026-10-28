@@ -31,7 +31,11 @@ type countsServiceStub struct {
 
 // The list screens render the LOD chain, so their handlers must ask the
 // catalog for it: a stub that answers only when asked pins that.
-func (c countsServiceStub) ListTerritories(_ context.Context, _ string, withArtifacts bool) ([]domain.Territory, error) {
+func (c countsServiceStub) ListTerritories(
+	_ context.Context,
+	_ string,
+	withArtifacts bool,
+) ([]domain.Territory, error) {
 	if !withArtifacts {
 		return nil, errors.New("GET /api/territories did not ask for the LOD chains")
 	}

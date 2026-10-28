@@ -95,6 +95,9 @@ func (b *builder) image(in *input, imgs map[int]string, t *gltf.TextureInfo) (st
 	name := imageFile(b.imgN, im.Name, im.MimeType)
 	b.imgN++
 	imgs[*src] = name
-	b.images = append(b.images, imageRef{name: name, hash: in.hash, off: in.head.BinOffset + int64(v.ByteOffset), length: int64(v.ByteLength)})
+	b.images = append(
+		b.images,
+		imageRef{name: name, hash: in.hash, off: in.head.BinOffset + int64(v.ByteOffset), length: int64(v.ByteLength)},
+	)
 	return name, nil
 }

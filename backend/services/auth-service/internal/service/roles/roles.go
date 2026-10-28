@@ -14,7 +14,13 @@ type Store interface {
 	Create(ctx context.Context, r domain.Role) (domain.Role, error)
 	Update(ctx context.Context, u domain.RoleUpdate, scopeAdminID string, allAccess bool) (domain.Role, error)
 	Delete(ctx context.Context, slug, scopeAdminID string, allAccess bool) error
-	SetPermissions(ctx context.Context, slug string, permSlugs []string, scopeAdminID string, allAccess bool) (domain.Role, error)
+	SetPermissions(
+		ctx context.Context,
+		slug string,
+		permSlugs []string,
+		scopeAdminID string,
+		allAccess bool,
+	) (domain.Role, error)
 	// Ключ результата — "<kind>:<uuid>". Единственный метод здесь, который
 	// адресует роль по id, а не по слагу: у журнала другого ключа нет.
 	ResolveLabels(ctx context.Context, byKind map[string][]string) (map[string]string, error)

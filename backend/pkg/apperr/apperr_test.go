@@ -93,8 +93,10 @@ func (s *AppErrSuite) TestToStatusAtSentinel() {
 		msg  string
 	}{
 		{
-			name: "wrapped refusal", err: fmt.Errorf("users.Create: %w", fmt.Errorf("%w: password too short", errBadInput)),
-			code: codes.InvalidArgument, msg: "bad input: password too short",
+			name: "wrapped refusal",
+			err:  fmt.Errorf("users.Create: %w", fmt.Errorf("%w: password too short", errBadInput)),
+			code: codes.InvalidArgument,
+			msg:  "bad input: password too short",
 		},
 		{name: "bare sentinel", err: errNotFound, code: codes.NotFound, msg: "thing not found"},
 		{

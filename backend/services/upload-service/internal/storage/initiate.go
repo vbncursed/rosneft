@@ -55,7 +55,11 @@ func writeMeta(path string, s domain.Session) error {
 // writeSynced is os.WriteFile plus an fsync, so a rename that follows cannot
 // publish a file whose contents are still only in the page cache.
 func writeSynced(path string, body []byte) error {
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600) //nolint:gosec // G304: path is derived from paths(), whose session id passed validateID (hex and dash only)
+	f, err := os.OpenFile( //nolint:gosec // G304: path is derived from paths(), whose session id passed validateID (hex and dash only)
+		path,
+		os.O_WRONLY|os.O_CREATE|os.O_TRUNC,
+		0o600,
+	)
 	if err != nil {
 		return err
 	}

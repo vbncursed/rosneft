@@ -26,7 +26,11 @@ func (r *PG) SetTerritoryAdmins(ctx context.Context, slug string, adminIDs []str
 			}
 			return fmt.Errorf("storage.SetTerritoryAdmins: territory id: %w", err)
 		}
-		if _, err := tx.Exec(ctx, `DELETE FROM territory_assignments WHERE territory_id = $1`, territoryID); err != nil {
+		if _, err := tx.Exec(
+			ctx,
+			`DELETE FROM territory_assignments WHERE territory_id = $1`,
+			territoryID,
+		); err != nil {
 			return fmt.Errorf("storage.SetTerritoryAdmins: clear: %w", err)
 		}
 		for _, adminID := range adminIDs {

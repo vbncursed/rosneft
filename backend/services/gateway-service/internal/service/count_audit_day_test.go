@@ -26,7 +26,14 @@ func TestCountAuditDaySuite(t *testing.T) { suite.Run(t, new(CountAuditDaySuite)
 func (s *CountAuditDaySuite) SetupTest() {
 	mc := minimock.NewController(s.T())
 	s.audit = mocks.NewAuditMock(mc)
-	s.svc = service.New(mocks.NewCatalogMock(mc), mocks.NewContentMock(mc), mocks.NewMeshMock(mc), mocks.NewUploadMock(mc), s.audit, mocks.NewAuthMock(mc))
+	s.svc = service.New(
+		mocks.NewCatalogMock(mc),
+		mocks.NewContentMock(mc),
+		mocks.NewMeshMock(mc),
+		mocks.NewUploadMock(mc),
+		s.audit,
+		mocks.NewAuthMock(mc),
+	)
 	s.ctx = s.T().Context()
 }
 

@@ -29,5 +29,9 @@ func TestServeSpecKeepsVersionAndNullTypes(t *testing.T) {
 	}
 	assert.NilError(t, json.Unmarshal(rec.Body.Bytes(), &spec))
 	assert.Equal(t, spec.OpenAPI, "3.2.0")
-	assert.DeepEqual(t, spec.Components.Schemas["PlacementsGroupUpdate"].Properties["groupId"].Type, []any{"integer", "null"})
+	assert.DeepEqual(
+		t,
+		spec.Components.Schemas["PlacementsGroupUpdate"].Properties["groupId"].Type,
+		[]any{"integer", "null"},
+	)
 }

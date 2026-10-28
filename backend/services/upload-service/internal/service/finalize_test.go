@@ -51,12 +51,14 @@ func (s *FinalizeSuite) completeSession() {
 // finalizeYields stubs store.Finalize to invoke the publish callback (the only
 // way to exercise the blobs.Put wiring — putBlob is a func arg, unmatchable).
 func (s *FinalizeSuite) finalizeYields() {
-	s.store.FinalizeMock.Set(func(ctx context.Context, _ string, putBlob func(context.Context, string, io.Reader) error) (string, int64, error) {
-		if err := putBlob(ctx, yieldedHash, bytes.NewReader(nil)); err != nil {
-			return "", 0, err
-		}
-		return yieldedHash, yieldedSize, nil
-	})
+	s.store.FinalizeMock.Set(
+		func(ctx context.Context, _ string, putBlob func(context.Context, string, io.Reader) error) (string, int64, error) {
+			if err := putBlob(ctx, yieldedHash, bytes.NewReader(nil)); err != nil {
+				return "", 0, err
+			}
+			return yieldedHash, yieldedSize, nil
+		},
+	)
 }
 
 func (s *FinalizeSuite) TestRejectsEmptyID() {

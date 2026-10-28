@@ -23,7 +23,8 @@ func (s *Store) Create(ctx context.Context, u domain.User) (domain.User, error) 
 
 	var id string
 	err := audittx.Run(ctx, s.pool, func(tx pgx.Tx) error {
-		if err := tx.QueryRow(ctx, ins, u.Email, u.Username, u.PasswordHash, u.CreatedBy, u.IsOwner).Scan(&id); err != nil {
+		if err := tx.QueryRow(ctx, ins, u.Email, u.Username, u.PasswordHash, u.CreatedBy, u.IsOwner).
+			Scan(&id); err != nil {
 			return createError(err)
 		}
 		return bindRoles(ctx, tx, id, u.RoleSlugs)

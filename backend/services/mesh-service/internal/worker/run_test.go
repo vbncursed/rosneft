@@ -45,17 +45,19 @@ func (s *RunSuite) SetupTest() {
 // blockTimeout, the way XREADGROUP BLOCK is on an empty stream. The returned
 // stop cancels the loop and waits for it to return.
 func (s *RunSuite) start(t *testing.T, release <-chan struct{}) (stop func()) {
-	s.queue.ConsumeJobsMock.Set(func(ctx context.Context, _ string, block time.Duration) ([]storage.DeliveredJob, error) {
-		if s.queue.ConsumeJobsBeforeCounter() == 1 {
-			return []storage.DeliveredJob{{MessageID: "m1", JobID: "j1"}}, nil
-		}
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-time.After(block):
-			return nil, nil
-		}
-	})
+	s.queue.ConsumeJobsMock.Set(
+		func(ctx context.Context, _ string, block time.Duration) ([]storage.DeliveredJob, error) {
+			if s.queue.ConsumeJobsBeforeCounter() == 1 {
+				return []storage.DeliveredJob{{MessageID: "m1", JobID: "j1"}}, nil
+			}
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(block):
+				return nil, nil
+			}
+		},
+	)
 	s.mesh.ProcessJobMock.Set(func(_ context.Context, jobID string) error {
 		assert.Check(s.T(), jobID == "j1", jobID)
 		<-release

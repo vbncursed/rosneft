@@ -51,8 +51,14 @@ func (r *PG) UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Pl
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Placement{}, domain.ErrPlacementNotFound
 		}
-		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == "23514" && pgErr.ConstraintName == "placements_scale_positive" {
-			return domain.Placement{}, fmt.Errorf("storage.UpdatePlacement: %w: scale must be positive", domain.ErrInvalidInput)
+		if pgErr, ok := errors.AsType[*pgconn.PgError](
+			err,
+		); ok && pgErr.Code == "23514" &&
+			pgErr.ConstraintName == "placements_scale_positive" {
+			return domain.Placement{}, fmt.Errorf(
+				"storage.UpdatePlacement: %w: scale must be positive",
+				domain.ErrInvalidInput,
+			)
 		}
 		return domain.Placement{}, fmt.Errorf("storage.UpdatePlacement: %w", err)
 	}

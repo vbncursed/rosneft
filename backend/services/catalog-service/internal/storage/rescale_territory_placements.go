@@ -38,7 +38,12 @@ import (
 // human moved anything. panoramas is content-service's to write, but its DDL
 // is catalog's and the database is shared; doing it here keeps the whole
 // mapping in one transaction.
-func (r *PG) RescaleTerritoryPlacements(ctx context.Context, slug string, newMax float64, newCenter domain.Vec3) (int, error) {
+func (r *PG) RescaleTerritoryPlacements(
+	ctx context.Context,
+	slug string,
+	newMax float64,
+	newCenter domain.Vec3,
+) (int, error) {
 	if newMax <= 0 {
 		return 0, nil
 	}

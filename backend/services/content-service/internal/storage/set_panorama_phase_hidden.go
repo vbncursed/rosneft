@@ -16,7 +16,12 @@ import (
 // territory inserts nothing and is ErrTerritoryNotFound.
 //
 // Wrapped in audittx.Run so the audit trigger can attribute the change.
-func (r *PG) SetPanoramaPhaseHidden(ctx context.Context, territorySlug string, phase domain.PanoramaPhase, hidden bool) (domain.PanoramaPhaseVisibility, error) {
+func (r *PG) SetPanoramaPhaseHidden(
+	ctx context.Context,
+	territorySlug string,
+	phase domain.PanoramaPhase,
+	hidden bool,
+) (domain.PanoramaPhaseVisibility, error) {
 	const q = `
 		INSERT INTO panorama_phase_visibility (territory_id, phase, hidden)
 		SELECT t.id, $2, $3 FROM territories t WHERE t.slug = $1

@@ -15,11 +15,17 @@ type panel struct {
 // client's panel-catalog (title/unit live there); expr lives only here.
 var panels = map[string]panel{
 	// Stat tiles — instant snapshots.
-	"stat-up":     {expr: `sum(up{job="services"})`, instant: true},
-	"stat-rps":    {expr: `sum(rate(http_requests_total[5m])) or vector(0)`, instant: true},
-	"stat-errors": {expr: `(sum(rate(http_requests_total{code=~"5.."}[5m])) or vector(0)) / clamp_min(sum(rate(http_requests_total[5m])),0.001)`, instant: true},
-	"stat-p99":    {expr: `histogram_quantile(0.99, sum by (le)(rate(grpc_server_handling_seconds_bucket[5m])))`, instant: true},
-	"stat-queue":  {expr: `max(mesh_queue_depth)`, instant: true},
+	"stat-up":  {expr: `sum(up{job="services"})`, instant: true},
+	"stat-rps": {expr: `sum(rate(http_requests_total[5m])) or vector(0)`, instant: true},
+	"stat-errors": {
+		expr:    `(sum(rate(http_requests_total{code=~"5.."}[5m])) or vector(0)) / clamp_min(sum(rate(http_requests_total[5m])),0.001)`,
+		instant: true,
+	},
+	"stat-p99": {
+		expr:    `histogram_quantile(0.99, sum by (le)(rate(grpc_server_handling_seconds_bucket[5m])))`,
+		instant: true,
+	},
+	"stat-queue": {expr: `max(mesh_queue_depth)`, instant: true},
 	// One row per scraped service, 1 or 0 — the only reading that can say
 	// "down". Named by the `service` label the scrape config relabels onto
 	// every target (ops/prometheus/prometheus.yml).
@@ -34,17 +40,23 @@ var panels = map[string]panel{
 	// ops/prometheus/rules.yml — change both together.
 	// The fault series exist only after a first fault, so the `or … * 0`
 	// branch reports 0 for every service with traffic, instead of nothing.
-	"red-errors":  {expr: `sum by (service)(rate(grpc_server_handled_total{grpc_code=~"Unknown|DeadlineExceeded|Unimplemented|Internal|Unavailable|DataLoss"}[5m])) or sum by (service)(rate(grpc_server_handled_total[5m])) * 0`},
-	"red-latency": {expr: `histogram_quantile(0.99, sum by (le, grpc_service)(rate(grpc_server_handling_seconds_bucket[5m])))`},
-	"red-http":    {expr: `sum(rate(http_requests_total[5m]))`},
+	"red-errors": {
+		expr: `sum by (service)(rate(grpc_server_handled_total{grpc_code=~"Unknown|DeadlineExceeded|Unimplemented|Internal|Unavailable|DataLoss"}[5m])) or sum by (service)(rate(grpc_server_handled_total[5m])) * 0`,
+	},
+	"red-latency": {
+		expr: `histogram_quantile(0.99, sum by (le, grpc_service)(rate(grpc_server_handling_seconds_bucket[5m])))`,
+	},
+	"red-http": {expr: `sum(rate(http_requests_total[5m]))`},
 
 	// Domain.
-	"domain-conversions":    {expr: `sum by (status)(rate(mesh_conversions_total[5m])) * 60`},
-	"domain-conversion-p95": {expr: `histogram_quantile(0.95, sum by (le)(rate(mesh_conversion_duration_seconds_bucket[10m])))`},
-	"domain-queue":          {expr: `mesh_queue_depth`},
-	"domain-upload":         {expr: `sum(rate(upload_bytes_total[5m])) / 1048576`},
-	"domain-auth":           {expr: `sum by (status)(rate(auth_logins_total[5m])) * 60`},
-	"domain-twofa":          {expr: `sum by (status)(rate(twofa_verifications_total[5m])) * 60`},
+	"domain-conversions": {expr: `sum by (status)(rate(mesh_conversions_total[5m])) * 60`},
+	"domain-conversion-p95": {
+		expr: `histogram_quantile(0.95, sum by (le)(rate(mesh_conversion_duration_seconds_bucket[10m])))`,
+	},
+	"domain-queue":  {expr: `mesh_queue_depth`},
+	"domain-upload": {expr: `sum(rate(upload_bytes_total[5m])) / 1048576`},
+	"domain-auth":   {expr: `sum by (status)(rate(auth_logins_total[5m])) * 60`},
+	"domain-twofa":  {expr: `sum by (status)(rate(twofa_verifications_total[5m])) * 60`},
 
 	// Go runtime.
 	"runtime-memory":     {expr: `process_resident_memory_bytes`},

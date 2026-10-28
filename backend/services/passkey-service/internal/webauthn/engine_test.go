@@ -21,8 +21,13 @@ func assertionBody() string {
 	clientData := `{"type":"webauthn.get","challenge":"c","origin":"https://example.test"}`
 	return fmt.Sprintf(
 		`{"id":%q,"rawId":%q,"type":"public-key","response":{"clientDataJSON":%q,"authenticatorData":%q,"signature":%q,"userHandle":%q}}`,
-		b64([]byte("cred")), b64([]byte("cred")), b64([]byte(clientData)),
-		b64(make([]byte, 37)), b64([]byte("sig")), b64([]byte("user")))
+		b64([]byte("cred")),
+		b64([]byte("cred")),
+		b64([]byte(clientData)),
+		b64(make([]byte, 37)),
+		b64([]byte("sig")),
+		b64([]byte("user")),
+	)
 }
 
 // The gRPC mapper checks ErrNotFound before ErrAssertionInvalid, so a store

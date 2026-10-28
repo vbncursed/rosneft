@@ -36,7 +36,11 @@ func (c *Client) CreatePlacement(ctx context.Context, p domain.Placement) (domai
 
 // CreatePlacements lands a batch on territorySlug in one catalog transaction,
 // idempotently under key when it is not empty.
-func (c *Client) CreatePlacements(ctx context.Context, territorySlug, key string, ps []domain.Placement) ([]domain.Placement, error) {
+func (c *Client) CreatePlacements(
+	ctx context.Context,
+	territorySlug, key string,
+	ps []domain.Placement,
+) ([]domain.Placement, error) {
 	items := make([]*catalogv1.CreatePlacementRequest, len(ps))
 	for i, p := range ps {
 		items[i] = createPlacementRequest(p)
@@ -93,7 +97,12 @@ func createPlacementRequest(p domain.Placement) *catalogv1.CreatePlacementReques
 }
 
 // SetPlacementVisibility replaces a placement's panorama allowlist.
-func (c *Client) SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error) {
+func (c *Client) SetPlacementVisibility(
+	ctx context.Context,
+	territorySlug string,
+	placementID int64,
+	panoramaIDs []int64,
+) (domain.Placement, error) {
 	resp, err := c.cc.SetPlacementVisibility(ctx, &catalogv1.SetPlacementVisibilityRequest{
 		TerritorySlug: territorySlug,
 		PlacementId:   placementID,

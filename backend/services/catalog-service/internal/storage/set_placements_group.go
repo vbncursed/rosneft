@@ -17,7 +17,14 @@ const setPlacementsGroupQuery = `
 // territory fails the composite FK and is ErrPlacementGroupNotFound, the same
 // as an unknown one.
 func (r *PG) SetPlacementsGroup(ctx context.Context, territorySlug string, ids []int64, groupID *int64) (int, error) {
-	n, err := r.updatePlacements(ctx, "storage.SetPlacementsGroup", setPlacementsGroupQuery, territorySlug, ids, groupID)
+	n, err := r.updatePlacements(
+		ctx,
+		"storage.SetPlacementsGroup",
+		setPlacementsGroupQuery,
+		territorySlug,
+		ids,
+		groupID,
+	)
 	if isGroupFKViolation(err) {
 		return 0, domain.ErrPlacementGroupNotFound
 	}

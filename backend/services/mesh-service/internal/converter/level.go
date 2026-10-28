@@ -132,7 +132,15 @@ func eigenSym3(a [3][3]float64) (vals [3]float64, vecs [3][3]float64) {
 			s := t * c
 			for k := range 3 {
 				a[k][p], a[k][q] = float64(c*a[k][p])-float64(s*a[k][q]), float64(s*a[k][p])+float64(c*a[k][q])
-				vecs[k][p], vecs[k][q] = float64(c*vecs[k][p])-float64(s*vecs[k][q]), float64(s*vecs[k][p])+float64(c*vecs[k][q])
+				vecs[k][p], vecs[k][q] = float64(
+					c*vecs[k][p],
+				)-float64(
+					s*vecs[k][q],
+				), float64(
+					s*vecs[k][p],
+				)+float64(
+					c*vecs[k][q],
+				)
 			}
 			for k := range 3 {
 				a[p][k], a[q][k] = float64(c*a[p][k])-float64(s*a[q][k]), float64(s*a[p][k])+float64(c*a[q][k])

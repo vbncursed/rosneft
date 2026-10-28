@@ -16,7 +16,12 @@ type modelPatchRecorder struct {
 	got *domain.ModelUpdate
 }
 
-func (r modelPatchRecorder) UpdateModel(_ context.Context, _ string, u domain.ModelUpdate, _ domain.BlobScope) (domain.Model, error) {
+func (r modelPatchRecorder) UpdateModel(
+	_ context.Context,
+	_ string,
+	u domain.ModelUpdate,
+	_ domain.BlobScope,
+) (domain.Model, error) {
 	*r.got = u
 	return domain.Model{Slug: "pump"}, nil
 }

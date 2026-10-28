@@ -14,7 +14,13 @@ import (
 // SetPermissions replaces a role's permission set. Refused for system roles and
 // for roles outside the actor's group (see assertMutable) — so no one can strip
 // permissions off a role they don't own and lock themselves (or others) out.
-func (s *Store) SetPermissions(ctx context.Context, slug string, permSlugs []string, scopeAdminID string, allAccess bool) (domain.Role, error) {
+func (s *Store) SetPermissions(
+	ctx context.Context,
+	slug string,
+	permSlugs []string,
+	scopeAdminID string,
+	allAccess bool,
+) (domain.Role, error) {
 	if err := s.assertMutable(ctx, slug, scopeAdminID, allAccess); err != nil {
 		return domain.Role{}, err
 	}
@@ -56,7 +62,12 @@ func writePermissions(ctx context.Context, tx pgx.Tx, roleID string, permSlugs [
 			}
 			return fmt.Errorf("roles.writePermissions: perm %q: %w", ps, err)
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO role_permissions (role_id, permission_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`, roleID, permID); err != nil {
+		if _, err := tx.Exec(
+			ctx,
+			`INSERT INTO role_permissions (role_id, permission_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`,
+			roleID,
+			permID,
+		); err != nil {
 			return fmt.Errorf("roles.writePermissions: insert: %w", err)
 		}
 	}

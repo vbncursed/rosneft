@@ -13,10 +13,17 @@ import (
 // prepareExport, the code the download routes run up to the first byte, and
 // streams nothing. A normal /api operation: it inherits the session and the
 // territory gate from the group by its route pattern.
-func (s *Server) ExportTerritoryCheck(ctx context.Context, req ExportTerritoryCheckRequestObject) (ExportTerritoryCheckResponseObject, error) {
+func (s *Server) ExportTerritoryCheck(
+	ctx context.Context,
+	req ExportTerritoryCheckRequestObject,
+) (ExportTerritoryCheckResponseObject, error) {
 	v, ok := checkVariant(req.Params.Variant)
 	if !ok {
-		return &exportRefusal{http.StatusBadRequest, apperr.SlugInvalidInput, "variant must be one of compressed, compatible, obj"}, nil
+		return &exportRefusal{
+			http.StatusBadRequest,
+			apperr.SlugInvalidInput,
+			"variant must be one of compressed, compatible, obj",
+		}, nil
 	}
 	p, ref := s.prepareExport(ctx, req.Slug, v)
 	if ref != nil {

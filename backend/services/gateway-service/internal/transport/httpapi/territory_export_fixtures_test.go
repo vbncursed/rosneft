@@ -120,9 +120,12 @@ func (s *TerritoryExportSuite) router(svc Service, sc gateCase, open glbexport.O
 
 func (s *TerritoryExportSuite) bundle() domain.SceneBundle {
 	return domain.SceneBundle{
-		Territory:    domain.Territory{Slug: "ust-kut", Title: "Усть-Кут"},
-		Artifact:     &domain.Artifact{Hash: "terr"},
-		ModelOptions: []domain.AssetOption{{Slug: "tank", LODs: []domain.LodArtifact{{LOD: 0, Hash: "tank"}}}, {Slug: "raw"}},
+		Territory: domain.Territory{Slug: "ust-kut", Title: "Усть-Кут"},
+		Artifact:  &domain.Artifact{Hash: "terr"},
+		ModelOptions: []domain.AssetOption{
+			{Slug: "tank", LODs: []domain.LodArtifact{{LOD: 0, Hash: "tank"}}},
+			{Slug: "raw"},
+		},
 		PlacementGroups: []domain.PlacementGroup{
 			{ID: 1, Hidden: true},
 		},

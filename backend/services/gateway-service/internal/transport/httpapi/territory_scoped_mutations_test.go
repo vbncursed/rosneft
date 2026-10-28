@@ -57,7 +57,12 @@ func (r slugRecorder) SetPlacementsGroup(_ context.Context, territorySlug string
 	return 0, nil
 }
 
-func (r slugRecorder) RenamePlacementGroup(_ context.Context, territorySlug string, id int64, title string) (domain.PlacementGroup, error) {
+func (r slugRecorder) RenamePlacementGroup(
+	_ context.Context,
+	territorySlug string,
+	id int64,
+	title string,
+) (domain.PlacementGroup, error) {
 	*r.slug = territorySlug
 	return domain.PlacementGroup{ID: id, Title: title}, nil
 }
@@ -88,7 +93,10 @@ func (s *TerritoryScopedMutationsSuite) TestEveryMutationForwardsTheURLSlug() {
 		call func(context.Context, *Server) error
 	}{
 		{name: "update placement", call: func(ctx context.Context, srv *Server) error {
-			_, err := srv.UpdatePlacement(ctx, UpdatePlacementRequestObject{Slug: "yard", Id: 1, Body: &UpdatePlacementJSONRequestBody{}})
+			_, err := srv.UpdatePlacement(
+				ctx,
+				UpdatePlacementRequestObject{Slug: "yard", Id: 1, Body: &UpdatePlacementJSONRequestBody{}},
+			)
 			return err
 		}},
 		{name: "delete placement", call: func(ctx context.Context, srv *Server) error {
@@ -96,7 +104,10 @@ func (s *TerritoryScopedMutationsSuite) TestEveryMutationForwardsTheURLSlug() {
 			return err
 		}},
 		{name: "update measurement", call: func(ctx context.Context, srv *Server) error {
-			_, err := srv.UpdateMeasurement(ctx, UpdateMeasurementRequestObject{Slug: "yard", Id: 1, Body: &UpdateMeasurementJSONRequestBody{}})
+			_, err := srv.UpdateMeasurement(
+				ctx,
+				UpdateMeasurementRequestObject{Slug: "yard", Id: 1, Body: &UpdateMeasurementJSONRequestBody{}},
+			)
 			return err
 		}},
 		{name: "delete measurement", call: func(ctx context.Context, srv *Server) error {
@@ -104,15 +115,34 @@ func (s *TerritoryScopedMutationsSuite) TestEveryMutationForwardsTheURLSlug() {
 			return err
 		}},
 		{name: "hide placements", call: func(ctx context.Context, srv *Server) error {
-			_, err := srv.SetPlacementsHidden(ctx, SetPlacementsHiddenRequestObject{Slug: "yard", Body: &SetPlacementsHiddenJSONRequestBody{Ids: []int64{1}}})
+			_, err := srv.SetPlacementsHidden(
+				ctx,
+				SetPlacementsHiddenRequestObject{
+					Slug: "yard",
+					Body: &SetPlacementsHiddenJSONRequestBody{Ids: []int64{1}},
+				},
+			)
 			return err
 		}},
 		{name: "move placements", call: func(ctx context.Context, srv *Server) error {
-			_, err := srv.SetPlacementsGroup(ctx, SetPlacementsGroupRequestObject{Slug: "yard", Body: &SetPlacementsGroupJSONRequestBody{Ids: []int64{1}}})
+			_, err := srv.SetPlacementsGroup(
+				ctx,
+				SetPlacementsGroupRequestObject{
+					Slug: "yard",
+					Body: &SetPlacementsGroupJSONRequestBody{Ids: []int64{1}},
+				},
+			)
 			return err
 		}},
 		{name: "rename placement group", call: func(ctx context.Context, srv *Server) error {
-			_, err := srv.UpdatePlacementGroup(ctx, UpdatePlacementGroupRequestObject{Slug: "yard", Id: 1, Body: &UpdatePlacementGroupJSONRequestBody{Title: "x"}})
+			_, err := srv.UpdatePlacementGroup(
+				ctx,
+				UpdatePlacementGroupRequestObject{
+					Slug: "yard",
+					Id:   1,
+					Body: &UpdatePlacementGroupJSONRequestBody{Title: "x"},
+				},
+			)
 			return err
 		}},
 		{name: "delete placement group", call: func(ctx context.Context, srv *Server) error {
@@ -120,7 +150,10 @@ func (s *TerritoryScopedMutationsSuite) TestEveryMutationForwardsTheURLSlug() {
 			return err
 		}},
 		{name: "update panorama", call: func(ctx context.Context, srv *Server) error {
-			_, err := srv.UpdatePanorama(ctx, UpdatePanoramaRequestObject{Slug: "yard", Id: 1, Body: &UpdatePanoramaJSONRequestBody{}})
+			_, err := srv.UpdatePanorama(
+				ctx,
+				UpdatePanoramaRequestObject{Slug: "yard", Id: 1, Body: &UpdatePanoramaJSONRequestBody{}},
+			)
 			return err
 		}},
 		{name: "delete panorama", call: func(ctx context.Context, srv *Server) error {

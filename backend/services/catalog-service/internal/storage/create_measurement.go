@@ -44,7 +44,10 @@ func (r *PG) CreateMeasurement(ctx context.Context, m domain.Measurement) (domai
 	case errors.Is(err, pgx.ErrNoRows):
 		return domain.Measurement{}, domain.ErrTerritoryNotFound
 	case isMeasurementShapeViolation(err):
-		return domain.Measurement{}, fmt.Errorf("storage.CreateMeasurement: %w: points do not form a chain", domain.ErrInvalidInput)
+		return domain.Measurement{}, fmt.Errorf(
+			"storage.CreateMeasurement: %w: points do not form a chain",
+			domain.ErrInvalidInput,
+		)
 	default:
 		return domain.Measurement{}, fmt.Errorf("storage.CreateMeasurement: %w", err)
 	}

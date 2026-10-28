@@ -13,7 +13,13 @@ const (
 	keyToken
 )
 
-func withPrincipal(ctx context.Context, userID string, perms []string, isOwner bool, owningAdmin, auditCompany string) context.Context {
+func withPrincipal(
+	ctx context.Context,
+	userID string,
+	perms []string,
+	isOwner bool,
+	owningAdmin, auditCompany string,
+) context.Context {
 	ctx = context.WithValue(ctx, keyUserID, userID)
 	ctx = context.WithValue(ctx, keyIsOwner, isOwner)
 	ctx = context.WithValue(ctx, keyOwningAdmin, owningAdmin)

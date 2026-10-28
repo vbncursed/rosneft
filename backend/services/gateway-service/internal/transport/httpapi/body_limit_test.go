@@ -64,7 +64,11 @@ func (s *BodyLimitSuite) TestTheChunkPatchIsExempt() {
 
 // Only the chunk PATCH is exempt; finalize is an ordinary request.
 func (s *BodyLimitSuite) TestOtherUploadRoutesAreLimited() {
-	rec, _, _ := s.serve(http.MethodPost, "/api/uploads/abc/finalize", bytes.NewReader(make([]byte, maxJSONBodyBytes+1)))
+	rec, _, _ := s.serve(
+		http.MethodPost,
+		"/api/uploads/abc/finalize",
+		bytes.NewReader(make([]byte, maxJSONBodyBytes+1)),
+	)
 	assert.Equal(s.T(), rec.Code, http.StatusRequestEntityTooLarge)
 }
 

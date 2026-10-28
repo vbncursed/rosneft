@@ -12,8 +12,10 @@ import (
 // A non-owner cannot assign a role conferring permissions it does not hold.
 func (s *UsersSuite) TestUpdateBlocksRoleEscalation() {
 	s.st.GetByIDMock.When(s.ctx, "u2").Then(domain.User{ID: "u2"}, nil)
-	s.st.GetByIDMock.When(s.ctx, "editor").Then(domain.User{ID: "editor", Permissions: []string{"placement:write"}}, nil)
-	s.st.PermissionsForRolesMock.Expect(s.ctx, []string{"manager"}).Return([]string{"territory:write", "users:write"}, nil)
+	s.st.GetByIDMock.When(s.ctx, "editor").
+		Then(domain.User{ID: "editor", Permissions: []string{"placement:write"}}, nil)
+	s.st.PermissionsForRolesMock.Expect(s.ctx, []string{"manager"}).
+		Return([]string{"territory:write", "users:write"}, nil)
 
 	_, err := s.svc.Update(s.ctx, "editor", true, "u2", []string{"manager"}, "", "")
 	assert.ErrorIs(s.T(), err, domain.ErrPrivilegeEscalation)
@@ -41,7 +43,8 @@ func (s *UsersSuite) TestCreateRefusesAdminRoleFromNonRoot() {
 func (s *UsersSuite) TestUpdateOwnerAssignsAdmin() {
 	s.st.GetByIDMock.When(s.ctx, "u2").Then(domain.User{ID: "u2"}, nil)
 	s.st.GetByIDMock.When(s.ctx, "owner").Then(domain.User{ID: "owner", IsOwner: true}, nil)
-	s.st.SetRolesMock.Expect(s.ctx, "u2", []string{"admin"}).Return(domain.User{ID: "u2", RoleSlugs: []string{"admin"}}, nil)
+	s.st.SetRolesMock.Expect(s.ctx, "u2", []string{"admin"}).
+		Return(domain.User{ID: "u2", RoleSlugs: []string{"admin"}}, nil)
 
 	out, err := s.svc.Update(s.ctx, "owner", true, "u2", []string{"admin"}, "", "")
 	assert.NilError(s.T(), err)

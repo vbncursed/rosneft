@@ -305,8 +305,18 @@ func (s *ReconcileSuite) TestRetriesConvertedTargetWhoseReplaceJobFailed() {
 		s.Run(tc.name, func() {
 			mc := minimock.NewController(s.T())
 			s.queue, s.catalog = mocks.NewQueueMock(mc), mocks.NewCatalogMock(mc)
-			s.svc = service.New(service.Config{Queue: s.queue, Catalog: s.catalog, Blobs: mocks.NewBlobStoreMock(mc), IDGen: func() string { return "id" }})
-			s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"}}, nil)
+			s.svc = service.New(
+				service.Config{
+					Queue:   s.queue,
+					Catalog: s.catalog,
+					Blobs:   mocks.NewBlobStoreMock(mc),
+					IDGen:   func() string { return "id" },
+				},
+			)
+			s.catalog.ListTargetsMock.Return(
+				[]domain.ConversionTarget{{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"}},
+				nil,
+			)
 			s.catalog.HasLOD0Mock.Return(true, true, nil)
 			s.queue.TryLockTargetMock.Optional().Return(true, nil)
 			s.queue.SaveJobMock.Optional().Return(nil)
@@ -343,16 +353,32 @@ func (s *ReconcileSuite) TestRetriesConvertedTargetWhoseRunningJobWasAbandoned()
 		s.Run(tc.name, func() {
 			mc := minimock.NewController(s.T())
 			s.queue, s.catalog = mocks.NewQueueMock(mc), mocks.NewCatalogMock(mc)
-			s.svc = service.New(service.Config{Queue: s.queue, Catalog: s.catalog, Blobs: mocks.NewBlobStoreMock(mc), IDGen: func() string { return "id" }})
-			s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"}}, nil)
+			s.svc = service.New(
+				service.Config{
+					Queue:   s.queue,
+					Catalog: s.catalog,
+					Blobs:   mocks.NewBlobStoreMock(mc),
+					IDGen:   func() string { return "id" },
+				},
+			)
+			s.catalog.ListTargetsMock.Return(
+				[]domain.ConversionTarget{{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"}},
+				nil,
+			)
 			s.catalog.HasLOD0Mock.Return(true, true, nil)
 			s.queue.TryLockTargetMock.Optional().Return(tc.locked, nil)
 			s.queue.SaveJobMock.Optional().Return(nil)
 			s.queue.EnqueueJobMock.Optional().Return(nil)
 			s.queue.GetJobMock.Optional().Return(domain.Job{}, nil)
-			s.queue.ListTargetJobsMock.Return([]domain.Job{{
-				ID: "j1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusRunning, UpdatedAt: tc.updatedAt,
-			}}, nil)
+			s.queue.ListTargetJobsMock.Return([]domain.Job{
+				{
+					ID:        "j1",
+					Kind:      domain.KindTerritory,
+					Slug:      "t1",
+					Status:    domain.JobStatusRunning,
+					UpdatedAt: tc.updatedAt,
+				},
+			}, nil)
 
 			n, err := s.svc.ReconcileMissingArtifacts(s.ctx)
 
@@ -369,7 +395,13 @@ func (s *ReconcileSuite) TestRetriesConvertedTargetWhoseRunningJobWasAbandoned()
 func (s *ReconcileSuite) TestFailedReplaceRetriesGoOnePerPassOnAnIdleWorker() {
 	old := time.Now().Add(-service.BackfillRetryAfter)
 	failed := func(slug string) domain.Job {
-		return domain.Job{ID: "j-" + slug, Kind: domain.KindTerritory, Slug: slug, Status: domain.JobStatusFailed, UpdatedAt: old}
+		return domain.Job{
+			ID:        "j-" + slug,
+			Kind:      domain.KindTerritory,
+			Slug:      slug,
+			Status:    domain.JobStatusFailed,
+			UpdatedAt: old,
+		}
 	}
 	tests := []struct {
 		name string
@@ -385,7 +417,14 @@ func (s *ReconcileSuite) TestFailedReplaceRetriesGoOnePerPassOnAnIdleWorker() {
 		s.Run(tc.name, func() {
 			mc := minimock.NewController(s.T())
 			s.queue, s.catalog = mocks.NewQueueMock(mc), mocks.NewCatalogMock(mc)
-			s.svc = service.New(service.Config{Queue: s.queue, Catalog: s.catalog, Blobs: mocks.NewBlobStoreMock(mc), IDGen: func() string { return "id" }})
+			s.svc = service.New(
+				service.Config{
+					Queue:   s.queue,
+					Catalog: s.catalog,
+					Blobs:   mocks.NewBlobStoreMock(mc),
+					IDGen:   func() string { return "id" },
+				},
+			)
 			var targets []domain.ConversionTarget
 			for _, j := range tc.jobs {
 				targets = append(targets, domain.ConversionTarget{Kind: j.Kind, Slug: j.Slug, SourceBlobHash: "h"})

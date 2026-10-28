@@ -16,7 +16,11 @@ func (g *Gateway) ListDocuments(ctx context.Context, territorySlug string) ([]do
 }
 
 // CreateDocument validates input and persists the document.
-func (g *Gateway) CreateDocument(ctx context.Context, d domain.Document, scope domain.BlobScope) (domain.Document, error) {
+func (g *Gateway) CreateDocument(
+	ctx context.Context,
+	d domain.Document,
+	scope domain.BlobScope,
+) (domain.Document, error) {
 	if d.TerritorySlug == "" {
 		return domain.Document{}, fmt.Errorf("%w: territory slug is required", domain.ErrInvalidInput)
 	}

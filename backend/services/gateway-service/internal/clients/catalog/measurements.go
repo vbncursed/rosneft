@@ -31,7 +31,10 @@ func (c *Client) CreateMeasurement(ctx context.Context, m domain.Measurement) (d
 		Closed:        m.Closed,
 	})
 	if err != nil {
-		return domain.Measurement{}, fmt.Errorf("catalog.CreateMeasurement: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
+		return domain.Measurement{}, fmt.Errorf(
+			"catalog.CreateMeasurement: %w",
+			grpcerr.MapStatus(err, domain.ErrTerritoryNotFound),
+		)
 	}
 	return measurementFromProto(resp.GetMeasurement()), nil
 }
@@ -46,7 +49,10 @@ func (c *Client) UpdateMeasurement(ctx context.Context, m domain.Measurement) (d
 		Closed:        m.Closed,
 	})
 	if err != nil {
-		return domain.Measurement{}, fmt.Errorf("catalog.UpdateMeasurement: %w", grpcerr.MapStatus(err, domain.ErrMeasurementNotFound))
+		return domain.Measurement{}, fmt.Errorf(
+			"catalog.UpdateMeasurement: %w",
+			grpcerr.MapStatus(err, domain.ErrMeasurementNotFound),
+		)
 	}
 	return measurementFromProto(resp.GetMeasurement()), nil
 }

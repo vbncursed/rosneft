@@ -59,7 +59,11 @@ const factorBatch = 500
 // chunks found. A partial set is worse than no set: absent ids read as "this
 // user has the factor off", which is the false negative this whole change
 // exists to eliminate. All-or-nothing keeps the nil/"unknown" contract honest.
-func chunked(ctx context.Context, ids []string, call func(context.Context, []string) ([]string, error)) (factorSet, error) {
+func chunked(
+	ctx context.Context,
+	ids []string,
+	call func(context.Context, []string) ([]string, error),
+) (factorSet, error) {
 	out := make(factorSet, len(ids))
 	for chunk := range slices.Chunk(ids, factorBatch) {
 		got, err := call(ctx, chunk)

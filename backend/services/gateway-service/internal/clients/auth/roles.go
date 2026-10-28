@@ -15,7 +15,10 @@ func (c *Client) ListRoles(ctx context.Context, token string) ([]*authv1.Role, e
 }
 
 func (c *Client) CreateRole(ctx context.Context, token, slug, title string, perms []string) (*authv1.Role, error) {
-	return c.cc.CreateRole(ctx, &authv1.CreateRoleRequest{Token: token, Slug: slug, Title: title, PermissionSlugs: perms})
+	return c.cc.CreateRole(
+		ctx,
+		&authv1.CreateRoleRequest{Token: token, Slug: slug, Title: title, PermissionSlugs: perms},
+	)
 }
 
 // UpdateRole renames a role; a non-nil perms also replaces its grants in the
@@ -35,7 +38,10 @@ func (c *Client) DeleteRole(ctx context.Context, token, slug string) error {
 }
 
 func (c *Client) SetRolePermissions(ctx context.Context, token, slug string, perms []string) (*authv1.Role, error) {
-	return c.cc.SetRolePermissions(ctx, &authv1.SetRolePermissionsRequest{Token: token, Slug: slug, PermissionSlugs: perms})
+	return c.cc.SetRolePermissions(
+		ctx,
+		&authv1.SetRolePermissionsRequest{Token: token, Slug: slug, PermissionSlugs: perms},
+	)
 }
 
 func (c *Client) ListPermissions(ctx context.Context) ([]*authv1.Permission, error) {

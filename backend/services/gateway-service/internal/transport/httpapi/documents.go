@@ -7,7 +7,10 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
-func (s *Server) ListDocuments(ctx context.Context, req ListDocumentsRequestObject) (ListDocumentsResponseObject, error) {
+func (s *Server) ListDocuments(
+	ctx context.Context,
+	req ListDocumentsRequestObject,
+) (ListDocumentsResponseObject, error) {
 	out, err := s.svc.ListDocuments(ctx, req.Slug)
 	switch {
 	case isNotFound(err):
@@ -22,7 +25,10 @@ func (s *Server) ListDocuments(ctx context.Context, req ListDocumentsRequestObje
 	return resp, nil
 }
 
-func (s *Server) CreateDocument(ctx context.Context, req CreateDocumentRequestObject) (CreateDocumentResponseObject, error) {
+func (s *Server) CreateDocument(
+	ctx context.Context,
+	req CreateDocumentRequestObject,
+) (CreateDocumentResponseObject, error) {
 	if req.Body == nil {
 		return CreateDocument400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
@@ -43,7 +49,10 @@ func (s *Server) CreateDocument(ctx context.Context, req CreateDocumentRequestOb
 	return CreateDocument201JSONResponse(documentToAPI(d)), nil
 }
 
-func (s *Server) DeleteDocument(ctx context.Context, req DeleteDocumentRequestObject) (DeleteDocumentResponseObject, error) {
+func (s *Server) DeleteDocument(
+	ctx context.Context,
+	req DeleteDocumentRequestObject,
+) (DeleteDocumentResponseObject, error) {
 	err := s.svc.DeleteDocument(ctx, req.Slug, req.Id)
 	switch {
 	case isNotFound(err):

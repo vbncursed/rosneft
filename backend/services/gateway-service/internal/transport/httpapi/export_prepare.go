@@ -85,10 +85,19 @@ func (s *Server) prepareExport(ctx context.Context, slug string, v exportVariant
 	return s.planGLB(ctx, slug, v, src)
 }
 
-func (s *Server) planGLB(ctx context.Context, slug string, v exportVariant, src exportSource) (preparedExport, *exportRefusal) {
+func (s *Server) planGLB(
+	ctx context.Context,
+	slug string,
+	v exportVariant,
+	src exportSource,
+) (preparedExport, *exportRefusal) {
 	plan, err := glbexport.Build(src.placements, src.heads)
 	if errors.Is(err, glbexport.ErrTooLarge) {
-		return preparedExport{}, &exportRefusal{http.StatusUnprocessableEntity, apperr.SlugUnprocessable, "export exceeds the 4 GiB GLB limit"}
+		return preparedExport{}, &exportRefusal{
+			http.StatusUnprocessableEntity,
+			apperr.SlugUnprocessable,
+			"export exceeds the 4 GiB GLB limit",
+		}
 	}
 	if err != nil {
 		return preparedExport{}, exportFailed(ctx, err)
@@ -111,7 +120,11 @@ func (s *Server) planOBJ(ctx context.Context, slug string, src exportSource) (pr
 		Stem: slug, Ratio: ratio, Metric: metric, Modified: time.Now(),
 	})
 	if errors.Is(err, objexport.ErrTooLarge) {
-		return preparedExport{}, &exportRefusal{http.StatusUnprocessableEntity, apperr.SlugUnprocessable, "OBJ export exceeds 20 million vertices or 40 million faces"}
+		return preparedExport{}, &exportRefusal{
+			http.StatusUnprocessableEntity,
+			apperr.SlugUnprocessable,
+			"OBJ export exceeds 20 million vertices or 40 million faces",
+		}
 	}
 	if err != nil {
 		return preparedExport{}, exportFailed(ctx, err)
@@ -145,7 +158,11 @@ func (s *Server) loadExport(ctx context.Context, slug string, v exportVariant) (
 		return exportSource{}, exportFailed(ctx, err)
 	}
 	if bundle.Artifact == nil {
-		return exportSource{}, &exportRefusal{http.StatusConflict, apperr.SlugConflict, "territory is not converted yet"}
+		return exportSource{}, &exportRefusal{
+			http.StatusConflict,
+			apperr.SlugConflict,
+			"territory is not converted yet",
+		}
 	}
 
 	placements, skipped := exportPlacements(bundle, v)

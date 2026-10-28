@@ -15,33 +15,84 @@ func (s *BuildSuite) TestRejects() {
 		mutate func(d *gltf.Document)
 		want   error
 	}{
-		{"draco", triangleDoc, func(d *gltf.Document) { d.ExtensionsUsed = []string{"KHR_draco_mesh_compression"} }, ErrUnsupported},
+		{
+			"draco",
+			triangleDoc,
+			func(d *gltf.Document) { d.ExtensionsUsed = []string{"KHR_draco_mesh_compression"} },
+			ErrUnsupported,
+		},
 		{"animations", triangleDoc, func(d *gltf.Document) { d.Animations = []*gltf.Animation{{}} }, ErrUnsupported},
 		{"skins", triangleDoc, func(d *gltf.Document) { d.Skins = []*gltf.Skin{{Joints: []int{0}}} }, ErrUnsupported},
-		{"cameras", triangleDoc, func(d *gltf.Document) { d.Cameras = []*gltf.Camera{{Type: "perspective"}} }, ErrUnsupported},
-		{"sparse accessor", triangleDoc, func(d *gltf.Document) { d.Accessors[0].Sparse = &gltf.Sparse{Count: 1} }, ErrUnsupported},
+		{
+			"cameras",
+			triangleDoc,
+			func(d *gltf.Document) { d.Cameras = []*gltf.Camera{{Type: "perspective"}} },
+			ErrUnsupported,
+		},
+		{
+			"sparse accessor",
+			triangleDoc,
+			func(d *gltf.Document) { d.Accessors[0].Sparse = &gltf.Sparse{Count: 1} },
+			ErrUnsupported,
+		},
 		{"buffer 0 uri", triangleDoc, func(d *gltf.Document) { d.Buffers[0].URI = "data.bin" }, ErrUnsupported},
-		{"image uri", texturedQuadDoc, func(d *gltf.Document) { d.Images[0].URI = "a.png"; d.Images[0].BufferView = nil }, ErrUnsupported},
-		{"extra buffer without fallback", triangleDoc, func(d *gltf.Document) { d.Buffers = append(d.Buffers, &gltf.Buffer{ByteLength: 4}) }, ErrUnsupported},
+		{
+			"image uri",
+			texturedQuadDoc,
+			func(d *gltf.Document) { d.Images[0].URI = "a.png"; d.Images[0].BufferView = nil },
+			ErrUnsupported,
+		},
+		{
+			"extra buffer without fallback",
+			triangleDoc,
+			func(d *gltf.Document) { d.Buffers = append(d.Buffers, &gltf.Buffer{ByteLength: 4}) },
+			ErrUnsupported,
+		},
 		{"extra buffer with uri", meshoptDoc, func(d *gltf.Document) { d.Buffers[1].URI = "x.bin" }, ErrUnsupported},
-		{"accessor bufferView out of range", triangleDoc, func(d *gltf.Document) { d.Accessors[0].BufferView = new(99) }, ErrMalformed},
+		{
+			"accessor bufferView out of range",
+			triangleDoc,
+			func(d *gltf.Document) { d.Accessors[0].BufferView = new(99) },
+			ErrMalformed,
+		},
 		{"node child cycle", triangleDoc, func(d *gltf.Document) { d.Nodes[0].Children = []int{0} }, ErrMalformed},
-		{"bufferView past the BIN", triangleDoc, func(d *gltf.Document) { d.BufferViews[1].ByteLength = 60 }, ErrMalformed},
+		{
+			"bufferView past the BIN",
+			triangleDoc,
+			func(d *gltf.Document) { d.BufferViews[1].ByteLength = 60 },
+			ErrMalformed,
+		},
 		{"meshopt payload buffer out of range", meshoptDoc, func(d *gltf.Document) {
-			d.BufferViews[0].Extensions["EXT_meshopt_compression"] = json.RawMessage(`{"buffer":7,"byteLength":20,"byteStride":12,"count":3,"mode":"ATTRIBUTES"}`)
+			d.BufferViews[0].Extensions["EXT_meshopt_compression"] = json.RawMessage(
+				`{"buffer":7,"byteLength":20,"byteStride":12,"count":3,"mode":"ATTRIBUTES"}`,
+			)
 		}, ErrMalformed},
 		{"meshopt payload past the BIN", meshoptDoc, func(d *gltf.Document) {
-			d.BufferViews[0].Extensions["EXT_meshopt_compression"] = json.RawMessage(`{"buffer":0,"byteOffset":36,"byteLength":20,"byteStride":12,"count":3,"mode":"ATTRIBUTES"}`)
+			d.BufferViews[0].Extensions["EXT_meshopt_compression"] = json.RawMessage(
+				`{"buffer":0,"byteOffset":36,"byteLength":20,"byteStride":12,"count":3,"mode":"ATTRIBUTES"}`,
+			)
 		}, ErrMalformed},
 		{"bufferView offset and length overflow int64", triangleDoc, func(d *gltf.Document) {
 			d.BufferViews[1].ByteOffset = math.MaxInt
 			d.BufferViews[1].ByteLength = math.MaxInt
 		}, ErrMalformed},
 		{"meshopt payload offset and length overflow int64", meshoptDoc, func(d *gltf.Document) {
-			d.BufferViews[0].Extensions["EXT_meshopt_compression"] = json.RawMessage(`{"buffer":0,"byteOffset":9223372036854775807,"byteLength":9223372036854775807,"byteStride":12,"count":3,"mode":"ATTRIBUTES"}`)
+			d.BufferViews[0].Extensions["EXT_meshopt_compression"] = json.RawMessage(
+				`{"buffer":0,"byteOffset":9223372036854775807,"byteLength":9223372036854775807,"byteStride":12,"count":3,"mode":"ATTRIBUTES"}`,
+			)
 		}, ErrMalformed},
-		{"negative accessor bufferView", triangleDoc, func(d *gltf.Document) { d.Accessors[0].BufferView = new(-1) }, ErrMalformed},
-		{"negative attribute accessor", triangleDoc, func(d *gltf.Document) { d.Meshes[0].Primitives[0].Attributes["POSITION"] = -1 }, ErrMalformed},
+		{
+			"negative accessor bufferView",
+			triangleDoc,
+			func(d *gltf.Document) { d.Accessors[0].BufferView = new(-1) },
+			ErrMalformed,
+		},
+		{
+			"negative attribute accessor",
+			triangleDoc,
+			func(d *gltf.Document) { d.Meshes[0].Primitives[0].Attributes["POSITION"] = -1 },
+			ErrMalformed,
+		},
 		{"node mesh out of range", triangleDoc, func(d *gltf.Document) { d.Nodes[0].Mesh = new(-1) }, ErrMalformed},
 		{"scene out of range", triangleDoc, func(d *gltf.Document) { d.Scene = new(5) }, ErrMalformed},
 		{"null node", triangleDoc, func(d *gltf.Document) { d.Nodes = append(d.Nodes, nil) }, ErrMalformed},
