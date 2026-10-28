@@ -9,11 +9,44 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 )
 
 // FS is a filesystem-backed session store.
 type FS struct {
 	root string
+
+	mu    sync.Mutex
+	locks map[string]*sessionLock
+}
+
+type sessionLock struct {
+	sync.Mutex
+	refs int
+}
+
+// lock serialises everything that touches one session's files and returns the
+// unlock func. Entries live only while someone holds or waits for them.
+// shortcut: in-process only, upload-service runs as one replica per incoming root.
+func (f *FS) lock(id string) func() {
+	f.mu.Lock()
+	l := f.locks[id]
+	if l == nil {
+		l = &sessionLock{}
+		f.locks[id] = l
+	}
+	l.refs++
+	f.mu.Unlock()
+
+	l.Lock()
+	return func() {
+		l.Unlock()
+		f.mu.Lock()
+		if l.refs--; l.refs == 0 {
+			delete(f.locks, id)
+		}
+		f.mu.Unlock()
+	}
 }
 
 // NewFS ensures root exists and returns a session store anchored on it.
@@ -24,7 +57,7 @@ func NewFS(root string) (*FS, error) {
 	if err := os.MkdirAll(root, 0o750); err != nil {
 		return nil, fmt.Errorf("storage.NewFS: %w", err)
 	}
-	return &FS{root: root}, nil
+	return &FS{root: root, locks: map[string]*sessionLock{}}, nil
 }
 
 // validateID rejects empty or path-traversing session IDs. We mint our own
