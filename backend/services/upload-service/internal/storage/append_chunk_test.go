@@ -103,3 +103,27 @@ func TestAppendChunkOverSizeIsRejectedAndWritesNothing(t *testing.T) {
 	assert.Assert(t, errors.Is(err, domain.ErrSizeExceeded), "got %v", err)
 	assert.Equal(t, dataSize(t, dir), int64(0))
 }
+
+// The retried chunk is shorter than the bytes the failed attempt left behind:
+// without the cut to the new end, the stale tail would survive in the file.
+func TestAppendChunkRetryShorterThanLeftoverDropsStaleTail(t *testing.T) {
+	fs, dir := newSession(t, 8)
+	ctx := t.Context()
+
+	block := filepath.Join(dir, "meta.json.tmp")
+	assert.NilError(t, os.Mkdir(block, 0o750))
+	_, err := fs.AppendChunk(ctx, sessID, 0, []byte("AAAAAA"))
+	assert.Assert(t, err != nil)
+	assert.Equal(t, dataSize(t, dir), int64(6))
+	assert.NilError(t, os.Remove(block))
+
+	_, err = fs.AppendChunk(ctx, sessID, 0, []byte("BB"))
+	assert.NilError(t, err)
+	assert.Equal(t, dataSize(t, dir), int64(2))
+	_, err = fs.AppendChunk(ctx, sessID, 2, []byte("CCCCCC"))
+	assert.NilError(t, err)
+
+	got, err := os.ReadFile(filepath.Join(dir, "data.bin"))
+	assert.NilError(t, err)
+	assert.Equal(t, string(got), "BBCCCCCC")
+}
