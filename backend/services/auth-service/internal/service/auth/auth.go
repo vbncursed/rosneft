@@ -4,9 +4,11 @@ package auth
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
+	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/password"
 )
 
 //go:generate minimock -i UserStore,SessionStore,TwoFAVerifier,PasskeyVerifier -o ./mocks -s _mock.go
@@ -51,6 +53,13 @@ type Service struct {
 	passkey     PasskeyVerifier
 	absoluteTTL time.Duration
 	authz       *authzCache
+	// verify is password.Verify; a field so tests can count verifications
+	// instead of timing them.
+	verify func(plain, encoded string) (bool, error)
+	// dummyHash is a hash under the current argon2id parameters, derived on
+	// first use, that Login verifies against for an unknown identifier so that
+	// path costs what a wrong password costs.
+	dummyHash func() string
 }
 
 // New constructs the auth Service.
@@ -68,5 +77,18 @@ func New(
 		passkey:     passkey,
 		absoluteTTL: absoluteTTL,
 		authz:       newAuthzCache(authzCacheTTL),
+		verify:      password.Verify,
+		dummyHash:   sync.OnceValue(newDummyHash),
 	}
+}
+
+// newDummyHash derives from password.Hash, never a literal, so it follows the
+// parameters when they change. A failure (no entropy) yields "": the verify of
+// it then fails fast, which only loses the timing parity, not safety.
+func newDummyHash() string {
+	h, err := password.Hash("timing-parity-dummy")
+	if err != nil {
+		return ""
+	}
+	return h
 }
