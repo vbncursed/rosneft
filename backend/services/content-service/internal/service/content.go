@@ -25,7 +25,12 @@ type Repository interface {
 	// nothing: an id not on territorySlug is ErrPanoramaNotFound.
 	SetPanoramasHidden(ctx context.Context, territorySlug string, ids []int64, hidden bool) (int, error)
 	SetPanoramasPhase(ctx context.Context, territorySlug string, ids []int64, phase domain.PanoramaPhase) (int, error)
-	SetPanoramaPhaseHidden(ctx context.Context, territorySlug string, phase domain.PanoramaPhase, hidden bool) (domain.PanoramaPhaseVisibility, error)
+	SetPanoramaPhaseHidden(
+		ctx context.Context,
+		territorySlug string,
+		phase domain.PanoramaPhase,
+		hidden bool,
+	) (domain.PanoramaPhaseVisibility, error)
 	ListPanoramaPhases(ctx context.Context, territorySlug string) ([]domain.PanoramaPhaseVisibility, error)
 
 	ListDocuments(ctx context.Context, territorySlug string) ([]domain.Document, error)
@@ -34,7 +39,12 @@ type Repository interface {
 
 	// Both are scoped by territorySlug: a document of another territory is
 	// ErrDocumentNotFound, same as an unknown id.
-	PutDocumentCalibration(ctx context.Context, territorySlug string, documentID int64, c domain.Calibration) (domain.Calibration, error)
+	PutDocumentCalibration(
+		ctx context.Context,
+		territorySlug string,
+		documentID int64,
+		c domain.Calibration,
+	) (domain.Calibration, error)
 	DeleteDocumentCalibration(ctx context.Context, territorySlug string, documentID int64) error
 }
 

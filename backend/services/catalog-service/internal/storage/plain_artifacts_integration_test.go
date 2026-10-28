@@ -73,8 +73,13 @@ func (s *PlainArtifactsSuite) seedTerritory(slug string) {
 }
 
 func (s *PlainArtifactsSuite) seedModel(slug string) {
-	_, err := s.pool.Exec(s.T().Context(),
-		`INSERT INTO models (slug, title, source_blob_hash, thumbnail_blob_hash, tag_id) VALUES ($1,$1,$2,'', (SELECT id FROM model_tags WHERE slug = 'ungrouped'))`, slug, "src-"+slug)
+	_, err := s.pool.Exec(
+		s.T().Context(),
+		`INSERT INTO models (slug, title, source_blob_hash, thumbnail_blob_hash, tag_id)
+		 VALUES ($1,$1,$2,'', (SELECT id FROM model_tags WHERE slug = 'ungrouped'))`,
+		slug,
+		"src-"+slug,
+	)
 	assert.NilError(s.T(), err)
 }
 
@@ -84,7 +89,8 @@ func art(slug string, lod uint32, hash, plain string) domain.Artifact {
 
 func (s *PlainArtifactsSuite) plainRows(plain string) int {
 	var n int
-	err := s.pool.QueryRow(s.T().Context(), `SELECT count(*) FROM plain_artifacts WHERE plain_hash = $1`, plain).Scan(&n)
+	err := s.pool.QueryRow(s.T().Context(), `SELECT count(*) FROM plain_artifacts WHERE plain_hash = $1`, plain).
+		Scan(&n)
 	assert.NilError(s.T(), err)
 	return n
 }

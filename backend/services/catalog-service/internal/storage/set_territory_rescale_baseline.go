@@ -19,7 +19,12 @@ import (
 //
 // Wrapped in audittx.Run because it writes to territories, an audited table;
 // audit_capture() ignores these columns, so it files no entry of its own.
-func (r *PG) SetTerritoryRescaleBaseline(ctx context.Context, slug string, sourceMax float64, center domain.Vec3) error {
+func (r *PG) SetTerritoryRescaleBaseline(
+	ctx context.Context,
+	slug string,
+	sourceMax float64,
+	center domain.Vec3,
+) error {
 	const q = `
 		UPDATE territories
 		SET rescale_baseline_max      = $2,

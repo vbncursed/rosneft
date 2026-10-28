@@ -14,7 +14,10 @@ import "context"
 // auditCompany is the unmangled tenant from the created_by chain; keying the
 // audit log off the former would file a guest's changes under a one-person
 // company its Company Owner could never see.
-func (s *Service) ValidateToken(ctx context.Context, token string) (string, []string, bool, string, string, bool, error) {
+func (s *Service) ValidateToken(
+	ctx context.Context,
+	token string,
+) (string, []string, bool, string, string, bool, error) {
 	sess, err := s.sessions.Get(ctx, token)
 	if err != nil {
 		return "", nil, false, "", "", false, err

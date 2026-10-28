@@ -17,7 +17,10 @@ func (s *Server) ListModelTags(ctx context.Context, _ ListModelTagsRequestObject
 
 // CreateModelTag and UpdateModelTag are model:write routes (routePerms); the
 // catalog validates the slug and title and answers the refusal in its words.
-func (s *Server) CreateModelTag(ctx context.Context, req CreateModelTagRequestObject) (CreateModelTagResponseObject, error) {
+func (s *Server) CreateModelTag(
+	ctx context.Context,
+	req CreateModelTagRequestObject,
+) (CreateModelTagResponseObject, error) {
 	if req.Body == nil {
 		return CreateModelTag400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
@@ -31,7 +34,10 @@ func (s *Server) CreateModelTag(ctx context.Context, req CreateModelTagRequestOb
 	return CreateModelTag201JSONResponse(modelTagToAPI(tag)), nil
 }
 
-func (s *Server) UpdateModelTag(ctx context.Context, req UpdateModelTagRequestObject) (UpdateModelTagResponseObject, error) {
+func (s *Server) UpdateModelTag(
+	ctx context.Context,
+	req UpdateModelTagRequestObject,
+) (UpdateModelTagResponseObject, error) {
 	if req.Body == nil {
 		return UpdateModelTag400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}

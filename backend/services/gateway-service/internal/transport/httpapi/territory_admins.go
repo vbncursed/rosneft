@@ -13,7 +13,10 @@ func forbiddenRoot() ForbiddenJSONResponse {
 	return ForbiddenJSONResponse{Code: apperr.SlugForbidden, Message: "root only"}
 }
 
-func (s *Server) GetTerritoryAdmins(ctx context.Context, req GetTerritoryAdminsRequestObject) (GetTerritoryAdminsResponseObject, error) {
+func (s *Server) GetTerritoryAdmins(
+	ctx context.Context,
+	req GetTerritoryAdminsRequestObject,
+) (GetTerritoryAdminsResponseObject, error) {
 	if !authhttp.IsOwner(ctx) {
 		return GetTerritoryAdmins403JSONResponse{ForbiddenJSONResponse: forbiddenRoot()}, nil
 	}
@@ -29,7 +32,10 @@ func (s *Server) GetTerritoryAdmins(ctx context.Context, req GetTerritoryAdminsR
 	return GetTerritoryAdmins200JSONResponse{UserIds: ids}, nil
 }
 
-func (s *Server) SetTerritoryAdmins(ctx context.Context, req SetTerritoryAdminsRequestObject) (SetTerritoryAdminsResponseObject, error) {
+func (s *Server) SetTerritoryAdmins(
+	ctx context.Context,
+	req SetTerritoryAdminsRequestObject,
+) (SetTerritoryAdminsResponseObject, error) {
 	if !authhttp.IsOwner(ctx) {
 		return SetTerritoryAdmins403JSONResponse{ForbiddenJSONResponse: forbiddenRoot()}, nil
 	}
@@ -52,7 +58,10 @@ func (s *Server) SetTerritoryAdmins(ctx context.Context, req SetTerritoryAdminsR
 // Root only, the same gate as GetTerritoryAdmins. The route is outside
 // /api/territories/{slug}, so the territory gate never sees it; the set comes
 // from the caller's scope, as on GET /api/territories.
-func (s *Server) ListTerritoryAdmins(ctx context.Context, _ ListTerritoryAdminsRequestObject) (ListTerritoryAdminsResponseObject, error) {
+func (s *Server) ListTerritoryAdmins(
+	ctx context.Context,
+	_ ListTerritoryAdminsRequestObject,
+) (ListTerritoryAdminsResponseObject, error) {
 	if !authhttp.IsOwner(ctx) {
 		return ListTerritoryAdmins403JSONResponse{ForbiddenJSONResponse: forbiddenRoot()}, nil
 	}

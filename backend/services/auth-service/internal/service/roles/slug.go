@@ -12,7 +12,11 @@ import (
 // createWithDerivedSlug derives a slug from the title and inserts the role,
 // suffixing "-2", "-3", … on collision. The DB unique constraint is the
 // race-safe backstop, so a concurrent insert that loses just retries.
-func (s *Service) createWithDerivedSlug(ctx context.Context, ownerAdminID, title string, permSlugs []string) (domain.Role, error) {
+func (s *Service) createWithDerivedSlug(
+	ctx context.Context,
+	ownerAdminID, title string,
+	permSlugs []string,
+) (domain.Role, error) {
 	base := slugify(title)
 	if base == "" {
 		base = "role" // ponytail: non-ASCII titles collapse to empty; slug is internal-only now, so "role"/"role-2" is fine
@@ -22,7 +26,10 @@ func (s *Service) createWithDerivedSlug(ctx context.Context, ownerAdminID, title
 		if i > 0 {
 			slug = fmt.Sprintf("%s-%d", base, i+1)
 		}
-		r, err := s.store.Create(ctx, domain.Role{Slug: slug, Title: title, PermissionSlugs: permSlugs, OwnerAdminID: ownerAdminID})
+		r, err := s.store.Create(
+			ctx,
+			domain.Role{Slug: slug, Title: title, PermissionSlugs: permSlugs, OwnerAdminID: ownerAdminID},
+		)
 		if errors.Is(err, domain.ErrRoleSlugTaken) && i < 100 {
 			continue
 		}

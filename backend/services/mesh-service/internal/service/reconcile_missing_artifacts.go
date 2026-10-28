@@ -43,8 +43,8 @@ const BackfillRetryAfter = 5 * time.Minute
 // (territory or model) that does not already have a LOD0 artifact, or whose
 // LOD0 has no plain GLB copy (the backfill for targets converted before the
 // compatible export existed: the ordinary job writes the copy). The backfill
-// goes one target per pass and only while no other job is live; a pass runs
-// every tick and right after each successful job.
+// goes one target per pass and only while no other job is live (so does the
+// failed-replace retry below); a pass runs every tick and right after each successful job.
 // Idempotent at the catalog level — re-running on a fully-converted catalog
 // is a no-op aside from the read pass.
 //
@@ -54,6 +54,14 @@ const BackfillRetryAfter = 5 * time.Minute
 // and the worker. Replacing the source does not wait for this tick: the
 // gateway calls SubmitConversion right after swapping the hash, and that never
 // consults the failed job, so such a target is not stranded.
+//
+// A converted target is also re-queued when its latest job failed for a
+// reason that is not the input's, was not a hidden backfill, and is
+// BackfillRetryAfter old, or is Running with no write inside TargetLockTTL (its
+// worker died): a replace-source conversion that died after LOD0 was published
+// has LOD0 and a plain copy, so HasLOD0 alone would never retry it, and
+// placements may wait on the rescale that job owed. A death before publishing
+// is the "no lod0" branch: the gateway deletes the old artifacts on replace.
 //
 // Trade-off: only input failures are skipped. Infrastructure failures (worker
 // killed mid-job, Redis or catalog blip) keep the old self-healing retry, and
@@ -82,9 +90,6 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 		if err != nil {
 			return queued, fmt.Errorf("service.ReconcileMissingArtifacts: check %s/%s: %w", t.Kind, t.Slug, err)
 		}
-		if has && hasPlain {
-			continue
-		}
 		if latest == nil {
 			latest = latestJobs(ctx, index)
 		}
@@ -92,20 +97,25 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 		if seen && last.Status == domain.JobStatusFailed && last.FailedOnSource {
 			continue
 		}
+		if has && hasPlain && !m.replaceFailed(last, seen) {
+			continue
+		}
+		// ponytail: one retry or backfill per pass, and only on an idle worker,
+		// so an upload never queues behind the whole catalog and no queued
+		// backfill outlives MaxQueueWait (which would queue it twice).
+		// The worker also runs a pass right after every successful job,
+		// so a succeeding backlog drains back to back: ceiling is one
+		// conversion per target (~1 min each), not 12 targets an hour.
+		// Targets whose latest job failed wait BackfillRetryAfter, so
+		// only a success drains at once.
+		if has && (queued > 0 || skewed || anyLive(ctx, index, m.liveNow)) {
+			continue
+		}
 		reason := "no lod0"
-		if has {
+		if has && hasPlain {
+			reason = "failed replace"
+		} else if has {
 			reason = "no plain copy"
-			// ponytail: one backfill per pass, and only on an idle worker, so
-			// an upload never queues behind the whole catalog and no queued
-			// backfill outlives MaxQueueWait (which would queue it twice).
-			// The worker also runs a pass right after every successful job,
-			// so a succeeding backlog drains back to back: ceiling is one
-			// conversion per target (~1 min each), not 12 targets an hour.
-			// Targets whose latest job failed wait BackfillRetryAfter, so
-			// only a success drains at once.
-			if queued > 0 || skewed || anyLive(ctx, index, m.liveNow) {
-				continue
-			}
 			if seen && m.now().Sub(last.UpdatedAt) < BackfillRetryAfter {
 				// Every conversion writes the plain copy, so one that just
 				// succeeded without it means the catalog drops plain_hash
@@ -174,5 +184,26 @@ func (m *Mesh) sweepIndex(ctx context.Context, targets []domain.ConversionTarget
 			continue
 		}
 		slog.InfoContext(ctx, "reconcile: forgot deleted target", "kind", j.Kind, "slug", j.Slug)
+	}
+}
+
+// replaceFailed reports whether a converted target's latest job is a failed,
+// user-visible conversion old enough to retry, or a Running one whose worker is
+// gone (no write inside TargetLockTTL: killed after LOD0 was registered, before
+// the rescale). Backfills are excluded (their failure is hidden and has its own
+// retry path) and so is a fresh failure, so a persistent infrastructure error
+// costs one job per BackfillRetryAfter. submit re-queues the abandoned Running
+// job once its claim has lapsed; a live one keeps its claim and is not touched.
+func (m *Mesh) replaceFailed(last domain.Job, seen bool) bool {
+	if !seen || last.Backfill {
+		return false
+	}
+	switch last.Status {
+	case domain.JobStatusFailed:
+		return m.now().Sub(last.UpdatedAt) >= BackfillRetryAfter
+	case domain.JobStatusRunning:
+		return m.now().Sub(last.UpdatedAt) >= TargetLockTTL
+	default:
+		return false
 	}
 }

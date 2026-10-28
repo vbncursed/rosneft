@@ -35,7 +35,10 @@ func (s *SceneBundleSuite) TestPlacementGroupsAreAlwaysASlice() {
 // Same rule as placements: the territory read owns the not-found answer.
 func (s *SceneBundleSuite) TestMissingTerritoryLeavesPlacementGroupsEmpty() {
 	s.expectFanOut(sbTerr3LOD, sbModelsM1, nil)
-	s.cat.ListPlacementGroupsMock.Return(nil, fmt.Errorf("catalog.ListPlacementGroups: %w", domain.ErrTerritoryNotFound))
+	s.cat.ListPlacementGroupsMock.Return(
+		nil,
+		fmt.Errorf("catalog.ListPlacementGroups: %w", domain.ErrTerritoryNotFound),
+	)
 
 	got, err := s.svc.GetSceneBundle(s.ctx, "t1", "")
 

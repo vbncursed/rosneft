@@ -28,7 +28,14 @@ func (s *ZonesSuite) SetupTest() {
 	mc := minimock.NewController(s.T())
 	s.cat = mocks.NewCatalogMock(mc)
 	s.con = mocks.NewContentMock(mc)
-	s.svc = service.New(s.cat, s.con, mocks.NewMeshMock(mc), mocks.NewUploadMock(mc), mocks.NewAuditMock(mc), mocks.NewAuthMock(mc))
+	s.svc = service.New(
+		s.cat,
+		s.con,
+		mocks.NewMeshMock(mc),
+		mocks.NewUploadMock(mc),
+		mocks.NewAuditMock(mc),
+		mocks.NewAuthMock(mc),
+	)
 	s.ctx = s.T().Context()
 }
 
@@ -113,7 +120,8 @@ func (s *ZonesSuite) TestCalibrationRefusesEmptySlugAndBadID() {
 }
 
 func (s *ZonesSuite) TestModelTagWritesForward() {
-	s.cat.CreateModelTagMock.Expect(s.ctx, "welding", "Welding").Return(domain.ModelTag{Slug: "welding", Title: "Welding"}, nil)
+	s.cat.CreateModelTagMock.Expect(s.ctx, "welding", "Welding").
+		Return(domain.ModelTag{Slug: "welding", Title: "Welding"}, nil)
 	s.cat.UpdateModelTagMock.Expect(s.ctx, "camp", "Camps").Return(domain.ModelTag{Slug: "camp", Title: "Camps"}, nil)
 
 	made, err := s.svc.CreateModelTag(s.ctx, "welding", "Welding")

@@ -37,7 +37,12 @@ func (c *Catalog) CreateZone(ctx context.Context, territorySlug string, z domain
 
 // UpdateZone retitles a zone and/or replaces its tags. An empty patch is
 // allowed and answers the stored zone.
-func (c *Catalog) UpdateZone(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch) (domain.Zone, error) {
+func (c *Catalog) UpdateZone(
+	ctx context.Context,
+	territorySlug string,
+	id int64,
+	p domain.ZonePatch,
+) (domain.Zone, error) {
 	if err := requireTerritory("UpdateZone", territorySlug); err != nil {
 		return domain.Zone{}, err
 	}

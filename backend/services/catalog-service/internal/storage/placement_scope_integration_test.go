@@ -56,8 +56,10 @@ func (s *PlacementScopeSuite) SetupSuite() {
 			`INSERT INTO territories (slug, title, source_blob_hash) VALUES ($1, $1, $1)`, slug)
 		assert.NilError(s.T(), err)
 	}
-	_, err = s.pool.Exec(ctx,
-		`INSERT INTO models (slug, title, source_blob_hash, tag_id) VALUES ('pump', 'pump', 'pump', (SELECT id FROM model_tags WHERE slug = 'ungrouped'))`)
+	_, err = s.pool.Exec(
+		ctx,
+		`INSERT INTO models (slug, title, source_blob_hash, tag_id) VALUES ('pump', 'pump', 'pump', (SELECT id FROM model_tags WHERE slug = 'ungrouped'))`,
+	)
 	assert.NilError(s.T(), err)
 }
 

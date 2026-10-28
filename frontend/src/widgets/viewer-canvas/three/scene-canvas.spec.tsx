@@ -55,7 +55,7 @@ vi.mock("./free-cam-rig", () => ({
   },
 }));
 vi.mock("./measurement-layer", async (orig) => {
-  const real = ((await orig()) as { default: ComponentType<Record<string, unknown>> }).default;
+  const real = (await orig<{ default: ComponentType<Record<string, unknown>> }>()).default;
   return {
     default: (p: Record<string, unknown>) => {
       seen.measure = p;
@@ -64,7 +64,7 @@ vi.mock("./measurement-layer", async (orig) => {
   };
 });
 vi.mock("./gltf-model", async (orig) => {
-  const real = ((await orig()) as { default: ComponentType<Record<string, unknown>> }).default;
+  const real = (await orig<{ default: ComponentType<Record<string, unknown>> }>()).default;
   return {
     default: (p: Record<string, unknown>) => {
       seen.gltf = p;
@@ -73,7 +73,7 @@ vi.mock("./gltf-model", async (orig) => {
   };
 });
 vi.mock("./panorama-scene", async (orig) => {
-  const real = ((await orig()) as { default: ComponentType<Record<string, unknown>> }).default;
+  const real = (await orig<{ default: ComponentType<Record<string, unknown>> }>()).default;
   return {
     default: (p: Record<string, unknown>) => {
       seen.panorama = p;
@@ -82,7 +82,7 @@ vi.mock("./panorama-scene", async (orig) => {
   };
 });
 vi.mock("./placements-layer", async (orig) => {
-  const real = ((await orig()) as { default: ComponentType<Record<string, unknown>> }).default;
+  const real = (await orig<{ default: ComponentType<Record<string, unknown>> }>()).default;
   return {
     default: (p: Record<string, unknown>) => {
       seen.layer = p;

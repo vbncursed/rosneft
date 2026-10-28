@@ -86,7 +86,10 @@ func (c *Client) ListModelArtifacts(ctx context.Context, slug string) ([]domain.
 func (c *Client) GetModelArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error) {
 	resp, err := c.cc.GetModelArtifact(ctx, &catalogv1.GetModelArtifactRequest{ModelSlug: slug, Lod: lod})
 	if err != nil {
-		return domain.Artifact{}, fmt.Errorf("catalog.GetModelArtifact: %w", grpcerr.MapStatus(err, domain.ErrArtifactNotFound))
+		return domain.Artifact{}, fmt.Errorf(
+			"catalog.GetModelArtifact: %w",
+			grpcerr.MapStatus(err, domain.ErrArtifactNotFound),
+		)
 	}
 	return modelArtifactFromProto(resp.GetArtifact()), nil
 }

@@ -57,7 +57,14 @@ func (s *ListTargetJobsSuite) TestPassesTheQueueErrorThrough() {
 func (s *ListTargetJobsSuite) TestHidesOnlyAFailedBackfill() {
 	jobs := []domain.Job{
 		{ID: "bf-failed", Kind: domain.KindTerritory, Slug: "a", Status: domain.JobStatusFailed, Backfill: true},
-		{ID: "bf-onsource", Kind: domain.KindTerritory, Slug: "b", Status: domain.JobStatusFailed, Backfill: true, FailedOnSource: true},
+		{
+			ID:             "bf-onsource",
+			Kind:           domain.KindTerritory,
+			Slug:           "b",
+			Status:         domain.JobStatusFailed,
+			Backfill:       true,
+			FailedOnSource: true,
+		},
 		{ID: "bf-pending", Kind: domain.KindTerritory, Slug: "c", Status: domain.JobStatusPending, Backfill: true},
 		{ID: "bf-running", Kind: domain.KindModel, Slug: "d", Status: domain.JobStatusRunning, Backfill: true},
 		{ID: "user-failed", Kind: domain.KindModel, Slug: "e", Status: domain.JobStatusFailed},

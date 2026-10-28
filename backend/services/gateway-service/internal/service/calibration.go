@@ -8,7 +8,12 @@ import (
 
 // PutDocumentCalibration replaces a document's calibration. Content checks the
 // page and point rules and scopes the document by territory slug.
-func (g *Gateway) PutDocumentCalibration(ctx context.Context, territorySlug string, id int64, c domain.Calibration) (domain.Calibration, error) {
+func (g *Gateway) PutDocumentCalibration(
+	ctx context.Context,
+	territorySlug string,
+	id int64,
+	c domain.Calibration,
+) (domain.Calibration, error) {
 	if err := checkAddress(territorySlug, id); err != nil {
 		return domain.Calibration{}, err
 	}

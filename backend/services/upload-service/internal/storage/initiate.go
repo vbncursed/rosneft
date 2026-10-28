@@ -43,11 +43,33 @@ func writeMeta(path string, s domain.Session) error {
 	if err != nil {
 		return fmt.Errorf("storage.writeMeta: marshal: %w", err)
 	}
-	if err := os.WriteFile(tmp, body, 0o600); err != nil {
+	if err := writeSynced(tmp, body); err != nil {
 		return fmt.Errorf("storage.writeMeta: write: %w", err)
 	}
 	if err := os.Rename(tmp, path); err != nil {
 		return fmt.Errorf("storage.writeMeta: rename: %w", err)
 	}
 	return nil
+}
+
+// writeSynced is os.WriteFile plus an fsync, so a rename that follows cannot
+// publish a file whose contents are still only in the page cache.
+func writeSynced(path string, body []byte) error {
+	f, err := os.OpenFile( //nolint:gosec // G304: path is derived from paths(), whose session id passed validateID (hex and dash only)
+		path,
+		os.O_WRONLY|os.O_CREATE|os.O_TRUNC,
+		0o600,
+	)
+	if err != nil {
+		return err
+	}
+	if _, err := f.Write(body); err != nil {
+		_ = f.Close()
+		return err
+	}
+	if err := f.Sync(); err != nil {
+		_ = f.Close()
+		return err
+	}
+	return f.Close()
 }

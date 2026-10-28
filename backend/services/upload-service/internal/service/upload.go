@@ -20,7 +20,11 @@ type SessionStore interface {
 	Initiate(ctx context.Context, id, owner string, size int64, contentType string) (domain.Session, error)
 	AppendChunk(ctx context.Context, id string, offset int64, data []byte) (int64, error)
 	GetStatus(ctx context.Context, id string) (domain.Session, error)
-	Finalize(ctx context.Context, id string, putBlob func(ctx context.Context, hash string, r io.Reader) error) (string, int64, error)
+	Finalize(
+		ctx context.Context,
+		id string,
+		putBlob func(ctx context.Context, hash string, r io.Reader) error,
+	) (string, int64, error)
 	Abort(ctx context.Context, id string) error
 	// RecordUpload remembers that owner finalized an upload with hash;
 	// HasUpload answers whether they ever did.

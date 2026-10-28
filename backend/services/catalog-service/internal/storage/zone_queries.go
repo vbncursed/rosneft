@@ -21,7 +21,15 @@ const zoneFrom = `FROM site_zones z JOIN territories t ON t.id = z.territory_id 
 func scanZone(r rowScanner) (domain.Zone, error) {
 	var z domain.Zone
 	var flat []float64
-	if err := r.Scan(&z.ID, &z.Title, &flat, &z.DrawingWidthM, &z.DrawingHeightM, &z.CreatedAt, &z.UpdatedAt); err != nil {
+	if err := r.Scan(
+		&z.ID,
+		&z.Title,
+		&flat,
+		&z.DrawingWidthM,
+		&z.DrawingHeightM,
+		&z.CreatedAt,
+		&z.UpdatedAt,
+	); err != nil {
 		return domain.Zone{}, err
 	}
 	points, err := domain.PointsFromFlat(flat)
@@ -125,7 +133,9 @@ func isZoneTitleTaken(err error) bool {
 // closure already chose passes through, a title clash is ErrInvalidInput.
 func zoneWriteError(op string, err error) error {
 	switch {
-	case errors.Is(err, domain.ErrInvalidInput), errors.Is(err, domain.ErrTerritoryNotFound), errors.Is(err, domain.ErrZoneNotFound):
+	case errors.Is(err, domain.ErrInvalidInput),
+		errors.Is(err, domain.ErrTerritoryNotFound),
+		errors.Is(err, domain.ErrZoneNotFound):
 		return err
 	case isZoneTitleTaken(err):
 		return fmt.Errorf("storage.%s: %w: a zone with this title already exists", op, domain.ErrInvalidInput)

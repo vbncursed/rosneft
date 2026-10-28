@@ -28,7 +28,17 @@ func (r *PG) loadCalibrations(ctx context.Context, documentIDs []int64) (map[int
 			p           domain.CalibrationPoint
 			utmE, utmN  *float64
 		)
-		if err := rows.Scan(&docID, &page, &p.PDFX, &p.PDFY, &p.Scene.X, &p.Scene.Y, &p.Scene.Z, &utmE, &utmN); err != nil {
+		if err := rows.Scan(
+			&docID,
+			&page,
+			&p.PDFX,
+			&p.PDFY,
+			&p.Scene.X,
+			&p.Scene.Y,
+			&p.Scene.Z,
+			&utmE,
+			&utmN,
+		); err != nil {
 			return nil, fmt.Errorf("scan: %w", err)
 		}
 		if utmE != nil && utmN != nil {

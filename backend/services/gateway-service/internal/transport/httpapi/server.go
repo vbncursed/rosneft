@@ -23,8 +23,16 @@ import (
 type Service interface {
 	ListTerritories(ctx context.Context, scopeAdminID string, withArtifacts bool) ([]domain.Territory, error)
 	GetTerritory(ctx context.Context, slug, scopeAdminID string) (domain.Territory, error)
-	CreateTerritory(ctx context.Context, t domain.Territory, scope domain.BlobScope) (domain.Territory, domain.Job, error)
-	ReplaceTerritorySource(ctx context.Context, slug, sourceBlobHash string, scope domain.BlobScope) (domain.Territory, domain.Job, error)
+	CreateTerritory(
+		ctx context.Context,
+		t domain.Territory,
+		scope domain.BlobScope,
+	) (domain.Territory, domain.Job, error)
+	ReplaceTerritorySource(
+		ctx context.Context,
+		slug, sourceBlobHash string,
+		scope domain.BlobScope,
+	) (domain.Territory, domain.Job, error)
 	UpdateTerritory(ctx context.Context, slug string, update domain.TerritoryUpdate) (domain.Territory, error)
 	DeleteTerritory(ctx context.Context, slug string) error
 	ListTerritoryArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)
@@ -37,24 +45,48 @@ type Service interface {
 	ListModels(ctx context.Context, withArtifacts bool) ([]domain.Model, error)
 	GetModel(ctx context.Context, slug string) (domain.Model, error)
 	CreateModel(ctx context.Context, m domain.Model, scope domain.BlobScope) (domain.Model, domain.Job, error)
-	UpdateModel(ctx context.Context, slug string, update domain.ModelUpdate, scope domain.BlobScope) (domain.Model, error)
+	UpdateModel(
+		ctx context.Context,
+		slug string,
+		update domain.ModelUpdate,
+		scope domain.BlobScope,
+	) (domain.Model, error)
 	DeleteModel(ctx context.Context, slug string) error
 	ListModelArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)
 	GetModelArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)
 
 	ListPlacements(ctx context.Context, territorySlug string) ([]domain.Placement, error)
 	CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
-	CreatePlacements(ctx context.Context, territorySlug, key string, items []domain.Placement) ([]domain.Placement, error)
+	CreatePlacements(
+		ctx context.Context,
+		territorySlug, key string,
+		items []domain.Placement,
+	) ([]domain.Placement, error)
 	UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
-	SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error)
+	SetPlacementVisibility(
+		ctx context.Context,
+		territorySlug string,
+		placementID int64,
+		panoramaIDs []int64,
+	) (domain.Placement, error)
 	DeletePlacement(ctx context.Context, territorySlug string, id int64) error
 
 	SetPlacementsHidden(ctx context.Context, territorySlug string, ids []int64, hidden bool) (int, error)
 	SetPlacementsGroup(ctx context.Context, territorySlug string, ids []int64, groupID *int64) (int, error)
 	CreatePlacementGroup(ctx context.Context, territorySlug, title string) (domain.PlacementGroup, error)
-	RenamePlacementGroup(ctx context.Context, territorySlug string, id int64, title string) (domain.PlacementGroup, error)
+	RenamePlacementGroup(
+		ctx context.Context,
+		territorySlug string,
+		id int64,
+		title string,
+	) (domain.PlacementGroup, error)
 	DeletePlacementGroup(ctx context.Context, territorySlug string, id int64) error
-	SetPlacementGroupHidden(ctx context.Context, territorySlug string, id int64, hidden bool) (domain.PlacementGroup, error)
+	SetPlacementGroupHidden(
+		ctx context.Context,
+		territorySlug string,
+		id int64,
+		hidden bool,
+	) (domain.PlacementGroup, error)
 
 	ListMeasurements(ctx context.Context, territorySlug string) ([]domain.Measurement, error)
 	CreateMeasurement(ctx context.Context, m domain.Measurement) (domain.Measurement, error)
@@ -73,7 +105,12 @@ type Service interface {
 	ListDocuments(ctx context.Context, territorySlug string) ([]domain.Document, error)
 	CreateDocument(ctx context.Context, d domain.Document, scope domain.BlobScope) (domain.Document, error)
 	DeleteDocument(ctx context.Context, territorySlug string, id int64) error
-	PutDocumentCalibration(ctx context.Context, territorySlug string, id int64, c domain.Calibration) (domain.Calibration, error)
+	PutDocumentCalibration(
+		ctx context.Context,
+		territorySlug string,
+		id int64,
+		c domain.Calibration,
+	) (domain.Calibration, error)
 	DeleteDocumentCalibration(ctx context.Context, territorySlug string, id int64) error
 
 	ListModelTags(ctx context.Context) ([]domain.ModelTag, error)
@@ -95,7 +132,13 @@ type Service interface {
 	//
 	// Neither derives the tenant from a request parameter — that comes from the
 	// session, or one Company Owner could read another's history.
-	ListAudit(ctx context.Context, q domain.AuditQuery, sc domain.AuditScope, token string, wantRefs bool) (domain.AuditPage, map[string]string, error)
+	ListAudit(
+		ctx context.Context,
+		q domain.AuditQuery,
+		sc domain.AuditScope,
+		token string,
+		wantRefs bool,
+	) (domain.AuditPage, map[string]string, error)
 	ListAuditActors(ctx context.Context, p domain.AuditPrincipal, token string) ([]domain.AuditActor, error)
 
 	// ResolveBlobAccess backs RequireBlobAccess. A blob hash addresses content

@@ -55,7 +55,10 @@ func (s *CalibrationSuite) SetupSuite() {
 	s.pool, err = pgxpool.New(ctx, dsn)
 	assert.NilError(s.T(), err)
 	s.pg = storage.New(s.pool)
-	_, err = s.pool.Exec(ctx, `INSERT INTO territories (slug, title, source_blob_hash) VALUES ('a','a','a'), ('b','b','b')`)
+	_, err = s.pool.Exec(
+		ctx,
+		`INSERT INTO territories (slug, title, source_blob_hash) VALUES ('a','a','a'), ('b','b','b')`,
+	)
 	assert.NilError(s.T(), err)
 }
 

@@ -10,9 +10,14 @@ import (
 // Both handlers pass req.Slug down: the territory gate authorised that slug
 // only, and content scopes the document id by it.
 
-func (s *Server) PutDocumentCalibration(ctx context.Context, req PutDocumentCalibrationRequestObject) (PutDocumentCalibrationResponseObject, error) {
+func (s *Server) PutDocumentCalibration(
+	ctx context.Context,
+	req PutDocumentCalibrationRequestObject,
+) (PutDocumentCalibrationResponseObject, error) {
 	if req.Body == nil {
-		return PutDocumentCalibration400JSONResponse{BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}}, nil
+		return PutDocumentCalibration400JSONResponse{
+			BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"},
+		}, nil
 	}
 	c, err := s.svc.PutDocumentCalibration(ctx, req.Slug, req.Id, calibrationFromAPI(*req.Body))
 	switch {
@@ -26,7 +31,10 @@ func (s *Server) PutDocumentCalibration(ctx context.Context, req PutDocumentCali
 	return PutDocumentCalibration200JSONResponse(*calibrationToAPI(&c)), nil
 }
 
-func (s *Server) DeleteDocumentCalibration(ctx context.Context, req DeleteDocumentCalibrationRequestObject) (DeleteDocumentCalibrationResponseObject, error) {
+func (s *Server) DeleteDocumentCalibration(
+	ctx context.Context,
+	req DeleteDocumentCalibrationRequestObject,
+) (DeleteDocumentCalibrationResponseObject, error) {
 	err := s.svc.DeleteDocumentCalibration(ctx, req.Slug, req.Id)
 	switch {
 	case isInvalid(err):

@@ -204,10 +204,15 @@ describe("createHandler", () => {
     expect(evict.mock.calls.length).toBeLessThanOrEqual(2);
   });
 
-  it("a session reset cancels the running saves first", async () => {
-    const h = await harness(async () => new Response("{}"));
+  it("a session reset cancels the running saves before the request goes out, and again when it is answered", async () => {
+    let seenAtSend = -1;
+    const h = await harness(async () => {
+      seenAtSend = h.reset.mock.calls.length;
+      return new Response("{}");
+    });
     await (await h.handle(req("/api/auth/logout", { method: "POST" }))).text();
-    expect(h.reset).toHaveBeenCalledTimes(1);
+    expect(seenAtSend).toBe(1);
+    expect(h.reset).toHaveBeenCalledTimes(2);
   });
 
   it("a shell file the generation lacks comes from Chromium's HTTP cache, and a miss fails", async () => {
@@ -334,6 +339,140 @@ describe("createHandler isolation", () => {
     await (await stale).text();
     expect(h.settings.value.userId).toBeNull();
     expect(await h.store.readSnapshot(A, "/api/auth/me")).toBeNull();
+  });
+
+  it("a logout in flight does not let a /me sent before it was processed hand the cache back", async () => {
+    let releaseMe: (r: Response) => void = noop;
+    let releaseOut: (r: Response) => void = noop;
+    const h = await harness((r) => {
+      const p = new URL(r.url).pathname;
+      if (p === "/api/auth/logout") return new Promise<Response>((res) => (releaseOut = res));
+      return new Promise<Response>((res) => (releaseMe = res));
+    });
+    const out = h.handle(req("/api/auth/logout", { method: "POST" }));
+    await vi.waitFor(() => expect(h.net).toHaveBeenCalledTimes(1));
+    // Sent after the reset began, before the server processed the logout: still the old cookie.
+    const stale = h.handle(req("/api/auth/me"));
+    await vi.waitFor(() => expect(h.net).toHaveBeenCalledTimes(2));
+    releaseOut(new Response("{}"));
+    await (await out).text();
+    releaseMe(me(A));
+    await (await stale).text();
+    expect(h.settings.value.userId).toBeNull();
+    expect(await h.store.readSnapshot(A, "/api/auth/me")).toBeNull();
+  });
+
+  it("a /me answered 200 between the logout being sent and its answer does not leave the user learned", async () => {
+    let releaseOut: (r: Response) => void = noop;
+    const h = await harness((r) =>
+      new URL(r.url).pathname === "/api/auth/logout"
+        ? new Promise<Response>((res) => (releaseOut = res))
+        : Promise.resolve(me(A)),
+    );
+    const out = h.handle(req("/api/auth/logout", { method: "POST" }));
+    await vi.waitFor(() => expect(h.net).toHaveBeenCalledTimes(1));
+    // Old cookie, answered before the logout: born in the reset's epoch, so it learns A.
+    await (await h.handle(req("/api/auth/me"))).text();
+    releaseOut(new Response("{}"));
+    await (await out).text();
+    expect(h.settings.value.userId).toBeNull();
+  });
+
+  it("a logout that fails on the network still leaves no user learned", async () => {
+    let failOut: (e: unknown) => void = noop;
+    const h = await harness((r) =>
+      new URL(r.url).pathname === "/api/auth/logout"
+        ? new Promise<Response>((_, rej) => (failOut = rej))
+        : Promise.resolve(me(A)),
+    );
+    const out = h.handle(req("/api/auth/logout", { method: "POST" }));
+    await vi.waitFor(() => expect(h.net).toHaveBeenCalledTimes(1));
+    await (await h.handle(req("/api/auth/me"))).text();
+    failOut(new TypeError("net::ERR_CONNECTION_RESET"));
+    await out;
+    expect(h.settings.value.userId).toBeNull();
+  });
+
+  it("the /me after a login answer still learns the new user", async () => {
+    const h = await harness(async (r) => (new URL(r.url).pathname === "/api/auth/login" ? new Response("{}") : me(B)));
+    await (await h.handle(req("/api/auth/login", { method: "POST", body: "{}" }))).text();
+    expect(h.settings.value.userId).toBeNull();
+    await (await h.handle(req("/api/auth/me"))).text();
+    expect(h.settings.value.userId).toBe(B);
+    expect(await h.store.readSnapshot(B, "/api/auth/me")).not.toBeNull();
+  });
+
+  it("a stale 401 on /api/auth/me, answered after the login reset, does not clear the user learned since", async () => {
+    let releaseStale: (r: Response) => void = noop;
+    let meCalls = 0;
+    const h = await harness((r) => {
+      const p = new URL(r.url).pathname;
+      if (p === "/api/auth/login") return Promise.resolve(new Response("{}"));
+      return ++meCalls === 1 ? new Promise<Response>((res) => (releaseStale = res)) : Promise.resolve(me(B));
+    });
+    const stale = h.handle(req("/api/auth/me"));
+    await vi.waitFor(() => expect(h.net).toHaveBeenCalledTimes(1));
+    await (await h.handle(req("/api/auth/login", { method: "POST", body: "{}" }))).text();
+    await (await h.handle(req("/api/auth/me"))).text();
+    expect(h.settings.value.userId).toBe(B);
+    releaseStale(new Response("{}", { status: 401 }));
+    expect((await stale).status).toBe(401);
+    expect(h.settings.value.userId).toBe(B);
+  });
+
+  it("a login answered after a /me that carried the new cookie clears the user, and the next /me learns it again", async () => {
+    let releaseLogin: (r: Response) => void = noop;
+    const h = await harness(
+      (r) =>
+        new URL(r.url).pathname === "/api/auth/login"
+          ? new Promise<Response>((res) => (releaseLogin = res))
+          : Promise.resolve(me(B)),
+      null,
+    );
+    const login = h.handle(req("/api/auth/login", { method: "POST", body: "{}" }));
+    await vi.waitFor(() => expect(h.net).toHaveBeenCalledTimes(1));
+    await (await h.handle(req("/api/auth/me"))).text();
+    expect(h.settings.value.userId).toBe(B);
+    releaseLogin(new Response("{}"));
+    await (await login).text();
+    expect(h.settings.value.userId).toBeNull();
+    await (await h.handle(req("/api/auth/me"))).text();
+    expect(h.settings.value.userId).toBe(B);
+    expect(await h.store.readSnapshot(B, "/api/auth/me")).not.toBeNull();
+  });
+
+  it("a 401 on /api/auth/me while already signed out does not rewrite settings.json", async () => {
+    const h = await harness(async () => new Response("{}", { status: 401 }), null);
+    const update = vi.spyOn(h.settings, "update");
+    expect((await h.handle(req("/api/auth/me"))).status).toBe(401);
+    expect(update).not.toHaveBeenCalled();
+    expect(h.reset).toHaveBeenCalledTimes(1);
+  });
+
+  it("a 401 on /api/auth/me ends the session: cached blobs are no longer served, saves are cancelled", async () => {
+    const hash = sha("A's model");
+    const h = await harness(async (r) =>
+      new URL(r.url).pathname === "/api/auth/me"
+        ? new Response("{}", { status: 401 })
+        : new Response("gateway says no", { status: 404 }),
+    );
+    await h.store.writeBlob(A, hash, "model/gltf-binary", new Response("A's model").body as ReadableStream<Uint8Array>);
+    expect((await h.handle(req("/api/auth/me"))).status).toBe(401);
+    expect(h.settings.value.userId).toBeNull();
+    expect(h.reset).toHaveBeenCalledTimes(1);
+    h.net.mockClear();
+    const res = await h.handle(req(`/api/assets/${hash}`));
+    expect(res.status).toBe(404);
+    expect(h.net).toHaveBeenCalledTimes(1);
+  });
+
+  it("with no network the cache still serves, whatever /me last said", async () => {
+    const hash = sha("A's model");
+    const h = await harness(offline);
+    await h.store.writeBlob(A, hash, "model/gltf-binary", new Response("A's model").body as ReadableStream<Uint8Array>);
+    expect((await h.handle(req("/api/auth/me"))).type).toBe("error");
+    expect(h.settings.value.userId).toBe(A);
+    expect(await (await h.handle(req(`/api/assets/${hash}`))).text()).toBe("A's model");
   });
 
   it("serves a cached blob, even text/html, with the sandbox CSP and nosniff", async () => {

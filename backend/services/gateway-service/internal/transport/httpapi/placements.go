@@ -9,7 +9,10 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
-func (s *Server) ListPlacements(ctx context.Context, req ListPlacementsRequestObject) (ListPlacementsResponseObject, error) {
+func (s *Server) ListPlacements(
+	ctx context.Context,
+	req ListPlacementsRequestObject,
+) (ListPlacementsResponseObject, error) {
 	out, err := s.svc.ListPlacements(ctx, req.Slug)
 	switch {
 	case isInvalid(err):
@@ -26,7 +29,10 @@ func (s *Server) ListPlacements(ctx context.Context, req ListPlacementsRequestOb
 	return resp, nil
 }
 
-func (s *Server) CreatePlacement(ctx context.Context, req CreatePlacementRequestObject) (CreatePlacementResponseObject, error) {
+func (s *Server) CreatePlacement(
+	ctx context.Context,
+	req CreatePlacementRequestObject,
+) (CreatePlacementResponseObject, error) {
 	if req.Body == nil {
 		return CreatePlacement400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
@@ -46,7 +52,10 @@ func (s *Server) CreatePlacement(ctx context.Context, req CreatePlacementRequest
 // is documentation only, the generated wrapper does not enforce it.
 var idempotencyKey = regexp.MustCompile(`^[A-Za-z0-9-]{1,64}$`)
 
-func (s *Server) CreatePlacements(ctx context.Context, req CreatePlacementsRequestObject) (CreatePlacementsResponseObject, error) {
+func (s *Server) CreatePlacements(
+	ctx context.Context,
+	req CreatePlacementsRequestObject,
+) (CreatePlacementsResponseObject, error) {
 	if req.Body == nil {
 		return CreatePlacements400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
@@ -82,7 +91,10 @@ func (s *Server) CreatePlacements(ctx context.Context, req CreatePlacementsReque
 	return resp, nil
 }
 
-func (s *Server) UpdatePlacement(ctx context.Context, req UpdatePlacementRequestObject) (UpdatePlacementResponseObject, error) {
+func (s *Server) UpdatePlacement(
+	ctx context.Context,
+	req UpdatePlacementRequestObject,
+) (UpdatePlacementResponseObject, error) {
 	if req.Body == nil {
 		return UpdatePlacement400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
@@ -110,7 +122,10 @@ func (s *Server) UpdatePlacement(ctx context.Context, req UpdatePlacementRequest
 	return UpdatePlacement200JSONResponse(placementToAPI(p)), nil
 }
 
-func (s *Server) SetPlacementVisibility(ctx context.Context, req SetPlacementVisibilityRequestObject) (SetPlacementVisibilityResponseObject, error) {
+func (s *Server) SetPlacementVisibility(
+	ctx context.Context,
+	req SetPlacementVisibilityRequestObject,
+) (SetPlacementVisibilityResponseObject, error) {
 	if req.Body == nil {
 		return SetPlacementVisibility400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
@@ -126,7 +141,10 @@ func (s *Server) SetPlacementVisibility(ctx context.Context, req SetPlacementVis
 	return SetPlacementVisibility200JSONResponse(placementToAPI(p)), nil
 }
 
-func (s *Server) DeletePlacement(ctx context.Context, req DeletePlacementRequestObject) (DeletePlacementResponseObject, error) {
+func (s *Server) DeletePlacement(
+	ctx context.Context,
+	req DeletePlacementRequestObject,
+) (DeletePlacementResponseObject, error) {
 	err := s.svc.DeletePlacement(ctx, req.Slug, req.Id)
 	switch {
 	case isNotFound(err):

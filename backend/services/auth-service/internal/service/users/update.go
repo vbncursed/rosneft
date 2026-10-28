@@ -10,7 +10,14 @@ import (
 // An empty set removes every role (an empty proto repeated arrives as nil, so we
 // must not treat nil as "no change"); the Root flag is managed separately via
 // SetOwner. Email/username edits are out of v1 scope (reserved in the proto).
-func (s *Service) Update(ctx context.Context, actorID string, scopeAll bool, id string, roleSlugs []string, _, _ string) (domain.User, error) {
+func (s *Service) Update(
+	ctx context.Context,
+	actorID string,
+	scopeAll bool,
+	id string,
+	roleSlugs []string,
+	_, _ string,
+) (domain.User, error) {
 	if _, err := s.ownership(ctx, actorID, scopeAll, id); err != nil {
 		return domain.User{}, err
 	}

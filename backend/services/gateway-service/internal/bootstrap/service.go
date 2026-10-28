@@ -16,6 +16,13 @@ import (
 // auth joins the list for one reason: the journal's actor and company columns are
 // user ids, and only auth can turn them into logins. User administration still
 // goes through authhttp, not through here.
-func InitService(cat *catalog.Client, con *content.Client, m *mesh.Client, up *upload.Client, aud *audit.Client, aut *auth.Client) *service.Gateway {
+func InitService(
+	cat *catalog.Client,
+	con *content.Client,
+	m *mesh.Client,
+	up *upload.Client,
+	aud *audit.Client,
+	aut *auth.Client,
+) *service.Gateway {
 	return service.New(cat, con, m, up, aud, aut)
 }

@@ -24,13 +24,22 @@ type Service interface {
 
 	SetPanoramasHidden(ctx context.Context, territorySlug string, ids []int64, hidden bool) (int, error)
 	SetPanoramasPhase(ctx context.Context, territorySlug string, ids []int64, phase string) (int, error)
-	SetPanoramaPhaseHidden(ctx context.Context, territorySlug, phase string, hidden bool) (domain.PanoramaPhaseVisibility, error)
+	SetPanoramaPhaseHidden(
+		ctx context.Context,
+		territorySlug, phase string,
+		hidden bool,
+	) (domain.PanoramaPhaseVisibility, error)
 	ListPanoramaPhases(ctx context.Context, territorySlug string) ([]domain.PanoramaPhaseVisibility, error)
 
 	ListDocuments(ctx context.Context, territorySlug string) ([]domain.Document, error)
 	CreateDocument(ctx context.Context, d domain.Document) (domain.Document, error)
 	DeleteDocument(ctx context.Context, territorySlug string, id int64) error
-	PutCalibration(ctx context.Context, territorySlug string, docID int64, c domain.Calibration) (domain.Calibration, error)
+	PutCalibration(
+		ctx context.Context,
+		territorySlug string,
+		docID int64,
+		c domain.Calibration,
+	) (domain.Calibration, error)
 	DeleteCalibration(ctx context.Context, territorySlug string, docID int64) error
 }
 

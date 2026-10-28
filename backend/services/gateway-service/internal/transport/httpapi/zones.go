@@ -22,7 +22,9 @@ func (s *Server) ListZones(ctx context.Context, req ListZonesRequestObject) (Lis
 
 func (s *Server) CreateZone(ctx context.Context, req CreateZoneRequestObject) (CreateZoneResponseObject, error) {
 	if req.Body == nil {
-		return CreateZone400JSONResponse{BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}}, nil
+		return CreateZone400JSONResponse{
+			BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"},
+		}, nil
 	}
 	z, err := s.svc.CreateZone(ctx, req.Slug, zoneCreateFromAPI(*req.Body))
 	switch {
@@ -38,7 +40,9 @@ func (s *Server) CreateZone(ctx context.Context, req CreateZoneRequestObject) (C
 
 func (s *Server) UpdateZone(ctx context.Context, req UpdateZoneRequestObject) (UpdateZoneResponseObject, error) {
 	if req.Body == nil {
-		return UpdateZone400JSONResponse{BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}}, nil
+		return UpdateZone400JSONResponse{
+			BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"},
+		}, nil
 	}
 	z, err := s.svc.UpdateZone(ctx, req.Slug, req.Id, zonePatchFromAPI(*req.Body))
 	switch {

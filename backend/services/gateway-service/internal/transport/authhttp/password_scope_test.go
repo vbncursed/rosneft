@@ -47,7 +47,11 @@ func (s *SetUserPasswordSuite) TestRefusesATargetHoldingATerritoryTheCallerCanno
 	rec := s.putAs(stub, cat, delegate, pw)
 
 	assert.Equal(s.T(), rec.Code, http.StatusForbidden)
-	assert.Assert(s.T(), strings.Contains(rec.Body.String(), "you cannot grant access you do not have yourself"), rec.Body.String())
+	assert.Assert(
+		s.T(),
+		strings.Contains(rec.Body.String(), "you cannot grant access you do not have yourself"),
+		rec.Body.String(),
+	)
 	assert.Equal(s.T(), len(stub.got), 0, "the password must not change")
 }
 
@@ -66,7 +70,12 @@ func (s *SetUserPasswordSuite) TestAllowsATargetWhoseTerritoriesTheCallerAllSees
 func (s *SetUserPasswordSuite) TestRootSkipsTheComparison() {
 	stub := newPasswordAuth(nil)
 
-	rec := s.putAs(stub, catalogScopes{err: errors.New("catalog down")}, TestPrincipal{UserID: "root", IsOwner: true}, pw)
+	rec := s.putAs(
+		stub,
+		catalogScopes{err: errors.New("catalog down")},
+		TestPrincipal{UserID: "root", IsOwner: true},
+		pw,
+	)
 
 	assert.Equal(s.T(), rec.Code, http.StatusNoContent)
 }
@@ -108,7 +117,11 @@ func (s *SetUserPasswordSuite) TestAnOutOfScopeTargetReadsAsMissing() {
 // users:read_all reaches a member of another company, and a member's territories
 // are its Company Owner's, not ones keyed to its own id. Comparing the raw id
 // found none and let the reset through.
-var readAll = TestPrincipal{UserID: "auditor", Perms: []string{"users:write", "users:read_all"}, OwningAdmin: "company-a"}
+var readAll = TestPrincipal{
+	UserID:      "auditor",
+	Perms:       []string{"users:write", "users:read_all"},
+	OwningAdmin: "company-a",
+}
 
 func (s *SetUserPasswordSuite) TestReadAllIsRefusedForAMemberOfACompanyItCannotSee() {
 	stub := newPasswordAuth(nil)

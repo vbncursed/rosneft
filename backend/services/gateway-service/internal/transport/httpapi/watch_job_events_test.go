@@ -58,7 +58,9 @@ func (w *watchServiceStub) GetTerritory(_ context.Context, slug, _ string) (doma
 // The same 404-shaped refusal the territory routes give: a scoped caller who
 // cannot see the territory gets "job not found", never a 403 that confirms it.
 func (s *WatchJobEventsSuite) TestScopedFetchHidesAnotherTenantsTerritoryJob() {
-	stub := &watchServiceStub{job: domain.Job{ID: "j1", Kind: domain.KindTerritory, Slug: "theirs", Status: domain.JobStatusRunning}}
+	stub := &watchServiceStub{
+		job: domain.Job{ID: "j1", Kind: domain.KindTerritory, Slug: "theirs", Status: domain.JobStatusRunning},
+	}
 	srv := New(stub)
 	ctx := authhttp.NewTestContext(context.Background(), false, "admin-1")
 	_, err := srv.scopedJob(ctx, "j1")
@@ -67,16 +69,23 @@ func (s *WatchJobEventsSuite) TestScopedFetchHidesAnotherTenantsTerritoryJob() {
 }
 
 func (s *WatchJobEventsSuite) TestScopedFetchPassesOwnTerritoryModelsAndRoot() {
-	own := &watchServiceStub{job: domain.Job{ID: "j1", Kind: domain.KindTerritory, Slug: "mine", Status: domain.JobStatusRunning}, visible: map[string]bool{"mine": true}}
+	own := &watchServiceStub{
+		job:     domain.Job{ID: "j1", Kind: domain.KindTerritory, Slug: "mine", Status: domain.JobStatusRunning},
+		visible: map[string]bool{"mine": true},
+	}
 	_, err := New(own).scopedJob(authhttp.NewTestContext(context.Background(), false, "admin-1"), "j1")
 	assert.NilError(s.T(), err)
 
-	model := &watchServiceStub{job: domain.Job{ID: "j2", Kind: domain.KindModel, Slug: "pump", Status: domain.JobStatusRunning}}
+	model := &watchServiceStub{
+		job: domain.Job{ID: "j2", Kind: domain.KindModel, Slug: "pump", Status: domain.JobStatusRunning},
+	}
 	_, err = New(model).scopedJob(authhttp.NewTestContext(context.Background(), false, "admin-1"), "j2")
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(model.lookedUp), 0, "a model never asks the catalog")
 
-	root := &watchServiceStub{job: domain.Job{ID: "j3", Kind: domain.KindTerritory, Slug: "theirs", Status: domain.JobStatusRunning}}
+	root := &watchServiceStub{
+		job: domain.Job{ID: "j3", Kind: domain.KindTerritory, Slug: "theirs", Status: domain.JobStatusRunning},
+	}
 	_, err = New(root).scopedJob(authhttp.NewTestContext(context.Background(), true, ""), "j3")
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(root.lookedUp), 0, "Root skips the lookup")
@@ -86,7 +95,9 @@ func (s *WatchJobEventsSuite) TestScopedFetchPassesOwnTerritoryModelsAndRoot() {
 // does: passing "" to the catalog disables its tenant filter, so the lookup
 // would resolve any territory and hand back its job.
 func (s *WatchJobEventsSuite) TestScopedFetchRefusesAPrincipalWithoutACompany() {
-	stub := &watchServiceStub{job: domain.Job{ID: "j1", Kind: domain.KindTerritory, Slug: "theirs", Status: domain.JobStatusRunning}}
+	stub := &watchServiceStub{
+		job: domain.Job{ID: "j1", Kind: domain.KindTerritory, Slug: "theirs", Status: domain.JobStatusRunning},
+	}
 	_, err := New(stub).scopedJob(authhttp.NewTestContext(context.Background(), false, ""), "j1")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrJobNotFound))
 	assert.Equal(s.T(), len(stub.lookedUp), 0, "an unscoped principal must be refused before the lookup")

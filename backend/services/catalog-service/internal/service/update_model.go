@@ -19,7 +19,11 @@ func (c *Catalog) UpdateModel(ctx context.Context, slug string, p domain.ModelPa
 		}
 	}
 	if p.TagSlug != nil && *p.TagSlug == "" {
-		return domain.Model{}, fmt.Errorf("service.UpdateModel: %w: unknown model tag %q", domain.ErrInvalidInput, *p.TagSlug)
+		return domain.Model{}, fmt.Errorf(
+			"service.UpdateModel: %w: unknown model tag %q",
+			domain.ErrInvalidInput,
+			*p.TagSlug,
+		)
 	}
 	return c.repo.UpdateModel(ctx, slug, p)
 }

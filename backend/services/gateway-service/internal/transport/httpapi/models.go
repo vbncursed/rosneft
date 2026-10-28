@@ -79,7 +79,10 @@ func (s *Server) DeleteModel(ctx context.Context, req DeleteModelRequestObject) 
 	return DeleteModel204Response{}, nil
 }
 
-func (s *Server) ListModelArtifacts(ctx context.Context, req ListModelArtifactsRequestObject) (ListModelArtifactsResponseObject, error) {
+func (s *Server) ListModelArtifacts(
+	ctx context.Context,
+	req ListModelArtifactsRequestObject,
+) (ListModelArtifactsResponseObject, error) {
 	out, err := s.svc.ListModelArtifacts(ctx, req.Slug)
 	switch {
 	case isNotFound(err):
@@ -94,7 +97,10 @@ func (s *Server) ListModelArtifacts(ctx context.Context, req ListModelArtifactsR
 	return resp, nil
 }
 
-func (s *Server) GetModelArtifact(ctx context.Context, req GetModelArtifactRequestObject) (GetModelArtifactResponseObject, error) {
+func (s *Server) GetModelArtifact(
+	ctx context.Context,
+	req GetModelArtifactRequestObject,
+) (GetModelArtifactResponseObject, error) {
 	if req.Lod < 0 {
 		return GetModelArtifact404JSONResponse{NotFoundJSONResponse: notFoundResp(domain.ErrArtifactNotFound)}, nil
 	}

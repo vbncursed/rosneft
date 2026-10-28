@@ -33,11 +33,17 @@ func (s *ModelTagsSuite) TestListKeepsTheCatalogsOrder() {
 	resp, err := New(tagService{}).ListModelTags(s.T().Context(), ListModelTagsRequestObject{})
 
 	assert.NilError(s.T(), err)
-	assert.DeepEqual(s.T(), resp, ListModelTags200JSONResponse{{Slug: "camp", Title: "Camp"}, {Slug: "ungrouped", Title: "Ungrouped"}})
+	assert.DeepEqual(
+		s.T(),
+		resp,
+		ListModelTags200JSONResponse{{Slug: "camp", Title: "Camp"}, {Slug: "ungrouped", Title: "Ungrouped"}},
+	)
 }
 
 func (s *ModelTagsSuite) TestFailureIsTheGeneric500() {
-	resp, err := New(tagService{err: errors.New("catalog down at 10.0.0.7")}).ListModelTags(s.T().Context(), ListModelTagsRequestObject{})
+	resp, err := New(
+		tagService{err: errors.New("catalog down at 10.0.0.7")},
+	).ListModelTags(s.T().Context(), ListModelTagsRequestObject{})
 
 	assert.NilError(s.T(), err)
 	code, body := rendered(s.T(), resp.VisitListModelTagsResponse)
@@ -96,7 +102,9 @@ func (s *ModelTagsSuite) TestWriteRefusalsAreAt4xxWithTheSentinelWords() {
 	assert.Equal(s.T(), code, http.StatusBadRequest)
 	assert.Assert(s.T(), strings.Contains(body, "the ungrouped tag cannot be changed"), body)
 
-	resp, err = New(&tagWriteService{err: domain.ErrModelTagNotFound}).UpdateModelTag(s.T().Context(), UpdateModelTagRequestObject{
+	resp, err = New(
+		&tagWriteService{err: domain.ErrModelTagNotFound},
+	).UpdateModelTag(s.T().Context(), UpdateModelTagRequestObject{
 		Slug: "nope", Body: &UpdateModelTagJSONRequestBody{Title: "X"},
 	})
 	assert.NilError(s.T(), err)

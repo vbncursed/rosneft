@@ -16,7 +16,11 @@ type territoryPatchRecorder struct {
 	got *domain.TerritoryUpdate
 }
 
-func (r territoryPatchRecorder) UpdateTerritory(_ context.Context, _ string, u domain.TerritoryUpdate) (domain.Territory, error) {
+func (r territoryPatchRecorder) UpdateTerritory(
+	_ context.Context,
+	_ string,
+	u domain.TerritoryUpdate,
+) (domain.Territory, error) {
 	*r.got = u
 	return domain.Territory{Slug: "yard"}, nil
 }

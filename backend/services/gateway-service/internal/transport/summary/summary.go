@@ -92,7 +92,12 @@ func Handler(counts Counts, logger *slog.Logger) http.HandlerFunc {
 		ctx := r.Context()
 		params, ok := parseParams(r)
 		if !ok {
-			apperr.Write(w, http.StatusBadRequest, apperr.SlugInvalidInput, "tzOffset must be whole minutes within ±840")
+			apperr.Write(
+				w,
+				http.StatusBadRequest,
+				apperr.SlugInvalidInput,
+				"tzOffset must be whole minutes within ±840",
+			)
 			return
 		}
 		p := principal{owner: authhttp.IsOwner(ctx), perms: authhttp.Perms(ctx)}

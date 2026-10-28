@@ -17,8 +17,16 @@ func (s *RoutePermsSuite) TestZoneRoutesNeedZoneWrite() {
 		{http.MethodPost, "/api/territories/{slug}/zones", "/api/territories/yard/zones"},
 		{http.MethodPatch, "/api/territories/{slug}/zones/{id}", "/api/territories/yard/zones/7"},
 		{http.MethodDelete, "/api/territories/{slug}/zones/{id}", "/api/territories/yard/zones/7"},
-		{http.MethodPut, "/api/territories/{slug}/documents/{id}/calibration", "/api/territories/yard/documents/9/calibration"},
-		{http.MethodDelete, "/api/territories/{slug}/documents/{id}/calibration", "/api/territories/yard/documents/9/calibration"},
+		{
+			http.MethodPut,
+			"/api/territories/{slug}/documents/{id}/calibration",
+			"/api/territories/yard/documents/9/calibration",
+		},
+		{
+			http.MethodDelete,
+			"/api/territories/{slug}/documents/{id}/calibration",
+			"/api/territories/yard/documents/9/calibration",
+		},
 	}
 	ok := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Pattern", chi.RouteContext(r.Context()).RoutePattern())

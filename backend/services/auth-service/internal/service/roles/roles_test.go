@@ -73,7 +73,8 @@ func (s *RolesSuite) TestDeleteForwardsScope() {
 
 // A non-owner cannot create a role carrying a permission it does not hold.
 func (s *RolesSuite) TestCreateBlocksEscalation() {
-	s.actors.GetByIDMock.Expect(s.ctx, "editor").Return(domain.User{ID: "editor", Permissions: []string{"placement:write"}}, nil)
+	s.actors.GetByIDMock.Expect(s.ctx, "editor").
+		Return(domain.User{ID: "editor", Permissions: []string{"placement:write"}}, nil)
 	_, err := s.svc.Create(s.ctx, "editor", "", "super", "Super", []string{"territory:write"})
 	assert.ErrorIs(s.T(), err, domain.ErrPrivilegeEscalation)
 }
@@ -89,7 +90,8 @@ func (s *RolesSuite) TestCreateOwnerBypasses() {
 
 // SetPermissions is the other escalation vector and is guarded the same way.
 func (s *RolesSuite) TestSetPermissionsBlocksEscalation() {
-	s.actors.GetByIDMock.Expect(s.ctx, "editor").Return(domain.User{ID: "editor", Permissions: []string{"placement:write"}}, nil)
+	s.actors.GetByIDMock.Expect(s.ctx, "editor").
+		Return(domain.User{ID: "editor", Permissions: []string{"placement:write"}}, nil)
 	_, err := s.svc.SetPermissions(s.ctx, "editor", "viewer", []string{"model:delete"}, "", false)
 	assert.ErrorIs(s.T(), err, domain.ErrPrivilegeEscalation)
 }
@@ -97,7 +99,8 @@ func (s *RolesSuite) TestSetPermissionsBlocksEscalation() {
 // A rename that carries grants is checked like SetPermissions: the PATCH must
 // not become the way around the escalation guard.
 func (s *RolesSuite) TestUpdateWithGrantsBlocksEscalation() {
-	s.actors.GetByIDMock.Expect(s.ctx, "editor").Return(domain.User{ID: "editor", Permissions: []string{"placement:write"}}, nil)
+	s.actors.GetByIDMock.Expect(s.ctx, "editor").
+		Return(domain.User{ID: "editor", Permissions: []string{"placement:write"}}, nil)
 	_, err := s.svc.Update(s.ctx, "editor", domain.RoleUpdate{
 		Slug: "viewer", Title: "Viewer", PermissionSlugs: []string{"model:delete"}, ReplacePermissions: true,
 	}, "", false)

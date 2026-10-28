@@ -8,7 +8,10 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
 )
 
-func (s *Server) ListTerritories(ctx context.Context, _ ListTerritoriesRequestObject) (ListTerritoriesResponseObject, error) {
+func (s *Server) ListTerritories(
+	ctx context.Context,
+	_ ListTerritoriesRequestObject,
+) (ListTerritoriesResponseObject, error) {
 	scopeAdminID, allAccess := authhttp.Scope(ctx)
 	if !allAccess && scopeAdminID == "" {
 		return ListTerritories200JSONResponse{}, nil // fail-closed: scoped caller with no resolvable admin sees nothing
@@ -40,7 +43,10 @@ func (s *Server) GetTerritory(ctx context.Context, req GetTerritoryRequestObject
 	return GetTerritory200JSONResponse(territoryToAPI(t)), nil
 }
 
-func (s *Server) CreateTerritory(ctx context.Context, req CreateTerritoryRequestObject) (CreateTerritoryResponseObject, error) {
+func (s *Server) CreateTerritory(
+	ctx context.Context,
+	req CreateTerritoryRequestObject,
+) (CreateTerritoryResponseObject, error) {
 	if req.Body == nil {
 		return CreateTerritory400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
@@ -54,7 +60,10 @@ func (s *Server) CreateTerritory(ctx context.Context, req CreateTerritoryRequest
 	return CreateTerritory202JSONResponse{Territory: territoryToAPI(t), Job: jobToAPI(job)}, nil
 }
 
-func (s *Server) ReplaceTerritorySource(ctx context.Context, req ReplaceTerritorySourceRequestObject) (ReplaceTerritorySourceResponseObject, error) {
+func (s *Server) ReplaceTerritorySource(
+	ctx context.Context,
+	req ReplaceTerritorySourceRequestObject,
+) (ReplaceTerritorySourceResponseObject, error) {
 	if req.Body == nil {
 		return ReplaceTerritorySource400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
@@ -70,7 +79,10 @@ func (s *Server) ReplaceTerritorySource(ctx context.Context, req ReplaceTerritor
 	return ReplaceTerritorySource202JSONResponse{Territory: territoryToAPI(t), Job: jobToAPI(job)}, nil
 }
 
-func (s *Server) UpdateTerritory(ctx context.Context, req UpdateTerritoryRequestObject) (UpdateTerritoryResponseObject, error) {
+func (s *Server) UpdateTerritory(
+	ctx context.Context,
+	req UpdateTerritoryRequestObject,
+) (UpdateTerritoryResponseObject, error) {
 	if req.Body == nil {
 		return UpdateTerritory400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
@@ -90,7 +102,10 @@ func (s *Server) UpdateTerritory(ctx context.Context, req UpdateTerritoryRequest
 	return UpdateTerritory200JSONResponse(territoryToAPI(t)), nil
 }
 
-func (s *Server) DeleteTerritory(ctx context.Context, req DeleteTerritoryRequestObject) (DeleteTerritoryResponseObject, error) {
+func (s *Server) DeleteTerritory(
+	ctx context.Context,
+	req DeleteTerritoryRequestObject,
+) (DeleteTerritoryResponseObject, error) {
 	err := s.svc.DeleteTerritory(ctx, req.Slug)
 	switch {
 	case isNotFound(err):
@@ -101,7 +116,10 @@ func (s *Server) DeleteTerritory(ctx context.Context, req DeleteTerritoryRequest
 	return DeleteTerritory204Response{}, nil
 }
 
-func (s *Server) ListTerritoryArtifacts(ctx context.Context, req ListTerritoryArtifactsRequestObject) (ListTerritoryArtifactsResponseObject, error) {
+func (s *Server) ListTerritoryArtifacts(
+	ctx context.Context,
+	req ListTerritoryArtifactsRequestObject,
+) (ListTerritoryArtifactsResponseObject, error) {
 	out, err := s.svc.ListTerritoryArtifacts(ctx, req.Slug)
 	switch {
 	case isNotFound(err):
@@ -116,7 +134,10 @@ func (s *Server) ListTerritoryArtifacts(ctx context.Context, req ListTerritoryAr
 	return resp, nil
 }
 
-func (s *Server) GetTerritoryArtifact(ctx context.Context, req GetTerritoryArtifactRequestObject) (GetTerritoryArtifactResponseObject, error) {
+func (s *Server) GetTerritoryArtifact(
+	ctx context.Context,
+	req GetTerritoryArtifactRequestObject,
+) (GetTerritoryArtifactResponseObject, error) {
 	if req.Lod < 0 {
 		return GetTerritoryArtifact404JSONResponse{NotFoundJSONResponse: notFoundResp(domain.ErrArtifactNotFound)}, nil
 	}
@@ -130,7 +151,10 @@ func (s *Server) GetTerritoryArtifact(ctx context.Context, req GetTerritoryArtif
 	return GetTerritoryArtifact200JSONResponse(artifactToAPI(a, false)), nil
 }
 
-func (s *Server) GetSceneBundle(ctx context.Context, req GetSceneBundleRequestObject) (GetSceneBundleResponseObject, error) {
+func (s *Server) GetSceneBundle(
+	ctx context.Context,
+	req GetSceneBundleRequestObject,
+) (GetSceneBundleResponseObject, error) {
 	scopeAdminID, allAccess := authhttp.Scope(ctx)
 	if !allAccess && scopeAdminID == "" {
 		return GetSceneBundle404JSONResponse{NotFoundJSONResponse: notFoundResp(domain.ErrTerritoryNotFound)}, nil

@@ -3,7 +3,7 @@ import { Readable } from "node:stream";
 import { withBlobCsp, withCsp } from "./csp";
 import { offlineResponse } from "./offline-page";
 import { parseRange } from "./range";
-import { classify, serverUnreachable, type Route } from "./route";
+import { classify, endsSession, serverUnreachable, type Route } from "./route";
 import type { SettingsFile } from "./settings";
 import type { Shell } from "./shell";
 import type { Store } from "./store";
@@ -44,12 +44,20 @@ export function fileResponse(file: string, size: number, type: string, range: st
 
 export function createHandler(d: InterceptDeps): (req: Request) => Promise<Response> {
   let online: boolean | null = null;
-  // Bumped on every session reset: a /me that was in flight across one belongs to the old session.
+  // Bumped (and the user cleared) when a session reset starts and again when its answer arrives: a /me in flight anywhere in that window belongs to the old session, and one answered inside it must not leave its user learned.
   let epoch = 0;
   const seen = (now: boolean) => {
     if (now === online) return;
     online = now;
     d.connectivity(now);
+  };
+
+  // The cache owner is unknown from here until the next /me names one.
+  const endSession = async () => {
+    epoch += 1;
+    d.onSessionReset();
+    // Already signed out (login / 2FA screens poll /me): nothing to clear, so no settings.json rewrite.
+    if (d.settings.value.userId !== null) await d.settings.update({ userId: null });
   };
 
   // One eviction at a time per user; a download finishing meanwhile asks for exactly one more run.
@@ -77,11 +85,7 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
     if (url.origin !== d.origin) return d.network(req);
     const route = classify(req.method, url);
     const asset = url.pathname.startsWith("/api/assets/");
-    if (route.kind === "session-reset") {
-      epoch += 1;
-      d.onSessionReset();
-      await d.settings.update({ userId: null });
-    }
+    if (route.kind === "session-reset") await endSession();
     // Only the gateway speaks for connectivity: shell files may be answered from Chromium's HTTP cache.
     const gateway = url.pathname === "/api" || url.pathname.startsWith("/api/");
     const born = epoch;
@@ -96,6 +100,7 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
     let res: Response;
     try {
       res = await d.network(req);
+      if (route.kind === "session-reset") await endSession();
       if (gateway && serverUnreachable(res.status)) {
         // A dead backend is offline whichever route asked; a saved copy, where the route has one, replaces its answer.
         seen(false);
@@ -107,11 +112,14 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
         }
       } else if (gateway) seen(true);
     } catch {
+      if (route.kind === "session-reset") await endSession();
       // A request the page itself cancelled says nothing about the network.
       if (req.signal.aborted) return Response.error();
       if (gateway) seen(false);
       return secure(asset, await fallback(d, route, user, req));
     }
+    // The gateway itself says the session is over (expired, frozen, revoked): a cached blob must not outlive it.
+    if (endsSession(route, res.status, epoch === born)) await endSession();
     return secure(asset, await afterNetwork(d, route, user, req, res, () => epoch === born, scheduleEvict));
   };
 }

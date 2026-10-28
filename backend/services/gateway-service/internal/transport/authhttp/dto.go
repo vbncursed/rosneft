@@ -104,7 +104,12 @@ type roleJSON struct {
 }
 
 func roleToJSON(r *authv1.Role) roleJSON {
-	return roleJSON{Slug: r.GetSlug(), Title: r.GetTitle(), IsSystem: r.GetIsSystem(), PermissionSlugs: r.GetPermissionSlugs()}
+	return roleJSON{
+		Slug:            r.GetSlug(),
+		Title:           r.GetTitle(),
+		IsSystem:        r.GetIsSystem(),
+		PermissionSlugs: r.GetPermissionSlugs(),
+	}
 }
 
 func rolesToJSON(in []*authv1.Role) []roleJSON {

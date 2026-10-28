@@ -46,7 +46,8 @@ func TestListUsersPassesTheSessionsRootFlag(t *testing.T) {
 func TestGetUserCarriesTheTerritoryScope(t *testing.T) {
 	mc := minimock.NewController(t)
 	auth, users := mocks.NewAuthFlowMock(mc), mocks.NewUsersSvcMock(mc)
-	auth.ValidateTokenMock.Expect(t.Context(), "tok").Return("u1", []string{"users:read_all"}, false, "", "", false, nil)
+	auth.ValidateTokenMock.Expect(t.Context(), "tok").
+		Return("u1", []string{"users:read_all"}, false, "", "", false, nil)
 	member := domain.User{ID: "m1", RoleSlugs: []string{"viewer"}}
 	users.GetMock.Expect(t.Context(), "u1", true, "m1").Return(member, nil)
 	auth.TerritoryScopeMock.Expect(t.Context(), member).Return("co-b", nil)

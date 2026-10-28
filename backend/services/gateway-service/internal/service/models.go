@@ -22,7 +22,11 @@ func (g *Gateway) GetModel(ctx context.Context, slug string) (domain.Model, erro
 }
 
 // CreateModel creates the model in the catalog and queues a conversion job.
-func (g *Gateway) CreateModel(ctx context.Context, m domain.Model, scope domain.BlobScope) (domain.Model, domain.Job, error) {
+func (g *Gateway) CreateModel(
+	ctx context.Context,
+	m domain.Model,
+	scope domain.BlobScope,
+) (domain.Model, domain.Job, error) {
 	if err := validateEntity(m.Title, m.SourceBlobHash); err != nil {
 		return domain.Model{}, domain.Job{}, err
 	}
@@ -50,7 +54,12 @@ func (g *Gateway) CreateModel(ctx context.Context, m domain.Model, scope domain.
 // UpdateModel patches a model's mutable fields by slug without touching the
 // source archive or re-queuing a conversion. The catalog writes only the
 // non-nil fields — see UpdateTerritory.
-func (g *Gateway) UpdateModel(ctx context.Context, slug string, update domain.ModelUpdate, scope domain.BlobScope) (domain.Model, error) {
+func (g *Gateway) UpdateModel(
+	ctx context.Context,
+	slug string,
+	update domain.ModelUpdate,
+	scope domain.BlobScope,
+) (domain.Model, error) {
 	if slug == "" {
 		return domain.Model{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
 	}

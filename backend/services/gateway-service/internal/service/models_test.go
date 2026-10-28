@@ -30,7 +30,14 @@ func (s *ModelsSuite) SetupTest() {
 	mc := minimock.NewController(s.T())
 	s.cat = mocks.NewCatalogMock(mc)
 	s.mesh = mocks.NewMeshMock(mc)
-	s.svc = service.New(s.cat, mocks.NewContentMock(mc), s.mesh, mocks.NewUploadMock(mc), mocks.NewAuditMock(mc), mocks.NewAuthMock(mc))
+	s.svc = service.New(
+		s.cat,
+		mocks.NewContentMock(mc),
+		s.mesh,
+		mocks.NewUploadMock(mc),
+		mocks.NewAuditMock(mc),
+		mocks.NewAuthMock(mc),
+	)
 	s.ctx = s.T().Context()
 }
 
@@ -54,7 +61,11 @@ var camp = domain.ModelTag{Slug: "camp"}
 // check, catalog call or conversion (none is expected, so any would fail).
 func (s *ModelsSuite) TestCreateRefusesAMissingTagSlug() {
 	for _, slug := range []string{"", "   "} {
-		_, _, err := s.svc.CreateModel(s.ctx, domain.Model{Title: "Box", SourceBlobHash: "h", Tag: domain.ModelTag{Slug: slug}}, rootScope)
+		_, _, err := s.svc.CreateModel(
+			s.ctx,
+			domain.Model{Title: "Box", SourceBlobHash: "h", Tag: domain.ModelTag{Slug: slug}},
+			rootScope,
+		)
 		assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
 	}
 }
@@ -118,7 +129,12 @@ func (s *ModelsSuite) TestUpdateTrimsTheTitleAndDescription() {
 	s.cat.UpdateModelMock.Expect(s.ctx, "m1", domain.ModelUpdate{Title: new("Crate"), Description: new("")}).
 		Return(domain.Model{Slug: "m1", Title: "Crate"}, nil)
 
-	_, err := s.svc.UpdateModel(s.ctx, "m1", domain.ModelUpdate{Title: new("  Crate "), Description: new("   ")}, rootScope)
+	_, err := s.svc.UpdateModel(
+		s.ctx,
+		"m1",
+		domain.ModelUpdate{Title: new("  Crate "), Description: new("   ")},
+		rootScope,
+	)
 	assert.NilError(s.T(), err)
 }
 
@@ -131,7 +147,16 @@ func (s *ModelsSuite) TestCreateRefusesABlankTitleAndTrimsTheRest() {
 	want := domain.Model{Title: "Box", Description: "Steel", SourceBlobHash: "h", Tag: camp}
 	s.cat.UpsertModelMock.Expect(s.ctx, want).Return(domain.Model{Slug: "box", Title: "Box"}, nil)
 	s.mesh.SubmitConversionMock.Return(domain.Job{ID: "job-1"}, nil)
-	_, _, err = s.svc.CreateModel(s.ctx, domain.Model{Title: " Box ", Description: " Steel\n", SourceBlobHash: "h", Tag: domain.ModelTag{Slug: " camp "}}, rootScope)
+	_, _, err = s.svc.CreateModel(
+		s.ctx,
+		domain.Model{
+			Title:          " Box ",
+			Description:    " Steel\n",
+			SourceBlobHash: "h",
+			Tag:            domain.ModelTag{Slug: " camp "},
+		},
+		rootScope,
+	)
 	assert.NilError(s.T(), err)
 }
 

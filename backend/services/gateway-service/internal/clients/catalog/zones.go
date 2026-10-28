@@ -63,7 +63,12 @@ func (c *Client) CreateZone(ctx context.Context, territorySlug string, z domain.
 
 // UpdateZone writes the title when p sets one and replaces the tags when
 // p.SetTags is true.
-func (c *Client) UpdateZone(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch) (domain.Zone, error) {
+func (c *Client) UpdateZone(
+	ctx context.Context,
+	territorySlug string,
+	id int64,
+	p domain.ZonePatch,
+) (domain.Zone, error) {
 	resp, err := c.cc.UpdateZone(ctx, &catalogv1.UpdateZoneRequest{
 		TerritorySlug: territorySlug,
 		Id:            id,

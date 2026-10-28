@@ -39,8 +39,12 @@ func pair(utmE, utmN *float64) *contentv1.CalibrationPoint {
 func (s *CalibrationSuite) TestPutRefusesHalfAUTM() {
 	e := 5.0
 	_, err := s.srv.PutDocumentCalibration(s.ctx, &contentv1.PutDocumentCalibrationRequest{
-		TerritorySlug: "a", DocumentId: 1,
-		Calibration: &contentv1.Calibration{Page: 1, Points: []*contentv1.CalibrationPoint{pair(&e, nil), pair(nil, nil)}},
+		TerritorySlug: "a",
+		DocumentId:    1,
+		Calibration: &contentv1.Calibration{
+			Page:   1,
+			Points: []*contentv1.CalibrationPoint{pair(&e, nil), pair(nil, nil)},
+		},
 	})
 	assert.Equal(s.T(), status.Code(err), codes.InvalidArgument)
 }
@@ -54,8 +58,12 @@ func (s *CalibrationSuite) TestPutRoundTripsUTM() {
 	s.repo.PutDocumentCalibrationMock.Expect(minimock.AnyContext, "a", 1, want).Return(want, nil)
 
 	got, err := s.srv.PutDocumentCalibration(s.ctx, &contentv1.PutDocumentCalibrationRequest{
-		TerritorySlug: "a", DocumentId: 1,
-		Calibration: &contentv1.Calibration{Page: 2, Points: []*contentv1.CalibrationPoint{pair(&e, &n), pair(nil, nil)}},
+		TerritorySlug: "a",
+		DocumentId:    1,
+		Calibration: &contentv1.Calibration{
+			Page:   2,
+			Points: []*contentv1.CalibrationPoint{pair(&e, &n), pair(nil, nil)},
+		},
 	})
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), got.GetCalibration().GetPoints()[0].GetUtmN(), 6.0)
@@ -64,6 +72,9 @@ func (s *CalibrationSuite) TestPutRoundTripsUTM() {
 
 func (s *CalibrationSuite) TestForeignDocumentIsNotFound() {
 	s.repo.DeleteDocumentCalibrationMock.Expect(minimock.AnyContext, "b", 1).Return(domain.ErrDocumentNotFound)
-	_, err := s.srv.DeleteDocumentCalibration(s.ctx, &contentv1.DeleteDocumentCalibrationRequest{TerritorySlug: "b", DocumentId: 1})
+	_, err := s.srv.DeleteDocumentCalibration(
+		s.ctx,
+		&contentv1.DeleteDocumentCalibrationRequest{TerritorySlug: "b", DocumentId: 1},
+	)
 	assert.Equal(s.T(), status.Code(err), codes.NotFound)
 }

@@ -83,9 +83,15 @@ func rendered(t *testing.T, visit func(http.ResponseWriter) error) (int, string)
 
 func (s *ZonesSuite) TestCreateAnswers201WithTheZoneShape() {
 	w := 30.5
-	resp, err := s.srv.CreateZone(s.T().Context(), CreateZoneRequestObject{Slug: "yard", Body: &CreateZoneJSONRequestBody{
-		Title: "Camp", Corners: []Vec3{{X: 1}, {X: 2}, {X: 3}, {X: 4}}, TagSlugs: []string{"camp"}, DrawingWidthM: &w,
-	}})
+	resp, err := s.srv.CreateZone(
+		s.T().Context(),
+		CreateZoneRequestObject{Slug: "yard", Body: &CreateZoneJSONRequestBody{
+			Title:         "Camp",
+			Corners:       []Vec3{{X: 1}, {X: 2}, {X: 3}, {X: 4}},
+			TagSlugs:      []string{"camp"},
+			DrawingWidthM: &w,
+		}},
+	)
 
 	assert.NilError(s.T(), err)
 	code, body := rendered(s.T(), resp.VisitCreateZoneResponse)

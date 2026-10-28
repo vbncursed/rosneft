@@ -15,6 +15,18 @@ const setPanoramasPhaseQuery = `
 // SetPanoramasPhase moves every panorama in ids on territorySlug into phase,
 // all or none, and answers how many it wrote. A panorama moved into a hidden
 // phase is hidden by it; its own flag is left alone.
-func (r *PG) SetPanoramasPhase(ctx context.Context, territorySlug string, ids []int64, phase domain.PanoramaPhase) (int, error) {
-	return r.updatePanoramas(ctx, "storage.SetPanoramasPhase", setPanoramasPhaseQuery, territorySlug, ids, string(phase))
+func (r *PG) SetPanoramasPhase(
+	ctx context.Context,
+	territorySlug string,
+	ids []int64,
+	phase domain.PanoramaPhase,
+) (int, error) {
+	return r.updatePanoramas(
+		ctx,
+		"storage.SetPanoramasPhase",
+		setPanoramasPhaseQuery,
+		territorySlug,
+		ids,
+		string(phase),
+	)
 }

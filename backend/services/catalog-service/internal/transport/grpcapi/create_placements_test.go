@@ -71,7 +71,8 @@ func (s *CreatePlacementsSuite) TestARefusedItemNamesItsIndexAndNothingElse() {
 	} {
 		s.Run(tc.name, func() {
 			s.svc.CreatePlacementsMock.Return(nil, tc.err)
-			_, err := grpcapi.New(s.svc).CreatePlacements(s.T().Context(), &catalogv1.CreatePlacementsRequest{TerritorySlug: "yard"})
+			_, err := grpcapi.New(s.svc).
+				CreatePlacements(s.T().Context(), &catalogv1.CreatePlacementsRequest{TerritorySlug: "yard"})
 			assert.Equal(s.T(), status.Code(err), tc.code)
 			assert.Equal(s.T(), status.Convert(err).Message(), tc.msg)
 		})
@@ -101,7 +102,8 @@ func (s *CreatePlacementsSuite) TestABatchRefusalCarriesNoFunctionNames() {
 	} {
 		s.Run(tc.name, func() {
 			s.svc.CreatePlacementsMock.Return(nil, tc.err)
-			_, err := grpcapi.New(s.svc).CreatePlacements(s.T().Context(), &catalogv1.CreatePlacementsRequest{TerritorySlug: "yard"})
+			_, err := grpcapi.New(s.svc).
+				CreatePlacements(s.T().Context(), &catalogv1.CreatePlacementsRequest{TerritorySlug: "yard"})
 			assert.Equal(s.T(), status.Code(err), tc.code)
 			assert.Equal(s.T(), status.Convert(err).Message(), tc.msg)
 		})
@@ -110,6 +112,7 @@ func (s *CreatePlacementsSuite) TestABatchRefusalCarriesNoFunctionNames() {
 
 func (s *CreatePlacementsSuite) TestAnUnknownTerritoryIsNotFound() {
 	s.svc.CreatePlacementsMock.Return(nil, domain.ErrTerritoryNotFound)
-	_, err := grpcapi.New(s.svc).CreatePlacements(s.T().Context(), &catalogv1.CreatePlacementsRequest{TerritorySlug: "yard"})
+	_, err := grpcapi.New(s.svc).
+		CreatePlacements(s.T().Context(), &catalogv1.CreatePlacementsRequest{TerritorySlug: "yard"})
 	assert.Equal(s.T(), status.Code(err), codes.NotFound)
 }

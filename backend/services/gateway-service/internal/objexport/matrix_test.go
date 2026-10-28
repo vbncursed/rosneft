@@ -20,7 +20,13 @@ func TestMatrixSuite(t *testing.T) { suite.Run(t, new(MatrixSuite)) }
 
 // bake exports one triangle whose first vertex is p (the others sit at the
 // origin) and returns its OBJ. pl and d tweak the placement and the document.
-func (s *MatrixSuite) bake(p [3]float32, uv [][2]float32, opts Options, pl func(*glbexport.Placement), d func(*gltf.Document)) string {
+func (s *MatrixSuite) bake(
+	p [3]float32,
+	uv [][2]float32,
+	opts Options,
+	pl func(*glbexport.Placement),
+	d func(*gltf.Document),
+) string {
 	m := tri(p, [3]float32{}, [3]float32{})
 	m.uv = uv
 	doc, bin := docOf(m)
@@ -81,7 +87,13 @@ func (s *MatrixSuite) near(l string, want [3]float64) {
 }
 
 func (s *MatrixSuite) TestRotationXMovesYToZ() {
-	obj := s.bake([3]float32{0, 1, 0}, nil, testOpts(), func(p *glbexport.Placement) { p.Rotation = [3]float64{math.Pi / 2, 0, 0} }, nil)
+	obj := s.bake(
+		[3]float32{0, 1, 0},
+		nil,
+		testOpts(),
+		func(p *glbexport.Placement) { p.Rotation = [3]float64{math.Pi / 2, 0, 0} },
+		nil,
+	)
 
 	l := line(obj, "v ")
 	assert.Assert(s.T(), !strings.Contains(l, "e"), l)
@@ -89,7 +101,13 @@ func (s *MatrixSuite) TestRotationXMovesYToZ() {
 }
 
 func (s *MatrixSuite) TestEulerOrderIsXYZ() {
-	obj := s.bake([3]float32{1, 0, 0}, nil, testOpts(), func(p *glbexport.Placement) { p.Rotation = [3]float64{math.Pi / 2, 0, math.Pi / 2} }, nil)
+	obj := s.bake(
+		[3]float32{1, 0, 0},
+		nil,
+		testOpts(),
+		func(p *glbexport.Placement) { p.Rotation = [3]float64{math.Pi / 2, 0, math.Pi / 2} },
+		nil,
+	)
 
 	s.near(line(obj, "v "), [3]float64{0, -1, 0})
 }
@@ -106,7 +124,13 @@ func (s *MatrixSuite) TestNonUniformScaleAndTranslation() {
 func (s *MatrixSuite) TestMirroredNodeReversesFaces() {
 	uv := [][2]float32{{0, 0}, {1, 0}, {0, 1}}
 
-	obj := s.bake([3]float32{1, 2, 3}, uv, testOpts(), nil, func(d *gltf.Document) { d.Nodes[0].Scale = [3]float64{-1, 1, 1} })
+	obj := s.bake(
+		[3]float32{1, 2, 3},
+		uv,
+		testOpts(),
+		nil,
+		func(d *gltf.Document) { d.Nodes[0].Scale = [3]float64{-1, 1, 1} },
+	)
 
 	assert.Equal(s.T(), line(obj, "v "), "v -1 -3 2")
 	assert.Equal(s.T(), line(obj, "f "), "f 3/3 2/2 1/1")
@@ -181,9 +205,21 @@ func (s *MatrixSuite) TestArithmeticIsUnfused() {
 		q := [4]float64{num(), num(), num(), num()}
 		sc := [3]float64{num(), num(), num()}
 		r := [3][3]float64{
-			{1 - 2*(float64(q[1]*q[1])+float64(q[2]*q[2])), 2 * (float64(q[0]*q[1]) - float64(q[2]*q[3])), 2 * (float64(q[0]*q[2]) + float64(q[1]*q[3]))},
-			{2 * (float64(q[0]*q[1]) + float64(q[2]*q[3])), 1 - 2*(float64(q[0]*q[0])+float64(q[2]*q[2])), 2 * (float64(q[1]*q[2]) - float64(q[0]*q[3]))},
-			{2 * (float64(q[0]*q[2]) - float64(q[1]*q[3])), 2 * (float64(q[1]*q[2]) + float64(q[0]*q[3])), 1 - 2*(float64(q[0]*q[0])+float64(q[1]*q[1]))},
+			{
+				1 - 2*(float64(q[1]*q[1])+float64(q[2]*q[2])),
+				2 * (float64(q[0]*q[1]) - float64(q[2]*q[3])),
+				2 * (float64(q[0]*q[2]) + float64(q[1]*q[3])),
+			},
+			{
+				2 * (float64(q[0]*q[1]) + float64(q[2]*q[3])),
+				1 - 2*(float64(q[0]*q[0])+float64(q[2]*q[2])),
+				2 * (float64(q[1]*q[2]) - float64(q[0]*q[3])),
+			},
+			{
+				2 * (float64(q[0]*q[2]) - float64(q[1]*q[3])),
+				2 * (float64(q[1]*q[2]) + float64(q[0]*q[3])),
+				1 - 2*(float64(q[0]*q[0])+float64(q[1]*q[1])),
+			},
 		}
 		got := trs([3]float64{x, y, z}, q, sc)
 		for c := range 3 {

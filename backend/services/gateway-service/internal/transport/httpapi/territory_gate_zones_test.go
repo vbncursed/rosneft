@@ -16,7 +16,9 @@ import (
 // territory 404 before any handler. The stub has no zone method, so a request
 // that got past the gate would panic instead of passing.
 func (s *TerritoryGateSuite) TestTerritoryGateCoversZonesAndCalibration() {
-	srv := New(gateServiceStub{territory: func(context.Context, string, string) error { return domain.ErrTerritoryNotFound }})
+	srv := New(
+		gateServiceStub{territory: func(context.Context, string, string) error { return domain.ErrTerritoryNotFound }},
+	)
 	r := chi.NewRouter()
 	r.Group(func(api chi.Router) {
 		api.Use(func(next http.Handler) http.Handler {

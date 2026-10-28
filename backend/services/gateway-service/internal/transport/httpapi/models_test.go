@@ -24,7 +24,12 @@ type modelPatchRecorder struct {
 	got *domain.ModelUpdate
 }
 
-func (r modelPatchRecorder) UpdateModel(_ context.Context, _ string, u domain.ModelUpdate, _ domain.BlobScope) (domain.Model, error) {
+func (r modelPatchRecorder) UpdateModel(
+	_ context.Context,
+	_ string,
+	u domain.ModelUpdate,
+	_ domain.BlobScope,
+) (domain.Model, error) {
 	*r.got = u
 	return domain.Model{Slug: "pump"}, nil
 }
@@ -69,8 +74,18 @@ func TestCreateModelWithoutTagSlugIs400(t *testing.T) {
 func TestCreateModelUnknownTagIs400English(t *testing.T) {
 	mc := minimock.NewController(t)
 	cat := mocks.NewCatalogMock(mc)
-	cat.UpsertModelMock.Return(domain.Model{}, grpcerr.Refusal{Msg: "invalid input: unknown model tag", Sentinel: domain.ErrInvalidInput})
-	svc := service.New(cat, mocks.NewContentMock(mc), mocks.NewMeshMock(mc), mocks.NewUploadMock(mc), mocks.NewAuditMock(mc), mocks.NewAuthMock(mc))
+	cat.UpsertModelMock.Return(
+		domain.Model{},
+		grpcerr.Refusal{Msg: "invalid input: unknown model tag", Sentinel: domain.ErrInvalidInput},
+	)
+	svc := service.New(
+		cat,
+		mocks.NewContentMock(mc),
+		mocks.NewMeshMock(mc),
+		mocks.NewUploadMock(mc),
+		mocks.NewAuditMock(mc),
+		mocks.NewAuthMock(mc),
+	)
 	body := CreateModelJSONRequestBody{Title: "Cabin", SourceBlobHash: modelHash, TagSlug: "nope"}
 
 	resp, err := New(svc).CreateModel(rootCtx(t), CreateModelRequestObject{Body: &body})
@@ -86,7 +101,11 @@ type modelTagRecorder struct {
 	created domain.Model
 }
 
-func (m *modelTagRecorder) CreateModel(_ context.Context, in domain.Model, _ domain.BlobScope) (domain.Model, domain.Job, error) {
+func (m *modelTagRecorder) CreateModel(
+	_ context.Context,
+	in domain.Model,
+	_ domain.BlobScope,
+) (domain.Model, domain.Job, error) {
 	m.created = in
 	in.Tag.Title = "Camp & accommodation"
 	return in, domain.Job{}, nil
@@ -110,7 +129,9 @@ func TestUpdateModelForwardsTheTagSlug(t *testing.T) {
 	var got domain.ModelUpdate
 	body := UpdateModelJSONRequestBody{TagSlug: new("power")}
 
-	_, err := New(modelPatchRecorder{got: &got}).UpdateModel(t.Context(), UpdateModelRequestObject{Slug: "pump", Body: &body})
+	_, err := New(
+		modelPatchRecorder{got: &got},
+	).UpdateModel(t.Context(), UpdateModelRequestObject{Slug: "pump", Body: &body})
 
 	assert.NilError(t, err)
 	assert.DeepEqual(t, got, domain.ModelUpdate{TagSlug: new("power")})

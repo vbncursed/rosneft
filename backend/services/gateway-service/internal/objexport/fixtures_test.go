@@ -61,12 +61,18 @@ func docOf(specs ...mesh) (*gltf.Document, []byte) {
 	var bin []byte
 	view := func(data []byte, stride int) *int {
 		bin = align4(bin)
-		doc.BufferViews = append(doc.BufferViews, &gltf.BufferView{ByteOffset: len(bin), ByteLength: len(data), ByteStride: stride})
+		doc.BufferViews = append(
+			doc.BufferViews,
+			&gltf.BufferView{ByteOffset: len(bin), ByteLength: len(data), ByteStride: stride},
+		)
 		bin = append(bin, data...)
 		return new(len(doc.BufferViews) - 1)
 	}
 	acc := func(v *int, off int, c gltf.ComponentType, t gltf.AccessorType, n int) int {
-		doc.Accessors = append(doc.Accessors, &gltf.Accessor{BufferView: v, ByteOffset: off, ComponentType: c, Type: t, Count: n})
+		doc.Accessors = append(
+			doc.Accessors,
+			&gltf.Accessor{BufferView: v, ByteOffset: off, ComponentType: c, Type: t, Count: n},
+		)
 		return len(doc.Accessors) - 1
 	}
 	for _, m := range specs {

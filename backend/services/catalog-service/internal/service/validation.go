@@ -54,9 +54,19 @@ func validateMeasurement(m domain.Measurement) error {
 	case m.TerritorySlug == "":
 		return fmt.Errorf("%w: empty territory slug", domain.ErrInvalidInput)
 	case len(m.Points) < minPoints:
-		return fmt.Errorf("%w: a chain needs at least %d points, got %d", domain.ErrInvalidInput, minPoints, len(m.Points))
+		return fmt.Errorf(
+			"%w: a chain needs at least %d points, got %d",
+			domain.ErrInvalidInput,
+			minPoints,
+			len(m.Points),
+		)
 	case len(m.Points) > maxMeasurementPoints:
-		return fmt.Errorf("%w: a chain holds at most %d points, got %d", domain.ErrInvalidInput, maxMeasurementPoints, len(m.Points))
+		return fmt.Errorf(
+			"%w: a chain holds at most %d points, got %d",
+			domain.ErrInvalidInput,
+			maxMeasurementPoints,
+			len(m.Points),
+		)
 	}
 	for i, p := range m.Points {
 		if !isFinite(p.X) || !isFinite(p.Y) || !isFinite(p.Z) {

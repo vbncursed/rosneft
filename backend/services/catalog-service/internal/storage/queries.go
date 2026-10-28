@@ -89,14 +89,32 @@ type rowScanner interface {
 
 func scanTerritory(r rowScanner) (domain.Territory, error) {
 	var t domain.Territory
-	err := r.Scan(&t.Slug, &t.Title, &t.Description, &t.SourceBlobHash, &t.ExternalPanoramaURL, &t.CreatedAt, &t.UpdatedAt)
+	err := r.Scan(
+		&t.Slug,
+		&t.Title,
+		&t.Description,
+		&t.SourceBlobHash,
+		&t.ExternalPanoramaURL,
+		&t.CreatedAt,
+		&t.UpdatedAt,
+	)
 	return t, err
 }
 
 func scanModel(r rowScanner) (domain.Model, error) {
 	var m domain.Model
-	err := r.Scan(&m.Slug, &m.Title, &m.Description, &m.SourceBlobHash, &m.ThumbnailBlobHash, &m.CreatedAt, &m.UpdatedAt,
-		&m.Tag.ID, &m.Tag.Slug, &m.Tag.Title)
+	err := r.Scan(
+		&m.Slug,
+		&m.Title,
+		&m.Description,
+		&m.SourceBlobHash,
+		&m.ThumbnailBlobHash,
+		&m.CreatedAt,
+		&m.UpdatedAt,
+		&m.Tag.ID,
+		&m.Tag.Slug,
+		&m.Tag.Title,
+	)
 	return m, err
 }
 
@@ -105,7 +123,16 @@ func scanModel(r rowScanner) (domain.Model, error) {
 // correlated-count query.
 func scanTerritoryListed(r rowScanner) (domain.Territory, error) {
 	var t domain.Territory
-	err := r.Scan(&t.Slug, &t.Title, &t.Description, &t.SourceBlobHash, &t.ExternalPanoramaURL, &t.CreatedAt, &t.UpdatedAt, &t.PlacementCount)
+	err := r.Scan(
+		&t.Slug,
+		&t.Title,
+		&t.Description,
+		&t.SourceBlobHash,
+		&t.ExternalPanoramaURL,
+		&t.CreatedAt,
+		&t.UpdatedAt,
+		&t.PlacementCount,
+	)
 	return t, err
 }
 
@@ -113,8 +140,19 @@ func scanTerritoryListed(r rowScanner) (domain.Territory, error) {
 // both ListModels' and GetModel's correlated-count query.
 func scanModelListed(r rowScanner) (domain.Model, error) {
 	var m domain.Model
-	err := r.Scan(&m.Slug, &m.Title, &m.Description, &m.SourceBlobHash, &m.ThumbnailBlobHash, &m.CreatedAt, &m.UpdatedAt,
-		&m.Tag.ID, &m.Tag.Slug, &m.Tag.Title, &m.UsageCount)
+	err := r.Scan(
+		&m.Slug,
+		&m.Title,
+		&m.Description,
+		&m.SourceBlobHash,
+		&m.ThumbnailBlobHash,
+		&m.CreatedAt,
+		&m.UpdatedAt,
+		&m.Tag.ID,
+		&m.Tag.Slug,
+		&m.Tag.Title,
+		&m.UsageCount,
+	)
 	return m, err
 }
 

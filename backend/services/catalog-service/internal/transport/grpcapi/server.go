@@ -51,18 +51,37 @@ type Service interface {
 
 	ListPlacements(ctx context.Context, territorySlug string) ([]domain.Placement, error)
 	CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
-	CreatePlacements(ctx context.Context, territorySlug, key string, items []domain.Placement) ([]domain.Placement, error)
+	CreatePlacements(
+		ctx context.Context,
+		territorySlug, key string,
+		items []domain.Placement,
+	) ([]domain.Placement, error)
 	UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
-	SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error)
+	SetPlacementVisibility(
+		ctx context.Context,
+		territorySlug string,
+		placementID int64,
+		panoramaIDs []int64,
+	) (domain.Placement, error)
 	DeletePlacement(ctx context.Context, territorySlug string, id int64) error
 
 	SetPlacementsHidden(ctx context.Context, territorySlug string, ids []int64, hidden bool) (int, error)
 	SetPlacementsGroup(ctx context.Context, territorySlug string, ids []int64, groupID *int64) (int, error)
 	ListPlacementGroups(ctx context.Context, territorySlug string) ([]domain.PlacementGroup, error)
 	CreatePlacementGroup(ctx context.Context, territorySlug, title string) (domain.PlacementGroup, error)
-	RenamePlacementGroup(ctx context.Context, territorySlug string, id int64, title string) (domain.PlacementGroup, error)
+	RenamePlacementGroup(
+		ctx context.Context,
+		territorySlug string,
+		id int64,
+		title string,
+	) (domain.PlacementGroup, error)
 	DeletePlacementGroup(ctx context.Context, territorySlug string, id int64) error
-	SetPlacementGroupHidden(ctx context.Context, territorySlug string, id int64, hidden bool) (domain.PlacementGroup, error)
+	SetPlacementGroupHidden(
+		ctx context.Context,
+		territorySlug string,
+		id int64,
+		hidden bool,
+	) (domain.PlacementGroup, error)
 
 	ListMeasurements(ctx context.Context, territorySlug string) ([]domain.Measurement, error)
 	CreateMeasurement(ctx context.Context, m domain.Measurement) (domain.Measurement, error)

@@ -18,7 +18,12 @@ import (
 // never touches position/rotation/scale.
 //
 // Wrapped in audittx.Run so the audit trigger can attribute the change.
-func (r *PG) SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error) {
+func (r *PG) SetPlacementVisibility(
+	ctx context.Context,
+	territorySlug string,
+	placementID int64,
+	panoramaIDs []int64,
+) (domain.Placement, error) {
 	const q = `
 		WITH w AS (
 			UPDATE placements pl SET

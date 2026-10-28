@@ -58,17 +58,30 @@ func (f *flagService) SetPanoramasPhase(_ context.Context, slug string, ids []in
 	return len(ids), f.err
 }
 
-func (f *flagService) SetPanoramaPhaseHidden(_ context.Context, slug, phase string, hidden bool) (domain.PanoramaPhase, error) {
+func (f *flagService) SetPanoramaPhaseHidden(
+	_ context.Context,
+	slug, phase string,
+	hidden bool,
+) (domain.PanoramaPhase, error) {
 	f.call, f.slug, f.phase, f.hidden = "SetPanoramaPhaseHidden", slug, phase, hidden
 	return domain.PanoramaPhase{Phase: phase, Hidden: hidden}, f.err
 }
 
-func (f *flagService) SetPlacementGroupHidden(_ context.Context, slug string, id int64, hidden bool) (domain.PlacementGroup, error) {
+func (f *flagService) SetPlacementGroupHidden(
+	_ context.Context,
+	slug string,
+	id int64,
+	hidden bool,
+) (domain.PlacementGroup, error) {
 	f.call, f.slug, f.id, f.hidden = "SetPlacementGroupHidden", slug, id, hidden
 	return domain.PlacementGroup{ID: id, TerritorySlug: slug, Title: "North", Hidden: hidden}, f.err
 }
 
-func (f *flagService) CreatePanorama(_ context.Context, p domain.Panorama, _ domain.BlobScope) (domain.Panorama, error) {
+func (f *flagService) CreatePanorama(
+	_ context.Context,
+	p domain.Panorama,
+	_ domain.BlobScope,
+) (domain.Panorama, error) {
 	f.call, f.slug, f.phase = "CreatePanorama", p.TerritorySlug, p.Phase
 	return p, f.err
 }
@@ -120,7 +133,8 @@ func (s *VisibilityWritesSuite) TestCreateCarriesTheChosenPhase() {
 	} {
 		s.Run(tc.name, func() {
 			resp, err := s.srv.CreatePanorama(s.T().Context(), CreatePanoramaRequestObject{
-				Slug: "yard", Body: &CreatePanoramaJSONRequestBody{Title: "North", SourceBlobHash: "h", Phase: tc.phase},
+				Slug: "yard",
+				Body: &CreatePanoramaJSONRequestBody{Title: "North", SourceBlobHash: "h", Phase: tc.phase},
 			})
 			assert.NilError(s.T(), err)
 			_, is := resp.(CreatePanorama201JSONResponse)
@@ -144,7 +158,10 @@ func (s *VisibilityWritesSuite) TestAMissingBodyIsABadRequest() {
 	} {
 		s.Run(tc.name, func() {
 			rec := httptest.NewRecorder()
-			r.ServeHTTP(rec, httptest.NewRequestWithContext(s.T().Context(), http.MethodPut, tc.path, strings.NewReader("")))
+			r.ServeHTTP(
+				rec,
+				httptest.NewRequestWithContext(s.T().Context(), http.MethodPut, tc.path, strings.NewReader("")),
+			)
 			assert.Equal(s.T(), rec.Code, http.StatusBadRequest, rec.Body.String())
 			assert.Equal(s.T(), s.svc.call, "", "the service must not be asked")
 		})
@@ -157,8 +174,16 @@ func (s *VisibilityWritesSuite) TestRefusalsKeepTheirStatus() {
 	r := chi.NewRouter()
 	HandlerFromMux(NewStrictHandler(s.srv, nil), r)
 	calls := map[string]struct{ method, path, body string }{
-		"SetPanoramasHidden":     {http.MethodPut, "/api/territories/yard/panoramas/hidden", `{"ids":[1],"hidden":true}`},
-		"SetPanoramasPhase":      {http.MethodPut, "/api/territories/yard/panoramas/phase", `{"ids":[1],"phase":"current"}`},
+		"SetPanoramasHidden": {
+			http.MethodPut,
+			"/api/territories/yard/panoramas/hidden",
+			`{"ids":[1],"hidden":true}`,
+		},
+		"SetPanoramasPhase": {
+			http.MethodPut,
+			"/api/territories/yard/panoramas/phase",
+			`{"ids":[1],"phase":"current"}`,
+		},
 		"SetPanoramaPhaseHidden": {http.MethodPut, "/api/territories/yard/panorama-phases/current", `{"hidden":true}`},
 	}
 	for _, tc := range []struct {
@@ -174,7 +199,15 @@ func (s *VisibilityWritesSuite) TestRefusalsKeepTheirStatus() {
 			s.Run(fmt.Sprintf("%s %d", name, tc.code), func() {
 				s.svc.err = tc.err
 				rec := httptest.NewRecorder()
-				r.ServeHTTP(rec, httptest.NewRequestWithContext(s.T().Context(), call.method, call.path, strings.NewReader(call.body)))
+				r.ServeHTTP(
+					rec,
+					httptest.NewRequestWithContext(
+						s.T().Context(),
+						call.method,
+						call.path,
+						strings.NewReader(call.body),
+					),
+				)
 				assert.Equal(s.T(), rec.Code, tc.code, rec.Body.String())
 				if tc.code != http.StatusInternalServerError {
 					return
@@ -205,7 +238,10 @@ func (s *VisibilityWritesSuite) TestTheRouterReachesEachHandler() {
 		s.Run(tc.call, func() {
 			s.svc.call = ""
 			rec := httptest.NewRecorder()
-			r.ServeHTTP(rec, httptest.NewRequestWithContext(s.T().Context(), http.MethodPut, tc.path, strings.NewReader(tc.body)))
+			r.ServeHTTP(
+				rec,
+				httptest.NewRequestWithContext(s.T().Context(), http.MethodPut, tc.path, strings.NewReader(tc.body)),
+			)
 			assert.Equal(s.T(), rec.Code, http.StatusOK, rec.Body.String())
 			assert.Equal(s.T(), s.svc.call, tc.call)
 			assert.Equal(s.T(), s.svc.slug, "yard")

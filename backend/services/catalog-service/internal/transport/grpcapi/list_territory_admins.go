@@ -6,7 +6,10 @@ import (
 	catalogv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/catalog/v1"
 )
 
-func (s *Server) ListTerritoryAdmins(ctx context.Context, req *catalogv1.ListTerritoryAdminsRequest) (*catalogv1.ListTerritoryAdminsResponse, error) {
+func (s *Server) ListTerritoryAdmins(
+	ctx context.Context,
+	req *catalogv1.ListTerritoryAdminsRequest,
+) (*catalogv1.ListTerritoryAdminsResponse, error) {
 	bySlug, err := s.svc.ListTerritoryAdmins(ctx, req.GetSlugs())
 	if err != nil {
 		return nil, mapError(err)

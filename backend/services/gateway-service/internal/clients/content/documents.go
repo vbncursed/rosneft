@@ -30,7 +30,10 @@ func (c *Client) CreateDocument(ctx context.Context, d domain.Document) (domain.
 		SourceBlobHash: d.SourceBlobHash,
 	})
 	if err != nil {
-		return domain.Document{}, fmt.Errorf("content.CreateDocument: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
+		return domain.Document{}, fmt.Errorf(
+			"content.CreateDocument: %w",
+			grpcerr.MapStatus(err, domain.ErrTerritoryNotFound),
+		)
 	}
 	return documentFromProto(resp.GetDocument()), nil
 }

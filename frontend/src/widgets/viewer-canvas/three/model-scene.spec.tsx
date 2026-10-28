@@ -22,7 +22,7 @@ vi.mock("@react-three/fiber", async (orig) => {
 // Recorded-and-forwarded: the GltfModel props decide behaviour without leaving a trace in the scene graph.
 const seen = vi.hoisted(() => ({ gltf: {} as Record<string, unknown> }));
 vi.mock("./gltf-model", async (orig) => {
-  const real = ((await orig()) as { default: ComponentType<Record<string, unknown>> }).default;
+  const real = (await orig<{ default: ComponentType<Record<string, unknown>> }>()).default;
   return {
     default: (p: Record<string, unknown>) => {
       seen.gltf = p;

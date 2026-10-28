@@ -119,7 +119,11 @@ func (s *GoldenSuite) TestGoldenArchive() {
 		assert.NilError(t, rc.Close())
 		got[f.Name], names = string(b), append(names, f.Name)
 	}
-	assert.DeepEqual(t, names, []string{"README.txt", "ust-kut.mtl", "t000_textures_ground.png", "t001_tex.jpg", "ust-kut.obj"})
+	assert.DeepEqual(
+		t,
+		names,
+		[]string{"README.txt", "ust-kut.mtl", "t000_textures_ground.png", "t001_tex.jpg", "ust-kut.obj"},
+	)
 	assert.Equal(t, got["README.txt"], goldenREADME)
 	assert.Equal(t, got["ust-kut.mtl"], goldenMTL)
 	assert.Equal(t, got["ust-kut.obj"], goldenOBJ)

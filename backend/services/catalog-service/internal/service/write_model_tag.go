@@ -25,8 +25,12 @@ const (
 // CreateModelTag adds a tag under the trimmed title.
 func (c *Catalog) CreateModelTag(ctx context.Context, slug, title string) (domain.ModelTag, error) {
 	if n := len(slug); n < minTagSlug || n > maxTagSlug || !tagSlugPattern.MatchString(slug) {
-		return domain.ModelTag{}, fmt.Errorf("service.CreateModelTag: %w: a tag slug is %d to %d lowercase letters, digits and single hyphens",
-			domain.ErrInvalidInput, minTagSlug, maxTagSlug)
+		return domain.ModelTag{}, fmt.Errorf(
+			"service.CreateModelTag: %w: a tag slug is %d to %d lowercase letters, digits and single hyphens",
+			domain.ErrInvalidInput,
+			minTagSlug,
+			maxTagSlug,
+		)
 	}
 	if err := refuseUngrouped(slug); err != nil {
 		return domain.ModelTag{}, fmt.Errorf("service.CreateModelTag: %w", err)

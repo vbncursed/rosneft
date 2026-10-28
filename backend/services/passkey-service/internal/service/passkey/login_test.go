@@ -41,12 +41,14 @@ func (s *LoginSuite) SetupTest() {
 // resolveVia drives the discoverable handler with the given userHandle so the
 // service resolves and returns that user id.
 func (s *LoginSuite) resolveVia(userHandle string, cred *lib.Credential) {
-	s.eng.FinishLoginMock.Set(func(handler lib.DiscoverableUserHandler, _ lib.SessionData, _ io.Reader) (*lib.Credential, error) {
-		if _, err := handler([]byte("raw"), []byte(userHandle)); err != nil {
-			return nil, err
-		}
-		return cred, nil
-	})
+	s.eng.FinishLoginMock.Set(
+		func(handler lib.DiscoverableUserHandler, _ lib.SessionData, _ io.Reader) (*lib.Credential, error) {
+			if _, err := handler([]byte("raw"), []byte(userHandle)); err != nil {
+				return nil, err
+			}
+			return cred, nil
+		},
+	)
 }
 
 func (s *LoginSuite) TestFinishLoginValid() {

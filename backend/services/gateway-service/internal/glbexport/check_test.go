@@ -91,7 +91,12 @@ func checkIndices(t *testing.T, doc *gltf.Document, binLen int64) {
 			assert.NilError(t, json.Unmarshal(raw.(json.RawMessage), &p))
 			in("meshopt.buffer", &p.Buffer, len(doc.Buffers))
 			if p.Buffer == 0 {
-				assert.Assert(t, int64(p.ByteOffset+p.ByteLength) <= binLen, "meshopt payload of view %d outside BIN", i)
+				assert.Assert(
+					t,
+					int64(p.ByteOffset+p.ByteLength) <= binLen,
+					"meshopt payload of view %d outside BIN",
+					i,
+				)
 			}
 		}
 	}

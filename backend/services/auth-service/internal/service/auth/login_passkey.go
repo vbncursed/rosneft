@@ -28,11 +28,8 @@ func (s *Service) PasskeyLoginFinish(ctx context.Context, flowID, assertionJSON 
 	if err != nil {
 		return "", err
 	}
-	switch u.Status {
-	case domain.StatusFrozen:
-		return "", domain.ErrAccountFrozen
-	case domain.StatusDeleted:
-		return "", domain.ErrAccountDeleted
+	if err := checkActive(u); err != nil {
+		return "", err
 	}
 	return s.issue(ctx, u)
 }

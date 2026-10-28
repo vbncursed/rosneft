@@ -16,7 +16,11 @@ func (g *Gateway) ListPanoramas(ctx context.Context, territorySlug string) ([]do
 }
 
 // CreatePanorama validates input and persists the panorama.
-func (g *Gateway) CreatePanorama(ctx context.Context, p domain.Panorama, scope domain.BlobScope) (domain.Panorama, error) {
+func (g *Gateway) CreatePanorama(
+	ctx context.Context,
+	p domain.Panorama,
+	scope domain.BlobScope,
+) (domain.Panorama, error) {
 	if p.TerritorySlug == "" {
 		return domain.Panorama{}, fmt.Errorf("%w: territory slug is required", domain.ErrInvalidInput)
 	}

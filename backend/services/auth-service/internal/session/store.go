@@ -20,8 +20,20 @@ type Store struct {
 }
 
 // New builds a session Store.
-func New(rdb *redis.Client, idleTTL, absoluteTTL, pendingTTL time.Duration, maxFails int, lockTTL time.Duration) *Store {
-	return &Store{rdb: rdb, idleTTL: idleTTL, absoluteTTL: absoluteTTL, pendingTTL: pendingTTL, maxFails: maxFails, lockTTL: lockTTL}
+func New(
+	rdb *redis.Client,
+	idleTTL, absoluteTTL, pendingTTL time.Duration,
+	maxFails int,
+	lockTTL time.Duration,
+) *Store {
+	return &Store{
+		rdb:         rdb,
+		idleTTL:     idleTTL,
+		absoluteTTL: absoluteTTL,
+		pendingTTL:  pendingTTL,
+		maxFails:    maxFails,
+		lockTTL:     lockTTL,
+	}
 }
 
 func sessionKey(token string) string { return "session:" + token }

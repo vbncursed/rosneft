@@ -81,8 +81,12 @@ func (s *ZonesSuite) TestUpdateCarriesTitleAndTagsOnlyWhenSet() {
 	_, err := s.srv.UpdateZone(s.ctx, &catalogv1.UpdateZoneRequest{TerritorySlug: "t1", Id: 3, Title: new("Camp")})
 	assert.NilError(s.T(), err)
 
-	s.svc.UpdateZoneMock.Expect(s.ctx, "t1", int64(3), domain.ZonePatch{SetTags: true, TagSlugs: []string{"camp"}}).Return(n2Zone, nil)
-	_, err = s.srv.UpdateZone(s.ctx, &catalogv1.UpdateZoneRequest{TerritorySlug: "t1", Id: 3, TagSlugs: []string{"camp"}, SetTags: true})
+	s.svc.UpdateZoneMock.Expect(s.ctx, "t1", int64(3), domain.ZonePatch{SetTags: true, TagSlugs: []string{"camp"}}).
+		Return(n2Zone, nil)
+	_, err = s.srv.UpdateZone(
+		s.ctx,
+		&catalogv1.UpdateZoneRequest{TerritorySlug: "t1", Id: 3, TagSlugs: []string{"camp"}, SetTags: true},
+	)
 	assert.NilError(s.T(), err)
 }
 
@@ -108,7 +112,10 @@ func (s *ZonesSuite) TestRefusalsMapToTheirCodes() {
 	_, err = s.srv.DeleteZone(s.ctx, &catalogv1.DeleteZoneRequest{TerritorySlug: "t2", Id: 3})
 	assert.Equal(s.T(), status.Code(err), codes.NotFound)
 
-	s.svc.CreateZoneMock.Return(domain.Zone{}, fmt.Errorf("service.CreateZone: %w: unknown model tag", domain.ErrInvalidInput))
+	s.svc.CreateZoneMock.Return(
+		domain.Zone{},
+		fmt.Errorf("service.CreateZone: %w: unknown model tag", domain.ErrInvalidInput),
+	)
 	_, err = s.srv.CreateZone(s.ctx, &catalogv1.CreateZoneRequest{TerritorySlug: "t1", Corners: protoCorners()})
 	assert.Equal(s.T(), status.Code(err), codes.InvalidArgument)
 	assert.Equal(s.T(), status.Convert(err).Message(), "invalid input: unknown model tag")

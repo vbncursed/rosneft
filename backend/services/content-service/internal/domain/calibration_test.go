@@ -31,14 +31,26 @@ func TestCalibrationValidate(t *testing.T) {
 	}{
 		{name: "two points without utm", c: domain.Calibration{Page: 1, Points: points(2)}},
 		{name: "twenty points", c: domain.Calibration{Page: 32767, Points: points(20)}},
-		{name: "one point", c: domain.Calibration{Page: 1, Points: points(1)}, wantErr: "a calibration needs 2–20 points"},
-		{name: "twenty-one points", c: domain.Calibration{Page: 1, Points: points(21)}, wantErr: "a calibration needs 2–20 points"},
+		{
+			name:    "one point",
+			c:       domain.Calibration{Page: 1, Points: points(1)},
+			wantErr: "a calibration needs 2–20 points",
+		},
+		{
+			name:    "twenty-one points",
+			c:       domain.Calibration{Page: 1, Points: points(21)},
+			wantErr: "a calibration needs 2–20 points",
+		},
 		{name: "page zero", c: domain.Calibration{Page: 0, Points: points(2)}, wantErr: "page"},
 		{name: "page above smallint", c: domain.Calibration{Page: 32768, Points: points(2)}, wantErr: "page"},
 		{name: "nan pdf x", c: withPoint(func(p *domain.CalibrationPoint) { p.PDFX = nan }), wantErr: "finite"},
 		{name: "inf pdf y", c: withPoint(func(p *domain.CalibrationPoint) { p.PDFY = inf }), wantErr: "finite"},
 		{name: "nan scene z", c: withPoint(func(p *domain.CalibrationPoint) { p.Scene.Z = nan }), wantErr: "finite"},
-		{name: "nan utm", c: withPoint(func(p *domain.CalibrationPoint) { p.UTM = &domain.UTM{E: nan, N: 1} }), wantErr: "finite"},
+		{
+			name:    "nan utm",
+			c:       withPoint(func(p *domain.CalibrationPoint) { p.UTM = &domain.UTM{E: nan, N: 1} }),
+			wantErr: "finite",
+		},
 		{name: "finite utm", c: withPoint(func(p *domain.CalibrationPoint) { p.UTM = &domain.UTM{E: 5, N: 6} })},
 	}
 	for _, tt := range tests {

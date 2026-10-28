@@ -6,7 +6,10 @@ import (
 	passkeyv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/passkey/v1"
 )
 
-func (s *Server) BeginRegistration(ctx context.Context, req *passkeyv1.BeginRegistrationRequest) (*passkeyv1.BeginRegistrationResponse, error) {
+func (s *Server) BeginRegistration(
+	ctx context.Context,
+	req *passkeyv1.BeginRegistrationRequest,
+) (*passkeyv1.BeginRegistrationResponse, error) {
 	uid, name, err := s.identity.Resolve(ctx, req.GetToken())
 	if err != nil {
 		return nil, mapErr(err)
@@ -18,7 +21,10 @@ func (s *Server) BeginRegistration(ctx context.Context, req *passkeyv1.BeginRegi
 	return &passkeyv1.BeginRegistrationResponse{OptionsJson: opts, FlowId: flowID}, nil
 }
 
-func (s *Server) FinishRegistration(ctx context.Context, req *passkeyv1.FinishRegistrationRequest) (*passkeyv1.FinishRegistrationResponse, error) {
+func (s *Server) FinishRegistration(
+	ctx context.Context,
+	req *passkeyv1.FinishRegistrationRequest,
+) (*passkeyv1.FinishRegistrationResponse, error) {
 	uid, _, err := s.identity.Resolve(ctx, req.GetToken())
 	if err != nil {
 		return nil, mapErr(err)

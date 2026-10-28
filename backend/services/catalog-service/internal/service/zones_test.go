@@ -75,7 +75,8 @@ func (s *ZonesSuite) TestUpdateTrimsAndChecksTheTitle() {
 	_, err := s.svc.UpdateZone(s.ctx, "t1", 3, domain.ZonePatch{Title: new("   ")})
 	assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
 
-	s.repo.UpdateZoneMock.Expect(s.ctx, "t1", int64(3), domain.ZonePatch{Title: new("Camp")}).Return(domain.Zone{ID: 3, Title: "Camp"}, nil)
+	s.repo.UpdateZoneMock.Expect(s.ctx, "t1", int64(3), domain.ZonePatch{Title: new("Camp")}).
+		Return(domain.Zone{ID: 3, Title: "Camp"}, nil)
 	_, err = s.svc.UpdateZone(s.ctx, "t1", 3, domain.ZonePatch{Title: new(" Camp ")})
 	assert.NilError(s.T(), err)
 }

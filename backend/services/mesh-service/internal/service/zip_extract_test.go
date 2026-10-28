@@ -93,19 +93,61 @@ func TestExtractZip_SourceFailuresAreBadSource(t *testing.T) {
 		maxBytes   int64
 		maxEntries int
 	}{
-		{"entry escapes target", func(t *testing.T) *zip.Reader { return zipOf(t, stored("../x.obj", "x")) }, 1 << 20, 10},
-		{"too many entries", func(t *testing.T) *zip.Reader { return zipOf(t, stored("a", "x"), stored("b", "x")) }, 1 << 20, 1},
+		{
+			"entry escapes target",
+			func(t *testing.T) *zip.Reader { return zipOf(t, stored("../x.obj", "x")) },
+			1 << 20,
+			10,
+		},
+		{
+			"too many entries",
+			func(t *testing.T) *zip.Reader { return zipOf(t, stored("a", "x"), stored("b", "x")) },
+			1 << 20,
+			1,
+		},
 		{"over the size cap", func(t *testing.T) *zip.Reader { return zipOf(t, stored("a", "0123456789")) }, 5, 10},
 		{"unsupported method", func(t *testing.T) *zip.Reader {
-			return zipOf(t, zipEntry{hdr: zip.FileHeader{Name: "a", Method: 99, CompressedSize64: 1, UncompressedSize64: 1}, body: []byte("x"), raw: true})
+			return zipOf(
+				t,
+				zipEntry{
+					hdr:  zip.FileHeader{Name: "a", Method: 99, CompressedSize64: 1, UncompressedSize64: 1},
+					body: []byte("x"),
+					raw:  true,
+				},
+			)
 		}, 1 << 20, 10},
 		{"broken deflate stream", func(t *testing.T) *zip.Reader {
-			return zipOf(t, zipEntry{hdr: zip.FileHeader{Name: "a", Method: zip.Deflate, CompressedSize64: 4, UncompressedSize64: 10}, body: []byte{0xff, 0xff, 0xff, 0xff}, raw: true})
+			return zipOf(
+				t,
+				zipEntry{
+					hdr:  zip.FileHeader{Name: "a", Method: zip.Deflate, CompressedSize64: 4, UncompressedSize64: 10},
+					body: []byte{0xff, 0xff, 0xff, 0xff},
+					raw:  true,
+				},
+			)
 		}, 1 << 20, 10},
 		{"crc mismatch", func(t *testing.T) *zip.Reader {
-			return zipOf(t, zipEntry{hdr: zip.FileHeader{Name: "a", Method: zip.Store, CRC32: 1, CompressedSize64: 3, UncompressedSize64: 3}, body: []byte("abc"), raw: true})
+			return zipOf(
+				t,
+				zipEntry{
+					hdr: zip.FileHeader{
+						Name:               "a",
+						Method:             zip.Store,
+						CRC32:              1,
+						CompressedSize64:   3,
+						UncompressedSize64: 3,
+					},
+					body: []byte("abc"),
+					raw:  true,
+				},
+			)
 		}, 1 << 20, 10},
-		{"file where a directory is needed", func(t *testing.T) *zip.Reader { return zipOf(t, stored("a", "x"), stored("a/b.obj", "x")) }, 1 << 20, 10},
+		{
+			"file where a directory is needed",
+			func(t *testing.T) *zip.Reader { return zipOf(t, stored("a", "x"), stored("a/b.obj", "x")) },
+			1 << 20,
+			10,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

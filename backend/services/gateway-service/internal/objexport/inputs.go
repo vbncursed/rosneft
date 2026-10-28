@@ -48,7 +48,13 @@ func (in *input) view(i int) (*gltf.BufferView, error) {
 	// The length is checked against the room left, so no sum can overflow.
 	if v.ByteOffset < 0 || v.ByteLength < 0 || v.ByteStride < 0 ||
 		int64(v.ByteOffset) > in.head.BinLength || int64(v.ByteLength) > in.head.BinLength-int64(v.ByteOffset) {
-		return nil, malformed("bufferView %d [%d,+%d) outside the %d-byte BIN", i, v.ByteOffset, v.ByteLength, in.head.BinLength)
+		return nil, malformed(
+			"bufferView %d [%d,+%d) outside the %d-byte BIN",
+			i,
+			v.ByteOffset,
+			v.ByteLength,
+			in.head.BinLength,
+		)
 	}
 	return v, nil
 }
@@ -75,10 +81,24 @@ func (in *input) accessor(i int, typ gltf.AccessorType, comps ...gltf.ComponentT
 	// avail is the room for the last element's start, so no product overflows.
 	avail := int64(v.ByteLength) - int64(a.ByteOffset) - int64(elem)
 	if stride < elem || a.Count < 1 || a.ByteOffset < 0 || avail < 0 || int64(a.Count-1) > avail/int64(stride) {
-		return accessor{}, malformed("accessor %d: %d elements of %d bytes at stride %d do not fit its bufferView", i, a.Count, elem, stride)
+		return accessor{}, malformed(
+			"accessor %d: %d elements of %d bytes at stride %d do not fit its bufferView",
+			i,
+			a.Count,
+			elem,
+			stride,
+		)
 	}
 	return accessor{
-		off: in.head.BinOffset + int64(v.ByteOffset) + int64(a.ByteOffset), stride: stride, elem: elem, count: a.Count, comp: a.ComponentType,
+		off: in.head.BinOffset + int64(
+			v.ByteOffset,
+		) + int64(
+			a.ByteOffset,
+		),
+		stride: stride,
+		elem:   elem,
+		count:  a.Count,
+		comp:   a.ComponentType,
 	}, nil
 }
 
@@ -125,7 +145,13 @@ func (in *input) primitive(md *meshData, p *gltf.Primitive, posAt, uvAt map[int]
 	if err != nil {
 		return primitive{}, err
 	}
-	idx, err := in.accessor(*p.Indices, gltf.AccessorScalar, gltf.ComponentUbyte, gltf.ComponentUshort, gltf.ComponentUint)
+	idx, err := in.accessor(
+		*p.Indices,
+		gltf.AccessorScalar,
+		gltf.ComponentUbyte,
+		gltf.ComponentUshort,
+		gltf.ComponentUint,
+	)
 	if err != nil {
 		return primitive{}, err
 	}

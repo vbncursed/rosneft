@@ -45,7 +45,10 @@ func (r *PG) writeModelTag(ctx context.Context, q, slug, title string) (domain.M
 		return tx.QueryRow(ctx, q, slug, title).Scan(&tag.ID, &tag.Slug, &tag.Title)
 	})
 	if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == pgUniqueViolation {
-		return domain.ModelTag{}, fmt.Errorf("%w: a model tag with this slug or title already exists", domain.ErrInvalidInput)
+		return domain.ModelTag{}, fmt.Errorf(
+			"%w: a model tag with this slug or title already exists",
+			domain.ErrInvalidInput,
+		)
 	}
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.ModelTag{}, domain.ErrModelTagNotFound

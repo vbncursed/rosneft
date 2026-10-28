@@ -63,7 +63,10 @@ func (s *TerritoryExportSuite) TestOBJStreamsAZip() {
 }
 
 func (s *TerritoryExportSuite) TestOBJIgnoresQuery() {
-	rec := s.getPath(s.router(&exportServiceStub{bundle: s.compatBundle()}, scoped, exportOpener(s.objBlobs(), nil)), objURL+"?variant=x")
+	rec := s.getPath(
+		s.router(&exportServiceStub{bundle: s.compatBundle()}, scoped, exportOpener(s.objBlobs(), nil)),
+		objURL+"?variant=x",
+	)
 
 	assert.Equal(s.T(), rec.Code, http.StatusOK)
 }
@@ -85,7 +88,10 @@ func (s *TerritoryExportSuite) TestOBJMissingPlainIs409() {
 
 func (s *TerritoryExportSuite) TestOBJHiddenPlacementWithoutPlainDoesNotBlock() {
 	b := s.compatBundle()
-	b.ModelOptions = append(b.ModelOptions, domain.AssetOption{Slug: "old", LODs: []domain.LodArtifact{{LOD: 0, Hash: "old"}}})
+	b.ModelOptions = append(
+		b.ModelOptions,
+		domain.AssetOption{Slug: "old", LODs: []domain.LodArtifact{{LOD: 0, Hash: "old"}}},
+	)
 	b.Placements = append(b.Placements,
 		domain.Placement{ID: 5, ModelSlug: "old", Label: "hidden", Hidden: true},
 		domain.Placement{ID: 6, ModelSlug: "old", Label: "in hidden group", GroupID: new(int64(1))},
@@ -122,7 +128,11 @@ func (s *TerritoryExportSuite) TestOBJTooLargeIs422() {
 
 	assert.Equal(s.T(), rec.Code, http.StatusUnprocessableEntity)
 	assert.Assert(s.T(), strings.Contains(rec.Body.String(), `"code":"unprocessable"`), rec.Body.String())
-	assert.Assert(s.T(), strings.Contains(rec.Body.String(), "OBJ export exceeds 20 million vertices or 40 million faces"), rec.Body.String())
+	assert.Assert(
+		s.T(),
+		strings.Contains(rec.Body.String(), "OBJ export exceeds 20 million vertices or 40 million faces"),
+		rec.Body.String(),
+	)
 }
 
 func (s *TerritoryExportSuite) TestOBJBuildFailureIs500() {

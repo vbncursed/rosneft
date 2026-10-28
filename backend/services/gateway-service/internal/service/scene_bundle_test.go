@@ -34,7 +34,14 @@ func (s *SceneBundleSuite) SetupTest() {
 	mc := minimock.NewController(s.T())
 	s.cat = mocks.NewCatalogMock(mc)
 	s.con = mocks.NewContentMock(mc)
-	s.svc = service.New(s.cat, s.con, mocks.NewMeshMock(mc), mocks.NewUploadMock(mc), mocks.NewAuditMock(mc), mocks.NewAuthMock(mc))
+	s.svc = service.New(
+		s.cat,
+		s.con,
+		mocks.NewMeshMock(mc),
+		mocks.NewUploadMock(mc),
+		mocks.NewAuditMock(mc),
+		mocks.NewAuthMock(mc),
+	)
 	s.ctx = s.T().Context()
 }
 
@@ -61,7 +68,11 @@ var (
 )
 
 // expectFanOut wires the parallel reads of GetSceneBundle.
-func (s *SceneBundleSuite) expectFanOut(terrArts []domain.Artifact, models []domain.Model, placements []domain.Placement) {
+func (s *SceneBundleSuite) expectFanOut(
+	terrArts []domain.Artifact,
+	models []domain.Model,
+	placements []domain.Placement,
+) {
 	s.cat.GetTerritoryMock.Return(domain.Territory{Slug: "t1", Title: "Site"}, nil)
 	s.cat.ListTerritoryArtifactsMock.Return(terrArts, nil)
 	s.cat.ListPlacementsMock.Return(placements, nil)

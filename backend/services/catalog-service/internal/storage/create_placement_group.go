@@ -39,9 +39,15 @@ func (r *PG) CreatePlacementGroup(ctx context.Context, territorySlug, title stri
 	case errors.Is(err, pgx.ErrNoRows):
 		return domain.PlacementGroup{}, domain.ErrTerritoryNotFound
 	case isGroupTitleViolation(err):
-		return domain.PlacementGroup{}, fmt.Errorf("storage.CreatePlacementGroup: %w: a group title is 1 to 120 characters", domain.ErrInvalidInput)
+		return domain.PlacementGroup{}, fmt.Errorf(
+			"storage.CreatePlacementGroup: %w: a group title is 1 to 120 characters",
+			domain.ErrInvalidInput,
+		)
 	case isGroupTitleTaken(err):
-		return domain.PlacementGroup{}, fmt.Errorf("storage.CreatePlacementGroup: %w: a group with this title already exists", domain.ErrInvalidInput)
+		return domain.PlacementGroup{}, fmt.Errorf(
+			"storage.CreatePlacementGroup: %w: a group with this title already exists",
+			domain.ErrInvalidInput,
+		)
 	}
 	return domain.PlacementGroup{}, fmt.Errorf("storage.CreatePlacementGroup: %w", err)
 }

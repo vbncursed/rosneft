@@ -96,7 +96,10 @@ func (s *DeleteModelSuite) TestRefusesAModelThatIsStillPlaced() {
 	ctx := s.T().Context()
 	terr := s.seedTerritory(ctx, "yard", "hash-yard", s.admin)
 	s.seedModel(ctx, "pump", "hash-pump-src", "hash-pump-thumb", "hash-pump-glb")
-	_, err := s.pg.CreatePlacement(ctx, domain.Placement{TerritorySlug: "yard", ModelSlug: "pump", Scale: domain.Vec3{X: 1, Y: 1, Z: 1}})
+	_, err := s.pg.CreatePlacement(
+		ctx,
+		domain.Placement{TerritorySlug: "yard", ModelSlug: "pump", Scale: domain.Vec3{X: 1, Y: 1, Z: 1}},
+	)
 	assert.NilError(s.T(), err)
 	_ = terr
 

@@ -184,7 +184,10 @@ func (s *ZonesSuite) TestDeleteZoneTakesItsTagLinks() {
 
 func (s *ZonesSuite) TestDeleteTerritoryCascadesZones() {
 	ctx := s.T().Context()
-	_, err := s.pool.Exec(ctx, `INSERT INTO territories (slug, title, source_blob_hash) VALUES ('doomed', 'doomed', 'doomed')`)
+	_, err := s.pool.Exec(
+		ctx,
+		`INSERT INTO territories (slug, title, source_blob_hash) VALUES ('doomed', 'doomed', 'doomed')`,
+	)
 	assert.NilError(s.T(), err)
 	s.create("doomed", "Camp", "camp", "power")
 	survivor := s.create("a", "Camp", "camp")

@@ -34,7 +34,12 @@ type calibrationService struct {
 	got  domain.Calibration
 }
 
-func (c *calibrationService) PutDocumentCalibration(_ context.Context, slug string, id int64, cal domain.Calibration) (domain.Calibration, error) {
+func (c *calibrationService) PutDocumentCalibration(
+	_ context.Context,
+	slug string,
+	id int64,
+	cal domain.Calibration,
+) (domain.Calibration, error) {
 	c.slug, c.id, c.got = slug, id, cal
 	return cal, c.err
 }
@@ -67,7 +72,10 @@ func (s *CalibrationSuite) TestPutTakesSlugAndIdFromTheURLAndMapsThePoints() {
 }
 
 func (s *CalibrationSuite) TestDeleteAnswers204() {
-	resp, err := s.srv.DeleteDocumentCalibration(s.T().Context(), DeleteDocumentCalibrationRequestObject{Slug: "yard", Id: 9})
+	resp, err := s.srv.DeleteDocumentCalibration(
+		s.T().Context(),
+		DeleteDocumentCalibrationRequestObject{Slug: "yard", Id: 9},
+	)
 
 	assert.NilError(s.T(), err)
 	_, ok := resp.(DeleteDocumentCalibration204Response)
@@ -79,9 +87,15 @@ func (s *CalibrationSuite) TestDeleteAnswers204() {
 // an unknown id.
 func (s *CalibrationSuite) TestForeignDocumentIs404() {
 	s.svc.err = domain.ErrDocumentNotFound
-	put, err := s.srv.PutDocumentCalibration(s.T().Context(), PutDocumentCalibrationRequestObject{Slug: "yard", Id: 9, Body: &wireCalibration})
+	put, err := s.srv.PutDocumentCalibration(
+		s.T().Context(),
+		PutDocumentCalibrationRequestObject{Slug: "yard", Id: 9, Body: &wireCalibration},
+	)
 	assert.NilError(s.T(), err)
-	del, err := s.srv.DeleteDocumentCalibration(s.T().Context(), DeleteDocumentCalibrationRequestObject{Slug: "yard", Id: 9})
+	del, err := s.srv.DeleteDocumentCalibration(
+		s.T().Context(),
+		DeleteDocumentCalibrationRequestObject{Slug: "yard", Id: 9},
+	)
 	assert.NilError(s.T(), err)
 
 	for _, visit := range []func(http.ResponseWriter) error{put.VisitPutDocumentCalibrationResponse, del.VisitDeleteDocumentCalibrationResponse} {
@@ -93,7 +107,10 @@ func (s *CalibrationSuite) TestForeignDocumentIs404() {
 
 func (s *CalibrationSuite) TestRefusalAndMissingBodyAre400() {
 	s.svc.err = errors.Join(domain.ErrInvalidInput, errors.New("a calibration needs 2–20 points"))
-	put, err := s.srv.PutDocumentCalibration(s.T().Context(), PutDocumentCalibrationRequestObject{Slug: "yard", Id: 9, Body: &Calibration{Page: 1}})
+	put, err := s.srv.PutDocumentCalibration(
+		s.T().Context(),
+		PutDocumentCalibrationRequestObject{Slug: "yard", Id: 9, Body: &Calibration{Page: 1}},
+	)
 	assert.NilError(s.T(), err)
 	code, body := rendered(s.T(), put.VisitPutDocumentCalibrationResponse)
 	assert.Equal(s.T(), code, http.StatusBadRequest)
@@ -107,9 +124,15 @@ func (s *CalibrationSuite) TestRefusalAndMissingBodyAre400() {
 
 func (s *CalibrationSuite) TestServerFailureNeverEchoesTheError() {
 	s.svc.err = errors.New("content.PutDocumentCalibration: dial tcp 10.0.0.8:9007: refused")
-	put, err := s.srv.PutDocumentCalibration(s.T().Context(), PutDocumentCalibrationRequestObject{Slug: "yard", Id: 9, Body: &wireCalibration})
+	put, err := s.srv.PutDocumentCalibration(
+		s.T().Context(),
+		PutDocumentCalibrationRequestObject{Slug: "yard", Id: 9, Body: &wireCalibration},
+	)
 	assert.NilError(s.T(), err)
-	del, err := s.srv.DeleteDocumentCalibration(s.T().Context(), DeleteDocumentCalibrationRequestObject{Slug: "yard", Id: 9})
+	del, err := s.srv.DeleteDocumentCalibration(
+		s.T().Context(),
+		DeleteDocumentCalibrationRequestObject{Slug: "yard", Id: 9},
+	)
 	assert.NilError(s.T(), err)
 
 	for _, visit := range []func(http.ResponseWriter) error{put.VisitPutDocumentCalibrationResponse, del.VisitDeleteDocumentCalibrationResponse} {
@@ -124,9 +147,11 @@ func (s *CalibrationSuite) TestDocumentCarriesCalibrationOrNull() {
 	without := documentToAPI(domain.Document{ID: 1})
 	assert.Assert(s.T(), without.Calibration == nil)
 
-	with := documentToAPI(domain.Document{ID: 1, Calibration: &domain.Calibration{Page: 2, Points: []domain.CalibrationPoint{
-		{PDF: domain.Vec2{X: 1, Y: 2}, UTM: &domain.UTM{E: 5, N: 6}},
-	}}})
+	with := documentToAPI(
+		domain.Document{ID: 1, Calibration: &domain.Calibration{Page: 2, Points: []domain.CalibrationPoint{
+			{PDF: domain.Vec2{X: 1, Y: 2}, UTM: &domain.UTM{E: 5, N: 6}},
+		}}},
+	)
 	assert.Assert(s.T(), with.Calibration != nil)
 	assert.Equal(s.T(), with.Calibration.Page, int32(2))
 	assert.DeepEqual(s.T(), with.Calibration.Points[0].Utm, &UtmPoint{E: 5, N: 6})

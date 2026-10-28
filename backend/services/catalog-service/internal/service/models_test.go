@@ -105,7 +105,10 @@ func (s *ModelsSuite) TestAnExplicitSlugTakenIsAConflict() {
 func (s *ModelsSuite) TestCreateGeneratesSlugFromTitle() {
 	in := domain.Model{Title: "Насос K-200", SourceBlobHash: validBlobHash, Tag: campTag}
 	s.repo.CreateModelMock.
-		Expect(s.ctx, domain.Model{Slug: "nasos-k-200", Title: "Насос K-200", SourceBlobHash: validBlobHash, Tag: campTag}).
+		Expect(
+			s.ctx,
+			domain.Model{Slug: "nasos-k-200", Title: "Насос K-200", SourceBlobHash: validBlobHash, Tag: campTag},
+		).
 		Return(domain.Model{Slug: "nasos-k-200"}, nil)
 	out, err := s.svc.UpsertModel(s.ctx, in)
 	assert.NilError(s.T(), err)

@@ -13,12 +13,21 @@ import (
 // PutDocumentCalibration replaces the document's whole point set in one
 // transaction, numbering the points 0..n-1 in the order given. A document not
 // on territorySlug is ErrDocumentNotFound.
-func (r *PG) PutDocumentCalibration(ctx context.Context, territorySlug string, documentID int64, c domain.Calibration) (domain.Calibration, error) {
+func (r *PG) PutDocumentCalibration(
+	ctx context.Context,
+	territorySlug string,
+	documentID int64,
+	c domain.Calibration,
+) (domain.Calibration, error) {
 	err := audittx.Run(ctx, r.pool, func(tx pgx.Tx) error {
 		if err := lockDocument(ctx, tx, territorySlug, documentID); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `DELETE FROM document_calibration_points WHERE document_id = $1`, documentID); err != nil {
+		if _, err := tx.Exec(
+			ctx,
+			`DELETE FROM document_calibration_points WHERE document_id = $1`,
+			documentID,
+		); err != nil {
 			return err
 		}
 		return insertCalibrationPoints(ctx, tx, documentID, c)

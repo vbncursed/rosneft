@@ -12,7 +12,11 @@ import (
 
 // Create validates input, hashes the password, and inserts the user, recording
 // the actor as its creator (created_by).
-func (s *Service) Create(ctx context.Context, actorID, email, username, plain string, roleSlugs []string) (domain.User, error) {
+func (s *Service) Create(
+	ctx context.Context,
+	actorID, email, username, plain string,
+	roleSlugs []string,
+) (domain.User, error) {
 	email = domain.Fold(email)
 	// Username keeps its case — it is a display name — but not its padding.
 	// Login folds the identifier, and citext ignores case, not whitespace, so a

@@ -75,7 +75,10 @@ func (s *UpdateSuite) TestRenamesAndRegrantsTogether() {
 // unknown slug; the rollback must bring them back with the title.
 func (s *UpdateSuite) TestARefusedGrantLeavesTheOldTitleAndGrants() {
 	ctx := s.T().Context()
-	_, err := s.store.Create(ctx, domain.Role{Slug: "auditor", Title: "Auditor", PermissionSlugs: []string{"territory:read"}})
+	_, err := s.store.Create(
+		ctx,
+		domain.Role{Slug: "auditor", Title: "Auditor", PermissionSlugs: []string{"territory:read"}},
+	)
 	assert.NilError(s.T(), err)
 
 	_, err = s.store.Update(ctx, domain.RoleUpdate{
@@ -109,7 +112,10 @@ func (s *UpdateSuite) TestASlugListedTwiceIsGrantedOnce() {
 
 func (s *UpdateSuite) TestATitleOnlyUpdateKeepsTheGrants() {
 	ctx := s.T().Context()
-	_, err := s.store.Create(ctx, domain.Role{Slug: "reader", Title: "Reader", PermissionSlugs: []string{"territory:read"}})
+	_, err := s.store.Create(
+		ctx,
+		domain.Role{Slug: "reader", Title: "Reader", PermissionSlugs: []string{"territory:read"}},
+	)
 	assert.NilError(s.T(), err)
 
 	got, err := s.store.Update(ctx, domain.RoleUpdate{Slug: "reader", Title: "Reader II"}, "", true)

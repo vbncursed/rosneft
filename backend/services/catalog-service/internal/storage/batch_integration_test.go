@@ -80,8 +80,11 @@ func (s *BatchSuite) seedTerritory(ctx context.Context, slug string, admins ...s
 }
 
 func (s *BatchSuite) seedModel(ctx context.Context, slug string) {
-	_, err := s.pool.Exec(ctx,
-		`INSERT INTO models (slug, title, source_blob_hash, tag_id) VALUES ($1,$1,$1, (SELECT id FROM model_tags WHERE slug = 'ungrouped'))`, slug)
+	_, err := s.pool.Exec(
+		ctx,
+		`INSERT INTO models (slug, title, source_blob_hash, tag_id) VALUES ($1,$1,$1, (SELECT id FROM model_tags WHERE slug = 'ungrouped'))`,
+		slug,
+	)
 	assert.NilError(s.T(), err)
 }
 

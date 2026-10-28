@@ -34,17 +34,37 @@ func (s *ZoneSuite) TestZoneCreateValidate() {
 		{"+Inf corner", func(z *domain.ZoneCreate) { z.Corners[0].X = math.Inf(1) }, "corner 0 is not finite"},
 		{"-Inf corner", func(z *domain.ZoneCreate) { z.Corners[3].Z = math.Inf(-1) }, "corner 3 is not finite"},
 		{"blank title", func(z *domain.ZoneCreate) { z.Title = "  " }, "a zone title is 1 to 120 characters"},
-		{"121 runes", func(z *domain.ZoneCreate) { z.Title = strings.Repeat("я", 121) }, "a zone title is 1 to 120 characters"},
+		{
+			"121 runes",
+			func(z *domain.ZoneCreate) { z.Title = strings.Repeat("я", 121) },
+			"a zone title is 1 to 120 characters",
+		},
 		{"120 runes", func(z *domain.ZoneCreate) { z.Title = strings.Repeat("я", 120) }, ""},
 		{"no tags", func(z *domain.ZoneCreate) { z.TagSlugs = []string{} }, "a zone needs 1–5 tags"},
 		{"nil tags", func(z *domain.ZoneCreate) { z.TagSlugs = nil }, "a zone needs 1–5 tags"},
-		{"six tags", func(z *domain.ZoneCreate) { z.TagSlugs = []string{"a", "b", "c", "d", "e", "f"} }, "a zone needs 1–5 tags"},
+		{
+			"six tags",
+			func(z *domain.ZoneCreate) { z.TagSlugs = []string{"a", "b", "c", "d", "e", "f"} },
+			"a zone needs 1–5 tags",
+		},
 		{"five tags", func(z *domain.ZoneCreate) { z.TagSlugs = []string{"a", "b", "c", "d", "e"} }, ""},
 		{"duplicate tag", func(z *domain.ZoneCreate) { z.TagSlugs = []string{"camp", "camp"} }, "duplicate tag"},
-		{"ungrouped", func(z *domain.ZoneCreate) { z.TagSlugs = []string{"ungrouped"} }, "ungrouped cannot be put on a zone"},
+		{
+			"ungrouped",
+			func(z *domain.ZoneCreate) { z.TagSlugs = []string{"ungrouped"} },
+			"ungrouped cannot be put on a zone",
+		},
 		{"zero width", func(z *domain.ZoneCreate) { z.DrawingWidthM = new(0.0) }, "drawing size must be positive"},
-		{"negative height", func(z *domain.ZoneCreate) { z.DrawingHeightM = new(-1.0) }, "drawing size must be positive"},
-		{"NaN width", func(z *domain.ZoneCreate) { z.DrawingWidthM = new(math.NaN()) }, "drawing size must be positive"},
+		{
+			"negative height",
+			func(z *domain.ZoneCreate) { z.DrawingHeightM = new(-1.0) },
+			"drawing size must be positive",
+		},
+		{
+			"NaN width",
+			func(z *domain.ZoneCreate) { z.DrawingWidthM = new(math.NaN()) },
+			"drawing size must be positive",
+		},
 		{"sized", func(z *domain.ZoneCreate) { z.DrawingWidthM, z.DrawingHeightM = new(7.5), new(13.0) }, ""},
 	}
 	for _, tc := range tests {

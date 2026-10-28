@@ -28,5 +28,8 @@ func (s *Service) LoginVerify2FA(ctx context.Context, challenge, code string) (s
 	if err != nil {
 		return "", err
 	}
+	if err := checkActive(u); err != nil {
+		return "", err
+	}
 	return s.issue(ctx, u)
 }

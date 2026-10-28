@@ -7,7 +7,10 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 )
 
-func (s *Server) UpdatePlacement(ctx context.Context, req *catalogv1.UpdatePlacementRequest) (*catalogv1.UpdatePlacementResponse, error) {
+func (s *Server) UpdatePlacement(
+	ctx context.Context,
+	req *catalogv1.UpdatePlacementRequest,
+) (*catalogv1.UpdatePlacementResponse, error) {
 	out, err := s.svc.UpdatePlacement(ctx, domain.Placement{
 		ID:            req.GetId(),
 		TerritorySlug: req.GetTerritorySlug(),

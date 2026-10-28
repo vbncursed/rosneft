@@ -50,12 +50,18 @@ func (s *ModelTagWritesSuite) TestUpdateAnswersTheTag() {
 }
 
 func (s *ModelTagWritesSuite) TestRefusalsKeepTheirCodeAndStartAtTheSentinel() {
-	s.svc.UpdateModelTagMock.Return(domain.ModelTag{}, fmt.Errorf("storage.UpdateModelTag: %w", domain.ErrModelTagNotFound))
+	s.svc.UpdateModelTagMock.Return(
+		domain.ModelTag{},
+		fmt.Errorf("storage.UpdateModelTag: %w", domain.ErrModelTagNotFound),
+	)
 	_, err := s.srv.UpdateModelTag(s.ctx, &catalogv1.UpdateModelTagRequest{Slug: "x", Title: "X"})
 	assert.Equal(s.T(), status.Code(err), codes.NotFound)
 	assert.Equal(s.T(), status.Convert(err).Message(), "model tag not found")
 
-	s.svc.CreateModelTagMock.Return(domain.ModelTag{}, fmt.Errorf("service.CreateModelTag: %w: bad", domain.ErrInvalidInput))
+	s.svc.CreateModelTagMock.Return(
+		domain.ModelTag{},
+		fmt.Errorf("service.CreateModelTag: %w: bad", domain.ErrInvalidInput),
+	)
 	_, err = s.srv.CreateModelTag(s.ctx, &catalogv1.CreateModelTagRequest{Slug: "x", Title: "X"})
 	assert.Equal(s.T(), status.Code(err), codes.InvalidArgument)
 	assert.Equal(s.T(), status.Convert(err).Message(), "invalid input: bad")

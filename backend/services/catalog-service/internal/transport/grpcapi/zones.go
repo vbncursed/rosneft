@@ -43,7 +43,10 @@ func (s *Server) ListZones(ctx context.Context, req *catalogv1.ListZonesRequest)
 	return &catalogv1.ListZonesResponse{Zones: out}, nil
 }
 
-func (s *Server) CreateZone(ctx context.Context, req *catalogv1.CreateZoneRequest) (*catalogv1.CreateZoneResponse, error) {
+func (s *Server) CreateZone(
+	ctx context.Context,
+	req *catalogv1.CreateZoneRequest,
+) (*catalogv1.CreateZoneResponse, error) {
 	var corners [4]domain.Vec3
 	if n := len(req.GetCorners()); n != len(corners) {
 		return nil, mapError(fmt.Errorf("%w: a zone has %d corners, got %d", domain.ErrInvalidInput, len(corners), n))
@@ -64,7 +67,10 @@ func (s *Server) CreateZone(ctx context.Context, req *catalogv1.CreateZoneReques
 	return &catalogv1.CreateZoneResponse{Zone: zoneToProto(z)}, nil
 }
 
-func (s *Server) UpdateZone(ctx context.Context, req *catalogv1.UpdateZoneRequest) (*catalogv1.UpdateZoneResponse, error) {
+func (s *Server) UpdateZone(
+	ctx context.Context,
+	req *catalogv1.UpdateZoneRequest,
+) (*catalogv1.UpdateZoneResponse, error) {
 	z, err := s.svc.UpdateZone(ctx, req.GetTerritorySlug(), req.GetId(), domain.ZonePatch{
 		Title:    req.Title,
 		TagSlugs: req.GetTagSlugs(),
@@ -76,7 +82,10 @@ func (s *Server) UpdateZone(ctx context.Context, req *catalogv1.UpdateZoneReques
 	return &catalogv1.UpdateZoneResponse{Zone: zoneToProto(z)}, nil
 }
 
-func (s *Server) DeleteZone(ctx context.Context, req *catalogv1.DeleteZoneRequest) (*catalogv1.DeleteZoneResponse, error) {
+func (s *Server) DeleteZone(
+	ctx context.Context,
+	req *catalogv1.DeleteZoneRequest,
+) (*catalogv1.DeleteZoneResponse, error) {
 	if err := s.svc.DeleteZone(ctx, req.GetTerritorySlug(), req.GetId()); err != nil {
 		return nil, mapError(err)
 	}

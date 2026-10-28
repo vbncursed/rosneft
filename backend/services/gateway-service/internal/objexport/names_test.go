@@ -32,7 +32,11 @@ func (s *NamesSuite) TestObjectNames() {
 func (s *NamesSuite) TestFileTokens() {
 	cases := []struct{ name, got, want string }{
 		{"path traversal", imageFile(0, "../../etc/passwd", "image/png"), "t000_.._.._etc_passwd.png"},
-		{"extension stripped case-insensitively", imageFile(0, "textures/ground.PNG", "image/png"), "t000_textures_ground.png"},
+		{
+			"extension stripped case-insensitively",
+			imageFile(0, "textures/ground.PNG", "image/png"),
+			"t000_textures_ground.png",
+		},
 		{"empty image", imageFile(0, "", "image/jpeg"), "t000_image.jpg"},
 		{"non-ASCII material", materialFile(0, "Металл"), "m000_" + strings.Repeat("_", 6)},
 		{"empty material", materialFile(7, ""), "m007_material"},

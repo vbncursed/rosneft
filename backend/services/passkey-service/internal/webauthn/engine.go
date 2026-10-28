@@ -61,7 +61,11 @@ func (e *Engine) BeginLogin() (*protocol.CredentialAssertion, *lib.SessionData, 
 
 // FinishLogin verifies the assertion. handler maps (rawID,userHandle)→User by
 // loading that user's stored credentials. Returns the matched credential.
-func (e *Engine) FinishLogin(handler lib.DiscoverableUserHandler, sess lib.SessionData, body io.Reader) (*lib.Credential, error) {
+func (e *Engine) FinishLogin(
+	handler lib.DiscoverableUserHandler,
+	sess lib.SessionData,
+	body io.Reader,
+) (*lib.Credential, error) {
 	parsed, err := protocol.ParseCredentialRequestResponseBody(body)
 	if err != nil {
 		return nil, assertionInvalid(err)

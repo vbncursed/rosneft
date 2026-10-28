@@ -123,13 +123,29 @@ func (s *BuildSuite) TestRemapsMeshopt() {
 	assert.Equal(s.T(), len(doc.Buffers), 2)
 	assert.Equal(s.T(), doc.Buffers[0].ByteLength, int(plan.BinLength))
 	assert.Equal(s.T(), doc.Buffers[1].ByteLength, 36)
-	assert.Equal(s.T(), string(doc.Buffers[1].Extensions["EXT_meshopt_compression"].(json.RawMessage)), `{"fallback":true}`)
+	assert.Equal(
+		s.T(),
+		string(doc.Buffers[1].Extensions["EXT_meshopt_compression"].(json.RawMessage)),
+		`{"fallback":true}`,
+	)
 
 	view := doc.BufferViews[2] // the model's positions, on the fallback buffer
 	assert.Equal(s.T(), view.Buffer, 1)
 	assert.Equal(s.T(), view.ByteOffset, 0)
 	p := s.payload(view.Extensions["EXT_meshopt_compression"])
-	assert.DeepEqual(s.T(), p, testPayload{Buffer: 0, ByteOffset: 8 + 44, ByteLength: 20, ByteStride: 12, Count: 3, Mode: "ATTRIBUTES", Filter: "NONE"})
+	assert.DeepEqual(
+		s.T(),
+		p,
+		testPayload{
+			Buffer:     0,
+			ByteOffset: 8 + 44,
+			ByteLength: 20,
+			ByteStride: 12,
+			Count:      3,
+			Mode:       "ATTRIBUTES",
+			Filter:     "NONE",
+		},
+	)
 	assert.Equal(s.T(), doc.BufferViews[3].ByteOffset, 28+44)
 	checkIndices(s.T(), doc, plan.BinLength)
 }
@@ -186,7 +202,13 @@ func (s *BuildSuite) TestGolden() {
 	heads := map[string]Head{"t": s.head(triangleDoc), "q": s.head(texturedQuadDoc)}
 	plan, _ := s.build([]Placement{
 		place("t", "Ust-Kut"),
-		{Hash: "q", Name: "tank-1", Translation: [3]float64{0.5, 0, -0.25}, Rotation: [3]float64{0, 1.5, 0}, Scale: [3]float64{1, 1, 1}},
+		{
+			Hash:        "q",
+			Name:        "tank-1",
+			Translation: [3]float64{0.5, 0, -0.25},
+			Rotation:    [3]float64{0, 1.5, 0},
+			Scale:       [3]float64{1, 1, 1},
+		},
 		{Hash: "q", Name: "tank-2", Translation: [3]float64{-0.5, 0, 0.25}, Scale: [3]float64{2, 2, 2}},
 	}, heads)
 

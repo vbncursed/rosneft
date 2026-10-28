@@ -26,16 +26,26 @@ type passwordStub struct {
 	resets *atomic.Int32
 }
 
-func (passwordStub) ValidateToken(_ context.Context, req *authv1.ValidateTokenRequest) (*authv1.ValidateTokenResponse, error) {
+func (passwordStub) ValidateToken(
+	_ context.Context,
+	req *authv1.ValidateTokenRequest,
+) (*authv1.ValidateTokenResponse, error) {
 	perms := map[string][]string{"writer": {"users:write"}, "reader": {"users:read"}}[req.GetToken()]
-	return &authv1.ValidateTokenResponse{UserId: "u-" + req.GetToken(), Permissions: perms, OwningAdminId: "company-a"}, nil
+	return &authv1.ValidateTokenResponse{
+		UserId:        "u-" + req.GetToken(),
+		Permissions:   perms,
+		OwningAdminId: "company-a",
+	}, nil
 }
 
 func (passwordStub) GetUser(_ context.Context, req *authv1.GetUserRequest) (*authv1.User, error) {
 	return &authv1.User{Id: req.GetId()}, nil
 }
 
-func (p passwordStub) SetUserPassword(context.Context, *authv1.SetUserPasswordRequest) (*authv1.SetUserPasswordResponse, error) {
+func (p passwordStub) SetUserPassword(
+	context.Context,
+	*authv1.SetUserPasswordRequest,
+) (*authv1.SetUserPasswordResponse, error) {
 	p.resets.Add(1)
 	return &authv1.SetUserPasswordResponse{}, nil
 }
@@ -58,7 +68,12 @@ func TestSetUserPasswordIsGatedByUsersWriteAndCSRF(t *testing.T) {
 
 	// The target holds no territory, so the scope comparison passes; its own
 	// cases are in password_scope_test.go.
-	h := &Handlers{client: client, territories: catalogScopes{}, logger: slog.New(slog.NewTextHandler(io.Discard, nil)), csrfSecret: []byte("k")}
+	h := &Handlers{
+		client:      client,
+		territories: catalogScopes{},
+		logger:      slog.New(slog.NewTextHandler(io.Discard, nil)),
+		csrfSecret:  []byte("k"),
+	}
 	r := chi.NewRouter()
 	h.Mount(r)
 

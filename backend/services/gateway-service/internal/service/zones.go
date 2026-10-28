@@ -28,7 +28,12 @@ func (g *Gateway) CreateZone(ctx context.Context, territorySlug string, z domain
 }
 
 // UpdateZone renames a zone or replaces its tags.
-func (g *Gateway) UpdateZone(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch) (domain.Zone, error) {
+func (g *Gateway) UpdateZone(
+	ctx context.Context,
+	territorySlug string,
+	id int64,
+	p domain.ZonePatch,
+) (domain.Zone, error) {
 	if err := checkAddress(territorySlug, id); err != nil {
 		return domain.Zone{}, err
 	}

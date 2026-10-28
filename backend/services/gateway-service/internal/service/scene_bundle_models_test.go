@@ -35,7 +35,11 @@ func (s *SceneBundleSuite) TestModelOptionsKeepsModelsWithoutArtifacts() {
 	got, err := s.svc.GetSceneBundle(s.ctx, "t1", "")
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), cmp.Len(got.ModelOptions, 2))
-	assert.DeepEqual(s.T(), got.ModelOptions[1], domain.AssetOption{Slug: "m2", Title: "Broken", LODs: []domain.LodArtifact{}})
+	assert.DeepEqual(
+		s.T(),
+		got.ModelOptions[1],
+		domain.AssetOption{Slug: "m2", Title: "Broken", LODs: []domain.LodArtifact{}},
+	)
 }
 
 func (s *SceneBundleSuite) TestModelOptionsEmptyWhenNoModels() {

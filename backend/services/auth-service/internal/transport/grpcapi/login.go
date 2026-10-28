@@ -26,7 +26,10 @@ func (s *Server) LoginVerify2FA(ctx context.Context, req *authv1.LoginVerify2FAR
 	return &authv1.LoginResponse{Token: token}, nil
 }
 
-func (s *Server) PasskeyLoginBegin(ctx context.Context, _ *authv1.PasskeyLoginBeginRequest) (*authv1.PasskeyLoginBeginResponse, error) {
+func (s *Server) PasskeyLoginBegin(
+	ctx context.Context,
+	_ *authv1.PasskeyLoginBeginRequest,
+) (*authv1.PasskeyLoginBeginResponse, error) {
 	opts, flowID, err := s.auth.PasskeyLoginBegin(ctx)
 	if err != nil {
 		return nil, mapError(err)
@@ -34,7 +37,10 @@ func (s *Server) PasskeyLoginBegin(ctx context.Context, _ *authv1.PasskeyLoginBe
 	return &authv1.PasskeyLoginBeginResponse{OptionsJson: opts, FlowId: flowID}, nil
 }
 
-func (s *Server) PasskeyLoginFinish(ctx context.Context, req *authv1.PasskeyLoginFinishRequest) (*authv1.LoginResponse, error) {
+func (s *Server) PasskeyLoginFinish(
+	ctx context.Context,
+	req *authv1.PasskeyLoginFinishRequest,
+) (*authv1.LoginResponse, error) {
 	token, err := s.auth.PasskeyLoginFinish(ctx, req.GetFlowId(), req.GetAssertionJson())
 	if err != nil {
 		return nil, mapError(err)
@@ -49,7 +55,10 @@ func (s *Server) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1
 	return &authv1.LogoutResponse{}, nil
 }
 
-func (s *Server) ValidateToken(ctx context.Context, req *authv1.ValidateTokenRequest) (*authv1.ValidateTokenResponse, error) {
+func (s *Server) ValidateToken(
+	ctx context.Context,
+	req *authv1.ValidateTokenRequest,
+) (*authv1.ValidateTokenResponse, error) {
 	uid, perms, isOwner, owningAdmin, auditCompany, mustEnroll, err := s.auth.ValidateToken(ctx, req.GetToken())
 	if err != nil {
 		return nil, mapError(err)

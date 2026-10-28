@@ -10,7 +10,12 @@ import (
 
 // PutDocumentCalibration replaces the whole point set of document id on
 // territorySlug and answers what was stored.
-func (c *Client) PutDocumentCalibration(ctx context.Context, territorySlug string, id int64, cal domain.Calibration) (domain.Calibration, error) {
+func (c *Client) PutDocumentCalibration(
+	ctx context.Context,
+	territorySlug string,
+	id int64,
+	cal domain.Calibration,
+) (domain.Calibration, error) {
 	resp, err := c.cc.PutDocumentCalibration(ctx, &contentv1.PutDocumentCalibrationRequest{
 		TerritorySlug: territorySlug,
 		DocumentId:    id,

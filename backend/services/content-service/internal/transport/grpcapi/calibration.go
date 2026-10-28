@@ -8,7 +8,10 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/content-service/internal/domain"
 )
 
-func (s *Server) PutDocumentCalibration(ctx context.Context, req *contentv1.PutDocumentCalibrationRequest) (*contentv1.PutDocumentCalibrationResponse, error) {
+func (s *Server) PutDocumentCalibration(
+	ctx context.Context,
+	req *contentv1.PutDocumentCalibrationRequest,
+) (*contentv1.PutDocumentCalibrationResponse, error) {
 	c, err := calibrationFromProto(req.GetCalibration())
 	if err != nil {
 		return nil, mapError(err)
@@ -20,7 +23,10 @@ func (s *Server) PutDocumentCalibration(ctx context.Context, req *contentv1.PutD
 	return &contentv1.PutDocumentCalibrationResponse{Calibration: calibrationToProto(&out)}, nil
 }
 
-func (s *Server) DeleteDocumentCalibration(ctx context.Context, req *contentv1.DeleteDocumentCalibrationRequest) (*contentv1.DeleteDocumentCalibrationResponse, error) {
+func (s *Server) DeleteDocumentCalibration(
+	ctx context.Context,
+	req *contentv1.DeleteDocumentCalibrationRequest,
+) (*contentv1.DeleteDocumentCalibrationResponse, error) {
 	if err := s.svc.DeleteCalibration(ctx, req.GetTerritorySlug(), req.GetDocumentId()); err != nil {
 		return nil, mapError(err)
 	}
@@ -36,7 +42,11 @@ func calibrationFromProto(c *contentv1.Calibration) (domain.Calibration, error) 
 			Scene: domain.Vec3{X: p.GetSceneX(), Y: p.GetSceneY(), Z: p.GetSceneZ()},
 		}
 		if p.UtmE != nil != (p.UtmN != nil) {
-			return domain.Calibration{}, fmt.Errorf("%w: calibration point %d needs utm_e and utm_n together or neither", domain.ErrInvalidInput, i)
+			return domain.Calibration{}, fmt.Errorf(
+				"%w: calibration point %d needs utm_e and utm_n together or neither",
+				domain.ErrInvalidInput,
+				i,
+			)
 		}
 		if p.UtmE != nil {
 			pt.UTM = &domain.UTM{E: p.GetUtmE(), N: p.GetUtmN()}

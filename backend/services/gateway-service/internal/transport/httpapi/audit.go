@@ -117,7 +117,10 @@ func (s *Server) ListAudit(ctx context.Context, req ListAuditRequestObject) (Lis
 }
 
 // ListAuditActors returns the actors the caller can filter by.
-func (s *Server) ListAuditActors(ctx context.Context, _ ListAuditActorsRequestObject) (ListAuditActorsResponseObject, error) {
+func (s *Server) ListAuditActors(
+	ctx context.Context,
+	_ ListAuditActorsRequestObject,
+) (ListAuditActorsResponseObject, error) {
 	actors, err := s.svc.ListAuditActors(ctx, AuditPrincipal(ctx), authhttp.Token(ctx))
 	switch {
 	case isForbidden(err):

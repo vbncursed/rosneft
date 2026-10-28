@@ -35,7 +35,12 @@ func (c Calibration) Validate() error {
 		return fmt.Errorf("%w: calibration page must be 1 to %d, got %d", ErrInvalidInput, maxCalibrationPage, c.Page)
 	}
 	if n := len(c.Points); n < minCalibrationPoints || n > maxCalibrationPoints {
-		return fmt.Errorf("%w: a calibration needs %d–%d points", ErrInvalidInput, minCalibrationPoints, maxCalibrationPoints)
+		return fmt.Errorf(
+			"%w: a calibration needs %d–%d points",
+			ErrInvalidInput,
+			minCalibrationPoints,
+			maxCalibrationPoints,
+		)
 	}
 	for i, p := range c.Points {
 		if !p.finite() {

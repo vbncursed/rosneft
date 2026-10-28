@@ -38,7 +38,14 @@ func (o *Optimizer) Simplify(ctx context.Context, glb []byte, ratio float64) ([]
 		return nil, fmt.Errorf("compression: write input: %w", err)
 	}
 
-	cmd := exec.CommandContext(ctx, o.binPath, o.simplifyArgs(in, out, ratio)...) //nolint:gosec // G204: binary is MESH_GLTFPACK_BIN; arguments are fixed flags, a validated ratio and paths inside our own MkdirTemp dir
+	cmd := exec.CommandContext( //nolint:gosec // G204: binary is MESH_GLTFPACK_BIN; arguments are fixed flags, a validated ratio and paths inside our own MkdirTemp dir
+		ctx,
+		o.binPath,
+		o.simplifyArgs(
+			in,
+			out,
+			ratio,
+		)...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("compression: gltfpack simplify failed: %w (output: %s)", err, output)

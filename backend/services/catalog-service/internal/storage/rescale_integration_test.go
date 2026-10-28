@@ -31,8 +31,10 @@ func TestRescaleSuite(t *testing.T) { suite.Run(t, new(RescaleSuite)) }
 func (s *RescaleSuite) SetupSuite() {
 	s.ctr, s.pool = startCatalogDB(&s.Suite)
 	s.pg = storage.New(s.pool)
-	_, err := s.pool.Exec(s.T().Context(),
-		`INSERT INTO models (slug, title, source_blob_hash, tag_id) VALUES ('pump', 'pump', 'pump', (SELECT id FROM model_tags WHERE slug = 'ungrouped'))`)
+	_, err := s.pool.Exec(
+		s.T().Context(),
+		`INSERT INTO models (slug, title, source_blob_hash, tag_id) VALUES ('pump', 'pump', 'pump', (SELECT id FROM model_tags WHERE slug = 'ungrouped'))`,
+	)
 	assert.NilError(s.T(), err)
 }
 
@@ -61,7 +63,11 @@ func (s *RescaleSuite) SetupTest() {
 			SELECT id, 'pano', 'pano', 'pano', $2, $3, $4 FROM territories WHERE slug = $1`,
 			slug, panoramaAt.X, panoramaAt.Y, panoramaAt.Z)
 		assert.NilError(s.T(), err)
-		_, err = s.pg.CreateZone(ctx, slug, domain.ZoneCreate{Title: "Zone", Corners: zoneCorners, TagSlugs: []string{"camp"}})
+		_, err = s.pg.CreateZone(
+			ctx,
+			slug,
+			domain.ZoneCreate{Title: "Zone", Corners: zoneCorners, TagSlugs: []string{"camp"}},
+		)
 		assert.NilError(s.T(), err)
 		_, err = s.pool.Exec(ctx, `
 			WITH d AS (
@@ -230,7 +236,12 @@ func (s *RescaleSuite) TestAMovedCenterAloneStillShifts() {
 	assert.Equal(s.T(), s.positionX("a"), 2.0) // 1·1 + (0 − −5)·2/10
 }
 
-var zoneCorners = [4]domain.Vec3{{X: 1, Y: 2, Z: 3}, {X: -4, Y: 5, Z: -6}, {X: 0.5, Y: -0.25, Z: 0.75}, {X: 7, Y: 8, Z: 9}}
+var zoneCorners = [4]domain.Vec3{
+	{X: 1, Y: 2, Z: 3},
+	{X: -4, Y: 5, Z: -6},
+	{X: 0.5, Y: -0.25, Z: 0.75},
+	{X: 7, Y: 8, Z: 9},
+}
 
 var calibrationRow = struct {
 	pdfX, pdfY, utmE, utmN float64

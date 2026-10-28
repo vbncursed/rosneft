@@ -9,7 +9,12 @@ import (
 
 // PutCalibration replaces a document's calibration points. A document on
 // another territory is ErrDocumentNotFound, same as an unknown id.
-func (c *Content) PutCalibration(ctx context.Context, territorySlug string, docID int64, cal domain.Calibration) (domain.Calibration, error) {
+func (c *Content) PutCalibration(
+	ctx context.Context,
+	territorySlug string,
+	docID int64,
+	cal domain.Calibration,
+) (domain.Calibration, error) {
 	if err := requireDocument(territorySlug, docID); err != nil {
 		return domain.Calibration{}, fmt.Errorf("service.PutCalibration: %w", err)
 	}

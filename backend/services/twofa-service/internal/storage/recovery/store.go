@@ -23,7 +23,12 @@ func (s *Store) Replace(ctx context.Context, userID string, hashes []string) err
 		return fmt.Errorf("recovery.Replace: clear: %w", err)
 	}
 	for _, h := range hashes {
-		if _, err := tx.Exec(ctx, `INSERT INTO twofa_recovery_codes (user_id, code_hash) VALUES ($1,$2)`, userID, h); err != nil {
+		if _, err := tx.Exec(
+			ctx,
+			`INSERT INTO twofa_recovery_codes (user_id, code_hash) VALUES ($1,$2)`,
+			userID,
+			h,
+		); err != nil {
 			return fmt.Errorf("recovery.Replace: insert: %w", err)
 		}
 	}

@@ -59,7 +59,8 @@ func TestUpsertModelMapsTagSlugAndAnUnknownTagIsInvalidArgument(t *testing.T) {
 
 func TestListModelTagsFillsTitles(t *testing.T) {
 	svc := mocks.NewServiceMock(minimock.NewController(t))
-	svc.ListModelTagsMock.Expect(t.Context()).Return([]domain.ModelTag{{Slug: "camp", Title: "Camp & accommodation"}}, nil)
+	svc.ListModelTagsMock.Expect(t.Context()).
+		Return([]domain.ModelTag{{Slug: "camp", Title: "Camp & accommodation"}}, nil)
 
 	out, err := grpcapi.New(svc).ListModelTags(t.Context(), &catalogv1.ListModelTagsRequest{})
 	assert.NilError(t, err)

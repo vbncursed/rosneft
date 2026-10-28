@@ -9,7 +9,10 @@ import (
 	catalogv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/catalog/v1"
 )
 
-func (s *Server) UpsertModel(ctx context.Context, req *catalogv1.UpsertModelRequest) (*catalogv1.UpsertModelResponse, error) {
+func (s *Server) UpsertModel(
+	ctx context.Context,
+	req *catalogv1.UpsertModelRequest,
+) (*catalogv1.UpsertModelResponse, error) {
 	if req.GetModel() == nil {
 		return nil, mapError(fmt.Errorf("%w: model is required", domain.ErrInvalidInput))
 	}

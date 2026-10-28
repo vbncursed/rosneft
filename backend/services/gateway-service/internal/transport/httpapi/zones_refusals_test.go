@@ -13,9 +13,12 @@ import (
 // The catalog refuses in English and the body says so in its words.
 func (s *ZonesSuite) TestCatalogRefusalIs400InTheCatalogsWords() {
 	s.svc.err = errors.Join(domain.ErrInvalidInput, errors.New("ungrouped cannot be put on a zone"))
-	resp, err := s.srv.CreateZone(s.T().Context(), CreateZoneRequestObject{Slug: "yard", Body: &CreateZoneJSONRequestBody{
-		Title: "Camp", TagSlugs: []string{"ungrouped"},
-	}})
+	resp, err := s.srv.CreateZone(
+		s.T().Context(),
+		CreateZoneRequestObject{Slug: "yard", Body: &CreateZoneJSONRequestBody{
+			Title: "Camp", TagSlugs: []string{"ungrouped"},
+		}},
+	)
 
 	assert.NilError(s.T(), err)
 	code, body := rendered(s.T(), resp.VisitCreateZoneResponse)

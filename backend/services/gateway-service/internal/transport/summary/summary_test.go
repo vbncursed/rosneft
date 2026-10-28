@@ -39,11 +39,18 @@ func answering(ran *sync.Map) summary.Counts {
 	return out
 }
 
-func (s *SummarySuite) serve(p authhttp.TestPrincipal, counts summary.Counts) (*httptest.ResponseRecorder, map[string]any) {
+func (s *SummarySuite) serve(
+	p authhttp.TestPrincipal,
+	counts summary.Counts,
+) (*httptest.ResponseRecorder, map[string]any) {
 	return s.serveURL(p, counts, "/api/console/summary")
 }
 
-func (s *SummarySuite) serveURL(p authhttp.TestPrincipal, counts summary.Counts, url string) (*httptest.ResponseRecorder, map[string]any) {
+func (s *SummarySuite) serveURL(
+	p authhttp.TestPrincipal,
+	counts summary.Counts,
+	url string,
+) (*httptest.ResponseRecorder, map[string]any) {
 	ctx := authhttp.NewTestContextFor(s.T().Context(), p)
 	rec := httptest.NewRecorder()
 	summary.Handler(counts, slog.New(slog.DiscardHandler)).
@@ -151,7 +158,11 @@ func (s *SummarySuite) TestTheOffsetReachesTheSources() {
 		got.Store("offset", p.TZOffset)
 		return 1, nil
 	}}
-	rec, _ := s.serveURL(authhttp.TestPrincipal{UserID: "root", IsOwner: true}, counts, "/api/console/summary?tzOffset=-330")
+	rec, _ := s.serveURL(
+		authhttp.TestPrincipal{UserID: "root", IsOwner: true},
+		counts,
+		"/api/console/summary?tzOffset=-330",
+	)
 	assert.Equal(s.T(), rec.Code, http.StatusOK)
 	v, _ := got.Load("offset")
 	assert.Equal(s.T(), v, -330*time.Minute)
@@ -188,7 +199,11 @@ func (s *SummarySuite) TestTheEdgesOfTheRangeAreAccepted() {
 	for _, q := range []string{"840", "-840", "0"} {
 		s.Run(q, func() {
 			var ran sync.Map
-			rec, _ := s.serveURL(authhttp.TestPrincipal{UserID: "root", IsOwner: true}, answering(&ran), "/api/console/summary?tzOffset="+q)
+			rec, _ := s.serveURL(
+				authhttp.TestPrincipal{UserID: "root", IsOwner: true},
+				answering(&ran),
+				"/api/console/summary?tzOffset="+q,
+			)
 			assert.Equal(s.T(), rec.Code, http.StatusOK)
 		})
 	}
