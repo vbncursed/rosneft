@@ -25,6 +25,8 @@ jobs:
       # setup-node, so the shim lands beside the Node this job runs. Every yarn
       # step runs inside desktop/: corepack reads the field from the working
       # directory, and `yarn --cwd desktop` from the root gets Yarn classic.
+      # Node 25+ no longer ships corepack: install the pinned one first.
+      - run: npm install -g corepack@0.36.0
       - run: corepack enable
       - run: yarn install --immutable
         working-directory: desktop
@@ -63,6 +65,8 @@ jobs:
       # setup-node, so the shim lands beside the Node this job runs. Every yarn
       # step runs inside desktop/: corepack reads the field from the working
       # directory, and `yarn --cwd desktop` from the root gets Yarn classic.
+      # Node 25+ no longer ships corepack: install the pinned one first.
+      - run: npm install -g corepack@0.36.0
       - run: corepack enable
       - run: yarn install --immutable
         working-directory: desktop
