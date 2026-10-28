@@ -2,7 +2,10 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"slices"
 
 	"github.com/vbncursed/rosneft/backend/services/audit-service/internal/domain"
 )
@@ -21,8 +24,17 @@ import (
 // moment, and a witness disabled for part of the journal's life leaves a
 // permanent, harmless gap.
 //
-// The seed checkpoint (the first row, which digests nothing) is walked for its
-// link but not recomputed — there is no range under it.
+// The seed checkpoint (the first row) digests no range, but its digest is a
+// constant, SHA-256 of the empty string, so it is checked against that and
+// against the witness like every other row.
+//
+// A witness line for a checkpoint the database no longer has is a failure:
+// DISABLE TRIGGER plus a delete of the journal's tail and its newest
+// checkpoints leaves a self-consistent chain, and the file is then the only
+// thing that remembers what was cut. The converse is fine — a witness older
+// than the database knows fewer checkpoints. Nothing legitimately removes
+// checkpoints (the journal is kept forever; export deletes nothing), so a
+// witnessed id that is absent is never explained by retention.
 func (s *Service) Verify(ctx context.Context, witnessed map[int64]string) (domain.VerifyResult, error) {
 	all, err := s.store.ListCheckpoints(ctx)
 	if err != nil {
@@ -36,13 +48,13 @@ func (s *Service) Verify(ctx context.Context, witnessed map[int64]string) (domai
 				"chain broken: prev_digest %q does not match checkpoint %d digest %q",
 				c.PrevDigest, all[i-1].ID, all[i-1].Digest)), nil
 		}
-		if i == 0 {
-			continue
-		}
 
-		_, _, got, err := s.store.ComputeDigest(ctx, c.FromID, c.ToID, c.PrevDigest)
-		if err != nil {
-			return domain.VerifyResult{}, fmt.Errorf("audit.Verify: checkpoint %d: %w", c.ID, err)
+		got := seedDigest()
+		if i > 0 {
+			_, _, got, err = s.store.ComputeDigest(ctx, c.FromID, c.ToID, c.PrevDigest)
+			if err != nil {
+				return domain.VerifyResult{}, fmt.Errorf("audit.Verify: checkpoint %d: %w", c.ID, err)
+			}
 		}
 		if got != c.Digest {
 			return fail(res, c.ID, fmt.Sprintf(
@@ -50,9 +62,6 @@ func (s *Service) Verify(ctx context.Context, witnessed map[int64]string) (domai
 				c.FromID, c.ToID, c.Digest, got)), nil
 		}
 
-		if witnessed == nil {
-			continue
-		}
 		// Keyed by checkpoint id, not to_id: quiet intervals repeat to_id across
 		// consecutive checkpoints, so that key would compare a checkpoint against
 		// a sibling's digest and fail an untouched journal.
@@ -62,7 +71,37 @@ func (s *Service) Verify(ctx context.Context, witnessed map[int64]string) (domai
 				c.ID, w, c.Digest)), nil
 		}
 	}
+
+	if id, ok := firstMissing(witnessed, all); ok {
+		return fail(res, id, fmt.Sprintf(
+			"witness records checkpoint %d but the database has no such checkpoint: the journal tail was removed",
+			id)), nil
+	}
 	return res, nil
+}
+
+// seedDigest is what Checkpoint stores for the first tick.
+func seedDigest() string {
+	sum := sha256.Sum256(nil)
+	return hex.EncodeToString(sum[:])
+}
+
+// firstMissing returns the lowest witnessed checkpoint id absent from all.
+func firstMissing(witnessed map[int64]string, all []domain.Checkpoint) (int64, bool) {
+	have := make(map[int64]struct{}, len(all))
+	for _, c := range all {
+		have[c.ID] = struct{}{}
+	}
+	var missing []int64
+	for id := range witnessed {
+		if _, ok := have[id]; !ok {
+			missing = append(missing, id)
+		}
+	}
+	if len(missing) == 0 {
+		return 0, false
+	}
+	return slices.Min(missing), true
 }
 
 // fail stamps the first failure onto the result. Later checkpoints fold this
