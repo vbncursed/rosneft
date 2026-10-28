@@ -1,7 +1,5 @@
 import { useRef, useState } from "react";
 import type { Zone } from "@/entities/zone";
-import { HttpError } from "@/shared/api";
-import { notify } from "@/shared/lib/notify";
 import { useZoneFields } from "./use-zone-fields";
 import { zonePatch, type ZonePatch } from "./zone-patch";
 
@@ -29,10 +27,7 @@ export function useZoneEdit({
       await onSave(patch);
       onDone();
     } catch (err) {
-      // Only a 400 is about the Title (a name already taken); a 403 or an outage is not, and goes to a toast.
-      if (err instanceof HttpError && err.status === 400) f.setError(err.message);
-      else if (err instanceof HttpError && err.status < 500) notify.error(err.message);
-      else notify.error("Could not update the zone. Try again.");
+      f.reject(err, "Could not update the zone. Try again.");
     } finally {
       inFlight.current = false;
       setBusy(false);

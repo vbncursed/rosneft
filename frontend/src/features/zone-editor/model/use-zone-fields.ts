@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { modelTagsQuery, UNGROUPED_TAG_SLUG } from "@/entities/model-tag";
+import { HttpError } from "@/shared/api";
+import { notify } from "@/shared/lib/notify";
 import { unanswered } from "@/shared/lib/unanswered";
 
 export const MAX_ZONE_TAGS = 5;
@@ -34,6 +36,12 @@ export function useZoneFields(initial: ZoneForm) {
       setSelected((now) => (now.includes(slug) ? now.filter((s) => s !== slug) : atLimit ? now : [...now, slug])),
     error,
     setError,
+    /** The one rule for a failed save: only a refusal about the Title sits under the field; any other 4xx speaks in a toast, an outage in the fallback. */
+    reject: (err: unknown, fallback: string) => {
+      if (err instanceof HttpError && err.status === 400 && /title/iu.test(err.message)) setError(err.message);
+      else if (err instanceof HttpError && err.status < 500) notify.error(err.message);
+      else notify.error(fallback);
+    },
     reset: () => {
       setTitleState(initial.title);
       setSelected(initial.tagSlugs);

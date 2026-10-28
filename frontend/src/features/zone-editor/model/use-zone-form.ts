@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { HttpError } from "@/shared/api";
-import { notify } from "@/shared/lib/notify";
 import { useZoneFields, type ZoneForm } from "./use-zone-fields";
 
 export { MAX_ZONE_TAGS, type ZoneForm } from "./use-zone-fields";
@@ -25,9 +23,7 @@ export function useZoneForm({
       await onCreate({ title: f.trimmed, tagSlugs: f.selected });
       f.reset();
     } catch (err) {
-      // A refusal (a title already taken) belongs under the field; an outage does not.
-      if (err instanceof HttpError && err.status < 500) f.setError(err.message);
-      else notify.error("Could not create the zone. Try again.");
+      f.reject(err, "Could not create the zone. Try again.");
     } finally {
       setBusy(false);
     }

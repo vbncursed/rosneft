@@ -106,6 +106,19 @@ describe("useZoneForm", () => {
     expect(result.current.f.error).toBeNull();
   });
 
+  it.each([
+    [403, "forbidden"],
+    [400, "unknown model tag"],
+  ])("sends a %i (%s) to a notice, not under the Title field", async (status, message) => {
+    const onCreate = vi.fn().mockRejectedValue(new HttpError(status, null, message));
+    const { result } = form({ onCreate });
+    act(() => result.current.f.setTitle("Tank row"));
+    act(() => result.current.f.toggleTag("tanks"));
+    await act(() => result.current.f.submit());
+    expect(result.current.f.error).toBeNull();
+    expect(result.current.notices[0]).toMatchObject({ tone: "error", message });
+  });
+
   it("reports an outage as a notice, not as the title's error", async () => {
     const onCreate = vi.fn().mockRejectedValue(new HttpError(503, null, "internal"));
     const { result } = form({ onCreate });

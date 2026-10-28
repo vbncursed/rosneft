@@ -86,6 +86,15 @@ describe("useZoneEdit", () => {
     expect(result.current.notices[0]).toMatchObject({ tone: "error", message: "You don't have permission to do this" });
   });
 
+  it("reports a 400 that is not about the title as a notice", async () => {
+    const onSave = vi.fn().mockRejectedValue(new HttpError(400, null, "unknown model tag"));
+    const { result } = edit(onSave);
+    act(() => result.current.f.setTitle("Other"));
+    await act(() => result.current.f.submit());
+    expect(result.current.f.error).toBeNull();
+    expect(result.current.notices[0]).toMatchObject({ tone: "error", message: "unknown model tag" });
+  });
+
   it("reports a 5xx as a notice, not under the field", async () => {
     const onSave = vi.fn().mockRejectedValue(new HttpError(503, null, "internal"));
     const { result } = edit(onSave);
