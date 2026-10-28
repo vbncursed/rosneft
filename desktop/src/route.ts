@@ -43,3 +43,7 @@ export function classify(method: string, url: URL): Route {
 /** The answers a proxy gives when the backend behind it is down (Cloudflare's 520-527 included): to the shell that is "offline", not the server speaking. */
 export const serverUnreachable = (status: number): boolean =>
   status === 502 || status === 503 || status === 504 || (status >= 520 && status <= 527);
+
+/** The gateway itself says the session is over (a real 401 to /me from the current epoch): a stale answer, or a 401 from anything else, says nothing. */
+export const endsSession = (route: Route, status: number, fresh: boolean): boolean =>
+  route.kind === "snapshot" && route.key === "/api/auth/me" && status === 401 && fresh;
