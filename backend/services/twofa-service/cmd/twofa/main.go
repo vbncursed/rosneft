@@ -38,7 +38,6 @@ func newRootCmd() *cobra.Command {
 	flags.Int("redis-db", 2, "Redis logical DB")
 	flags.String("secret-key", "", "32-byte key (hex or base64) for TOTP secret encryption")
 	flags.String("issuer", "Andrey", "otpauth issuer label shown in authenticator apps")
-	flags.String("auth-grpc-addr", "auth:9004", "auth-service gRPC address (identity resolution)")
 	flags.Int("verify-max-fails", 5, "failed 2FA codes before lockout")
 	flags.Duration("verify-lock-ttl", 15*time.Minute, "2FA verify lockout duration")
 	flags.String("log-level", "info", "log level: debug|info|warn|error")

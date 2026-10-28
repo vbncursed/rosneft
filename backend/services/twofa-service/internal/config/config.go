@@ -20,7 +20,6 @@ type Config struct {
 	RedisDB         int           `mapstructure:"redis-db"`
 	SecretKey       string        `mapstructure:"secret-key"` // 32-byte hex/base64, AES-GCM of totp secrets
 	Issuer          string        `mapstructure:"issuer"`     // otpauth issuer label
-	AuthGRPCAddr    string        `mapstructure:"auth-grpc-addr"`
 	VerifyMaxFails  int           `mapstructure:"verify-max-fails"`
 	VerifyLockTTL   time.Duration `mapstructure:"verify-lock-ttl"`
 	LogLevel        string        `mapstructure:"log-level"`
@@ -43,7 +42,6 @@ func Load(cmd *cobra.Command) (Config, error) {
 	v.SetDefault("redis-addr", "redis:6379")
 	v.SetDefault("redis-db", 2)
 	v.SetDefault("issuer", "Andrey")
-	v.SetDefault("auth-grpc-addr", "auth:9004")
 	v.SetDefault("verify-max-fails", 5)
 	v.SetDefault("verify-lock-ttl", 15*time.Minute)
 	v.SetDefault("log-level", "info")

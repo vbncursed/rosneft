@@ -22,8 +22,10 @@ const (
 )
 
 type SetupRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	UserId string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	// Account name shown in the authenticator app (the user's login).
+	Label         string `protobuf:"bytes,3,opt,name=label,proto3" json:"label,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -58,9 +60,16 @@ func (*SetupRequest) Descriptor() ([]byte, []int) {
 	return file_rosneft_twofa_v1_twofa_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *SetupRequest) GetToken() string {
+func (x *SetupRequest) GetUserId() string {
 	if x != nil {
-		return x.Token
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *SetupRequest) GetLabel() string {
+	if x != nil {
+		return x.Label
 	}
 	return ""
 }
@@ -119,8 +128,8 @@ func (x *SetupResponse) GetOtpauthUrl() string {
 
 type EnableRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
 	Code          string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -155,16 +164,16 @@ func (*EnableRequest) Descriptor() ([]byte, []int) {
 	return file_rosneft_twofa_v1_twofa_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *EnableRequest) GetToken() string {
+func (x *EnableRequest) GetCode() string {
 	if x != nil {
-		return x.Token
+		return x.Code
 	}
 	return ""
 }
 
-func (x *EnableRequest) GetCode() string {
+func (x *EnableRequest) GetUserId() string {
 	if x != nil {
-		return x.Code
+		return x.UserId
 	}
 	return ""
 }
@@ -215,8 +224,8 @@ func (x *EnableResponse) GetRecoveryCodes() []string {
 
 type DisableRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
 	Code          string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -251,16 +260,16 @@ func (*DisableRequest) Descriptor() ([]byte, []int) {
 	return file_rosneft_twofa_v1_twofa_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *DisableRequest) GetToken() string {
+func (x *DisableRequest) GetCode() string {
 	if x != nil {
-		return x.Token
+		return x.Code
 	}
 	return ""
 }
 
-func (x *DisableRequest) GetCode() string {
+func (x *DisableRequest) GetUserId() string {
 	if x != nil {
-		return x.Code
+		return x.UserId
 	}
 	return ""
 }
@@ -303,8 +312,8 @@ func (*DisableResponse) Descriptor() ([]byte, []int) {
 
 type RegenerateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
 	Code          string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -339,16 +348,16 @@ func (*RegenerateRequest) Descriptor() ([]byte, []int) {
 	return file_rosneft_twofa_v1_twofa_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *RegenerateRequest) GetToken() string {
+func (x *RegenerateRequest) GetCode() string {
 	if x != nil {
-		return x.Token
+		return x.Code
 	}
 	return ""
 }
 
-func (x *RegenerateRequest) GetCode() string {
+func (x *RegenerateRequest) GetUserId() string {
 	if x != nil {
-		return x.Code
+		return x.UserId
 	}
 	return ""
 }
@@ -399,7 +408,7 @@ func (x *RegenerateResponse) GetRecoveryCodes() []string {
 
 type StatusRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -434,9 +443,9 @@ func (*StatusRequest) Descriptor() ([]byte, []int) {
 	return file_rosneft_twofa_v1_twofa_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *StatusRequest) GetToken() string {
+func (x *StatusRequest) GetUserId() string {
 	if x != nil {
-		return x.Token
+		return x.UserId
 	}
 	return ""
 }
@@ -787,29 +796,30 @@ var File_rosneft_twofa_v1_twofa_proto protoreflect.FileDescriptor
 
 const file_rosneft_twofa_v1_twofa_proto_rawDesc = "" +
 	"\n" +
-	"\x1crosneft/twofa/v1/twofa.proto\x12\x10rosneft.twofa.v1\"$\n" +
-	"\fSetupRequest\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\"H\n" +
+	"\x1crosneft/twofa/v1/twofa.proto\x12\x10rosneft.twofa.v1\"J\n" +
+	"\fSetupRequest\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x14\n" +
+	"\x05label\x18\x03 \x01(\tR\x05labelJ\x04\b\x01\x10\x02R\x05token\"H\n" +
 	"\rSetupResponse\x12\x16\n" +
 	"\x06secret\x18\x01 \x01(\tR\x06secret\x12\x1f\n" +
 	"\votpauth_url\x18\x02 \x01(\tR\n" +
-	"otpauthUrl\"9\n" +
-	"\rEnableRequest\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\x12\x12\n" +
-	"\x04code\x18\x02 \x01(\tR\x04code\"7\n" +
+	"otpauthUrl\"I\n" +
+	"\rEnableRequest\x12\x12\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\x12\x17\n" +
+	"\auser_id\x18\x03 \x01(\tR\x06userIdJ\x04\b\x01\x10\x02R\x05token\"7\n" +
 	"\x0eEnableResponse\x12%\n" +
-	"\x0erecovery_codes\x18\x01 \x03(\tR\rrecoveryCodes\":\n" +
-	"\x0eDisableRequest\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\x12\x12\n" +
-	"\x04code\x18\x02 \x01(\tR\x04code\"\x11\n" +
-	"\x0fDisableResponse\"=\n" +
-	"\x11RegenerateRequest\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\x12\x12\n" +
-	"\x04code\x18\x02 \x01(\tR\x04code\";\n" +
+	"\x0erecovery_codes\x18\x01 \x03(\tR\rrecoveryCodes\"J\n" +
+	"\x0eDisableRequest\x12\x12\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\x12\x17\n" +
+	"\auser_id\x18\x03 \x01(\tR\x06userIdJ\x04\b\x01\x10\x02R\x05token\"\x11\n" +
+	"\x0fDisableResponse\"M\n" +
+	"\x11RegenerateRequest\x12\x12\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\x12\x17\n" +
+	"\auser_id\x18\x03 \x01(\tR\x06userIdJ\x04\b\x01\x10\x02R\x05token\";\n" +
 	"\x12RegenerateResponse\x12%\n" +
-	"\x0erecovery_codes\x18\x01 \x03(\tR\rrecoveryCodes\"%\n" +
-	"\rStatusRequest\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\"\x9f\x01\n" +
+	"\x0erecovery_codes\x18\x01 \x03(\tR\rrecoveryCodes\"5\n" +
+	"\rStatusRequest\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userIdJ\x04\b\x01\x10\x02R\x05token\"\x9f\x01\n" +
 	"\x0eStatusResponse\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x1d\n" +
 	"\n" +
