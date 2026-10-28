@@ -336,6 +336,27 @@ describe("createHandler isolation", () => {
     expect(await h.store.readSnapshot(A, "/api/auth/me")).toBeNull();
   });
 
+  it("a logout in flight does not let a /me sent before it was processed hand the cache back", async () => {
+    let releaseMe: (r: Response) => void = noop;
+    let releaseOut: (r: Response) => void = noop;
+    const h = await harness((r) => {
+      const p = new URL(r.url).pathname;
+      if (p === "/api/auth/logout") return new Promise<Response>((res) => (releaseOut = res));
+      return new Promise<Response>((res) => (releaseMe = res));
+    });
+    const out = h.handle(req("/api/auth/logout", { method: "POST" }));
+    await vi.waitFor(() => expect(h.net).toHaveBeenCalledTimes(1));
+    // Sent after the reset began, before the server processed the logout: still the old cookie.
+    const stale = h.handle(req("/api/auth/me"));
+    await vi.waitFor(() => expect(h.net).toHaveBeenCalledTimes(2));
+    releaseOut(new Response("{}"));
+    await (await out).text();
+    releaseMe(me(A));
+    await (await stale).text();
+    expect(h.settings.value.userId).toBeNull();
+    expect(await h.store.readSnapshot(A, "/api/auth/me")).toBeNull();
+  });
+
   it("serves a cached blob, even text/html, with the sandbox CSP and nosniff", async () => {
     const hash = sha("<script>");
     const h = await harness(offline);
