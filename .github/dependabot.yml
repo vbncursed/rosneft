@@ -50,7 +50,9 @@ updates:
       desktop-minor-patch:
         update-types: [minor, patch]
     ignore:
-      # Same rule as the frontend: Node 24 in CI, so @types/node stays on 24.
+      # Stays on 24 although CI runs Node 26: the main process runs on the Node
+      # Electron embeds (24.22 in Electron 45), and newer types allow APIs it lacks.
+      # Bump it by hand when Electron ships a newer Node.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
 

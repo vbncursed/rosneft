@@ -45,9 +45,9 @@ const noop = () => {};
  * is not the keychain's, so `set-key-partition-list` fails.
  */
 export async function sign(opts: SignOptions): Promise<void> {
-  const { signAsync } = await import("@electron/osx-sign");
+  const { sign: osxSign } = await import("@electron/osx-sign");
   const p12 = process.env.ANDREY_SIGN_P12;
-  if (!p12) return signAsync(opts as never);
+  if (!p12) return osxSign(opts as never);
 
   const dir = mkdtempSync(join(tmpdir(), "andrey-sign-"));
   const keychain = join(dir, "sign.keychain");
@@ -78,7 +78,7 @@ export async function sign(opts: SignOptions): Promise<void> {
     const hash = pickIdentity(security("find-identity", "-p", "codesigning", keychain));
     if (!hash) throw new Error(`no "${SIGNING_CN}" identity in ANDREY_SIGN_P12`);
     const optionsForFile = (file: string): FileOptions => ({ ...opts.optionsForFile?.(file), timestamp: "none" });
-    return await signAsync({ ...opts, identity: hash, keychain, optionsForFile } as never);
+    return await osxSign({ ...opts, identity: hash, keychain, optionsForFile } as never);
   } finally {
     restore();
     rmSync(dir, { recursive: true, force: true });
