@@ -55,6 +55,12 @@ const BackfillRetryAfter = 5 * time.Minute
 // gateway calls SubmitConversion right after swapping the hash, and that never
 // consults the failed job, so such a target is not stranded.
 //
+// A converted target is also re-queued when its latest job failed for a
+// reason that is not the input's, was not a hidden backfill, and is
+// BackfillRetryAfter old: a replace-source conversion that died after (or
+// before) publishing leaves the old LOD0 in place, so HasLOD0 alone would never
+// retry it, and placements may wait on the rescale that job owed.
+//
 // Trade-off: only input failures are skipped. Infrastructure failures (worker
 // killed mid-job, Redis or catalog blip) keep the old self-healing retry, and
 // so does a job saved before FailedOnSource existed.
@@ -82,9 +88,6 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 		if err != nil {
 			return queued, fmt.Errorf("service.ReconcileMissingArtifacts: check %s/%s: %w", t.Kind, t.Slug, err)
 		}
-		if has && hasPlain {
-			continue
-		}
 		if latest == nil {
 			latest = latestJobs(ctx, index)
 		}
@@ -92,8 +95,13 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 		if seen && last.Status == domain.JobStatusFailed && last.FailedOnSource {
 			continue
 		}
+		if has && hasPlain && !m.replaceFailed(last, seen) {
+			continue
+		}
 		reason := "no lod0"
-		if has {
+		if has && hasPlain {
+			reason = "failed replace"
+		} else if has {
 			reason = "no plain copy"
 			// ponytail: one backfill per pass, and only on an idle worker, so
 			// an upload never queues behind the whole catalog and no queued
@@ -175,4 +183,13 @@ func (m *Mesh) sweepIndex(ctx context.Context, targets []domain.ConversionTarget
 		}
 		slog.InfoContext(ctx, "reconcile: forgot deleted target", "kind", j.Kind, "slug", j.Slug)
 	}
+}
+
+// replaceFailed reports whether a converted target's latest job is a failed,
+// user-visible conversion old enough to retry. Backfills are excluded (their
+// failure is hidden and has its own retry path) and so is a fresh failure, so
+// a persistent infrastructure error costs one job per BackfillRetryAfter.
+func (m *Mesh) replaceFailed(last domain.Job, seen bool) bool {
+	return seen && last.Status == domain.JobStatusFailed && !last.Backfill &&
+		m.now().Sub(last.UpdatedAt) >= BackfillRetryAfter
 }
