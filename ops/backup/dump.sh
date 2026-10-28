@@ -23,6 +23,13 @@ STAMP=$(date +%Y%m%d-%H%M%S)
 KEEP=${KEEP:-7}
 mkdir -p "$DEST"
 
+# Audit digests (artifact 2) go FIRST: the witness may be older than the dump
+# but never newer, because `audit verify` fails a witness line whose checkpoint
+# the restored database lacks. Archived after pg_dump, a tick in between breaks
+# every restore. Separate archive, separate fate.
+docker run --rm -v andrey_audit-digest:/d -v "$DEST":/out alpine \
+  tar czf "/out/audit-digest-$STAMP.tar.gz" -C /d .
+
 dump="$DEST/andrey-$STAMP.sql.gz"
 
 # PIPESTATUS, not plain `set -e`: a failed pg_dump still produces a valid
@@ -55,10 +62,6 @@ if [[ -n "$prev" ]]; then
     exit 1
   fi
 fi
-
-# 2. Audit digests — separate archive, separate fate.
-docker run --rm -v andrey_audit-digest:/d -v "$DEST":/out alpine \
-  tar czf "/out/audit-digest-$STAMP.tar.gz" -C /d .
 
 # 3. Source blobs by hash. Artifacts are rebuilt, sources are not.
 docker exec andrey-postgres-1 psql -U andrey -d andrey -tAc \
