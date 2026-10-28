@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactElement } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -40,7 +41,18 @@ describe("planLayer", () => {
   });
 
   it("mounts the lazy layer when there is one", () => {
-    expect(planLayer(parts({ layer: { slug: "t" } as never }))).not.toBeNull();
+    expect(planLayer(parts({ layer: { slug: "t", document: { id: 1 } } as never }))).not.toBeNull();
+  });
+
+  it("remounts the layer per document, so one plan never inherits another's pairs", () => {
+    const keyOf = (id: number) => {
+      const el = planLayer(parts({ layer: { slug: "t", document: { id } } as never })) as ReactElement<{
+        children: ReactElement;
+      }>;
+      return el.props.children.key;
+    };
+    expect(keyOf(7)).toBe("7");
+    expect(keyOf(8)).not.toBe(keyOf(7));
   });
 });
 

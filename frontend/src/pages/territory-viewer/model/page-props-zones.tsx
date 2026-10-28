@@ -12,7 +12,7 @@ export function planLayer(p: PageParts): ReactNode {
   const { layer } = p.zones;
   return layer ? (
     <Suspense fallback={null}>
-      <PlanLayersLazy {...layer} />
+      <PlanLayersLazy key={layer.document.id} {...layer} />
     </Suspense>
   ) : null;
 }
