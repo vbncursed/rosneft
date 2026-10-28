@@ -52,6 +52,13 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
     d.connectivity(now);
   };
 
+  // The cache owner is unknown from here until the next /me names one.
+  const endSession = async () => {
+    epoch += 1;
+    d.onSessionReset();
+    await d.settings.update({ userId: null });
+  };
+
   // One eviction at a time per user; a download finishing meanwhile asks for exactly one more run.
   const evicting = new Map<string, { again: boolean }>();
   const scheduleEvict = (user: string) => {
@@ -77,11 +84,7 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
     if (url.origin !== d.origin) return d.network(req);
     const route = classify(req.method, url);
     const asset = url.pathname.startsWith("/api/assets/");
-    if (route.kind === "session-reset") {
-      epoch += 1;
-      d.onSessionReset();
-      await d.settings.update({ userId: null });
-    }
+    if (route.kind === "session-reset") await endSession();
     // Only the gateway speaks for connectivity: shell files may be answered from Chromium's HTTP cache.
     const gateway = url.pathname === "/api" || url.pathname.startsWith("/api/");
     const born = epoch;
@@ -114,6 +117,9 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
       if (gateway) seen(false);
       return secure(asset, await fallback(d, route, user, req));
     }
+    // The gateway itself says the session is over (expired, frozen, revoked): a cached blob must not outlive it.
+    if (route.kind === "snapshot" && route.key === "/api/auth/me" && res.status === 401 && epoch === born)
+      await endSession();
     return secure(asset, await afterNetwork(d, route, user, req, res, () => epoch === born, scheduleEvict));
   };
 }

@@ -357,6 +357,32 @@ describe("createHandler isolation", () => {
     expect(await h.store.readSnapshot(A, "/api/auth/me")).toBeNull();
   });
 
+  it("a 401 on /api/auth/me ends the session: cached blobs are no longer served, saves are cancelled", async () => {
+    const hash = sha("A's model");
+    const h = await harness(async (r) =>
+      new URL(r.url).pathname === "/api/auth/me"
+        ? new Response("{}", { status: 401 })
+        : new Response("gateway says no", { status: 404 }),
+    );
+    await h.store.writeBlob(A, hash, "model/gltf-binary", new Response("A's model").body as ReadableStream<Uint8Array>);
+    expect((await h.handle(req("/api/auth/me"))).status).toBe(401);
+    expect(h.settings.value.userId).toBeNull();
+    expect(h.reset).toHaveBeenCalledTimes(1);
+    h.net.mockClear();
+    const res = await h.handle(req(`/api/assets/${hash}`));
+    expect(res.status).toBe(404);
+    expect(h.net).toHaveBeenCalledTimes(1);
+  });
+
+  it("with no network the cache still serves, whatever /me last said", async () => {
+    const hash = sha("A's model");
+    const h = await harness(offline);
+    await h.store.writeBlob(A, hash, "model/gltf-binary", new Response("A's model").body as ReadableStream<Uint8Array>);
+    expect((await h.handle(req("/api/auth/me"))).type).toBe("error");
+    expect(h.settings.value.userId).toBe(A);
+    expect(await (await h.handle(req(`/api/assets/${hash}`))).text()).toBe("A's model");
+  });
+
   it("serves a cached blob, even text/html, with the sandbox CSP and nosniff", async () => {
     const hash = sha("<script>");
     const h = await harness(offline);
