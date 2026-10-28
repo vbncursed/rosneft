@@ -87,11 +87,13 @@ internal/
    - **LOD fan-out** — for each ratio in `MESH_LOD_RATIOS`, run
      `gltfpack -si <ratio>` on the LOD0 GLB to produce LOD1, LOD2, …. A failed
      LOD pass is logged and skipped — LOD0 still ships.
-4. Before publishing, for territories the worker calls
+4. Worker writes each LOD GLB to BlobStore and registers it (step 5). For
+   territories, right after LOD0 is registered it calls
    `RescaleTerritoryPlacements(slug, newMaxAxis)` so existing placements stay
-   1:1 with the replacement mesh. This runs **before** the artifacts land so a
-   failure leaves LOD0 absent and the reconciler re-runs the whole job (models
-   carry no placements → no-op).
+   1:1 with the replacement mesh: placements never move for a mesh that was not
+   published. A failure after LOD0 fails the job and the reconciler retries it;
+   the catalog applies a pending baseline once, so the repeat is a no-op (models
+   carry no placements).
 5. Worker writes each LOD GLB to BlobStore (content-addressed, SHA-256 filename)
    and `RegisterArtifact`s each as a separate `Artifact{LOD: N}` into
    `territory_artifacts` or `model_artifacts` per `Job.Kind`. The job is marked
