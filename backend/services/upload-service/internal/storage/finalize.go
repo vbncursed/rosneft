@@ -70,12 +70,15 @@ func (f *FS) Finalize(ctx context.Context, id string, putBlob func(ctx context.C
 	return hash, stat.Size(), nil
 }
 
-// Abort removes the session directory without publishing anything.
+// Abort removes the session directory without publishing anything. It takes the
+// session lock, so it waits for a running Finalize or AppendChunk instead of
+// unlinking files under them.
 func (f *FS) Abort(_ context.Context, id string) error {
 	dir, _, _, err := f.paths(id)
 	if err != nil {
 		return err
 	}
+	defer f.lock(id)()
 	return os.RemoveAll(dir)
 }
 

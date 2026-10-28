@@ -1,13 +1,16 @@
 package storage_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
+	"time"
 
 	"gotest.tools/v3/assert"
 
@@ -71,4 +74,58 @@ func TestFinalizePermanentRejectionRemovesSession(t *testing.T) {
 	assert.Assert(t, errors.Is(err, domain.ErrInvalidInput))
 	_, err = fs.GetStatus(ctx, sessID)
 	assert.Assert(t, errors.Is(err, domain.ErrSessionNotFound))
+}
+
+// Abort waits for a running Finalize instead of unlinking the file under it:
+// the finalize result stands, and only then is the session gone.
+func TestAbortWaitsForFinalize(t *testing.T) {
+	fs, _ := newSession(t, 4)
+	_, err := fs.AppendChunk(t.Context(), sessID, 0, []byte("abcd"))
+	assert.NilError(t, err)
+
+	inPut, release := make(chan struct{}), make(chan struct{})
+	finErr := make(chan error, 1)
+	go func() {
+		_, _, err := fs.Finalize(t.Context(), sessID, func(ctx context.Context, h string, r io.Reader) error {
+			close(inPut)
+			<-release
+			return acceptAll(ctx, h, r)
+		})
+		finErr <- err
+	}()
+	<-inPut
+
+	abortErr := make(chan error, 1)
+	go func() { abortErr <- fs.Abort(t.Context(), sessID) }()
+	select {
+	case err := <-abortErr:
+		t.Fatalf("Abort returned while Finalize was publishing: %v", err)
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	close(release)
+	assert.NilError(t, <-finErr)
+	assert.NilError(t, <-abortErr)
+	_, err = fs.GetStatus(t.Context(), sessID)
+	assert.Assert(t, errors.Is(err, domain.ErrSessionNotFound), "got %v", err)
+}
+
+// Abort racing AppendChunk must leave no session directory behind (an unlocked
+// RemoveAll races the chunk's O_CREATE and fails with "directory not empty").
+func TestAbortConcurrentWithAppendChunkLeavesNothing(t *testing.T) {
+	for range 50 {
+		fs, dir := newSession(t, 1<<20)
+		chunk := bytes.Repeat([]byte{'x'}, 256<<10)
+		var wg sync.WaitGroup
+		for i := range 4 {
+			wg.Go(func() { _, _ = fs.AppendChunk(t.Context(), sessID, int64(i)*int64(len(chunk)), chunk) })
+		}
+		var abortErr error
+		wg.Go(func() { abortErr = fs.Abort(t.Context(), sessID) })
+		wg.Wait()
+
+		assert.NilError(t, abortErr)
+		_, err := os.Stat(dir)
+		assert.Assert(t, errors.Is(err, os.ErrNotExist), "session dir survived Abort: %v", err)
+	}
 }
