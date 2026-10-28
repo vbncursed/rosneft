@@ -14,7 +14,7 @@ binds to the internal Compose network only.
 - REST → gRPC mapping for catalog (territories, models, artifacts, placements),
   content (documents, panoramas), mesh (conversion jobs queued on create /
   source-replace), upload (chunked sessions), and auth (sessions, users, roles,
-  permissions; 2FA management proxied through auth to twofa).
+  permissions; 2FA management goes to twofa with the user id the gateway authenticated).
 - **Scene bundle** aggregator: `GET /api/territories/{slug}/scene` returns
   territory + LOD0 artifact (with full LOD chain attached) + placements +
   model options (each with its own LOD chain) + panoramas in one round trip

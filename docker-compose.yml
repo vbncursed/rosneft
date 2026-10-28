@@ -170,7 +170,6 @@ services:
       TWOFA_DB_DSN: "postgres://andrey:andrey@postgres:5432/andrey?sslmode=disable"
       TWOFA_REDIS_ADDR: "redis:6379"
       TWOFA_REDIS_DB: "2"
-      TWOFA_AUTH_GRPC_ADDR: "auth:9004"
       TWOFA_ISSUER: "Andrey"
       # CHANGE IN PROD: inject a real 32-byte key (openssl rand -hex 32) via the
       # deploy environment; this local-only value encrypts TOTP secrets at rest.

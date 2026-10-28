@@ -24,7 +24,6 @@ verification to it; `gateway` routes the user-facing management calls to it.
 ```
 internal/
   bootstrap/   # config → postgres + redis → service → gRPC server
-  clients/auth/# resolves a session token → (userID, username) via auth-service
   config/      # Viper layered config, TWOFA_* env vars
   domain/      # Credential + sentinel errors (errors.go)
   migrate/     # embedded goose migrations + up/down/status runners
@@ -33,15 +32,16 @@ internal/
   totp/        # pquerna/otp wrapper + recovery-code helpers
   storage/     # credentials + recovery stores (one file = one DB method)
   service/twofa/      # business layer, one method per file
-  transport/grpcapi/  # gRPC handlers: self.go (token-scoped), query.go
+  transport/grpcapi/  # gRPC handlers: self.go (gateway-called), query.go
                       # (auth-called), server.go (interfaces + error mapper)
 ```
 
 ## gRPC API
 
 Internal gRPC only — addressed as `twofa:9006`. Two caller groups: the **self**
-RPCs (management) are invoked by `gateway` with a session token, which twofa
-resolves to a user via the `auth` client; the **query** RPCs are invoked by
+RPCs (management) are invoked by `gateway`, which has already authenticated the
+session and passes the resolved `user_id` (plus the login as `label` on `Setup`);
+an empty `user_id` is `InvalidArgument`. twofa calls no other service. The **query** RPCs are invoked by
 `auth-service` directly with a `user_id` during login. All 6 RPCs of
 `TwoFAService` (`proto/rosneft/twofa/v1/twofa.proto`):
 
@@ -91,7 +91,6 @@ All env vars are prefixed `TWOFA_` (layered flag > env > default).
 | `TWOFA_REDIS_DB` | `2` | Redis logical DB index. |
 | `TWOFA_SECRET_KEY` | *(required)* | 32-byte key (hex/base64) for TOTP-secret AES-GCM. |
 | `TWOFA_ISSUER` | `Andrey` | `otpauth` issuer label shown in authenticator apps. |
-| `TWOFA_AUTH_GRPC_ADDR` | `auth:9004` | auth-service address for token → identity resolution. |
 | `TWOFA_VERIFY_MAX_FAILS` | `5` | Failed codes before lockout. |
 | `TWOFA_VERIFY_LOCK_TTL` | `15m` | Lockout duration. |
 | `TWOFA_LOG_LEVEL` | `info` | `debug` / `info` / `warn` / `error`. |
@@ -142,3 +141,12 @@ for the repo-wide matrix and the upgrade procedure.
 | `github.com/vbncursed/rosneft/backend/proto` | v0.0.0 | Workspace module — generated gRPC stubs (`replace` → `../../proto`) |
 | `google.golang.org/grpc` | v1.82.1 | gRPC transport |
 | `gotest.tools/v3` | v3.5.2 | `assert` — the actual assertions (test) |
+
+## Trust boundary
+
+twofa trusts the `user_id` it is given: it has no session check of its own, so
+anyone who can reach `:9006` can act as any user. Only `gateway` (management
+RPCs) and `auth-service` (login RPCs) may reach it. The port is `expose`d on the
+internal compose network and must never be published. All services share one
+Postgres user, so a compromised internal container could already read and write
+the `twofa_*` tables directly; this does not widen what it can do.
