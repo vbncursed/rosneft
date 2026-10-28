@@ -13,7 +13,7 @@ function Probe({ open, onClose = noop }: { open: boolean; onClose?: () => void }
   );
 }
 
-const dialog = () => screen.getByTestId("dialog") as HTMLDialogElement;
+const dialog = () => screen.getByTestId<HTMLDialogElement>("dialog");
 
 /** Gives the element a running exit transition jsdom cannot produce. */
 function stubExit() {

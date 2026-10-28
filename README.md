@@ -94,7 +94,7 @@ Implemented across both sides; some are opt-in until both halves are wired:
 | Half | Runtime | Pinned where |
 | --- | --- | --- |
 | Backend | **Go 1.27.3** | `backend/go.work` + all 12 `go.mod` files; `golang:1.27.3-alpine` in every service Dockerfile |
-| Frontend | **Node 24 + Yarn 4** (`packageManager`, via corepack), Vite 8, React 19, TypeScript strict | `frontend/package.json` |
+| Frontend | **Node 26 + Yarn 4** (`packageManager`, via corepack), Vite 8, React 19, TypeScript strict | `frontend/package.json` |
 | Datastores | PostgreSQL 17, Redis 8 | `docker-compose.yml` |
 
 The backend's full pinned-dependency matrix, per-module breakdown, and the

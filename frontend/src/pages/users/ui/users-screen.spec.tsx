@@ -279,7 +279,7 @@ describe("UsersScreen", () => {
   it("sends the password the reset dialog holds for the person who is open", async () => {
     const s = showing({ selected: USER, canResetPassword: true, resetting: true });
     const dialog = screen.getByRole("dialog", { name: "New password for a.ivanova" });
-    const value = (within(dialog).getByLabelText(/^Password/) as HTMLInputElement).value;
+    const value = within(dialog).getByLabelText<HTMLInputElement>(/^Password/).value;
     await userEvent.click(within(dialog).getByRole("button", { name: "Change password" }));
     expect(s.resetPassword).toHaveBeenCalledWith(value);
   });

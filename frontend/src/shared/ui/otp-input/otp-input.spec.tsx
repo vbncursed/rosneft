@@ -17,7 +17,7 @@ function Harness({ initial = "", onValue }: { initial?: string; onValue?: (v: st
   );
 }
 
-const cell = (n: number) => screen.getByLabelText(`Digit ${n} of 6`) as HTMLInputElement;
+const cell = (n: number) => screen.getByLabelText<HTMLInputElement>(`Digit ${n} of 6`);
 
 describe("OtpInput", () => {
   it("renders one cell per digit inside a labelled group", () => {
