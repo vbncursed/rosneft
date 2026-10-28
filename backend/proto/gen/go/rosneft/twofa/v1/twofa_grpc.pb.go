@@ -33,10 +33,11 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// TwoFAService owns all TOTP/recovery state and logic. The gateway calls the
-// management RPCs (caller authenticated by a session token, resolved via
-// auth.GetMe); auth-service calls the internal RPCs during login with a
-// trusted user id.
+// TwoFAService owns all TOTP/recovery state and logic. It is a leaf: it calls
+// no other service. The gateway, which has already authenticated the caller,
+// passes the resolved user id to the management RPCs; auth-service calls the
+// internal RPCs during login with a trusted user id. Every caller is trusted to
+// name the right user, so only those two may reach this service.
 type TwoFAServiceClient interface {
 	// Management surface.
 	Setup(ctx context.Context, in *SetupRequest, opts ...grpc.CallOption) (*SetupResponse, error)
@@ -149,10 +150,11 @@ func (c *twoFAServiceClient) Verify(ctx context.Context, in *VerifyRequest, opts
 // All implementations must embed UnimplementedTwoFAServiceServer
 // for forward compatibility.
 //
-// TwoFAService owns all TOTP/recovery state and logic. The gateway calls the
-// management RPCs (caller authenticated by a session token, resolved via
-// auth.GetMe); auth-service calls the internal RPCs during login with a
-// trusted user id.
+// TwoFAService owns all TOTP/recovery state and logic. It is a leaf: it calls
+// no other service. The gateway, which has already authenticated the caller,
+// passes the resolved user id to the management RPCs; auth-service calls the
+// internal RPCs during login with a trusted user id. Every caller is trusted to
+// name the right user, so only those two may reach this service.
 type TwoFAServiceServer interface {
 	// Management surface.
 	Setup(context.Context, *SetupRequest) (*SetupResponse, error)

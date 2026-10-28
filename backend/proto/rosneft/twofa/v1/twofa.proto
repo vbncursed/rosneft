@@ -4,10 +4,11 @@ package rosneft.twofa.v1;
 
 option go_package = "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/twofa/v1;twofav1";
 
-// TwoFAService owns all TOTP/recovery state and logic. The gateway calls the
-// management RPCs (caller authenticated by a session token, resolved via
-// auth.GetMe); auth-service calls the internal RPCs during login with a
-// trusted user id.
+// TwoFAService owns all TOTP/recovery state and logic. It is a leaf: it calls
+// no other service. The gateway, which has already authenticated the caller,
+// passes the resolved user id to the management RPCs; auth-service calls the
+// internal RPCs during login with a trusted user id. Every caller is trusted to
+// name the right user, so only those two may reach this service.
 service TwoFAService {
   // Management surface.
   rpc Setup(SetupRequest) returns (SetupResponse);
@@ -29,27 +30,43 @@ service TwoFAService {
   rpc Verify(VerifyRequest) returns (VerifyResponse);
 }
 
-message SetupRequest { string token = 1; }
+message SetupRequest {
+  reserved 1;
+  reserved "token";
+  string user_id = 2;
+  // Account name shown in the authenticator app (the user's login).
+  string label = 3;
+}
 message SetupResponse {
   string secret = 1;
   string otpauth_url = 2;
 }
 message EnableRequest {
-  string token = 1;
+  reserved 1;
+  reserved "token";
   string code = 2;
+  string user_id = 3;
 }
 message EnableResponse { repeated string recovery_codes = 1; }
 message DisableRequest {
-  string token = 1;
+  reserved 1;
+  reserved "token";
   string code = 2;
+  string user_id = 3;
 }
 message DisableResponse {}
 message RegenerateRequest {
-  string token = 1;
+  reserved 1;
+  reserved "token";
   string code = 2;
+  string user_id = 3;
 }
 message RegenerateResponse { repeated string recovery_codes = 1; }
-message StatusRequest { string token = 1; }
+message StatusRequest {
+  reserved 1;
+  reserved "token";
+  string user_id = 2;
+}
 message StatusResponse {
   bool enabled = 1;
   // Unix seconds. 0 means unknown — 2FA is off, or the enrolment predates the

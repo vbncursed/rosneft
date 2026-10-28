@@ -27,21 +27,15 @@ type Service interface {
 	Verify(ctx context.Context, userID, code string) (bool, error)
 }
 
-// Identity resolves a session token to (userID, username).
-type Identity interface {
-	Resolve(ctx context.Context, token string) (userID, username string, err error)
-}
-
 // Server implements twofav1.TwoFAServiceServer.
 type Server struct {
 	twofav1.UnimplementedTwoFAServiceServer
-	svc      Service
-	identity Identity
+	svc Service
 }
 
 // New builds the gRPC handler.
-func New(svc Service, identity Identity) *Server {
-	return &Server{svc: svc, identity: identity}
+func New(svc Service) *Server {
+	return &Server{svc: svc}
 }
 
 // Register attaches the handler to a grpc.Server.
@@ -52,7 +46,7 @@ func mapErr(err error) error {
 	switch {
 	case err == nil:
 		return nil
-	case errors.Is(err, domain.ErrTwoFAInvalidCode):
+	case errors.Is(err, domain.ErrInvalidInput), errors.Is(err, domain.ErrTwoFAInvalidCode):
 		return status.Error(codes.InvalidArgument, err.Error())
 	case errors.Is(err, domain.ErrTwoFALocked):
 		return status.Error(codes.ResourceExhausted, err.Error())

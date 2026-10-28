@@ -7,29 +7,33 @@ import (
 	twofav1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/twofa/v1"
 )
 
-func (c *Client) Setup(ctx context.Context, token string) (secret, url string, err error) {
-	resp, err := c.cc.Setup(ctx, &twofav1.SetupRequest{Token: token})
+// The management calls below take the user id the gateway already
+// authenticated; twofa-service trusts it and calls no one to check.
+
+// Setup starts enrolment; label is the account name shown in the authenticator.
+func (c *Client) Setup(ctx context.Context, userID, label string) (secret, url string, err error) {
+	resp, err := c.cc.Setup(ctx, &twofav1.SetupRequest{UserId: userID, Label: label})
 	if err != nil {
 		return "", "", err
 	}
 	return resp.GetSecret(), resp.GetOtpauthUrl(), nil
 }
 
-func (c *Client) Enable(ctx context.Context, token, code string) ([]string, error) {
-	resp, err := c.cc.Enable(ctx, &twofav1.EnableRequest{Token: token, Code: code})
+func (c *Client) Enable(ctx context.Context, userID, code string) ([]string, error) {
+	resp, err := c.cc.Enable(ctx, &twofav1.EnableRequest{UserId: userID, Code: code})
 	if err != nil {
 		return nil, err
 	}
 	return resp.GetRecoveryCodes(), nil
 }
 
-func (c *Client) Disable(ctx context.Context, token, code string) error {
-	_, err := c.cc.Disable(ctx, &twofav1.DisableRequest{Token: token, Code: code})
+func (c *Client) Disable(ctx context.Context, userID, code string) error {
+	_, err := c.cc.Disable(ctx, &twofav1.DisableRequest{UserId: userID, Code: code})
 	return err
 }
 
-func (c *Client) Regenerate(ctx context.Context, token, code string) ([]string, error) {
-	resp, err := c.cc.RegenerateRecoveryCodes(ctx, &twofav1.RegenerateRequest{Token: token, Code: code})
+func (c *Client) Regenerate(ctx context.Context, userID, code string) ([]string, error) {
+	resp, err := c.cc.RegenerateRecoveryCodes(ctx, &twofav1.RegenerateRequest{UserId: userID, Code: code})
 	if err != nil {
 		return nil, err
 	}
@@ -44,8 +48,8 @@ type Status struct {
 	RecoveryTotal     int
 }
 
-func (c *Client) Status(ctx context.Context, token string) (Status, error) {
-	resp, err := c.cc.Status(ctx, &twofav1.StatusRequest{Token: token})
+func (c *Client) Status(ctx context.Context, userID string) (Status, error) {
+	resp, err := c.cc.Status(ctx, &twofav1.StatusRequest{UserId: userID})
 	if err != nil {
 		return Status{}, err
 	}
