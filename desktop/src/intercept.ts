@@ -56,7 +56,8 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
   const endSession = async () => {
     epoch += 1;
     d.onSessionReset();
-    await d.settings.update({ userId: null });
+    // Already signed out (login / 2FA screens poll /me): nothing to clear, so no settings.json rewrite.
+    if (d.settings.value.userId !== null) await d.settings.update({ userId: null });
   };
 
   // One eviction at a time per user; a download finishing meanwhile asks for exactly one more run.

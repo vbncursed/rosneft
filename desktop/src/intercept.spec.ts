@@ -441,6 +441,14 @@ describe("createHandler isolation", () => {
     expect(await h.store.readSnapshot(B, "/api/auth/me")).not.toBeNull();
   });
 
+  it("a 401 on /api/auth/me while already signed out does not rewrite settings.json", async () => {
+    const h = await harness(async () => new Response("{}", { status: 401 }), null);
+    const update = vi.spyOn(h.settings, "update");
+    expect((await h.handle(req("/api/auth/me"))).status).toBe(401);
+    expect(update).not.toHaveBeenCalled();
+    expect(h.reset).toHaveBeenCalledTimes(1);
+  });
+
   it("a 401 on /api/auth/me ends the session: cached blobs are no longer served, saves are cancelled", async () => {
     const hash = sha("A's model");
     const h = await harness(async (r) =>
