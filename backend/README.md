@@ -51,9 +51,10 @@ internal Compose network only — their ports are reachable from sibling service
 by service name (`catalog:9001`, `content:9007`, `auth:9004`, `passkey:9008`, …)
 but not from the host.
 
-`twofa` is the exception to "reachable from sibling services": it trusts the
-`user_id` it is sent, so it sits on its own Compose network, `identity`, shared
-only with `gateway`, `auth`, `postgres`, `redis` and `prometheus`.
+`twofa` and `passkey` are the exception to "reachable from sibling services": they
+trust the `user_id` they are sent, so they sit on their own Compose network,
+`identity`, shared only with `gateway`, `auth`, `postgres`, `redis` and
+`prometheus` (and with each other, which is a known limit).
 
 Each service owns a README with its full endpoint and env-var tables. The
 gateway's public HTTP surface (incl. `/api/auth/*`) is browsable as Swagger at
