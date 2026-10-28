@@ -1,6 +1,6 @@
 # Carries only the built SPA: CD copies /dist out of this image into the nginx
 # docroot. Build context is frontend/. Node matches .github/workflows/frontend.yml.
-FROM node:24-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /app
 RUN corepack enable
 ENV YARN_HTTP_TIMEOUT=600000
