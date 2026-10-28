@@ -3,6 +3,7 @@ package storage_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -30,4 +31,44 @@ func TestFinalizeRefusesWhenFileSizeDiffersFromMeta(t *testing.T) {
 	})
 	assert.Assert(t, errors.Is(err, domain.ErrInvalidInput), "got %v", err)
 	assert.Assert(t, !called, "a blob of the wrong size must not be published")
+}
+
+func acceptAll(_ context.Context, _ string, r io.Reader) error {
+	_, err := io.Copy(io.Discard, r)
+	return err
+}
+
+func TestFinalizeTransientPutFailureKeepsSessionResumable(t *testing.T) {
+	fs, _ := newSession(t, 4)
+	ctx := t.Context()
+	_, err := fs.AppendChunk(ctx, sessID, 0, []byte("abcd"))
+	assert.NilError(t, err)
+
+	_, _, err = fs.Finalize(ctx, sessID, func(context.Context, string, io.Reader) error {
+		return errors.New("blob store down")
+	})
+	assert.Assert(t, err != nil)
+
+	st, err := fs.GetStatus(ctx, sessID)
+	assert.NilError(t, err)
+	assert.Equal(t, st.Offset, int64(4))
+	_, size, err := fs.Finalize(ctx, sessID, acceptAll)
+	assert.NilError(t, err)
+	assert.Equal(t, size, int64(4))
+	_, err = fs.GetStatus(ctx, sessID)
+	assert.Assert(t, errors.Is(err, domain.ErrSessionNotFound))
+}
+
+func TestFinalizePermanentRejectionRemovesSession(t *testing.T) {
+	fs, _ := newSession(t, 4)
+	ctx := t.Context()
+	_, err := fs.AppendChunk(ctx, sessID, 0, []byte("abcd"))
+	assert.NilError(t, err)
+
+	_, _, err = fs.Finalize(ctx, sessID, func(context.Context, string, io.Reader) error {
+		return fmt.Errorf("%w: not a PDF", domain.ErrInvalidInput)
+	})
+	assert.Assert(t, errors.Is(err, domain.ErrInvalidInput))
+	_, err = fs.GetStatus(ctx, sessID)
+	assert.Assert(t, errors.Is(err, domain.ErrSessionNotFound))
 }

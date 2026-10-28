@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -12,16 +13,22 @@ import (
 )
 
 // Finalize streams the session's data through SHA-256 and copies it into
-// BlobStore via the provided callback. Returns the content hash. The
-// session directory is removed afterwards regardless of outcome — the
-// BlobStore now owns the bytes (or, on error, nothing was published).
-func (f *FS) Finalize(ctx context.Context, id string, putBlob func(ctx context.Context, hash string, r io.Reader) error) (string, int64, error) {
+// BlobStore via the provided callback. Returns the content hash. The session
+// directory is removed once the BlobStore owns the bytes, or when the session
+// can never succeed (ErrInvalidInput: wrong size, rejected content). Any other
+// failure — a blob store outage, an I/O error — keeps it so the client can
+// retry the finalize instead of re-uploading the whole file.
+func (f *FS) Finalize(ctx context.Context, id string, putBlob func(ctx context.Context, hash string, r io.Reader) error) (_ string, _ int64, err error) {
 	dir, dataPath, metaPath, err := f.paths(id)
 	if err != nil {
 		return "", 0, err
 	}
 	defer f.lock(id)()
-	defer func() { _ = os.RemoveAll(dir) }()
+	defer func() {
+		if err == nil || errors.Is(err, domain.ErrInvalidInput) {
+			_ = os.RemoveAll(dir)
+		}
+	}()
 
 	meta, err := readMeta(metaPath)
 	if err != nil {
