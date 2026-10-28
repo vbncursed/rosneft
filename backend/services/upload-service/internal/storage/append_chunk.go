@@ -49,9 +49,14 @@ func (f *FS) AppendChunk(_ context.Context, id string, offset int64, data []byte
 		_ = w.Close()
 		return meta.Offset, fmt.Errorf("storage.AppendChunk: truncate: %w", err)
 	}
-	// Close before advancing the offset: a flush failure here (ENOSPC, EIO) means
-	// the bytes never reached disk, and recording them as accepted would lose the
-	// chunk silently — the client would never re-send it.
+	// Sync, then close, before advancing the offset: Close does not flush to
+	// disk, so only Sync tells us the bytes are durable. An ENOSPC/EIO here
+	// must fail the chunk; recording it as accepted would lose it silently,
+	// as the client would never re-send it.
+	if err := w.Sync(); err != nil {
+		_ = w.Close()
+		return meta.Offset, fmt.Errorf("storage.AppendChunk: sync: %w", err)
+	}
 	if err := w.Close(); err != nil {
 		return meta.Offset, fmt.Errorf("storage.AppendChunk: close: %w", err)
 	}
