@@ -322,3 +322,40 @@ func (s *ReconcileSuite) TestRetriesConvertedTargetWhoseReplaceJobFailed() {
 		})
 	}
 }
+
+// A worker killed after LOD0 was registered (before the rescale, or before the
+// terminal write) leaves its job Running forever. Once its last write is older
+// than TargetLockTTL the worker is gone and the target is queued again; a
+// fresh Running job is alive and must not be run twice.
+func (s *ReconcileSuite) TestRetriesConvertedTargetWhoseRunningJobWasAbandoned() {
+	tests := []struct {
+		name      string
+		updatedAt time.Time
+		locked    bool
+		want      int
+	}{
+		{"stale running job, claim lapsed", time.Now().Add(-service.TargetLockTTL - time.Minute), true, 1},
+		{"fresh running job, claim held", time.Now(), false, 0},
+	}
+	for _, tc := range tests {
+		s.Run(tc.name, func() {
+			mc := minimock.NewController(s.T())
+			s.queue, s.catalog = mocks.NewQueueMock(mc), mocks.NewCatalogMock(mc)
+			s.svc = service.New(service.Config{Queue: s.queue, Catalog: s.catalog, Blobs: mocks.NewBlobStoreMock(mc), IDGen: func() string { return "id" }})
+			s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"}}, nil)
+			s.catalog.HasLOD0Mock.Return(true, true, nil)
+			s.queue.TryLockTargetMock.Optional().Return(tc.locked, nil)
+			s.queue.SaveJobMock.Optional().Return(nil)
+			s.queue.EnqueueJobMock.Optional().Return(nil)
+			s.queue.GetJobMock.Optional().Return(domain.Job{}, nil)
+			s.queue.ListTargetJobsMock.Return([]domain.Job{{
+				ID: "j1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusRunning, UpdatedAt: tc.updatedAt,
+			}}, nil)
+
+			n, err := s.svc.ReconcileMissingArtifacts(s.ctx)
+
+			assert.NilError(s.T(), err)
+			assert.Equal(s.T(), n, tc.want)
+		})
+	}
+}

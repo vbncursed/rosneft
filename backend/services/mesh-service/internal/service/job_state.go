@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 )
@@ -19,6 +20,9 @@ func (m *Mesh) unlockTarget(ctx context.Context, job domain.Job) {
 		slog.WarnContext(ctx, "process: unlock target failed", "kind", job.Kind, "slug", job.Slug, "err", err)
 	}
 }
+
+// failedWriteTimeout bounds the terminal Failed write made after cancellation.
+const failedWriteTimeout = 5 * time.Second
 
 func (m *Mesh) markRunning(ctx context.Context, j *domain.Job) error {
 	// The claim restarts with the run: TargetLockTTL bounds the conversion,
@@ -43,6 +47,10 @@ func (m *Mesh) markSucceeded(ctx context.Context, j domain.Job) error {
 // it (domain.ErrBadSource in the chain), which is what the reconciler reads to
 // decide between retrying the target and leaving it alone.
 func (m *Mesh) markFailed(ctx context.Context, j domain.Job, cause error) error {
+	// SIGTERM cancels ctx while the job runs; the Failed write must still land
+	// or the job stays Running and the reconciler waits out TargetLockTTL.
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), failedWriteTimeout)
+	defer cancel()
 	j.Status = domain.JobStatusFailed
 	j.ErrorMessage = cause.Error()
 	j.FailedOnSource = errors.Is(cause, domain.ErrBadSource)

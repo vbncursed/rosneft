@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -343,4 +344,29 @@ func (s *ProcessJobSuite) TestFailedUserConversionIsNotABackfill() {
 	last := s.failTarget(errors.New("catalog down"))
 
 	assert.Assert(s.T(), !last.Backfill)
+}
+
+// SIGTERM cancels the worker's context while a job runs; the Failed write must
+// still reach the store, or the job stays Running and the reconciler sees a
+// live job until TargetLockTTL.
+func (s *ProcessJobSuite) TestFailureIsSavedAfterTheContextIsCancelled() {
+	ctx, cancel := context.WithCancel(s.ctx)
+	s.queue.GetJobMock.Return(domain.Job{ID: "job-1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusPending}, nil)
+	s.queue.UnlockTargetMock.Return(nil)
+	s.catalog.GetTargetMock.Set(func(context.Context, domain.Kind, string) (domain.ConversionTarget, error) {
+		cancel() // the signal lands mid-conversion
+		return domain.ConversionTarget{}, context.Canceled
+	})
+	var persisted []domain.JobStatus
+	s.queue.SaveJobMock.Set(func(ctx context.Context, j domain.Job) error {
+		if ctx.Err() != nil {
+			return ctx.Err() // a real store refuses a cancelled context
+		}
+		persisted = append(persisted, j.Status)
+		return nil
+	})
+
+	_ = s.svc.ProcessJob(ctx, "job-1")
+
+	assert.Assert(s.T(), slices.Contains(persisted, domain.JobStatusFailed), "persisted %v", persisted)
 }

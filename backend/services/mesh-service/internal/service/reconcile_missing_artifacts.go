@@ -57,9 +57,11 @@ const BackfillRetryAfter = 5 * time.Minute
 //
 // A converted target is also re-queued when its latest job failed for a
 // reason that is not the input's, was not a hidden backfill, and is
-// BackfillRetryAfter old: a replace-source conversion that died after (or
-// before) publishing leaves the old LOD0 in place, so HasLOD0 alone would never
-// retry it, and placements may wait on the rescale that job owed.
+// BackfillRetryAfter old, or is Running with no write inside TargetLockTTL (its
+// worker died): a replace-source conversion that died after LOD0 was published
+// has LOD0 and a plain copy, so HasLOD0 alone would never retry it, and
+// placements may wait on the rescale that job owed. A death before publishing
+// is the "no lod0" branch: the gateway deletes the old artifacts on replace.
 //
 // Trade-off: only input failures are skipped. Infrastructure failures (worker
 // killed mid-job, Redis or catalog blip) keep the old self-healing retry, and
@@ -186,10 +188,22 @@ func (m *Mesh) sweepIndex(ctx context.Context, targets []domain.ConversionTarget
 }
 
 // replaceFailed reports whether a converted target's latest job is a failed,
-// user-visible conversion old enough to retry. Backfills are excluded (their
-// failure is hidden and has its own retry path) and so is a fresh failure, so
-// a persistent infrastructure error costs one job per BackfillRetryAfter.
+// user-visible conversion old enough to retry, or a Running one whose worker is
+// gone (no write inside TargetLockTTL: killed after LOD0 was registered, before
+// the rescale). Backfills are excluded (their failure is hidden and has its own
+// retry path) and so is a fresh failure, so a persistent infrastructure error
+// costs one job per BackfillRetryAfter. submit re-queues the abandoned Running
+// job once its claim has lapsed; a live one keeps its claim and is not touched.
 func (m *Mesh) replaceFailed(last domain.Job, seen bool) bool {
-	return seen && last.Status == domain.JobStatusFailed && !last.Backfill &&
-		m.now().Sub(last.UpdatedAt) >= BackfillRetryAfter
+	if !seen || last.Backfill {
+		return false
+	}
+	switch last.Status {
+	case domain.JobStatusFailed:
+		return m.now().Sub(last.UpdatedAt) >= BackfillRetryAfter
+	case domain.JobStatusRunning:
+		return m.now().Sub(last.UpdatedAt) >= TargetLockTTL
+	default:
+		return false
+	}
 }
