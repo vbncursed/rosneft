@@ -775,7 +775,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:^26.6.5":
+"@types/node@npm:*":
   version: 26.6.5
   resolution: "@types/node@npm:26.6.5"
   dependencies:
@@ -784,7 +784,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:^24.9.0":
+"@types/node@npm:^24.19.2, @types/node@npm:^24.9.0":
   version: 24.19.2
   resolution: "@types/node@npm:24.19.2"
   dependencies:
@@ -1021,7 +1021,7 @@ __metadata:
   resolution: "andrey-desktop@workspace:."
   dependencies:
     "@electron/osx-sign": "npm:2.7.2"
-    "@types/node": "npm:^26.6.5"
+    "@types/node": "npm:^24.19.2"
     electron: "npm:45.0.0"
     electron-builder: "npm:26.18.1"
     oxfmt: "npm:0.75.0"

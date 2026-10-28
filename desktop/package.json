@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@electron/osx-sign": "2.7.2",
-    "@types/node": "^26.6.5",
+    "@types/node": "^24.19.2",
     "electron": "45.0.0",
     "electron-builder": "26.18.1",
     "oxfmt": "0.75.0",
