@@ -1,10 +1,11 @@
 # ops/housekeeping/docker-prune.service → /etc/systemd/system/docker-prune.service
 #
-# Every `docker compose build` leaves build cache and superseded images behind;
-# by 2026-10-01 they held 63 GB of a 119 GB disk. Both commands remove only what
-# nothing uses: the build cache, and images no container (running or stopped)
-# references and that are older than a week (the last week's images stay as a
-# rollback). Volumes — the data — are never touched.
+# Every `docker compose build` leaves build cache behind; by 2026-10-01 it and
+# stale images held 63 GB of a 119 GB disk. This unit removes only the build cache
+# and dangling (untagged) images. Tagged andrey-* release images are NOT touched
+# here: deploy.sh `prune_images` owns that policy (keeps this deploy, the previous
+# one and the last three), and the frontend image is never run as a container, so
+# an age-based `-a` prune would delete the one rollback needs. Volumes are never touched.
 [Unit]
 Description=Prune unused Docker build cache and images
 After=docker.service
@@ -13,4 +14,4 @@ Requires=docker.service
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/docker builder prune -a -f
-ExecStart=/usr/bin/docker image prune -a -f --filter until=168h
+ExecStart=/usr/bin/docker image prune -f

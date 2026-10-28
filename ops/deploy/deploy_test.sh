@@ -104,7 +104,8 @@ case "$1" in
     mkdir -p "$3/assets"
     for f in index.html sw.js offline.html assets/app.js; do echo "$id" > "$3/$f"; done
     printf '{"id":"%s"}\n' "$id" > "$3/shell-manifest.json" ;;
-  images) printf '%s\n' "ghcr.io/vbncursed/andrey-gateway:$STUB_OLD" "ghcr.io/vbncursed/andrey-gateway:$STUB_NEW" ;;
+  images) printf '%s\n' "ghcr.io/vbncursed/andrey-gateway:$STUB_OLD" "ghcr.io/vbncursed/andrey-gateway:$STUB_NEW" \
+    "ghcr.io/vbncursed/andrey-frontend:$STUB_OLD" "ghcr.io/vbncursed/andrey-frontend:$STUB_NEW" "ghcr.io/vbncursed/andrey-frontend:$SHA1" ;;
 esac
 exit 0
 STUB
@@ -212,6 +213,8 @@ ok "docker create gets a dummy command" calls_have "^docker create --pull=missin
 ok "forced command refreshed from the checkout" cmp -s "$ANDREY_ROOT/ops/deploy/deploy.sh" "$ANDREY_SELF"
 ok "image older than the last deploys pruned" calls_have "rmi ghcr.io/vbncursed/andrey-gateway:$SHA3"
 no "current image kept" calls_have "rmi .*$SHA2"
+ok "stale frontend image pruned like any other" calls_have "rmi .*andrey-frontend:$SHA3"
+no "previous release's frontend image kept for rollback" calls_have "rmi .*andrey-frontend:$SHA1"
 
 echo "=== 6. a failed check rolls back to the previous sha ==="
 fresh
