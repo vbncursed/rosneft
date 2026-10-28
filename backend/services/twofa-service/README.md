@@ -145,8 +145,13 @@ for the repo-wide matrix and the upgrade procedure.
 ## Trust boundary
 
 twofa trusts the `user_id` it is given: it has no session check of its own, so
-anyone who can reach `:9006` can act as any user. Only `gateway` (management
-RPCs) and `auth-service` (login RPCs) may reach it. The port is `expose`d on the
-internal compose network and must never be published. All services share one
-Postgres user, so a compromised internal container could already read and write
-the `twofa_*` tables directly; this does not widen what it can do.
+whoever can reach `:9006` can set up, enable, disable or read the 2FA of any
+user. That reachability is the whole access control, and it is enforced by the
+`identity` network in `docker-compose.yml`, not by this README: twofa is on
+`identity` alone, and only `gateway`, `auth`, `postgres`, `redis` and
+`prometheus` (which scrapes `:9101`) share it. Every other container (mesh-worker
+parsing uploads, upload, asset, ...) cannot resolve `twofa` at all.
+
+The port is `expose`d only and must never be published. If a service is ever
+added to `identity`, treat it as able to act on any user's 2FA and give the
+change a reason.
