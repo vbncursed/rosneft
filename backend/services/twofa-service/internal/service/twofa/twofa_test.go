@@ -103,6 +103,8 @@ func (s *TwoFASuite) TestVerifyRecoveryFallback() {
 
 func (s *TwoFASuite) TestRegenerateRequiresValidCode() {
 	secret, _ := s.enrolled()
+	s.lim.IsLockedMock.Expect(s.ctx, "u1").Return(false, nil)
+	s.lim.RegisterFailMock.Expect(s.ctx, "u1").Return(nil)
 	s.st.GetMock.Expect(s.ctx, "u1").Return(domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}, nil)
 	s.ciph.DecryptMock.Expect([]byte("ct")).Return([]byte(secret), nil)
 
@@ -190,4 +192,38 @@ func (s *TwoFASuite) TestStatusOfADisabledCredentialIsOffWithNoCodes() {
 
 	assert.NilError(s.T(), err)
 	assert.DeepEqual(s.T(), got, domain.Status{})
+}
+
+// Disable and Regenerate take a TOTP code, so a stolen cookie could brute-force
+// it unless they share Verify's per-user lock.
+func (s *TwoFASuite) TestDisableAndRegenerateRefuseALockedUser() {
+	s.lim.IsLockedMock.Expect(s.ctx, "u1").Return(true, nil)
+
+	err := s.svc.Disable(s.ctx, "u1", "123456")
+	assert.ErrorIs(s.T(), err, domain.ErrTwoFALocked)
+	_, err = s.svc.Regenerate(s.ctx, "u1", "123456")
+	assert.ErrorIs(s.T(), err, domain.ErrTwoFALocked)
+}
+
+func (s *TwoFASuite) TestDisableWrongCodeRegistersFail() {
+	secret, _ := s.enrolled()
+	s.lim.IsLockedMock.Expect(s.ctx, "u1").Return(false, nil)
+	s.st.GetMock.Expect(s.ctx, "u1").Return(domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}, nil)
+	s.ciph.DecryptMock.Expect([]byte("ct")).Return([]byte(secret), nil)
+	s.lim.RegisterFailMock.Expect(s.ctx, "u1").Return(nil)
+
+	err := s.svc.Disable(s.ctx, "u1", "000000")
+	assert.ErrorIs(s.T(), err, domain.ErrTwoFAInvalidCode)
+}
+
+func (s *TwoFASuite) TestDisableRightCodeClearsFails() {
+	secret, code := s.enrolled()
+	s.lim.IsLockedMock.Expect(s.ctx, "u1").Return(false, nil)
+	s.st.GetMock.Expect(s.ctx, "u1").Return(domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}, nil)
+	s.ciph.DecryptMock.Expect([]byte("ct")).Return([]byte(secret), nil)
+	s.lim.ClearMock.Expect(s.ctx, "u1").Return(nil)
+	s.st.SetMock.Return(nil)
+	s.rec.DeleteAllMock.Expect(s.ctx, "u1").Return(nil)
+
+	assert.NilError(s.T(), s.svc.Disable(s.ctx, "u1", code))
 }
