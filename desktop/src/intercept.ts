@@ -3,7 +3,7 @@ import { Readable } from "node:stream";
 import { withBlobCsp, withCsp } from "./csp";
 import { offlineResponse } from "./offline-page";
 import { parseRange } from "./range";
-import { classify, serverUnreachable, type Route } from "./route";
+import { classify, endsSession, serverUnreachable, type Route } from "./route";
 import type { SettingsFile } from "./settings";
 import type { Shell } from "./shell";
 import type { Store } from "./store";
@@ -118,8 +118,7 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
       return secure(asset, await fallback(d, route, user, req));
     }
     // The gateway itself says the session is over (expired, frozen, revoked): a cached blob must not outlive it.
-    if (route.kind === "snapshot" && route.key === "/api/auth/me" && res.status === 401 && epoch === born)
-      await endSession();
+    if (endsSession(route, res.status, epoch === born)) await endSession();
     return secure(asset, await afterNetwork(d, route, user, req, res, () => epoch === born, scheduleEvict));
   };
 }
