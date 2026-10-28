@@ -6,7 +6,7 @@ Two caps that keep the disk from filling up again (on 2026-10-01 it was at 78 %,
 | File | Installed as | What it does |
 |---|---|---|
 | `journald-andrey.conf` | `/etc/systemd/journald.conf.d/andrey.conf` | caps the systemd journal at 1 GB |
-| `docker-prune.service` + `.timer` | `/etc/systemd/system/` | weekly (Sun 05:00): `docker builder prune -a` and `docker image prune -a --filter until=168h` — only what no container uses; volumes untouched |
+| `docker-prune.service` + `.timer` | `/etc/systemd/system/` | weekly (Sun 05:00): `docker builder prune -a` and `docker image prune` (dangling only). Tagged release images are pruned by `deploy.sh` (this deploy, the previous, last three), never by age; volumes untouched |
 
 Install or update (from the repo root):
 
