@@ -37,11 +37,24 @@ type AuthFlow interface {
 // acting user id and whether it may see/manage every user (scopeAll).
 type UsersSvc interface {
 	Create(ctx context.Context, actorID, email, username, password string, roleSlugs []string) (domain.User, error)
-	List(ctx context.Context, actorID string, isOwner, scopeAll bool, status string, includeDeleted bool) ([]domain.User, error)
+	List(
+		ctx context.Context,
+		actorID string,
+		isOwner, scopeAll bool,
+		status string,
+		includeDeleted bool,
+	) ([]domain.User, error)
 	Get(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error)
 	// No actorID or scope: this one labels ids the caller already sees.
 	ResolveLogins(ctx context.Context, ids []string) (map[string]string, error)
-	Update(ctx context.Context, actorID string, scopeAll bool, id string, roleSlugs []string, email, username string) (domain.User, error)
+	Update(
+		ctx context.Context,
+		actorID string,
+		scopeAll bool,
+		id string,
+		roleSlugs []string,
+		email, username string,
+	) (domain.User, error)
 	Freeze(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error)
 	Unfreeze(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error)
 	SoftDelete(ctx context.Context, actorID string, scopeAll bool, id string) error
@@ -57,9 +70,21 @@ type UsersSvc interface {
 type RolesSvc interface {
 	List(ctx context.Context, scopeAdminID string, allAccess bool) ([]domain.Role, error)
 	Create(ctx context.Context, actorID, ownerAdminID, slug, title string, permSlugs []string) (domain.Role, error)
-	Update(ctx context.Context, actorID string, u domain.RoleUpdate, scopeAdminID string, allAccess bool) (domain.Role, error)
+	Update(
+		ctx context.Context,
+		actorID string,
+		u domain.RoleUpdate,
+		scopeAdminID string,
+		allAccess bool,
+	) (domain.Role, error)
 	Delete(ctx context.Context, slug, scopeAdminID string, allAccess bool) error
-	SetPermissions(ctx context.Context, actorID, slug string, permSlugs []string, scopeAdminID string, allAccess bool) (domain.Role, error)
+	SetPermissions(
+		ctx context.Context,
+		actorID, slug string,
+		permSlugs []string,
+		scopeAdminID string,
+		allAccess bool,
+	) (domain.Role, error)
 	ListPermissions(ctx context.Context) ([]domain.Permission, error)
 	// No actorID or scope: this one names ids the caller already sees.
 	ResolveLabels(ctx context.Context, refs []domain.LabelRef) (map[string]string, error)

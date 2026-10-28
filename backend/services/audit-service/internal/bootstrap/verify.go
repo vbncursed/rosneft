@@ -33,7 +33,9 @@ func RunVerify(ctx context.Context, cfg config.Config) error {
 		}
 		logger.Info("audit: witness loaded", "path", cfg.DigestFile, "lines", len(witnessed))
 	} else {
-		logger.Warn("audit: no witness file configured; recomputation alone cannot catch a forger who also recomputed the chain")
+		logger.Warn(
+			"audit: no witness file configured; recomputation alone cannot catch a forger who also recomputed the chain",
+		)
 	}
 
 	_, _, svc := InitService(pool)

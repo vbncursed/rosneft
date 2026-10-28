@@ -9,7 +9,10 @@ import (
 	catalogv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/catalog/v1"
 )
 
-func (s *Server) RegisterModelArtifact(ctx context.Context, req *catalogv1.RegisterModelArtifactRequest) (*catalogv1.RegisterModelArtifactResponse, error) {
+func (s *Server) RegisterModelArtifact(
+	ctx context.Context,
+	req *catalogv1.RegisterModelArtifactRequest,
+) (*catalogv1.RegisterModelArtifactResponse, error) {
 	if req.GetArtifact() == nil {
 		return nil, mapError(fmt.Errorf("%w: artifact is required", domain.ErrInvalidInput))
 	}

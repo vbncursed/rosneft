@@ -70,14 +70,20 @@ func (s *ChangePasswordSuite) passwordChangedAt(id string) *time.Time {
 
 // A fresh account has never had its password changed.
 func (s *ChangePasswordSuite) TestANewUserHasNoPasswordChangedAt() {
-	u, err := s.store.Create(s.T().Context(), domain.User{Email: "p1@example.com", Username: "p1", PasswordHash: "hash"})
+	u, err := s.store.Create(
+		s.T().Context(),
+		domain.User{Email: "p1@example.com", Username: "p1", PasswordHash: "hash"},
+	)
 	assert.NilError(s.T(), err)
 
 	assert.Assert(s.T(), s.passwordChangedAt(u.ID) == nil)
 }
 
 func (s *ChangePasswordSuite) TestSetsTheHashAndStampsPasswordChangedAt() {
-	u, err := s.store.Create(s.T().Context(), domain.User{Email: "p2@example.com", Username: "p2", PasswordHash: "hash"})
+	u, err := s.store.Create(
+		s.T().Context(),
+		domain.User{Email: "p2@example.com", Username: "p2", PasswordHash: "hash"},
+	)
 	assert.NilError(s.T(), err)
 
 	assert.NilError(s.T(), s.store.ChangePassword(s.T().Context(), u.ID, "new-hash"))

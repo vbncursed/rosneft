@@ -42,7 +42,10 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 
 	svc := InitService(InitStorage(pool))
 
-	grpcSrv, healthSrv := InitGRPCServer(svc, logger) //nolint:contextcheck // false positive: the recovery stream interceptor takes its context from the stream (ss.Context()) per request, not from this bootstrap ctx
+	grpcSrv, healthSrv := InitGRPCServer( //nolint:contextcheck // false positive: the recovery stream interceptor takes its context from the stream (ss.Context()) per request, not from this bootstrap ctx
+		svc,
+		logger,
+	)
 
 	go grpcutil.WatchReadiness(rootCtx, grpcutil.ReadinessConfig{
 		Service: "catalog",
@@ -76,7 +79,10 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 		}
 	}
 
-	healthSrv.SetServingStatus(catalogv1.CatalogService_ServiceDesc.ServiceName, healthpb.HealthCheckResponse_NOT_SERVING)
+	healthSrv.SetServingStatus(
+		catalogv1.CatalogService_ServiceDesc.ServiceName,
+		healthpb.HealthCheckResponse_NOT_SERVING,
+	)
 
 	stopCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()

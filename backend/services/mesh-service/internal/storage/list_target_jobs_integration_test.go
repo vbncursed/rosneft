@@ -49,7 +49,16 @@ func (s *TargetIndexSuite) TestLatestJobPerTargetInKindThenSlugOrder() {
 	ctx := s.T().Context()
 	save := func(j domain.Job) { assert.NilError(s.T(), s.store.SaveJob(ctx, j)) }
 	save(domain.Job{ID: "m-old", Kind: domain.KindModel, Slug: "pump", Status: domain.JobStatusFailed})
-	save(domain.Job{ID: "t-1", Kind: domain.KindTerritory, Slug: "yard", Status: domain.JobStatusRunning, Progress: 0.4, Stage: "parsing"})
+	save(
+		domain.Job{
+			ID:       "t-1",
+			Kind:     domain.KindTerritory,
+			Slug:     "yard",
+			Status:   domain.JobStatusRunning,
+			Progress: 0.4,
+			Stage:    "parsing",
+		},
+	)
 	save(domain.Job{ID: "m-new", Kind: domain.KindModel, Slug: "pump", Status: domain.JobStatusPending})
 	save(domain.Job{ID: "t-2", Kind: domain.KindTerritory, Slug: "block", Status: domain.JobStatusSucceeded})
 
@@ -73,7 +82,13 @@ func (s *TargetIndexSuite) TestLatestJobPerTargetInKindThenSlugOrder() {
 
 func (s *TargetIndexSuite) TestForgetTargetDropsTheEntryAndKeepsTheJob() {
 	ctx := s.T().Context()
-	assert.NilError(s.T(), s.store.SaveJob(ctx, domain.Job{ID: "gone-1", Kind: domain.KindTerritory, Slug: "gone", Status: domain.JobStatusFailed}))
+	assert.NilError(
+		s.T(),
+		s.store.SaveJob(
+			ctx,
+			domain.Job{ID: "gone-1", Kind: domain.KindTerritory, Slug: "gone", Status: domain.JobStatusFailed},
+		),
+	)
 
 	assert.NilError(s.T(), s.store.ForgetTarget(ctx, domain.KindTerritory, "gone"))
 	// Idempotent: a second sweep, or another replica's, finds nothing to drop.

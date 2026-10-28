@@ -6,7 +6,10 @@ import (
 	contentv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/content/v1"
 )
 
-func (s *Server) SetPanoramasHidden(ctx context.Context, req *contentv1.SetPanoramasHiddenRequest) (*contentv1.SetPanoramasHiddenResponse, error) {
+func (s *Server) SetPanoramasHidden(
+	ctx context.Context,
+	req *contentv1.SetPanoramasHiddenRequest,
+) (*contentv1.SetPanoramasHiddenResponse, error) {
 	n, err := s.svc.SetPanoramasHidden(ctx, req.GetTerritorySlug(), req.GetIds(), req.GetHidden())
 	if err != nil {
 		return nil, mapError(err)
@@ -14,7 +17,10 @@ func (s *Server) SetPanoramasHidden(ctx context.Context, req *contentv1.SetPanor
 	return &contentv1.SetPanoramasHiddenResponse{Updated: int32(n)}, nil
 }
 
-func (s *Server) SetPanoramasPhase(ctx context.Context, req *contentv1.SetPanoramasPhaseRequest) (*contentv1.SetPanoramasPhaseResponse, error) {
+func (s *Server) SetPanoramasPhase(
+	ctx context.Context,
+	req *contentv1.SetPanoramasPhaseRequest,
+) (*contentv1.SetPanoramasPhaseResponse, error) {
 	n, err := s.svc.SetPanoramasPhase(ctx, req.GetTerritorySlug(), req.GetIds(), req.GetPhase())
 	if err != nil {
 		return nil, mapError(err)
@@ -22,7 +28,10 @@ func (s *Server) SetPanoramasPhase(ctx context.Context, req *contentv1.SetPanora
 	return &contentv1.SetPanoramasPhaseResponse{Updated: int32(n)}, nil
 }
 
-func (s *Server) SetPanoramaPhaseHidden(ctx context.Context, req *contentv1.SetPanoramaPhaseHiddenRequest) (*contentv1.SetPanoramaPhaseHiddenResponse, error) {
+func (s *Server) SetPanoramaPhaseHidden(
+	ctx context.Context,
+	req *contentv1.SetPanoramaPhaseHiddenRequest,
+) (*contentv1.SetPanoramaPhaseHiddenResponse, error) {
 	v, err := s.svc.SetPanoramaPhaseHidden(ctx, req.GetTerritorySlug(), req.GetPhase(), req.GetHidden())
 	if err != nil {
 		return nil, mapError(err)
@@ -30,7 +39,10 @@ func (s *Server) SetPanoramaPhaseHidden(ctx context.Context, req *contentv1.SetP
 	return &contentv1.SetPanoramaPhaseHiddenResponse{Phase: panoramaPhaseToProto(v)}, nil
 }
 
-func (s *Server) ListPanoramaPhases(ctx context.Context, req *contentv1.ListPanoramaPhasesRequest) (*contentv1.ListPanoramaPhasesResponse, error) {
+func (s *Server) ListPanoramaPhases(
+	ctx context.Context,
+	req *contentv1.ListPanoramaPhasesRequest,
+) (*contentv1.ListPanoramaPhasesResponse, error) {
 	phases, err := s.svc.ListPanoramaPhases(ctx, req.GetTerritorySlug())
 	if err != nil {
 		return nil, mapError(err)

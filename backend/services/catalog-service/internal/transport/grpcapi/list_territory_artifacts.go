@@ -6,7 +6,10 @@ import (
 	catalogv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/catalog/v1"
 )
 
-func (s *Server) ListTerritoryArtifacts(ctx context.Context, req *catalogv1.ListTerritoryArtifactsRequest) (*catalogv1.ListTerritoryArtifactsResponse, error) {
+func (s *Server) ListTerritoryArtifacts(
+	ctx context.Context,
+	req *catalogv1.ListTerritoryArtifactsRequest,
+) (*catalogv1.ListTerritoryArtifactsResponse, error) {
 	out, err := s.svc.ListTerritoryArtifacts(ctx, req.GetTerritorySlug())
 	if err != nil {
 		return nil, mapError(err)

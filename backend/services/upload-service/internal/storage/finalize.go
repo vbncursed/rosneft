@@ -18,7 +18,11 @@ import (
 // can never succeed (ErrInvalidInput: wrong size, rejected content). Any other
 // failure — a blob store outage, an I/O error — keeps it so the client can
 // retry the finalize instead of re-uploading the whole file.
-func (f *FS) Finalize(ctx context.Context, id string, putBlob func(ctx context.Context, hash string, r io.Reader) error) (_ string, _ int64, err error) {
+func (f *FS) Finalize(
+	ctx context.Context,
+	id string,
+	putBlob func(ctx context.Context, hash string, r io.Reader) error,
+) (_ string, _ int64, err error) {
 	dir, dataPath, metaPath, err := f.paths(id)
 	if err != nil {
 		return "", 0, err
@@ -35,7 +39,9 @@ func (f *FS) Finalize(ctx context.Context, id string, putBlob func(ctx context.C
 		return "", 0, err
 	}
 
-	src, err := os.Open(dataPath) //nolint:gosec // G304: dataPath comes from paths(), whose session id passed validateID (hex and dash only)
+	src, err := os.Open( //nolint:gosec // G304: dataPath comes from paths(), whose session id passed validateID (hex and dash only)
+		dataPath,
+	)
 	if err != nil {
 		return "", 0, fmt.Errorf("storage.Finalize: open: %w", err)
 	}
@@ -49,7 +55,13 @@ func (f *FS) Finalize(ctx context.Context, id string, putBlob func(ctx context.C
 	// The recorded offset is what the client was told; the file is what would be
 	// published. They must agree with the declared size or the blob is wrong.
 	if meta.Offset != meta.Size || stat.Size() != meta.Size {
-		return "", 0, fmt.Errorf("%w: declared %d, recorded %d, on disk %d", domain.ErrInvalidInput, meta.Size, meta.Offset, stat.Size())
+		return "", 0, fmt.Errorf(
+			"%w: declared %d, recorded %d, on disk %d",
+			domain.ErrInvalidInput,
+			meta.Size,
+			meta.Offset,
+			stat.Size(),
+		)
 	}
 
 	hash, err := hashFile(dataPath)
@@ -58,7 +70,9 @@ func (f *FS) Finalize(ctx context.Context, id string, putBlob func(ctx context.C
 	}
 
 	// Re-open for the put pass so the reader is at offset 0.
-	body, err := os.Open(dataPath) //nolint:gosec // G304: dataPath comes from paths(), whose session id passed validateID (hex and dash only)
+	body, err := os.Open( //nolint:gosec // G304: dataPath comes from paths(), whose session id passed validateID (hex and dash only)
+		dataPath,
+	)
 	if err != nil {
 		return "", 0, fmt.Errorf("storage.Finalize: reopen: %w", err)
 	}
@@ -83,7 +97,9 @@ func (f *FS) Abort(_ context.Context, id string) error {
 }
 
 func hashFile(path string) (string, error) {
-	src, err := os.Open(path) //nolint:gosec // G304: path is dataPath from paths(), whose session id passed validateID (hex and dash only)
+	src, err := os.Open( //nolint:gosec // G304: path is dataPath from paths(), whose session id passed validateID (hex and dash only)
+		path,
+	)
 	if err != nil {
 		return "", fmt.Errorf("storage.hashFile: open: %w", err)
 	}

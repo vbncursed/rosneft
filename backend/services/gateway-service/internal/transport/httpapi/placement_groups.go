@@ -9,7 +9,10 @@ import (
 // Every handler here passes req.Slug down: the territory gate authorised that
 // slug only, and the catalog scopes every id, placement or group, by it.
 
-func (s *Server) SetPlacementsHidden(ctx context.Context, req SetPlacementsHiddenRequestObject) (SetPlacementsHiddenResponseObject, error) {
+func (s *Server) SetPlacementsHidden(
+	ctx context.Context,
+	req SetPlacementsHiddenRequestObject,
+) (SetPlacementsHiddenResponseObject, error) {
 	if req.Body == nil {
 		return SetPlacementsHidden400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
@@ -25,7 +28,10 @@ func (s *Server) SetPlacementsHidden(ctx context.Context, req SetPlacementsHidde
 	return SetPlacementsHidden200JSONResponse{Updated: n}, nil
 }
 
-func (s *Server) SetPlacementsGroup(ctx context.Context, req SetPlacementsGroupRequestObject) (SetPlacementsGroupResponseObject, error) {
+func (s *Server) SetPlacementsGroup(
+	ctx context.Context,
+	req SetPlacementsGroupRequestObject,
+) (SetPlacementsGroupResponseObject, error) {
 	if req.Body == nil {
 		return SetPlacementsGroup400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
@@ -41,7 +47,10 @@ func (s *Server) SetPlacementsGroup(ctx context.Context, req SetPlacementsGroupR
 	return SetPlacementsGroup200JSONResponse{Updated: n}, nil
 }
 
-func (s *Server) CreatePlacementGroup(ctx context.Context, req CreatePlacementGroupRequestObject) (CreatePlacementGroupResponseObject, error) {
+func (s *Server) CreatePlacementGroup(
+	ctx context.Context,
+	req CreatePlacementGroupRequestObject,
+) (CreatePlacementGroupResponseObject, error) {
 	if req.Body == nil {
 		return CreatePlacementGroup400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
@@ -57,7 +66,10 @@ func (s *Server) CreatePlacementGroup(ctx context.Context, req CreatePlacementGr
 	return CreatePlacementGroup201JSONResponse(placementGroupToAPI(g)), nil
 }
 
-func (s *Server) UpdatePlacementGroup(ctx context.Context, req UpdatePlacementGroupRequestObject) (UpdatePlacementGroupResponseObject, error) {
+func (s *Server) UpdatePlacementGroup(
+	ctx context.Context,
+	req UpdatePlacementGroupRequestObject,
+) (UpdatePlacementGroupResponseObject, error) {
 	if req.Body == nil {
 		return UpdatePlacementGroup400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
@@ -73,7 +85,10 @@ func (s *Server) UpdatePlacementGroup(ctx context.Context, req UpdatePlacementGr
 	return UpdatePlacementGroup200JSONResponse(placementGroupToAPI(g)), nil
 }
 
-func (s *Server) SetPlacementGroupHidden(ctx context.Context, req SetPlacementGroupHiddenRequestObject) (SetPlacementGroupHiddenResponseObject, error) {
+func (s *Server) SetPlacementGroupHidden(
+	ctx context.Context,
+	req SetPlacementGroupHiddenRequestObject,
+) (SetPlacementGroupHiddenResponseObject, error) {
 	if req.Body == nil {
 		return SetPlacementGroupHidden400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
@@ -89,7 +104,10 @@ func (s *Server) SetPlacementGroupHidden(ctx context.Context, req SetPlacementGr
 	return SetPlacementGroupHidden200JSONResponse(placementGroupToAPI(g)), nil
 }
 
-func (s *Server) DeletePlacementGroup(ctx context.Context, req DeletePlacementGroupRequestObject) (DeletePlacementGroupResponseObject, error) {
+func (s *Server) DeletePlacementGroup(
+	ctx context.Context,
+	req DeletePlacementGroupRequestObject,
+) (DeletePlacementGroupResponseObject, error) {
 	err := s.svc.DeletePlacementGroup(ctx, req.Slug, req.Id)
 	switch {
 	case isInvalid(err):

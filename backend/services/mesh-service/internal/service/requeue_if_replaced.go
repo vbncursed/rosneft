@@ -34,7 +34,16 @@ func (m *Mesh) requeueIfSourceReplaced(ctx context.Context, job domain.Job, conv
 		return
 	}
 	if _, _, err := m.SubmitConversion(ctx, job.Kind, job.Slug); err != nil {
-		slog.WarnContext(ctx, "process: re-queue after source replace failed", "kind", job.Kind, "slug", job.Slug, "err", err)
+		slog.WarnContext(
+			ctx,
+			"process: re-queue after source replace failed",
+			"kind",
+			job.Kind,
+			"slug",
+			job.Slug,
+			"err",
+			err,
+		)
 		return
 	}
 	slog.InfoContext(ctx, "process: source replaced mid-conversion, re-queued", "kind", job.Kind, "slug", job.Slug)

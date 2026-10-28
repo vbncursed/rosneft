@@ -11,12 +11,20 @@ import (
 // max-dimension and bbox center so the next conversion can map placements to
 // the new normalization. sourceMax must be positive — a non-positive baseline
 // would yield a meaningless rescale factor.
-func (c *Catalog) SetTerritoryRescaleBaseline(ctx context.Context, slug string, sourceMax float64, center domain.Vec3) error {
+func (c *Catalog) SetTerritoryRescaleBaseline(
+	ctx context.Context,
+	slug string,
+	sourceMax float64,
+	center domain.Vec3,
+) error {
 	if slug == "" {
 		return fmt.Errorf("service.SetTerritoryRescaleBaseline: %w: empty slug", domain.ErrInvalidInput)
 	}
 	if sourceMax <= 0 {
-		return fmt.Errorf("service.SetTerritoryRescaleBaseline: %w: source_max must be positive", domain.ErrInvalidInput)
+		return fmt.Errorf(
+			"service.SetTerritoryRescaleBaseline: %w: source_max must be positive",
+			domain.ErrInvalidInput,
+		)
 	}
 	return c.repo.SetTerritoryRescaleBaseline(ctx, slug, sourceMax, center)
 }

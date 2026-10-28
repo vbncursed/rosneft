@@ -48,7 +48,10 @@ func (o *Optimizer) Compress(ctx context.Context, glb []byte) ([]byte, error) {
 	}
 
 	args := o.buildArgs(in, out, 1)
-	cmd := exec.CommandContext(ctx, o.binPath, args...) //nolint:gosec // G204: binary is MESH_GLTFPACK_BIN; arguments are fixed flags, numbers and paths inside our own MkdirTemp dir
+	cmd := exec.CommandContext( //nolint:gosec // G204: binary is MESH_GLTFPACK_BIN; arguments are fixed flags, numbers and paths inside our own MkdirTemp dir
+		ctx,
+		o.binPath,
+		args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("compression: gltfpack failed: %w (output: %s)", err, output)

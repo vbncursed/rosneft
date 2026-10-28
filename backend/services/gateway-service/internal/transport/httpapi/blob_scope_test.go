@@ -30,32 +30,57 @@ type scopeRecorder struct {
 
 var errForeignBlob = errors.Join(domain.ErrInvalidInput, errors.New("unknown blob hash"))
 
-func (r scopeRecorder) CreateTerritory(_ context.Context, _ domain.Territory, sc domain.BlobScope) (domain.Territory, domain.Job, error) {
+func (r scopeRecorder) CreateTerritory(
+	_ context.Context,
+	_ domain.Territory,
+	sc domain.BlobScope,
+) (domain.Territory, domain.Job, error) {
 	*r.scope = sc
 	return domain.Territory{}, domain.Job{}, errForeignBlob
 }
 
-func (r scopeRecorder) ReplaceTerritorySource(_ context.Context, _, _ string, sc domain.BlobScope) (domain.Territory, domain.Job, error) {
+func (r scopeRecorder) ReplaceTerritorySource(
+	_ context.Context,
+	_, _ string,
+	sc domain.BlobScope,
+) (domain.Territory, domain.Job, error) {
 	*r.scope = sc
 	return domain.Territory{}, domain.Job{}, errForeignBlob
 }
 
-func (r scopeRecorder) CreateModel(_ context.Context, _ domain.Model, sc domain.BlobScope) (domain.Model, domain.Job, error) {
+func (r scopeRecorder) CreateModel(
+	_ context.Context,
+	_ domain.Model,
+	sc domain.BlobScope,
+) (domain.Model, domain.Job, error) {
 	*r.scope = sc
 	return domain.Model{}, domain.Job{}, errForeignBlob
 }
 
-func (r scopeRecorder) UpdateModel(_ context.Context, _ string, _ domain.ModelUpdate, sc domain.BlobScope) (domain.Model, error) {
+func (r scopeRecorder) UpdateModel(
+	_ context.Context,
+	_ string,
+	_ domain.ModelUpdate,
+	sc domain.BlobScope,
+) (domain.Model, error) {
 	*r.scope = sc
 	return domain.Model{}, errForeignBlob
 }
 
-func (r scopeRecorder) CreatePanorama(_ context.Context, _ domain.Panorama, sc domain.BlobScope) (domain.Panorama, error) {
+func (r scopeRecorder) CreatePanorama(
+	_ context.Context,
+	_ domain.Panorama,
+	sc domain.BlobScope,
+) (domain.Panorama, error) {
 	*r.scope = sc
 	return domain.Panorama{}, errForeignBlob
 }
 
-func (r scopeRecorder) CreateDocument(_ context.Context, _ domain.Document, sc domain.BlobScope) (domain.Document, error) {
+func (r scopeRecorder) CreateDocument(
+	_ context.Context,
+	_ domain.Document,
+	sc domain.BlobScope,
+) (domain.Document, error) {
 	*r.scope = sc
 	return domain.Document{}, errForeignBlob
 }
@@ -68,22 +93,49 @@ func (s *BlobScopeSuite) TestEveryHashTakingRouteForwardsTheScopeAndAnswers400()
 		want any
 	}{
 		{name: "create territory", call: func(ctx context.Context, srv *Server) (any, error) {
-			return srv.CreateTerritory(ctx, CreateTerritoryRequestObject{Body: &CreateTerritoryJSONRequestBody{Title: "t", SourceBlobHash: hash}})
+			return srv.CreateTerritory(
+				ctx,
+				CreateTerritoryRequestObject{Body: &CreateTerritoryJSONRequestBody{Title: "t", SourceBlobHash: hash}},
+			)
 		}, want: CreateTerritory400JSONResponse{}},
 		{name: "replace territory source", call: func(ctx context.Context, srv *Server) (any, error) {
-			return srv.ReplaceTerritorySource(ctx, ReplaceTerritorySourceRequestObject{Slug: "yard", Body: &ReplaceTerritorySourceJSONRequestBody{SourceBlobHash: hash}})
+			return srv.ReplaceTerritorySource(
+				ctx,
+				ReplaceTerritorySourceRequestObject{
+					Slug: "yard",
+					Body: &ReplaceTerritorySourceJSONRequestBody{SourceBlobHash: hash},
+				},
+			)
 		}, want: ReplaceTerritorySource400JSONResponse{}},
 		{name: "create model", call: func(ctx context.Context, srv *Server) (any, error) {
-			return srv.CreateModel(ctx, CreateModelRequestObject{Body: &CreateModelJSONRequestBody{Title: "m", SourceBlobHash: hash}})
+			return srv.CreateModel(
+				ctx,
+				CreateModelRequestObject{Body: &CreateModelJSONRequestBody{Title: "m", SourceBlobHash: hash}},
+			)
 		}, want: CreateModel400JSONResponse{}},
 		{name: "update model", call: func(ctx context.Context, srv *Server) (any, error) {
-			return srv.UpdateModel(ctx, UpdateModelRequestObject{Slug: "pump", Body: &UpdateModelJSONRequestBody{ThumbnailBlobHash: new(hash)}})
+			return srv.UpdateModel(
+				ctx,
+				UpdateModelRequestObject{Slug: "pump", Body: &UpdateModelJSONRequestBody{ThumbnailBlobHash: new(hash)}},
+			)
 		}, want: UpdateModel400JSONResponse{}},
 		{name: "create panorama", call: func(ctx context.Context, srv *Server) (any, error) {
-			return srv.CreatePanorama(ctx, CreatePanoramaRequestObject{Slug: "yard", Body: &CreatePanoramaJSONRequestBody{Title: "p", SourceBlobHash: hash}})
+			return srv.CreatePanorama(
+				ctx,
+				CreatePanoramaRequestObject{
+					Slug: "yard",
+					Body: &CreatePanoramaJSONRequestBody{Title: "p", SourceBlobHash: hash},
+				},
+			)
 		}, want: CreatePanorama400JSONResponse{}},
 		{name: "create document", call: func(ctx context.Context, srv *Server) (any, error) {
-			return srv.CreateDocument(ctx, CreateDocumentRequestObject{Slug: "yard", Body: &CreateDocumentJSONRequestBody{Title: "d", SourceBlobHash: hash}})
+			return srv.CreateDocument(
+				ctx,
+				CreateDocumentRequestObject{
+					Slug: "yard",
+					Body: &CreateDocumentJSONRequestBody{Title: "d", SourceBlobHash: hash},
+				},
+			)
 		}, want: CreateDocument400JSONResponse{}},
 	}
 	principals := []struct {
@@ -91,9 +143,13 @@ func (s *BlobScopeSuite) TestEveryHashTakingRouteForwardsTheScopeAndAnswers400()
 		ctx  func(context.Context) context.Context
 		want domain.BlobScope
 	}{
-		{name: "company owner", want: domain.BlobScope{AdminID: "company-1"}, ctx: func(ctx context.Context) context.Context {
-			return authhttp.NewTestContext(ctx, false, "company-1")
-		}},
+		{
+			name: "company owner",
+			want: domain.BlobScope{AdminID: "company-1"},
+			ctx: func(ctx context.Context) context.Context {
+				return authhttp.NewTestContext(ctx, false, "company-1")
+			},
+		},
 		{name: "root", want: domain.BlobScope{AllAccess: true}, ctx: func(ctx context.Context) context.Context {
 			return authhttp.NewTestContext(ctx, true, "")
 		}},

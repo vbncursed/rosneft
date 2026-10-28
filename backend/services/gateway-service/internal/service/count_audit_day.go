@@ -13,7 +13,12 @@ import (
 // east of UTC — a half-hour zone's window starts on :30 UTC. One row with
 // IncludeTotal: the rows themselves are not wanted, only the count, so nothing
 // is labelled and auth is not asked.
-func (g *Gateway) CountAuditDay(ctx context.Context, sc domain.AuditScope, now time.Time, tzOffset time.Duration) (int64, error) {
+func (g *Gateway) CountAuditDay(
+	ctx context.Context,
+	sc domain.AuditScope,
+	now time.Time,
+	tzOffset time.Duration,
+) (int64, error) {
 	page, err := g.audit.ListEntries(ctx, domain.AuditQuery{
 		AllCompanies: sc.All,
 		CompanyID:    sc.Company,

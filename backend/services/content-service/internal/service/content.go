@@ -25,7 +25,12 @@ type Repository interface {
 	// nothing: an id not on territorySlug is ErrPanoramaNotFound.
 	SetPanoramasHidden(ctx context.Context, territorySlug string, ids []int64, hidden bool) (int, error)
 	SetPanoramasPhase(ctx context.Context, territorySlug string, ids []int64, phase domain.PanoramaPhase) (int, error)
-	SetPanoramaPhaseHidden(ctx context.Context, territorySlug string, phase domain.PanoramaPhase, hidden bool) (domain.PanoramaPhaseVisibility, error)
+	SetPanoramaPhaseHidden(
+		ctx context.Context,
+		territorySlug string,
+		phase domain.PanoramaPhase,
+		hidden bool,
+	) (domain.PanoramaPhaseVisibility, error)
 	ListPanoramaPhases(ctx context.Context, territorySlug string) ([]domain.PanoramaPhaseVisibility, error)
 
 	ListDocuments(ctx context.Context, territorySlug string) ([]domain.Document, error)

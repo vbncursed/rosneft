@@ -46,7 +46,10 @@ func (s *ConvertLODsSuite) TestPlainIsAnExtensionFreeGLBWithItsTextureInside() {
 	dir := filepath.Dir(s.objPath)
 	obj := "mtllib m.mtl\nv 0 0 0\nv 1 0 0\nv 0 1 0\nvt 0 0\nvt 1 0\nvt 0 1\nusemtl skin\nf 1/1 2/2 3/3\n"
 	assert.NilError(s.T(), os.WriteFile(s.objPath, []byte(obj), 0o600))
-	assert.NilError(s.T(), os.WriteFile(filepath.Join(dir, "m.mtl"), []byte("newmtl skin\nKd 1 1 1\nmap_Kd tex.png\n"), 0o600))
+	assert.NilError(
+		s.T(),
+		os.WriteFile(filepath.Join(dir, "m.mtl"), []byte("newmtl skin\nKd 1 1 1\nmap_Kd tex.png\n"), 0o600),
+	)
 	var img bytes.Buffer
 	assert.NilError(s.T(), png.Encode(&img, image.NewRGBA(image.Rect(0, 0, 2, 2))))
 	assert.NilError(s.T(), os.WriteFile(filepath.Join(dir, "tex.png"), img.Bytes(), 0o600))

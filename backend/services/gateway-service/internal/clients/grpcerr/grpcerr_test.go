@@ -60,7 +60,13 @@ func (s *RefusedSuite) TestRefusals() {
 func (s *RefusedSuite) TestFirstNamedSentinelWins() {
 	err := status.Error(codes.NotFound, "placement not found: model not found")
 
-	got := grpcerr.Refused("catalog.X", err, domain.ErrTerritoryNotFound, domain.ErrModelNotFound, domain.ErrPlacementNotFound)
+	got := grpcerr.Refused(
+		"catalog.X",
+		err,
+		domain.ErrTerritoryNotFound,
+		domain.ErrModelNotFound,
+		domain.ErrPlacementNotFound,
+	)
 
 	s.assertRefusal(got, domain.ErrModelNotFound, "placement not found: model not found")
 	assert.Assert(s.T(), !errors.Is(got, domain.ErrPlacementNotFound))

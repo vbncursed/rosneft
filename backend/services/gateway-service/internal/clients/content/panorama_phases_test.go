@@ -185,7 +185,10 @@ func (s *PanoramaPhasesSuite) TestAPanoramaCarriesItsPhaseAndHidden() {
 func (s *PanoramaPhasesSuite) TestCreateCarriesThePhase() {
 	cc := &phaseCC{}
 	c := &Client{cc: cc}
-	got, err := c.CreatePanorama(s.T().Context(), domain.Panorama{TerritorySlug: "yard", Title: "North", Phase: "current"})
+	got, err := c.CreatePanorama(
+		s.T().Context(),
+		domain.Panorama{TerritorySlug: "yard", Title: "North", Phase: "current"},
+	)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), cc.create.GetPhase(), "current")
 	assert.Equal(s.T(), got.Phase, "current")

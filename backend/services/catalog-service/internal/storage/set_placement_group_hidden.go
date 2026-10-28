@@ -17,7 +17,12 @@ import (
 // exactly like an unknown id.
 //
 // Wrapped in audittx.Run so the audit trigger can attribute the change.
-func (r *PG) SetPlacementGroupHidden(ctx context.Context, territorySlug string, id int64, hidden bool) (domain.PlacementGroup, error) {
+func (r *PG) SetPlacementGroupHidden(
+	ctx context.Context,
+	territorySlug string,
+	id int64,
+	hidden bool,
+) (domain.PlacementGroup, error) {
 	const q = `
 		WITH g AS (
 			UPDATE placement_groups g SET hidden = $3, updated_at = NOW()

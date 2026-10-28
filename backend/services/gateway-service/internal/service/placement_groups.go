@@ -22,7 +22,12 @@ func checkBulkIDs(ids []int64, what string) error {
 
 // SetPlacementsHidden hides or shows every placement in ids on territorySlug,
 // all or none, and answers how many were written.
-func (g *Gateway) SetPlacementsHidden(ctx context.Context, territorySlug string, ids []int64, hidden bool) (int, error) {
+func (g *Gateway) SetPlacementsHidden(
+	ctx context.Context,
+	territorySlug string,
+	ids []int64,
+	hidden bool,
+) (int, error) {
 	if err := checkBulkIDs(ids, "placements"); err != nil {
 		return 0, err
 	}
@@ -31,7 +36,12 @@ func (g *Gateway) SetPlacementsHidden(ctx context.Context, territorySlug string,
 
 // SetPlacementsGroup moves every placement in ids on territorySlug into
 // groupID, or out of any group when it is nil, all or none.
-func (g *Gateway) SetPlacementsGroup(ctx context.Context, territorySlug string, ids []int64, groupID *int64) (int, error) {
+func (g *Gateway) SetPlacementsGroup(
+	ctx context.Context,
+	territorySlug string,
+	ids []int64,
+	groupID *int64,
+) (int, error) {
 	if err := checkBulkIDs(ids, "placements"); err != nil {
 		return 0, err
 	}
@@ -42,11 +52,19 @@ func (g *Gateway) SetPlacementsGroup(ctx context.Context, territorySlug string, 
 // SetPlacementGroupHidden pass through: the catalog trims and bounds the
 // title and scopes the id by territorySlug, the slug the route's gate checked.
 
-func (g *Gateway) CreatePlacementGroup(ctx context.Context, territorySlug, title string) (domain.PlacementGroup, error) {
+func (g *Gateway) CreatePlacementGroup(
+	ctx context.Context,
+	territorySlug, title string,
+) (domain.PlacementGroup, error) {
 	return g.catalog.CreatePlacementGroup(ctx, territorySlug, title)
 }
 
-func (g *Gateway) RenamePlacementGroup(ctx context.Context, territorySlug string, id int64, title string) (domain.PlacementGroup, error) {
+func (g *Gateway) RenamePlacementGroup(
+	ctx context.Context,
+	territorySlug string,
+	id int64,
+	title string,
+) (domain.PlacementGroup, error) {
 	return g.catalog.RenamePlacementGroup(ctx, territorySlug, id, title)
 }
 
@@ -54,6 +72,11 @@ func (g *Gateway) DeletePlacementGroup(ctx context.Context, territorySlug string
 	return g.catalog.DeletePlacementGroup(ctx, territorySlug, id)
 }
 
-func (g *Gateway) SetPlacementGroupHidden(ctx context.Context, territorySlug string, id int64, hidden bool) (domain.PlacementGroup, error) {
+func (g *Gateway) SetPlacementGroupHidden(
+	ctx context.Context,
+	territorySlug string,
+	id int64,
+	hidden bool,
+) (domain.PlacementGroup, error) {
 	return g.catalog.SetPlacementGroupHidden(ctx, territorySlug, id, hidden)
 }

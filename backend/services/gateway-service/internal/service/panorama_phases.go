@@ -42,7 +42,11 @@ func (g *Gateway) SetPanoramasPhase(ctx context.Context, territorySlug string, i
 
 // SetPanoramaPhaseHidden sets one phase's shared hidden flag on territorySlug.
 // The panoramas' own flags are untouched (spec D5).
-func (g *Gateway) SetPanoramaPhaseHidden(ctx context.Context, territorySlug, phase string, hidden bool) (domain.PanoramaPhase, error) {
+func (g *Gateway) SetPanoramaPhaseHidden(
+	ctx context.Context,
+	territorySlug, phase string,
+	hidden bool,
+) (domain.PanoramaPhase, error) {
 	if err := checkPhase(phase); err != nil {
 		return domain.PanoramaPhase{}, err
 	}

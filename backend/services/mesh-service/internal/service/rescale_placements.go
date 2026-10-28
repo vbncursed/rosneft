@@ -18,7 +18,12 @@ import (
 // catalog applies a pending baseline once and clears it, so a repeat call is
 // its documented no-op. Models carry no placements, so it is a no-op for
 // them.
-func (m *Mesh) rescaleAfterConvert(ctx context.Context, kind domain.Kind, slug string, results []domain.ConversionResult) error {
+func (m *Mesh) rescaleAfterConvert(
+	ctx context.Context,
+	kind domain.Kind,
+	slug string,
+	results []domain.ConversionResult,
+) error {
 	if kind != domain.KindTerritory || len(results) == 0 {
 		return nil
 	}

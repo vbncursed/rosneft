@@ -61,7 +61,10 @@ func Refused(op string, err error, notFound error, named ...error) error {
 	switch {
 	case ok && st.Code() == codes.NotFound:
 		sentinel := notFound
-		if i := slices.IndexFunc(named, func(s error) bool { return strings.Contains(st.Message(), s.Error()) }); i >= 0 {
+		if i := slices.IndexFunc(
+			named,
+			func(s error) bool { return strings.Contains(st.Message(), s.Error()) },
+		); i >= 0 {
 			sentinel = named[i]
 		}
 		return Refusal{st.Message(), sentinel}

@@ -27,7 +27,11 @@ func (p *placementBatchCC) CreatePlacements(
 	p.got = in
 	out := make([]*catalogv1.Placement, len(in.GetItems()))
 	for i, it := range in.GetItems() {
-		out[i] = &catalogv1.Placement{Id: int64(i + 1), TerritorySlug: in.GetTerritorySlug(), ModelSlug: it.GetModelSlug()}
+		out[i] = &catalogv1.Placement{
+			Id:            int64(i + 1),
+			TerritorySlug: in.GetTerritorySlug(),
+			ModelSlug:     it.GetModelSlug(),
+		}
 	}
 	return &catalogv1.CreatePlacementsResponse{Placements: out}, nil
 }

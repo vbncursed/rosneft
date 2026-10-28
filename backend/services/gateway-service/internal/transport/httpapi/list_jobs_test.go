@@ -59,7 +59,11 @@ func (j jobsServiceStub) ListTargetJobs(context.Context) ([]domain.Job, error) {
 
 // The jobs list reads only slugs and is polled every 5 s, so it must not make
 // the catalog load a LOD chain per territory: asking for one fails the call.
-func (j jobsServiceStub) ListTerritories(_ context.Context, scopeAdminID string, withArtifacts bool) ([]domain.Territory, error) {
+func (j jobsServiceStub) ListTerritories(
+	_ context.Context,
+	scopeAdminID string,
+	withArtifacts bool,
+) ([]domain.Territory, error) {
 	if withArtifacts {
 		return nil, errors.New("GET /api/jobs asked for LOD chains it never reads")
 	}
@@ -112,7 +116,10 @@ func (s *ListJobsSuite) TestScopedCallerWithNoAdminSeesNothing() {
 }
 
 func (s *ListJobsSuite) TestMeshOutageIsA500NotAnEmptyList() {
-	rec := s.get(jobsServiceStub{listErr: context.DeadlineExceeded}, authhttp.NewTestContext(context.Background(), true, ""))
+	rec := s.get(
+		jobsServiceStub{listErr: context.DeadlineExceeded},
+		authhttp.NewTestContext(context.Background(), true, ""),
+	)
 	assert.Equal(s.T(), rec.Code, http.StatusInternalServerError)
 	assert.Equal(s.T(), rec.Body.String(), `{"code":"internal","message":"internal error"}`+"\n")
 }

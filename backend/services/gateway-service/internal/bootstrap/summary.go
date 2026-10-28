@@ -18,7 +18,12 @@ import (
 // InitConsoleSummary builds GET /api/console/summary. Each card reads the
 // source its console screen reads, with the caller's own token or scope, so a
 // count never reaches past what that screen would show.
-func InitConsoleSummary(svc *service.Gateway, authClient *auth.Client, prom *metrics.Client, logger *slog.Logger) http.Handler {
+func InitConsoleSummary(
+	svc *service.Gateway,
+	authClient *auth.Client,
+	prom *metrics.Client,
+	logger *slog.Logger,
+) http.Handler {
 	return summary.Handler(consoleCounts(svc, authClient, prom), logger)
 }
 

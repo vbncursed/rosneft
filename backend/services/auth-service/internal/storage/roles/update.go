@@ -16,7 +16,12 @@ import (
 // and a refused grant must not leave the rename standing. Refused for system
 // roles and for roles outside the actor's group (see assertMutable). Wrapped
 // in audittx.Run so both changes are attributed.
-func (s *Store) Update(ctx context.Context, u domain.RoleUpdate, scopeAdminID string, allAccess bool) (domain.Role, error) {
+func (s *Store) Update(
+	ctx context.Context,
+	u domain.RoleUpdate,
+	scopeAdminID string,
+	allAccess bool,
+) (domain.Role, error) {
 	if err := s.assertMutable(ctx, u.Slug, scopeAdminID, allAccess); err != nil {
 		return domain.Role{}, err
 	}

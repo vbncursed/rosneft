@@ -10,7 +10,10 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 )
 
-func (s *Server) CreatePlacements(ctx context.Context, req *catalogv1.CreatePlacementsRequest) (*catalogv1.CreatePlacementsResponse, error) {
+func (s *Server) CreatePlacements(
+	ctx context.Context,
+	req *catalogv1.CreatePlacementsRequest,
+) (*catalogv1.CreatePlacementsResponse, error) {
 	items := make([]domain.Placement, len(req.GetItems()))
 	for i, it := range req.GetItems() {
 		items[i] = placementFromCreateRequest(it)

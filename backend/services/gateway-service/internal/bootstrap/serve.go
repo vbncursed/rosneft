@@ -111,7 +111,17 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 		"audit":   auditClient.Conn(),
 	}
 
-	router, hz := InitRouter(svc, assetProxy, assetClient.Open, metricsHandler, summaryHandler, authH, logger, cfg, backends)
+	router, hz := InitRouter(
+		svc,
+		assetProxy,
+		assetClient.Open,
+		metricsHandler,
+		summaryHandler,
+		authH,
+		logger,
+		cfg,
+		backends,
+	)
 
 	// gateway runs no gRPC server (Health stays nil) but is a Prometheus
 	// scrape target like every gRPC service, so it needs the same
@@ -158,7 +168,9 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 
 	stopCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()
-	if err := srv.Shutdown(stopCtx); err != nil { //nolint:contextcheck // shutdown must outlive rootCtx, which is already cancelled here; stopCtx is a fresh Background-derived timeout by design
+	if err := srv.Shutdown( //nolint:contextcheck // shutdown must outlive rootCtx, which is already cancelled here; stopCtx is a fresh Background-derived timeout by design
+		stopCtx,
+	); err != nil {
 		logger.Warn("gateway: shutdown forced", "err", err)
 	} else {
 		logger.Info("gateway: graceful shutdown complete")

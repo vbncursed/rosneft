@@ -35,7 +35,11 @@ func (f *FS) AppendChunk(_ context.Context, id string, offset int64, data []byte
 		return meta.Offset, fmt.Errorf("%w: write would exceed declared size %d", domain.ErrSizeExceeded, meta.Size)
 	}
 
-	w, err := os.OpenFile(dataPath, os.O_CREATE|os.O_WRONLY, 0o600) //nolint:gosec // G304: dataPath comes from paths(), whose session id passed validateID (hex and dash only)
+	w, err := os.OpenFile( //nolint:gosec // G304: dataPath comes from paths(), whose session id passed validateID (hex and dash only)
+		dataPath,
+		os.O_CREATE|os.O_WRONLY,
+		0o600,
+	)
 	if err != nil {
 		return meta.Offset, fmt.Errorf("storage.AppendChunk: open: %w", err)
 	}
@@ -73,7 +77,9 @@ func (f *FS) AppendChunk(_ context.Context, id string, offset int64, data []byte
 }
 
 func readMeta(path string) (domain.Session, error) {
-	body, err := os.ReadFile(path) //nolint:gosec // G304: path comes from paths(), whose session id passed validateID (hex and dash only)
+	body, err := os.ReadFile( //nolint:gosec // G304: path comes from paths(), whose session id passed validateID (hex and dash only)
+		path,
+	)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return domain.Session{}, domain.ErrSessionNotFound

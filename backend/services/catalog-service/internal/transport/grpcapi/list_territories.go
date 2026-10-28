@@ -6,7 +6,10 @@ import (
 	catalogv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/catalog/v1"
 )
 
-func (s *Server) ListTerritories(ctx context.Context, req *catalogv1.ListTerritoriesRequest) (*catalogv1.ListTerritoriesResponse, error) {
+func (s *Server) ListTerritories(
+	ctx context.Context,
+	req *catalogv1.ListTerritoriesRequest,
+) (*catalogv1.ListTerritoriesResponse, error) {
 	out, err := s.svc.ListTerritories(ctx, req.GetScopeAdminId(), req.GetWithArtifacts())
 	if err != nil {
 		return nil, mapError(err)

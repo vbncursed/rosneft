@@ -30,7 +30,14 @@ func (s *TerritoriesSuite) SetupTest() {
 	mc := minimock.NewController(s.T())
 	s.cat = mocks.NewCatalogMock(mc)
 	s.mesh = mocks.NewMeshMock(mc)
-	s.svc = service.New(s.cat, mocks.NewContentMock(mc), s.mesh, mocks.NewUploadMock(mc), mocks.NewAuditMock(mc), mocks.NewAuthMock(mc))
+	s.svc = service.New(
+		s.cat,
+		mocks.NewContentMock(mc),
+		s.mesh,
+		mocks.NewUploadMock(mc),
+		mocks.NewAuditMock(mc),
+		mocks.NewAuthMock(mc),
+	)
 	s.ctx = s.T().Context()
 }
 
@@ -121,7 +128,11 @@ func (s *TerritoriesSuite) TestUpdateNeverForwardsASourceHash() {
 	s.cat.UpdateTerritoryMock.Expect(s.ctx, "t1", domain.TerritoryUpdate{Title: new("Yard")}).
 		Return(domain.Territory{Slug: "t1"}, nil)
 
-	_, err := s.svc.UpdateTerritory(s.ctx, "t1", domain.TerritoryUpdate{Title: new("Yard"), SourceBlobHash: new("foreign")})
+	_, err := s.svc.UpdateTerritory(
+		s.ctx,
+		"t1",
+		domain.TerritoryUpdate{Title: new("Yard"), SourceBlobHash: new("foreign")},
+	)
 	assert.NilError(s.T(), err)
 }
 
@@ -129,7 +140,11 @@ func (s *TerritoriesSuite) TestUpdateTrimsTheTitleAndDescription() {
 	s.cat.UpdateTerritoryMock.Expect(s.ctx, "t1", domain.TerritoryUpdate{Title: new("Yard"), Description: new("North pad")}).
 		Return(domain.Territory{Slug: "t1", Title: "Yard"}, nil)
 
-	_, err := s.svc.UpdateTerritory(s.ctx, "t1", domain.TerritoryUpdate{Title: new(" Yard\t"), Description: new("  North pad ")})
+	_, err := s.svc.UpdateTerritory(
+		s.ctx,
+		"t1",
+		domain.TerritoryUpdate{Title: new(" Yard\t"), Description: new("  North pad ")},
+	)
 	assert.NilError(s.T(), err)
 }
 

@@ -68,7 +68,11 @@ func (s *PanoramaPhasesSuite) TestAnUnknownPhaseIsInvalidArgument() {
 	assert.Equal(s.T(), status.Code(err), codes.InvalidArgument)
 	// The message starts at the sentinel: the service's own "service.X: "
 	// framing is not for the browser.
-	assert.Assert(s.T(), strings.HasPrefix(status.Convert(err).Message(), "invalid input"), status.Convert(err).Message())
+	assert.Assert(
+		s.T(),
+		strings.HasPrefix(status.Convert(err).Message(), "invalid input"),
+		status.Convert(err).Message(),
+	)
 	_, err = s.srv.SetPanoramaPhaseHidden(s.ctx, &contentv1.SetPanoramaPhaseHiddenRequest{
 		TerritorySlug: "t1", Phase: "during", Hidden: true,
 	})

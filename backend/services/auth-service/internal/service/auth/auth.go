@@ -54,7 +54,13 @@ type Service struct {
 }
 
 // New constructs the auth Service.
-func New(users UserStore, sessions SessionStore, twofa TwoFAVerifier, passkey PasskeyVerifier, absoluteTTL time.Duration) *Service {
+func New(
+	users UserStore,
+	sessions SessionStore,
+	twofa TwoFAVerifier,
+	passkey PasskeyVerifier,
+	absoluteTTL time.Duration,
+) *Service {
 	return &Service{
 		users:       users,
 		sessions:    sessions,

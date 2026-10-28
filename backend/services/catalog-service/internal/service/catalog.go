@@ -52,7 +52,12 @@ type Repository interface {
 	CreatePlacements(ctx context.Context, key string, ps []domain.Placement) ([]domain.Placement, error)
 	PlacementBatch(ctx context.Context, territorySlug, key string, size int) ([]domain.Placement, error)
 	UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
-	SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error)
+	SetPlacementVisibility(
+		ctx context.Context,
+		territorySlug string,
+		placementID int64,
+		panoramaIDs []int64,
+	) (domain.Placement, error)
 	DeletePlacement(ctx context.Context, territorySlug string, id int64) error
 
 	// Bulk writes take distinct ids (the service de-duplicates) and are all or
@@ -64,9 +69,19 @@ type Repository interface {
 	// another territory is ErrPlacementGroupNotFound.
 	ListPlacementGroups(ctx context.Context, territorySlug string) ([]domain.PlacementGroup, error)
 	CreatePlacementGroup(ctx context.Context, territorySlug, title string) (domain.PlacementGroup, error)
-	RenamePlacementGroup(ctx context.Context, territorySlug string, id int64, title string) (domain.PlacementGroup, error)
+	RenamePlacementGroup(
+		ctx context.Context,
+		territorySlug string,
+		id int64,
+		title string,
+	) (domain.PlacementGroup, error)
 	DeletePlacementGroup(ctx context.Context, territorySlug string, id int64) error
-	SetPlacementGroupHidden(ctx context.Context, territorySlug string, id int64, hidden bool) (domain.PlacementGroup, error)
+	SetPlacementGroupHidden(
+		ctx context.Context,
+		territorySlug string,
+		id int64,
+		hidden bool,
+	) (domain.PlacementGroup, error)
 
 	// Every id-addressed measurement call is scoped by the territory slug: a
 	// row of another territory is ErrMeasurementNotFound.

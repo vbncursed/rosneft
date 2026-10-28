@@ -7,7 +7,10 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
-func (s *Server) ListPanoramas(ctx context.Context, req ListPanoramasRequestObject) (ListPanoramasResponseObject, error) {
+func (s *Server) ListPanoramas(
+	ctx context.Context,
+	req ListPanoramasRequestObject,
+) (ListPanoramasResponseObject, error) {
 	out, err := s.svc.ListPanoramas(ctx, req.Slug)
 	switch {
 	case isInvalid(err):
@@ -24,7 +27,10 @@ func (s *Server) ListPanoramas(ctx context.Context, req ListPanoramasRequestObje
 	return resp, nil
 }
 
-func (s *Server) CreatePanorama(ctx context.Context, req CreatePanoramaRequestObject) (CreatePanoramaResponseObject, error) {
+func (s *Server) CreatePanorama(
+	ctx context.Context,
+	req CreatePanoramaRequestObject,
+) (CreatePanoramaResponseObject, error) {
 	if req.Body == nil {
 		return CreatePanorama400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
@@ -57,7 +63,10 @@ func (s *Server) CreatePanorama(ctx context.Context, req CreatePanoramaRequestOb
 	return CreatePanorama201JSONResponse(panoramaToAPI(p)), nil
 }
 
-func (s *Server) UpdatePanorama(ctx context.Context, req UpdatePanoramaRequestObject) (UpdatePanoramaResponseObject, error) {
+func (s *Server) UpdatePanorama(
+	ctx context.Context,
+	req UpdatePanoramaRequestObject,
+) (UpdatePanoramaResponseObject, error) {
 	if req.Body == nil {
 		return UpdatePanorama400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
@@ -93,7 +102,10 @@ func (s *Server) UpdatePanorama(ctx context.Context, req UpdatePanoramaRequestOb
 	return UpdatePanorama200JSONResponse(panoramaToAPI(p)), nil
 }
 
-func (s *Server) DeletePanorama(ctx context.Context, req DeletePanoramaRequestObject) (DeletePanoramaResponseObject, error) {
+func (s *Server) DeletePanorama(
+	ctx context.Context,
+	req DeletePanoramaRequestObject,
+) (DeletePanoramaResponseObject, error) {
 	err := s.svc.DeletePanorama(ctx, req.Slug, req.Id)
 	switch {
 	case isNotFound(err):

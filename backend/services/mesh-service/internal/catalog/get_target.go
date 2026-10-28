@@ -17,7 +17,10 @@ func (c *Client) GetTarget(ctx context.Context, kind domain.Kind, slug string) (
 	case domain.KindTerritory:
 		resp, err := c.cc.GetTerritory(ctx, &catalogv1.GetTerritoryRequest{Slug: slug})
 		if err != nil {
-			return domain.ConversionTarget{}, fmt.Errorf("catalog.GetTarget territory: %w", mapStatusErr(err, domain.ErrTargetNotFound))
+			return domain.ConversionTarget{}, fmt.Errorf(
+				"catalog.GetTarget territory: %w",
+				mapStatusErr(err, domain.ErrTargetNotFound),
+			)
 		}
 		t := resp.GetTerritory()
 		return domain.ConversionTarget{
@@ -31,7 +34,10 @@ func (c *Client) GetTarget(ctx context.Context, kind domain.Kind, slug string) (
 	case domain.KindModel:
 		resp, err := c.cc.GetModel(ctx, &catalogv1.GetModelRequest{Slug: slug})
 		if err != nil {
-			return domain.ConversionTarget{}, fmt.Errorf("catalog.GetTarget model: %w", mapStatusErr(err, domain.ErrTargetNotFound))
+			return domain.ConversionTarget{}, fmt.Errorf(
+				"catalog.GetTarget model: %w",
+				mapStatusErr(err, domain.ErrTargetNotFound),
+			)
 		}
 		m := resp.GetModel()
 		return domain.ConversionTarget{

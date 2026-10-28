@@ -14,7 +14,10 @@ func (c *Client) BeginRegistration(ctx context.Context, token string) (optionsJS
 	return resp.GetOptionsJson(), resp.GetFlowId(), nil
 }
 
-func (c *Client) FinishRegistration(ctx context.Context, token, flowID, credentialJSON, name string) (*passkeyv1.Credential, error) {
+func (c *Client) FinishRegistration(
+	ctx context.Context,
+	token, flowID, credentialJSON, name string,
+) (*passkeyv1.Credential, error) {
 	resp, err := c.cc.FinishRegistration(ctx, &passkeyv1.FinishRegistrationRequest{
 		Token: token, FlowId: flowID, CredentialJson: credentialJSON, Name: name,
 	})

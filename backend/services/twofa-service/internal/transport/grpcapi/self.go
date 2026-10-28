@@ -45,7 +45,10 @@ func (s *Server) Disable(ctx context.Context, req *twofav1.DisableRequest) (*two
 }
 
 // RegenerateRecoveryCodes replaces the caller's recovery codes.
-func (s *Server) RegenerateRecoveryCodes(ctx context.Context, req *twofav1.RegenerateRequest) (*twofav1.RegenerateResponse, error) {
+func (s *Server) RegenerateRecoveryCodes(
+	ctx context.Context,
+	req *twofav1.RegenerateRequest,
+) (*twofav1.RegenerateResponse, error) {
 	uid, _, err := s.identity.Resolve(ctx, req.GetToken())
 	if err != nil {
 		return nil, mapErr(err)

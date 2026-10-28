@@ -11,7 +11,11 @@ import (
 
 // ListTerritories returns territories visible to scopeAdminID (empty = all),
 // each with its LOD chain only when withArtifacts is set.
-func (c *Client) ListTerritories(ctx context.Context, scopeAdminID string, withArtifacts bool) ([]domain.Territory, error) {
+func (c *Client) ListTerritories(
+	ctx context.Context,
+	scopeAdminID string,
+	withArtifacts bool,
+) ([]domain.Territory, error) {
 	resp, err := c.cc.ListTerritories(ctx, &catalogv1.ListTerritoriesRequest{
 		ScopeAdminId: scopeAdminID, WithArtifacts: withArtifacts,
 	})
@@ -30,7 +34,10 @@ func (c *Client) ListTerritories(ctx context.Context, scopeAdminID string, withA
 func (c *Client) GetTerritory(ctx context.Context, slug, scopeAdminID string) (domain.Territory, error) {
 	resp, err := c.cc.GetTerritory(ctx, &catalogv1.GetTerritoryRequest{Slug: slug, ScopeAdminId: scopeAdminID})
 	if err != nil {
-		return domain.Territory{}, fmt.Errorf("catalog.GetTerritory: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
+		return domain.Territory{}, fmt.Errorf(
+			"catalog.GetTerritory: %w",
+			grpcerr.MapStatus(err, domain.ErrTerritoryNotFound),
+		)
 	}
 	return territoryFromProto(resp.GetTerritory()), nil
 }
@@ -57,7 +64,10 @@ func (c *Client) UpdateTerritory(ctx context.Context, slug string, u domain.Terr
 		SourceBlobHash:      u.SourceBlobHash,
 	})
 	if err != nil {
-		return domain.Territory{}, fmt.Errorf("catalog.UpdateTerritory: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
+		return domain.Territory{}, fmt.Errorf(
+			"catalog.UpdateTerritory: %w",
+			grpcerr.MapStatus(err, domain.ErrTerritoryNotFound),
+		)
 	}
 	return territoryFromProto(resp.GetTerritory()), nil
 }
@@ -86,14 +96,22 @@ func (c *Client) DeleteTerritoryArtifacts(ctx context.Context, slug string) erro
 // max-dimension and bbox center before a source replacement clears its
 // artifacts, so the post-conversion rescale keeps placements 1:1 against the
 // new normalization.
-func (c *Client) SetTerritoryRescaleBaseline(ctx context.Context, slug string, sourceMax float64, center domain.Vec3) error {
+func (c *Client) SetTerritoryRescaleBaseline(
+	ctx context.Context,
+	slug string,
+	sourceMax float64,
+	center domain.Vec3,
+) error {
 	_, err := c.cc.SetTerritoryRescaleBaseline(ctx, &catalogv1.SetTerritoryRescaleBaselineRequest{
 		TerritorySlug: slug,
 		SourceMax:     sourceMax,
 		SourceCenter:  vec3ToProto(center),
 	})
 	if err != nil {
-		return fmt.Errorf("catalog.SetTerritoryRescaleBaseline: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
+		return fmt.Errorf(
+			"catalog.SetTerritoryRescaleBaseline: %w",
+			grpcerr.MapStatus(err, domain.ErrTerritoryNotFound),
+		)
 	}
 	return nil
 }
@@ -102,7 +120,10 @@ func (c *Client) SetTerritoryRescaleBaseline(ctx context.Context, slug string, s
 func (c *Client) ListTerritoryArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error) {
 	resp, err := c.cc.ListTerritoryArtifacts(ctx, &catalogv1.ListTerritoryArtifactsRequest{TerritorySlug: slug})
 	if err != nil {
-		return nil, fmt.Errorf("catalog.ListTerritoryArtifacts: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
+		return nil, fmt.Errorf(
+			"catalog.ListTerritoryArtifacts: %w",
+			grpcerr.MapStatus(err, domain.ErrTerritoryNotFound),
+		)
 	}
 	out := make([]domain.Artifact, len(resp.GetArtifacts()))
 	for i, a := range resp.GetArtifacts() {
@@ -115,7 +136,10 @@ func (c *Client) ListTerritoryArtifacts(ctx context.Context, slug string) ([]dom
 func (c *Client) GetTerritoryArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error) {
 	resp, err := c.cc.GetTerritoryArtifact(ctx, &catalogv1.GetTerritoryArtifactRequest{TerritorySlug: slug, Lod: lod})
 	if err != nil {
-		return domain.Artifact{}, fmt.Errorf("catalog.GetTerritoryArtifact: %w", grpcerr.MapStatus(err, domain.ErrArtifactNotFound))
+		return domain.Artifact{}, fmt.Errorf(
+			"catalog.GetTerritoryArtifact: %w",
+			grpcerr.MapStatus(err, domain.ErrArtifactNotFound),
+		)
 	}
 	return territoryArtifactFromProto(resp.GetArtifact()), nil
 }

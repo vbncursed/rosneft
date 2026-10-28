@@ -57,7 +57,12 @@ func loadMTL(ctx context.Context, root *os.Root, objRel, mtllib, sourcePath stri
 // the extension, and caches the result so the same file isn't re-read for
 // each material that references it. Returns nil when the file is missing,
 // outside root or unsupported (caller falls back to baseColorFactor only).
-func loadTexture(ctx context.Context, root *os.Root, objRel, relPath string, cache map[string]*textureAsset) *textureAsset {
+func loadTexture(
+	ctx context.Context,
+	root *os.Root,
+	objRel, relPath string,
+	cache map[string]*textureAsset,
+) *textureAsset {
 	if t, ok := cache[relPath]; ok {
 		return t
 	}

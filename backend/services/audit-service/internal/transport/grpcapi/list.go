@@ -8,7 +8,10 @@ import (
 
 // ListEntries returns one page of the journal plus the cursor for the next and,
 // when the request asked for it, the count of every row the filters match.
-func (s *Server) ListEntries(ctx context.Context, req *auditv1.ListEntriesRequest) (*auditv1.ListEntriesResponse, error) {
+func (s *Server) ListEntries(
+	ctx context.Context,
+	req *auditv1.ListEntriesRequest,
+) (*auditv1.ListEntriesResponse, error) {
 	page, err := s.svc.List(ctx, filterFromProto(req))
 	if err != nil {
 		return nil, mapError(err)

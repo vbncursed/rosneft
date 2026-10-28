@@ -7,7 +7,10 @@ import (
 	"github.com/vbncursed/rosneft/backend/pkg/contenttype"
 )
 
-func (s *Server) InitiateUpload(ctx context.Context, req InitiateUploadRequestObject) (InitiateUploadResponseObject, error) {
+func (s *Server) InitiateUpload(
+	ctx context.Context,
+	req InitiateUploadRequestObject,
+) (InitiateUploadResponseObject, error) {
 	if req.Body == nil {
 		return InitiateUpload400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
@@ -35,7 +38,10 @@ func (s *Server) InitiateUpload(ctx context.Context, req InitiateUploadRequestOb
 	return resp, nil
 }
 
-func (s *Server) AppendUploadChunk(ctx context.Context, req AppendUploadChunkRequestObject) (AppendUploadChunkResponseObject, error) {
+func (s *Server) AppendUploadChunk(
+	ctx context.Context,
+	req AppendUploadChunkRequestObject,
+) (AppendUploadChunkResponseObject, error) {
 	if req.Body == nil {
 		return AppendUploadChunk400JSONResponse{Code: apperr.SlugInvalidInput, Message: "empty body"}, nil
 	}
@@ -51,7 +57,10 @@ func (s *Server) AppendUploadChunk(ctx context.Context, req AppendUploadChunkReq
 	return AppendUploadChunk204Response{Headers: AppendUploadChunk204ResponseHeaders{UploadOffset: &newOffset}}, nil
 }
 
-func (s *Server) GetUploadStatus(ctx context.Context, req GetUploadStatusRequestObject) (GetUploadStatusResponseObject, error) {
+func (s *Server) GetUploadStatus(
+	ctx context.Context,
+	req GetUploadStatusRequestObject,
+) (GetUploadStatusResponseObject, error) {
 	out, err := s.svc.GetUploadStatus(ctx, req.Id)
 	switch {
 	case isNotFound(err):
@@ -59,10 +68,15 @@ func (s *Server) GetUploadStatus(ctx context.Context, req GetUploadStatusRequest
 	case err != nil:
 		return GetUploadStatus500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
-	return GetUploadStatus200Response{Headers: GetUploadStatus200ResponseHeaders{UploadOffset: new(out.Offset), UploadLength: new(out.Size)}}, nil
+	return GetUploadStatus200Response{
+		Headers: GetUploadStatus200ResponseHeaders{UploadOffset: new(out.Offset), UploadLength: new(out.Size)},
+	}, nil
 }
 
-func (s *Server) FinalizeUpload(ctx context.Context, req FinalizeUploadRequestObject) (FinalizeUploadResponseObject, error) {
+func (s *Server) FinalizeUpload(
+	ctx context.Context,
+	req FinalizeUploadRequestObject,
+) (FinalizeUploadResponseObject, error) {
 	out, err := s.svc.FinalizeUpload(ctx, req.Id)
 	switch {
 	case isInvalid(err):

@@ -9,7 +9,10 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/passkey-service/internal/domain"
 )
 
-func (s *Server) ListCredentials(ctx context.Context, req *passkeyv1.ListCredentialsRequest) (*passkeyv1.ListCredentialsResponse, error) {
+func (s *Server) ListCredentials(
+	ctx context.Context,
+	req *passkeyv1.ListCredentialsRequest,
+) (*passkeyv1.ListCredentialsResponse, error) {
 	uid, _, err := s.identity.Resolve(ctx, req.GetToken())
 	if err != nil {
 		return nil, mapErr(err)
@@ -25,7 +28,10 @@ func (s *Server) ListCredentials(ctx context.Context, req *passkeyv1.ListCredent
 	return &passkeyv1.ListCredentialsResponse{Credentials: out}, nil
 }
 
-func (s *Server) DeleteCredential(ctx context.Context, req *passkeyv1.DeleteCredentialRequest) (*passkeyv1.DeleteCredentialResponse, error) {
+func (s *Server) DeleteCredential(
+	ctx context.Context,
+	req *passkeyv1.DeleteCredentialRequest,
+) (*passkeyv1.DeleteCredentialResponse, error) {
 	uid, _, err := s.identity.Resolve(ctx, req.GetToken())
 	if err != nil {
 		return nil, mapErr(err)

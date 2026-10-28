@@ -99,7 +99,10 @@ func (s *ProcessJobSuite) TestUnlocksTargetOnConversionFailure() {
 // store that accepts the artifact. Models carry no placements, so the
 // rescale pass is a no-op and needs no catalog stub.
 func (s *ProcessJobSuite) stubConversion() {
-	s.queue.GetJobMock.Return(domain.Job{ID: "job-1", Kind: domain.KindModel, Slug: "m1", Status: domain.JobStatusPending}, nil)
+	s.queue.GetJobMock.Return(
+		domain.Job{ID: "job-1", Kind: domain.KindModel, Slug: "m1", Status: domain.JobStatusPending},
+		nil,
+	)
 	s.blobs.GetMock.Set(func(context.Context, string) (io.ReadCloser, blobstore.Blob, error) {
 		return io.NopCloser(bytes.NewReader(objZip(s.T()))), blobstore.Blob{}, nil
 	})
@@ -186,7 +189,10 @@ func (s *ProcessJobSuite) TestDoesNotReQueueATargetDeletedMidConversion() {
 // first progress report, so its Stage was always "" and the frontend said
 // "stopped before the first report" whatever step actually failed.
 func (s *ProcessJobSuite) TestFailureKeepsTheStageItReached() {
-	s.queue.GetJobMock.Return(domain.Job{ID: "job-1", Kind: domain.KindModel, Slug: "m1", Status: domain.JobStatusPending}, nil)
+	s.queue.GetJobMock.Return(
+		domain.Job{ID: "job-1", Kind: domain.KindModel, Slug: "m1", Status: domain.JobStatusPending},
+		nil,
+	)
 	s.stubSourceHashes("h1")
 	s.blobs.GetMock.Set(func(context.Context, string) (io.ReadCloser, blobstore.Blob, error) {
 		return io.NopCloser(bytes.NewReader(objZip(s.T()))), blobstore.Blob{}, nil
@@ -205,35 +211,52 @@ func (s *ProcessJobSuite) TestFailureKeepsTheStageItReached() {
 // The claim restarts as the job starts, before anything is written: a hold
 // that came after the Running write would leave a Running job with no claim.
 func (s *ProcessJobSuite) TestHoldsTheTargetBeforeMarkingItRunning() {
-	s.queue.GetJobMock.Return(domain.Job{ID: "job-1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusPending}, nil)
+	s.queue.GetJobMock.Return(
+		domain.Job{ID: "job-1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusPending},
+		nil,
+	)
 	s.catalog.GetTargetMock.Return(domain.ConversionTarget{}, errors.New("catalog down"))
 	s.queue.UnlockTargetMock.Return(nil)
 
 	_ = s.svc.ProcessJob(s.ctx, "job-1")
 
 	assert.Assert(s.T(), len(s.calls) >= 2)
-	assert.DeepEqual(s.T(), s.calls[:2], []string{"hold:" + domain.KindTerritory.String() + "/t1", "save:" + domain.JobStatusRunning.String()})
+	assert.DeepEqual(
+		s.T(),
+		s.calls[:2],
+		[]string{"hold:" + domain.KindTerritory.String() + "/t1", "save:" + domain.JobStatusRunning.String()},
+	)
 }
 
 // A failed hold must not strand the job Pending, blocking its target for
 // MaxQueueWait: it is released and failed like a conversion error.
 func (s *ProcessJobSuite) TestFailsAndReleasesTheJobOnAHoldError() {
 	s.holdErr = errors.New("redis down")
-	s.queue.GetJobMock.Return(domain.Job{ID: "job-1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusPending}, nil)
+	s.queue.GetJobMock.Return(
+		domain.Job{ID: "job-1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusPending},
+		nil,
+	)
 	s.queue.UnlockTargetMock.Expect(s.ctx, domain.KindTerritory, "t1").Return(nil)
 
 	err := s.svc.ProcessJob(s.ctx, "job-1")
 
 	assert.Assert(s.T(), errors.Is(err, s.holdErr))
 	assert.ErrorContains(s.T(), err, "service.ProcessJob: hold: ")
-	assert.DeepEqual(s.T(), s.calls, []string{"hold:" + domain.KindTerritory.String() + "/t1", "save:" + domain.JobStatusFailed.String()})
+	assert.DeepEqual(
+		s.T(),
+		s.calls,
+		[]string{"hold:" + domain.KindTerritory.String() + "/t1", "save:" + domain.JobStatusFailed.String()},
+	)
 	assert.Equal(s.T(), s.saved[0].ErrorMessage, err.Error())
 }
 
 // failTarget runs a job whose GetTarget fails with err, returning the saved
 // Failed job.
 func (s *ProcessJobSuite) failTarget(err error) domain.Job {
-	s.queue.GetJobMock.Return(domain.Job{ID: "job-1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusPending}, nil)
+	s.queue.GetJobMock.Return(
+		domain.Job{ID: "job-1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusPending},
+		nil,
+	)
 	s.catalog.GetTargetMock.Return(domain.ConversionTarget{}, err)
 	s.queue.UnlockTargetMock.Return(nil)
 
@@ -261,7 +284,16 @@ func (s *ProcessJobSuite) TestCatalogInvalidInputIsNotASourceFailure() {
 
 // A retry that succeeds must not carry the failure kind of the attempt before.
 func (s *ProcessJobSuite) TestRunningClearsAStaleFailureKind() {
-	s.queue.GetJobMock.Return(domain.Job{ID: "job-1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusFailed, FailedOnSource: true}, nil)
+	s.queue.GetJobMock.Return(
+		domain.Job{
+			ID:             "job-1",
+			Kind:           domain.KindTerritory,
+			Slug:           "t1",
+			Status:         domain.JobStatusFailed,
+			FailedOnSource: true,
+		},
+		nil,
+	)
 	s.catalog.GetTargetMock.Return(domain.ConversionTarget{}, errors.New("catalog down"))
 	s.queue.UnlockTargetMock.Return(nil)
 
@@ -351,7 +383,10 @@ func (s *ProcessJobSuite) TestFailedUserConversionIsNotABackfill() {
 // live job until TargetLockTTL.
 func (s *ProcessJobSuite) TestFailureIsSavedAfterTheContextIsCancelled() {
 	ctx, cancel := context.WithCancel(s.ctx)
-	s.queue.GetJobMock.Return(domain.Job{ID: "job-1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusPending}, nil)
+	s.queue.GetJobMock.Return(
+		domain.Job{ID: "job-1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusPending},
+		nil,
+	)
 	s.queue.UnlockTargetMock.Return(nil)
 	s.catalog.GetTargetMock.Set(func(context.Context, domain.Kind, string) (domain.ConversionTarget, error) {
 		cancel() // the signal lands mid-conversion

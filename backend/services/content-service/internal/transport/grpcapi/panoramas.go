@@ -7,7 +7,10 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/content-service/internal/domain"
 )
 
-func (s *Server) ListPanoramas(ctx context.Context, req *contentv1.ListPanoramasRequest) (*contentv1.ListPanoramasResponse, error) {
+func (s *Server) ListPanoramas(
+	ctx context.Context,
+	req *contentv1.ListPanoramasRequest,
+) (*contentv1.ListPanoramasResponse, error) {
 	items, err := s.svc.ListPanoramas(ctx, req.GetTerritorySlug())
 	if err != nil {
 		return nil, mapError(err)
@@ -19,7 +22,10 @@ func (s *Server) ListPanoramas(ctx context.Context, req *contentv1.ListPanoramas
 	return &contentv1.ListPanoramasResponse{Panoramas: out}, nil
 }
 
-func (s *Server) CreatePanorama(ctx context.Context, req *contentv1.CreatePanoramaRequest) (*contentv1.CreatePanoramaResponse, error) {
+func (s *Server) CreatePanorama(
+	ctx context.Context,
+	req *contentv1.CreatePanoramaRequest,
+) (*contentv1.CreatePanoramaResponse, error) {
 	out, err := s.svc.CreatePanorama(ctx, domain.Panorama{
 		TerritorySlug:  req.GetTerritorySlug(),
 		Slug:           req.GetSlug(),
@@ -35,7 +41,10 @@ func (s *Server) CreatePanorama(ctx context.Context, req *contentv1.CreatePanora
 	return &contentv1.CreatePanoramaResponse{Panorama: panoramaToProto(out)}, nil
 }
 
-func (s *Server) UpdatePanorama(ctx context.Context, req *contentv1.UpdatePanoramaRequest) (*contentv1.UpdatePanoramaResponse, error) {
+func (s *Server) UpdatePanorama(
+	ctx context.Context,
+	req *contentv1.UpdatePanoramaRequest,
+) (*contentv1.UpdatePanoramaResponse, error) {
 	out, err := s.svc.UpdatePanorama(ctx, domain.Panorama{
 		ID:            req.GetId(),
 		TerritorySlug: req.GetTerritorySlug(),
@@ -50,7 +59,10 @@ func (s *Server) UpdatePanorama(ctx context.Context, req *contentv1.UpdatePanora
 	return &contentv1.UpdatePanoramaResponse{Panorama: panoramaToProto(out)}, nil
 }
 
-func (s *Server) DeletePanorama(ctx context.Context, req *contentv1.DeletePanoramaRequest) (*contentv1.DeletePanoramaResponse, error) {
+func (s *Server) DeletePanorama(
+	ctx context.Context,
+	req *contentv1.DeletePanoramaRequest,
+) (*contentv1.DeletePanoramaResponse, error) {
 	if err := s.svc.DeletePanorama(ctx, req.GetTerritorySlug(), req.GetId()); err != nil {
 		return nil, mapError(err)
 	}

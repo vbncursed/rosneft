@@ -29,7 +29,9 @@ func (s *InternalErrorSuite) TestA500HidesItsDetailAndLogsItOnce() {
 	r.Use(slogchi.New(slog.New(slog.NewJSONHandler(&logs, nil))))
 	var slug string
 	HandlerFromMux(NewStrictHandler(New(batchStub{
-		slug: &slug, items: new([]domain.Placement), err: errors.New("catalog: dial tcp 10.0.0.7:9001: connection refused"),
+		slug:  &slug,
+		items: new([]domain.Placement),
+		err:   errors.New("catalog: dial tcp 10.0.0.7:9001: connection refused"),
 	}), nil), r)
 
 	rec := httptest.NewRecorder()

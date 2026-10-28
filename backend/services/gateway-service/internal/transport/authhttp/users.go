@@ -49,7 +49,14 @@ func (h *Handlers) updateUser(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	u, err := h.client.UpdateUser(r.Context(), sessionToken(r), chi.URLParam(r, "id"), req.RoleSlugs, req.Email, req.Username)
+	u, err := h.client.UpdateUser(
+		r.Context(),
+		sessionToken(r),
+		chi.URLParam(r, "id"),
+		req.RoleSlugs,
+		req.Email,
+		req.Username,
+	)
 	if err != nil {
 		fail(w, r, err)
 		return

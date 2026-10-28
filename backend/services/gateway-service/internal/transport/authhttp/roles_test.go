@@ -52,7 +52,12 @@ func (s *RolesSuite) patch(body string) (*httptest.ResponseRecorder, *authv1.Upd
 	r := chi.NewRouter()
 	r.Patch("/api/auth/roles/{slug}", (&Handlers{client: client}).updateRole)
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequestWithContext(s.T().Context(), http.MethodPatch, "/api/auth/roles/viewer", bytes.NewBufferString(body))
+	req := httptest.NewRequestWithContext(
+		s.T().Context(),
+		http.MethodPatch,
+		"/api/auth/roles/viewer",
+		bytes.NewBufferString(body),
+	)
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(rec, req)
 	// A handler that never reached the service would block a bare receive

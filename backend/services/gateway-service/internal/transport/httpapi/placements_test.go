@@ -30,7 +30,11 @@ type batchStub struct {
 	err   error
 }
 
-func (b batchStub) CreatePlacements(_ context.Context, slug, key string, items []domain.Placement) ([]domain.Placement, error) {
+func (b batchStub) CreatePlacements(
+	_ context.Context,
+	slug, key string,
+	items []domain.Placement,
+) ([]domain.Placement, error) {
 	*b.slug, *b.items = slug, items
 	if b.key != nil {
 		*b.key = key
@@ -56,7 +60,11 @@ func (s *PlacementBatchSuite) TestTheBatchLandsOnTheRouteTerritoryInOrder() {
 	}}
 
 	resp, err := New(batchStub{slug: &slug, key: &key, items: &items}).CreatePlacements(s.T().Context(),
-		CreatePlacementsRequestObject{Slug: "yard", Params: CreatePlacementsParams{IdempotencyKey: new("Retry-7f3a")}, Body: &body})
+		CreatePlacementsRequestObject{
+			Slug:   "yard",
+			Params: CreatePlacementsParams{IdempotencyKey: new("Retry-7f3a")},
+			Body:   &body,
+		})
 	assert.NilError(s.T(), err)
 	created, ok := resp.(CreatePlacements201JSONResponse)
 	assert.Assert(s.T(), ok, "got %T", resp)
@@ -95,7 +103,10 @@ func (s *PlacementBatchSuite) TestRefusalsKeepTheirStatus() {
 			var slug string
 			var items []domain.Placement
 			resp, err := New(batchStub{slug: &slug, items: &items, err: tc.err}).CreatePlacements(s.T().Context(),
-				CreatePlacementsRequestObject{Slug: "yard", Body: &PlacementBatchCreate{Items: []PlacementCreate{{ModelSlug: "pump"}}}})
+				CreatePlacementsRequestObject{
+					Slug: "yard",
+					Body: &PlacementBatchCreate{Items: []PlacementCreate{{ModelSlug: "pump"}}},
+				})
 			assert.NilError(s.T(), err)
 			assert.Equal(s.T(), fmt.Sprintf("%T", resp), "httpapi."+tc.want)
 			if nf, ok := resp.(CreatePlacements404JSONResponse); ok && tc.msg != "" {
@@ -138,7 +149,9 @@ func (s *PlacementBatchSuite) TestASingleCreateKeepsItsStatus() {
 func (s *PlacementBatchSuite) TestAReusedKeyIsAConflict() {
 	var slug string
 	var items []domain.Placement
-	resp, err := New(batchStub{slug: &slug, items: &items, err: domain.ErrIdempotencyConflict}).CreatePlacements(s.T().Context(),
+	resp, err := New(
+		batchStub{slug: &slug, items: &items, err: domain.ErrIdempotencyConflict},
+	).CreatePlacements(s.T().Context(),
 		CreatePlacementsRequestObject{
 			Slug: "yard", Params: CreatePlacementsParams{IdempotencyKey: new("k")},
 			Body: &PlacementBatchCreate{Items: []PlacementCreate{{ModelSlug: "pump"}}},

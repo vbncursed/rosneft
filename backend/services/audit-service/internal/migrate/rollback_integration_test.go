@@ -109,8 +109,10 @@ func (s *RollbackSuite) TestRollsBackWithTriggersAttached() {
 	s.downAll(ctx)
 
 	var fns int
-	err = s.pool.QueryRow(ctx,
-		`SELECT count(*) FROM pg_proc WHERE proname IN ('audit_capture','audit_immutable','ensure_audit_triggers')`).Scan(&fns)
+	err = s.pool.QueryRow(
+		ctx,
+		`SELECT count(*) FROM pg_proc WHERE proname IN ('audit_capture','audit_immutable','ensure_audit_triggers')`,
+	).Scan(&fns)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), fns, 0)
 

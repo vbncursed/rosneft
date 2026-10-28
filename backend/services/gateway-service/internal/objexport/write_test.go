@@ -24,7 +24,12 @@ var corners = [][3]float32{{0, 0, 0}, {1, 0, 0}, {0, 1, 0}}
 
 // single exports doc as the one placement "x" and returns OBJ and MTL.
 func (s *WriteSuite) single(doc *gltf.Document, bin []byte) (string, string) {
-	obj, mtl := objOf(s.T(), []glbexport.Placement{place("x", "X")}, map[string][]byte{"x": glbOf(s.T(), doc, bin)}, testOpts())
+	obj, mtl := objOf(
+		s.T(),
+		[]glbexport.Placement{place("x", "X")},
+		map[string][]byte{"x": glbOf(s.T(), doc, bin)},
+		testOpts(),
+	)
 	return obj, mtl
 }
 
@@ -80,7 +85,12 @@ func (s *WriteSuite) TestNoMaterialUsesDefault() {
 }
 
 // run builds and writes ps over blobs with src as the Opener.
-func (s *WriteSuite) run(ctx context.Context, ps []glbexport.Placement, blobs map[string][]byte, src *source) ([]byte, error) {
+func (s *WriteSuite) run(
+	ctx context.Context,
+	ps []glbexport.Placement,
+	blobs map[string][]byte,
+	src *source,
+) ([]byte, error) {
 	heads := map[string]glbexport.Head{}
 	for h, b := range blobs {
 		heads[h] = headOf(s.T(), b)

@@ -112,7 +112,11 @@ func (s *RoutePermsSuite) TestVisibilityNeedsPlacementWrite() {
 		perms    []string
 		expected int
 	}{
-		{name: "guest", perms: []string{"territory:read", "placement:read", "panorama:read"}, expected: http.StatusForbidden},
+		{
+			name:     "guest",
+			perms:    []string{"territory:read", "placement:read", "panorama:read"},
+			expected: http.StatusForbidden,
+		},
 		{name: "viewer", perms: []string{"territory:read", "placement:read"}, expected: http.StatusForbidden},
 		{name: "editor", perms: []string{"territory:read", "placement:write"}, expected: http.StatusNoContent},
 	}
@@ -147,7 +151,13 @@ func (s *RoutePermsSuite) TestMeasurementMutationsNeedTheirGrants() {
 	gated.Delete(item, ok)
 
 	reader := []string{"territory:read", "placement:read", "measurement:read"}
-	editor := []string{"territory:read", "measurement:read", "measurement:create", "measurement:write", "measurement:delete"}
+	editor := []string{
+		"territory:read",
+		"measurement:read",
+		"measurement:create",
+		"measurement:write",
+		"measurement:delete",
+	}
 	requests := []struct {
 		method string
 		path   string
@@ -174,7 +184,11 @@ func (s *RoutePermsSuite) TestMeasurementMutationsNeedTheirGrants() {
 			})
 		}
 		s.Run(tc.name+" reads", func() {
-			assert.Equal(s.T(), s.serve(r, tc.perms, http.MethodGet, "/api/territories/yard/measurements"), http.StatusNoContent)
+			assert.Equal(
+				s.T(),
+				s.serve(r, tc.perms, http.MethodGet, "/api/territories/yard/measurements"),
+				http.StatusNoContent,
+			)
 		})
 	}
 
@@ -210,8 +224,16 @@ func (s *RoutePermsSuite) TestHidingAndGroupingNeedPlacementWrite() {
 		{http.MethodPut, "/api/territories/{slug}/placements/group", "/api/territories/yard/placements/group"},
 		{http.MethodPost, "/api/territories/{slug}/placement-groups", "/api/territories/yard/placement-groups"},
 		{http.MethodPatch, "/api/territories/{slug}/placement-groups/{id}", "/api/territories/yard/placement-groups/7"},
-		{http.MethodDelete, "/api/territories/{slug}/placement-groups/{id}", "/api/territories/yard/placement-groups/7"},
-		{http.MethodPut, "/api/territories/{slug}/placement-groups/{id}/hidden", "/api/territories/yard/placement-groups/7/hidden"},
+		{
+			http.MethodDelete,
+			"/api/territories/{slug}/placement-groups/{id}",
+			"/api/territories/yard/placement-groups/7",
+		},
+		{
+			http.MethodPut,
+			"/api/territories/{slug}/placement-groups/{id}/hidden",
+			"/api/territories/yard/placement-groups/7/hidden",
+		},
 	}
 	ok := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Pattern", chi.RouteContext(r.Context()).RoutePattern())

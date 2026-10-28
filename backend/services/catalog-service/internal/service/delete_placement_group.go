@@ -11,7 +11,10 @@ import (
 // to no group. A group of another territory is ErrPlacementGroupNotFound.
 func (c *Catalog) DeletePlacementGroup(ctx context.Context, territorySlug string, id int64) error {
 	if territorySlug == "" || id <= 0 {
-		return fmt.Errorf("service.DeletePlacementGroup: %w: territory slug and id are required", domain.ErrInvalidInput)
+		return fmt.Errorf(
+			"service.DeletePlacementGroup: %w: territory slug and id are required",
+			domain.ErrInvalidInput,
+		)
 	}
 	return c.repo.DeletePlacementGroup(ctx, territorySlug, id)
 }

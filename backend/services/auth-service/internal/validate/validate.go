@@ -31,7 +31,10 @@ func TourID(s string) error {
 	for i, r := range s {
 		alnum := (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9')
 		if !alnum && (r != '-' || i == 0) {
-			return fmt.Errorf("validate: %w: tour id must be lower-case letters, digits, and dashes", domain.ErrInvalidInput)
+			return fmt.Errorf(
+				"validate: %w: tour id must be lower-case letters, digits, and dashes",
+				domain.ErrInvalidInput,
+			)
 		}
 	}
 	return nil
@@ -45,7 +48,12 @@ func TourID(s string) error {
 // name arrives already stripped.
 func Username(s string) error {
 	if n := utf8.RuneCountInString(s); n < usernameMin || n > usernameMax {
-		return fmt.Errorf("validate: %w: username must be %d–%d characters", domain.ErrInvalidInput, usernameMin, usernameMax)
+		return fmt.Errorf(
+			"validate: %w: username must be %d–%d characters",
+			domain.ErrInvalidInput,
+			usernameMin,
+			usernameMax,
+		)
 	}
 	if strings.ContainsFunc(s, unicode.IsSpace) {
 		return fmt.Errorf("validate: %w: username must be one word, without spaces", domain.ErrInvalidInput)
@@ -68,7 +76,12 @@ func Email(s string) error {
 // digit, and special (anything else) character.
 func Password(s string) error {
 	if n := utf8.RuneCountInString(s); n < passwordMin || n > passwordMax {
-		return fmt.Errorf("validate: %w: password must be %d–%d characters", domain.ErrInvalidInput, passwordMin, passwordMax)
+		return fmt.Errorf(
+			"validate: %w: password must be %d–%d characters",
+			domain.ErrInvalidInput,
+			passwordMin,
+			passwordMax,
+		)
 	}
 	var upper, lower, digit, special bool
 	for _, r := range s {
@@ -84,7 +97,10 @@ func Password(s string) error {
 		}
 	}
 	if !upper || !lower || !digit || !special {
-		return fmt.Errorf("validate: %w: password needs an upper-case, lower-case, digit, and special character", domain.ErrInvalidInput)
+		return fmt.Errorf(
+			"validate: %w: password needs an upper-case, lower-case, digit, and special character",
+			domain.ErrInvalidInput,
+		)
 	}
 	return nil
 }
