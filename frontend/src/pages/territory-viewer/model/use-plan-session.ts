@@ -51,12 +51,13 @@ export function usePlanSession({ documents, canWrite }: PlanSessionParams) {
     open: useCallback(
       (id: number) => {
         const doc = documents.find((d) => d.id === id);
-        if (!canWrite || !doc) return;
+        // Already open: the mounted editor will not publish again, so a reset would blank its candidates for good.
+        if (!canWrite || !doc || id === editingId) return;
         setAligned(doc.calibration !== null);
         setPlan(null);
         setEditingId(id);
       },
-      [documents, canWrite],
+      [documents, canWrite, editingId],
     ),
     close: useCallback(() => {
       setEditingId(null);

@@ -50,6 +50,15 @@ describe("usePlanSession, the editor", () => {
     expect(writer.result.current.s.editing).toBeNull();
   });
 
+  it("keeps what the editor published when the open document is opened again", () => {
+    const { result } = session({ documents: [doc(1)] });
+    act(() => result.current.s.open(1));
+    act(() => result.current.s.onPlan({ ...STATE, awaitingScenePick: true }));
+    act(() => result.current.s.open(1));
+    expect(result.current.s.plan).not.toBeNull();
+    expect(result.current.s.pickScene).toBe(true);
+  });
+
   it("asks for a scene point only while the editor is waiting for one", () => {
     const { result } = session({ documents: [doc(1)] });
     expect(result.current.s.pickScene).toBe(false);
