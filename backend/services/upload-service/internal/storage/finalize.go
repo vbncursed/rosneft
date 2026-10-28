@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/vbncursed/rosneft/backend/services/upload-service/internal/domain"
 )
 
 // Finalize streams the session's data through SHA-256 and copies it into
@@ -14,11 +16,17 @@ import (
 // session directory is removed afterwards regardless of outcome — the
 // BlobStore now owns the bytes (or, on error, nothing was published).
 func (f *FS) Finalize(ctx context.Context, id string, putBlob func(ctx context.Context, hash string, r io.Reader) error) (string, int64, error) {
-	dir, dataPath, _, err := f.paths(id)
+	dir, dataPath, metaPath, err := f.paths(id)
 	if err != nil {
 		return "", 0, err
 	}
+	defer f.lock(id)()
 	defer func() { _ = os.RemoveAll(dir) }()
+
+	meta, err := readMeta(metaPath)
+	if err != nil {
+		return "", 0, err
+	}
 
 	src, err := os.Open(dataPath) //nolint:gosec // G304: dataPath comes from paths(), whose session id passed validateID (hex and dash only)
 	if err != nil {
@@ -29,6 +37,12 @@ func (f *FS) Finalize(ctx context.Context, id string, putBlob func(ctx context.C
 	stat, err := src.Stat()
 	if err != nil {
 		return "", 0, fmt.Errorf("storage.Finalize: stat: %w", err)
+	}
+
+	// The recorded offset is what the client was told; the file is what would be
+	// published. They must agree with the declared size or the blob is wrong.
+	if meta.Offset != meta.Size || stat.Size() != meta.Size {
+		return "", 0, fmt.Errorf("%w: declared %d, recorded %d, on disk %d", domain.ErrInvalidInput, meta.Size, meta.Offset, stat.Size())
 	}
 
 	hash, err := hashFile(dataPath)
