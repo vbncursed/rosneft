@@ -131,7 +131,7 @@ longer has means the journal's tail was cut together with its newest checkpoints
 (`DISABLE TRIGGER`, then `DELETE`), and `verify` names the first missing id. The
 seed checkpoint is checked too — against SHA-256 of the empty string and against
 the witness. Restoring the database from a backup older than the witness trips
-this on purpose: that is lost evidence.
+this on purpose: that is lost evidence. Verify a restored dump against the witness archived with it (`dump.sh` takes that first, so it is never newer), not the live volume. A witness line without a positive `id` and a `digest` is a parse error, not a checkpoint 0.
 
 The witness is keyed by the checkpoint's own id, never by `to_id`: a quiet
 interval seals an empty range, so `from_id == to_id` repeats across consecutive
