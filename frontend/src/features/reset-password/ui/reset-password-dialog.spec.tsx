@@ -17,7 +17,7 @@ const props = (over: Partial<ResetPasswordDialogProps> = {}): ResetPasswordDialo
   ...over,
 });
 
-const field = () => screen.getByLabelText(/^Password/) as HTMLInputElement;
+const field = () => screen.getByLabelText<HTMLInputElement>(/^Password/);
 
 afterEach(() => clearNotices());
 

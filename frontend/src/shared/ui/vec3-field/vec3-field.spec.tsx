@@ -17,7 +17,7 @@ function Harness({ initial = START }: { initial?: Vec3 }) {
   );
 }
 
-const axis = (a: string) => screen.getByLabelText(`Position ${a}`) as HTMLInputElement;
+const axis = (a: string) => screen.getByLabelText<HTMLInputElement>(`Position ${a}`);
 
 describe("Vec3Field", () => {
   it("shows one labelled box per axis", () => {
@@ -139,7 +139,7 @@ describe("Vec3Field · row layout", () => {
       return <Vec3Field layout="row" label="Scl" value={value} onChange={setValue} format={(n) => n.toFixed(3)} />;
     }
     render(<Row />);
-    const x = screen.getByLabelText("Scl x") as HTMLInputElement;
+    const x = screen.getByLabelText<HTMLInputElement>("Scl x");
     await userEvent.click(x);
     expect([x.selectionStart, x.selectionEnd]).toEqual([0, "1.000".length]);
     await userEvent.keyboard("5");

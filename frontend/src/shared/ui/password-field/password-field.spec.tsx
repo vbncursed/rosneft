@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { PasswordField } from "./password-field";
 import { hoverTip } from "@/shared/ui/tooltip/testing";
 
-const input = () => screen.getByLabelText(/Password/) as HTMLInputElement;
+const input = () => screen.getByLabelText<HTMLInputElement>(/Password/);
 
 describe("PasswordField", () => {
   it("masks the value until the toggle is pressed", async () => {

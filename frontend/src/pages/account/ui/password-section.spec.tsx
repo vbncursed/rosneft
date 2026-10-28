@@ -4,8 +4,8 @@ import { describe, expect, it, vi } from "vitest";
 import { validatePassword } from "@/entities/user";
 import { PasswordSection } from "./password-section";
 
-const currentField = () => screen.getByLabelText("Current password") as HTMLInputElement;
-const newField = () => screen.getByLabelText("New password") as HTMLInputElement;
+const currentField = () => screen.getByLabelText<HTMLInputElement>("Current password");
+const newField = () => screen.getByLabelText<HTMLInputElement>("New password");
 const submit = () => screen.getByRole("button", { name: "Change password" });
 
 describe("PasswordSection", () => {
