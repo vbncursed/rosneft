@@ -348,7 +348,8 @@ func bytesAsString(b []byte) string {
 	if len(b) == 0 {
 		return ""
 	}
-	return unsafe.String(unsafe.SliceData(b), len(b)) //nolint:gosec // G103: the string aliases b only for the strconv call that consumes it and is never retained (see the doc comment)
+	//nolint:gosec // G103: the string aliases b only for the strconv call that consumes it and is never retained (see the doc comment)
+	return unsafe.String(unsafe.SliceData(b), len(b))
 }
 
 func trimLeadingSpace(b []byte) []byte {

@@ -17,7 +17,10 @@ func (c *Client) PasskeyLoginBegin(ctx context.Context) (optionsJSON, flowID str
 
 // PasskeyLoginFinish exchanges a signed assertion for a session token.
 func (c *Client) PasskeyLoginFinish(ctx context.Context, flowID, assertionJSON string) (string, error) {
-	resp, err := c.cc.PasskeyLoginFinish(ctx, &authv1.PasskeyLoginFinishRequest{FlowId: flowID, AssertionJson: assertionJSON})
+	resp, err := c.cc.PasskeyLoginFinish(
+		ctx,
+		&authv1.PasskeyLoginFinishRequest{FlowId: flowID, AssertionJson: assertionJSON},
+	)
 	if err != nil {
 		return "", err
 	}

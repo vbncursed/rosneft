@@ -27,7 +27,11 @@ import (
 
 // InitService wires storage → session → services → gRPC handler. Returns the
 // user store (for the bootstrap-admin step) and the twofa client (to Close).
-func InitService(pool *pgxpool.Pool, rdb *redis.Client, cfg config.Config) (*grpcapi.Server, *userstore.Store, *twofaclient.Client, *passkeyclient.Client, error) {
+func InitService(
+	pool *pgxpool.Pool,
+	rdb *redis.Client,
+	cfg config.Config,
+) (*grpcapi.Server, *userstore.Store, *twofaclient.Client, *passkeyclient.Client, error) {
 	twofaC, err := twofaclient.Dial(cfg.TwoFAGRPCAddr)
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("bootstrap.InitService: dial twofa: %w", err)
@@ -39,7 +43,14 @@ func InitService(pool *pgxpool.Pool, rdb *redis.Client, cfg config.Config) (*grp
 	us := userstore.New(pool)
 	rs := rolestore.New(pool)
 	ps := permstore.New(pool)
-	sess := session.New(rdb, cfg.SessionIdleTTL, cfg.SessionAbsoluteTTL, cfg.Pending2FATTL, cfg.LoginMaxFails, cfg.LoginLockTTL)
+	sess := session.New(
+		rdb,
+		cfg.SessionIdleTTL,
+		cfg.SessionAbsoluteTTL,
+		cfg.Pending2FATTL,
+		cfg.LoginMaxFails,
+		cfg.LoginLockTTL,
+	)
 
 	authS := authsvc.New(us, sess, twofaC, passkeyC, cfg.SessionAbsoluteTTL)
 	userS := usersvc.New(us, sess)

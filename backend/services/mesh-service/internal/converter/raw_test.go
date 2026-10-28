@@ -122,7 +122,11 @@ func TestConvertRawUpAxis(t *testing.T) {
 			got, err := (&Converter{}).convertRaw(ctx, filepath.Dir(path), path)
 
 			assert.NilError(t, err)
-			ext := [3]float64{got.bboxMax.X - got.bboxMin.X, got.bboxMax.Y - got.bboxMin.Y, got.bboxMax.Z - got.bboxMin.Z}
+			ext := [3]float64{
+				got.bboxMax.X - got.bboxMin.X,
+				got.bboxMax.Y - got.bboxMin.Y,
+				got.bboxMax.Z - got.bboxMin.Z,
+			}
 			assert.Equal(t, ext, tt.want)
 		})
 	}

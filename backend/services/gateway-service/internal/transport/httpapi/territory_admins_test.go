@@ -31,7 +31,11 @@ func (a adminsStub) ListTerritoryAdmins(_ context.Context, scope string, all boo
 
 func (s *TerritoryAdminsSuite) TestRootReadsEveryTerritory() {
 	scope, all := "unset", false
-	stub := adminsStub{scope: &scope, all: &all, bySlug: map[string][]string{"tenant-a-scene": {"u1"}, "tenant-b-scene": {}}}
+	stub := adminsStub{
+		scope:  &scope,
+		all:    &all,
+		bySlug: map[string][]string{"tenant-a-scene": {"u1"}, "tenant-b-scene": {}},
+	}
 	ctx := authhttp.NewTestContext(s.T().Context(), true, "")
 
 	resp, err := New(stub).ListTerritoryAdmins(ctx, ListTerritoryAdminsRequestObject{})

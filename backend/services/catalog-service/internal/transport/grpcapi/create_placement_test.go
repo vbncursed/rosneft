@@ -34,7 +34,8 @@ func (s *CreatePlacementSuite) TestARefusalStartsAtItsSentinel() {
 	s.svc.CreatePlacementMock.Return(domain.Placement{}, fmt.Errorf("service.CreatePlacement: %w",
 		fmt.Errorf("%w: panorama 5 is not on territory %q", domain.ErrInvalidInput, "yard")))
 
-	_, err := grpcapi.New(s.svc).CreatePlacement(s.T().Context(), &catalogv1.CreatePlacementRequest{TerritorySlug: "yard"})
+	_, err := grpcapi.New(s.svc).
+		CreatePlacement(s.T().Context(), &catalogv1.CreatePlacementRequest{TerritorySlug: "yard"})
 	assert.Equal(s.T(), status.Code(err), codes.InvalidArgument)
 	assert.Equal(s.T(), status.Convert(err).Message(), `invalid input: panorama 5 is not on territory "yard"`)
 }
@@ -42,9 +43,13 @@ func (s *CreatePlacementSuite) TestARefusalStartsAtItsSentinel() {
 // An internal failure keeps its detail: only the gateway, which logs it and
 // answers a fixed body, ever reads it.
 func (s *CreatePlacementSuite) TestAnInternalFailureKeepsItsDetail() {
-	s.svc.CreatePlacementMock.Return(domain.Placement{}, fmt.Errorf("storage.CreatePlacement: %w", errors.New("conn reset")))
+	s.svc.CreatePlacementMock.Return(
+		domain.Placement{},
+		fmt.Errorf("storage.CreatePlacement: %w", errors.New("conn reset")),
+	)
 
-	_, err := grpcapi.New(s.svc).CreatePlacement(s.T().Context(), &catalogv1.CreatePlacementRequest{TerritorySlug: "yard"})
+	_, err := grpcapi.New(s.svc).
+		CreatePlacement(s.T().Context(), &catalogv1.CreatePlacementRequest{TerritorySlug: "yard"})
 	assert.Equal(s.T(), status.Code(err), codes.Internal)
 	assert.Equal(s.T(), status.Convert(err).Message(), "internal: storage.CreatePlacement: conn reset")
 }

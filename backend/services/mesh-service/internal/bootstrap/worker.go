@@ -13,7 +13,13 @@ import (
 var _ worker.Mesh = (*service.Mesh)(nil)
 
 // InitWorker wires the consumer with its dependencies.
-func InitWorker(queue *storage.Redis, svc *service.Mesh, logger *slog.Logger, cfg config.Config, succeeded chan<- struct{}) *worker.Worker {
+func InitWorker(
+	queue *storage.Redis,
+	svc *service.Mesh,
+	logger *slog.Logger,
+	cfg config.Config,
+	succeeded chan<- struct{},
+) *worker.Worker {
 	return worker.New(worker.Config{
 		Queue:         queue,
 		Mesh:          svc,

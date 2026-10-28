@@ -43,7 +43,14 @@ func (s *AuthorizeBlobSuite) SetupTest() {
 	s.cat = mocks.NewCatalogMock(mc)
 	s.content = mocks.NewContentMock(mc)
 	s.upload = mocks.NewUploadMock(mc)
-	s.svc = service.New(s.cat, s.content, mocks.NewMeshMock(mc), s.upload, mocks.NewAuditMock(mc), mocks.NewAuthMock(mc))
+	s.svc = service.New(
+		s.cat,
+		s.content,
+		mocks.NewMeshMock(mc),
+		s.upload,
+		mocks.NewAuditMock(mc),
+		mocks.NewAuthMock(mc),
+	)
 	s.ctx = s.T().Context()
 	s.company = domain.BlobScope{AdminID: "company-1"}
 }
@@ -62,7 +69,11 @@ func (s *AuthorizeBlobSuite) TestEveryRouteRefusesAForeignHash() {
 		call func() error
 	}{
 		{name: "create territory", call: func() error {
-			_, _, err := s.svc.CreateTerritory(s.ctx, domain.Territory{Title: "t", SourceBlobHash: foreignHash}, s.company)
+			_, _, err := s.svc.CreateTerritory(
+				s.ctx,
+				domain.Territory{Title: "t", SourceBlobHash: foreignHash},
+				s.company,
+			)
 			return err
 		}},
 		{name: "replace territory source", call: func() error {
@@ -74,15 +85,28 @@ func (s *AuthorizeBlobSuite) TestEveryRouteRefusesAForeignHash() {
 			return err
 		}},
 		{name: "update model thumbnail", call: func() error {
-			_, err := s.svc.UpdateModel(s.ctx, "pump", domain.ModelUpdate{ThumbnailBlobHash: new(foreignHash)}, s.company)
+			_, err := s.svc.UpdateModel(
+				s.ctx,
+				"pump",
+				domain.ModelUpdate{ThumbnailBlobHash: new(foreignHash)},
+				s.company,
+			)
 			return err
 		}},
 		{name: "create panorama", call: func() error {
-			_, err := s.svc.CreatePanorama(s.ctx, domain.Panorama{TerritorySlug: "yard", Title: "p", SourceBlobHash: foreignHash}, s.company)
+			_, err := s.svc.CreatePanorama(
+				s.ctx,
+				domain.Panorama{TerritorySlug: "yard", Title: "p", SourceBlobHash: foreignHash},
+				s.company,
+			)
 			return err
 		}},
 		{name: "create document", call: func() error {
-			_, err := s.svc.CreateDocument(s.ctx, domain.Document{TerritorySlug: "yard", Title: "d", SourceBlobHash: foreignHash}, s.company)
+			_, err := s.svc.CreateDocument(
+				s.ctx,
+				domain.Document{TerritorySlug: "yard", Title: "d", SourceBlobHash: foreignHash},
+				s.company,
+			)
 			return err
 		}},
 	}

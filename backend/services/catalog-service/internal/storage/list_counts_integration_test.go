@@ -91,7 +91,10 @@ func (s *ListCountsSuite) TestListsCarryPlacementAndUsageCounts() {
 	s.seedModel(ctx, "tank", "h-tank-src", "h-tank-thumb")
 	s.seedModel(ctx, "ladder", "h-ladder-src", "h-ladder-thumb")
 	place := func(t, m string) {
-		_, err := s.pg.CreatePlacement(ctx, domain.Placement{TerritorySlug: t, ModelSlug: m, Scale: domain.Vec3{X: 1, Y: 1, Z: 1}})
+		_, err := s.pg.CreatePlacement(
+			ctx,
+			domain.Placement{TerritorySlug: t, ModelSlug: m, Scale: domain.Vec3{X: 1, Y: 1, Z: 1}},
+		)
 		assert.NilError(s.T(), err)
 	}
 	place("yard", "pump")

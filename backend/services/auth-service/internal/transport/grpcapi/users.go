@@ -90,7 +90,10 @@ func (s *Server) UnfreezeUser(ctx context.Context, req *authv1.UnfreezeUserReque
 	return userToProto(u), nil
 }
 
-func (s *Server) SoftDeleteUser(ctx context.Context, req *authv1.SoftDeleteUserRequest) (*authv1.SoftDeleteUserResponse, error) {
+func (s *Server) SoftDeleteUser(
+	ctx context.Context,
+	req *authv1.SoftDeleteUserRequest,
+) (*authv1.SoftDeleteUserResponse, error) {
 	actorID, scopeAll, err := s.actor(ctx, req.GetToken())
 	if err != nil {
 		return nil, mapError(err)
@@ -125,7 +128,10 @@ func (s *Server) SetUserOwner(ctx context.Context, req *authv1.SetUserOwnerReque
 	return userToProto(u), nil
 }
 
-func (s *Server) SetUserTOTPRequired(ctx context.Context, req *authv1.SetUserTOTPRequiredRequest) (*authv1.User, error) {
+func (s *Server) SetUserTOTPRequired(
+	ctx context.Context,
+	req *authv1.SetUserTOTPRequiredRequest,
+) (*authv1.User, error) {
 	actorID, scopeAll, err := s.actor(ctx, req.GetToken())
 	if err != nil {
 		return nil, mapError(err)
@@ -137,7 +143,10 @@ func (s *Server) SetUserTOTPRequired(ctx context.Context, req *authv1.SetUserTOT
 	return userToProto(u), nil
 }
 
-func (s *Server) SetUserPassword(ctx context.Context, req *authv1.SetUserPasswordRequest) (*authv1.SetUserPasswordResponse, error) {
+func (s *Server) SetUserPassword(
+	ctx context.Context,
+	req *authv1.SetUserPasswordRequest,
+) (*authv1.SetUserPasswordResponse, error) {
 	actorID, scopeAll, err := s.actor(ctx, req.GetToken())
 	if err != nil {
 		return nil, mapError(err)

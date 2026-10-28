@@ -33,7 +33,12 @@ func (s *source) open(_ context.Context, hash string, off int64) (io.ReadCloser,
 }
 
 // export runs Build and Write over blobs and returns the unzipped entries.
-func export(t *testing.T, ps []glbexport.Placement, blobs map[string][]byte, opts Options) (map[string]string, []string) {
+func export(
+	t *testing.T,
+	ps []glbexport.Placement,
+	blobs map[string][]byte,
+	opts Options,
+) (map[string]string, []string) {
 	t.Helper()
 	heads := map[string]glbexport.Head{}
 	for h, b := range blobs {

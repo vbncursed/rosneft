@@ -6,7 +6,10 @@ import (
 	catalogv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/catalog/v1"
 )
 
-func (s *Server) ListModels(ctx context.Context, req *catalogv1.ListModelsRequest) (*catalogv1.ListModelsResponse, error) {
+func (s *Server) ListModels(
+	ctx context.Context,
+	req *catalogv1.ListModelsRequest,
+) (*catalogv1.ListModelsResponse, error) {
 	out, err := s.svc.ListModels(ctx, req.GetWithArtifacts())
 	if err != nil {
 		return nil, mapError(err)

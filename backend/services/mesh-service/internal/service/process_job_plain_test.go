@@ -14,8 +14,13 @@ import (
 
 // stubTwoLODsWithPlain makes the converter return LOD0 (with a plain copy) and
 // LOD1, and records Put / RegisterArtifact in call order.
-func (s *ProcessJobSuite) stubTwoLODsWithPlain(plainPutErr error) (events *[]string, registered *[]domain.Artifact, plainBody *[]byte) {
-	s.queue.GetJobMock.Return(domain.Job{ID: "job-1", Kind: domain.KindModel, Slug: "m1", Status: domain.JobStatusPending}, nil)
+func (s *ProcessJobSuite) stubTwoLODsWithPlain(
+	plainPutErr error,
+) (events *[]string, registered *[]domain.Artifact, plainBody *[]byte) {
+	s.queue.GetJobMock.Return(
+		domain.Job{ID: "job-1", Kind: domain.KindModel, Slug: "m1", Status: domain.JobStatusPending},
+		nil,
+	)
 	s.queue.UnlockTargetMock.Return(nil)
 	s.stubSourceHashes("h1")
 	s.blobs.GetMock.Set(func(context.Context, string) (io.ReadCloser, blobstore.Blob, error) {
@@ -23,7 +28,13 @@ func (s *ProcessJobSuite) stubTwoLODsWithPlain(plainPutErr error) (events *[]str
 	})
 	s.converter.ConvertLODsMock.Set(func(context.Context, string, string) ([]domain.ConversionResult, error) {
 		return []domain.ConversionResult{
-			{ArtifactHash: "lod0", ContentType: "model/gltf-binary", Content: []byte("packed"), Plain: []byte("plain"), PlainHash: "p"},
+			{
+				ArtifactHash: "lod0",
+				ContentType:  "model/gltf-binary",
+				Content:      []byte("packed"),
+				Plain:        []byte("plain"),
+				PlainHash:    "p",
+			},
 			{ArtifactHash: "lod1", ContentType: "model/gltf-binary", Content: []byte("small")},
 		}, nil
 	})

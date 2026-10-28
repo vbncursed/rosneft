@@ -9,7 +9,10 @@ import (
 	catalogv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/catalog/v1"
 )
 
-func (s *Server) RegisterTerritoryArtifact(ctx context.Context, req *catalogv1.RegisterTerritoryArtifactRequest) (*catalogv1.RegisterTerritoryArtifactResponse, error) {
+func (s *Server) RegisterTerritoryArtifact(
+	ctx context.Context,
+	req *catalogv1.RegisterTerritoryArtifactRequest,
+) (*catalogv1.RegisterTerritoryArtifactResponse, error) {
 	if req.GetArtifact() == nil {
 		return nil, mapError(fmt.Errorf("%w: artifact is required", domain.ErrInvalidInput))
 	}

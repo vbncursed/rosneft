@@ -8,7 +8,10 @@ import (
 
 // ListTargetJobs returns the latest job of every target, whatever its status
 // — the console's "what is converting" read.
-func (s *Server) ListTargetJobs(ctx context.Context, _ *meshv1.ListTargetJobsRequest) (*meshv1.ListTargetJobsResponse, error) {
+func (s *Server) ListTargetJobs(
+	ctx context.Context,
+	_ *meshv1.ListTargetJobsRequest,
+) (*meshv1.ListTargetJobsResponse, error) {
 	jobs, err := s.svc.ListTargetJobs(ctx)
 	if err != nil {
 		return nil, mapError(err)

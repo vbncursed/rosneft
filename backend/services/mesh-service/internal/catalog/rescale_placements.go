@@ -12,7 +12,12 @@ import (
 // baseline for the territory now that the replacement mesh has converted —
 // keeping existing placements, measurements and panoramas 1:1 against the new
 // normalization. The catalog no-ops when no baseline is pending.
-func (c *Client) RescaleTerritoryPlacements(ctx context.Context, slug string, newMax float64, newCenter domain.Vec3) error {
+func (c *Client) RescaleTerritoryPlacements(
+	ctx context.Context,
+	slug string,
+	newMax float64,
+	newCenter domain.Vec3,
+) error {
 	_, err := c.cc.RescaleTerritoryPlacements(ctx, &catalogv1.RescaleTerritoryPlacementsRequest{
 		TerritorySlug:   slug,
 		NewSourceMax:    newMax,

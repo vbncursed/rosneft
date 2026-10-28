@@ -60,7 +60,10 @@ func (s *EnsureTriggersSuite) TearDownSuite() {
 // Each test starts from "audit has migrated, nobody else has". Dropping the
 // table drops its trigger with it.
 func (s *EnsureTriggersSuite) SetupTest() {
-	_, err := s.pool.Exec(s.T().Context(), `DROP TABLE IF EXISTS territories, measurements, placement_groups, panorama_phase_visibility`)
+	_, err := s.pool.Exec(
+		s.T().Context(),
+		`DROP TABLE IF EXISTS territories, measurements, placement_groups, panorama_phase_visibility`,
+	)
 	assert.NilError(s.T(), err)
 }
 

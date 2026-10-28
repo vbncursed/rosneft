@@ -7,7 +7,10 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 )
 
-func (s *Server) UpdateMeasurement(ctx context.Context, req *catalogv1.UpdateMeasurementRequest) (*catalogv1.UpdateMeasurementResponse, error) {
+func (s *Server) UpdateMeasurement(
+	ctx context.Context,
+	req *catalogv1.UpdateMeasurementRequest,
+) (*catalogv1.UpdateMeasurementResponse, error) {
 	points, err := domain.PointsFromFlat(req.GetPoints())
 	if err != nil {
 		return nil, mapError(err)

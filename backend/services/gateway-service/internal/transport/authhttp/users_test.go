@@ -45,7 +45,10 @@ func (p passwordAuth) GetUser(_ context.Context, req *authv1.GetUserRequest) (*a
 	return &authv1.User{Id: req.GetId(), TerritoryScopeId: req.GetId()}, nil
 }
 
-func (p passwordAuth) SetUserPassword(_ context.Context, req *authv1.SetUserPasswordRequest) (*authv1.SetUserPasswordResponse, error) {
+func (p passwordAuth) SetUserPassword(
+	_ context.Context,
+	req *authv1.SetUserPasswordRequest,
+) (*authv1.SetUserPasswordResponse, error) {
 	p.got <- req
 	if p.err != nil {
 		return nil, p.err
@@ -67,7 +70,12 @@ func (s *SetUserPasswordSuite) put(stub passwordAuth, body string) *httptest.Res
 // auth-service answering from stub over loopback and the catalog from cat.
 // Authenticate, CSRF and the users:write gate belong to Mount and are not what
 // this suite tests.
-func (s *SetUserPasswordSuite) putAs(stub passwordAuth, cat territoryLister, p TestPrincipal, body string) *httptest.ResponseRecorder {
+func (s *SetUserPasswordSuite) putAs(
+	stub passwordAuth,
+	cat territoryLister,
+	p TestPrincipal,
+	body string,
+) *httptest.ResponseRecorder {
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	assert.NilError(s.T(), err)
 	srv := grpc.NewServer()

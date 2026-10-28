@@ -18,7 +18,10 @@ func (s *Server) GetMe(ctx context.Context, req *authv1.GetMeRequest) (*authv1.U
 	return userToProto(u), nil
 }
 
-func (s *Server) ChangePassword(ctx context.Context, req *authv1.ChangePasswordRequest) (*authv1.ChangePasswordResponse, error) {
+func (s *Server) ChangePassword(
+	ctx context.Context,
+	req *authv1.ChangePasswordRequest,
+) (*authv1.ChangePasswordResponse, error) {
 	uid, err := s.userIDFromToken(ctx, req.GetToken())
 	if err != nil {
 		return nil, mapError(err)
@@ -29,7 +32,10 @@ func (s *Server) ChangePassword(ctx context.Context, req *authv1.ChangePasswordR
 	return &authv1.ChangePasswordResponse{}, nil
 }
 
-func (s *Server) MarkTourSeen(ctx context.Context, req *authv1.MarkTourSeenRequest) (*authv1.MarkTourSeenResponse, error) {
+func (s *Server) MarkTourSeen(
+	ctx context.Context,
+	req *authv1.MarkTourSeenRequest,
+) (*authv1.MarkTourSeenResponse, error) {
 	uid, err := s.userIDFromToken(ctx, req.GetToken())
 	if err != nil {
 		return nil, mapError(err)
@@ -40,7 +46,10 @@ func (s *Server) MarkTourSeen(ctx context.Context, req *authv1.MarkTourSeenReque
 	return &authv1.MarkTourSeenResponse{}, nil
 }
 
-func (s *Server) VerifyPassword(ctx context.Context, req *authv1.VerifyPasswordRequest) (*authv1.VerifyPasswordResponse, error) {
+func (s *Server) VerifyPassword(
+	ctx context.Context,
+	req *authv1.VerifyPasswordRequest,
+) (*authv1.VerifyPasswordResponse, error) {
 	ok, err := s.auth.VerifyPassword(ctx, req.GetToken(), req.GetPassword())
 	if err != nil {
 		return nil, mapError(err)

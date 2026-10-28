@@ -9,7 +9,10 @@ import (
 // Every measurement handler passes req.Slug down: the territory gate authorised
 // that slug only, and catalog scopes each id by it.
 
-func (s *Server) ListMeasurements(ctx context.Context, req ListMeasurementsRequestObject) (ListMeasurementsResponseObject, error) {
+func (s *Server) ListMeasurements(
+	ctx context.Context,
+	req ListMeasurementsRequestObject,
+) (ListMeasurementsResponseObject, error) {
 	out, err := s.svc.ListMeasurements(ctx, req.Slug)
 	switch {
 	case isNotFound(err):
@@ -20,7 +23,10 @@ func (s *Server) ListMeasurements(ctx context.Context, req ListMeasurementsReque
 	return ListMeasurements200JSONResponse(measurementsToAPI(out)), nil
 }
 
-func (s *Server) CreateMeasurement(ctx context.Context, req CreateMeasurementRequestObject) (CreateMeasurementResponseObject, error) {
+func (s *Server) CreateMeasurement(
+	ctx context.Context,
+	req CreateMeasurementRequestObject,
+) (CreateMeasurementResponseObject, error) {
 	if req.Body == nil {
 		return CreateMeasurement400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
@@ -36,7 +42,10 @@ func (s *Server) CreateMeasurement(ctx context.Context, req CreateMeasurementReq
 	return CreateMeasurement201JSONResponse(measurementToAPI(m)), nil
 }
 
-func (s *Server) UpdateMeasurement(ctx context.Context, req UpdateMeasurementRequestObject) (UpdateMeasurementResponseObject, error) {
+func (s *Server) UpdateMeasurement(
+	ctx context.Context,
+	req UpdateMeasurementRequestObject,
+) (UpdateMeasurementResponseObject, error) {
 	if req.Body == nil {
 		return UpdateMeasurement400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
@@ -52,7 +61,10 @@ func (s *Server) UpdateMeasurement(ctx context.Context, req UpdateMeasurementReq
 	return UpdateMeasurement200JSONResponse(measurementToAPI(m)), nil
 }
 
-func (s *Server) DeleteMeasurement(ctx context.Context, req DeleteMeasurementRequestObject) (DeleteMeasurementResponseObject, error) {
+func (s *Server) DeleteMeasurement(
+	ctx context.Context,
+	req DeleteMeasurementRequestObject,
+) (DeleteMeasurementResponseObject, error) {
 	err := s.svc.DeleteMeasurement(ctx, req.Slug, req.Id)
 	switch {
 	case isInvalid(err):
@@ -65,7 +77,10 @@ func (s *Server) DeleteMeasurement(ctx context.Context, req DeleteMeasurementReq
 	return DeleteMeasurement204Response{}, nil
 }
 
-func (s *Server) DeleteMeasurements(ctx context.Context, req DeleteMeasurementsRequestObject) (DeleteMeasurementsResponseObject, error) {
+func (s *Server) DeleteMeasurements(
+	ctx context.Context,
+	req DeleteMeasurementsRequestObject,
+) (DeleteMeasurementsResponseObject, error) {
 	n, err := s.svc.DeleteMeasurements(ctx, req.Slug)
 	switch {
 	case isInvalid(err):

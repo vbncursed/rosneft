@@ -31,7 +31,14 @@ func TestContentMutationsSuite(t *testing.T) {
 func (s *ContentMutationsSuite) SetupTest() {
 	mc := minimock.NewController(s.T())
 	s.content = mocks.NewContentMock(mc)
-	s.svc = service.New(mocks.NewCatalogMock(mc), s.content, mocks.NewMeshMock(mc), mocks.NewUploadMock(mc), mocks.NewAuditMock(mc), mocks.NewAuthMock(mc))
+	s.svc = service.New(
+		mocks.NewCatalogMock(mc),
+		s.content,
+		mocks.NewMeshMock(mc),
+		mocks.NewUploadMock(mc),
+		mocks.NewAuditMock(mc),
+		mocks.NewAuthMock(mc),
+	)
 	s.ctx = s.T().Context()
 }
 

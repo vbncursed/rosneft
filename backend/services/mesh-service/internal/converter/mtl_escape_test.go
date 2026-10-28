@@ -73,7 +73,10 @@ func TestLoadTextureReadsASiblingFolder(t *testing.T) {
 func TestLoadTextureRefusesASymlinkOutOfTheRoot(t *testing.T) {
 	root, objRel, outside := bundle(t)
 	write(t, filepath.Join(outside, "secret.png"), "png")
-	assert.NilError(t, os.Symlink(filepath.Join(outside, "secret.png"), filepath.Join(root.Name(), "model", "link.png")))
+	assert.NilError(
+		t,
+		os.Symlink(filepath.Join(outside, "secret.png"), filepath.Join(root.Name(), "model", "link.png")),
+	)
 
 	got := loadTexture(t.Context(), root, objRel, "link.png", map[string]*textureAsset{})
 

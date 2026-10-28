@@ -15,7 +15,10 @@ type ConvertersSuite struct{ suite.Suite }
 
 func TestConvertersSuite(t *testing.T) { suite.Run(t, new(ConvertersSuite)) }
 
-var wantLODs = []domain.LodArtifact{{LOD: 0, Hash: "h0", Size: 10, Vertices: 8, Faces: 12}, {LOD: 1, Hash: "h1", Size: 4}}
+var wantLODs = []domain.LodArtifact{
+	{LOD: 0, Hash: "h0", Size: 10, Vertices: 8, Faces: 12},
+	{LOD: 1, Hash: "h1", Size: 4},
+}
 
 func (s *ConvertersSuite) TestATerritoryCarriesItsLODChain() {
 	got := territoryFromProto(&catalogv1.Territory{Slug: "yard", Artifacts: []*catalogv1.TerritoryArtifact{

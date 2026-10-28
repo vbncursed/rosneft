@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classify, serverUnreachable } from "./route";
+import { classify, endsSession, serverUnreachable } from "./route";
 
 const at = (path: string) => new URL(`https://andrey.vbncursed.fun${path}`);
 const HASH = "b".repeat(64);
@@ -68,5 +68,20 @@ describe("serverUnreachable", () => {
   );
   it.each([200, 304, 400, 401, 404, 429, 500, 501, 505, 519, 528])("%i is the server speaking", (status) =>
     expect(serverUnreachable(status)).toBe(false),
+  );
+});
+
+describe("endsSession", () => {
+  const me = classify("GET", new URL("https://x/api/auth/me"));
+  const territories = classify("GET", new URL("https://x/api/territories"));
+  it.each([
+    [me, 401, true, true],
+    [me, 401, false, false],
+    [me, 200, true, false],
+    [me, 403, true, false],
+    [me, 503, true, false],
+    [territories, 401, true, false],
+  ] as const)("%j %i fresh=%s -> %s", (route, status, fresh, want) =>
+    expect(endsSession(route, status, fresh)).toBe(want),
   );
 });

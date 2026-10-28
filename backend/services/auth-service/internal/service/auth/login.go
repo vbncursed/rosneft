@@ -51,11 +51,8 @@ func (s *Service) Login(ctx context.Context, identifier, plain string) (string, 
 		metricLogins.WithLabelValues("failed").Inc()
 		return "", "", domain.ErrInvalidCredential
 	}
-	switch u.Status {
-	case domain.StatusFrozen:
-		return "", "", domain.ErrAccountFrozen
-	case domain.StatusDeleted:
-		return "", "", domain.ErrAccountDeleted
+	if err := checkActive(u); err != nil {
+		return "", "", err
 	}
 	_ = s.sessions.ClearFails(ctx, identifier)
 	metricLogins.WithLabelValues("succeeded").Inc()
@@ -93,4 +90,16 @@ func scopeOwningAdmin(roleSlugs []string, resolvedAdmin, selfID string) string {
 		return selfID
 	}
 	return resolvedAdmin
+}
+
+// checkActive is the one rule for who may be given a session: every login
+// path (password, 2FA step, passkey) asks it.
+func checkActive(u domain.User) error {
+	switch u.Status {
+	case domain.StatusFrozen:
+		return domain.ErrAccountFrozen
+	case domain.StatusDeleted:
+		return domain.ErrAccountDeleted
+	}
+	return nil
 }

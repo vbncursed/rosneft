@@ -65,7 +65,12 @@ func (g *groupService) CreatePlacementGroup(_ context.Context, slug, title strin
 	return g.answer(slug, 0, title)
 }
 
-func (g *groupService) RenamePlacementGroup(_ context.Context, slug string, id int64, title string) (domain.PlacementGroup, error) {
+func (g *groupService) RenamePlacementGroup(
+	_ context.Context,
+	slug string,
+	id int64,
+	title string,
+) (domain.PlacementGroup, error) {
 	return g.answer(slug, id, title)
 }
 
@@ -74,7 +79,12 @@ func (g *groupService) DeletePlacementGroup(_ context.Context, slug string, id i
 	return g.err
 }
 
-func (g *groupService) SetPlacementGroupHidden(_ context.Context, slug string, id int64, hidden bool) (domain.PlacementGroup, error) {
+func (g *groupService) SetPlacementGroupHidden(
+	_ context.Context,
+	slug string,
+	id int64,
+	hidden bool,
+) (domain.PlacementGroup, error) {
 	g.slug, g.id, g.hidden = slug, id, hidden
 	return domain.PlacementGroup{ID: id, TerritorySlug: slug, Title: "North", Hidden: hidden}, g.err
 }

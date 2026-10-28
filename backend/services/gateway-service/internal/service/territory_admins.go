@@ -18,7 +18,11 @@ func (g *Gateway) GetTerritoryAdmins(ctx context.Context, slug string) ([]string
 // lists. A territory nobody is assigned to maps to [], never to a missing key.
 // It fails closed: a scoped caller with no admin id sees nothing, because the
 // catalog reads an empty scope as every territory.
-func (g *Gateway) ListTerritoryAdmins(ctx context.Context, scopeAdminID string, allAccess bool) (map[string][]string, error) {
+func (g *Gateway) ListTerritoryAdmins(
+	ctx context.Context,
+	scopeAdminID string,
+	allAccess bool,
+) (map[string][]string, error) {
 	if !allAccess && scopeAdminID == "" {
 		return map[string][]string{}, nil
 	}

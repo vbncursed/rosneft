@@ -6,7 +6,10 @@ import (
 	authv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/auth/v1"
 )
 
-func (c *Client) Login(ctx context.Context, identifier, password string) (token, challenge string, twoFA bool, err error) {
+func (c *Client) Login(
+	ctx context.Context,
+	identifier, password string,
+) (token, challenge string, twoFA bool, err error) {
 	resp, err := c.cc.Login(ctx, &authv1.LoginRequest{Identifier: identifier, Password: password})
 	if err != nil {
 		return "", "", false, err
@@ -32,7 +35,10 @@ func (c *Client) Logout(ctx context.Context, token string) error {
 // second factor before doing anything else. The middle two differ for a
 // guest: the territory scope is keyed to self, the audit company to the real
 // tenant.
-func (c *Client) ValidateToken(ctx context.Context, token string) (string, []string, bool, string, string, bool, error) {
+func (c *Client) ValidateToken(
+	ctx context.Context,
+	token string,
+) (string, []string, bool, string, string, bool, error) {
 	resp, err := c.cc.ValidateToken(ctx, &authv1.ValidateTokenRequest{Token: token})
 	if err != nil {
 		return "", nil, false, "", "", false, err
@@ -46,7 +52,10 @@ func (c *Client) GetMe(ctx context.Context, token string) (*authv1.User, error) 
 }
 
 func (c *Client) ChangePassword(ctx context.Context, token, oldPw, newPw string) error {
-	_, err := c.cc.ChangePassword(ctx, &authv1.ChangePasswordRequest{Token: token, OldPassword: oldPw, NewPassword: newPw})
+	_, err := c.cc.ChangePassword(
+		ctx,
+		&authv1.ChangePasswordRequest{Token: token, OldPassword: oldPw, NewPassword: newPw},
+	)
 	return err
 }
 

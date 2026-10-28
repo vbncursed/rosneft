@@ -94,11 +94,31 @@ func (s *TerritoryExportSuite) TestCheckRefusesExactlyLikeTheDownload() {
 		}
 		ok := exportOpener(tc.blobs, nil)
 		scenarios := []scenario{
-			{"foreign", &exportServiceStub{territoryErr: domain.ErrTerritoryNotFound, bundle: tc.bundle}, ok, http.StatusNotFound},
-			{"catalog down", &exportServiceStub{territoryErr: errors.New("dial tcp 10.0.0.7"), bundle: tc.bundle}, ok, http.StatusServiceUnavailable},
+			{
+				"foreign",
+				&exportServiceStub{territoryErr: domain.ErrTerritoryNotFound, bundle: tc.bundle},
+				ok,
+				http.StatusNotFound,
+			},
+			{
+				"catalog down",
+				&exportServiceStub{territoryErr: errors.New("dial tcp 10.0.0.7"), bundle: tc.bundle},
+				ok,
+				http.StatusServiceUnavailable,
+			},
 			{"not converted", &exportServiceStub{bundle: notConverted}, ok, http.StatusConflict},
-			{"too large", &exportServiceStub{bundle: tc.bundle}, exportOpener(tooLarge, nil), http.StatusUnprocessableEntity},
-			{"asset down", &exportServiceStub{bundle: tc.bundle}, exportOpener(tc.blobs, func(string, int64) error { return errors.New("asset down: 10.0.0.9") }), http.StatusInternalServerError},
+			{
+				"too large",
+				&exportServiceStub{bundle: tc.bundle},
+				exportOpener(tooLarge, nil),
+				http.StatusUnprocessableEntity,
+			},
+			{
+				"asset down",
+				&exportServiceStub{bundle: tc.bundle},
+				exportOpener(tc.blobs, func(string, int64) error { return errors.New("asset down: 10.0.0.9") }),
+				http.StatusInternalServerError,
+			},
 		}
 		if tc.variant != "compressed" { // a compressed export never looks at plain copies
 			scenarios = append(scenarios,
@@ -122,7 +142,10 @@ func (s *TerritoryExportSuite) TestCheckRefusesExactlyLikeTheDownload() {
 
 func (s *TerritoryExportSuite) TestCheckHiddenPlacementWithoutPlainDoesNotBlock() {
 	b := s.compatBundle()
-	b.ModelOptions = append(b.ModelOptions, domain.AssetOption{Slug: "old", LODs: []domain.LodArtifact{{LOD: 0, Hash: "old"}}})
+	b.ModelOptions = append(
+		b.ModelOptions,
+		domain.AssetOption{Slug: "old", LODs: []domain.LodArtifact{{LOD: 0, Hash: "old"}}},
+	)
 	b.Placements = append(b.Placements,
 		domain.Placement{ID: 5, ModelSlug: "old", Label: "hidden", Hidden: true},
 		domain.Placement{ID: 6, ModelSlug: "old", Label: "in hidden group", GroupID: new(int64(1))},
@@ -142,11 +165,19 @@ func (s *TerritoryExportSuite) TestCheckOpenerFailureLogsTheCauseOnly() {
 }
 
 func (s *TerritoryExportSuite) TestCheckCompatibleThatStillRequiresAnExtensionIs500() {
-	withExt := strings.Replace(triJSON, `"scene":0,`, `"extensionsUsed":["KHR_texture_basisu"],"extensionsRequired":["KHR_texture_basisu"],"scene":0,`, 1)
+	withExt := strings.Replace(
+		triJSON,
+		`"scene":0,`,
+		`"extensionsUsed":["KHR_texture_basisu"],"extensionsRequired":["KHR_texture_basisu"],"scene":0,`,
+		1,
+	)
 	blobs := s.compatBlobs()
 	blobs["tank-p"] = glb(strings.Replace(withExt, "%d", "36", 1), bytes.Repeat([]byte{7}, 36), 36)
 
-	rec := s.getPath(s.router(&exportServiceStub{bundle: s.compatBundle()}, scoped, exportOpener(blobs, nil)), checkURL+"compatible")
+	rec := s.getPath(
+		s.router(&exportServiceStub{bundle: s.compatBundle()}, scoped, exportOpener(blobs, nil)),
+		checkURL+"compatible",
+	)
 
 	assert.Equal(s.T(), rec.Code, http.StatusInternalServerError)
 	assert.Equal(s.T(), strings.TrimSpace(rec.Body.String()), `{"code":"internal","message":"internal error"}`)
@@ -180,7 +211,10 @@ func (s *TerritoryExportSuite) TestCheckVariantIsRequiredAndExact() {
 	} {
 		s.Run(q, func() {
 			svc := &exportServiceStub{bundle: s.compatBundle()}
-			rec := s.getPath(s.router(svc, scoped, exportOpener(s.compatBlobs(), nil)), "/api/territories/ust-kut/export-check"+q)
+			rec := s.getPath(
+				s.router(svc, scoped, exportOpener(s.compatBlobs(), nil)),
+				"/api/territories/ust-kut/export-check"+q,
+			)
 
 			assert.Equal(s.T(), rec.Code, http.StatusBadRequest, rec.Body.String())
 			assert.Assert(s.T(), strings.Contains(rec.Body.String(), `"code":"invalid_input"`), rec.Body.String())
@@ -195,6 +229,12 @@ func (s *TerritoryExportSuite) TestCheckVariantIsDecodedAndUnrelatedJunkIgnored(
 	h := s.router(&exportServiceStub{bundle: s.compatBundle()}, scoped, exportOpener(s.objBlobs(), nil))
 	for _, q := range []string{"%6Fbj", "obj&x=%zz"} {
 		rec := s.getPath(h, checkURL+q)
-		assert.Assert(s.T(), strings.Contains(rec.Body.String(), `"filename":"ust-kut-obj.zip"`), "%s: %s", q, rec.Body.String())
+		assert.Assert(
+			s.T(),
+			strings.Contains(rec.Body.String(), `"filename":"ust-kut-obj.zip"`),
+			"%s: %s",
+			q,
+			rec.Body.String(),
+		)
 	}
 }

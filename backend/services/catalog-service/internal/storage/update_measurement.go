@@ -41,7 +41,10 @@ func (r *PG) UpdateMeasurement(ctx context.Context, m domain.Measurement) (domai
 	case errors.Is(err, pgx.ErrNoRows):
 		return domain.Measurement{}, domain.ErrMeasurementNotFound
 	case isMeasurementShapeViolation(err):
-		return domain.Measurement{}, fmt.Errorf("storage.UpdateMeasurement: %w: points do not form a chain", domain.ErrInvalidInput)
+		return domain.Measurement{}, fmt.Errorf(
+			"storage.UpdateMeasurement: %w: points do not form a chain",
+			domain.ErrInvalidInput,
+		)
 	default:
 		return domain.Measurement{}, fmt.Errorf("storage.UpdateMeasurement: %w", err)
 	}

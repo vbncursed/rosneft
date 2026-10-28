@@ -12,7 +12,10 @@ import (
 // phase travels as the string it arrived as; the service refuses anything but
 // the three.
 
-func (s *Server) SetPanoramasHidden(ctx context.Context, req SetPanoramasHiddenRequestObject) (SetPanoramasHiddenResponseObject, error) {
+func (s *Server) SetPanoramasHidden(
+	ctx context.Context,
+	req SetPanoramasHiddenRequestObject,
+) (SetPanoramasHiddenResponseObject, error) {
 	if req.Body == nil {
 		return SetPanoramasHidden400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
@@ -28,7 +31,10 @@ func (s *Server) SetPanoramasHidden(ctx context.Context, req SetPanoramasHiddenR
 	return SetPanoramasHidden200JSONResponse{Updated: n}, nil
 }
 
-func (s *Server) SetPanoramasPhase(ctx context.Context, req SetPanoramasPhaseRequestObject) (SetPanoramasPhaseResponseObject, error) {
+func (s *Server) SetPanoramasPhase(
+	ctx context.Context,
+	req SetPanoramasPhaseRequestObject,
+) (SetPanoramasPhaseResponseObject, error) {
 	if req.Body == nil {
 		return SetPanoramasPhase400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
@@ -44,7 +50,10 @@ func (s *Server) SetPanoramasPhase(ctx context.Context, req SetPanoramasPhaseReq
 	return SetPanoramasPhase200JSONResponse{Updated: n}, nil
 }
 
-func (s *Server) SetPanoramaPhaseHidden(ctx context.Context, req SetPanoramaPhaseHiddenRequestObject) (SetPanoramaPhaseHiddenResponseObject, error) {
+func (s *Server) SetPanoramaPhaseHidden(
+	ctx context.Context,
+	req SetPanoramaPhaseHiddenRequestObject,
+) (SetPanoramaPhaseHiddenResponseObject, error) {
 	if req.Body == nil {
 		return SetPanoramaPhaseHidden400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}

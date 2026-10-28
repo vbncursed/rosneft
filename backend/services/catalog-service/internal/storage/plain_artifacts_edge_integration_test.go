@@ -51,7 +51,10 @@ func (s *PlainArtifactsSuite) TestConcurrentRegistersOfOneLOD0LeaveOneRow() {
 	}
 
 	var n int
-	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT count(*) FROM plain_artifacts WHERE lod0_hash = 'shared'`).Scan(&n))
+	assert.NilError(
+		s.T(),
+		s.pool.QueryRow(ctx, `SELECT count(*) FROM plain_artifacts WHERE lod0_hash = 'shared'`).Scan(&n),
+	)
 	assert.Equal(s.T(), n, 1)
 	a1, err := s.pg.GetTerritoryArtifact(ctx, "t1", 0)
 	assert.NilError(s.T(), err)

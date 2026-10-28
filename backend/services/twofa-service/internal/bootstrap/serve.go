@@ -51,7 +51,10 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	}
 	defer func() { _ = authClient.Close() }()
 
-	grpcSrv, healthSrv := InitGRPCServer(handler, logger) //nolint:contextcheck // false positive: the recovery stream interceptor takes its context from the stream (ss.Context()) per request, not from this bootstrap ctx
+	grpcSrv, healthSrv := InitGRPCServer( //nolint:contextcheck // false positive: the recovery stream interceptor takes its context from the stream (ss.Context()) per request, not from this bootstrap ctx
+		handler,
+		logger,
+	)
 
 	go grpcutil.WatchReadiness(rootCtx, grpcutil.ReadinessConfig{
 		Service: "twofa",

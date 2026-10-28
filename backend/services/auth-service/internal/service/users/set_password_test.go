@@ -79,8 +79,13 @@ func (s *SetPasswordSuite) TestSetPassword() {
 			lookups: []domain.User{ownAdmin, company}, want: domain.ErrUserNotFound,
 		},
 		{
-			name: "users:read_all does not reach root", actor: "co", scopeAll: true, target: "root", password: newPassword,
-			lookups: []domain.User{root, company}, want: domain.ErrUserNotFound,
+			name:     "users:read_all does not reach root",
+			actor:    "co",
+			scopeAll: true,
+			target:   "root",
+			password: newPassword,
+			lookups:  []domain.User{root, company},
+			want:     domain.ErrUserNotFound,
 		},
 		{
 			name: "a delegate cannot reset a user holding more than it does", actor: "d1", target: "w1",

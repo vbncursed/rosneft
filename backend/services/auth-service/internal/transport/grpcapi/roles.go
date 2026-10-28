@@ -75,7 +75,10 @@ func (s *Server) SetRolePermissions(ctx context.Context, req *authv1.SetRolePerm
 	return roleToProto(r), nil
 }
 
-func (s *Server) ListPermissions(ctx context.Context, _ *authv1.ListPermissionsRequest) (*authv1.ListPermissionsResponse, error) {
+func (s *Server) ListPermissions(
+	ctx context.Context,
+	_ *authv1.ListPermissionsRequest,
+) (*authv1.ListPermissionsResponse, error) {
 	list, err := s.roles.ListPermissions(ctx)
 	if err != nil {
 		return nil, mapError(err)

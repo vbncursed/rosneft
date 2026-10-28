@@ -53,13 +53,19 @@ func (s *PlacementGroupsSuite) TestBulkWritesForwardTheRequestAndCount() {
 // An absent group_id is "no group": it reaches the service as nil, not as 0.
 func (s *PlacementGroupsSuite) TestAnAbsentGroupIsNoGroup() {
 	s.svc.SetPlacementsGroupMock.Expect(s.ctx, "t1", []int64{1}, nil).Return(1, nil)
-	_, err := s.srv.SetPlacementsGroup(s.ctx, &catalogv1.SetPlacementsGroupRequest{TerritorySlug: "t1", Ids: []int64{1}})
+	_, err := s.srv.SetPlacementsGroup(
+		s.ctx,
+		&catalogv1.SetPlacementsGroupRequest{TerritorySlug: "t1", Ids: []int64{1}},
+	)
 	assert.NilError(s.T(), err)
 }
 
 func (s *PlacementGroupsSuite) TestGroupWritesAnswerTheGroup() {
 	s.svc.CreatePlacementGroupMock.Expect(s.ctx, "t1", "North").Return(north, nil)
-	created, err := s.srv.CreatePlacementGroup(s.ctx, &catalogv1.CreatePlacementGroupRequest{TerritorySlug: "t1", Title: "North"})
+	created, err := s.srv.CreatePlacementGroup(
+		s.ctx,
+		&catalogv1.CreatePlacementGroupRequest{TerritorySlug: "t1", Title: "North"},
+	)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), created.GetGroup().GetId(), int64(4))
 	assert.Equal(s.T(), created.GetGroup().GetTerritorySlug(), "t1")
@@ -67,7 +73,10 @@ func (s *PlacementGroupsSuite) TestGroupWritesAnswerTheGroup() {
 
 	s.svc.RenamePlacementGroupMock.Expect(s.ctx, "t1", int64(4), "South").
 		Return(domain.PlacementGroup{ID: 4, TerritorySlug: "t1", Title: "South"}, nil)
-	renamed, err := s.srv.RenamePlacementGroup(s.ctx, &catalogv1.RenamePlacementGroupRequest{TerritorySlug: "t1", Id: 4, Title: "South"})
+	renamed, err := s.srv.RenamePlacementGroup(
+		s.ctx,
+		&catalogv1.RenamePlacementGroupRequest{TerritorySlug: "t1", Id: 4, Title: "South"},
+	)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), renamed.GetGroup().GetTitle(), "South")
 
@@ -85,7 +94,10 @@ func (s *PlacementGroupsSuite) TestGroupWritesAnswerTheGroup() {
 // sentinel; a batch item keeps its index.
 func (s *PlacementGroupsSuite) TestAForeignGroupIsNotFound() {
 	s.svc.RenamePlacementGroupMock.Return(domain.PlacementGroup{}, domain.ErrPlacementGroupNotFound)
-	_, err := s.srv.RenamePlacementGroup(s.ctx, &catalogv1.RenamePlacementGroupRequest{TerritorySlug: "t2", Id: 4, Title: "x"})
+	_, err := s.srv.RenamePlacementGroup(
+		s.ctx,
+		&catalogv1.RenamePlacementGroupRequest{TerritorySlug: "t2", Id: 4, Title: "x"},
+	)
 	assert.Equal(s.T(), status.Code(err), codes.NotFound)
 	assert.Equal(s.T(), status.Convert(err).Message(), "placement group not found")
 
@@ -132,7 +144,10 @@ func (s *PlacementGroupsSuite) TestHidingAGroupAnswersTheGroup() {
 
 func (s *PlacementGroupsSuite) TestHidingAForeignGroupIsNotFound() {
 	s.svc.SetPlacementGroupHiddenMock.Return(domain.PlacementGroup{}, domain.ErrPlacementGroupNotFound)
-	_, err := s.srv.SetPlacementGroupHidden(s.ctx, &catalogv1.SetPlacementGroupHiddenRequest{TerritorySlug: "t2", Id: 4, Hidden: true})
+	_, err := s.srv.SetPlacementGroupHidden(
+		s.ctx,
+		&catalogv1.SetPlacementGroupHiddenRequest{TerritorySlug: "t2", Id: 4, Hidden: true},
+	)
 	assert.Equal(s.T(), status.Code(err), codes.NotFound)
 	assert.Equal(s.T(), status.Convert(err).Message(), "placement group not found")
 }

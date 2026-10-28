@@ -11,12 +11,23 @@ import (
 // SetPlacementVisibility replaces the placement's panorama allowlist. Every id
 // must reference a panorama on the same territory; an unknown id is rejected
 // as invalid input rather than silently stored. Returns the updated placement.
-func (c *Catalog) SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error) {
+func (c *Catalog) SetPlacementVisibility(
+	ctx context.Context,
+	territorySlug string,
+	placementID int64,
+	panoramaIDs []int64,
+) (domain.Placement, error) {
 	if territorySlug == "" {
-		return domain.Placement{}, fmt.Errorf("service.SetPlacementVisibility: %w: empty territory slug", domain.ErrInvalidInput)
+		return domain.Placement{}, fmt.Errorf(
+			"service.SetPlacementVisibility: %w: empty territory slug",
+			domain.ErrInvalidInput,
+		)
 	}
 	if placementID <= 0 {
-		return domain.Placement{}, fmt.Errorf("service.SetPlacementVisibility: %w: placement id is required", domain.ErrInvalidInput)
+		return domain.Placement{}, fmt.Errorf(
+			"service.SetPlacementVisibility: %w: placement id is required",
+			domain.ErrInvalidInput,
+		)
 	}
 
 	if err := c.requirePanoramasOnTerritory(ctx, territorySlug, panoramaIDs); err != nil {

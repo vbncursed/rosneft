@@ -86,7 +86,10 @@ func (b *builder) addDoc(hash string, h Head) (*instance, error) {
 		return nil, ErrTooLarge
 	}
 	if h.BinLength > 0 {
-		b.segments = append(b.segments, Segment{Hash: hash, Offset: h.BinOffset, Length: h.BinLength, OutOffset: int64(base)})
+		b.segments = append(
+			b.segments,
+			Segment{Hash: hash, Offset: h.BinOffset, Length: h.BinLength, OutOffset: int64(base)},
+		)
 		b.binLen = base + int(h.BinLength)
 	}
 
@@ -124,7 +127,10 @@ func (r *remap) buffers() {
 			continue
 		}
 		r.bufMap[i] = len(r.out.Buffers)
-		r.out.Buffers = append(r.out.Buffers, &gltf.Buffer{ByteLength: buf.ByteLength, Extensions: maps.Clone(buf.Extensions)})
+		r.out.Buffers = append(
+			r.out.Buffers,
+			&gltf.Buffer{ByteLength: buf.ByteLength, Extensions: maps.Clone(buf.Extensions)},
+		)
 	}
 }
 

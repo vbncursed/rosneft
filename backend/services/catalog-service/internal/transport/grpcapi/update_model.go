@@ -7,7 +7,10 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 )
 
-func (s *Server) UpdateModel(ctx context.Context, req *catalogv1.UpdateModelRequest) (*catalogv1.UpdateModelResponse, error) {
+func (s *Server) UpdateModel(
+	ctx context.Context,
+	req *catalogv1.UpdateModelRequest,
+) (*catalogv1.UpdateModelResponse, error) {
 	out, err := s.svc.UpdateModel(ctx, req.GetSlug(), domain.ModelPatch{
 		Title:             req.Title,
 		Description:       req.Description,

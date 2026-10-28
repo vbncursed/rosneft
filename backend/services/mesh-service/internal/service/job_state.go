@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 )
@@ -20,6 +21,17 @@ func (m *Mesh) unlockTarget(ctx context.Context, job domain.Job) {
 	}
 }
 
+// terminalWriteTimeout bounds the terminal (Succeeded or Failed) write made
+// after cancellation.
+const terminalWriteTimeout = 5 * time.Second
+
+// terminalCtx outlives the run's cancellation: SIGTERM cancels ctx while the
+// job runs, and the terminal write must still land or the job stays Running
+// until the reconciler's stale rule reconverts the target.
+func terminalCtx(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.WithoutCancel(ctx), terminalWriteTimeout)
+}
+
 func (m *Mesh) markRunning(ctx context.Context, j *domain.Job) error {
 	// The claim restarts with the run: TargetLockTTL bounds the conversion,
 	// never the time the job waited in the stream.
@@ -33,6 +45,8 @@ func (m *Mesh) markRunning(ctx context.Context, j *domain.Job) error {
 }
 
 func (m *Mesh) markSucceeded(ctx context.Context, j domain.Job) error {
+	ctx, cancel := terminalCtx(ctx)
+	defer cancel()
 	j.Status = domain.JobStatusSucceeded
 	j.ErrorMessage = ""
 	j.FailedOnSource = false
@@ -43,6 +57,8 @@ func (m *Mesh) markSucceeded(ctx context.Context, j domain.Job) error {
 // it (domain.ErrBadSource in the chain), which is what the reconciler reads to
 // decide between retrying the target and leaving it alone.
 func (m *Mesh) markFailed(ctx context.Context, j domain.Job, cause error) error {
+	ctx, cancel := terminalCtx(ctx)
+	defer cancel()
 	j.Status = domain.JobStatusFailed
 	j.ErrorMessage = cause.Error()
 	j.FailedOnSource = errors.Is(cause, domain.ErrBadSource)

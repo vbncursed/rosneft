@@ -12,7 +12,13 @@ import (
 // machinery Freeze and SoftDelete do, but a scoped administrator (users:write
 // without users:read_all or IsOwner) must not be able to strip a TOTP
 // requirement Root imposed on them.
-func (s *Service) SetTOTPRequired(ctx context.Context, actorID string, scopeAll bool, id string, required bool) (domain.User, error) {
+func (s *Service) SetTOTPRequired(
+	ctx context.Context,
+	actorID string,
+	scopeAll bool,
+	id string,
+	required bool,
+) (domain.User, error) {
 	if _, err := s.ownership(ctx, actorID, scopeAll, id); err != nil {
 		return domain.User{}, err
 	}

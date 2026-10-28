@@ -186,7 +186,11 @@ func writeZipEntry(f *zip.File, dst string, limit int64) (int64, error) {
 	}
 	defer func() { _ = rc.Close() }()
 
-	w, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600) //nolint:gosec // G304: dst is dir joined with an entry name that passed the filepath.IsLocal check in extractZip
+	w, err := os.OpenFile( //nolint:gosec // G304: dst is dir joined with an entry name that passed the filepath.IsLocal check in extractZip
+		dst,
+		os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
+		0o600,
+	)
 	if err != nil {
 		return 0, err
 	}

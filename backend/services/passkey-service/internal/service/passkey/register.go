@@ -36,7 +36,10 @@ func (s *Service) BeginRegistration(ctx context.Context, userID, displayName str
 }
 
 // FinishRegistration verifies the attestation and persists the credential.
-func (s *Service) FinishRegistration(ctx context.Context, userID, flowID, credentialJSON, name string) (domain.Credential, error) {
+func (s *Service) FinishRegistration(
+	ctx context.Context,
+	userID, flowID, credentialJSON, name string,
+) (domain.Credential, error) {
 	st, err := s.ceremonies.Take(ctx, flowID)
 	if err != nil {
 		return domain.Credential{}, err

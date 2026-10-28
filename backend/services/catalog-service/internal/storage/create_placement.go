@@ -69,7 +69,13 @@ func createPlacementError(op string, err error) error {
 // maps a refusal onto the domain (see missingSide, placementRefusal). A
 // non-empty key stamps the row as item index of that keyed batch; an empty one
 // leaves both columns NULL.
-func insertPlacement(ctx context.Context, tx pgx.Tx, p domain.Placement, key string, index int) (domain.Placement, error) {
+func insertPlacement(
+	ctx context.Context,
+	tx pgx.Tx,
+	p domain.Placement,
+	key string,
+	index int,
+) (domain.Placement, error) {
 	out, err := scanPlacement(tx.QueryRow(ctx, createPlacementQuery,
 		p.TerritorySlug, p.ModelSlug,
 		p.Position.X, p.Position.Y, p.Position.Z,
@@ -107,7 +113,10 @@ func placementRefusal(err error) error {
 	if isGroupFKViolation(err) {
 		return domain.ErrPlacementGroupNotFound
 	}
-	if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == "23514" && pgErr.ConstraintName == "placements_scale_positive" {
+	if pgErr, ok := errors.AsType[*pgconn.PgError](
+		err,
+	); ok && pgErr.Code == "23514" &&
+		pgErr.ConstraintName == "placements_scale_positive" {
 		return fmt.Errorf("%w: scale must be positive", domain.ErrInvalidInput)
 	}
 	return err

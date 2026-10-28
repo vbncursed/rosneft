@@ -15,13 +15,19 @@ import (
 // and must otherwise be one of the three.
 func (c *Content) CreatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error) {
 	if p.TerritorySlug == "" {
-		return domain.Panorama{}, fmt.Errorf("service.CreatePanorama: %w: territory_slug is required", domain.ErrInvalidInput)
+		return domain.Panorama{}, fmt.Errorf(
+			"service.CreatePanorama: %w: territory_slug is required",
+			domain.ErrInvalidInput,
+		)
 	}
 	if p.Title == "" {
 		return domain.Panorama{}, fmt.Errorf("service.CreatePanorama: %w: title is required", domain.ErrInvalidInput)
 	}
 	if p.SourceBlobHash == "" {
-		return domain.Panorama{}, fmt.Errorf("service.CreatePanorama: %w: source_blob_hash is required", domain.ErrInvalidInput)
+		return domain.Panorama{}, fmt.Errorf(
+			"service.CreatePanorama: %w: source_blob_hash is required",
+			domain.ErrInvalidInput,
+		)
 	}
 	if p.Phase == "" {
 		p.Phase = domain.PhasePrior

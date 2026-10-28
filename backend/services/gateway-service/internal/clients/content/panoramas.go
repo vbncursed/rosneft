@@ -34,7 +34,10 @@ func (c *Client) CreatePanorama(ctx context.Context, p domain.Panorama) (domain.
 		Phase:          p.Phase,
 	})
 	if err != nil {
-		return domain.Panorama{}, fmt.Errorf("content.CreatePanorama: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
+		return domain.Panorama{}, fmt.Errorf(
+			"content.CreatePanorama: %w",
+			grpcerr.MapStatus(err, domain.ErrTerritoryNotFound),
+		)
 	}
 	return panoramaFromProto(resp.GetPanorama()), nil
 }
@@ -50,7 +53,10 @@ func (c *Client) UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.
 		DefaultYaw:    p.DefaultYaw,
 	})
 	if err != nil {
-		return domain.Panorama{}, fmt.Errorf("content.UpdatePanorama: %w", grpcerr.MapStatus(err, domain.ErrPanoramaNotFound))
+		return domain.Panorama{}, fmt.Errorf(
+			"content.UpdatePanorama: %w",
+			grpcerr.MapStatus(err, domain.ErrPanoramaNotFound),
+		)
 	}
 	return panoramaFromProto(resp.GetPanorama()), nil
 }

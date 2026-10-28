@@ -78,7 +78,11 @@ func (f *FS) Put(ctx context.Context, hash, contentType string, r io.Reader) (Bl
 	}
 
 	tmp := data + ".tmp"
-	out, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600) //nolint:gosec // G304: tmp is data+".tmp", and data comes from paths(), whose hash passed validateHash (hex only)
+	out, err := os.OpenFile( //nolint:gosec // G304: tmp is data+".tmp", and data comes from paths(), whose hash passed validateHash (hex only)
+		tmp,
+		os.O_WRONLY|os.O_CREATE|os.O_TRUNC,
+		0o600,
+	)
 	if err != nil {
 		return Blob{}, fmt.Errorf("blobstore: create tmp: %w", err)
 	}
@@ -136,7 +140,9 @@ func (f *FS) Stat(ctx context.Context, hash string) (Blob, error) {
 	if err != nil {
 		return Blob{}, err
 	}
-	b, err := os.ReadFile(meta) //nolint:gosec // G304: meta comes from paths(), whose hash passed validateHash (hex only)
+	b, err := os.ReadFile( //nolint:gosec // G304: meta comes from paths(), whose hash passed validateHash (hex only)
+		meta,
+	)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return Blob{}, ErrNotFound

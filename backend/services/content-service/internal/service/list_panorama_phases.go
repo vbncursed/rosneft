@@ -9,7 +9,10 @@ import (
 
 // ListPanoramaPhases returns the three phases of a territory, prior → current
 // → post, with their shared hidden flags.
-func (c *Content) ListPanoramaPhases(ctx context.Context, territorySlug string) ([]domain.PanoramaPhaseVisibility, error) {
+func (c *Content) ListPanoramaPhases(
+	ctx context.Context,
+	territorySlug string,
+) ([]domain.PanoramaPhaseVisibility, error) {
 	if territorySlug == "" {
 		return nil, fmt.Errorf("service.ListPanoramaPhases: %w: empty territory slug", domain.ErrInvalidInput)
 	}

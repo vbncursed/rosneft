@@ -19,7 +19,12 @@ func (c *Client) SetPanoramasHidden(ctx context.Context, territorySlug string, i
 		TerritorySlug: territorySlug, Ids: ids, Hidden: hidden,
 	})
 	if err != nil {
-		return 0, grpcerr.Refused("content.SetPanoramasHidden", err, domain.ErrPanoramaNotFound, domain.ErrTerritoryNotFound)
+		return 0, grpcerr.Refused(
+			"content.SetPanoramasHidden",
+			err,
+			domain.ErrPanoramaNotFound,
+			domain.ErrTerritoryNotFound,
+		)
 	}
 	return int(resp.GetUpdated()), nil
 }
@@ -31,18 +36,32 @@ func (c *Client) SetPanoramasPhase(ctx context.Context, territorySlug string, id
 		TerritorySlug: territorySlug, Ids: ids, Phase: phase,
 	})
 	if err != nil {
-		return 0, grpcerr.Refused("content.SetPanoramasPhase", err, domain.ErrPanoramaNotFound, domain.ErrTerritoryNotFound)
+		return 0, grpcerr.Refused(
+			"content.SetPanoramasPhase",
+			err,
+			domain.ErrPanoramaNotFound,
+			domain.ErrTerritoryNotFound,
+		)
 	}
 	return int(resp.GetUpdated()), nil
 }
 
 // SetPanoramaPhaseHidden sets one phase's shared hidden flag on territorySlug.
-func (c *Client) SetPanoramaPhaseHidden(ctx context.Context, territorySlug, phase string, hidden bool) (domain.PanoramaPhase, error) {
+func (c *Client) SetPanoramaPhaseHidden(
+	ctx context.Context,
+	territorySlug, phase string,
+	hidden bool,
+) (domain.PanoramaPhase, error) {
 	resp, err := c.cc.SetPanoramaPhaseHidden(ctx, &contentv1.SetPanoramaPhaseHiddenRequest{
 		TerritorySlug: territorySlug, Phase: phase, Hidden: hidden,
 	})
 	if err != nil {
-		return domain.PanoramaPhase{}, grpcerr.Refused("content.SetPanoramaPhaseHidden", err, domain.ErrPanoramaNotFound, domain.ErrTerritoryNotFound)
+		return domain.PanoramaPhase{}, grpcerr.Refused(
+			"content.SetPanoramaPhaseHidden",
+			err,
+			domain.ErrPanoramaNotFound,
+			domain.ErrTerritoryNotFound,
+		)
 	}
 	return panoramaPhaseFromProto(resp.GetPhase()), nil
 }

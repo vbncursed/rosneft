@@ -33,7 +33,9 @@ func (c *Converter) convertRaw(ctx context.Context, root, sourcePath string) (ra
 	if err := ctx.Err(); err != nil {
 		return rawGLB{}, err
 	}
-	f, err := os.Open(sourcePath) //nolint:gosec // G304: sourcePath is the OBJ the service found inside its own extraction directory
+	f, err := os.Open( //nolint:gosec // G304: sourcePath is the OBJ the service found inside its own extraction directory
+		sourcePath,
+	)
 	if err != nil {
 		return rawGLB{}, fmt.Errorf("converter: open %q: %w", sourcePath, err)
 	}

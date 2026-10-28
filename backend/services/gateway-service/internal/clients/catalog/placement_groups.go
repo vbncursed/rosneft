@@ -26,7 +26,12 @@ func (c *Client) SetPlacementsHidden(ctx context.Context, territorySlug string, 
 
 // SetPlacementsGroup moves every placement in ids on territorySlug into
 // groupID, or out of any group when it is nil, all or none.
-func (c *Client) SetPlacementsGroup(ctx context.Context, territorySlug string, ids []int64, groupID *int64) (int, error) {
+func (c *Client) SetPlacementsGroup(
+	ctx context.Context,
+	territorySlug string,
+	ids []int64,
+	groupID *int64,
+) (int, error) {
 	resp, err := c.cc.SetPlacementsGroup(ctx, &catalogv1.SetPlacementsGroupRequest{
 		TerritorySlug: territorySlug, Ids: ids, GroupId: groupID,
 	})
@@ -66,7 +71,12 @@ func (c *Client) CreatePlacementGroup(ctx context.Context, territorySlug, title 
 }
 
 // RenamePlacementGroup retitles group id on territorySlug.
-func (c *Client) RenamePlacementGroup(ctx context.Context, territorySlug string, id int64, title string) (domain.PlacementGroup, error) {
+func (c *Client) RenamePlacementGroup(
+	ctx context.Context,
+	territorySlug string,
+	id int64,
+	title string,
+) (domain.PlacementGroup, error) {
 	resp, err := c.cc.RenamePlacementGroup(ctx, &catalogv1.RenamePlacementGroupRequest{
 		TerritorySlug: territorySlug, Id: id, Title: title,
 	})
@@ -78,7 +88,12 @@ func (c *Client) RenamePlacementGroup(ctx context.Context, territorySlug string,
 
 // SetPlacementGroupHidden sets group id's own shared hidden flag on
 // territorySlug; its placements keep theirs.
-func (c *Client) SetPlacementGroupHidden(ctx context.Context, territorySlug string, id int64, hidden bool) (domain.PlacementGroup, error) {
+func (c *Client) SetPlacementGroupHidden(
+	ctx context.Context,
+	territorySlug string,
+	id int64,
+	hidden bool,
+) (domain.PlacementGroup, error) {
 	resp, err := c.cc.SetPlacementGroupHidden(ctx, &catalogv1.SetPlacementGroupHiddenRequest{
 		TerritorySlug: territorySlug, Id: id, Hidden: hidden,
 	})
@@ -90,7 +105,10 @@ func (c *Client) SetPlacementGroupHidden(ctx context.Context, territorySlug stri
 
 // DeletePlacementGroup removes group id on territorySlug; its placements stay.
 func (c *Client) DeletePlacementGroup(ctx context.Context, territorySlug string, id int64) error {
-	_, err := c.cc.DeletePlacementGroup(ctx, &catalogv1.DeletePlacementGroupRequest{TerritorySlug: territorySlug, Id: id})
+	_, err := c.cc.DeletePlacementGroup(
+		ctx,
+		&catalogv1.DeletePlacementGroupRequest{TerritorySlug: territorySlug, Id: id},
+	)
 	if err != nil {
 		return editRefusal("catalog.DeletePlacementGroup", err)
 	}

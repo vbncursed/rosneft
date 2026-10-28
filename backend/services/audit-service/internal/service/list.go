@@ -36,7 +36,10 @@ const (
 // COUNT on every tick would be paid for by nobody.
 func (s *Service) List(ctx context.Context, f domain.Filter) (domain.Page, error) {
 	if !f.AllCompanies && f.CompanyID == "" {
-		return domain.Page{}, fmt.Errorf("audit.List: %w: company id required for a scoped read", domain.ErrInvalidInput)
+		return domain.Page{}, fmt.Errorf(
+			"audit.List: %w: company id required for a scoped read",
+			domain.ErrInvalidInput,
+		)
 	}
 	if f.ActorID != "" {
 		if _, err := uuid.Parse(f.ActorID); err != nil {

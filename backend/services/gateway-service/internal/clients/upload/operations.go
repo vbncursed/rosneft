@@ -76,7 +76,10 @@ func sendChunks(stream uploadv1.UploadService_WriteChunkClient, id string, offse
 func (c *Client) GetStatus(ctx context.Context, id string) (domain.UploadSession, error) {
 	resp, err := c.cc.GetStatus(ctx, &uploadv1.GetStatusRequest{UploadId: id})
 	if err != nil {
-		return domain.UploadSession{}, fmt.Errorf("upload.GetStatus: %w", grpcerr.MapStatus(err, domain.ErrUploadNotFound))
+		return domain.UploadSession{}, fmt.Errorf(
+			"upload.GetStatus: %w",
+			grpcerr.MapStatus(err, domain.ErrUploadNotFound),
+		)
 	}
 	return domain.UploadSession{ID: id, Size: resp.GetSize(), Offset: resp.GetOffset()}, nil
 }
@@ -85,7 +88,10 @@ func (c *Client) GetStatus(ctx context.Context, id string) (domain.UploadSession
 func (c *Client) Finalize(ctx context.Context, id string) (domain.FinalizedBlob, error) {
 	resp, err := c.cc.Finalize(ctx, &uploadv1.FinalizeRequest{UploadId: id})
 	if err != nil {
-		return domain.FinalizedBlob{}, fmt.Errorf("upload.Finalize: %w", grpcerr.MapStatus(err, domain.ErrUploadNotFound))
+		return domain.FinalizedBlob{}, fmt.Errorf(
+			"upload.Finalize: %w",
+			grpcerr.MapStatus(err, domain.ErrUploadNotFound),
+		)
 	}
 	return domain.FinalizedBlob{Hash: resp.GetBlobHash(), Size: resp.GetSize()}, nil
 }

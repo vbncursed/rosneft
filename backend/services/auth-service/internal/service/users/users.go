@@ -15,7 +15,12 @@ import (
 type Store interface {
 	Create(ctx context.Context, u domain.User) (domain.User, error)
 	GetByID(ctx context.Context, id string) (domain.User, error)
-	List(ctx context.Context, status string, includeDeleted bool, ownerID, hidePrivilegedExcept string) ([]domain.User, error)
+	List(
+		ctx context.Context,
+		status string,
+		includeDeleted bool,
+		ownerID, hidePrivilegedExcept string,
+	) ([]domain.User, error)
 	SetStatus(ctx context.Context, id, status string, deletedAt *time.Time) (domain.User, error)
 	SetRoles(ctx context.Context, id string, roleSlugs []string) (domain.User, error)
 	SetOwner(ctx context.Context, id string, isOwner bool) (domain.User, error)
