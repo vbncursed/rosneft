@@ -137,7 +137,7 @@ for m in pkg proto services/*; do (cd $m && GOWORK=off go list -m -u \
 
 | Module | Version | Used by | Role |
 | --- | --- | --- | --- |
-| `google.golang.org/grpc` | v1.84.0 | all | Service-to-service transport |
+| `google.golang.org/grpc` | v1.85.0 | all | Service-to-service transport |
 | `google.golang.org/protobuf` | v1.36.12 | proto, auth, catalog, content, mesh | Generated message runtime |
 | `github.com/spf13/cobra` | v1.10.2 | all services | CLI root command |
 | `github.com/spf13/viper` | v1.21.0 | all services | Layered config (flag > env > default) |
@@ -155,7 +155,7 @@ for m in pkg proto services/*; do (cd $m && GOWORK=off go list -m -u \
 | --- | --- |
 | `pkg` | — (grpc + prometheus + test libs only) |
 | `proto` | — (grpc + protobuf only) |
-| `gateway-service` | `andybalholm/brotli` v1.2.5 · `getkin/kin-openapi` v0.151.0 · `go-chi/chi/v5` v5.5.0 · `go-chi/cors` v1.2.2 · `oapi-codegen/runtime` v1.7.0 · `samber/slog-chi` v1.19.1 · `golang.org/x/sync` v0.24.0 |
+| `gateway-service` | `andybalholm/brotli` v1.2.7 · `getkin/kin-openapi` v0.152.0 · `go-chi/chi/v5` v5.5.0 · `go-chi/cors` v1.2.2 · `oapi-codegen/runtime` v1.8.0 · `samber/slog-chi` v1.19.1 · `golang.org/x/sync` v0.24.0 |
 | `catalog-service` | — |
 | `content-service` | — |
 | `auth-service` | `golang.org/x/crypto` v0.58.0 (argon2id) |
@@ -190,8 +190,9 @@ workspace off. `make -C backend check` is green on all 12 modules.
 | `golang.org/x/crypto` / `x/sync` / `x/image` | 0.57.0 → **0.58.0** / 0.23.0 → **0.24.0** / 0.46.0 → **0.47.0** | |
 | OpenAPI spec | 3.0.3 → **3.2.0** | `api/openapi.yaml`. 3.1+ has no `nullable`: the seven uses became `type: [T, "null"]`. Changing the version line alone makes oapi-codegen drop the pointer silently (`groupId` turned from `*int64` into `int64`); with the type lists the regenerated stubs differ only in comments. `spec_test.go` pins the version and the null type on `/openapi.json` |
 
-golangci-lint 2.14.0, buf 1.73.0, oapi-codegen 2.8.0, minimock 3.4.7 and the
-protoc plugins were already the latest releases; govulncheck is unpinned.
+golangci-lint 2.15.0 (CI pin), buf 1.74.0, oapi-codegen 2.8.1, minimock 3.4.7 and the
+protoc plugins (BSR remote, protoc-gen-go 1.36.12) are the latest releases; govulncheck is unpinned.
+Go 1.27.3 is the newest stable toolchain.
 Dependencies were upgraded by name per module, as in the 2026-09-29 section
 below, this time with every `Require` entry of `go.mod` at `@latest`, indirect
 ones included.
