@@ -9,12 +9,15 @@ import (
 
 // rescaleAfterConvert keeps a territory's existing placements, measurements
 // and panoramas 1:1 with a freshly converted replacement mesh, passing LOD0's
-// source-bbox max axis and center. It runs BEFORE the artifacts are
-// published so that any failure leaves LOD0 absent and the reconciler re-runs
-// the whole job — recovery that would not happen if the rescale ran after the
-// mesh landed (the reconciler only re-queues entities missing LOD0). Models
-// carry no placements, so it is a no-op for them; the catalog likewise no-ops
-// when no rescale baseline is pending.
+// source-bbox max axis and center. It runs right AFTER LOD0 is registered
+// (and before the other LODs): rescaling first left placements moved for a mesh
+// that never got published when the blob put or registration failed. Now a
+// failed publish leaves the placements on the old mesh's scale, and a failure
+// or worker death after it is retried by the reconciler
+// (ReconcileMissingArtifacts, failed or abandoned jobs on a converted target). The retry is safe: the
+// catalog applies a pending baseline once and clears it, so a repeat call is
+// its documented no-op. Models carry no placements, so it is a no-op for
+// them.
 func (m *Mesh) rescaleAfterConvert(ctx context.Context, kind domain.Kind, slug string, results []domain.ConversionResult) error {
 	if kind != domain.KindTerritory || len(results) == 0 {
 		return nil

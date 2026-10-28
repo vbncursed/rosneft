@@ -284,3 +284,124 @@ func (s *ReconcileSuite) TestStillSubmitsWhenTheIndexReadFails() {
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), n, 1)
 }
+
+// A replace-source job that failed after the old artifacts were published
+// (or before the new ones were) leaves HasLOD0 true; the target is retried
+// once the failure is BackfillRetryAfter old, unless the input caused it or
+// it was a hidden backfill.
+func (s *ReconcileSuite) TestRetriesConvertedTargetWhoseReplaceJobFailed() {
+	old := time.Now().Add(-service.BackfillRetryAfter)
+	tests := []struct {
+		name string
+		job  domain.Job
+		want int
+	}{
+		{"infrastructure failure", domain.Job{UpdatedAt: old}, 1},
+		{"just failed", domain.Job{UpdatedAt: time.Now()}, 0},
+		{"input failure", domain.Job{UpdatedAt: old, FailedOnSource: true}, 0},
+		{"failed backfill", domain.Job{UpdatedAt: old, Backfill: true}, 0},
+	}
+	for _, tc := range tests {
+		s.Run(tc.name, func() {
+			mc := minimock.NewController(s.T())
+			s.queue, s.catalog = mocks.NewQueueMock(mc), mocks.NewCatalogMock(mc)
+			s.svc = service.New(service.Config{Queue: s.queue, Catalog: s.catalog, Blobs: mocks.NewBlobStoreMock(mc), IDGen: func() string { return "id" }})
+			s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"}}, nil)
+			s.catalog.HasLOD0Mock.Return(true, true, nil)
+			s.queue.TryLockTargetMock.Optional().Return(true, nil)
+			s.queue.SaveJobMock.Optional().Return(nil)
+			s.queue.EnqueueJobMock.Optional().Return(nil)
+			s.queue.GetJobMock.Optional().Return(domain.Job{}, nil)
+			tc.job.ID, tc.job.Kind, tc.job.Slug, tc.job.Status = "j1", domain.KindTerritory, "t1", domain.JobStatusFailed
+			s.queue.ListTargetJobsMock.Return([]domain.Job{tc.job}, nil)
+
+			n, err := s.svc.ReconcileMissingArtifacts(s.ctx)
+
+			assert.NilError(s.T(), err)
+			assert.Equal(s.T(), n, tc.want)
+		})
+	}
+}
+
+// A worker killed after LOD0 was registered (before the rescale, or before the
+// terminal write) leaves its job Running forever. Once its last write is older
+// than TargetLockTTL the worker is gone and the target is queued again; a
+// fresh Running job is alive and must not be run twice.
+func (s *ReconcileSuite) TestRetriesConvertedTargetWhoseRunningJobWasAbandoned() {
+	tests := []struct {
+		name      string
+		updatedAt time.Time
+		locked    bool
+		want      int
+		submits   int // TryLockTarget calls: a live job must not even reach submit
+	}{
+		{"stale running job, claim lapsed", time.Now().Add(-service.TargetLockTTL - time.Minute), true, 1, 1},
+		{"stale running job, claim still held", time.Now().Add(-service.TargetLockTTL - time.Minute), false, 0, 1},
+		{"progressing running job, claim held", time.Now().Add(-time.Minute), false, 0, 0},
+	}
+	for _, tc := range tests {
+		s.Run(tc.name, func() {
+			mc := minimock.NewController(s.T())
+			s.queue, s.catalog = mocks.NewQueueMock(mc), mocks.NewCatalogMock(mc)
+			s.svc = service.New(service.Config{Queue: s.queue, Catalog: s.catalog, Blobs: mocks.NewBlobStoreMock(mc), IDGen: func() string { return "id" }})
+			s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"}}, nil)
+			s.catalog.HasLOD0Mock.Return(true, true, nil)
+			s.queue.TryLockTargetMock.Optional().Return(tc.locked, nil)
+			s.queue.SaveJobMock.Optional().Return(nil)
+			s.queue.EnqueueJobMock.Optional().Return(nil)
+			s.queue.GetJobMock.Optional().Return(domain.Job{}, nil)
+			s.queue.ListTargetJobsMock.Return([]domain.Job{{
+				ID: "j1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusRunning, UpdatedAt: tc.updatedAt,
+			}}, nil)
+
+			n, err := s.svc.ReconcileMissingArtifacts(s.ctx)
+
+			assert.NilError(s.T(), err)
+			assert.Equal(s.T(), n, tc.want)
+			assert.Equal(s.T(), len(s.queue.TryLockTargetMock.Calls()), tc.submits)
+		})
+	}
+}
+
+// Like the plain-copy backfill, the failed-replace retry goes one target per
+// pass and only while no other job is live: a catalog-wide outage must not
+// requeue every converted target at once.
+func (s *ReconcileSuite) TestFailedReplaceRetriesGoOnePerPassOnAnIdleWorker() {
+	old := time.Now().Add(-service.BackfillRetryAfter)
+	failed := func(slug string) domain.Job {
+		return domain.Job{ID: "j-" + slug, Kind: domain.KindTerritory, Slug: slug, Status: domain.JobStatusFailed, UpdatedAt: old}
+	}
+	tests := []struct {
+		name string
+		jobs []domain.Job
+		want int
+	}{
+		{"three failed, one per pass", []domain.Job{failed("a"), failed("b"), failed("c")}, 1},
+		{"another job is live", []domain.Job{failed("a"), {
+			ID: "j-b", Kind: domain.KindTerritory, Slug: "b", Status: domain.JobStatusPending, CreatedAt: time.Now(),
+		}}, 0},
+	}
+	for _, tc := range tests {
+		s.Run(tc.name, func() {
+			mc := minimock.NewController(s.T())
+			s.queue, s.catalog = mocks.NewQueueMock(mc), mocks.NewCatalogMock(mc)
+			s.svc = service.New(service.Config{Queue: s.queue, Catalog: s.catalog, Blobs: mocks.NewBlobStoreMock(mc), IDGen: func() string { return "id" }})
+			var targets []domain.ConversionTarget
+			for _, j := range tc.jobs {
+				targets = append(targets, domain.ConversionTarget{Kind: j.Kind, Slug: j.Slug, SourceBlobHash: "h"})
+			}
+			s.catalog.ListTargetsMock.Return(targets, nil)
+			s.catalog.HasLOD0Mock.Return(true, true, nil)
+			s.queue.TryLockTargetMock.Optional().Return(true, nil)
+			s.queue.SaveJobMock.Optional().Return(nil)
+			s.queue.EnqueueJobMock.Optional().Return(nil)
+			s.queue.GetJobMock.Optional().Return(domain.Job{}, nil)
+			s.queue.ListTargetJobsMock.Return(tc.jobs, nil)
+
+			n, err := s.svc.ReconcileMissingArtifacts(s.ctx)
+
+			assert.NilError(s.T(), err)
+			assert.Equal(s.T(), n, tc.want)
+		})
+	}
+}
