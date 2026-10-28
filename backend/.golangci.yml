@@ -105,6 +105,17 @@ formatters:
   enable:
     - gofumpt
     - goimports
+    - golines
+
+  settings:
+    golines:
+      # Same width as the frontend and desktop (oxfmt printWidth 120).
+      max-len: 120
+      tab-len: 4
+      # Comments are prose; wrapping them mid-sentence is not safe.
+      shorten-comments: false
+      # Struct tags stay exactly as written.
+      reformat-tags: false
 
 issues:
   max-issues-per-linter: 0
