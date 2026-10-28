@@ -402,6 +402,45 @@ describe("createHandler isolation", () => {
     expect(await h.store.readSnapshot(B, "/api/auth/me")).not.toBeNull();
   });
 
+  it("a stale 401 on /api/auth/me, answered after the login reset, does not clear the user learned since", async () => {
+    let releaseStale: (r: Response) => void = noop;
+    let meCalls = 0;
+    const h = await harness((r) => {
+      const p = new URL(r.url).pathname;
+      if (p === "/api/auth/login") return Promise.resolve(new Response("{}"));
+      return ++meCalls === 1 ? new Promise<Response>((res) => (releaseStale = res)) : Promise.resolve(me(B));
+    });
+    const stale = h.handle(req("/api/auth/me"));
+    await vi.waitFor(() => expect(h.net).toHaveBeenCalledTimes(1));
+    await (await h.handle(req("/api/auth/login", { method: "POST", body: "{}" }))).text();
+    await (await h.handle(req("/api/auth/me"))).text();
+    expect(h.settings.value.userId).toBe(B);
+    releaseStale(new Response("{}", { status: 401 }));
+    expect((await stale).status).toBe(401);
+    expect(h.settings.value.userId).toBe(B);
+  });
+
+  it("a login answered after a /me that carried the new cookie clears the user, and the next /me learns it again", async () => {
+    let releaseLogin: (r: Response) => void = noop;
+    const h = await harness(
+      (r) =>
+        new URL(r.url).pathname === "/api/auth/login"
+          ? new Promise<Response>((res) => (releaseLogin = res))
+          : Promise.resolve(me(B)),
+      null,
+    );
+    const login = h.handle(req("/api/auth/login", { method: "POST", body: "{}" }));
+    await vi.waitFor(() => expect(h.net).toHaveBeenCalledTimes(1));
+    await (await h.handle(req("/api/auth/me"))).text();
+    expect(h.settings.value.userId).toBe(B);
+    releaseLogin(new Response("{}"));
+    await (await login).text();
+    expect(h.settings.value.userId).toBeNull();
+    await (await h.handle(req("/api/auth/me"))).text();
+    expect(h.settings.value.userId).toBe(B);
+    expect(await h.store.readSnapshot(B, "/api/auth/me")).not.toBeNull();
+  });
+
   it("a 401 on /api/auth/me ends the session: cached blobs are no longer served, saves are cancelled", async () => {
     const hash = sha("A's model");
     const h = await harness(async (r) =>
