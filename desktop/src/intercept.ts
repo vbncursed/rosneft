@@ -44,7 +44,7 @@ export function fileResponse(file: string, size: number, type: string, range: st
 
 export function createHandler(d: InterceptDeps): (req: Request) => Promise<Response> {
   let online: boolean | null = null;
-  // Bumped when a session reset starts and again when its answer arrives: a /me in flight anywhere in that window belongs to the old session.
+  // Bumped (and the user cleared) when a session reset starts and again when its answer arrives: a /me in flight anywhere in that window belongs to the old session, and one answered inside it must not leave its user learned.
   let epoch = 0;
   const seen = (now: boolean) => {
     if (now === online) return;
@@ -99,7 +99,7 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
     let res: Response;
     try {
       res = await d.network(req);
-      if (route.kind === "session-reset") epoch += 1;
+      if (route.kind === "session-reset") await endSession();
       if (gateway && serverUnreachable(res.status)) {
         // A dead backend is offline whichever route asked; a saved copy, where the route has one, replaces its answer.
         seen(false);
@@ -111,7 +111,7 @@ export function createHandler(d: InterceptDeps): (req: Request) => Promise<Respo
         }
       } else if (gateway) seen(true);
     } catch {
-      if (route.kind === "session-reset") epoch += 1;
+      if (route.kind === "session-reset") await endSession();
       // A request the page itself cancelled says nothing about the network.
       if (req.signal.aborted) return Response.error();
       if (gateway) seen(false);
