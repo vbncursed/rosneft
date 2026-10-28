@@ -11,7 +11,7 @@ kept **separate on purpose**:
 1. `andrey-<stamp>.sql.gz` — `pg_dump` of the `andrey` Postgres database.
 2. `audit-digest-<stamp>.tar.gz` — the contents of the `audit-digest` volume
    (`digests.jsonl`, the witness to the audit journal's checkpoint chain).
-   It travels in its own archive: bundling it with the SQL dump would give the
+   Archived *before* the dump so it is never newer than it. It travels in its own archive: bundling it with the SQL dump would give the
    witness and the thing it witnesses a shared fate, which defeats the reason
    it lives on a separate volume in the first place.
 3. `blobs/<hash>.bin` + `blobs/<hash>.json` — the **source** blobs referenced
@@ -154,34 +154,34 @@ dump restores cleanly into a coherent, internally consistent database — not
 that the numbers freeze to the row between two points in time twelve hours
 apart.
 
-### 5. Audit chain verification against the pulled witness
+### 5. Audit chain verification against the witness archive of the SAME run
 
-Per `services/audit-service/README.md#verifying`, not written from memory:
+Verify against the `audit-digest-<stamp>.tar.gz` that sits beside the dump
+(same `<stamp>`), unpacked to `<scratch>`, **not** against the live
+`audit-digest` volume. `dump.sh` archives the witness *before* `pg_dump`, so
+the archive is never newer than the dump. The live volume keeps growing: it is
+newer than any restored dump, names checkpoints the dump lacks, and `audit
+verify` fails that on purpose (`tail removed`, exit 1) because it cannot tell
+a backup that is simply older from a journal whose tail was cut.
 
 ```
+$ tar xzf audit-digest-<stamp>.tar.gz -C <scratch>
 $ docker run --rm --network container:restore-test-task12 \
     -v <scratch>:/d:ro \
     andrey-audit:latest verify \
     --db-dsn "postgres://andrey:x@127.0.0.1:5432/andrey?sslmode=disable" \
     --digest-file /d/digests.jsonl \
     --auto-migrate=false
-
-{"level":"INFO","msg":"audit: witness loaded","path":"/d/digests.jsonl","lines":1479}
-{"level":"INFO","msg":"audit: verification passed","checkpoints":1333}
-$ echo $?
-0
 ```
 
-**Passed.** 1333 checkpoints recomputed from the restored database's
-`audit_checkpoint` rows all matched the corresponding line in the witness
-file pulled fresh from the `audit-digest` volume. The remaining 146 witness
-lines (1479 total pulled vs. 1333 checked) cover checkpoints sealed *after*
-the dump was taken — `Verify` looks up the witness by the checkpoint id it
-found in the restored database, so those later lines are simply never
-consulted. Per the service's own doc comment, a checkpoint the witness
-hasn't recorded — or, symmetrically here, a witness entry with no matching
-checkpoint in an older dump — is not a failure: the two only need to agree on
-the range they both cover, and they did, byte for byte, for all 1333 of them.
+Expect `audit: verification passed` and exit 0. A witness older than the
+database is fine (checkpoints the witness has not seen are not a failure).
+
+**The 2026-08-03 drill predates this rule.** It verified a dump against a
+witness pulled live 12.5 hours later (1479 lines vs 1333 checkpoints) and
+passed; the same pair now fails with `tail removed` at id 1334. Its
+mechanics (restore, counts) stand; for the verify step use the paired archive
+as above.
 
 Total time from container start to a passing `audit verify`: under 5 seconds
 of actual work (2s container readiness + 1s SQL restore + ~0.2s verify);

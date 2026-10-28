@@ -31,6 +31,11 @@ func ReadFile(path string) (map[int64]string, error) {
 		if err := json.Unmarshal(sc.Bytes(), &l); err != nil {
 			return nil, fmt.Errorf("digest.ReadFile %s: line %d: %w", path, n, err)
 		}
+		// An id-less line decodes as checkpoint 0, which Verify would report as a
+		// cut tail; a witness line naming no checkpoint or digest proves nothing.
+		if l.ID <= 0 || l.Digest == "" {
+			return nil, fmt.Errorf("digest.ReadFile %s: line %d: needs a positive id and a digest", path, n)
+		}
 		out[l.ID] = l.Digest
 	}
 	if err := sc.Err(); err != nil {

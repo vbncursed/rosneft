@@ -41,7 +41,7 @@ set -euo pipefail
 
 if [[ "\$1" == "exec" && "\$2" == "andrey-postgres-1" ]]; then
   case "\$3" in
-    pg_dump) exec bash -c "\$PG_DUMP_STUB" ;;
+    pg_dump) echo pg_dump >> "\${ORDER_LOG:-/dev/null}"; exec bash -c "\$PG_DUMP_STUB" ;;
     # Default (PSQL_STUB_OUTPUT unset) prints nothing: source-hashes file ends
     # up empty, blob loop is a no-op — sections 1 and 2 rely on that. Section
     # 3 sets PSQL_STUB_OUTPUT to exercise the blob loop for real.
@@ -53,7 +53,7 @@ if [[ "\$1" == "run" ]]; then
   args=()
   for a in "\$@"; do
     case "\$a" in
-      andrey_audit-digest:*) a="$FIXTURES/audit-digest:\${a#*:}" ;;
+      andrey_audit-digest:*) echo witness >> "\${ORDER_LOG:-/dev/null}"; a="$FIXTURES/audit-digest:\${a#*:}" ;;
       andrey_blob-data:*)    a="$FIXTURES/blob-data:\${a#*:}" ;;
     esac
     args+=("\$a")
@@ -157,3 +157,12 @@ PG_DUMP_STUB='printf "SELECT 1;\n"' DEST="$DEST4" KEEP=1 "$HERE/dump.sh" >"$WORK
 [[ ! -f "$DEST4/andrey-20200101-000000.sql.gz" ]] || fail "old daily dump survived KEEP=1"
 [[ $(find "$DEST4" -name 'andrey-2*.sql.gz' ! -name '*predeploy*' | wc -l) -eq 1 ]] || fail "the new daily dump was rotated away"
 echo "PASS: rotation counts only daily dumps"
+
+echo "=== 5. the witness is archived before pg_dump starts ==="
+# A witness taken after the dump is always newer than it, and verify fails a
+# restored dump whose witness names checkpoints the database lacks.
+DEST5="$WORK/backups-order"
+mkdir -p "$DEST5"
+ORDER_LOG="$WORK/order.log" PG_DUMP_STUB='printf "SELECT 1;\n"' DEST="$DEST5" "$HERE/dump.sh" >"$WORK/order.out" 2>&1 || { cat "$WORK/order.out"; fail "dump.sh failed in the ordering run"; }
+[[ "$(tr '\n' ' ' < "$WORK/order.log")" == "witness pg_dump " ]] || fail "expected witness then pg_dump, got: $(tr '\n' ' ' < "$WORK/order.log")"
+echo "PASS: witness archived before pg_dump"
