@@ -193,6 +193,7 @@ services:
       context: ./backend
       dockerfile: services/passkey-service/Dockerfile
     image: ghcr.io/vbncursed/andrey-passkey:${ANDREY_TAG:-local}
+    networks: [identity]
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -205,7 +206,6 @@ services:
       PASSKEY_DB_DSN: "postgres://andrey:andrey@postgres:5432/andrey?sslmode=disable"
       PASSKEY_REDIS_ADDR: "redis:6379"
       PASSKEY_REDIS_DB: "3"
-      PASSKEY_AUTH_GRPC_ADDR: "auth:9004"
       # CHANGE IN PROD: RP_ID must equal the domain in the browser address bar,
       # RP_ORIGINS the full scheme+host. Prod: andrey.vbncursed.fun / https://andrey.vbncursed.fun
       PASSKEY_RP_ID: "localhost"
@@ -450,12 +450,14 @@ services:
 # stays compose-internal and the SPA reads it through the gateway's
 # owner-gated /api/metrics/query.
 
-# twofa trusts the user_id a caller sends (no call back to auth), so who can
-# reach :9006 is the whole access control. Only gateway and auth (the callers)
-# plus postgres/redis (its stores) and prometheus (scrapes :9101) join
-# `identity`; twofa is on it alone. Every other container, mesh-worker
-# parsing uploads included, stays on `default` and cannot even resolve
-# `twofa`. A service added here can act on any user's 2FA: needs a reason.
+# twofa and passkey trust the user_id a caller sends (no call back to auth),
+# so who can reach :9006 / :9008 is the whole access control. Only gateway and
+# auth (the callers) plus postgres/redis (their stores) and prometheus (scrapes
+# :9101) join `identity`; twofa and passkey are on it alone. Every other
+# container, mesh-worker parsing uploads included, stays on `default` and
+# cannot even resolve `twofa` or `passkey`. A service added here can act on any
+# user's 2FA and passkeys: needs a reason. twofa and passkey share the network
+# and so can reach each other; they have no reason to (known limit).
 networks:
   identity:
 
