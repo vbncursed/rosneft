@@ -39,7 +39,9 @@ jobs:
           node-version: 26
 
       # package.json's packageManager field picks the Yarn release. After
-      # setup-node, so the shim lands beside the Node this job runs.
+      # setup-node, so the shim lands beside the Node this job runs. Node 25+ no
+      # longer ships corepack, so it is installed first (pinned like every tool here).
+      - run: npm install -g corepack@0.36.0
       - run: corepack enable
 
       - run: yarn install --immutable

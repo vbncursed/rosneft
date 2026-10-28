@@ -2,7 +2,7 @@
 # docroot. Build context is frontend/. Node matches .github/workflows/frontend.yml.
 FROM node:26-alpine AS build
 WORKDIR /app
-RUN corepack enable
+RUN npm install -g corepack@0.36.0 && corepack enable
 ENV YARN_HTTP_TIMEOUT=600000
 COPY package.json yarn.lock .yarnrc.yml ./
 RUN yarn install --immutable
