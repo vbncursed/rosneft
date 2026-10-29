@@ -8,8 +8,8 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/twofa-service/internal/totp"
 )
 
-// Enable confirms the pending secret with a code, flips enabled on, and returns
-// one-time recovery codes (shown once).
+// Enable confirms the pending secret with a code, saves one-time recovery
+// codes, then flips enabled on, and returns the codes (shown once).
 func (s *Service) Enable(ctx context.Context, userID, code string) ([]string, error) {
 	c, err := s.store.Get(ctx, userID)
 	if err != nil {
@@ -30,10 +30,16 @@ func (s *Service) Enable(ctx context.Context, userID, code string) ([]string, er
 	} else if !ok {
 		return nil, domain.ErrTwoFAInvalidCode
 	}
+	// Codes first: a failure here leaves 2FA off and the retry open. The other
+	// order switched 2FA on with zero codes and the retry answered AlreadyEnabled.
+	codes, err := s.issueRecovery(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
 	if err := s.store.Set(ctx, userID, true, c.Secret); err != nil {
 		return nil, err
 	}
-	return s.issueRecovery(ctx, userID)
+	return codes, nil
 }
 
 // issueRecovery generates + stores a fresh set, returning the plaintext once.

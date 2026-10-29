@@ -107,6 +107,29 @@ func (s *TwoFASuite) TestEnableRecordsTheStepAndRefusesAReplay() {
 	assert.ErrorIs(s.T(), err, domain.ErrTwoFAInvalidCode)
 }
 
+// Enabling must come after the recovery codes are saved: if saving fails, 2FA
+// stays off (Set is unstubbed, so minimock fails the test if it was reached
+// first) and a retry is not answered AlreadyEnabled but goes through.
+func (s *TwoFASuite) TestEnableLeavesTwoFAOffWhenSavingTheCodesFailsAndARetrySucceeds() {
+	secret, code := s.enrolled()
+	s.st.GetMock.Return(domain.Credential{UserID: "u1", Secret: []byte("ct")}, nil)
+	s.ciph.DecryptMock.Return([]byte(secret), nil)
+	s.lim.ClaimStepMock.Return(true, nil)
+	s.rec.ReplaceMock.Return(errors.New("db down"))
+
+	_, err := s.svc.Enable(s.ctx, "u1", code)
+
+	assert.ErrorContains(s.T(), err, "db down")
+
+	s.rec.ReplaceMock.Return(nil)
+	s.st.SetMock.Expect(s.ctx, "u1", true, []byte("ct")).Return(nil)
+
+	codes, err := s.svc.Enable(s.ctx, "u1", code)
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(codes), 10)
+}
+
 func (s *TwoFASuite) TestVerifyLockedShortCircuits() {
 	s.lim.TakeAttemptMock.Expect(s.ctx, "u1").Return(false, nil)
 
