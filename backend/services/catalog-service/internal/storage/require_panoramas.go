@@ -13,7 +13,9 @@ import (
 
 // requirePanoramas fails with ErrInvalidInput unless every panorama the batch
 // names is anchored to its territory, and keeps those rows from being deleted
-// until tx ends (FOR SHARE).
+// until tx ends (FOR KEY SHARE: it conflicts with DELETE but not with the
+// non-key UPDATEs of content-service's visibility, phase and thumbnail edits,
+// which would otherwise deadlock with a batch taking the rows in another order).
 //
 // The service checks the same allowlists before the write, but a panorama can
 // go in between and the delete's scrub (content-service) cannot reach a
@@ -37,7 +39,7 @@ func requirePanoramas(ctx context.Context, tx pgx.Tx, territorySlug string, ps [
 	}
 	want := slices.Sorted(maps.Keys(named))
 	rows, err := tx.Query(ctx, `SELECT pa.id FROM panoramas pa JOIN territories t ON t.id = pa.territory_id
-		WHERE t.slug = $1 AND pa.id = ANY($2) FOR SHARE OF pa`, territorySlug, want)
+		WHERE t.slug = $1 AND pa.id = ANY($2) ORDER BY pa.id FOR KEY SHARE OF pa`, territorySlug, want)
 	if err != nil {
 		return fmt.Errorf("lock panoramas: %w", err)
 	}

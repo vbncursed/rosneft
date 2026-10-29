@@ -285,3 +285,33 @@ func (s *BatchSuite) TestAWriteWaitsForARunningPanoramaDelete() {
 	assert.ErrorIs(s.T(), <-done, domain.ErrInvalidInput)
 	assert.Equal(s.T(), s.countOn("pano-lock"), 0)
 }
+
+// The batch only has to stop a panorama from being deleted, so its lock must not
+// conflict with a visibility/phase edit (UPDATE, FOR NO KEY UPDATE). With
+// FOR SHARE the two take P1 and P2 in opposite orders and Postgres kills one with
+// "deadlock detected" (and every batch would hold edits back until commit).
+func (s *BatchSuite) TestABatchLockDoesNotBlockOrDeadlockWithAPanoramaEdit() {
+	ctx := s.T().Context()
+	s.seedTerritory(ctx, "pano-edit", s.admin)
+	s.seedModel(ctx, "pano-edit-pump")
+	p1 := s.seedPanorama(ctx, "pano-edit", "p1")
+	p2 := s.seedPanorama(ctx, "pano-edit", "p2")
+	edit, err := s.pool.Begin(ctx)
+	assert.NilError(s.T(), err)
+	defer func() { _ = edit.Rollback(ctx) }()
+	_, err = edit.Exec(ctx, `UPDATE panoramas SET hidden = true WHERE id = $1`, p2)
+	assert.NilError(s.T(), err)
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := s.pg.CreatePlacements(ctx, "", withPanoramas(batchOf("pano-edit", "pano-edit-pump", 1, 0), p1, p2))
+		done <- err
+	}()
+	time.Sleep(500 * time.Millisecond) // the batch has locked p1 by now
+	_, err = edit.Exec(ctx, `UPDATE panoramas SET hidden = true WHERE id = $1`, p1)
+
+	assert.NilError(s.T(), err)
+	assert.NilError(s.T(), edit.Commit(ctx))
+	assert.NilError(s.T(), <-done)
+	assert.Equal(s.T(), s.countOn("pano-edit"), 1)
+}
