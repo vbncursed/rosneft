@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 )
@@ -62,6 +63,10 @@ func (m *Mesh) submit(ctx context.Context, kind domain.Kind, slug string, backfi
 	// leaves a queued job queued (the claim is re-taken when it starts), but a
 	// Running job without a claim outlived TargetLockTTL: its worker is gone.
 	if live != nil && (!locked || m.queued(*live)) {
+		// A claim taken here stands for a job that is never created: give it
+		// back, or it blocks the target for TargetLockTTL (the live job's own
+		// claim is re-taken by markRunning).
+		m.releaseClaim(ctx, kind, slug, id, locked)
 		job, err := m.followLive(ctx, *live, backfill)
 		return job, false, err
 	}
@@ -113,7 +118,10 @@ func (m *Mesh) queueNew(
 	}
 	saved, err := m.queue.GetJob(ctx, job.ID)
 	if err != nil {
-		return domain.Job{}, false, fmt.Errorf("service.SubmitConversion: get: %w", err)
+		// Saved and queued: reporting failure would invite a retry of a job a
+		// worker is about to run. Answer with the job as written.
+		slog.WarnContext(ctx, "submit: read-back of the queued job failed", "job_id", job.ID, "err", err)
+		return job, true, nil
 	}
 	return saved, true, nil
 }
