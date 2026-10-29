@@ -172,9 +172,14 @@ func (st *jobStream) notFound() {
 }
 
 // poll re-fetches through the tenant gate and sends the job only if it
-// changed. True ends the stream.
+// changed. A job that is no longer found (access revoked, job gone) gets the
+// `error` frame and ends the stream; other errors are transient. True ends it.
 func (st *jobStream) poll(ctx context.Context, id string, fetch jobFetcher) bool {
 	job, err := fetch(ctx, id)
+	if errors.Is(err, domain.ErrJobNotFound) {
+		st.notFound()
+		return true
+	}
 	if err != nil || !jobChanged(st.last, job) {
 		return false
 	}

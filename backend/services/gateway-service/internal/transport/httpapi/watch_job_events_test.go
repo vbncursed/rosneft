@@ -242,6 +242,21 @@ func (s *WatchJobEventsSuite) TestStreamSurvivesFetchErrorsAtTheStartAndOnTicks(
 	assert.Assert(s.T(), !returned)
 }
 
+// Access revoked (or the job gone) mid-stream: the tenant gate answers not
+// found on a later tick. The stream says so once and ends instead of polling
+// mesh and catalog until the client leaves.
+func (s *WatchJobEventsSuite) TestStreamEndsWithAnErrorFrameWhenAPollLosesTheJob() {
+	fetch := scriptedFetch(
+		fetchResult{job: job(domain.JobStatusRunning, 1)},
+		fetchResult{err: domain.ErrJobNotFound},
+	)
+	body, flushes, returned := runStream(s.T(), fetch, 5*jobEventInterval)
+	want := "event: error\ndata: {\"code\":\"not_found\",\"message\":\"job not found\"}\n\n"
+	assert.Assert(s.T(), strings.HasSuffix(body, want), body)
+	assert.Equal(s.T(), flushes, 2)
+	assert.Assert(s.T(), returned, "a lost job ends the stream on its own")
+}
+
 func (s *WatchJobEventsSuite) TestStreamSendsAKeepaliveCommentWhenQuiet() {
 	fetch := scriptedFetch(fetchResult{job: job(domain.JobStatusRunning, 1)})
 	body, flushes, _ := runStream(s.T(), fetch, jobEventKeepalive)
