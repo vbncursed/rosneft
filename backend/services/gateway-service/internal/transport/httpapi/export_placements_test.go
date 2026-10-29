@@ -121,3 +121,40 @@ func (s *ExportPlacementsSuite) TestCompatibleStillSkipsAModelWithoutLOD0() {
 	assert.Equal(s.T(), skipped, 1)
 	assert.Equal(s.T(), len(got), 1)
 }
+
+// A hidden placement is dropped before its model is looked up, so it is not
+// counted as skipped even when the model has no LOD 0.
+func (s *ExportPlacementsSuite) TestHiddenIsNotCountedAsSkipped() {
+	hiddenGroup := int64(1)
+	got, skipped := exportPlacements(s.bundle(
+		domain.Placement{ID: 1, ModelSlug: "raw", Hidden: true},
+		domain.Placement{ID: 2, ModelSlug: "raw", GroupID: &hiddenGroup},
+	), variantCompressed)
+
+	assert.Equal(s.T(), skipped, 0)
+	assert.Equal(s.T(), len(got), 1)
+}
+
+func (s *ExportPlacementsSuite) TestPlacementOrderIsPreserved() {
+	got, _ := exportPlacements(s.bundle(
+		domain.Placement{ID: 5, ModelSlug: "pipe", Label: "c"},
+		domain.Placement{ID: 1, ModelSlug: "tank", Label: "a"},
+		domain.Placement{ID: 3, ModelSlug: "raw"},
+		domain.Placement{ID: 2, ModelSlug: "pipe", Label: "b"},
+	), variantCompressed)
+
+	names := make([]string, 0, len(got))
+	for _, p := range got {
+		names = append(names, p.Name)
+	}
+	assert.DeepEqual(s.T(), names, []string{"Усть-Кут", "c", "a", "b"})
+}
+
+func (s *ExportPlacementsSuite) TestLastLOD0OfAModelWins() {
+	b := s.bundle(domain.Placement{ID: 1, ModelSlug: "tank"})
+	b.ModelOptions[0].LODs = []domain.LodArtifact{{LOD: 0, Hash: "first"}, {LOD: 0, Hash: "second"}}
+
+	got, _ := exportPlacements(b, variantCompressed)
+
+	assert.Equal(s.T(), got[1].Hash, "second")
+}

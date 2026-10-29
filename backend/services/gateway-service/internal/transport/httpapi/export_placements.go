@@ -25,20 +25,13 @@ func exportPlacements(b domain.SceneBundle, v exportVariant) (placements []glbex
 	for _, g := range b.PlacementGroups {
 		hiddenGroup[g.ID] = g.Hidden
 	}
-	lod0 := make(map[string]string, len(b.ModelOptions))
-	for _, m := range b.ModelOptions {
-		for _, l := range m.LODs {
-			if l.LOD == 0 {
-				lod0[m.Slug] = v.pick(l.Hash, l.PlainHash)
-			}
-		}
-	}
+	lod0 := lod0Hashes(b.ModelOptions, v)
 
 	placements = append(placements, glbexport.Placement{
 		Hash: v.pick(b.Artifact.Hash, b.Artifact.PlainHash), Name: b.Territory.Title, Scale: [3]float64{1, 1, 1},
 	})
 	for _, p := range b.Placements {
-		if p.Hidden || (p.GroupID != nil && hiddenGroup[*p.GroupID]) {
+		if placementHidden(p, hiddenGroup) {
 			continue
 		}
 		hash, ok := lod0[p.ModelSlug]
@@ -46,17 +39,40 @@ func exportPlacements(b domain.SceneBundle, v exportVariant) (placements []glbex
 			skipped++
 			continue
 		}
-		name := p.Label
-		if name == "" {
-			name = fmt.Sprintf("%s-%d", p.ModelSlug, p.ID)
-		}
-		placements = append(placements, glbexport.Placement{
-			Hash:        hash,
-			Name:        name,
-			Translation: [3]float64{p.Position.X, p.Position.Y, p.Position.Z},
-			Rotation:    [3]float64{p.Rotation.X, p.Rotation.Y, p.Rotation.Z},
-			Scale:       [3]float64{p.Scale.X, p.Scale.Y, p.Scale.Z},
-		})
+		placements = append(placements, exportPlacement(p, hash))
 	}
 	return placements, skipped
+}
+
+// lod0Hashes maps a model slug to the hash its LOD 0 is exported from; a model
+// without a LOD 0 is absent. The last LOD 0 of a model wins.
+func lod0Hashes(options []domain.AssetOption, v exportVariant) map[string]string {
+	lod0 := make(map[string]string, len(options))
+	for _, m := range options {
+		for _, l := range m.LODs {
+			if l.LOD == 0 {
+				lod0[m.Slug] = v.pick(l.Hash, l.PlainHash)
+			}
+		}
+	}
+	return lod0
+}
+
+// placementHidden: hidden itself, or in a group the bundle lists as hidden.
+func placementHidden(p domain.Placement, hiddenGroup map[int64]bool) bool {
+	return p.Hidden || (p.GroupID != nil && hiddenGroup[*p.GroupID])
+}
+
+func exportPlacement(p domain.Placement, hash string) glbexport.Placement {
+	name := p.Label
+	if name == "" {
+		name = fmt.Sprintf("%s-%d", p.ModelSlug, p.ID)
+	}
+	return glbexport.Placement{
+		Hash:        hash,
+		Name:        name,
+		Translation: [3]float64{p.Position.X, p.Position.Y, p.Position.Z},
+		Rotation:    [3]float64{p.Rotation.X, p.Rotation.Y, p.Rotation.Z},
+		Scale:       [3]float64{p.Scale.X, p.Scale.Y, p.Scale.Z},
+	}
 }
