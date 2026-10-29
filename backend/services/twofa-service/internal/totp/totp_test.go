@@ -51,6 +51,19 @@ func (s *TOTPSuite) TestValidateReportsTheMatchedStep() {
 	assert.Assert(s.T(), step >= before-1 && step <= after-1, "step %d, want %d..%d", step, before-1, after-1)
 }
 
+// The library Validate this replaced trimmed the passcode; a bearer client
+// that sends "123456 " must not be refused (and burn a throttle attempt).
+func (s *TOTPSuite) TestValidateTrimsWhitespace() {
+	secret, _, err := totp.Generate("Andrey", "ivan")
+	assert.NilError(s.T(), err)
+	code, err := pqtotp.GenerateCode(secret, time.Now())
+	assert.NilError(s.T(), err)
+
+	_, ok := totp.Validate(secret, " "+code+"\n")
+
+	assert.Assert(s.T(), ok)
+}
+
 func (s *TOTPSuite) TestRecoveryCodes() {
 	plain, hashes, err := totp.GenerateRecovery(5)
 	assert.NilError(s.T(), err)

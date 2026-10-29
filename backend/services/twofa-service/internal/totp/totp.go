@@ -5,6 +5,7 @@ package totp
 import (
 	"crypto/subtle"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pquerna/otp/totp"
@@ -26,6 +27,7 @@ const period = 30
 // so, the time step it belongs to. Callers record that step to refuse a replay:
 // the library alone accepts one code for up to ~90 s.
 func Validate(secret, code string) (step int64, ok bool) {
+	code = strings.TrimSpace(code) // pquerna's Validate did; bearer clients pad
 	now := time.Now().Unix() / period
 	for _, d := range []int64{0, -1, 1} {
 		s := now + d
