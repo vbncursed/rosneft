@@ -1,12 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { ConversionStage } from "@/entities/conversion";
 import { createTerritory } from "@/entities/territory";
-import { progressFor, runChunkedUpload, slugPreview, type UploadProgress, type UploadSample } from "@/entities/upload";
+import { runChunkedUpload, slugPreview, useUploadRun } from "@/entities/upload";
 import { meQuery } from "@/entities/user";
-import { messageOf } from "@/shared/api";
-import { notify } from "@/shared/lib/notify";
 import { can } from "@/shared/session";
 import type { ChecklistItem } from "@/shared/ui/checklist";
 import { ARCHIVE_CHECKLIST, canSubmit, stagesFor, type UploadForm, type UploadPhase } from "./upload-form";
@@ -39,25 +37,16 @@ export function useUploadTerritory(): UploadTerritoryState {
   const client = useQueryClient();
   const navigate = useNavigate();
   const [phase, setPhase] = useState<UploadPhase>("idle");
-  const [file, setFile] = useState<File | null>(null);
   const [form, setForm] = useState<UploadForm>(EMPTY_FORM);
-  const [progress, setProgress] = useState<UploadProgress | null>(null);
-  // State, not a ref: `progressFor` below reads it during render, and a ref's
-  // `current` is not something render is supposed to touch.
-  const [samples, setSamples] = useState<UploadSample[]>([]);
-  const controller = useRef<AbortController | null>(null);
+  const upload = useUploadRun();
+  const { file } = upload;
 
   const onFiles = (files: File[]) => {
-    const picked = files[0];
-    if (!picked) return;
-    setFile(picked);
-    setProgress(null);
-    setPhase("picked");
+    if (upload.pick(files)) setPhase("picked");
   };
 
   const onReplace = () => {
-    setFile(null);
-    setProgress(null);
+    upload.clear();
     setPhase("idle");
   };
 
@@ -65,25 +54,14 @@ export function useUploadTerritory(): UploadTerritoryState {
 
   const onSubmit = () => {
     if (!canSubmit(phase, file, form)) return;
-    const ac = new AbortController();
-    controller.current = ac;
-    setSamples([{ at: Date.now(), bytes: 0 }]);
-    // A retry after a cancel/failure keeps the same phase-driven visibility
-    // rule (progressFor) but must not show the previous attempt's numbers
-    // until this run's own onProgress has something to say.
-    setProgress(null);
     setPhase("uploading");
 
-    runChunkedUpload(file, {
-      signal: ac.signal,
-      onStage: (stage) => {
+    runChunkedUpload(
+      file,
+      upload.begin((stage) => {
         if (stage === "finalizing") setPhase("finalizing");
-      },
-      onProgress: (p) => {
-        setSamples((prev) => [...prev, { at: Date.now(), bytes: p.bytes }]);
-        setProgress(p);
-      },
-    })
+      }),
+    )
       .then((finalized) => {
         setPhase("creating");
         return createTerritory({
@@ -102,14 +80,11 @@ export function useUploadTerritory(): UploadTerritoryState {
       })
       .catch((err: unknown) => {
         setPhase("picked");
-        // A deliberate cancel is not a failure to report — only a genuine
-        // throw (a dropped connection, a gateway refusal) gets a toast.
-        if (ac.signal.aborted) return;
-        notify.error(messageOf(err));
+        upload.fail(err);
       });
   };
 
-  const onCancel = () => controller.current?.abort();
+  const onCancel = upload.cancel;
 
   return {
     phase,
@@ -119,7 +94,7 @@ export function useUploadTerritory(): UploadTerritoryState {
     onFiles,
     onReplace,
     slug: slugPreview(form.title),
-    progress: progressFor(phase === "uploading" || phase === "finalizing", progress, samples),
+    progress: upload.view(phase === "uploading" || phase === "finalizing"),
     onSubmit,
     onCancel,
     canUpload: can(me, "territory:create"),

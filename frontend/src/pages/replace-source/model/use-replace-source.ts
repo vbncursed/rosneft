@@ -1,12 +1,11 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { assetSize } from "@/entities/content";
 import { getTerritory, replaceTerritorySource, territoryQuery } from "@/entities/territory";
-import { progressFor, runChunkedUpload, type UploadProgress, type UploadSample } from "@/entities/upload";
+import { runChunkedUpload, useUploadRun } from "@/entities/upload";
 import { meQuery } from "@/entities/user";
 import { HttpError, messageOf } from "@/shared/api";
-import { notify } from "@/shared/lib/notify";
 import { unanswered } from "@/shared/lib/unanswered";
 import { can } from "@/shared/session";
 import { stagesFor, type ReplacePhase, type ReplaceSourcePageProps } from "./replace-form";
@@ -40,45 +39,28 @@ export function useReplaceSource(slug: string): ReplaceSourceState {
   });
 
   const [phase, setPhase] = useState<ReplacePhase>("idle");
-  const [file, setFile] = useState<File | null>(null);
-  const [progress, setProgress] = useState<UploadProgress | null>(null);
-  const [samples, setSamples] = useState<UploadSample[]>([]);
-  const controller = useRef<AbortController | null>(null);
+  const upload = useUploadRun();
+  const { file } = upload;
 
   const onFiles = (files: File[]) => {
-    const picked = files[0];
-    if (!picked) return;
-    setFile(picked);
-    setProgress(null);
-    setPhase("picked");
+    if (upload.pick(files)) setPhase("picked");
   };
 
   const onReplace = () => {
-    setFile(null);
-    setProgress(null);
+    upload.clear();
     setPhase("idle");
   };
 
   const onSubmit = () => {
     if (phase !== "picked" || !file) return;
-    const ac = new AbortController();
-    controller.current = ac;
-    setSamples([{ at: Date.now(), bytes: 0 }]);
-    // A retry after a cancel/failure must not show the previous attempt's
-    // numbers until this run's own onProgress has something to say.
-    setProgress(null);
     setPhase("uploading");
 
-    runChunkedUpload(file, {
-      signal: ac.signal,
-      onStage: (stage) => {
+    runChunkedUpload(
+      file,
+      upload.begin((stage) => {
         if (stage === "finalizing") setPhase("finalizing");
-      },
-      onProgress: (p) => {
-        setSamples((prev) => [...prev, { at: Date.now(), bytes: p.bytes }]);
-        setProgress(p);
-      },
-    })
+      }),
+    )
       .then((finalized) => {
         setPhase("replacing");
         // The replace deletes the old artifacts — possibly before a failure
@@ -98,14 +80,11 @@ export function useReplaceSource(slug: string): ReplaceSourceState {
       })
       .catch((err: unknown) => {
         setPhase("picked");
-        // A deliberate cancel is not a failure to report — only a genuine
-        // throw (a dropped connection, a gateway refusal) gets a toast.
-        if (ac.signal.aborted) return;
-        notify.error(messageOf(err));
+        upload.fail(err);
       });
   };
 
-  const onCancel = () => controller.current?.abort();
+  const onCancel = upload.cancel;
 
   const pending = territory.isPending || size.isLoading;
   if (pending) return { status: "loading" };
@@ -113,8 +92,6 @@ export function useReplaceSource(slug: string): ReplaceSourceState {
   const failure = unanswered(territory);
   if (failure instanceof HttpError && failure.status === 404) return { status: "missing" };
   if (failure) return { status: "unavailable", error: messageOf(failure) };
-
-  const percent = progress ? Math.round((progress.bytes / progress.total) * 100) : null;
 
   return {
     status: "ready",
@@ -124,12 +101,12 @@ export function useReplaceSource(slug: string): ReplaceSourceState {
     currentSize: size.data ?? null,
     phase,
     file,
-    progress: progressFor(phase === "uploading" || phase === "finalizing", progress, samples),
+    progress: upload.view(phase === "uploading" || phase === "finalizing"),
     onFiles,
     onReplace,
     onSubmit,
     onCancel,
     canReplace: can(me, "territory:write"),
-    stages: stagesFor(phase, percent),
+    stages: stagesFor(phase, upload.percent),
   };
 }
