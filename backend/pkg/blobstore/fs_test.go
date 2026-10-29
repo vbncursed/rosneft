@@ -95,3 +95,24 @@ func TestPutConcurrentDifferentHashes(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+// A panic inside the writer (a reader that blows up mid-copy) must not leave
+// the temp file behind: a hard failure is still a failure of the write.
+func TestWriteAtomicRemovesTheTempFileOnPanic(t *testing.T) {
+	dir := t.TempDir()
+	final := filepath.Join(dir, "blob")
+
+	func() {
+		defer func() { assert.Assert(t, recover() != nil, "the panic must propagate") }()
+		_, _ = writeAtomic(final, func(w io.Writer) (int64, error) {
+			_, _ = w.Write([]byte("half"))
+			panic("reader exploded")
+		})
+	}()
+
+	left, err := os.ReadDir(dir)
+	assert.NilError(t, err)
+	assert.Equal(t, len(left), 0, "temp file leaked: %v", left)
+	_, err = os.Stat(final)
+	assert.Assert(t, os.IsNotExist(err))
+}

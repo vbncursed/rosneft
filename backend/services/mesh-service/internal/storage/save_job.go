@@ -11,12 +11,17 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 )
 
-// indexJob points a target at its latest job and, in the same step, starts the
-// retention clock of the job it replaces. HSET leaves a TTL alone, so a late
-// save from a superseded job's worker cannot make it permanent again.
+// indexJob points a target at its latest job and, in the same step, makes that
+// job permanent and starts the retention clock of the job it replaces. HSET
+// leaves a TTL alone, so a late save from a superseded job's worker could not
+// make it permanent again on its own; PERSIST on the job being indexed is what
+// guarantees that whichever job the index points at never carries the expiry
+// (a late save of A re-points the index at A, B is expired in its place, and
+// B's own next save re-indexes and persists it).
 var indexJob = redis.NewScript(`
 local old = redis.call("HGET", KEYS[1], ARGV[1])
 redis.call("HSET", KEYS[1], ARGV[1], ARGV[2])
+redis.call("PERSIST", ARGV[3] .. ARGV[2])
 if old and old ~= ARGV[2] then redis.call("EXPIRE", ARGV[3] .. old, ARGV[4]) end
 return 0`)
 

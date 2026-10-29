@@ -102,15 +102,20 @@ func (f *FS) Put(ctx context.Context, hash, contentType string, r io.Reader) (Bl
 // renames it into place. A temp name unique per call is what lets concurrent
 // Puts of one hash, or a Put after a crashed one, proceed without touching each
 // other's half-written file; the rename then replaces final in one step.
-// Every error path removes the temp file.
+// Every error path, and a panic in write, removes the temp file.
 func writeAtomic(final string, write func(io.Writer) (int64, error)) (n int64, err error) {
 	out, err := os.CreateTemp(filepath.Dir(final), filepath.Base(final)+".*.tmp")
 	if err != nil {
 		return 0, fmt.Errorf("blobstore: create tmp: %w", err)
 	}
 	tmp := out.Name()
+	// A flag, not err: a panic inside write unwinds with err still nil. Close is
+	// idempotent here (the error paths below already closed it), so the handle
+	// is released on every path that did not finish.
+	committed := false
 	defer func() {
-		if err != nil {
+		if !committed {
+			_ = out.Close()
 			_ = os.Remove(tmp)
 		}
 	}()
@@ -129,6 +134,7 @@ func writeAtomic(final string, write func(io.Writer) (int64, error)) (n int64, e
 	if err := os.Rename(tmp, final); err != nil {
 		return 0, fmt.Errorf("blobstore: rename: %w", err)
 	}
+	committed = true
 	return n, nil
 }
 
