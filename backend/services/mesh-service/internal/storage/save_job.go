@@ -11,6 +11,18 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 )
 
+// indexJob points a target at its latest job and, in the same step, starts the
+// retention clock of the job it replaces. HSET leaves a TTL alone, so a late
+// save from a superseded job's worker cannot make it permanent again.
+var indexJob = redis.NewScript(`
+local old = redis.call("HGET", KEYS[1], ARGV[1])
+redis.call("HSET", KEYS[1], ARGV[1], ARGV[2])
+if old and old ~= ARGV[2] then redis.call("EXPIRE", ARGV[3] .. old, ARGV[4]) end
+return 0`)
+
+// retentionSeconds is JobRetention as the script's argument.
+var retentionSeconds = int64(JobRetention / time.Second)
+
 // SaveJob persists the full job state in a Redis hash keyed by job ID and,
 // in the same transaction, points the target index at it — one entry per
 // (kind, slug) holding the id of its latest job. The two writes are one
@@ -25,7 +37,7 @@ func (r *Redis) SaveJob(ctx context.Context, j domain.Job) error {
 	// hash-tagged into one slot.
 	_, err := r.client.TxPipelined(ctx, func(p redis.Pipeliner) error {
 		p.HSet(ctx, jobKey(j.ID), fields)
-		p.HSet(ctx, targetsKey, targetField(j.Kind, j.Slug), j.ID)
+		indexJob.Eval(ctx, p, []string{targetsKey}, targetField(j.Kind, j.Slug), j.ID, jobKeyPrefix, retentionSeconds)
 		return nil
 	})
 	if err != nil {
