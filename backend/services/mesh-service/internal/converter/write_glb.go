@@ -43,63 +43,18 @@ func writeGLB(positions []vertex, uvs []uv, groups []materialGroup, materials []
 	doc := gltf.NewDocument()
 	doc.Asset.Generator = "rosneft mesh-worker"
 
-	posArr := make([][3]float32, len(positions))
-	for i, p := range positions {
-		posArr[i] = [3]float32(p)
-	}
-	posIdx := modeler.WritePosition(doc, posArr)
-
-	var uvIdx int
-	hasUVs := uvs != nil
-	if hasUVs {
-		uvArr := make([][2]float32, len(uvs))
-		for i, t := range uvs {
-			uvArr[i] = [2]float32(t)
-		}
-		uvIdx = modeler.WriteTextureCoord(doc, uvArr)
+	posIdx, uvIdx, hasUVs := writeVertexData(doc, positions, uvs)
+	layout := vertexLayout{
+		position: posIdx,
+		uv:       uvIdx,
+		hasUVs:   hasUVs,
+		sampler:  addSampler(doc),
 	}
 
-	// One glTF Sampler shared by every textured primitive.
-	var samplerIdx int
-	doc.Samplers = append(doc.Samplers, &gltf.Sampler{
-		MagFilter: gltf.MagLinear,
-		MinFilter: gltf.MinLinearMipMapLinear,
-		WrapS:     gltf.WrapRepeat,
-		WrapT:     gltf.WrapRepeat,
-	})
-	samplerIdx = len(doc.Samplers) - 1
-
-	// Cache keyed by texture path so the same image is embedded once.
-	textureIndexByPath := map[string]int{}
-
-	prims := make([]*gltf.Primitive, 0, len(groups))
-	for i, g := range groups {
-		if len(g.triangles) == 0 {
-			continue
-		}
-		indices := make([]uint32, 0, len(g.triangles)*3)
-		for _, t := range g.triangles {
-			indices = append(indices, t[0], t[1], t[2])
-		}
-		idx := modeler.WriteIndices(doc, indices)
-
-		attrs := gltf.PrimitiveAttributes{gltf.POSITION: posIdx}
-		if hasUVs {
-			attrs[gltf.TEXCOORD_0] = uvIdx
-		}
-
-		matIdx, err := buildMaterial(doc, materials[i], hasUVs, samplerIdx, textureIndexByPath)
-		if err != nil {
-			return nil, fmt.Errorf("writeGLB: material %q: %w", materials[i].Name, err)
-		}
-
-		prims = append(prims, &gltf.Primitive{
-			Attributes: attrs,
-			Indices:    new(idx),
-			Material:   new(matIdx),
-		})
+	prims, err := buildPrimitives(doc, groups, materials, layout)
+	if err != nil {
+		return nil, err
 	}
-
 	if len(prims) == 0 {
 		return nil, fmt.Errorf("writeGLB: %w: no non-empty primitives", domain.ErrBadSource)
 	}
@@ -109,13 +64,7 @@ func writeGLB(positions []vertex, uvs []uv, groups []materialGroup, materials []
 	doc.Scenes = []*gltf.Scene{{Nodes: []int{0}}}
 	doc.Scene = new(0)
 
-	var buf bytes.Buffer
-	enc := gltf.NewEncoder(&buf)
-	enc.AsBinary = true
-	if err := enc.Encode(doc); err != nil {
-		return nil, fmt.Errorf("writeGLB: encode: %w", err)
-	}
-	return buf.Bytes(), nil
+	return encodeGLB(doc)
 }
 
 // buildMaterial creates (or reuses) the glTF Material for one primitive. When
