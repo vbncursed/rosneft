@@ -58,7 +58,8 @@ func (s *ProcessJobSuite) SetupTest() {
 	})
 	s.ctx = s.T().Context()
 	s.saved, s.calls, s.holdErr = nil, nil, nil
-	s.queue.HoldTargetMock.Set(func(_ context.Context, kind domain.Kind, slug string, ttl time.Duration) error {
+	s.queue.HoldTargetMock.Set(func(_ context.Context, kind domain.Kind, slug, owner string, ttl time.Duration) error {
+		assert.Equal(s.T(), owner, "job-1")
 		assert.Equal(s.T(), ttl, service.TargetLockTTL)
 		s.calls = append(s.calls, "hold:"+kind.String()+"/"+slug)
 		return s.holdErr
@@ -85,7 +86,7 @@ func (s *ProcessJobSuite) TestUnlocksTargetOnConversionFailure() {
 	// controller requires to be called at least once (see
 	// QueueMock.MinimockUnlockTargetInspect) — this is what makes the
 	// assertion, not just a stub.
-	s.queue.UnlockTargetMock.Expect(s.ctx, domain.KindTerritory, "t1").Return(nil)
+	s.queue.UnlockTargetMock.Expect(s.ctx, domain.KindTerritory, "t1", "job-1").Return(nil)
 
 	err := s.svc.ProcessJob(s.ctx, "job-1")
 
@@ -236,7 +237,7 @@ func (s *ProcessJobSuite) TestFailsAndReleasesTheJobOnAHoldError() {
 		domain.Job{ID: "job-1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusPending},
 		nil,
 	)
-	s.queue.UnlockTargetMock.Expect(s.ctx, domain.KindTerritory, "t1").Return(nil)
+	s.queue.UnlockTargetMock.Expect(s.ctx, domain.KindTerritory, "t1", "job-1").Return(nil)
 
 	err := s.svc.ProcessJob(s.ctx, "job-1")
 

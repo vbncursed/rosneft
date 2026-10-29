@@ -48,9 +48,9 @@ type QueueMock struct {
 	beforeGetJobCounter uint64
 	GetJobMock          mQueueMockGetJob
 
-	funcHoldTarget          func(ctx context.Context, kind domain.Kind, slug string, ttl time.Duration) (err error)
+	funcHoldTarget          func(ctx context.Context, kind domain.Kind, slug string, owner string, ttl time.Duration) (err error)
 	funcHoldTargetOrigin    string
-	inspectFuncHoldTarget   func(ctx context.Context, kind domain.Kind, slug string, ttl time.Duration)
+	inspectFuncHoldTarget   func(ctx context.Context, kind domain.Kind, slug string, owner string, ttl time.Duration)
 	afterHoldTargetCounter  uint64
 	beforeHoldTargetCounter uint64
 	HoldTargetMock          mQueueMockHoldTarget
@@ -69,16 +69,16 @@ type QueueMock struct {
 	beforeSaveJobCounter uint64
 	SaveJobMock          mQueueMockSaveJob
 
-	funcTryLockTarget          func(ctx context.Context, kind domain.Kind, slug string, ttl time.Duration) (b1 bool, err error)
+	funcTryLockTarget          func(ctx context.Context, kind domain.Kind, slug string, owner string, ttl time.Duration) (b1 bool, err error)
 	funcTryLockTargetOrigin    string
-	inspectFuncTryLockTarget   func(ctx context.Context, kind domain.Kind, slug string, ttl time.Duration)
+	inspectFuncTryLockTarget   func(ctx context.Context, kind domain.Kind, slug string, owner string, ttl time.Duration)
 	afterTryLockTargetCounter  uint64
 	beforeTryLockTargetCounter uint64
 	TryLockTargetMock          mQueueMockTryLockTarget
 
-	funcUnlockTarget          func(ctx context.Context, kind domain.Kind, slug string) (err error)
+	funcUnlockTarget          func(ctx context.Context, kind domain.Kind, slug string, owner string) (err error)
 	funcUnlockTargetOrigin    string
-	inspectFuncUnlockTarget   func(ctx context.Context, kind domain.Kind, slug string)
+	inspectFuncUnlockTarget   func(ctx context.Context, kind domain.Kind, slug string, owner string)
 	afterUnlockTargetCounter  uint64
 	beforeUnlockTargetCounter uint64
 	UnlockTargetMock          mQueueMockUnlockTarget
@@ -1550,18 +1550,20 @@ type QueueMockHoldTargetExpectation struct {
 
 // QueueMockHoldTargetParams contains parameters of the Queue.HoldTarget
 type QueueMockHoldTargetParams struct {
-	ctx  context.Context
-	kind domain.Kind
-	slug string
-	ttl  time.Duration
+	ctx   context.Context
+	kind  domain.Kind
+	slug  string
+	owner string
+	ttl   time.Duration
 }
 
 // QueueMockHoldTargetParamPtrs contains pointers to parameters of the Queue.HoldTarget
 type QueueMockHoldTargetParamPtrs struct {
-	ctx  *context.Context
-	kind *domain.Kind
-	slug *string
-	ttl  *time.Duration
+	ctx   *context.Context
+	kind  *domain.Kind
+	slug  *string
+	owner *string
+	ttl   *time.Duration
 }
 
 // QueueMockHoldTargetResults contains results of the Queue.HoldTarget
@@ -1571,11 +1573,12 @@ type QueueMockHoldTargetResults struct {
 
 // QueueMockHoldTargetOrigins contains origins of expectations of the Queue.HoldTarget
 type QueueMockHoldTargetExpectationOrigins struct {
-	origin     string
-	originCtx  string
-	originKind string
-	originSlug string
-	originTtl  string
+	origin      string
+	originCtx   string
+	originKind  string
+	originSlug  string
+	originOwner string
+	originTtl   string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -1589,7 +1592,7 @@ func (mmHoldTarget *mQueueMockHoldTarget) Optional() *mQueueMockHoldTarget {
 }
 
 // Expect sets up expected params for Queue.HoldTarget
-func (mmHoldTarget *mQueueMockHoldTarget) Expect(ctx context.Context, kind domain.Kind, slug string, ttl time.Duration) *mQueueMockHoldTarget {
+func (mmHoldTarget *mQueueMockHoldTarget) Expect(ctx context.Context, kind domain.Kind, slug string, owner string, ttl time.Duration) *mQueueMockHoldTarget {
 	if mmHoldTarget.mock.funcHoldTarget != nil {
 		mmHoldTarget.mock.t.Fatalf("QueueMock.HoldTarget mock is already set by Set")
 	}
@@ -1602,7 +1605,7 @@ func (mmHoldTarget *mQueueMockHoldTarget) Expect(ctx context.Context, kind domai
 		mmHoldTarget.mock.t.Fatalf("QueueMock.HoldTarget mock is already set by ExpectParams functions")
 	}
 
-	mmHoldTarget.defaultExpectation.params = &QueueMockHoldTargetParams{ctx, kind, slug, ttl}
+	mmHoldTarget.defaultExpectation.params = &QueueMockHoldTargetParams{ctx, kind, slug, owner, ttl}
 	mmHoldTarget.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmHoldTarget.expectations {
 		if minimock.Equal(e.params, mmHoldTarget.defaultExpectation.params) {
@@ -1682,8 +1685,31 @@ func (mmHoldTarget *mQueueMockHoldTarget) ExpectSlugParam3(slug string) *mQueueM
 	return mmHoldTarget
 }
 
-// ExpectTtlParam4 sets up expected param ttl for Queue.HoldTarget
-func (mmHoldTarget *mQueueMockHoldTarget) ExpectTtlParam4(ttl time.Duration) *mQueueMockHoldTarget {
+// ExpectOwnerParam4 sets up expected param owner for Queue.HoldTarget
+func (mmHoldTarget *mQueueMockHoldTarget) ExpectOwnerParam4(owner string) *mQueueMockHoldTarget {
+	if mmHoldTarget.mock.funcHoldTarget != nil {
+		mmHoldTarget.mock.t.Fatalf("QueueMock.HoldTarget mock is already set by Set")
+	}
+
+	if mmHoldTarget.defaultExpectation == nil {
+		mmHoldTarget.defaultExpectation = &QueueMockHoldTargetExpectation{}
+	}
+
+	if mmHoldTarget.defaultExpectation.params != nil {
+		mmHoldTarget.mock.t.Fatalf("QueueMock.HoldTarget mock is already set by Expect")
+	}
+
+	if mmHoldTarget.defaultExpectation.paramPtrs == nil {
+		mmHoldTarget.defaultExpectation.paramPtrs = &QueueMockHoldTargetParamPtrs{}
+	}
+	mmHoldTarget.defaultExpectation.paramPtrs.owner = &owner
+	mmHoldTarget.defaultExpectation.expectationOrigins.originOwner = minimock.CallerInfo(1)
+
+	return mmHoldTarget
+}
+
+// ExpectTtlParam5 sets up expected param ttl for Queue.HoldTarget
+func (mmHoldTarget *mQueueMockHoldTarget) ExpectTtlParam5(ttl time.Duration) *mQueueMockHoldTarget {
 	if mmHoldTarget.mock.funcHoldTarget != nil {
 		mmHoldTarget.mock.t.Fatalf("QueueMock.HoldTarget mock is already set by Set")
 	}
@@ -1706,7 +1732,7 @@ func (mmHoldTarget *mQueueMockHoldTarget) ExpectTtlParam4(ttl time.Duration) *mQ
 }
 
 // Inspect accepts an inspector function that has same arguments as the Queue.HoldTarget
-func (mmHoldTarget *mQueueMockHoldTarget) Inspect(f func(ctx context.Context, kind domain.Kind, slug string, ttl time.Duration)) *mQueueMockHoldTarget {
+func (mmHoldTarget *mQueueMockHoldTarget) Inspect(f func(ctx context.Context, kind domain.Kind, slug string, owner string, ttl time.Duration)) *mQueueMockHoldTarget {
 	if mmHoldTarget.mock.inspectFuncHoldTarget != nil {
 		mmHoldTarget.mock.t.Fatalf("Inspect function is already set for QueueMock.HoldTarget")
 	}
@@ -1731,7 +1757,7 @@ func (mmHoldTarget *mQueueMockHoldTarget) Return(err error) *QueueMock {
 }
 
 // Set uses given function f to mock the Queue.HoldTarget method
-func (mmHoldTarget *mQueueMockHoldTarget) Set(f func(ctx context.Context, kind domain.Kind, slug string, ttl time.Duration) (err error)) *QueueMock {
+func (mmHoldTarget *mQueueMockHoldTarget) Set(f func(ctx context.Context, kind domain.Kind, slug string, owner string, ttl time.Duration) (err error)) *QueueMock {
 	if mmHoldTarget.defaultExpectation != nil {
 		mmHoldTarget.mock.t.Fatalf("Default expectation is already set for the Queue.HoldTarget method")
 	}
@@ -1747,14 +1773,14 @@ func (mmHoldTarget *mQueueMockHoldTarget) Set(f func(ctx context.Context, kind d
 
 // When sets expectation for the Queue.HoldTarget which will trigger the result defined by the following
 // Then helper
-func (mmHoldTarget *mQueueMockHoldTarget) When(ctx context.Context, kind domain.Kind, slug string, ttl time.Duration) *QueueMockHoldTargetExpectation {
+func (mmHoldTarget *mQueueMockHoldTarget) When(ctx context.Context, kind domain.Kind, slug string, owner string, ttl time.Duration) *QueueMockHoldTargetExpectation {
 	if mmHoldTarget.mock.funcHoldTarget != nil {
 		mmHoldTarget.mock.t.Fatalf("QueueMock.HoldTarget mock is already set by Set")
 	}
 
 	expectation := &QueueMockHoldTargetExpectation{
 		mock:               mmHoldTarget.mock,
-		params:             &QueueMockHoldTargetParams{ctx, kind, slug, ttl},
+		params:             &QueueMockHoldTargetParams{ctx, kind, slug, owner, ttl},
 		expectationOrigins: QueueMockHoldTargetExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmHoldTarget.expectations = append(mmHoldTarget.expectations, expectation)
@@ -1789,17 +1815,17 @@ func (mmHoldTarget *mQueueMockHoldTarget) invocationsDone() bool {
 }
 
 // HoldTarget implements mm_service.Queue
-func (mmHoldTarget *QueueMock) HoldTarget(ctx context.Context, kind domain.Kind, slug string, ttl time.Duration) (err error) {
+func (mmHoldTarget *QueueMock) HoldTarget(ctx context.Context, kind domain.Kind, slug string, owner string, ttl time.Duration) (err error) {
 	mm_atomic.AddUint64(&mmHoldTarget.beforeHoldTargetCounter, 1)
 	defer mm_atomic.AddUint64(&mmHoldTarget.afterHoldTargetCounter, 1)
 
 	mmHoldTarget.t.Helper()
 
 	if mmHoldTarget.inspectFuncHoldTarget != nil {
-		mmHoldTarget.inspectFuncHoldTarget(ctx, kind, slug, ttl)
+		mmHoldTarget.inspectFuncHoldTarget(ctx, kind, slug, owner, ttl)
 	}
 
-	mm_params := QueueMockHoldTargetParams{ctx, kind, slug, ttl}
+	mm_params := QueueMockHoldTargetParams{ctx, kind, slug, owner, ttl}
 
 	// Record call args
 	mmHoldTarget.HoldTargetMock.mutex.Lock()
@@ -1818,7 +1844,7 @@ func (mmHoldTarget *QueueMock) HoldTarget(ctx context.Context, kind domain.Kind,
 		mm_want := mmHoldTarget.HoldTargetMock.defaultExpectation.params
 		mm_want_ptrs := mmHoldTarget.HoldTargetMock.defaultExpectation.paramPtrs
 
-		mm_got := QueueMockHoldTargetParams{ctx, kind, slug, ttl}
+		mm_got := QueueMockHoldTargetParams{ctx, kind, slug, owner, ttl}
 
 		if mm_want_ptrs != nil {
 
@@ -1835,6 +1861,11 @@ func (mmHoldTarget *QueueMock) HoldTarget(ctx context.Context, kind domain.Kind,
 			if mm_want_ptrs.slug != nil && !minimock.Equal(*mm_want_ptrs.slug, mm_got.slug) {
 				mmHoldTarget.t.Errorf("QueueMock.HoldTarget got unexpected parameter slug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmHoldTarget.HoldTargetMock.defaultExpectation.expectationOrigins.originSlug, *mm_want_ptrs.slug, mm_got.slug, minimock.Diff(*mm_want_ptrs.slug, mm_got.slug))
+			}
+
+			if mm_want_ptrs.owner != nil && !minimock.Equal(*mm_want_ptrs.owner, mm_got.owner) {
+				mmHoldTarget.t.Errorf("QueueMock.HoldTarget got unexpected parameter owner, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmHoldTarget.HoldTargetMock.defaultExpectation.expectationOrigins.originOwner, *mm_want_ptrs.owner, mm_got.owner, minimock.Diff(*mm_want_ptrs.owner, mm_got.owner))
 			}
 
 			if mm_want_ptrs.ttl != nil && !minimock.Equal(*mm_want_ptrs.ttl, mm_got.ttl) {
@@ -1854,9 +1885,9 @@ func (mmHoldTarget *QueueMock) HoldTarget(ctx context.Context, kind domain.Kind,
 		return (*mm_results).err
 	}
 	if mmHoldTarget.funcHoldTarget != nil {
-		return mmHoldTarget.funcHoldTarget(ctx, kind, slug, ttl)
+		return mmHoldTarget.funcHoldTarget(ctx, kind, slug, owner, ttl)
 	}
-	mmHoldTarget.t.Fatalf("Unexpected call to QueueMock.HoldTarget. %v %v %v %v", ctx, kind, slug, ttl)
+	mmHoldTarget.t.Fatalf("Unexpected call to QueueMock.HoldTarget. %v %v %v %v %v", ctx, kind, slug, owner, ttl)
 	return
 }
 
@@ -2608,18 +2639,20 @@ type QueueMockTryLockTargetExpectation struct {
 
 // QueueMockTryLockTargetParams contains parameters of the Queue.TryLockTarget
 type QueueMockTryLockTargetParams struct {
-	ctx  context.Context
-	kind domain.Kind
-	slug string
-	ttl  time.Duration
+	ctx   context.Context
+	kind  domain.Kind
+	slug  string
+	owner string
+	ttl   time.Duration
 }
 
 // QueueMockTryLockTargetParamPtrs contains pointers to parameters of the Queue.TryLockTarget
 type QueueMockTryLockTargetParamPtrs struct {
-	ctx  *context.Context
-	kind *domain.Kind
-	slug *string
-	ttl  *time.Duration
+	ctx   *context.Context
+	kind  *domain.Kind
+	slug  *string
+	owner *string
+	ttl   *time.Duration
 }
 
 // QueueMockTryLockTargetResults contains results of the Queue.TryLockTarget
@@ -2630,11 +2663,12 @@ type QueueMockTryLockTargetResults struct {
 
 // QueueMockTryLockTargetOrigins contains origins of expectations of the Queue.TryLockTarget
 type QueueMockTryLockTargetExpectationOrigins struct {
-	origin     string
-	originCtx  string
-	originKind string
-	originSlug string
-	originTtl  string
+	origin      string
+	originCtx   string
+	originKind  string
+	originSlug  string
+	originOwner string
+	originTtl   string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -2648,7 +2682,7 @@ func (mmTryLockTarget *mQueueMockTryLockTarget) Optional() *mQueueMockTryLockTar
 }
 
 // Expect sets up expected params for Queue.TryLockTarget
-func (mmTryLockTarget *mQueueMockTryLockTarget) Expect(ctx context.Context, kind domain.Kind, slug string, ttl time.Duration) *mQueueMockTryLockTarget {
+func (mmTryLockTarget *mQueueMockTryLockTarget) Expect(ctx context.Context, kind domain.Kind, slug string, owner string, ttl time.Duration) *mQueueMockTryLockTarget {
 	if mmTryLockTarget.mock.funcTryLockTarget != nil {
 		mmTryLockTarget.mock.t.Fatalf("QueueMock.TryLockTarget mock is already set by Set")
 	}
@@ -2661,7 +2695,7 @@ func (mmTryLockTarget *mQueueMockTryLockTarget) Expect(ctx context.Context, kind
 		mmTryLockTarget.mock.t.Fatalf("QueueMock.TryLockTarget mock is already set by ExpectParams functions")
 	}
 
-	mmTryLockTarget.defaultExpectation.params = &QueueMockTryLockTargetParams{ctx, kind, slug, ttl}
+	mmTryLockTarget.defaultExpectation.params = &QueueMockTryLockTargetParams{ctx, kind, slug, owner, ttl}
 	mmTryLockTarget.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmTryLockTarget.expectations {
 		if minimock.Equal(e.params, mmTryLockTarget.defaultExpectation.params) {
@@ -2741,8 +2775,31 @@ func (mmTryLockTarget *mQueueMockTryLockTarget) ExpectSlugParam3(slug string) *m
 	return mmTryLockTarget
 }
 
-// ExpectTtlParam4 sets up expected param ttl for Queue.TryLockTarget
-func (mmTryLockTarget *mQueueMockTryLockTarget) ExpectTtlParam4(ttl time.Duration) *mQueueMockTryLockTarget {
+// ExpectOwnerParam4 sets up expected param owner for Queue.TryLockTarget
+func (mmTryLockTarget *mQueueMockTryLockTarget) ExpectOwnerParam4(owner string) *mQueueMockTryLockTarget {
+	if mmTryLockTarget.mock.funcTryLockTarget != nil {
+		mmTryLockTarget.mock.t.Fatalf("QueueMock.TryLockTarget mock is already set by Set")
+	}
+
+	if mmTryLockTarget.defaultExpectation == nil {
+		mmTryLockTarget.defaultExpectation = &QueueMockTryLockTargetExpectation{}
+	}
+
+	if mmTryLockTarget.defaultExpectation.params != nil {
+		mmTryLockTarget.mock.t.Fatalf("QueueMock.TryLockTarget mock is already set by Expect")
+	}
+
+	if mmTryLockTarget.defaultExpectation.paramPtrs == nil {
+		mmTryLockTarget.defaultExpectation.paramPtrs = &QueueMockTryLockTargetParamPtrs{}
+	}
+	mmTryLockTarget.defaultExpectation.paramPtrs.owner = &owner
+	mmTryLockTarget.defaultExpectation.expectationOrigins.originOwner = minimock.CallerInfo(1)
+
+	return mmTryLockTarget
+}
+
+// ExpectTtlParam5 sets up expected param ttl for Queue.TryLockTarget
+func (mmTryLockTarget *mQueueMockTryLockTarget) ExpectTtlParam5(ttl time.Duration) *mQueueMockTryLockTarget {
 	if mmTryLockTarget.mock.funcTryLockTarget != nil {
 		mmTryLockTarget.mock.t.Fatalf("QueueMock.TryLockTarget mock is already set by Set")
 	}
@@ -2765,7 +2822,7 @@ func (mmTryLockTarget *mQueueMockTryLockTarget) ExpectTtlParam4(ttl time.Duratio
 }
 
 // Inspect accepts an inspector function that has same arguments as the Queue.TryLockTarget
-func (mmTryLockTarget *mQueueMockTryLockTarget) Inspect(f func(ctx context.Context, kind domain.Kind, slug string, ttl time.Duration)) *mQueueMockTryLockTarget {
+func (mmTryLockTarget *mQueueMockTryLockTarget) Inspect(f func(ctx context.Context, kind domain.Kind, slug string, owner string, ttl time.Duration)) *mQueueMockTryLockTarget {
 	if mmTryLockTarget.mock.inspectFuncTryLockTarget != nil {
 		mmTryLockTarget.mock.t.Fatalf("Inspect function is already set for QueueMock.TryLockTarget")
 	}
@@ -2790,7 +2847,7 @@ func (mmTryLockTarget *mQueueMockTryLockTarget) Return(b1 bool, err error) *Queu
 }
 
 // Set uses given function f to mock the Queue.TryLockTarget method
-func (mmTryLockTarget *mQueueMockTryLockTarget) Set(f func(ctx context.Context, kind domain.Kind, slug string, ttl time.Duration) (b1 bool, err error)) *QueueMock {
+func (mmTryLockTarget *mQueueMockTryLockTarget) Set(f func(ctx context.Context, kind domain.Kind, slug string, owner string, ttl time.Duration) (b1 bool, err error)) *QueueMock {
 	if mmTryLockTarget.defaultExpectation != nil {
 		mmTryLockTarget.mock.t.Fatalf("Default expectation is already set for the Queue.TryLockTarget method")
 	}
@@ -2806,14 +2863,14 @@ func (mmTryLockTarget *mQueueMockTryLockTarget) Set(f func(ctx context.Context, 
 
 // When sets expectation for the Queue.TryLockTarget which will trigger the result defined by the following
 // Then helper
-func (mmTryLockTarget *mQueueMockTryLockTarget) When(ctx context.Context, kind domain.Kind, slug string, ttl time.Duration) *QueueMockTryLockTargetExpectation {
+func (mmTryLockTarget *mQueueMockTryLockTarget) When(ctx context.Context, kind domain.Kind, slug string, owner string, ttl time.Duration) *QueueMockTryLockTargetExpectation {
 	if mmTryLockTarget.mock.funcTryLockTarget != nil {
 		mmTryLockTarget.mock.t.Fatalf("QueueMock.TryLockTarget mock is already set by Set")
 	}
 
 	expectation := &QueueMockTryLockTargetExpectation{
 		mock:               mmTryLockTarget.mock,
-		params:             &QueueMockTryLockTargetParams{ctx, kind, slug, ttl},
+		params:             &QueueMockTryLockTargetParams{ctx, kind, slug, owner, ttl},
 		expectationOrigins: QueueMockTryLockTargetExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmTryLockTarget.expectations = append(mmTryLockTarget.expectations, expectation)
@@ -2848,17 +2905,17 @@ func (mmTryLockTarget *mQueueMockTryLockTarget) invocationsDone() bool {
 }
 
 // TryLockTarget implements mm_service.Queue
-func (mmTryLockTarget *QueueMock) TryLockTarget(ctx context.Context, kind domain.Kind, slug string, ttl time.Duration) (b1 bool, err error) {
+func (mmTryLockTarget *QueueMock) TryLockTarget(ctx context.Context, kind domain.Kind, slug string, owner string, ttl time.Duration) (b1 bool, err error) {
 	mm_atomic.AddUint64(&mmTryLockTarget.beforeTryLockTargetCounter, 1)
 	defer mm_atomic.AddUint64(&mmTryLockTarget.afterTryLockTargetCounter, 1)
 
 	mmTryLockTarget.t.Helper()
 
 	if mmTryLockTarget.inspectFuncTryLockTarget != nil {
-		mmTryLockTarget.inspectFuncTryLockTarget(ctx, kind, slug, ttl)
+		mmTryLockTarget.inspectFuncTryLockTarget(ctx, kind, slug, owner, ttl)
 	}
 
-	mm_params := QueueMockTryLockTargetParams{ctx, kind, slug, ttl}
+	mm_params := QueueMockTryLockTargetParams{ctx, kind, slug, owner, ttl}
 
 	// Record call args
 	mmTryLockTarget.TryLockTargetMock.mutex.Lock()
@@ -2877,7 +2934,7 @@ func (mmTryLockTarget *QueueMock) TryLockTarget(ctx context.Context, kind domain
 		mm_want := mmTryLockTarget.TryLockTargetMock.defaultExpectation.params
 		mm_want_ptrs := mmTryLockTarget.TryLockTargetMock.defaultExpectation.paramPtrs
 
-		mm_got := QueueMockTryLockTargetParams{ctx, kind, slug, ttl}
+		mm_got := QueueMockTryLockTargetParams{ctx, kind, slug, owner, ttl}
 
 		if mm_want_ptrs != nil {
 
@@ -2894,6 +2951,11 @@ func (mmTryLockTarget *QueueMock) TryLockTarget(ctx context.Context, kind domain
 			if mm_want_ptrs.slug != nil && !minimock.Equal(*mm_want_ptrs.slug, mm_got.slug) {
 				mmTryLockTarget.t.Errorf("QueueMock.TryLockTarget got unexpected parameter slug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmTryLockTarget.TryLockTargetMock.defaultExpectation.expectationOrigins.originSlug, *mm_want_ptrs.slug, mm_got.slug, minimock.Diff(*mm_want_ptrs.slug, mm_got.slug))
+			}
+
+			if mm_want_ptrs.owner != nil && !minimock.Equal(*mm_want_ptrs.owner, mm_got.owner) {
+				mmTryLockTarget.t.Errorf("QueueMock.TryLockTarget got unexpected parameter owner, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmTryLockTarget.TryLockTargetMock.defaultExpectation.expectationOrigins.originOwner, *mm_want_ptrs.owner, mm_got.owner, minimock.Diff(*mm_want_ptrs.owner, mm_got.owner))
 			}
 
 			if mm_want_ptrs.ttl != nil && !minimock.Equal(*mm_want_ptrs.ttl, mm_got.ttl) {
@@ -2913,9 +2975,9 @@ func (mmTryLockTarget *QueueMock) TryLockTarget(ctx context.Context, kind domain
 		return (*mm_results).b1, (*mm_results).err
 	}
 	if mmTryLockTarget.funcTryLockTarget != nil {
-		return mmTryLockTarget.funcTryLockTarget(ctx, kind, slug, ttl)
+		return mmTryLockTarget.funcTryLockTarget(ctx, kind, slug, owner, ttl)
 	}
-	mmTryLockTarget.t.Fatalf("Unexpected call to QueueMock.TryLockTarget. %v %v %v %v", ctx, kind, slug, ttl)
+	mmTryLockTarget.t.Fatalf("Unexpected call to QueueMock.TryLockTarget. %v %v %v %v %v", ctx, kind, slug, owner, ttl)
 	return
 }
 
@@ -3013,16 +3075,18 @@ type QueueMockUnlockTargetExpectation struct {
 
 // QueueMockUnlockTargetParams contains parameters of the Queue.UnlockTarget
 type QueueMockUnlockTargetParams struct {
-	ctx  context.Context
-	kind domain.Kind
-	slug string
+	ctx   context.Context
+	kind  domain.Kind
+	slug  string
+	owner string
 }
 
 // QueueMockUnlockTargetParamPtrs contains pointers to parameters of the Queue.UnlockTarget
 type QueueMockUnlockTargetParamPtrs struct {
-	ctx  *context.Context
-	kind *domain.Kind
-	slug *string
+	ctx   *context.Context
+	kind  *domain.Kind
+	slug  *string
+	owner *string
 }
 
 // QueueMockUnlockTargetResults contains results of the Queue.UnlockTarget
@@ -3032,10 +3096,11 @@ type QueueMockUnlockTargetResults struct {
 
 // QueueMockUnlockTargetOrigins contains origins of expectations of the Queue.UnlockTarget
 type QueueMockUnlockTargetExpectationOrigins struct {
-	origin     string
-	originCtx  string
-	originKind string
-	originSlug string
+	origin      string
+	originCtx   string
+	originKind  string
+	originSlug  string
+	originOwner string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -3049,7 +3114,7 @@ func (mmUnlockTarget *mQueueMockUnlockTarget) Optional() *mQueueMockUnlockTarget
 }
 
 // Expect sets up expected params for Queue.UnlockTarget
-func (mmUnlockTarget *mQueueMockUnlockTarget) Expect(ctx context.Context, kind domain.Kind, slug string) *mQueueMockUnlockTarget {
+func (mmUnlockTarget *mQueueMockUnlockTarget) Expect(ctx context.Context, kind domain.Kind, slug string, owner string) *mQueueMockUnlockTarget {
 	if mmUnlockTarget.mock.funcUnlockTarget != nil {
 		mmUnlockTarget.mock.t.Fatalf("QueueMock.UnlockTarget mock is already set by Set")
 	}
@@ -3062,7 +3127,7 @@ func (mmUnlockTarget *mQueueMockUnlockTarget) Expect(ctx context.Context, kind d
 		mmUnlockTarget.mock.t.Fatalf("QueueMock.UnlockTarget mock is already set by ExpectParams functions")
 	}
 
-	mmUnlockTarget.defaultExpectation.params = &QueueMockUnlockTargetParams{ctx, kind, slug}
+	mmUnlockTarget.defaultExpectation.params = &QueueMockUnlockTargetParams{ctx, kind, slug, owner}
 	mmUnlockTarget.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmUnlockTarget.expectations {
 		if minimock.Equal(e.params, mmUnlockTarget.defaultExpectation.params) {
@@ -3142,8 +3207,31 @@ func (mmUnlockTarget *mQueueMockUnlockTarget) ExpectSlugParam3(slug string) *mQu
 	return mmUnlockTarget
 }
 
+// ExpectOwnerParam4 sets up expected param owner for Queue.UnlockTarget
+func (mmUnlockTarget *mQueueMockUnlockTarget) ExpectOwnerParam4(owner string) *mQueueMockUnlockTarget {
+	if mmUnlockTarget.mock.funcUnlockTarget != nil {
+		mmUnlockTarget.mock.t.Fatalf("QueueMock.UnlockTarget mock is already set by Set")
+	}
+
+	if mmUnlockTarget.defaultExpectation == nil {
+		mmUnlockTarget.defaultExpectation = &QueueMockUnlockTargetExpectation{}
+	}
+
+	if mmUnlockTarget.defaultExpectation.params != nil {
+		mmUnlockTarget.mock.t.Fatalf("QueueMock.UnlockTarget mock is already set by Expect")
+	}
+
+	if mmUnlockTarget.defaultExpectation.paramPtrs == nil {
+		mmUnlockTarget.defaultExpectation.paramPtrs = &QueueMockUnlockTargetParamPtrs{}
+	}
+	mmUnlockTarget.defaultExpectation.paramPtrs.owner = &owner
+	mmUnlockTarget.defaultExpectation.expectationOrigins.originOwner = minimock.CallerInfo(1)
+
+	return mmUnlockTarget
+}
+
 // Inspect accepts an inspector function that has same arguments as the Queue.UnlockTarget
-func (mmUnlockTarget *mQueueMockUnlockTarget) Inspect(f func(ctx context.Context, kind domain.Kind, slug string)) *mQueueMockUnlockTarget {
+func (mmUnlockTarget *mQueueMockUnlockTarget) Inspect(f func(ctx context.Context, kind domain.Kind, slug string, owner string)) *mQueueMockUnlockTarget {
 	if mmUnlockTarget.mock.inspectFuncUnlockTarget != nil {
 		mmUnlockTarget.mock.t.Fatalf("Inspect function is already set for QueueMock.UnlockTarget")
 	}
@@ -3168,7 +3256,7 @@ func (mmUnlockTarget *mQueueMockUnlockTarget) Return(err error) *QueueMock {
 }
 
 // Set uses given function f to mock the Queue.UnlockTarget method
-func (mmUnlockTarget *mQueueMockUnlockTarget) Set(f func(ctx context.Context, kind domain.Kind, slug string) (err error)) *QueueMock {
+func (mmUnlockTarget *mQueueMockUnlockTarget) Set(f func(ctx context.Context, kind domain.Kind, slug string, owner string) (err error)) *QueueMock {
 	if mmUnlockTarget.defaultExpectation != nil {
 		mmUnlockTarget.mock.t.Fatalf("Default expectation is already set for the Queue.UnlockTarget method")
 	}
@@ -3184,14 +3272,14 @@ func (mmUnlockTarget *mQueueMockUnlockTarget) Set(f func(ctx context.Context, ki
 
 // When sets expectation for the Queue.UnlockTarget which will trigger the result defined by the following
 // Then helper
-func (mmUnlockTarget *mQueueMockUnlockTarget) When(ctx context.Context, kind domain.Kind, slug string) *QueueMockUnlockTargetExpectation {
+func (mmUnlockTarget *mQueueMockUnlockTarget) When(ctx context.Context, kind domain.Kind, slug string, owner string) *QueueMockUnlockTargetExpectation {
 	if mmUnlockTarget.mock.funcUnlockTarget != nil {
 		mmUnlockTarget.mock.t.Fatalf("QueueMock.UnlockTarget mock is already set by Set")
 	}
 
 	expectation := &QueueMockUnlockTargetExpectation{
 		mock:               mmUnlockTarget.mock,
-		params:             &QueueMockUnlockTargetParams{ctx, kind, slug},
+		params:             &QueueMockUnlockTargetParams{ctx, kind, slug, owner},
 		expectationOrigins: QueueMockUnlockTargetExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmUnlockTarget.expectations = append(mmUnlockTarget.expectations, expectation)
@@ -3226,17 +3314,17 @@ func (mmUnlockTarget *mQueueMockUnlockTarget) invocationsDone() bool {
 }
 
 // UnlockTarget implements mm_service.Queue
-func (mmUnlockTarget *QueueMock) UnlockTarget(ctx context.Context, kind domain.Kind, slug string) (err error) {
+func (mmUnlockTarget *QueueMock) UnlockTarget(ctx context.Context, kind domain.Kind, slug string, owner string) (err error) {
 	mm_atomic.AddUint64(&mmUnlockTarget.beforeUnlockTargetCounter, 1)
 	defer mm_atomic.AddUint64(&mmUnlockTarget.afterUnlockTargetCounter, 1)
 
 	mmUnlockTarget.t.Helper()
 
 	if mmUnlockTarget.inspectFuncUnlockTarget != nil {
-		mmUnlockTarget.inspectFuncUnlockTarget(ctx, kind, slug)
+		mmUnlockTarget.inspectFuncUnlockTarget(ctx, kind, slug, owner)
 	}
 
-	mm_params := QueueMockUnlockTargetParams{ctx, kind, slug}
+	mm_params := QueueMockUnlockTargetParams{ctx, kind, slug, owner}
 
 	// Record call args
 	mmUnlockTarget.UnlockTargetMock.mutex.Lock()
@@ -3255,7 +3343,7 @@ func (mmUnlockTarget *QueueMock) UnlockTarget(ctx context.Context, kind domain.K
 		mm_want := mmUnlockTarget.UnlockTargetMock.defaultExpectation.params
 		mm_want_ptrs := mmUnlockTarget.UnlockTargetMock.defaultExpectation.paramPtrs
 
-		mm_got := QueueMockUnlockTargetParams{ctx, kind, slug}
+		mm_got := QueueMockUnlockTargetParams{ctx, kind, slug, owner}
 
 		if mm_want_ptrs != nil {
 
@@ -3274,6 +3362,11 @@ func (mmUnlockTarget *QueueMock) UnlockTarget(ctx context.Context, kind domain.K
 					mmUnlockTarget.UnlockTargetMock.defaultExpectation.expectationOrigins.originSlug, *mm_want_ptrs.slug, mm_got.slug, minimock.Diff(*mm_want_ptrs.slug, mm_got.slug))
 			}
 
+			if mm_want_ptrs.owner != nil && !minimock.Equal(*mm_want_ptrs.owner, mm_got.owner) {
+				mmUnlockTarget.t.Errorf("QueueMock.UnlockTarget got unexpected parameter owner, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUnlockTarget.UnlockTargetMock.defaultExpectation.expectationOrigins.originOwner, *mm_want_ptrs.owner, mm_got.owner, minimock.Diff(*mm_want_ptrs.owner, mm_got.owner))
+			}
+
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmUnlockTarget.t.Errorf("QueueMock.UnlockTarget got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 				mmUnlockTarget.UnlockTargetMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
@@ -3286,9 +3379,9 @@ func (mmUnlockTarget *QueueMock) UnlockTarget(ctx context.Context, kind domain.K
 		return (*mm_results).err
 	}
 	if mmUnlockTarget.funcUnlockTarget != nil {
-		return mmUnlockTarget.funcUnlockTarget(ctx, kind, slug)
+		return mmUnlockTarget.funcUnlockTarget(ctx, kind, slug, owner)
 	}
-	mmUnlockTarget.t.Fatalf("Unexpected call to QueueMock.UnlockTarget. %v %v %v", ctx, kind, slug)
+	mmUnlockTarget.t.Fatalf("Unexpected call to QueueMock.UnlockTarget. %v %v %v %v", ctx, kind, slug, owner)
 	return
 }
 

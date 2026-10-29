@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/glbexport"
 )
@@ -21,40 +22,70 @@ func Write(ctx context.Context, w io.Writer, p Plan, open glbexport.Opener) erro
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	zw := zip.NewWriter(w)
-	entry := func(name string) (io.Writer, error) {
-		return zw.CreateHeader(&zip.FileHeader{Name: name, Method: zip.Deflate, Modified: p.modified})
-	}
+	a := archive{zw: zip.NewWriter(w), modified: p.modified}
 	for _, f := range []struct{ name, text string }{{"README.txt", p.readme}, {p.stem + ".mtl", p.mtl}} {
-		e, err := entry(f.name)
-		if err != nil {
-			return fmt.Errorf("objexport: %s: %w", f.name, err)
-		}
-		if _, err := io.WriteString(e, f.text); err != nil {
-			return fmt.Errorf("objexport: %s: %w", f.name, err)
-		}
-	}
-	for _, im := range p.images {
-		e, err := entry(im.name)
-		if err != nil {
-			return fmt.Errorf("objexport: %s: %w", im.name, err)
-		}
-		if err := copyImage(ctx, e, im, open); err != nil {
+		if err := a.text(f.name, f.text); err != nil {
 			return err
 		}
 	}
-	e, err := entry(p.stem + ".obj")
+	for _, im := range p.images {
+		if err := a.image(ctx, im, open); err != nil {
+			return err
+		}
+	}
+	if err := a.obj(ctx, p, open); err != nil {
+		return err
+	}
+	return a.zw.Close()
+}
+
+// archive adds deflated entries, all stamped with one time, to a ZIP.
+type archive struct {
+	zw       *zip.Writer
+	modified time.Time
+}
+
+func (a archive) entry(name string) (io.Writer, error) {
+	e, err := a.zw.CreateHeader(&zip.FileHeader{Name: name, Method: zip.Deflate, Modified: a.modified})
 	if err != nil {
-		return fmt.Errorf("objexport: %s.obj: %w", p.stem, err)
+		return nil, fmt.Errorf("objexport: %s: %w", name, err)
+	}
+	return e, nil
+}
+
+func (a archive) text(name, text string) error {
+	e, err := a.entry(name)
+	if err != nil {
+		return err
+	}
+	if _, err := io.WriteString(e, text); err != nil {
+		return fmt.Errorf("objexport: %s: %w", name, err)
+	}
+	return nil
+}
+
+func (a archive) image(ctx context.Context, im imageRef, open glbexport.Opener) error {
+	e, err := a.entry(im.name)
+	if err != nil {
+		return err
+	}
+	return copyImage(ctx, e, im, open)
+}
+
+func (a archive) obj(ctx context.Context, p Plan, open glbexport.Opener) error {
+	name := p.stem + ".obj"
+	e, err := a.entry(name)
+	if err != nil {
+		return err
 	}
 	bw := bufio.NewWriterSize(e, ioBuffer)
 	if err := p.writeOBJ(ctx, bw, open); err != nil {
 		return err
 	}
 	if err := bw.Flush(); err != nil {
-		return fmt.Errorf("objexport: %s.obj: %w", p.stem, err)
+		return fmt.Errorf("objexport: %s: %w", name, err)
 	}
-	return zw.Close()
+	return nil
 }
 
 // copyImage copies the image's bytes from the blob, which must hold all of them.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/suite"
@@ -118,8 +119,9 @@ func (s *SetPasswordSuite) TestSetPassword() {
 			password: newPassword, lookups: []domain.User{foreign}, written: true, writeErr: errDB, want: errDB,
 		},
 		{
-			name: "a failed sign-out is reported after the write", actor: "root", scopeAll: true, target: "u2",
-			password: newPassword, lookups: []domain.User{foreign}, written: true, signOut: errRedis, want: errRedis,
+			// The new epoch refuses the old sessions, so cleanup failing is not the caller's problem.
+			name: "a failed sign-out cleanup does not fail the reset", actor: "root", scopeAll: true, target: "u2",
+			password: newPassword, lookups: []domain.User{foreign}, written: true, signOut: errRedis,
 		},
 	}
 	for _, tc := range tests {
@@ -134,12 +136,12 @@ func (s *SetPasswordSuite) TestSetPassword() {
 				st.GetByIDMock.When(ctx, tc.actor).Then(domain.User{}, tc.actorErr)
 			}
 			if tc.written {
-				st.ChangePasswordMock.Set(func(_ context.Context, id, hash string) error {
+				st.ChangePasswordMock.Set(func(_ context.Context, id, hash string, at time.Time) (time.Time, error) {
 					assert.Equal(s.T(), id, tc.target)
 					ok, err := password.Verify(tc.password, hash)
 					assert.NilError(s.T(), err)
 					assert.Assert(s.T(), ok, "the stored hash must verify the new password")
-					return tc.writeErr
+					return at, tc.writeErr
 				})
 			}
 			if tc.written && tc.writeErr == nil {

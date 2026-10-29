@@ -109,7 +109,7 @@ func (s *ReconcileSuite) TestStopsOnSubmitFailureAndReleasesTheLock() {
 	s.queue.TryLockTargetMock.Return(true, nil)
 	s.queue.ListTargetJobsMock.Return(nil, nil)
 	s.queue.SaveJobMock.Return(errors.New("redis down"))
-	s.queue.UnlockTargetMock.Expect(s.ctx, domain.KindTerritory, "t1").Return(nil)
+	s.queue.UnlockTargetMock.Expect(s.ctx, domain.KindTerritory, "t1", "id").Return(nil)
 
 	queued, err := s.svc.ReconcileMissingArtifacts(s.ctx)
 	assert.ErrorContains(s.T(), err, "redis down")
@@ -461,10 +461,12 @@ func (s *ReconcileSuite) TestSkewStopsBackfillButNotAFirstConversion() {
 		Backfill: true, UpdatedAt: time.Now(),
 	}}, nil)
 	var locked []string
-	s.queue.TryLockTargetMock.Set(func(_ context.Context, _ domain.Kind, slug string, _ time.Duration) (bool, error) {
-		locked = append(locked, slug)
-		return true, nil
-	})
+	s.queue.TryLockTargetMock.Set(
+		func(_ context.Context, _ domain.Kind, slug, _ string, _ time.Duration) (bool, error) {
+			locked = append(locked, slug)
+			return true, nil
+		},
+	)
 	s.queue.SaveJobMock.Return(nil)
 	s.queue.EnqueueJobMock.Return(nil)
 	s.queue.GetJobMock.Return(domain.Job{}, nil)

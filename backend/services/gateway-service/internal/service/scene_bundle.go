@@ -2,10 +2,7 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
-
-	"golang.org/x/sync/errgroup"
 
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
@@ -22,114 +19,35 @@ func (g *Gateway) GetSceneBundle(ctx context.Context, slug, scopeAdminID string)
 		return domain.SceneBundle{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
 	}
 
-	var (
-		bundle     domain.SceneBundle
-		territory  domain.Territory
-		artifacts  []domain.Artifact
-		placements []domain.Placement
-		models     []domain.Model
-		panoramas  []domain.Panorama
-		documents  []domain.Document
-		measures   []domain.Measurement
-		groups     []domain.PlacementGroup
-		phases     []domain.PanoramaPhase
-	)
-
-	gr, gctx := errgroup.WithContext(ctx)
-	gr.Go(func() error {
-		t, err := g.catalog.GetTerritory(gctx, slug, scopeAdminID)
-		if err != nil {
-			return err
-		}
-		territory = t
-		return nil
-	})
-	gr.Go(func() error {
-		a, err := g.catalog.ListTerritoryArtifacts(gctx, slug)
-		if err != nil && !errors.Is(err, domain.ErrTerritoryNotFound) {
-			return err
-		}
-		artifacts = a
-		return nil
-	})
-	gr.Go(func() error {
-		p, err := g.catalog.ListPlacements(gctx, slug)
-		if err != nil && !errors.Is(err, domain.ErrTerritoryNotFound) {
-			return err
-		}
-		placements = p
-		return nil
-	})
-	gr.Go(func() error {
-		m, err := g.catalog.ListMeasurements(gctx, slug)
-		if err != nil && !errors.Is(err, domain.ErrTerritoryNotFound) {
-			return err
-		}
-		measures = m
-		return nil
-	})
-	gr.Go(func() error {
-		pg, err := g.catalog.ListPlacementGroups(gctx, slug)
-		if err != nil && !errors.Is(err, domain.ErrTerritoryNotFound) {
-			return err
-		}
-		groups = pg
-		return nil
-	})
-	gr.Go(func() error {
-		m, err := g.catalog.ListModels(gctx, true)
-		if err != nil {
-			return err
-		}
-		models = m
-		return nil
-	})
-	gr.Go(func() error {
-		p, err := g.content.ListPanoramas(gctx, slug)
-		if err != nil && !errors.Is(err, domain.ErrTerritoryNotFound) {
-			return err
-		}
-		panoramas = p
-		return nil
-	})
-	gr.Go(func() error {
-		ph, err := g.content.ListPanoramaPhases(gctx, slug)
-		if err != nil && !errors.Is(err, domain.ErrTerritoryNotFound) {
-			return err
-		}
-		phases = ph
-		return nil
-	})
-	gr.Go(func() error {
-		d, err := g.content.ListDocuments(gctx, slug)
-		if err != nil && !errors.Is(err, domain.ErrTerritoryNotFound) {
-			return err
-		}
-		documents = d
-		return nil
-	})
-	if err := gr.Wait(); err != nil {
+	d, err := g.readScene(ctx, slug, scopeAdminID)
+	if err != nil {
 		return domain.SceneBundle{}, err
 	}
+	return assembleSceneBundle(d), nil
+}
 
-	bundle.Territory = territory
-	bundle.Placements = nilToEmpty(placements)
-	bundle.Panoramas = nilToEmpty(panoramas)
-	bundle.Documents = nilToEmpty(documents)
-	bundle.Measurements = nilToEmpty(measures)
-	bundle.PlacementGroups = nilToEmpty(groups)
-	bundle.PanoramaPhases = phases
-	if phases == nil {
+// assembleSceneBundle stitches the fan-out results into the response shape.
+func assembleSceneBundle(d sceneReads) domain.SceneBundle {
+	bundle := domain.SceneBundle{
+		Territory:       d.territory,
+		Placements:      nilToEmpty(d.placements),
+		Panoramas:       nilToEmpty(d.panoramas),
+		Documents:       nilToEmpty(d.documents),
+		Measurements:    nilToEmpty(d.measures),
+		PlacementGroups: nilToEmpty(d.groups),
+		PanoramaPhases:  d.phases,
+	}
+	if d.phases == nil {
 		// No answer — a content-service without the RPC, or no such
 		// territory: every phase shown. Content lists all three otherwise.
 		bundle.PanoramaPhases = allPhasesShown()
 	}
-	if a, ok := pickLOD0(artifacts); ok {
-		a.LODs = lodChain(artifacts)
+	if a, ok := pickLOD0(d.artifacts); ok {
+		a.LODs = lodChain(d.artifacts)
 		bundle.Artifact = &a
 	}
-	bundle.ModelOptions = buildModelOptions(models)
-	return bundle, nil
+	bundle.ModelOptions = buildModelOptions(d.models)
+	return bundle
 }
 
 // pickLOD0 returns the LOD0 artifact from a catalog list, if present.

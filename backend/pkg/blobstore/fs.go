@@ -18,7 +18,8 @@ import (
 //	<root>/<shard>/<hash>.bin   // content
 //	<root>/<shard>/<hash>.json  // metadata (Blob)
 //
-// Writes are atomic: content is staged at <hash>.bin.tmp then renamed.
+// Writes are atomic: content and metadata are each staged in a uniquely named
+// temp file beside their target, fsynced, then renamed.
 type FS struct {
 	root string
 }
@@ -77,30 +78,9 @@ func (f *FS) Put(ctx context.Context, hash, contentType string, r io.Reader) (Bl
 		return Blob{}, fmt.Errorf("blobstore: mkdir: %w", err)
 	}
 
-	tmp := data + ".tmp"
-	out, err := os.OpenFile( //nolint:gosec // G304: tmp is data+".tmp", and data comes from paths(), whose hash passed validateHash (hex only)
-		tmp,
-		os.O_WRONLY|os.O_CREATE|os.O_TRUNC,
-		0o600,
-	)
+	n, err := writeAtomic(data, func(w io.Writer) (int64, error) { return io.Copy(w, r) })
 	if err != nil {
-		return Blob{}, fmt.Errorf("blobstore: create tmp: %w", err)
-	}
-
-	n, copyErr := io.Copy(out, r)
-	closeErr := out.Close()
-	if copyErr != nil {
-		_ = os.Remove(tmp)
-		return Blob{}, fmt.Errorf("blobstore: copy: %w", copyErr)
-	}
-	if closeErr != nil {
-		_ = os.Remove(tmp)
-		return Blob{}, fmt.Errorf("blobstore: close tmp: %w", closeErr)
-	}
-
-	if err := os.Rename(tmp, data); err != nil {
-		_ = os.Remove(tmp)
-		return Blob{}, fmt.Errorf("blobstore: rename: %w", err)
+		return Blob{}, err
 	}
 
 	blob := Blob{Hash: hash, ContentType: contentType, Size: n}
@@ -108,10 +88,54 @@ func (f *FS) Put(ctx context.Context, hash, contentType string, r io.Reader) (Bl
 	if err != nil {
 		return blob, fmt.Errorf("blobstore: marshal meta: %w", err)
 	}
-	if err := os.WriteFile(meta, metaBytes, 0o600); err != nil {
-		return blob, fmt.Errorf("blobstore: write meta: %w", err)
+	if _, err := writeAtomic(meta, func(w io.Writer) (int64, error) {
+		k, err := w.Write(metaBytes)
+		return int64(k), err
+	}); err != nil {
+		return blob, err
 	}
 	return blob, nil
+}
+
+// writeAtomic stages write's output in a temp file of its own beside final
+// (same directory, so the rename stays on one filesystem), fsyncs it and
+// renames it into place. A temp name unique per call is what lets concurrent
+// Puts of one hash, or a Put after a crashed one, proceed without touching each
+// other's half-written file; the rename then replaces final in one step.
+// Every error path, and a panic in write, removes the temp file.
+func writeAtomic(final string, write func(io.Writer) (int64, error)) (n int64, err error) {
+	out, err := os.CreateTemp(filepath.Dir(final), filepath.Base(final)+".*.tmp")
+	if err != nil {
+		return 0, fmt.Errorf("blobstore: create tmp: %w", err)
+	}
+	tmp := out.Name()
+	// A flag, not err: a panic inside write unwinds with err still nil. Close is
+	// idempotent here (the error paths below already closed it), so the handle
+	// is released on every path that did not finish.
+	committed := false
+	defer func() {
+		if !committed {
+			_ = out.Close()
+			_ = os.Remove(tmp)
+		}
+	}()
+
+	n, copyErr := write(out)
+	if copyErr == nil {
+		copyErr = out.Sync()
+	}
+	closeErr := out.Close()
+	if copyErr != nil {
+		return 0, fmt.Errorf("blobstore: copy: %w", copyErr)
+	}
+	if closeErr != nil {
+		return 0, fmt.Errorf("blobstore: close tmp: %w", closeErr)
+	}
+	if err := os.Rename(tmp, final); err != nil {
+		return 0, fmt.Errorf("blobstore: rename: %w", err)
+	}
+	committed = true
+	return n, nil
 }
 
 // Get returns a reader for the blob's content. Caller MUST close it.

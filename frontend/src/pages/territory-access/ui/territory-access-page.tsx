@@ -1,11 +1,12 @@
-import { StatTile, type StatTileTone } from "@/entities/metric";
+import type { StatTileTone } from "@/entities/metric";
 import type { AccessGrant, TerritoryAccess, Visibility } from "@/entities/territory";
 import { FilterBar, type ExtraFilter } from "@/features/audit-filter";
 import { Button } from "@/shared/ui/button";
-import { CoverageMeter, type CoverageSegment } from "@/shared/ui/coverage-meter";
+import type { CoverageSegment } from "@/shared/ui/coverage-meter";
 import { AccessGroups, type AccessGroup } from "@/widgets/access-groups";
 import { AccessInspector } from "@/widgets/access-inspector";
 import { PageHeader } from "@/widgets/page-header";
+import { StatsRow } from "@/widgets/stats-row";
 
 export type AccessPageStat = {
   label: string;
@@ -87,25 +88,7 @@ export function TerritoryAccessPage({
         }
       />
 
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]">
-        <CoverageMeter
-          label={mix.label}
-          detail={mix.detail}
-          detailTone="accent"
-          segments={mix.segments}
-          className="rounded-[11px] border border-line bg-panel px-4.5 py-4"
-        />
-        {stats.map((stat) => (
-          <StatTile
-            key={stat.label}
-            size="lg"
-            label={stat.label}
-            state={{ kind: "value", value: stat.value }}
-            hint={stat.hint}
-            tone={stat.tone ?? "fg"}
-          />
-        ))}
-      </div>
+      <StatsRow meter={mix} detailTone="accent" stats={stats} />
 
       <FilterBar
         query={query}

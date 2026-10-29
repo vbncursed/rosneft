@@ -43,6 +43,19 @@ func (s *QuerySuite) TestQueryPanelsRefusesAnUnknownPanelBeforeAsking() {
 	assert.Equal(s.T(), asked.Load(), int32(0))
 }
 
+// With both an unknown id and a bad range the id is what is reported, and an
+// empty or all-duplicate list is an unknown panel, not a bad range.
+func (s *QuerySuite) TestQueryPanelsReportsTheIDBeforeTheRange() {
+	var asked atomic.Int32
+	c := s.serving(func(http.ResponseWriter, *http.Request) { asked.Add(1) })
+
+	_, err := c.QueryPanels(s.T().Context(), []string{"no-such-panel"}, "99y")
+	assert.ErrorIs(s.T(), err, ErrUnknownPanel)
+	_, err = c.QueryPanels(s.T().Context(), []string{}, "99y")
+	assert.ErrorIs(s.T(), err, ErrUnknownPanel)
+	assert.Equal(s.T(), asked.Load(), int32(0))
+}
+
 func (s *QuerySuite) TestQueryPanelsRunsAtMostFourAtOnce() {
 	var inFlight, peak atomic.Int32
 	c := s.serving(func(w http.ResponseWriter, _ *http.Request) {

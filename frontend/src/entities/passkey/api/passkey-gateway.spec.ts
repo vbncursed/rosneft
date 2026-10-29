@@ -72,12 +72,25 @@ describe("passkey gateway", () => {
 
   it("begins registration and defaults missing fields to empty strings", async () => {
     fetchMock.mockResolvedValueOnce(json({}));
-    expect(await beginRegistration()).toEqual({ optionsJson: "", flowId: "" });
+    expect(await beginRegistration({ password: "pw" })).toEqual({ optionsJson: "", flowId: "" });
     expect(request()).toEqual({
       url: "/api/auth/passkey/register/begin",
       method: "POST",
-      body: undefined,
+      body: { password: "pw" },
     });
+  });
+
+  it("sends the authenticator code with begin when 2FA is on", async () => {
+    fetchMock.mockResolvedValueOnce(json({ optionsJson: "{}", flowId: "f" }));
+    await beginRegistration({ code: "402913" });
+    expect(request().body).toEqual({ code: "402913" });
+  });
+
+  // Like removal, a wrong factor is a 403 (not the session), so no bounce.
+  it("surfaces a 403 on begin without bouncing the session", async () => {
+    fetchMock.mockResolvedValueOnce(json({ code: "forbidden", message: "re-authentication failed" }, 403));
+    await expect(beginRegistration({ password: "wrong" })).rejects.toThrow("re-authentication failed");
+    expect(assign).not.toHaveBeenCalled();
   });
 
   it("finishes registration by posting the flow, the credential and the chosen name", async () => {

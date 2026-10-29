@@ -213,7 +213,7 @@ func (s *ReconcileSuite) TestPlainBackfillBacksOffFromARecentFailure() {
 		s.catalog.HasLOD0Mock.Return(true, false, nil)
 		var locked []string
 		s.queue.TryLockTargetMock.Set(
-			func(_ context.Context, _ domain.Kind, slug string, _ time.Duration) (bool, error) {
+			func(_ context.Context, _ domain.Kind, slug, _ string, _ time.Duration) (bool, error) {
 				locked = append(locked, slug)
 				return true, nil
 			},
@@ -254,4 +254,24 @@ func (s *ReconcileSuite) TestPlainBackfillStopsWhenARecentSuccessLeftNoPlain() {
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), n, 0)
 	assert.Equal(s.T(), len(s.queue.TryLockTargetMock.Calls()), 0)
+}
+
+// The reconciler's backfill is the one caller that marks the job it creates.
+func (s *ReconcileSuite) TestBackfillSubmitMarksTheJobItCreates() {
+	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
+		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
+	}, nil)
+	s.catalog.HasLOD0Mock.Return(true, false, nil)
+	s.queue.TryLockTargetMock.Return(true, nil)
+	s.queue.ListTargetJobsMock.Return(nil, nil)
+	s.queue.SaveJobMock.Expect(s.ctx, domain.Job{
+		ID: "id", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusPending, Backfill: true,
+	}).Return(nil)
+	s.queue.EnqueueJobMock.Return(nil)
+	s.queue.GetJobMock.Return(domain.Job{}, nil)
+
+	n, err := s.svc.ReconcileMissingArtifacts(s.ctx)
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), n, 1)
 }

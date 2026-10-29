@@ -26,7 +26,7 @@ func (s *Server) ChangePassword(
 	if err != nil {
 		return nil, mapError(err)
 	}
-	if err := s.users.ChangePassword(ctx, uid, req.GetOldPassword(), req.GetNewPassword()); err != nil {
+	if err := s.users.ChangePassword(ctx, uid, req.GetToken(), req.GetOldPassword(), req.GetNewPassword()); err != nil {
 		return nil, mapError(err)
 	}
 	return &authv1.ChangePasswordResponse{}, nil

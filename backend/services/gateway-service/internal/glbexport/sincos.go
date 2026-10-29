@@ -25,15 +25,42 @@ func horner(coef *[6]float64, zz float64) float64 {
 	return r
 }
 
+// Pi/4 split into three parts, so the reduction loses no bits.
+const (
+	pi4A = 7.85398125648498535156e-1
+	pi4B = 3.77489470793079817668e-8
+	pi4C = 2.69515142907905952645e-15
+)
+
+// reduce brings x >= 0 to z in [-Pi/4, Pi/4] and says which quarter turn j
+// (0..3) it came from, and whether the half turn was a reflection in the x axis.
+func reduce(x float64) (z float64, j uint64, reflected bool) {
+	j = uint64(float64(x * (4 / math.Pi)))
+	y := float64(j)
+	if j&1 == 1 { // map zeros to origin
+		j++
+		y++
+	}
+	j &= 7
+	z = ((x - float64(y*pi4A)) - float64(y*pi4B)) - float64(y*pi4C)
+	if j > 3 {
+		j -= 4
+		reflected = true
+	}
+	return z, j, reflected
+}
+
+func negIf(v float64, neg bool) float64 {
+	if neg {
+		return -v
+	}
+	return v
+}
+
 // sincos is math.Sincos without fused multiply-adds, so an export is
 // byte-identical whichever architecture produced it. math.Sincos(0.75) ends in
 // ...341 on arm64 and ...342 on amd64.
 func sincos(x float64) (sin, cos float64) {
-	const (
-		pi4A = 7.85398125648498535156e-1 // Pi/4 split into three parts
-		pi4B = 3.77489470793079817668e-8
-		pi4C = 2.69515142907905952645e-15
-	)
 	if x == 0 {
 		return x, 1
 	}
@@ -43,37 +70,16 @@ func sincos(x float64) (sin, cos float64) {
 	if math.IsNaN(x) {
 		return x, x
 	}
-	sinSign, cosSign := false, false
-	if x < 0 {
+	negative := x < 0 // not math.Abs: Mod can return -0, which keeps its sign
+	if negative {
 		x = -x
-		sinSign = true
 	}
-	j := uint64(float64(x * (4 / math.Pi)))
-	y := float64(j)
-	if j&1 == 1 { // map zeros to origin
-		j++
-		y++
-	}
-	j &= 7
-	z := ((x - float64(y*pi4A)) - float64(y*pi4B)) - float64(y*pi4C)
-	if j > 3 { // reflect in x axis
-		j -= 4
-		sinSign, cosSign = !sinSign, !cosSign
-	}
-	if j > 1 {
-		cosSign = !cosSign
-	}
+	z, j, reflected := reduce(x)
 	zz := float64(z * z)
 	cos = 1.0 - float64(0.5*zz) + float64(float64(zz*zz)*horner(&cosCoef, zz))
 	sin = z + float64(float64(z*zz)*horner(&sinCoef, zz))
 	if j == 1 || j == 2 {
 		sin, cos = cos, sin
 	}
-	if cosSign {
-		cos = -cos
-	}
-	if sinSign {
-		sin = -sin
-	}
-	return sin, cos
+	return negIf(sin, negative != reflected), negIf(cos, reflected != (j > 1))
 }

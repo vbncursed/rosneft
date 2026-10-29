@@ -2,6 +2,7 @@ package auth_test
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -192,4 +193,115 @@ func (s *ValidateTokenSuite) TestCachedHitStillReportsMustEnroll() {
 	_, _, _, _, _, second, err := s.svc.ValidateToken(s.ctx, "tok")
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), second, true)
+}
+
+// A session minted under an older password than the user's current one is dead
+// (a Login that raced the change); equal and newer sessions live. A session
+// stored before epochs existed (PwEpoch 0) is dated by its absolute expiry
+// minus the TTL: it lives only if it was minted after the last change, and
+// always for a user whose password never changed (so a deploy signs nobody out).
+func (s *ValidateTokenSuite) TestSessionOlderThanThePasswordEpochIsRefused() {
+	const ttl = time.Hour
+	changedAt := time.UnixMicro(2_000_000_000_000).UTC()
+	legacy := func(mintedMicro int64) domain.Session {
+		return domain.Session{UserID: "u1", AbsoluteExpiry: time.UnixMicro(mintedMicro).Add(ttl)}
+	}
+	tests := []struct {
+		name    string
+		changed *time.Time
+		sess    domain.Session
+		valid   bool
+	}{
+		{"minted before the change", &changedAt, domain.Session{UserID: "u1", PwEpoch: 1_999_999_999_999}, false},
+		{
+			"minted under the never-changed epoch, then changed", &changedAt,
+			domain.Session{UserID: "u1", PwEpoch: domain.NeverChangedEpoch},
+			false,
+		},
+		{"minted under the current epoch", &changedAt, domain.Session{UserID: "u1", PwEpoch: 2_000_000_000_000}, true},
+		{
+			"moved ahead of the row by the change itself", &changedAt,
+			domain.Session{UserID: "u1", PwEpoch: 2_000_000_000_001},
+			true,
+		},
+		{"pre-epoch session minted before the change", &changedAt, legacy(1_999_999_999_999), false},
+		{"pre-epoch session minted after the change", &changedAt, legacy(2_000_000_000_001), true},
+		{"pre-epoch session, password never changed", nil, legacy(1_999_999_999_999), true},
+		{"password never changed", nil, domain.Session{UserID: "u1", PwEpoch: domain.NeverChangedEpoch}, true},
+	}
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			mc := minimock.NewController(s.T())
+			us, ss := mocks.NewUserStoreMock(mc), mocks.NewSessionStoreMock(mc)
+			svc := auth.New(us, ss, mocks.NewTwoFAVerifierMock(mc), mocks.NewPasskeyVerifierMock(mc), ttl)
+			ss.GetMock.Return(tt.sess, nil)
+			us.GetByIDMock.Return(domain.User{ID: "u1", PasswordChangedAt: tt.changed}, nil)
+			us.ResolveOwningAdminMock.Return("", nil)
+			if !tt.valid {
+				ss.DeleteMock.Expect(s.ctx, "tok").Return(nil)
+			}
+
+			_, _, _, _, _, _, err := svc.ValidateToken(s.ctx, "tok")
+
+			if tt.valid {
+				assert.NilError(s.T(), err)
+				return
+			}
+			assert.ErrorIs(s.T(), err, domain.ErrSessionInvalid)
+		})
+	}
+}
+
+// The epoch rides on the cached snapshot (no extra read per request), so a
+// password change in this process must drop the snapshot: otherwise a session
+// the racing Login minted stays valid until the cache entry expires.
+func (s *ValidateTokenSuite) TestForgetUserEnforcesANewPasswordEpochAtOnce() {
+	changed := time.UnixMicro(2_000_000).UTC()
+	s.ss.GetMock.Return(domain.Session{UserID: "u1", PwEpoch: domain.NeverChangedEpoch}, nil)
+	s.us.GetByIDMock.Set(func(context.Context, string) (domain.User, error) { return domain.User{ID: "u1"}, nil })
+	s.us.ResolveOwningAdminMock.Return("", nil)
+	_, _, _, _, _, _, err := s.svc.ValidateToken(s.ctx, "tok")
+	assert.NilError(s.T(), err) // snapshot cached with the never-changed epoch
+
+	s.us.GetByIDMock.Set(func(context.Context, string) (domain.User, error) {
+		return domain.User{ID: "u1", PasswordChangedAt: &changed}, nil
+	})
+	s.ss.DeleteMock.Return(nil)
+	_, _, _, _, _, _, err = s.svc.ValidateToken(s.ctx, "tok")
+	assert.NilError(s.T(), err) // still the cached snapshot: this is the staleness being closed
+
+	s.svc.ForgetUser("u1")
+	_, _, _, _, _, _, err = s.svc.ValidateToken(s.ctx, "tok")
+	assert.ErrorIs(s.T(), err, domain.ErrSessionInvalid)
+}
+
+// A request that missed the cache before a password change and finishes
+// loading after it must not put its pre-change snapshot back: it would carry
+// the old epoch for up to authzCacheTTL and let an outdated session through.
+func (s *ValidateTokenSuite) TestSnapshotLoadedBeforeForgetUserIsNotCached() {
+	loading, release := make(chan struct{}), make(chan struct{})
+	var calls atomic.Int32
+	s.ss.GetMock.Return(domain.Session{UserID: "u1"}, nil)
+	s.us.ResolveOwningAdminMock.Return("", nil)
+	s.us.GetByIDMock.Set(func(context.Context, string) (domain.User, error) {
+		if calls.Add(1) == 1 { // the slow request, holding the old row
+			close(loading)
+			<-release
+		}
+		return domain.User{ID: "u1"}, nil
+	})
+
+	done := make(chan error, 1)
+	go func() {
+		_, _, _, _, _, _, err := s.svc.ValidateToken(s.ctx, "tok")
+		done <- err
+	}()
+	<-loading
+	s.svc.ForgetUser("u1") // the password change lands while it loads
+	close(release)
+	assert.NilError(s.T(), <-done)
+
+	_, _, _, _, _, _, err := s.svc.ValidateToken(s.ctx, "tok")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), calls.Load(), int32(2), "the stale snapshot was served from the cache")
 }

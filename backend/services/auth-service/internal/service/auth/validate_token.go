@@ -1,6 +1,10 @@
 package auth
 
-import "context"
+import (
+	"context"
+
+	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
+)
 
 // ValidateToken authenticates a token against its live Redis session, then
 // returns the caller's authorization (permissions, owner flag, territory scope,
@@ -22,7 +26,7 @@ func (s *Service) ValidateToken(
 	if err != nil {
 		return "", nil, false, "", "", false, err
 	}
-	a, ok := s.authz.get(sess.UserID)
+	a, gen, ok := s.authz.get(sess.UserID)
 	if !ok {
 		u, err := s.users.GetByID(ctx, sess.UserID)
 		if err != nil {
@@ -38,8 +42,20 @@ func (s *Service) ValidateToken(
 			owningAdmin:  scopeOwningAdmin(u.RoleSlugs, resolvedAdmin, u.ID),
 			auditCompany: resolvedAdmin,
 			totpRequired: u.TOTPRequired,
+			pwEpoch:      u.PasswordEpoch(),
 		}
-		s.authz.set(u.ID, a)
+		s.authz.set(u.ID, a, gen)
+	}
+
+	// A session minted under an older password than the user's current one is
+	// dead (a Login that raced the change, or any session a failed cleanup left
+	// behind). The epoch rides on the snapshot above, so this costs no extra
+	// round trip; like any other authorization change it is enforced within
+	// authzCacheTTL on other replicas, and at once here because the password
+	// change drops the snapshot (ForgetUser).
+	if a.pwEpoch > domain.NeverChangedEpoch && s.mintedEpoch(sess) < a.pwEpoch {
+		_ = s.sessions.Delete(ctx, token)
+		return "", nil, false, "", "", false, domain.ErrSessionInvalid
 	}
 
 	// totpRequired is policy — a column on the user row, cached in the
@@ -69,4 +85,23 @@ func (s *Service) ValidateToken(
 		mustEnroll = !enabled
 	}
 	return sess.UserID, a.perms, a.isOwner, a.owningAdmin, a.auditCompany, mustEnroll, nil
+}
+
+// ForgetUser drops the cached authorization snapshot of a user, so a password
+// change is enforced by the next ValidateToken instead of after authzCacheTTL.
+func (s *Service) ForgetUser(userID string) { s.authz.drop(userID) }
+
+// mintedEpoch is the password epoch a session was minted under. A session
+// stored before epochs existed (PwEpoch 0) is dated by its absolute expiry
+// minus the TTL it was given, so it survives the deploy when it was minted
+// after the user's last password change and dies at the first change after it.
+// shortcut: assumes absoluteTTL is unchanged since the session was minted.
+// Raising it makes an old session look older (refused early); lowering it makes
+// it look newer, so it can outlive a password change it should have died at.
+// Revisit if the TTL is ever changed in production.
+func (s *Service) mintedEpoch(sess domain.Session) int64 {
+	if sess.PwEpoch != 0 {
+		return sess.PwEpoch
+	}
+	return sess.AbsoluteExpiry.Add(-s.absoluteTTL).UnixMicro()
 }

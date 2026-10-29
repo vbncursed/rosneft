@@ -769,7 +769,7 @@ export type PasskeyLoginFinishRequest = {
   assertionJson: string;
 };
 
-export type PasskeyDeleteRequest = {
+export type PasskeyStepUpRequest = {
   /**
    * sent when 2FA is off
    */
@@ -3480,7 +3480,7 @@ export type PostApiAuthPasskeyLoginFinishResponses = {
 export type PostApiAuthPasskeyLoginFinishResponse = PostApiAuthPasskeyLoginFinishResponses[keyof PostApiAuthPasskeyLoginFinishResponses];
 
 export type PostApiAuthPasskeyRegisterBeginData = {
-  body?: never;
+  body: PasskeyStepUpRequest;
   path?: never;
   query?: never;
   url: '/api/auth/passkey/register/begin';
@@ -3491,6 +3491,11 @@ export type PostApiAuthPasskeyRegisterBeginErrors = {
    * Missing or invalid session token
    */
   401: Error;
+  /**
+   * Permission denied. Code `twofa_enrollment_required` means the account is required to carry a second factor and has not enrolled one: only /api/auth/me, /api/auth/logout and the /api/auth/2fa enrollment endpoints are reachable until it does.
+   *
+   */
+  403: Error;
 };
 
 export type PostApiAuthPasskeyRegisterBeginError = PostApiAuthPasskeyRegisterBeginErrors[keyof PostApiAuthPasskeyRegisterBeginErrors];
@@ -3555,7 +3560,7 @@ export type GetApiAuthPasskeyCredentialsResponses = {
 export type GetApiAuthPasskeyCredentialsResponse = GetApiAuthPasskeyCredentialsResponses[keyof GetApiAuthPasskeyCredentialsResponses];
 
 export type DeleteApiAuthPasskeyCredentialsByIdData = {
-  body: PasskeyDeleteRequest;
+  body: PasskeyStepUpRequest;
   path: {
     id: string;
   };

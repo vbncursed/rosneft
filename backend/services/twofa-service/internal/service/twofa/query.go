@@ -33,13 +33,24 @@ func (s *Service) EnabledFor(ctx context.Context, userIDs []string) ([]string, e
 // Verify checks a TOTP or one-time recovery code for a user with 2FA enabled.
 // It is rate-limited per user: locked after too many fails, cleared on success.
 func (s *Service) Verify(ctx context.Context, userID, code string) (bool, error) {
-	locked, err := s.limiter.IsLocked(ctx, userID)
+	allowed, err := s.limiter.TakeAttempt(ctx, userID)
 	if err != nil {
 		return false, err
 	}
-	if locked {
+	if !allowed {
 		return false, domain.ErrTwoFALocked
 	}
+	ok, err := s.check(ctx, userID, code)
+	// A wrong code is (false, nil) and stays counted. Any error is ours (store,
+	// cipher, recovery codes) or not a guess at all (2FA off): give the attempt back.
+	if err != nil {
+		_ = s.limiter.Refund(ctx, userID)
+	}
+	return ok, err
+}
+
+// check is Verify after its attempt has been reserved.
+func (s *Service) check(ctx context.Context, userID, code string) (bool, error) {
 	c, err := s.store.Get(ctx, userID)
 	if err != nil {
 		return false, err
@@ -61,14 +72,16 @@ func (s *Service) Verify(ctx context.Context, userID, code string) (bool, error)
 		return false, err
 	}
 	if idx, ok := totp.MatchRecovery(code, hashes); ok {
-		if err := s.recovery.MarkUsed(ctx, ids[idx]); err != nil {
+		consumed, err := s.recovery.Consume(ctx, ids[idx])
+		if err != nil {
 			return false, err
 		}
-		_ = s.limiter.Clear(ctx, userID)
-		metricTwofaVerifications.WithLabelValues("succeeded").Inc()
-		return true, nil
+		if consumed {
+			_ = s.limiter.Clear(ctx, userID)
+			metricTwofaVerifications.WithLabelValues("succeeded").Inc()
+			return true, nil
+		}
 	}
-	_ = s.limiter.RegisterFail(ctx, userID)
 	metricTwofaVerifications.WithLabelValues("failed").Inc()
 	return false, nil
 }

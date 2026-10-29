@@ -13,8 +13,8 @@ import (
 )
 
 // ListTargetJobs reads the target index and the job hash behind each entry in
-// one pipeline. An index entry whose job hash is gone (nothing deletes them
-// today) is skipped rather than reported. The result is sorted by kind then
+// one pipeline. An index entry whose job hash is gone (expired after JobRetention,
+// see SaveJob) is skipped rather than reported. The result is sorted by kind then
 // slug: HVALS has no order and the console groups by kind.
 func (r *Redis) ListTargetJobs(ctx context.Context) ([]domain.Job, error) {
 	ids, err := r.client.HVals(ctx, targetsKey).Result()

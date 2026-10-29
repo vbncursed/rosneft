@@ -38,8 +38,10 @@ func (h *Handler) serveAsset(w http.ResponseWriter, r *http.Request) {
 	// the same pair, byte for byte).
 	w.Header().Set("Content-Security-Policy", "sandbox; default-src 'none'")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	// Content-addressed: blob never changes for a given hash, so cache forever.
-	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	// Content-addressed: the bytes never change for a hash, so cache forever, but
+	// "private": the route is tenant-scoped behind the gateway, and a shared cache
+	// that ignores auth must not serve one tenant's blob to another.
+	w.Header().Set("Cache-Control", "private, max-age=31536000, immutable")
 
 	if matchEtag(r.Header.Get("If-None-Match"), etag) {
 		w.WriteHeader(http.StatusNotModified)

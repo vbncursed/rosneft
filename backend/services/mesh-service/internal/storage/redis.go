@@ -7,6 +7,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 
@@ -23,6 +24,17 @@ const (
 	// that target. It is what lets the console ask "what is happening to X"
 	// without holding a job id; the job hashes themselves stay keyed by id.
 	targetsKey = "andrey:mesh:targets"
+
+	// JobRetention is how long a job hash outlives the moment it stops being
+	// its target's latest job (superseded by the next one, or its target
+	// forgotten). The latest job of a live target never expires: the index
+	// and the reconciler's retry rules read it.
+	JobRetention = 30 * 24 * time.Hour
+
+	// streamRetention bounds the conversion stream by age. A message is read
+	// within seconds, and an unread one is abandoned after MaxQueueWait (6 h)
+	// anyway, so a week keeps every message anything could still want.
+	streamRetention = 7 * 24 * time.Hour
 )
 
 // Redis is the Redis-backed job store and queue.

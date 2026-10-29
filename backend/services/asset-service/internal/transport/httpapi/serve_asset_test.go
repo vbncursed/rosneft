@@ -61,6 +61,13 @@ func TestServeAssetSecurityHeaders(t *testing.T) {
 			if got := rec.Header().Get("X-Content-Type-Options"); got != "nosniff" {
 				t.Errorf("X-Content-Type-Options = %q", got)
 			}
+			// Tenant-scoped behind the gateway: a shared cache must not store it.
+			if got := rec.Header().Get("Cache-Control"); got != "private, max-age=31536000, immutable" {
+				t.Errorf("Cache-Control = %q", got)
+			}
+			if got := rec.Header().Get("ETag"); got != `"`+testHash+`"` {
+				t.Errorf("ETag = %q, want the quoted hash", got)
+			}
 			if got := rec.Header().Get("Content-Type"); got != "text/html" {
 				t.Errorf("Content-Type = %q, want the stored one", got)
 			}

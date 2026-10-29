@@ -71,8 +71,9 @@ docker run --rm -v andrey_blob-data:/var/blob -v "$BACKUP/blobs":/in:ro alpine s
 
 ## The restore that was actually run
 
-Performed against production **read-only** — no write, no script execution,
-and no systemd unit installed on 85.192.26.113. Everything below ran on the
+Performed on 2026-08-03 against production **read-only** — no write, no
+script execution, and no systemd unit installed on 85.192.26.113 at the time
+(`andrey-backup.service` came later, see below). Everything below ran on the
 workstation, against files pulled down over SSH/`scp`.
 
 **Environment note:** all Docker image pulls failed in this sandbox
@@ -194,14 +195,14 @@ $ docker rm -f restore-test-task12
 
 ## What this did *not* verify
 
-- **This was not the predeploy dump from `dump.sh` itself** — `dump.sh` has
-  never run on the production host (no systemd timer exists yet; see below).
-  The dump used here is one of the ad-hoc ones already in `/root/backups`
-  from manual runs. The restore mechanics are identical either way — `pg_dump
-  | gzip` in, `gunzip | psql` out — so this proves the *procedure*, but the
-  corrected blob-copy logic in `dump.sh` itself was **not** exercised against
-  production, because doing so would require running a script on the host,
-  which is out of scope for this read-only pass.
+- **This was not a dump from `dump.sh` itself** — the dump used here is one
+  of the ad-hoc ones that were in `/root/backups` on 2026-08-03, before
+  `andrey-backup.service` existed. The restore mechanics are identical either
+  way — `pg_dump | gzip` in, `gunzip | psql` out — so this proves the
+  *procedure*. `dump.sh` has run on the host since (`andrey-backup.service`
+  ran it successfully on 2026-10-28), but no restore drill has been repeated
+  against one of *its* artifacts: the corrected blob-copy logic is proven by
+  that successful run, not by a restore from it.
 - **Blob presence was not re-verified against the pulled dump's hash list**
   in this run (that would need a `dump.sh` execution to produce
   `source-hashes-*.txt`); the operator's own numbers already recorded 59/59
@@ -209,40 +210,43 @@ $ docker rm -f restore-test-task12
 
 ## What the operator must run by hand
 
-This repo only had read-only SSH to production. The following still needs a
-human with write access:
-
-**1. Install `dump.sh` on the host and run it once manually:**
+**1. Run `dump.sh` on the host when you need a fresh backup.** Do not `scp`
+it: `/opt/rosneft` on production is the git checkout that `ops/deploy/deploy.sh`
+moves to each deployed SHA, and `andrey-backup.service` runs
+`ops/backup/dump.sh` from it, so the script ships with the deploy. Check that
+the checkout is at the SHA you expect, then run it (or start the unit with
+`systemctl start andrey-backup.service`):
 
 ```bash
-scp ops/backup/dump.sh root@85.192.26.113:/opt/rosneft/ops/backup/dump.sh
-ssh root@85.192.26.113 'chmod +x /opt/rosneft/ops/backup/dump.sh'
+ssh root@85.192.26.113 'git -C /opt/rosneft rev-parse --short HEAD'
 ssh root@85.192.26.113 'bash -x /opt/rosneft/ops/backup/dump.sh'
 ssh root@85.192.26.113 'ls -lh /root/backups | tail -20'
 ```
 
 Expect three new files (`andrey-<stamp>.sql.gz`, `audit-digest-<stamp>.tar.gz`,
-`source-hashes-<stamp>.txt`) and a non-empty `blobs/` directory. If any blob
-is reported missing, the script now exits non-zero and names the hash — do
-not silence that, investigate it (a missing source blob means a territory or
-model cannot be restored to a working state without reconversion from
-scratch, and reconversion needs the source).
+`source-hashes-<stamp>.txt`) and a non-empty `blobs/` directory. **A manual run
+also rotates**: it keeps only the newest `KEEP` (default 7) of each artifact
+kind and deletes the older ones, so running it repeatedly pushes the oldest
+backups out of the window. If any blob is reported missing, the script exits
+non-zero and names the hash (and skips rotation) — do not silence that,
+investigate it (a missing source blob means a territory or model cannot be
+restored to a working state without reconversion from scratch, and
+reconversion needs the source).
 
-**2. Install the systemd timer on the host**, daily at 04:00 Moscow time:
-
-```
-/etc/systemd/system/andrey-backup.service
-/etc/systemd/system/andrey-backup.timer
-```
-
-The service unit's `ExecStart` should point at
-`/opt/rosneft/ops/backup/dump.sh`. Verify with:
+**2. Check the schedule on the host.** `andrey-backup.service` is installed
+there (it ran successfully on 2026-10-28). Its unit files live only on the host,
+not in this repo, and CD does not refresh them. The intended schedule is daily
+at 04:00 Moscow time; confirm that a timer drives it:
 
 ```bash
 ssh root@85.192.26.113 'systemctl list-timers andrey-backup --all'
+ssh root@85.192.26.113 'systemctl status andrey-backup.service'
 ```
 
-Expect a line with the next scheduled run.
+Expect a line with the next scheduled run. If there is none, the service only
+runs when started by hand: install an `andrey-backup.timer` beside the service
+unit (`OnCalendar=*-*-* 04:00:00` with `Europe/Moscow` time) and
+`systemctl daemon-reload && systemctl enable --now andrey-backup.timer`.
 
 **3. Schedule `pull.sh` on the workstation**, daily at 05:00 (an hour after
 the host timer, so there's always something to pull) — a `launchd` agent or

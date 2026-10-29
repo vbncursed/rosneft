@@ -25,11 +25,24 @@ type SessionStore interface {
 	Create(ctx context.Context, sess domain.Session) (string, error)
 	Get(ctx context.Context, token string) (domain.Session, error)
 	Delete(ctx context.Context, token string) error
-	PutPending(ctx context.Context, userID string) (string, error)
-	TakePending(ctx context.Context, challenge string) (string, error)
-	RegisterFail(ctx context.Context, identifier string) error
-	IsLocked(ctx context.Context, identifier string) (bool, error)
+	// PutPending records the user's password epoch in the challenge so a
+	// password change between the two login steps can refuse it.
+	PutPending(ctx context.Context, userID string, epoch int64) (string, error)
+	// TakePending returns the user and the epoch recorded at PutPending; epoch
+	// 0 is a challenge issued before epochs were recorded (unchecked).
+	TakePending(ctx context.Context, challenge string) (userID string, epoch int64, err error)
+	// TakeAttempt reserves one login attempt; false means the budget is spent.
+	TakeAttempt(ctx context.Context, identifier string) (bool, error)
+	// RefundAttempt gives back an attempt that was not a guess (the request
+	// failed for a reason other than a wrong password).
+	RefundAttempt(ctx context.Context, identifier string) error
 	ClearFails(ctx context.Context, identifier string) error
+	// The change-password budget, keyed by user id. VerifyPassword (the
+	// step-up factor) draws on the same budget, so a stolen session cannot
+	// guess the password through step-up at the general API rate.
+	TakeChangePasswordAttempt(ctx context.Context, userID string) (bool, error)
+	RefundChangePasswordAttempt(ctx context.Context, userID string) error
+	ClearChangePasswordFails(ctx context.Context, userID string) error
 }
 
 // TwoFAVerifier delegates 2FA checks to twofa-service.

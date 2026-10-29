@@ -20,7 +20,24 @@ var allowedExtensions = []string{
 
 // Validate refuses what the merge would silently corrupt. A pipeline change
 // that starts emitting any of it fails here, in a test, not in a user's file.
+// The checks run in this order; the first refusal is the one reported.
 func Validate(doc *gltf.Document) error {
+	for _, check := range []func(*gltf.Document) error{
+		checkNoAnimationSkinCamera,
+		checkExtensions,
+		checkNoNil,
+		checkNoSparse,
+		checkBuffers,
+		checkImages,
+	} {
+		if err := check(doc); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func checkNoAnimationSkinCamera(doc *gltf.Document) error {
 	switch {
 	case len(doc.Animations) > 0:
 		return unsupported("animations")
@@ -29,19 +46,35 @@ func Validate(doc *gltf.Document) error {
 	case len(doc.Cameras) > 0:
 		return unsupported("cameras")
 	}
+	return nil
+}
+
+func checkExtensions(doc *gltf.Document) error {
 	for _, name := range slices.Concat(doc.ExtensionsUsed, doc.ExtensionsRequired) {
 		if !slices.Contains(allowedExtensions, name) {
 			return unsupported("extension %s", name)
 		}
 	}
+	return nil
+}
+
+func checkNoNil(doc *gltf.Document) error {
 	if hasNil(doc) {
 		return malformed("null array element")
 	}
+	return nil
+}
+
+func checkNoSparse(doc *gltf.Document) error {
 	for _, a := range doc.Accessors {
 		if a.Sparse != nil {
 			return unsupported("sparse accessor")
 		}
 	}
+	return nil
+}
+
+func checkBuffers(doc *gltf.Document) error {
 	for i, b := range doc.Buffers {
 		if b.URI != "" {
 			return unsupported("buffer %d has a uri", i)
@@ -50,6 +83,10 @@ func Validate(doc *gltf.Document) error {
 			return unsupported("buffer %d is not a meshopt fallback", i)
 		}
 	}
+	return nil
+}
+
+func checkImages(doc *gltf.Document) error {
 	for i, im := range doc.Images {
 		if im.URI != "" {
 			return unsupported("image %d has a uri", i)
@@ -60,19 +97,22 @@ func Validate(doc *gltf.Document) error {
 
 // hasNil reports a JSON null where an object belongs, which would panic later.
 func hasNil(d *gltf.Document) bool {
-	if slices.Contains(d.Accessors, nil) || slices.Contains(d.BufferViews, nil) ||
-		slices.Contains(d.Buffers, nil) || slices.Contains(d.Images, nil) ||
-		slices.Contains(d.Materials, nil) || slices.Contains(d.Meshes, nil) ||
-		slices.Contains(d.Nodes, nil) || slices.Contains(d.Samplers, nil) ||
-		slices.Contains(d.Scenes, nil) || slices.Contains(d.Textures, nil) {
+	if slices.Contains([]bool{
+		slices.Contains(d.Accessors, nil),
+		slices.Contains(d.BufferViews, nil),
+		slices.Contains(d.Buffers, nil),
+		slices.Contains(d.Images, nil),
+		slices.Contains(d.Materials, nil),
+		slices.Contains(d.Meshes, nil),
+		slices.Contains(d.Nodes, nil),
+		slices.Contains(d.Samplers, nil),
+		slices.Contains(d.Scenes, nil),
+		slices.Contains(d.Textures, nil),
+	}, true) {
 		return true
 	}
-	for _, m := range d.Meshes {
-		if slices.Contains(m.Primitives, nil) {
-			return true
-		}
-	}
-	return false
+	// Meshes hold no nil past this point, so m is safe to read.
+	return slices.ContainsFunc(d.Meshes, func(m *gltf.Mesh) bool { return slices.Contains(m.Primitives, nil) })
 }
 
 // isFallback reports whether a buffer is gltfpack's data-less meshopt fallback.

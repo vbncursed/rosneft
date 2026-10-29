@@ -32,4 +32,7 @@ var (
 	// confer access it already holds. ErrOwnerOnly guards the owner flag itself.
 	ErrPrivilegeEscalation = errors.New("you cannot grant access you do not have yourself")
 	ErrOwnerOnly           = errors.New("only an owner can grant owner status")
+	// ErrPasskeyCeremonyExpired: the login flow id is unknown or past its TTL;
+	// the caller starts again. A refusal, not a fault.
+	ErrPasskeyCeremonyExpired = errors.New("passkey ceremony expired or unknown")
 )

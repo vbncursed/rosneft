@@ -19,7 +19,8 @@ type Store interface {
 type Recovery interface {
 	Replace(ctx context.Context, userID string, hashes []string) error
 	List(ctx context.Context, userID string) (ids, hashes []string, err error)
-	MarkUsed(ctx context.Context, id string) error
+	// Consume spends one code; false means another caller already did.
+	Consume(ctx context.Context, id string) (consumed bool, err error)
 	DeleteAll(ctx context.Context, userID string) error
 	// Counts reports unused and issued recovery codes for the account screen.
 	Counts(ctx context.Context, userID string) (remaining, total int, err error)
@@ -32,8 +33,11 @@ type Cipher interface {
 
 // RateLimiter throttles the login Verify step per user.
 type RateLimiter interface {
-	IsLocked(ctx context.Context, userID string) (bool, error)
-	RegisterFail(ctx context.Context, userID string) error
+	// TakeAttempt reserves one attempt; false means the budget is spent.
+	TakeAttempt(ctx context.Context, userID string) (bool, error)
+	// Refund gives back an attempt that was not a guess (the request failed for
+	// a reason other than a wrong code).
+	Refund(ctx context.Context, userID string) error
 	Clear(ctx context.Context, userID string) error
 }
 
