@@ -278,3 +278,116 @@ func (s *SubmitConversionSuite) TestUserSubmitAdoptsALiveBackfill() {
 		assert.DeepEqual(s.T(), got, adopted)
 	}
 }
+
+// A failed adoption is the caller's error and releases nothing: the live job
+// is being looked after, and any claim here is either not ours or still needed.
+// UnlockTarget is unmocked: reaching it fails the test.
+func (s *SubmitConversionSuite) TestAdoptFailureSurfacesAndKeepsTheClaim() {
+	for _, locked := range []bool{true, false} {
+		s.SetupTest()
+		live := domain.Job{
+			ID: "bf", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusPending,
+			Backfill: true, CreatedAt: submitNow,
+		}
+		s.queue.TryLockTargetMock.Return(locked, nil)
+		s.queue.ListTargetJobsMock.Return([]domain.Job{live}, nil)
+		s.queue.ClearBackfillMock.Return(errors.New("redis down"))
+
+		got, created, err := s.svc.SubmitConversion(s.ctx, domain.KindTerritory, "t1")
+
+		assert.ErrorContains(s.T(), err, "adopt: redis down")
+		assert.Assert(s.T(), !created)
+		assert.DeepEqual(s.T(), got, domain.Job{})
+	}
+}
+
+// A queued job is returned whether or not the claim was free, untouched when
+// the caller is not the reconciler's backfill and the job is not a backfill.
+func (s *SubmitConversionSuite) TestReturnsAQueuedJobWhenTheClaimIsHeldByAnother() {
+	queued := domain.Job{
+		ID: "older", Kind: domain.KindTerritory, Slug: "t1",
+		Status: domain.JobStatusPending, CreatedAt: submitNow.Add(-time.Second),
+	}
+	s.queue.TryLockTargetMock.Return(false, nil)
+	s.queue.ListTargetJobsMock.Return([]domain.Job{queued}, nil)
+
+	got, created, err := s.svc.SubmitConversion(s.ctx, domain.KindTerritory, "t1")
+
+	assert.NilError(s.T(), err)
+	assert.Assert(s.T(), !created)
+	assert.DeepEqual(s.T(), got, queued)
+}
+
+// The index holds the target's latest job first; a terminal one decides, even
+// if an older live entry follows it.
+func (s *SubmitConversionSuite) TestFirstIndexEntryOfTheTargetDecidesLiveness() {
+	job := domain.Job{ID: "fixed-id", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusPending}
+	s.queue.TryLockTargetMock.Return(false, nil)
+	s.queue.ListTargetJobsMock.Return([]domain.Job{
+		{ID: "newer", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusSucceeded},
+		{ID: "older", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusRunning},
+	}, nil)
+	s.queue.SaveJobMock.Expect(s.ctx, job).Return(nil)
+	s.queue.EnqueueJobMock.Expect(s.ctx, "fixed-id").Return(nil)
+	s.queue.GetJobMock.Expect(s.ctx, "fixed-id").Return(job, nil)
+
+	_, created, err := s.svc.SubmitConversion(s.ctx, domain.KindTerritory, "t1")
+
+	assert.NilError(s.T(), err)
+	assert.Assert(s.T(), created)
+}
+
+// Every step's failure is named in its error. Only a claim this call took is
+// released, and only by the steps before the job is queued: once it is saved
+// and enqueued the claim stays (markRunning re-takes it), so a failed read-back
+// releases nothing. UnlockTarget is unmocked where it must not be reached.
+func (s *SubmitConversionSuite) TestFailureAtEachStepNamesItAndReleasesOnlyAnOwnedClaim() {
+	boom := errors.New("redis down")
+	steps := []struct {
+		name         string
+		wantErr      string
+		releasesLock bool // when the claim is ours
+		arrange      func(locked bool)
+	}{
+		{"lock", "lock: redis down", false, func(bool) {
+			s.queue.TryLockTargetMock.Return(false, boom)
+		}},
+		{"index", "index: redis down", true, func(locked bool) {
+			s.queue.TryLockTargetMock.Return(locked, nil)
+			s.queue.ListTargetJobsMock.Return(nil, boom)
+		}},
+		{"save", "save: redis down", true, func(locked bool) {
+			s.queue.TryLockTargetMock.Return(locked, nil)
+			s.queue.ListTargetJobsMock.Return(nil, nil)
+			s.queue.SaveJobMock.Return(boom)
+		}},
+		{"enqueue", "enqueue: redis down", true, func(locked bool) {
+			s.queue.TryLockTargetMock.Return(locked, nil)
+			s.queue.ListTargetJobsMock.Return(nil, nil)
+			s.queue.SaveJobMock.Return(nil)
+			s.queue.EnqueueJobMock.Return(boom)
+		}},
+		{"get", "get: redis down", false, func(locked bool) {
+			s.queue.TryLockTargetMock.Return(locked, nil)
+			s.queue.ListTargetJobsMock.Return(nil, nil)
+			s.queue.SaveJobMock.Return(nil)
+			s.queue.EnqueueJobMock.Return(nil)
+			s.queue.GetJobMock.Return(domain.Job{}, boom)
+		}},
+	}
+	for _, st := range steps {
+		for _, locked := range []bool{true, false} {
+			s.SetupTest()
+			st.arrange(locked)
+			if locked && st.releasesLock {
+				s.queue.UnlockTargetMock.Expect(s.ctx, domain.KindTerritory, "t1").Return(nil)
+			}
+
+			got, created, err := s.svc.SubmitConversion(s.ctx, domain.KindTerritory, "t1")
+
+			assert.ErrorContains(s.T(), err, st.wantErr)
+			assert.Assert(s.T(), !created, st.name)
+			assert.DeepEqual(s.T(), got, domain.Job{})
+		}
+	}
+}
