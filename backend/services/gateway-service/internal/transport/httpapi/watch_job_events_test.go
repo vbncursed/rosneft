@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"errors"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -345,4 +346,20 @@ func (s *WatchJobEventsSuite) TestJobChanged() {
 	assert.Assert(s.T(), !jobChanged(base, base))
 	assert.Assert(s.T(), jobChanged(base, job(domain.JobStatusRunning, 2)))
 	assert.Assert(s.T(), jobChanged(base, job(domain.JobStatusFailed, 1)))
+}
+
+// A frame that cannot be encoded (a NaN/Inf progress) is dropped, not fatal:
+// ending the stream would make the client reconnect and hit it again, forever.
+func (s *WatchJobEventsSuite) TestUnencodableJobSkipsTheFrameAndKeepsTheStream() {
+	rec := httptest.NewRecorder()
+	bad := domain.Job{
+		ID: "j1", Kind: domain.KindModel, Slug: "pump", Status: domain.JobStatusRunning,
+		Progress: float32(math.Inf(1)),
+	}
+	st := &jobStream{w: rec, flusher: rec}
+
+	over := st.emit(bad)
+
+	assert.Assert(s.T(), !over, "a skipped frame must not end the stream")
+	assert.Equal(s.T(), rec.Body.Len(), 0)
 }

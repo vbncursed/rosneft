@@ -87,7 +87,7 @@ func (s *AuditCSVSuite) TestLegacyPrefixNeverMoves() {
 // числами здесь нет (все значения — текст, время RFC3339 начинается с цифры),
 // поэтому защита одна для всех ячеек строки.
 func (s *AuditCSVSuite) TestFormulaTriggersAreNeutralised() {
-	for _, lead := range []string{"=", "+", "-", "@", "\t", "\r"} {
+	for _, lead := range []string{"=", "+", "-", "@", "\t", "\r", "\n"} {
 		cell := lead + "cmd|' /C calc'!A0"
 		row := auditCSVRow(domain.AuditEntry{ActorLogin: cell, EntityLabel: cell, Action: "ok-1"})
 

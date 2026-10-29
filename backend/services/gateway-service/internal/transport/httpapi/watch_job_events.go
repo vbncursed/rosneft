@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -189,11 +190,14 @@ func jobChanged(last, job domain.Job) bool {
 }
 
 // writeJobEvent emits a single SSE `event: job` frame whose data is the
-// JSON-encoded job. Returns false on a write failure (client disconnected).
+// JSON-encoded job. Returns false only on a write failure (client
+// disconnected). A job that cannot be encoded skips the frame and keeps the
+// stream: ending it would make the client reconnect and meet the same job.
 func writeJobEvent(w http.ResponseWriter, job domain.Job) bool {
 	body, err := json.Marshal(jobToAPI(job))
 	if err != nil {
-		return false
+		slog.Warn("watch job events: frame skipped, job does not encode", "job_id", job.ID, "error", err)
+		return true
 	}
 	return writeNamedEvent(w, "job", string(body))
 }

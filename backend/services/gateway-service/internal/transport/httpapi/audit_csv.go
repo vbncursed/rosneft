@@ -140,11 +140,11 @@ func auditCSVRow(e domain.AuditEntry) []string {
 }
 
 // csvSafeCell stops a spreadsheet from running a cell as a formula (OWASP CSV
-// injection): a cell opening with = + - @ TAB or CR gets a leading quote. Every
+// injection): a cell opening with = + - @ TAB CR or LF gets a leading quote. Every
 // column is text (the time is RFC3339, which opens with a digit), so none holds
 // a legitimately negative number that this could mangle.
 func csvSafeCell(c string) string {
-	if c != "" && strings.ContainsRune("=+-@\t\r", rune(c[0])) {
+	if c != "" && strings.ContainsRune("=+-@\t\r\n", rune(c[0])) {
 		return "'" + c
 	}
 	return c
