@@ -212,11 +212,14 @@ $ docker rm -f restore-test-task12
 This repo only had read-only SSH to production. The following still needs a
 human with write access:
 
-**1. Install `dump.sh` on the host and run it once manually:**
+**1. Run `dump.sh` on the host once manually.** Do not `scp` it: `/opt/rosneft`
+on production is the git checkout that `ops/deploy/deploy.sh` moves to each
+deployed SHA, and `andrey-backup.service` runs `ops/backup/dump.sh` from it, so
+the script ships with the deploy. Check that the checkout is at the SHA you
+expect, then run it:
 
 ```bash
-scp ops/backup/dump.sh root@85.192.26.113:/opt/rosneft/ops/backup/dump.sh
-ssh root@85.192.26.113 'chmod +x /opt/rosneft/ops/backup/dump.sh'
+ssh root@85.192.26.113 'git -C /opt/rosneft rev-parse --short HEAD'
 ssh root@85.192.26.113 'bash -x /opt/rosneft/ops/backup/dump.sh'
 ssh root@85.192.26.113 'ls -lh /root/backups | tail -20'
 ```
