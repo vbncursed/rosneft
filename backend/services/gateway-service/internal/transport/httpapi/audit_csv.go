@@ -1,7 +1,9 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/csv"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -77,31 +79,51 @@ func (s *Server) ServeAuditCSV(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 	w.Header().Set("Content-Disposition", `attachment; filename="audit.csv"`)
+	s.streamAuditCSV(ctx, w, q, sc, token, first)
+}
+
+// streamAuditCSV writes the header and every page, following the cursor. The
+// status is already out, so any failure here ends the body short and silently.
+func (s *Server) streamAuditCSV(
+	ctx context.Context,
+	w io.Writer,
+	q domain.AuditQuery,
+	sc domain.AuditScope,
+	token string,
+	page domain.AuditPage,
+) {
 	cw := csv.NewWriter(w)
 	defer cw.Flush()
 
 	if err := cw.Write(auditCSVHeader); err != nil {
 		return // client hung up
 	}
-	page, next := first.Entries, first.NextCursor
 	for {
-		for _, e := range page {
-			if err := cw.Write(auditCSVRow(e)); err != nil {
-				return
-			}
-		}
-		cw.Flush()
-		if next == 0 || ctx.Err() != nil {
+		if !writeAuditRows(cw, page.Entries) {
 			return
 		}
-		q.Cursor = next
+		cw.Flush()
+		if page.NextCursor == 0 || ctx.Err() != nil {
+			return
+		}
+		q.Cursor = page.NextCursor
 		more, _, err := s.svc.ListAudit(ctx, q, sc, token, false)
 		if err != nil {
 			// The header is already out; log-free bail is the only option left.
 			return
 		}
-		page, next = more.Entries, more.NextCursor
+		page = more
 	}
+}
+
+// writeAuditRows reports false when the client stopped reading.
+func writeAuditRows(cw *csv.Writer, entries []domain.AuditEntry) bool {
+	for _, e := range entries {
+		if err := cw.Write(auditCSVRow(e)); err != nil {
+			return false
+		}
+	}
+	return true
 }
 
 func auditCSVRow(e domain.AuditEntry) []string {
