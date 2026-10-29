@@ -82,6 +82,22 @@ func (s *AuditCSVSuite) TestLegacyPrefixNeverMoves() {
 	assert.DeepEqual(s.T(), auditCSVHeader[:auditCSVLegacyWidth], shipped)
 }
 
+// Ячейка, начинающаяся с = + - @ TAB CR, исполняется как формула при открытии
+// в Excel/Sheets; логины и подписи сущностей задаёт пользователь. Колонок с
+// числами здесь нет (все значения — текст, время RFC3339 начинается с цифры),
+// поэтому защита одна для всех ячеек строки.
+func (s *AuditCSVSuite) TestFormulaTriggersAreNeutralised() {
+	for _, lead := range []string{"=", "+", "-", "@", "\t", "\r"} {
+		cell := lead + "cmd|' /C calc'!A0"
+		row := auditCSVRow(domain.AuditEntry{ActorLogin: cell, EntityLabel: cell, Action: "ok-1"})
+
+		for _, got := range []string{row[6], row[8]} {
+			assert.Equal(s.T(), got, "'"+cell)
+		}
+		assert.Equal(s.T(), row[3], "ok-1") // only a leading trigger counts
+	}
+}
+
 // csvServiceStub serves the pages in order and records every query it saw.
 type csvServiceStub struct {
 	Service
@@ -187,7 +203,7 @@ func (s *AuditCSVSuite) TestSinglePageBytesAndHeaders() {
 	assert.Equal(s.T(), rec.Header().Get("Content-Disposition"), `attachment; filename="audit.csv"`)
 	assert.Equal(s.T(), rec.Body.String(),
 		"at,actor_id,company_id,action,entity,entity_id,entity_label,result,actor_login,company_login,territory\n"+
-			"2026-07-29T22:13:20Z,a1,,x,e,1,\"a,b \"\"q\"\"\nline\",ok,=cmd,,\n")
+			"2026-07-29T22:13:20Z,a1,,x,e,1,\"a,b \"\"q\"\"\nline\",ok,'=cmd,,\n")
 	assert.Equal(s.T(), len(svc.seen), 1)
 	q := svc.seen[0]
 	assert.Equal(s.T(), q.ActorID+q.Action+q.Entity, "u1actent")

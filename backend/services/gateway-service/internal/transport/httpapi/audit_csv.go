@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
@@ -127,11 +128,26 @@ func writeAuditRows(cw *csv.Writer, entries []domain.AuditEntry) bool {
 }
 
 func auditCSVRow(e domain.AuditEntry) []string {
-	return []string{
+	row := []string{
 		e.At.Format(time.RFC3339),
 		e.ActorID, e.CompanyID, e.Action, e.Entity, e.EntityID, e.EntityLabel, e.Result,
 		e.ActorLogin, e.CompanyLogin, e.TerritorySlug,
 	}
+	for i, c := range row {
+		row[i] = csvSafeCell(c)
+	}
+	return row
+}
+
+// csvSafeCell stops a spreadsheet from running a cell as a formula (OWASP CSV
+// injection): a cell opening with = + - @ TAB or CR gets a leading quote. Every
+// column is text (the time is RFC3339, which opens with a digit), so none holds
+// a legitimately negative number that this could mangle.
+func csvSafeCell(c string) string {
+	if c != "" && strings.ContainsRune("=+-@\t\r", rune(c[0])) {
+		return "'" + c
+	}
+	return c
 }
 
 func writeAuditCSVError(w http.ResponseWriter, err error) {
