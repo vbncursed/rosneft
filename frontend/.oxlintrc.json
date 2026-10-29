@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "ignorePatterns": ["dist/**", "public/**", "coverage/**"],
+  "ignorePatterns": ["dist/**", "public/**", "coverage/**", "src/shared/api/dto/**"],
   "plugins": ["react", "typescript", "oxc"],
   "categories": { "correctness": "error", "suspicious": "error", "perf": "error" },
   "rules": {
@@ -12,6 +12,8 @@
     "eqeqeq": ["error", "always", { "null": "ignore" }],
     "require-unicode-regexp": "error",
     "no-negated-condition": "error",
+    // The 200-line file cap (code lines; blank lines and comments do not count). Specs and fixtures are exempt below.
+    "max-lines": ["error", { "max": 200, "skipBlankLines": true, "skipComments": true }],
     // Sync `act(() => …)` returns a thenable that need not be awaited.
     "typescript/no-floating-promises": ["error", { "allowForKnownSafeCalls": [
       { "from": "package", "name": "act", "package": "react" },
@@ -44,7 +46,9 @@
         // testing-library text matchers like /save/i: the u flag adds nothing to them.
         "require-unicode-regexp": "off",
         // Test steps run in order on purpose.
-        "no-await-in-loop": "off"
+        "no-await-in-loop": "off",
+        // The cap binds product files only.
+        "max-lines": "off"
       }
     }
   ]
