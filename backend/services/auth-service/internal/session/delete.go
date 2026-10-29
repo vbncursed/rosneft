@@ -39,6 +39,27 @@ func (s *Store) DeleteUser(ctx context.Context, userID string) error {
 	return nil
 }
 
+// DeleteUserExcept kills every session of a user but one: the session that
+// just proved the user's identity (a password change) stays signed in.
+func (s *Store) DeleteUserExcept(ctx context.Context, userID, keepToken string) error {
+	tokens, err := s.rdb.SMembers(ctx, userKey(userID)).Result()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return fmt.Errorf("session.DeleteUserExcept: members: %w", err)
+	}
+	pipe := s.rdb.TxPipeline()
+	for _, t := range tokens {
+		if t == keepToken {
+			continue
+		}
+		pipe.Del(ctx, sessionKey(t))
+		pipe.SRem(ctx, userKey(userID), t)
+	}
+	if _, err := pipe.Exec(ctx); err != nil {
+		return fmt.Errorf("session.DeleteUserExcept: exec: %w", err)
+	}
+	return nil
+}
+
 func (s *Store) peek(ctx context.Context, token string) (domain.Session, error) {
 	raw, err := s.rdb.Get(ctx, sessionKey(token)).Bytes()
 	if err != nil {

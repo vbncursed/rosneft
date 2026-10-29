@@ -32,6 +32,13 @@ type SessionsMock struct {
 	beforeDeleteUserCounter uint64
 	DeleteUserMock          mSessionsMockDeleteUser
 
+	funcDeleteUserExcept          func(ctx context.Context, userID string, keepToken string) (err error)
+	funcDeleteUserExceptOrigin    string
+	inspectFuncDeleteUserExcept   func(ctx context.Context, userID string, keepToken string)
+	afterDeleteUserExceptCounter  uint64
+	beforeDeleteUserExceptCounter uint64
+	DeleteUserExceptMock          mSessionsMockDeleteUserExcept
+
 	funcTakeChangePasswordAttempt          func(ctx context.Context, userID string) (b1 bool, err error)
 	funcTakeChangePasswordAttemptOrigin    string
 	inspectFuncTakeChangePasswordAttempt   func(ctx context.Context, userID string)
@@ -53,6 +60,9 @@ func NewSessionsMock(t minimock.Tester) *SessionsMock {
 
 	m.DeleteUserMock = mSessionsMockDeleteUser{mock: m}
 	m.DeleteUserMock.callArgs = []*SessionsMockDeleteUserParams{}
+
+	m.DeleteUserExceptMock = mSessionsMockDeleteUserExcept{mock: m}
+	m.DeleteUserExceptMock.callArgs = []*SessionsMockDeleteUserExceptParams{}
 
 	m.TakeChangePasswordAttemptMock = mSessionsMockTakeChangePasswordAttempt{mock: m}
 	m.TakeChangePasswordAttemptMock.callArgs = []*SessionsMockTakeChangePasswordAttemptParams{}
@@ -746,6 +756,379 @@ func (m *SessionsMock) MinimockDeleteUserInspect() {
 	}
 }
 
+type mSessionsMockDeleteUserExcept struct {
+	optional           bool
+	mock               *SessionsMock
+	defaultExpectation *SessionsMockDeleteUserExceptExpectation
+	expectations       []*SessionsMockDeleteUserExceptExpectation
+
+	callArgs []*SessionsMockDeleteUserExceptParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// SessionsMockDeleteUserExceptExpectation specifies expectation struct of the Sessions.DeleteUserExcept
+type SessionsMockDeleteUserExceptExpectation struct {
+	mock               *SessionsMock
+	params             *SessionsMockDeleteUserExceptParams
+	paramPtrs          *SessionsMockDeleteUserExceptParamPtrs
+	expectationOrigins SessionsMockDeleteUserExceptExpectationOrigins
+	results            *SessionsMockDeleteUserExceptResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// SessionsMockDeleteUserExceptParams contains parameters of the Sessions.DeleteUserExcept
+type SessionsMockDeleteUserExceptParams struct {
+	ctx       context.Context
+	userID    string
+	keepToken string
+}
+
+// SessionsMockDeleteUserExceptParamPtrs contains pointers to parameters of the Sessions.DeleteUserExcept
+type SessionsMockDeleteUserExceptParamPtrs struct {
+	ctx       *context.Context
+	userID    *string
+	keepToken *string
+}
+
+// SessionsMockDeleteUserExceptResults contains results of the Sessions.DeleteUserExcept
+type SessionsMockDeleteUserExceptResults struct {
+	err error
+}
+
+// SessionsMockDeleteUserExceptOrigins contains origins of expectations of the Sessions.DeleteUserExcept
+type SessionsMockDeleteUserExceptExpectationOrigins struct {
+	origin          string
+	originCtx       string
+	originUserID    string
+	originKeepToken string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmDeleteUserExcept *mSessionsMockDeleteUserExcept) Optional() *mSessionsMockDeleteUserExcept {
+	mmDeleteUserExcept.optional = true
+	return mmDeleteUserExcept
+}
+
+// Expect sets up expected params for Sessions.DeleteUserExcept
+func (mmDeleteUserExcept *mSessionsMockDeleteUserExcept) Expect(ctx context.Context, userID string, keepToken string) *mSessionsMockDeleteUserExcept {
+	if mmDeleteUserExcept.mock.funcDeleteUserExcept != nil {
+		mmDeleteUserExcept.mock.t.Fatalf("SessionsMock.DeleteUserExcept mock is already set by Set")
+	}
+
+	if mmDeleteUserExcept.defaultExpectation == nil {
+		mmDeleteUserExcept.defaultExpectation = &SessionsMockDeleteUserExceptExpectation{}
+	}
+
+	if mmDeleteUserExcept.defaultExpectation.paramPtrs != nil {
+		mmDeleteUserExcept.mock.t.Fatalf("SessionsMock.DeleteUserExcept mock is already set by ExpectParams functions")
+	}
+
+	mmDeleteUserExcept.defaultExpectation.params = &SessionsMockDeleteUserExceptParams{ctx, userID, keepToken}
+	mmDeleteUserExcept.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmDeleteUserExcept.expectations {
+		if minimock.Equal(e.params, mmDeleteUserExcept.defaultExpectation.params) {
+			mmDeleteUserExcept.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmDeleteUserExcept.defaultExpectation.params)
+		}
+	}
+
+	return mmDeleteUserExcept
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Sessions.DeleteUserExcept
+func (mmDeleteUserExcept *mSessionsMockDeleteUserExcept) ExpectCtxParam1(ctx context.Context) *mSessionsMockDeleteUserExcept {
+	if mmDeleteUserExcept.mock.funcDeleteUserExcept != nil {
+		mmDeleteUserExcept.mock.t.Fatalf("SessionsMock.DeleteUserExcept mock is already set by Set")
+	}
+
+	if mmDeleteUserExcept.defaultExpectation == nil {
+		mmDeleteUserExcept.defaultExpectation = &SessionsMockDeleteUserExceptExpectation{}
+	}
+
+	if mmDeleteUserExcept.defaultExpectation.params != nil {
+		mmDeleteUserExcept.mock.t.Fatalf("SessionsMock.DeleteUserExcept mock is already set by Expect")
+	}
+
+	if mmDeleteUserExcept.defaultExpectation.paramPtrs == nil {
+		mmDeleteUserExcept.defaultExpectation.paramPtrs = &SessionsMockDeleteUserExceptParamPtrs{}
+	}
+	mmDeleteUserExcept.defaultExpectation.paramPtrs.ctx = &ctx
+	mmDeleteUserExcept.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmDeleteUserExcept
+}
+
+// ExpectUserIDParam2 sets up expected param userID for Sessions.DeleteUserExcept
+func (mmDeleteUserExcept *mSessionsMockDeleteUserExcept) ExpectUserIDParam2(userID string) *mSessionsMockDeleteUserExcept {
+	if mmDeleteUserExcept.mock.funcDeleteUserExcept != nil {
+		mmDeleteUserExcept.mock.t.Fatalf("SessionsMock.DeleteUserExcept mock is already set by Set")
+	}
+
+	if mmDeleteUserExcept.defaultExpectation == nil {
+		mmDeleteUserExcept.defaultExpectation = &SessionsMockDeleteUserExceptExpectation{}
+	}
+
+	if mmDeleteUserExcept.defaultExpectation.params != nil {
+		mmDeleteUserExcept.mock.t.Fatalf("SessionsMock.DeleteUserExcept mock is already set by Expect")
+	}
+
+	if mmDeleteUserExcept.defaultExpectation.paramPtrs == nil {
+		mmDeleteUserExcept.defaultExpectation.paramPtrs = &SessionsMockDeleteUserExceptParamPtrs{}
+	}
+	mmDeleteUserExcept.defaultExpectation.paramPtrs.userID = &userID
+	mmDeleteUserExcept.defaultExpectation.expectationOrigins.originUserID = minimock.CallerInfo(1)
+
+	return mmDeleteUserExcept
+}
+
+// ExpectKeepTokenParam3 sets up expected param keepToken for Sessions.DeleteUserExcept
+func (mmDeleteUserExcept *mSessionsMockDeleteUserExcept) ExpectKeepTokenParam3(keepToken string) *mSessionsMockDeleteUserExcept {
+	if mmDeleteUserExcept.mock.funcDeleteUserExcept != nil {
+		mmDeleteUserExcept.mock.t.Fatalf("SessionsMock.DeleteUserExcept mock is already set by Set")
+	}
+
+	if mmDeleteUserExcept.defaultExpectation == nil {
+		mmDeleteUserExcept.defaultExpectation = &SessionsMockDeleteUserExceptExpectation{}
+	}
+
+	if mmDeleteUserExcept.defaultExpectation.params != nil {
+		mmDeleteUserExcept.mock.t.Fatalf("SessionsMock.DeleteUserExcept mock is already set by Expect")
+	}
+
+	if mmDeleteUserExcept.defaultExpectation.paramPtrs == nil {
+		mmDeleteUserExcept.defaultExpectation.paramPtrs = &SessionsMockDeleteUserExceptParamPtrs{}
+	}
+	mmDeleteUserExcept.defaultExpectation.paramPtrs.keepToken = &keepToken
+	mmDeleteUserExcept.defaultExpectation.expectationOrigins.originKeepToken = minimock.CallerInfo(1)
+
+	return mmDeleteUserExcept
+}
+
+// Inspect accepts an inspector function that has same arguments as the Sessions.DeleteUserExcept
+func (mmDeleteUserExcept *mSessionsMockDeleteUserExcept) Inspect(f func(ctx context.Context, userID string, keepToken string)) *mSessionsMockDeleteUserExcept {
+	if mmDeleteUserExcept.mock.inspectFuncDeleteUserExcept != nil {
+		mmDeleteUserExcept.mock.t.Fatalf("Inspect function is already set for SessionsMock.DeleteUserExcept")
+	}
+
+	mmDeleteUserExcept.mock.inspectFuncDeleteUserExcept = f
+
+	return mmDeleteUserExcept
+}
+
+// Return sets up results that will be returned by Sessions.DeleteUserExcept
+func (mmDeleteUserExcept *mSessionsMockDeleteUserExcept) Return(err error) *SessionsMock {
+	if mmDeleteUserExcept.mock.funcDeleteUserExcept != nil {
+		mmDeleteUserExcept.mock.t.Fatalf("SessionsMock.DeleteUserExcept mock is already set by Set")
+	}
+
+	if mmDeleteUserExcept.defaultExpectation == nil {
+		mmDeleteUserExcept.defaultExpectation = &SessionsMockDeleteUserExceptExpectation{mock: mmDeleteUserExcept.mock}
+	}
+	mmDeleteUserExcept.defaultExpectation.results = &SessionsMockDeleteUserExceptResults{err}
+	mmDeleteUserExcept.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmDeleteUserExcept.mock
+}
+
+// Set uses given function f to mock the Sessions.DeleteUserExcept method
+func (mmDeleteUserExcept *mSessionsMockDeleteUserExcept) Set(f func(ctx context.Context, userID string, keepToken string) (err error)) *SessionsMock {
+	if mmDeleteUserExcept.defaultExpectation != nil {
+		mmDeleteUserExcept.mock.t.Fatalf("Default expectation is already set for the Sessions.DeleteUserExcept method")
+	}
+
+	if len(mmDeleteUserExcept.expectations) > 0 {
+		mmDeleteUserExcept.mock.t.Fatalf("Some expectations are already set for the Sessions.DeleteUserExcept method")
+	}
+
+	mmDeleteUserExcept.mock.funcDeleteUserExcept = f
+	mmDeleteUserExcept.mock.funcDeleteUserExceptOrigin = minimock.CallerInfo(1)
+	return mmDeleteUserExcept.mock
+}
+
+// When sets expectation for the Sessions.DeleteUserExcept which will trigger the result defined by the following
+// Then helper
+func (mmDeleteUserExcept *mSessionsMockDeleteUserExcept) When(ctx context.Context, userID string, keepToken string) *SessionsMockDeleteUserExceptExpectation {
+	if mmDeleteUserExcept.mock.funcDeleteUserExcept != nil {
+		mmDeleteUserExcept.mock.t.Fatalf("SessionsMock.DeleteUserExcept mock is already set by Set")
+	}
+
+	expectation := &SessionsMockDeleteUserExceptExpectation{
+		mock:               mmDeleteUserExcept.mock,
+		params:             &SessionsMockDeleteUserExceptParams{ctx, userID, keepToken},
+		expectationOrigins: SessionsMockDeleteUserExceptExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmDeleteUserExcept.expectations = append(mmDeleteUserExcept.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Sessions.DeleteUserExcept return parameters for the expectation previously defined by the When method
+func (e *SessionsMockDeleteUserExceptExpectation) Then(err error) *SessionsMock {
+	e.results = &SessionsMockDeleteUserExceptResults{err}
+	return e.mock
+}
+
+// Times sets number of times Sessions.DeleteUserExcept should be invoked
+func (mmDeleteUserExcept *mSessionsMockDeleteUserExcept) Times(n uint64) *mSessionsMockDeleteUserExcept {
+	if n == 0 {
+		mmDeleteUserExcept.mock.t.Fatalf("Times of SessionsMock.DeleteUserExcept mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmDeleteUserExcept.expectedInvocations, n)
+	mmDeleteUserExcept.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmDeleteUserExcept
+}
+
+func (mmDeleteUserExcept *mSessionsMockDeleteUserExcept) invocationsDone() bool {
+	if len(mmDeleteUserExcept.expectations) == 0 && mmDeleteUserExcept.defaultExpectation == nil && mmDeleteUserExcept.mock.funcDeleteUserExcept == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmDeleteUserExcept.mock.afterDeleteUserExceptCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmDeleteUserExcept.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// DeleteUserExcept implements mm_users.Sessions
+func (mmDeleteUserExcept *SessionsMock) DeleteUserExcept(ctx context.Context, userID string, keepToken string) (err error) {
+	mm_atomic.AddUint64(&mmDeleteUserExcept.beforeDeleteUserExceptCounter, 1)
+	defer mm_atomic.AddUint64(&mmDeleteUserExcept.afterDeleteUserExceptCounter, 1)
+
+	mmDeleteUserExcept.t.Helper()
+
+	if mmDeleteUserExcept.inspectFuncDeleteUserExcept != nil {
+		mmDeleteUserExcept.inspectFuncDeleteUserExcept(ctx, userID, keepToken)
+	}
+
+	mm_params := SessionsMockDeleteUserExceptParams{ctx, userID, keepToken}
+
+	// Record call args
+	mmDeleteUserExcept.DeleteUserExceptMock.mutex.Lock()
+	mmDeleteUserExcept.DeleteUserExceptMock.callArgs = append(mmDeleteUserExcept.DeleteUserExceptMock.callArgs, &mm_params)
+	mmDeleteUserExcept.DeleteUserExceptMock.mutex.Unlock()
+
+	for _, e := range mmDeleteUserExcept.DeleteUserExceptMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmDeleteUserExcept.DeleteUserExceptMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmDeleteUserExcept.DeleteUserExceptMock.defaultExpectation.Counter, 1)
+		mm_want := mmDeleteUserExcept.DeleteUserExceptMock.defaultExpectation.params
+		mm_want_ptrs := mmDeleteUserExcept.DeleteUserExceptMock.defaultExpectation.paramPtrs
+
+		mm_got := SessionsMockDeleteUserExceptParams{ctx, userID, keepToken}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmDeleteUserExcept.t.Errorf("SessionsMock.DeleteUserExcept got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeleteUserExcept.DeleteUserExceptMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.userID != nil && !minimock.Equal(*mm_want_ptrs.userID, mm_got.userID) {
+				mmDeleteUserExcept.t.Errorf("SessionsMock.DeleteUserExcept got unexpected parameter userID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeleteUserExcept.DeleteUserExceptMock.defaultExpectation.expectationOrigins.originUserID, *mm_want_ptrs.userID, mm_got.userID, minimock.Diff(*mm_want_ptrs.userID, mm_got.userID))
+			}
+
+			if mm_want_ptrs.keepToken != nil && !minimock.Equal(*mm_want_ptrs.keepToken, mm_got.keepToken) {
+				mmDeleteUserExcept.t.Errorf("SessionsMock.DeleteUserExcept got unexpected parameter keepToken, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeleteUserExcept.DeleteUserExceptMock.defaultExpectation.expectationOrigins.originKeepToken, *mm_want_ptrs.keepToken, mm_got.keepToken, minimock.Diff(*mm_want_ptrs.keepToken, mm_got.keepToken))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmDeleteUserExcept.t.Errorf("SessionsMock.DeleteUserExcept got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmDeleteUserExcept.DeleteUserExceptMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmDeleteUserExcept.DeleteUserExceptMock.defaultExpectation.results
+		if mm_results == nil {
+			mmDeleteUserExcept.t.Fatal("No results are set for the SessionsMock.DeleteUserExcept")
+		}
+		return (*mm_results).err
+	}
+	if mmDeleteUserExcept.funcDeleteUserExcept != nil {
+		return mmDeleteUserExcept.funcDeleteUserExcept(ctx, userID, keepToken)
+	}
+	mmDeleteUserExcept.t.Fatalf("Unexpected call to SessionsMock.DeleteUserExcept. %v %v %v", ctx, userID, keepToken)
+	return
+}
+
+// DeleteUserExceptAfterCounter returns a count of finished SessionsMock.DeleteUserExcept invocations
+func (mmDeleteUserExcept *SessionsMock) DeleteUserExceptAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDeleteUserExcept.afterDeleteUserExceptCounter)
+}
+
+// DeleteUserExceptBeforeCounter returns a count of SessionsMock.DeleteUserExcept invocations
+func (mmDeleteUserExcept *SessionsMock) DeleteUserExceptBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDeleteUserExcept.beforeDeleteUserExceptCounter)
+}
+
+// Calls returns a list of arguments used in each call to SessionsMock.DeleteUserExcept.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmDeleteUserExcept *mSessionsMockDeleteUserExcept) Calls() []*SessionsMockDeleteUserExceptParams {
+	mmDeleteUserExcept.mutex.RLock()
+
+	argCopy := make([]*SessionsMockDeleteUserExceptParams, len(mmDeleteUserExcept.callArgs))
+	copy(argCopy, mmDeleteUserExcept.callArgs)
+
+	mmDeleteUserExcept.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockDeleteUserExceptDone returns true if the count of the DeleteUserExcept invocations corresponds
+// the number of defined expectations
+func (m *SessionsMock) MinimockDeleteUserExceptDone() bool {
+	if m.DeleteUserExceptMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.DeleteUserExceptMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.DeleteUserExceptMock.invocationsDone()
+}
+
+// MinimockDeleteUserExceptInspect logs each unmet expectation
+func (m *SessionsMock) MinimockDeleteUserExceptInspect() {
+	for _, e := range m.DeleteUserExceptMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to SessionsMock.DeleteUserExcept at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterDeleteUserExceptCounter := mm_atomic.LoadUint64(&m.afterDeleteUserExceptCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.DeleteUserExceptMock.defaultExpectation != nil && afterDeleteUserExceptCounter < 1 {
+		if m.DeleteUserExceptMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to SessionsMock.DeleteUserExcept at\n%s", m.DeleteUserExceptMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to SessionsMock.DeleteUserExcept at\n%s with params: %#v", m.DeleteUserExceptMock.defaultExpectation.expectationOrigins.origin, *m.DeleteUserExceptMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcDeleteUserExcept != nil && afterDeleteUserExceptCounter < 1 {
+		m.t.Errorf("Expected call to SessionsMock.DeleteUserExcept at\n%s", m.funcDeleteUserExceptOrigin)
+	}
+
+	if !m.DeleteUserExceptMock.invocationsDone() && afterDeleteUserExceptCounter > 0 {
+		m.t.Errorf("Expected %d calls to SessionsMock.DeleteUserExcept at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.DeleteUserExceptMock.expectedInvocations), m.DeleteUserExceptMock.expectedInvocationsOrigin, afterDeleteUserExceptCounter)
+	}
+}
+
 type mSessionsMockTakeChangePasswordAttempt struct {
 	optional           bool
 	mock               *SessionsMock
@@ -1097,6 +1480,8 @@ func (m *SessionsMock) MinimockFinish() {
 
 			m.MinimockDeleteUserInspect()
 
+			m.MinimockDeleteUserExceptInspect()
+
 			m.MinimockTakeChangePasswordAttemptInspect()
 		}
 	})
@@ -1123,5 +1508,6 @@ func (m *SessionsMock) minimockDone() bool {
 	return done &&
 		m.MinimockClearChangePasswordFailsDone() &&
 		m.MinimockDeleteUserDone() &&
+		m.MinimockDeleteUserExceptDone() &&
 		m.MinimockTakeChangePasswordAttemptDone()
 }

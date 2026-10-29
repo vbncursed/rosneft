@@ -41,6 +41,8 @@ type Store interface {
 // session.changePasswordFailKey and session/store_test.go.
 type Sessions interface {
 	DeleteUser(ctx context.Context, userID string) error
+	// DeleteUserExcept signs the user out everywhere but keepToken.
+	DeleteUserExcept(ctx context.Context, userID, keepToken string) error
 	// TakeChangePasswordAttempt reserves one attempt; false means the budget is spent.
 	TakeChangePasswordAttempt(ctx context.Context, userID string) (bool, error)
 	ClearChangePasswordFails(ctx context.Context, userID string) error

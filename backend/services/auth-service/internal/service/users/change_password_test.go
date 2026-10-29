@@ -2,6 +2,7 @@ package users_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/gojuno/minimock/v3"
@@ -40,7 +41,7 @@ func (s *ChangePasswordSuite) SetupTest() {
 func (s *ChangePasswordSuite) TestChangePasswordRefusesWhenLocked() {
 	s.ss.TakeChangePasswordAttemptMock.Expect(s.ctx, "u1").Return(false, nil)
 
-	err := s.svc.ChangePassword(s.ctx, "u1", "old", "NewPassw0rd!")
+	err := s.svc.ChangePassword(s.ctx, "u1", "tok", "old", "NewPassw0rd!")
 
 	assert.ErrorIs(s.T(), err, domain.ErrLoginThrottled)
 }
@@ -52,7 +53,7 @@ func (s *ChangePasswordSuite) TestChangePasswordRegistersFailOnWrongOldPassword(
 	s.ss.TakeChangePasswordAttemptMock.Expect(s.ctx, "u1").Return(true, nil)
 	s.st.GetByIDMock.Expect(s.ctx, "u1").Return(domain.User{ID: "u1", PasswordHash: hash}, nil)
 
-	err = s.svc.ChangePassword(s.ctx, "u1", "wrong-password", "NewPassw0rd!")
+	err = s.svc.ChangePassword(s.ctx, "u1", "tok", "wrong-password", "NewPassw0rd!")
 
 	assert.ErrorIs(s.T(), err, domain.ErrInvalidCredential)
 }
@@ -64,6 +65,7 @@ func (s *ChangePasswordSuite) TestChangePasswordClearsFailsAndChangesOnSuccess()
 	s.ss.TakeChangePasswordAttemptMock.Expect(s.ctx, "u1").Return(true, nil)
 	s.st.GetByIDMock.Expect(s.ctx, "u1").Return(domain.User{ID: "u1", PasswordHash: hash}, nil)
 	s.ss.ClearChangePasswordFailsMock.Expect(s.ctx, "u1").Return(nil)
+	s.ss.DeleteUserExceptMock.Expect(s.ctx, "u1", "tok").Return(nil)
 	s.st.ChangePasswordMock.Set(func(_ context.Context, id, newHash string) error {
 		assert.Equal(s.T(), id, "u1")
 		ok, verr := password.Verify("NewPassw0rd!", newHash)
@@ -72,7 +74,24 @@ func (s *ChangePasswordSuite) TestChangePasswordClearsFailsAndChangesOnSuccess()
 		return nil
 	})
 
-	err = s.svc.ChangePassword(s.ctx, "u1", "correct-horse", "NewPassw0rd!")
+	err = s.svc.ChangePassword(s.ctx, "u1", "tok", "correct-horse", "NewPassw0rd!")
 
 	assert.NilError(s.T(), err)
+}
+
+// The password has changed even when the sign-out fails, so the failure must
+// reach the caller: a silent success would leave the old sessions alive.
+func (s *ChangePasswordSuite) TestChangePasswordReturnsSignOutFailure() {
+	hash, err := password.Hash("correct-horse")
+	assert.NilError(s.T(), err)
+	boom := errors.New("redis down")
+	s.ss.TakeChangePasswordAttemptMock.Expect(s.ctx, "u1").Return(true, nil)
+	s.st.GetByIDMock.Expect(s.ctx, "u1").Return(domain.User{ID: "u1", PasswordHash: hash}, nil)
+	s.st.ChangePasswordMock.Return(nil)
+	s.ss.ClearChangePasswordFailsMock.Expect(s.ctx, "u1").Return(nil)
+	s.ss.DeleteUserExceptMock.Expect(s.ctx, "u1", "tok").Return(boom)
+
+	err = s.svc.ChangePassword(s.ctx, "u1", "tok", "correct-horse", "NewPassw0rd!")
+
+	assert.ErrorIs(s.T(), err, boom)
 }
