@@ -95,6 +95,12 @@ func (s *Service) guard(ctx context.Context, actorID string, target domain.User)
 	if actorID == target.ID {
 		return domain.ErrSelfTarget
 	}
+	return s.assertNotLastAdmin(ctx, target)
+}
+
+// assertNotLastAdmin refuses a change that would take the admin role from the
+// only admin left: freeze, delete, or a role replace without it.
+func (s *Service) assertNotLastAdmin(ctx context.Context, target domain.User) error {
 	if !isAdmin(target) {
 		return nil
 	}

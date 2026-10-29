@@ -2,6 +2,7 @@ package users
 
 import (
 	"context"
+	"slices"
 
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 )
@@ -18,11 +19,17 @@ func (s *Service) Update(
 	roleSlugs []string,
 	_, _ string,
 ) (domain.User, error) {
-	if _, err := s.ownership(ctx, actorID, scopeAll, id); err != nil {
+	target, err := s.ownership(ctx, actorID, scopeAll, id)
+	if err != nil {
 		return domain.User{}, err
 	}
 	if err := s.assertCanGrant(ctx, actorID, roleSlugs); err != nil {
 		return domain.User{}, err
+	}
+	if !slices.Contains(roleSlugs, domain.RoleAdmin) {
+		if err := s.assertNotLastAdmin(ctx, target); err != nil {
+			return domain.User{}, err
+		}
 	}
 	return s.store.SetRoles(ctx, id, roleSlugs)
 }

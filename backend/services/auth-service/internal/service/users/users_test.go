@@ -74,6 +74,29 @@ func (s *UsersSuite) TestFreezeRejectsLastAdmin() {
 	assert.ErrorIs(s.T(), err, domain.ErrLastAdmin)
 }
 
+// The last admin cannot strip its own admin role: Update is a full replace, so
+// roleSlugs: [] would otherwise leave the company with nobody who can manage it.
+// SetRoles is unstubbed, so minimock fails the test if the write is reached.
+func (s *UsersSuite) TestUpdateRejectsDroppingTheLastAdminRole() {
+	s.st.GetByIDMock.Expect(s.ctx, "admin1").Return(domain.User{ID: "admin1", RoleSlugs: []string{"admin"}}, nil)
+	s.st.CountAdminsMock.Expect(s.ctx, "admin1").Return(0, nil)
+
+	_, err := s.svc.Update(s.ctx, "admin1", false, "admin1", nil, "", "")
+
+	assert.ErrorIs(s.T(), err, domain.ErrLastAdmin)
+}
+
+// With another admin left the same change goes through.
+func (s *UsersSuite) TestUpdateAllowsDroppingAnAdminRoleWhenAnotherAdminRemains() {
+	s.st.GetByIDMock.Expect(s.ctx, "admin1").Return(domain.User{ID: "admin1", RoleSlugs: []string{"admin"}}, nil)
+	s.st.CountAdminsMock.Expect(s.ctx, "admin1").Return(1, nil)
+	s.st.SetRolesMock.Expect(s.ctx, "admin1", nil).Return(domain.User{ID: "admin1"}, nil)
+
+	_, err := s.svc.Update(s.ctx, "admin1", false, "admin1", nil, "", "")
+
+	assert.NilError(s.T(), err)
+}
+
 // A non-owner (even an admin) cannot freeze/delete an admin account: to them
 // it does not exist.
 func (s *UsersSuite) TestFreezeRejectsNonOwnerManagingAdmin() {
