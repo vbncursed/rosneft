@@ -258,14 +258,67 @@ func (s *WatchJobEventsSuite) TestStreamAnswersAnUnknownJobWithTheErrorBodyAndOn
 	assert.Equal(s.T(), rec.flushes, 1)
 }
 
-// A failed write is not a stop signal (emit reports only "terminal"): the
-// frame is not flushed and the loop carries on until the context ends.
-func (s *WatchJobEventsSuite) TestStreamDoesNotFlushAFailedWriteAndEndsOnContext() {
-	w := &failingWriter{header: http.Header{}}
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	streamJob(ctx, w, w, "j1", scriptedFetch(fetchResult{job: job(domain.JobStatusRunning, 1)}))
-	assert.Equal(s.T(), w.flushes, 0)
+// A failed write means the client is gone: the frame is not flushed and the
+// stream returns at once, without waiting for the context or polling again.
+func (s *WatchJobEventsSuite) TestStreamEndsOnAFailedWrite() {
+	synctest.Test(s.T(), func(t *testing.T) {
+		w := &failingWriter{header: http.Header{}}
+		fetches := 0
+		fetch := func(context.Context, string) (domain.Job, error) {
+			fetches++
+			if fetches > 1 {
+				return domain.Job{}, errors.New("polled again")
+			}
+			return job(domain.JobStatusRunning, 1), nil
+		}
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			streamJob(t.Context(), w, w, "j1", fetch)
+		}()
+		time.Sleep(3 * jobEventInterval)
+		synctest.Wait()
+		select {
+		case <-done:
+		default:
+			t.Error("stream kept running after a failed write")
+		}
+		assert.Equal(t, fetches, 1, "no poll after the failed write")
+		assert.Equal(t, w.flushes, 0)
+	})
+}
+
+// A keepalive that cannot be written ends the stream too.
+func (s *WatchJobEventsSuite) TestStreamEndsOnAFailedKeepalive() {
+	synctest.Test(s.T(), func(t *testing.T) {
+		w := &failAfterWriter{flushCounter: &flushCounter{ResponseRecorder: httptest.NewRecorder()}, okWrites: 1}
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			streamJob(t.Context(), w, w, "j1", scriptedFetch(fetchResult{job: job(domain.JobStatusRunning, 1)}))
+		}()
+		time.Sleep(jobEventKeepalive)
+		synctest.Wait()
+		select {
+		case <-done:
+		default:
+			t.Error("stream kept running after a failed keepalive")
+		}
+	})
+}
+
+// failAfterWriter accepts okWrites writes, then refuses like a gone client.
+type failAfterWriter struct {
+	*flushCounter
+	okWrites int
+}
+
+func (f *failAfterWriter) Write(b []byte) (int, error) {
+	if f.okWrites == 0 {
+		return 0, errors.New("client gone")
+	}
+	f.okWrites--
+	return f.ResponseRecorder.Write(b)
 }
 
 func (s *WatchJobEventsSuite) TestStreamStopsOnAnAlreadyCancelledContext() {

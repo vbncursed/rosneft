@@ -117,7 +117,9 @@ func streamJob(ctx context.Context, w http.ResponseWriter, flusher http.Flusher,
 		case <-ctx.Done():
 			return
 		case <-keepalive.C:
-			_, _ = fmt.Fprint(w, ": keepalive\n\n")
+			if _, err := fmt.Fprint(w, ": keepalive\n\n"); err != nil {
+				return // client hung up
+			}
 			flusher.Flush()
 		case <-tick.C:
 			if st.poll(ctx, id, fetch) {
@@ -134,11 +136,11 @@ type jobStream struct {
 	last    domain.Job
 }
 
-// emit sends one job frame and reports whether the job is terminal. A failed
-// write is not reported: the stream ends with its context.
+// emit sends one job frame and reports whether the stream is over: the job is
+// terminal, or the write failed because the client is gone.
 func (st *jobStream) emit(job domain.Job) bool {
 	if !writeJobEvent(st.w, job) {
-		return false
+		return true
 	}
 	st.flusher.Flush()
 	st.last = job
