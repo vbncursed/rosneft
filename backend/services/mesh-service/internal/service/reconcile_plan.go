@@ -22,7 +22,7 @@ type targetState struct {
 // targetPlan is the decision for one target.
 type targetPlan struct {
 	skip     bool
-	reason   string // why it is queued; empty when skipped
+	reason   string // why it is queued; meaningful only when not skipped
 	backfill bool   // mark the job Job.Backfill (hides its failure from the list)
 	skewed   bool   // this target shows the skew: stop the drain for the rest of the pass
 }
