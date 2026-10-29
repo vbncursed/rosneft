@@ -1,8 +1,10 @@
 package service_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -442,5 +444,110 @@ func (s *ReconcileSuite) TestFailedReplaceRetriesGoOnePerPassOnAnIdleWorker() {
 			assert.NilError(s.T(), err)
 			assert.Equal(s.T(), n, tc.want)
 		})
+	}
+}
+
+// A skewed catalog stops the backfill drain for the pass, not the pass: a
+// target with no LOD0 at all is still a first conversion and is queued.
+func (s *ReconcileSuite) TestSkewStopsBackfillButNotAFirstConversion() {
+	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
+		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
+		{Kind: domain.KindTerritory, Slug: "t2", SourceBlobHash: "h"},
+	}, nil)
+	s.catalog.HasLOD0Mock.When(s.ctx, domain.KindTerritory, "t1").Then(true, false, nil)
+	s.catalog.HasLOD0Mock.When(s.ctx, domain.KindTerritory, "t2").Then(false, false, nil)
+	s.queue.ListTargetJobsMock.Return([]domain.Job{{
+		ID: "j1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusSucceeded,
+		Backfill: true, UpdatedAt: time.Now(),
+	}}, nil)
+	var locked []string
+	s.queue.TryLockTargetMock.Set(func(_ context.Context, _ domain.Kind, slug string, _ time.Duration) (bool, error) {
+		locked = append(locked, slug)
+		return true, nil
+	})
+	s.queue.SaveJobMock.Return(nil)
+	s.queue.EnqueueJobMock.Return(nil)
+	s.queue.GetJobMock.Return(domain.Job{}, nil)
+
+	n, err := s.svc.ReconcileMissingArtifacts(s.ctx)
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), n, 1)
+	assert.DeepEqual(s.T(), locked, []string{"t2"})
+}
+
+// An error after some targets were queued still reports how many were.
+func (s *ReconcileSuite) TestErrorsAfterQueuingReportTheCountSoFar() {
+	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
+		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
+		{Kind: domain.KindTerritory, Slug: "t2", SourceBlobHash: "h"},
+	}, nil)
+	s.catalog.HasLOD0Mock.When(s.ctx, domain.KindTerritory, "t1").Then(false, false, nil)
+	s.catalog.HasLOD0Mock.When(s.ctx, domain.KindTerritory, "t2").Then(false, false, errors.New("db blip"))
+	s.allowSubmit()
+
+	n, err := s.svc.ReconcileMissingArtifacts(s.ctx)
+
+	assert.ErrorContains(s.T(), err, "db blip")
+	assert.Equal(s.T(), n, 1)
+}
+
+// A cancellation between targets stops the loop and keeps the count.
+func (s *ReconcileSuite) TestCancelBetweenTargetsReportsTheCountSoFar() {
+	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
+		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
+		{Kind: domain.KindTerritory, Slug: "t2", SourceBlobHash: "h"},
+	}, nil)
+	s.catalog.HasLOD0Mock.Return(false, false, nil)
+	ctx, cancel := context.WithCancel(s.ctx)
+	s.queue.TryLockTargetMock.Return(true, nil)
+	s.queue.SaveJobMock.Set(func(context.Context, domain.Job) error { cancel(); return nil })
+	s.queue.EnqueueJobMock.Return(nil)
+	s.queue.GetJobMock.Return(domain.Job{}, nil)
+	s.queue.ListTargetJobsMock.Return(nil, nil)
+
+	n, err := s.svc.ReconcileMissingArtifacts(ctx)
+
+	assert.ErrorIs(s.T(), err, context.Canceled)
+	assert.Equal(s.T(), n, 1)
+}
+
+// The log line is the only place the reason a target was queued is visible.
+func (s *ReconcileSuite) TestLogsWhyEachTargetWasQueued() {
+	prev := slog.Default()
+	s.T().Cleanup(func() { slog.SetDefault(prev) })
+	failed := []domain.Job{{
+		ID: "j1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusFailed,
+		UpdatedAt: time.Now().Add(-service.BackfillRetryAfter),
+	}}
+	for _, tc := range []struct {
+		name          string
+		has, hasPlain bool
+		latest        []domain.Job
+		reason        string
+	}{
+		{"missing lod0", false, false, nil, "reason=\"no lod0\""},
+		{"missing plain copy", true, false, nil, "reason=\"no plain copy\""},
+		{"failed replace", true, true, failed, "reason=\"failed replace\""},
+	} {
+		s.SetupTest()
+		var buf bytes.Buffer
+		slog.SetDefault(slog.New(slog.NewTextHandler(&buf, nil)))
+		s.catalog.ListTargetsMock.Return(
+			[]domain.ConversionTarget{{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"}},
+			nil,
+		)
+		s.catalog.HasLOD0Mock.Return(tc.has, tc.hasPlain, nil)
+		s.queue.TryLockTargetMock.Return(true, nil)
+		s.queue.SaveJobMock.Return(nil)
+		s.queue.EnqueueJobMock.Return(nil)
+		s.queue.GetJobMock.Return(domain.Job{}, nil)
+		s.queue.ListTargetJobsMock.Return(tc.latest, nil)
+
+		n, err := s.svc.ReconcileMissingArtifacts(s.ctx)
+
+		assert.NilError(s.T(), err)
+		assert.Equal(s.T(), n, 1, tc.name)
+		assert.Assert(s.T(), bytes.Contains(buf.Bytes(), []byte(tc.reason)), "%s: %s", tc.name, buf.String())
 	}
 }

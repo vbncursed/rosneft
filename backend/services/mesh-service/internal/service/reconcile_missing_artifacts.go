@@ -94,12 +94,6 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 			latest = latestJobs(ctx, index)
 		}
 		last, seen := latest[targetKey(t.Kind, t.Slug)]
-		if seen && last.Status == domain.JobStatusFailed && last.FailedOnSource {
-			continue
-		}
-		if has && hasPlain && !m.replaceFailed(last, seen) {
-			continue
-		}
 		// ponytail: one retry or backfill per pass, and only on an idle worker,
 		// so an upload never queues behind the whole catalog and no queued
 		// backfill outlives MaxQueueWait (which would queue it twice).
@@ -108,41 +102,24 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 		// conversion per target (~1 min each), not 12 targets an hour.
 		// Targets whose latest job failed wait BackfillRetryAfter, so
 		// only a success drains at once.
-		if has && (queued > 0 || skewed || anyLive(ctx, index, m.liveNow)) {
+		plan := planTarget(targetState{
+			has: has, hasPlain: hasPlain, last: last, seen: seen,
+			replaceFailed: m.replaceFailed(last, seen), queued: queued, skewed: skewed, now: m.now(),
+		}, func() bool { return anyLive(ctx, index, m.liveNow) })
+		skewed = skewed || plan.skewed
+		if plan.skip {
 			continue
-		}
-		reason := "no lod0"
-		if has && hasPlain {
-			reason = "failed replace"
-		} else if has {
-			reason = "no plain copy"
-			if seen && m.now().Sub(last.UpdatedAt) < BackfillRetryAfter {
-				// Every conversion writes the plain copy, so one that just
-				// succeeded without it means the catalog drops plain_hash
-				// (an older image): its success signal would reconvert back
-				// to back forever. Stop the drain for this pass; the skew
-				// then costs one reconversion per tick, as before the drain.
-				skewed = last.Status == domain.JobStatusSucceeded
-				if skewed || last.Status == domain.JobStatusFailed {
-					continue
-				}
-			}
 		}
 		// SubmitConversion holds the target claim; when the target is already
 		// in flight it hands back that job and created is false.
-		// Only the plain-copy backfill is marked (Job.Backfill hides its
-		// failure). A first conversion (no LOD0) is not, nor a retry of a job
-		// that neither succeeded nor was a backfill: that is a failed or
-		// abandoned replace-source, converting bytes the LOD0 is not built from.
-		backfill := has && (!seen || last.Status == domain.JobStatusSucceeded || last.Backfill)
-		_, created, err := m.submit(ctx, t.Kind, t.Slug, backfill)
+		_, created, err := m.submit(ctx, t.Kind, t.Slug, plan.backfill)
 		if err != nil {
 			return queued, fmt.Errorf("service.ReconcileMissingArtifacts: submit %s/%s: %w", t.Kind, t.Slug, err)
 		}
 		if !created {
 			continue
 		}
-		slog.InfoContext(ctx, "reconcile: queued conversion", "kind", t.Kind, "slug", t.Slug, "reason", reason)
+		slog.InfoContext(ctx, "reconcile: queued conversion", "kind", t.Kind, "slug", t.Slug, "reason", plan.reason)
 		queued++
 	}
 	m.sweepIndex(ctx, targets, index)
