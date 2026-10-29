@@ -163,6 +163,7 @@ var statusByCode = map[codes.Code][]error{
 		domain.ErrSelfTarget,
 		domain.ErrSystemRole,
 		domain.ErrRoleInUse,
+		domain.ErrPasskeyCeremonyExpired,
 	},
 }
 
