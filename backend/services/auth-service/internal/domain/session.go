@@ -14,6 +14,6 @@ type Session struct {
 	// under. ValidateToken refuses a session whose epoch is older than the
 	// user's current one, so a Login that raced a password change cannot leave
 	// a live session behind. Zero marks a session stored before the field
-	// existed: it is not checked, so a deploy signs nobody out.
+	// existed; ValidateToken dates it by AbsoluteExpiry instead.
 	PwEpoch int64 `json:"pw_epoch,omitempty"`
 }

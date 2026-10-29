@@ -195,29 +195,45 @@ func (s *ValidateTokenSuite) TestCachedHitStillReportsMustEnroll() {
 }
 
 // A session minted under an older password than the user's current one is dead
-// (a Login that raced the change); equal, newer and pre-epoch (zero) sessions
-// live, and so does a session of a user whose password was never changed.
+// (a Login that raced the change); equal and newer sessions live. A session
+// stored before epochs existed (PwEpoch 0) is dated by its absolute expiry
+// minus the TTL: it lives only if it was minted after the last change, and
+// always for a user whose password never changed (so a deploy signs nobody out).
 func (s *ValidateTokenSuite) TestSessionOlderThanThePasswordEpochIsRefused() {
-	changedAt := time.UnixMicro(2_000_000).UTC()
+	const ttl = time.Hour
+	changedAt := time.UnixMicro(2_000_000_000_000).UTC()
+	legacy := func(mintedMicro int64) domain.Session {
+		return domain.Session{UserID: "u1", AbsoluteExpiry: time.UnixMicro(mintedMicro).Add(ttl)}
+	}
 	tests := []struct {
 		name    string
 		changed *time.Time
-		epoch   int64
+		sess    domain.Session
 		valid   bool
 	}{
-		{"minted before the change", &changedAt, 1_999_999, false},
-		{"minted under the never-changed epoch, then changed", &changedAt, domain.NeverChangedEpoch, false},
-		{"minted under the current epoch", &changedAt, 2_000_000, true},
-		{"moved ahead of the row by the change itself", &changedAt, 2_000_001, true},
-		{"stored before epochs existed", &changedAt, 0, true},
-		{"password never changed", nil, domain.NeverChangedEpoch, true},
+		{"minted before the change", &changedAt, domain.Session{UserID: "u1", PwEpoch: 1_999_999_999_999}, false},
+		{
+			"minted under the never-changed epoch, then changed", &changedAt,
+			domain.Session{UserID: "u1", PwEpoch: domain.NeverChangedEpoch},
+			false,
+		},
+		{"minted under the current epoch", &changedAt, domain.Session{UserID: "u1", PwEpoch: 2_000_000_000_000}, true},
+		{
+			"moved ahead of the row by the change itself", &changedAt,
+			domain.Session{UserID: "u1", PwEpoch: 2_000_000_000_001},
+			true,
+		},
+		{"pre-epoch session minted before the change", &changedAt, legacy(1_999_999_999_999), false},
+		{"pre-epoch session minted after the change", &changedAt, legacy(2_000_000_000_001), true},
+		{"pre-epoch session, password never changed", nil, legacy(1_999_999_999_999), true},
+		{"password never changed", nil, domain.Session{UserID: "u1", PwEpoch: domain.NeverChangedEpoch}, true},
 	}
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
 			mc := minimock.NewController(s.T())
 			us, ss := mocks.NewUserStoreMock(mc), mocks.NewSessionStoreMock(mc)
-			svc := auth.New(us, ss, mocks.NewTwoFAVerifierMock(mc), mocks.NewPasskeyVerifierMock(mc), time.Hour)
-			ss.GetMock.Return(domain.Session{UserID: "u1", PwEpoch: tt.epoch}, nil)
+			svc := auth.New(us, ss, mocks.NewTwoFAVerifierMock(mc), mocks.NewPasskeyVerifierMock(mc), ttl)
+			ss.GetMock.Return(tt.sess, nil)
 			us.GetByIDMock.Return(domain.User{ID: "u1", PasswordChangedAt: tt.changed}, nil)
 			us.ResolveOwningAdminMock.Return("", nil)
 			if !tt.valid {

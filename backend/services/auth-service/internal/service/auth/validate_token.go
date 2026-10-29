@@ -48,12 +48,12 @@ func (s *Service) ValidateToken(
 	}
 
 	// A session minted under an older password than the user's current one is
-	// dead (a Login that raced the change). PwEpoch 0 is a session stored before
-	// epochs existed and is not checked. The epoch rides on the snapshot above,
-	// so this costs no extra round trip; like any other authorization change it
-	// is enforced within authzCacheTTL on other replicas, and at once here
-	// because the password change drops the snapshot (ForgetUser).
-	if sess.PwEpoch != 0 && sess.PwEpoch < a.pwEpoch {
+	// dead (a Login that raced the change, or any session a failed cleanup left
+	// behind). The epoch rides on the snapshot above, so this costs no extra
+	// round trip; like any other authorization change it is enforced within
+	// authzCacheTTL on other replicas, and at once here because the password
+	// change drops the snapshot (ForgetUser).
+	if a.pwEpoch > domain.NeverChangedEpoch && s.mintedEpoch(sess) < a.pwEpoch {
 		_ = s.sessions.Delete(ctx, token)
 		return "", nil, false, "", "", false, domain.ErrSessionInvalid
 	}
@@ -90,3 +90,16 @@ func (s *Service) ValidateToken(
 // ForgetUser drops the cached authorization snapshot of a user, so a password
 // change is enforced by the next ValidateToken instead of after authzCacheTTL.
 func (s *Service) ForgetUser(userID string) { s.authz.drop(userID) }
+
+// mintedEpoch is the password epoch a session was minted under. A session
+// stored before epochs existed (PwEpoch 0) is dated by its absolute expiry
+// minus the TTL it was given, so it survives the deploy when it was minted
+// after the user's last password change and dies at the first change after it.
+// shortcut: assumes absoluteTTL is unchanged since the session was minted; a
+// longer TTL than before only makes an old session look older (refused early).
+func (s *Service) mintedEpoch(sess domain.Session) int64 {
+	if sess.PwEpoch != 0 {
+		return sess.PwEpoch
+	}
+	return sess.AbsoluteExpiry.Add(-s.absoluteTTL).UnixMicro()
+}
