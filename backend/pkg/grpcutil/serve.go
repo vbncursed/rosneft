@@ -29,8 +29,8 @@ type ServeConfig struct {
 }
 
 // Serve listens on cfg.Addr, serves gRPC and the metrics endpoint, and blocks
-// until ctx is done or the server fails. It then marks cfg.HealthName
-// NOT_SERVING and drains in-flight RPCs, forcing a stop after
+// until ctx is done or the server fails. It then marks cfg.HealthName and the
+// unnamed overall service NOT_SERVING and drains in-flight RPCs, forcing a stop after
 // cfg.ShutdownTimeout. A clean shutdown returns nil.
 func Serve(ctx context.Context, cfg ServeConfig) error {
 	lis, err := (&net.ListenConfig{}).Listen(ctx, "tcp", cfg.Addr)
@@ -56,11 +56,15 @@ func serveOn(ctx context.Context, lis net.Listener, cfg ServeConfig) error {
 		}
 	}
 
+	// Both names: "" is what the compose healthcheck and grpc.health.v1's overall status read.
+	cfg.Health.SetServingStatus("", healthpb.HealthCheckResponse_NOT_SERVING)
 	cfg.Health.SetServingStatus(cfg.HealthName, healthpb.HealthCheckResponse_NOT_SERVING)
 	stopWithTimeout(ctx, cfg)
 	return nil
 }
 
+// serveMetrics only logs a failure, on purpose: losing the metrics endpoint
+// must not take the service down (the prometheus "up" series alerts instead).
 func serveMetrics(cfg ServeConfig) {
 	if err := metrics.Serve(cfg.MetricsAddr); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		cfg.Logger.Error("metrics: listener failed", "err", err)

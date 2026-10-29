@@ -5,6 +5,7 @@ package ratelimit
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -48,4 +49,27 @@ func (s *Store) Clear(ctx context.Context, userID string) error {
 		return fmt.Errorf("ratelimit.Clear: %w", err)
 	}
 	return nil
+}
+
+// stepTTL outlives a code: one is accepted for 3 steps (±1 skew), 90 s.
+const stepTTL = 2 * time.Minute
+
+// claimStep advances the last accepted step only when the new one is later.
+var claimStep = redis.NewScript(`
+local cur = redis.call('GET', KEYS[1])
+if cur and tonumber(cur) >= tonumber(ARGV[1]) then return 0 end
+redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2])
+return 1`)
+
+// ClaimStep records step as the user's last accepted TOTP step. It reports
+// false when that step or a later one was already accepted: the code is a
+// replay. The compare-and-advance is one script, so of any number of parallel
+// submissions of one code exactly one gets true.
+func (s *Store) ClaimStep(ctx context.Context, userID string, step int64) (bool, error) {
+	n, err := claimStep.Run(ctx, s.rdb, []string{"2fa_step:" + userID},
+		strconv.FormatInt(step, 10), int(stepTTL.Seconds())).Int()
+	if err != nil {
+		return false, fmt.Errorf("ratelimit.ClaimStep: %w", err)
+	}
+	return n == 1, nil
 }

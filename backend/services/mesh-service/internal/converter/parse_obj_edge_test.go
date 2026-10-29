@@ -18,7 +18,7 @@ const triVerts = "v 0 0 0\nv 1 0 0\nv 0 1 0\n"
 
 func (s *ParseOBJEdgeSuite) TestCRLFAndIndentation() {
 	obj := "mtllib a.mtl\r\n  v 0 0 0\r\n\tv 1 0 0\r\nv 0 1 0\r\nusemtl red\r\n\t f 1 2 3 \r\n\r\n"
-	src, err := parseOBJ(strings.NewReader(obj))
+	src, err := parseOBJWithUp(strings.NewReader(obj), false)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), src.mtllib, "a.mtl")
 	assert.Equal(s.T(), len(src.positions), 3)
@@ -35,7 +35,9 @@ func (s *ParseOBJEdgeSuite) TestDirectiveSpelling() {
 		mtllib    string
 		groups    []string
 	}{
-		{"v with tab separator is not a vertex", "v\t1 2 3\n", 0, 0, "", nil},
+		// The OBJ grammar allows tabs as whitespace after any keyword.
+		{"v with tab separator is a vertex", "v\t0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n", 3, 0, "", []string{""}},
+		{"f with tab separator is a face", triVerts + "f\t1 2 3\n", 3, 0, "", []string{""}},
 		{
 			"vt with tab separator is a uv",
 			triVerts + "vt\t0 0\nvt 1 0\nvt 0 1\nf 1/1 2/2 3/3\n",
@@ -62,7 +64,7 @@ func (s *ParseOBJEdgeSuite) TestDirectiveSpelling() {
 	}
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			src, err := parseOBJ(strings.NewReader(tt.obj))
+			src, err := parseOBJWithUp(strings.NewReader(tt.obj), false)
 			assert.NilError(s.T(), err)
 			assert.Equal(s.T(), len(src.positions), tt.positions)
 			assert.Equal(s.T(), len(src.uvs), tt.uvs)
@@ -78,7 +80,7 @@ func (s *ParseOBJEdgeSuite) TestDirectiveSpelling() {
 
 func (s *ParseOBJEdgeSuite) TestFacesBeforeUsemtlGoToUnnamedGroup() {
 	obj := triVerts + "f 1 2 3\nusemtl m\nf 1 2 3\n"
-	src, err := parseOBJ(strings.NewReader(obj))
+	src, err := parseOBJWithUp(strings.NewReader(obj), false)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(src.groups), 2)
 	assert.Equal(s.T(), src.groups[0].name, "")
@@ -104,7 +106,7 @@ func (s *ParseOBJEdgeSuite) TestFaceIndexForms() {
 	}
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			src, err := parseOBJ(strings.NewReader(tt.obj))
+			src, err := parseOBJWithUp(strings.NewReader(tt.obj), false)
 			assert.NilError(s.T(), err)
 			assert.Equal(s.T(), src.groups[0].triangles[0], tt.tri)
 			assert.Equal(s.T(), src.hasUVs, tt.hasUVs)
@@ -115,14 +117,14 @@ func (s *ParseOBJEdgeSuite) TestFaceIndexForms() {
 
 func (s *ParseOBJEdgeSuite) TestOutputUVsFollowFaceReferences() {
 	obj := triVerts + "vt 0.5 0.25\nvt 0 0\nvt 1 1\nf 1/3 2/1 3/2\n"
-	src, err := parseOBJ(strings.NewReader(obj))
+	src, err := parseOBJWithUp(strings.NewReader(obj), false)
 	assert.NilError(s.T(), err)
 	assert.DeepEqual(s.T(), src.uvs, []uv{{1, 0}, {0.5, 0.75}, {0, 1}})
 }
 
 func (s *ParseOBJEdgeSuite) TestPolygonFansShareThePivot() {
 	obj := "v 0 0 0\nv 1 0 0\nv 1 1 0\nv 0 1 0\nv 0 2 0\nv 1 2 0\nf 1 2 3 4 5 6\n"
-	src, err := parseOBJ(strings.NewReader(obj))
+	src, err := parseOBJWithUp(strings.NewReader(obj), false)
 	assert.NilError(s.T(), err)
 	assert.DeepEqual(s.T(), src.groups[0].triangles,
 		[]triangle{{0, 1, 2}, {0, 2, 3}, {0, 3, 4}, {0, 4, 5}})
@@ -154,7 +156,7 @@ func (s *ParseOBJEdgeSuite) TestErrors() {
 	}
 	for _, tt := range tests {
 		s.Run(tt.name, func() {
-			_, err := parseOBJ(strings.NewReader(tt.obj))
+			_, err := parseOBJWithUp(strings.NewReader(tt.obj), false)
 			assert.ErrorContains(s.T(), err, tt.want)
 			assert.ErrorContains(s.T(), err, "parseOBJ")
 		})

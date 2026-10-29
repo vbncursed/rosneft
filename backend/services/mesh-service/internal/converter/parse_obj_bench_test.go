@@ -14,7 +14,7 @@ func BenchmarkParseOBJ_10k(b *testing.B) {
 	b.SetBytes(int64(len(obj)))
 	b.ReportAllocs()
 	for b.Loop() {
-		if _, err := parseOBJ(bytes.NewReader(obj)); err != nil {
+		if _, err := parseOBJWithUp(bytes.NewReader(obj), true); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -27,7 +27,7 @@ func BenchmarkParseOBJ_100k(b *testing.B) {
 	b.SetBytes(int64(len(obj)))
 	b.ReportAllocs()
 	for b.Loop() {
-		if _, err := parseOBJ(bytes.NewReader(obj)); err != nil {
+		if _, err := parseOBJWithUp(bytes.NewReader(obj), true); err != nil {
 			b.Fatal(err)
 		}
 	}

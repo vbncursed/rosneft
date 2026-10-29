@@ -56,7 +56,7 @@ async function start(): Promise<void> {
   const data = app.getPath("userData");
   const settings = new SettingsFile(path.join(data, "settings.json"));
   const store = new Store(path.join(data, "cache"));
-  await store.init();
+  await store.init(settings.value.userId);
 
   const ses = session.fromPartition(PARTITION);
   attachPermissionPolicy(ses, ORIGIN);

@@ -46,6 +46,17 @@ func (s *ParseMTLEdgeSuite) TestDirectives() {
 			"map_Kd unknown option takes one argument", "newmtl a\nmap_Kd -vendor 7 t.png\n",
 			material{"a", white, 1, "t.png"},
 		},
+		// The spec makes v and w of -o, -s and -t optional: the file name must survive.
+		{"map_Kd -s with two values", "newmtl a\nmap_Kd -s 2 2 tex.jpg\n", material{"a", white, 1, "tex.jpg"}},
+		{"map_Kd -o with one value", "newmtl a\nmap_Kd -o 1 tex.jpg\n", material{"a", white, 1, "tex.jpg"}},
+		{"map_Kd -t with three values", "newmtl a\nmap_Kd -t 1 2 3 tex.jpg\n", material{"a", white, 1, "tex.jpg"}},
+		{
+			"map_Kd -s keeps a spaced path",
+			"newmtl a\nmap_Kd -s 2 2 my dir/t.png\n",
+			material{"a", white, 1, "my dir/t.png"},
+		},
+		{"map_Kd -s then another option", "newmtl a\nmap_Kd -s 2 -clamp on t.png\n", material{"a", white, 1, "t.png"}},
+		{"map_Kd -s with a numeric last token is the file", "newmtl a\nmap_Kd -s 2 2\n", material{"a", white, 1, "2"}},
 		{"map_Kd with only options", "newmtl a\nmap_Kd -clamp on\n", material{"a", white, 1, ""}},
 		{"map_Kd without a value", "newmtl a\nmap_Kd\n", material{"a", white, 1, ""}},
 		{"last map_Kd wins", "newmtl a\nmap_Kd one.png\nmap_Kd two.png\n", material{"a", white, 1, "two.png"}},

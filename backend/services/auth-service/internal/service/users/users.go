@@ -22,7 +22,7 @@ type Store interface {
 		ownerID, hidePrivilegedExcept string,
 	) ([]domain.User, error)
 	SetStatus(ctx context.Context, id, status string, deletedAt *time.Time) (domain.User, error)
-	SetRoles(ctx context.Context, id string, roleSlugs []string) (domain.User, error)
+	SetRoles(ctx context.Context, actorID, id string, roleSlugs []string) (domain.User, error)
 	SetOwner(ctx context.Context, id string, isOwner bool) (domain.User, error)
 	SetTOTPRequired(ctx context.Context, id string, required bool) (domain.User, error)
 	PermissionsForRoles(ctx context.Context, roleSlugs []string) ([]string, error)
@@ -95,6 +95,12 @@ func (s *Service) guard(ctx context.Context, actorID string, target domain.User)
 	if actorID == target.ID {
 		return domain.ErrSelfTarget
 	}
+	return s.assertNotLastAdmin(ctx, target)
+}
+
+// assertNotLastAdmin refuses a change that would take the admin role from the
+// only admin left: freeze, delete, or a role replace without it.
+func (s *Service) assertNotLastAdmin(ctx context.Context, target domain.User) error {
 	if !isAdmin(target) {
 		return nil
 	}

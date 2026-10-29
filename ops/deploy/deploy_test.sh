@@ -35,7 +35,9 @@ echo "=== 1b. valid_actor ==="
 ok "accepts vbncursed" valid_actor vbncursed
 ok "accepts a-b" valid_actor a-b
 ok "accepts 39 chars" valid_actor "$(printf 'a%.0s' {1..39})"
-for bad in "" "$(printf 'a%.0s' {1..40})" "a b" "x;id" '$(id)' "a"$'\n'; do
+ok "accepts dependabot[bot]" valid_actor 'dependabot[bot]'
+ok "accepts github-actions[bot]" valid_actor 'github-actions[bot]'
+for bad in "" "$(printf 'a%.0s' {1..40})" "a b" "x;id" '$(id)' "a"$'\n' 'a;b' 'a[bot]x' '[bot]' 'a[bot][bot]' 'a[bot]'$'\n' 'a[b]' 'a*[bot]'; do
   no "rejects actor '$bad'" valid_actor "$bad"
 done
 
@@ -121,6 +123,11 @@ cat > "$BIN/curl" <<'STUB'
 #!/usr/bin/env bash
 echo "curl $*" >> "$CALLS"
 url=${*: -1}
+# a curl config on stdin (-K -) carries the Telegram URL, token included
+if [[ " $* " == *" -K - "* ]]; then
+  cfg=$(cat); printf '%s\n' "$cfg" >> "$WORK/curl_stdin"
+  url=$(sed -n 's/^url *= *"\(.*\)"$/\1/p' <<<"$cfg")
+fi
 live=$(sed -n 's/.*"id":"\([^"]*\)".*/\1/p' "$ANDREY_WWW/shell-manifest.json" 2>/dev/null || true)
 case "$url" in
   *api.telegram.org*) [[ -z ${STUB_TG_FAIL:-} ]] || exit 22 ;;
@@ -156,7 +163,7 @@ fresh() {
   rm -rf "$WORK/s"; mkdir -p "$WORK/s"/{root,www,state,logs,backups,secrets,tmp}
   mkdir -p "$WORK/s/root/ops/deploy"; echo "# checkout copy" > "$WORK/s/root/ops/deploy/deploy.sh"
   echo "bot-token" > "$WORK/s/secrets/telegram_bot_token"; echo "42" > "$WORK/s/secrets/telegram_chat_id"
-  : > "$CALLS"; rm -f "$WORK/login_stdin" "$WORK/orphan_gone"
+  : > "$CALLS"; rm -f "$WORK/login_stdin" "$WORK/curl_stdin" "$WORK/orphan_gone"
   export ANDREY_ROOT="$WORK/s/root" ANDREY_WWW="$WORK/s/www" ANDREY_STATE="$WORK/s/state" \
     ANDREY_LOGS="$WORK/s/logs" ANDREY_BACKUPS="$WORK/s/backups" ANDREY_SECRETS="$WORK/s/secrets" \
     ANDREY_ORIGIN="https://x.test" ANDREY_LOCK="$WORK/s/lock" ANDREY_CHECK_TIMEOUT=0 ANDREY_CHECK_INTERVAL=0 \
@@ -347,6 +354,12 @@ fresh
 go "$SHA1"
 ok "args: missing actor refused" [ "$rc" -eq 2 ]
 
+echo "=== 9b. a bot actor deploys and logs in under its own name ==="
+fresh
+go "$SHA2" 'dependabot[bot]'
+ok "bot: exit 0" [ "$rc" -eq 0 ]
+ok "bot: login as the bot" calls_have '^docker login ghcr.io -u dependabot\[bot\] --password-stdin'
+
 echo "=== 10. a held lock fails cleanly after the timeout ==="
 fresh
 export STUB_LOCK_HELD=1 ANDREY_LOCK_WAIT=1
@@ -379,6 +392,35 @@ fresh
 export STUB_TG_FAIL=1
 go "$SHA2" vbncursed
 ok "still exit 0" [ "$rc" -eq 0 ]
+
+echo "=== 13b. the Telegram token is in curl's stdin, never in argv ==="
+fresh
+go "$SHA2" vbncursed
+ok "token reaches curl through stdin" grep -q 'api.telegram.org/botbot-token/sendMessage' "$WORK/curl_stdin"
+no "token not in any curl argv" grep -q -- 'bot-token' "$CALLS"
+no "token not in the log or output" grep -q -- 'bot-token' <<<"$log$out"
+ok "message text is still urlencoded by curl" calls_have 'data-urlencode text=deploy '
+fresh
+export STUB_TG_FAIL=1
+go "$SHA2" vbncursed
+ok "failed notification: deploy still exit 0" [ "$rc" -eq 0 ]
+no "failed notification: token still not in argv" grep -q -- 'bot-token' "$CALLS"
+
+echo "=== 13c. a failed state write is loud but does not mask a live deploy ==="
+for broken in STATE DEPLOYED; do
+  fresh
+  echo "$SHA1" > "$ANDREY_ROOT/.deployed"
+  case $broken in
+    STATE) export ANDREY_STATE=/dev/null/state ;;
+    DEPLOYED) rm "$ANDREY_ROOT/.deployed"; mkdir "$ANDREY_ROOT/.deployed" ;;
+  esac
+  go "$SHA2" vbncursed
+  ok "$broken: exit 0, the release is live" [ "$rc" -eq 0 ]
+  ok "$broken: frontend is live" [ "$(live_id)" = "$SHA2" ]
+  ok "$broken: WARN in the log" grep -q 'WARN: recording the deploy state failed' <<<"$log"
+  ok "$broken: Telegram notice carries the warning" calls_have "text=deploy ${SHA2:0:7} ok .*WARNING: .*state"
+  ok "$broken: forced command still refreshed" cmp -s "$ANDREY_ROOT/ops/deploy/deploy.sh" "$ANDREY_SELF"
+done
 
 echo "=== 14. registry login: before pull, logout always, token never leaks ==="
 for scenario in success rollback failed; do

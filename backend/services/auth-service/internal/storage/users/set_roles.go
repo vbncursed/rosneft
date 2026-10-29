@@ -10,17 +10,18 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 )
 
-// SetRoles replaces the user's role set with roleSlugs.
+// SetRoles replaces the user's role set with roleSlugs, as actorID (whose tenant
+// decides which role slugs are visible, see bindRoles).
 //
 // audittx.Run supplies the transaction the delete-then-insert already needed
 // and publishes the actor with it, so every user_roles row removed and added
 // lands in the journal under whoever changed the assignment.
-func (s *Store) SetRoles(ctx context.Context, id string, roleSlugs []string) (domain.User, error) {
+func (s *Store) SetRoles(ctx context.Context, actorID, id string, roleSlugs []string) (domain.User, error) {
 	err := audittx.Run(ctx, s.pool, func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, `DELETE FROM user_roles WHERE user_id = $1`, id); err != nil {
 			return fmt.Errorf("users.SetRoles: clear: %w", err)
 		}
-		return bindRoles(ctx, tx, id, roleSlugs)
+		return bindRoles(ctx, tx, actorID, id, roleSlugs)
 	})
 	if err != nil {
 		return domain.User{}, err

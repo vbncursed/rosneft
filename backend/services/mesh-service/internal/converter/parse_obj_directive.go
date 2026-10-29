@@ -52,7 +52,7 @@ func (p *parser) parseLine(line []byte, yUp bool) error {
 	case 'v':
 		return p.parseGeometryLine(line, yUp)
 	case 'f':
-		if line[1] == ' ' {
+		if isBlank(line[1]) {
 			if err := p.parseFace(line[2:]); err != nil {
 				return fmt.Errorf("parseOBJ: face: %w", err)
 			}
@@ -66,13 +66,13 @@ func (p *parser) parseLine(line []byte, yUp bool) error {
 // parseGeometryLine handles "v x y z" and "vt u v"; vn and the rest are skipped.
 func (p *parser) parseGeometryLine(line []byte, yUp bool) error {
 	switch {
-	case line[1] == ' ':
+	case isBlank(line[1]):
 		v, err := parseVertex(line[2:], yUp)
 		if err != nil {
 			return fmt.Errorf("parseOBJ: vertex line %d: %w", len(p.objPositions)+1, err)
 		}
 		p.objPositions = append(p.objPositions, v)
-	case line[1] == 't' && len(line) > 2 && (line[2] == ' ' || line[2] == '\t'):
+	case line[1] == 't' && len(line) > 2 && isBlank(line[2]):
 		t, err := parseUV(line[3:])
 		if err != nil {
 			return fmt.Errorf("parseOBJ: uv line %d: %w", len(p.objUVs)+1, err)
@@ -93,11 +93,14 @@ func (p *parser) parseMaterialLine(line []byte) {
 	}
 }
 
+// isBlank is the OBJ whitespace: a keyword may be followed by a space or a tab.
+func isBlank(c byte) bool { return c == ' ' || c == '\t' }
+
 // directiveArg returns the rest of line when it starts with name followed by a
 // space or tab.
 func directiveArg(line []byte, name string) ([]byte, bool) {
 	n := len(name)
-	if len(line) <= n || string(line[:n]) != name || (line[n] != ' ' && line[n] != '\t') {
+	if len(line) <= n || string(line[:n]) != name || !isBlank(line[n]) {
 		return nil, false
 	}
 	return line[n:], true

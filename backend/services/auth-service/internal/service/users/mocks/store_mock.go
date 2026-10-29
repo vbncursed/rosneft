@@ -83,9 +83,9 @@ type StoreMock struct {
 	beforeSetOwnerCounter uint64
 	SetOwnerMock          mStoreMockSetOwner
 
-	funcSetRoles          func(ctx context.Context, id string, roleSlugs []string) (u1 domain.User, err error)
+	funcSetRoles          func(ctx context.Context, actorID string, id string, roleSlugs []string) (u1 domain.User, err error)
 	funcSetRolesOrigin    string
-	inspectFuncSetRoles   func(ctx context.Context, id string, roleSlugs []string)
+	inspectFuncSetRoles   func(ctx context.Context, actorID string, id string, roleSlugs []string)
 	afterSetRolesCounter  uint64
 	beforeSetRolesCounter uint64
 	SetRolesMock          mStoreMockSetRoles
@@ -3484,6 +3484,7 @@ type StoreMockSetRolesExpectation struct {
 // StoreMockSetRolesParams contains parameters of the Store.SetRoles
 type StoreMockSetRolesParams struct {
 	ctx       context.Context
+	actorID   string
 	id        string
 	roleSlugs []string
 }
@@ -3491,6 +3492,7 @@ type StoreMockSetRolesParams struct {
 // StoreMockSetRolesParamPtrs contains pointers to parameters of the Store.SetRoles
 type StoreMockSetRolesParamPtrs struct {
 	ctx       *context.Context
+	actorID   *string
 	id        *string
 	roleSlugs *[]string
 }
@@ -3505,6 +3507,7 @@ type StoreMockSetRolesResults struct {
 type StoreMockSetRolesExpectationOrigins struct {
 	origin          string
 	originCtx       string
+	originActorID   string
 	originId        string
 	originRoleSlugs string
 }
@@ -3520,7 +3523,7 @@ func (mmSetRoles *mStoreMockSetRoles) Optional() *mStoreMockSetRoles {
 }
 
 // Expect sets up expected params for Store.SetRoles
-func (mmSetRoles *mStoreMockSetRoles) Expect(ctx context.Context, id string, roleSlugs []string) *mStoreMockSetRoles {
+func (mmSetRoles *mStoreMockSetRoles) Expect(ctx context.Context, actorID string, id string, roleSlugs []string) *mStoreMockSetRoles {
 	if mmSetRoles.mock.funcSetRoles != nil {
 		mmSetRoles.mock.t.Fatalf("StoreMock.SetRoles mock is already set by Set")
 	}
@@ -3533,7 +3536,7 @@ func (mmSetRoles *mStoreMockSetRoles) Expect(ctx context.Context, id string, rol
 		mmSetRoles.mock.t.Fatalf("StoreMock.SetRoles mock is already set by ExpectParams functions")
 	}
 
-	mmSetRoles.defaultExpectation.params = &StoreMockSetRolesParams{ctx, id, roleSlugs}
+	mmSetRoles.defaultExpectation.params = &StoreMockSetRolesParams{ctx, actorID, id, roleSlugs}
 	mmSetRoles.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmSetRoles.expectations {
 		if minimock.Equal(e.params, mmSetRoles.defaultExpectation.params) {
@@ -3567,8 +3570,31 @@ func (mmSetRoles *mStoreMockSetRoles) ExpectCtxParam1(ctx context.Context) *mSto
 	return mmSetRoles
 }
 
-// ExpectIdParam2 sets up expected param id for Store.SetRoles
-func (mmSetRoles *mStoreMockSetRoles) ExpectIdParam2(id string) *mStoreMockSetRoles {
+// ExpectActorIDParam2 sets up expected param actorID for Store.SetRoles
+func (mmSetRoles *mStoreMockSetRoles) ExpectActorIDParam2(actorID string) *mStoreMockSetRoles {
+	if mmSetRoles.mock.funcSetRoles != nil {
+		mmSetRoles.mock.t.Fatalf("StoreMock.SetRoles mock is already set by Set")
+	}
+
+	if mmSetRoles.defaultExpectation == nil {
+		mmSetRoles.defaultExpectation = &StoreMockSetRolesExpectation{}
+	}
+
+	if mmSetRoles.defaultExpectation.params != nil {
+		mmSetRoles.mock.t.Fatalf("StoreMock.SetRoles mock is already set by Expect")
+	}
+
+	if mmSetRoles.defaultExpectation.paramPtrs == nil {
+		mmSetRoles.defaultExpectation.paramPtrs = &StoreMockSetRolesParamPtrs{}
+	}
+	mmSetRoles.defaultExpectation.paramPtrs.actorID = &actorID
+	mmSetRoles.defaultExpectation.expectationOrigins.originActorID = minimock.CallerInfo(1)
+
+	return mmSetRoles
+}
+
+// ExpectIdParam3 sets up expected param id for Store.SetRoles
+func (mmSetRoles *mStoreMockSetRoles) ExpectIdParam3(id string) *mStoreMockSetRoles {
 	if mmSetRoles.mock.funcSetRoles != nil {
 		mmSetRoles.mock.t.Fatalf("StoreMock.SetRoles mock is already set by Set")
 	}
@@ -3590,8 +3616,8 @@ func (mmSetRoles *mStoreMockSetRoles) ExpectIdParam2(id string) *mStoreMockSetRo
 	return mmSetRoles
 }
 
-// ExpectRoleSlugsParam3 sets up expected param roleSlugs for Store.SetRoles
-func (mmSetRoles *mStoreMockSetRoles) ExpectRoleSlugsParam3(roleSlugs []string) *mStoreMockSetRoles {
+// ExpectRoleSlugsParam4 sets up expected param roleSlugs for Store.SetRoles
+func (mmSetRoles *mStoreMockSetRoles) ExpectRoleSlugsParam4(roleSlugs []string) *mStoreMockSetRoles {
 	if mmSetRoles.mock.funcSetRoles != nil {
 		mmSetRoles.mock.t.Fatalf("StoreMock.SetRoles mock is already set by Set")
 	}
@@ -3614,7 +3640,7 @@ func (mmSetRoles *mStoreMockSetRoles) ExpectRoleSlugsParam3(roleSlugs []string) 
 }
 
 // Inspect accepts an inspector function that has same arguments as the Store.SetRoles
-func (mmSetRoles *mStoreMockSetRoles) Inspect(f func(ctx context.Context, id string, roleSlugs []string)) *mStoreMockSetRoles {
+func (mmSetRoles *mStoreMockSetRoles) Inspect(f func(ctx context.Context, actorID string, id string, roleSlugs []string)) *mStoreMockSetRoles {
 	if mmSetRoles.mock.inspectFuncSetRoles != nil {
 		mmSetRoles.mock.t.Fatalf("Inspect function is already set for StoreMock.SetRoles")
 	}
@@ -3639,7 +3665,7 @@ func (mmSetRoles *mStoreMockSetRoles) Return(u1 domain.User, err error) *StoreMo
 }
 
 // Set uses given function f to mock the Store.SetRoles method
-func (mmSetRoles *mStoreMockSetRoles) Set(f func(ctx context.Context, id string, roleSlugs []string) (u1 domain.User, err error)) *StoreMock {
+func (mmSetRoles *mStoreMockSetRoles) Set(f func(ctx context.Context, actorID string, id string, roleSlugs []string) (u1 domain.User, err error)) *StoreMock {
 	if mmSetRoles.defaultExpectation != nil {
 		mmSetRoles.mock.t.Fatalf("Default expectation is already set for the Store.SetRoles method")
 	}
@@ -3655,14 +3681,14 @@ func (mmSetRoles *mStoreMockSetRoles) Set(f func(ctx context.Context, id string,
 
 // When sets expectation for the Store.SetRoles which will trigger the result defined by the following
 // Then helper
-func (mmSetRoles *mStoreMockSetRoles) When(ctx context.Context, id string, roleSlugs []string) *StoreMockSetRolesExpectation {
+func (mmSetRoles *mStoreMockSetRoles) When(ctx context.Context, actorID string, id string, roleSlugs []string) *StoreMockSetRolesExpectation {
 	if mmSetRoles.mock.funcSetRoles != nil {
 		mmSetRoles.mock.t.Fatalf("StoreMock.SetRoles mock is already set by Set")
 	}
 
 	expectation := &StoreMockSetRolesExpectation{
 		mock:               mmSetRoles.mock,
-		params:             &StoreMockSetRolesParams{ctx, id, roleSlugs},
+		params:             &StoreMockSetRolesParams{ctx, actorID, id, roleSlugs},
 		expectationOrigins: StoreMockSetRolesExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmSetRoles.expectations = append(mmSetRoles.expectations, expectation)
@@ -3697,17 +3723,17 @@ func (mmSetRoles *mStoreMockSetRoles) invocationsDone() bool {
 }
 
 // SetRoles implements mm_users.Store
-func (mmSetRoles *StoreMock) SetRoles(ctx context.Context, id string, roleSlugs []string) (u1 domain.User, err error) {
+func (mmSetRoles *StoreMock) SetRoles(ctx context.Context, actorID string, id string, roleSlugs []string) (u1 domain.User, err error) {
 	mm_atomic.AddUint64(&mmSetRoles.beforeSetRolesCounter, 1)
 	defer mm_atomic.AddUint64(&mmSetRoles.afterSetRolesCounter, 1)
 
 	mmSetRoles.t.Helper()
 
 	if mmSetRoles.inspectFuncSetRoles != nil {
-		mmSetRoles.inspectFuncSetRoles(ctx, id, roleSlugs)
+		mmSetRoles.inspectFuncSetRoles(ctx, actorID, id, roleSlugs)
 	}
 
-	mm_params := StoreMockSetRolesParams{ctx, id, roleSlugs}
+	mm_params := StoreMockSetRolesParams{ctx, actorID, id, roleSlugs}
 
 	// Record call args
 	mmSetRoles.SetRolesMock.mutex.Lock()
@@ -3726,13 +3752,18 @@ func (mmSetRoles *StoreMock) SetRoles(ctx context.Context, id string, roleSlugs 
 		mm_want := mmSetRoles.SetRolesMock.defaultExpectation.params
 		mm_want_ptrs := mmSetRoles.SetRolesMock.defaultExpectation.paramPtrs
 
-		mm_got := StoreMockSetRolesParams{ctx, id, roleSlugs}
+		mm_got := StoreMockSetRolesParams{ctx, actorID, id, roleSlugs}
 
 		if mm_want_ptrs != nil {
 
 			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
 				mmSetRoles.t.Errorf("StoreMock.SetRoles got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmSetRoles.SetRolesMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.actorID != nil && !minimock.Equal(*mm_want_ptrs.actorID, mm_got.actorID) {
+				mmSetRoles.t.Errorf("StoreMock.SetRoles got unexpected parameter actorID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetRoles.SetRolesMock.defaultExpectation.expectationOrigins.originActorID, *mm_want_ptrs.actorID, mm_got.actorID, minimock.Diff(*mm_want_ptrs.actorID, mm_got.actorID))
 			}
 
 			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
@@ -3757,9 +3788,9 @@ func (mmSetRoles *StoreMock) SetRoles(ctx context.Context, id string, roleSlugs 
 		return (*mm_results).u1, (*mm_results).err
 	}
 	if mmSetRoles.funcSetRoles != nil {
-		return mmSetRoles.funcSetRoles(ctx, id, roleSlugs)
+		return mmSetRoles.funcSetRoles(ctx, actorID, id, roleSlugs)
 	}
-	mmSetRoles.t.Fatalf("Unexpected call to StoreMock.SetRoles. %v %v %v", ctx, id, roleSlugs)
+	mmSetRoles.t.Fatalf("Unexpected call to StoreMock.SetRoles. %v %v %v %v", ctx, actorID, id, roleSlugs)
 	return
 }
 

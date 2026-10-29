@@ -56,11 +56,78 @@ func (s *TwoFASuite) TestVerifyTOTPSuccess() {
 	s.lim.TakeAttemptMock.Expect(s.ctx, "u1").Return(true, nil)
 	s.st.GetMock.Expect(s.ctx, "u1").Return(domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}, nil)
 	s.ciph.DecryptMock.Expect([]byte("ct")).Return([]byte(secret), nil)
+	s.lim.ClaimStepMock.Return(true, nil)
 	s.lim.ClearMock.Expect(s.ctx, "u1").Return(nil)
 
 	ok, err := s.svc.Verify(s.ctx, "u1", code)
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), ok)
+}
+
+// A phished code replayed inside its ~90 s window: the step was already
+// accepted, so the valid-looking code is a failed attempt, not a second login.
+func (s *TwoFASuite) TestVerifyReplayedTOTPIsRefused() {
+	secret, code := s.enrolled()
+	s.lim.TakeAttemptMock.Expect(s.ctx, "u1").Return(true, nil)
+	s.st.GetMock.Expect(s.ctx, "u1").Return(domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}, nil)
+	s.ciph.DecryptMock.Expect([]byte("ct")).Return([]byte(secret), nil)
+	s.lim.ClaimStepMock.Return(false, nil)
+	s.rec.ListMock.Expect(s.ctx, "u1").Return(nil, nil, nil)
+
+	ok, err := s.svc.Verify(s.ctx, "u1", code)
+
+	assert.NilError(s.T(), err)
+	assert.Assert(s.T(), !ok)
+}
+
+// Disable is a TOTP check too: a replayed code must not switch 2FA off (Set and
+// DeleteAll are unstubbed, so minimock fails the test if they are reached).
+func (s *TwoFASuite) TestDisableAndRegenerateRefuseAReplayedCode() {
+	secret, code := s.enrolled()
+	s.lim.TakeAttemptMock.Return(true, nil)
+	s.st.GetMock.Return(domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}, nil)
+	s.ciph.DecryptMock.Return([]byte(secret), nil)
+	s.lim.ClaimStepMock.Return(false, nil)
+
+	assert.ErrorIs(s.T(), s.svc.Disable(s.ctx, "u1", code), domain.ErrTwoFAInvalidCode)
+	_, err := s.svc.Regenerate(s.ctx, "u1", code)
+	assert.ErrorIs(s.T(), err, domain.ErrTwoFAInvalidCode)
+}
+
+// The enrolment code is a TOTP like any other: it is recorded, and a replay of
+// it is refused (nothing is enabled).
+func (s *TwoFASuite) TestEnableRecordsTheStepAndRefusesAReplay() {
+	secret, code := s.enrolled()
+	s.st.GetMock.Return(domain.Credential{UserID: "u1", Secret: []byte("ct")}, nil)
+	s.ciph.DecryptMock.Return([]byte(secret), nil)
+	s.lim.ClaimStepMock.Return(false, nil)
+
+	_, err := s.svc.Enable(s.ctx, "u1", code)
+
+	assert.ErrorIs(s.T(), err, domain.ErrTwoFAInvalidCode)
+}
+
+// Enabling must come after the recovery codes are saved: if saving fails, 2FA
+// stays off (Set is unstubbed, so minimock fails the test if it was reached
+// first) and a retry is not answered AlreadyEnabled but goes through.
+func (s *TwoFASuite) TestEnableLeavesTwoFAOffWhenSavingTheCodesFailsAndARetrySucceeds() {
+	secret, code := s.enrolled()
+	s.st.GetMock.Return(domain.Credential{UserID: "u1", Secret: []byte("ct")}, nil)
+	s.ciph.DecryptMock.Return([]byte(secret), nil)
+	s.lim.ClaimStepMock.Return(true, nil)
+	s.rec.ReplaceMock.Return(errors.New("db down"))
+
+	_, err := s.svc.Enable(s.ctx, "u1", code)
+
+	assert.ErrorContains(s.T(), err, "db down")
+
+	s.rec.ReplaceMock.Return(nil)
+	s.st.SetMock.Expect(s.ctx, "u1", true, []byte("ct")).Return(nil)
+
+	codes, err := s.svc.Enable(s.ctx, "u1", code)
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(codes), 10)
 }
 
 func (s *TwoFASuite) TestVerifyLockedShortCircuits() {
@@ -236,6 +303,7 @@ func (s *TwoFASuite) TestDisableRightCodeClearsFails() {
 	s.lim.TakeAttemptMock.Expect(s.ctx, "u1").Return(true, nil)
 	s.st.GetMock.Expect(s.ctx, "u1").Return(domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}, nil)
 	s.ciph.DecryptMock.Expect([]byte("ct")).Return([]byte(secret), nil)
+	s.lim.ClaimStepMock.Return(true, nil)
 	s.lim.ClearMock.Expect(s.ctx, "u1").Return(nil)
 	s.st.SetMock.Return(nil)
 	s.rec.DeleteAllMock.Expect(s.ctx, "u1").Return(nil)

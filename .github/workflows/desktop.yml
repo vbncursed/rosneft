@@ -13,6 +13,9 @@ on:
       - "desktop/**"
       - ".github/workflows/desktop.yml"
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-22.04
@@ -40,8 +43,8 @@ jobs:
 
   build:
     needs: check
-    # The default workflow token is read-only; creating a release needs write.
-    # Granted here rather than repo-wide so check keeps the read-only default.
+    # The workflow token is read-only (top of file); creating a release needs write.
+    # Granted here rather than workflow-wide so check keeps read-only.
     permissions:
       contents: write
     strategy:
@@ -91,18 +94,20 @@ jobs:
 
       # electron-builder.yml sets mac.identity "-", which signs ad-hoc whatever
       # auto-discovery finds (Apple Silicon refuses an unsigned arm64 binary).
-      # On the macOS job only, the two ANDREY_SIGN_* variables (from the
-      # MAC_CSC_* secrets) make src/signing.ts sign with the stable self-signed
-      # certificate instead; an absent secret (fork PR, Dependabot) is empty and
-      # leaves the ad-hoc signature. Not CSC_LINK: Windows would read that too.
-      # CSC_FOR_PULL_REQUEST: the builder skips signing on pull_request runs, and
-      # a PR's arm64 artifact would then not launch.
+      # On the macOS job only, and never on a pull_request, the two ANDREY_SIGN_*
+      # variables (from the MAC_CSC_* secrets) make src/signing.ts sign with the
+      # stable self-signed certificate instead. A PR runs its own package.json
+      # scripts and signing.ts, so a same-repo branch could read the p12 if it got
+      # it; a PR build therefore signs ad-hoc. Not CSC_LINK: Windows would read
+      # that too. CSC_FOR_PULL_REQUEST stays: without it electron-builder skips
+      # signing on a PR (isSignAllowed) and the PR's arm64 artifact would not
+      # launch. It is safe now that no secret reaches a PR build.
       - run: yarn dist
         working-directory: desktop
         env:
           CSC_FOR_PULL_REQUEST: "true"
-          ANDREY_SIGN_P12: ${{ matrix.os == 'macos-latest' && secrets.MAC_CSC_LINK || '' }}
-          ANDREY_SIGN_P12_PASSWORD: ${{ matrix.os == 'macos-latest' && secrets.MAC_CSC_KEY_PASSWORD || '' }}
+          ANDREY_SIGN_P12: ${{ matrix.os == 'macos-latest' && github.event_name != 'pull_request' && secrets.MAC_CSC_LINK || '' }}
+          ANDREY_SIGN_P12_PASSWORD: ${{ matrix.os == 'macos-latest' && github.event_name != 'pull_request' && secrets.MAC_CSC_KEY_PASSWORD || '' }}
 
       # Names come from electron-builder.yml's artifactName. Exactly the expected
       # set per OS: anything else means the builder wrote somewhere these globs

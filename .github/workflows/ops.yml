@@ -1,0 +1,28 @@
+name: ops
+
+# `make -C ops check` ran only on push to main (deploy.yml's gate), so a broken
+# deploy.sh, rules.yml or dump.sh was found after the merge and then blocked
+# that merge's deploy and every later one. This runs it on the pull request.
+
+on:
+  pull_request:
+    paths:
+      - "ops/**"
+      - "docker-compose.yml"
+      - ".github/workflows/ops.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ops-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - run: make -C ops check

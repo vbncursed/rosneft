@@ -144,6 +144,27 @@ func TestServe_ServesAndShutsDownGracefullyOnCancel(t *testing.T) {
 	assert.Assert(t, !strings.Contains(logs, "forcing stop"), logs)
 }
 
+// The Docker/compose healthcheck probes the unnamed service ("") and
+// grpc.health.v1 reports it as the overall status, so shutdown flips it too.
+func TestServe_ShutdownFlipsTheOverallHealthToo(t *testing.T) {
+	f := newServeFixture(t, 5*time.Second)
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	done := f.run(ctx)
+	waitServing(t, f.dial(t))
+	resp, err := f.cfg.Health.Check(t.Context(), &healthpb.HealthCheckRequest{})
+	assert.NilError(t, err)
+	assert.Equal(t, resp.GetStatus(), healthpb.HealthCheckResponse_SERVING)
+
+	cancel()
+
+	assert.NilError(t, recv(t, done, 3*time.Second))
+	resp, err = f.cfg.Health.Check(t.Context(), &healthpb.HealthCheckRequest{})
+	assert.NilError(t, err)
+	assert.Equal(t, resp.GetStatus(), healthpb.HealthCheckResponse_NOT_SERVING)
+}
+
 func TestServe_ForcesStopWhenAnRPCOutlivesShutdownTimeout(t *testing.T) {
 	f := newServeFixture(t, 200*time.Millisecond)
 	ctx, cancel := context.WithCancel(t.Context())

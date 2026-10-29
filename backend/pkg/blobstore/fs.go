@@ -42,7 +42,7 @@ func NewFS(root string) (*FS, error) {
 // error here prevents path-traversal via crafted hash strings.
 func validateHash(hash string) error {
 	if len(hash) < 2 {
-		return fmt.Errorf("blobstore: hash too short: %q", hash)
+		return fmt.Errorf("%w: too short: %q", ErrInvalidHash, hash)
 	}
 	for _, c := range hash {
 		switch {
@@ -50,7 +50,7 @@ func validateHash(hash string) error {
 		case c >= 'a' && c <= 'f':
 		case c >= 'A' && c <= 'F':
 		default:
-			return fmt.Errorf("blobstore: hash contains non-hex character: %q", hash)
+			return fmt.Errorf("%w: non-hex character: %q", ErrInvalidHash, hash)
 		}
 	}
 	return nil

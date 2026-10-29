@@ -59,7 +59,7 @@ func (s *Server) WatchJobEvents(w http.ResponseWriter, r *http.Request) {
 }
 
 // scopedJob is GetJob behind the tenant rule: a territory job the caller
-// cannot see reads as not found, which streamJob already turns into the
+// cannot see reads as not found (a catalog failure is passed on as it is), which streamJob already turns into the
 // `error` frame an unknown id gets. Models and Root skip the catalog lookup.
 // Succeeded jobs still stream — the per-id route is how an upload that just
 // finished learns so, and it closes on its own.
@@ -91,7 +91,12 @@ func (s *Server) scopedJob(ctx context.Context, id string) (domain.Job, error) {
 		return domain.Job{}, domain.ErrJobNotFound
 	}
 	if _, err := s.svc.GetTerritory(ctx, job.Slug, scopeAdminID); err != nil {
-		return domain.Job{}, domain.ErrJobNotFound
+		if errors.Is(err, domain.ErrTerritoryNotFound) {
+			return domain.Job{}, domain.ErrJobNotFound
+		}
+		// Anything else (catalog restarting, timeout) says nothing about access:
+		// pass it on so the stream retries instead of closing on "not found".
+		return domain.Job{}, fmt.Errorf("scoped job %s: %w", id, err)
 	}
 	return job, nil
 }
@@ -172,9 +177,14 @@ func (st *jobStream) notFound() {
 }
 
 // poll re-fetches through the tenant gate and sends the job only if it
-// changed. True ends the stream.
+// changed. A job that is no longer found (access revoked, job gone) gets the
+// `error` frame and ends the stream; other errors are transient. True ends it.
 func (st *jobStream) poll(ctx context.Context, id string, fetch jobFetcher) bool {
 	job, err := fetch(ctx, id)
+	if errors.Is(err, domain.ErrJobNotFound) {
+		st.notFound()
+		return true
+	}
 	if err != nil || !jobChanged(st.last, job) {
 		return false
 	}

@@ -1,6 +1,7 @@
 package users
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -27,7 +28,7 @@ func (s *Store) Create(ctx context.Context, u domain.User) (domain.User, error) 
 			Scan(&id); err != nil {
 			return createError(err)
 		}
-		return bindRoles(ctx, tx, id, u.RoleSlugs)
+		return bindRoles(ctx, tx, deref(u.CreatedBy), id, u.RoleSlugs)
 	})
 	if err != nil {
 		return domain.User{}, err
@@ -45,12 +46,25 @@ func createError(err error) error {
 	return fmt.Errorf("users.Create: insert: %w", err)
 }
 
-// bindRoles resolves role slugs to ids and inserts user_roles rows. Unknown
-// slug → ErrRoleNotFound (fails closed).
-func bindRoles(ctx context.Context, tx pgx.Tx, userID string, slugs []string) error {
+// bindRoles resolves role slugs to ids and inserts user_roles rows. A slug the
+// acting tenant cannot see (a custom role of another company) or that does not
+// exist → ErrRoleNotFound (fails closed). The boundary is who ACTS, as in
+// roles.List: the actor's owning admin sees global roles plus its own, and Root
+// (empty owning admin) sees every role, whoever the target user is. Without an
+// actor (none recorded) the target's own tenant is used.
+func bindRoles(ctx context.Context, tx pgx.Tx, actorID, userID string, slugs []string) error {
+	if len(slugs) == 0 {
+		return nil
+	}
+	tenant, err := resolveOwningAdmin(ctx, tx, cmp.Or(actorID, userID))
+	if err != nil {
+		return err
+	}
 	for _, slug := range slugs {
 		var roleID string
-		if err := tx.QueryRow(ctx, `SELECT id FROM roles WHERE slug = $1`, slug).Scan(&roleID); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT id FROM roles WHERE slug = $1
+			AND (owner_admin_id IS NULL OR $2::text = '' OR owner_admin_id = NULLIF($2, '')::uuid)`,
+			slug, tenant).Scan(&roleID); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return domain.ErrRoleNotFound
 			}
@@ -63,4 +77,11 @@ func bindRoles(ctx context.Context, tx pgx.Tx, userID string, slugs []string) er
 		}
 	}
 	return nil
+}
+
+func deref(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

@@ -62,7 +62,11 @@ func (s *Service) check(ctx context.Context, userID, code string) (bool, error) 
 	if err != nil {
 		return false, err
 	}
-	if totp.Validate(string(secretPlain), code) {
+	fresh, err := s.acceptTOTP(ctx, userID, secretPlain, code)
+	if err != nil {
+		return false, err
+	}
+	if fresh {
 		_ = s.limiter.Clear(ctx, userID)
 		metricTwofaVerifications.WithLabelValues("succeeded").Inc()
 		return true, nil
