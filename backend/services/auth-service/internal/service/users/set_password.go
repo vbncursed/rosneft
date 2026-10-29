@@ -40,7 +40,8 @@ func (s *Service) SetPassword(ctx context.Context, actorID string, scopeAll bool
 	if err != nil {
 		return fmt.Errorf("users.SetPassword: hash: %w", err)
 	}
-	if err := s.store.ChangePassword(ctx, id, hash, nextChangeTime(target, time.Now())); err != nil {
+	// The returned stamp is not needed: no session of the caller moves here.
+	if _, err := s.store.ChangePassword(ctx, id, hash, nextChangeTime(target, time.Now())); err != nil {
 		return err
 	}
 	s.passwordChanged(id)

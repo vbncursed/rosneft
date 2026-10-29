@@ -2,6 +2,7 @@ package auth_test
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -272,4 +273,35 @@ func (s *ValidateTokenSuite) TestForgetUserEnforcesANewPasswordEpochAtOnce() {
 	s.svc.ForgetUser("u1")
 	_, _, _, _, _, _, err = s.svc.ValidateToken(s.ctx, "tok")
 	assert.ErrorIs(s.T(), err, domain.ErrSessionInvalid)
+}
+
+// A request that missed the cache before a password change and finishes
+// loading after it must not put its pre-change snapshot back: it would carry
+// the old epoch for up to authzCacheTTL and let an outdated session through.
+func (s *ValidateTokenSuite) TestSnapshotLoadedBeforeForgetUserIsNotCached() {
+	loading, release := make(chan struct{}), make(chan struct{})
+	var calls atomic.Int32
+	s.ss.GetMock.Return(domain.Session{UserID: "u1"}, nil)
+	s.us.ResolveOwningAdminMock.Return("", nil)
+	s.us.GetByIDMock.Set(func(context.Context, string) (domain.User, error) {
+		if calls.Add(1) == 1 { // the slow request, holding the old row
+			close(loading)
+			<-release
+		}
+		return domain.User{ID: "u1"}, nil
+	})
+
+	done := make(chan error, 1)
+	go func() {
+		_, _, _, _, _, _, err := s.svc.ValidateToken(s.ctx, "tok")
+		done <- err
+	}()
+	<-loading
+	s.svc.ForgetUser("u1") // the password change lands while it loads
+	close(release)
+	assert.NilError(s.T(), <-done)
+
+	_, _, _, _, _, _, err := s.svc.ValidateToken(s.ctx, "tok")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), calls.Load(), int32(2), "the stale snapshot was served from the cache")
 }

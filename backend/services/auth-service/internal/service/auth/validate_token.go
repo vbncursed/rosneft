@@ -26,7 +26,7 @@ func (s *Service) ValidateToken(
 	if err != nil {
 		return "", nil, false, "", "", false, err
 	}
-	a, ok := s.authz.get(sess.UserID)
+	a, gen, ok := s.authz.get(sess.UserID)
 	if !ok {
 		u, err := s.users.GetByID(ctx, sess.UserID)
 		if err != nil {
@@ -44,7 +44,7 @@ func (s *Service) ValidateToken(
 			totpRequired: u.TOTPRequired,
 			pwEpoch:      u.PasswordEpoch(),
 		}
-		s.authz.set(u.ID, a)
+		s.authz.set(u.ID, a, gen)
 	}
 
 	// A session minted under an older password than the user's current one is
@@ -95,8 +95,10 @@ func (s *Service) ForgetUser(userID string) { s.authz.drop(userID) }
 // stored before epochs existed (PwEpoch 0) is dated by its absolute expiry
 // minus the TTL it was given, so it survives the deploy when it was minted
 // after the user's last password change and dies at the first change after it.
-// shortcut: assumes absoluteTTL is unchanged since the session was minted; a
-// longer TTL than before only makes an old session look older (refused early).
+// shortcut: assumes absoluteTTL is unchanged since the session was minted.
+// Raising it makes an old session look older (refused early); lowering it makes
+// it look newer, so it can outlive a password change it should have died at.
+// Revisit if the TTL is ever changed in production.
 func (s *Service) mintedEpoch(sess domain.Session) int64 {
 	if sess.PwEpoch != 0 {
 		return sess.PwEpoch

@@ -136,12 +136,12 @@ func (s *SetPasswordSuite) TestSetPassword() {
 				st.GetByIDMock.When(ctx, tc.actor).Then(domain.User{}, tc.actorErr)
 			}
 			if tc.written {
-				st.ChangePasswordMock.Set(func(_ context.Context, id, hash string, _ time.Time) error {
+				st.ChangePasswordMock.Set(func(_ context.Context, id, hash string, at time.Time) (time.Time, error) {
 					assert.Equal(s.T(), id, tc.target)
 					ok, err := password.Verify(tc.password, hash)
 					assert.NilError(s.T(), err)
 					assert.Assert(s.T(), ok, "the stored hash must verify the new password")
-					return tc.writeErr
+					return at, tc.writeErr
 				})
 			}
 			if tc.written && tc.writeErr == nil {

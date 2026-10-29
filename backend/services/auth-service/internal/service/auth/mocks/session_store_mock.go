@@ -54,9 +54,9 @@ type SessionStoreMock struct {
 	beforeGetCounter uint64
 	GetMock          mSessionStoreMockGet
 
-	funcPutPending          func(ctx context.Context, userID string) (s1 string, err error)
+	funcPutPending          func(ctx context.Context, userID string, epoch int64) (s1 string, err error)
 	funcPutPendingOrigin    string
-	inspectFuncPutPending   func(ctx context.Context, userID string)
+	inspectFuncPutPending   func(ctx context.Context, userID string, epoch int64)
 	afterPutPendingCounter  uint64
 	beforePutPendingCounter uint64
 	PutPendingMock          mSessionStoreMockPutPending
@@ -89,7 +89,7 @@ type SessionStoreMock struct {
 	beforeTakeChangePasswordAttemptCounter uint64
 	TakeChangePasswordAttemptMock          mSessionStoreMockTakeChangePasswordAttempt
 
-	funcTakePending          func(ctx context.Context, challenge string) (s1 string, err error)
+	funcTakePending          func(ctx context.Context, challenge string) (userID string, epoch int64, err error)
 	funcTakePendingOrigin    string
 	inspectFuncTakePending   func(ctx context.Context, challenge string)
 	afterTakePendingCounter  uint64
@@ -1883,12 +1883,14 @@ type SessionStoreMockPutPendingExpectation struct {
 type SessionStoreMockPutPendingParams struct {
 	ctx    context.Context
 	userID string
+	epoch  int64
 }
 
 // SessionStoreMockPutPendingParamPtrs contains pointers to parameters of the SessionStore.PutPending
 type SessionStoreMockPutPendingParamPtrs struct {
 	ctx    *context.Context
 	userID *string
+	epoch  *int64
 }
 
 // SessionStoreMockPutPendingResults contains results of the SessionStore.PutPending
@@ -1902,6 +1904,7 @@ type SessionStoreMockPutPendingExpectationOrigins struct {
 	origin       string
 	originCtx    string
 	originUserID string
+	originEpoch  string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -1915,7 +1918,7 @@ func (mmPutPending *mSessionStoreMockPutPending) Optional() *mSessionStoreMockPu
 }
 
 // Expect sets up expected params for SessionStore.PutPending
-func (mmPutPending *mSessionStoreMockPutPending) Expect(ctx context.Context, userID string) *mSessionStoreMockPutPending {
+func (mmPutPending *mSessionStoreMockPutPending) Expect(ctx context.Context, userID string, epoch int64) *mSessionStoreMockPutPending {
 	if mmPutPending.mock.funcPutPending != nil {
 		mmPutPending.mock.t.Fatalf("SessionStoreMock.PutPending mock is already set by Set")
 	}
@@ -1928,7 +1931,7 @@ func (mmPutPending *mSessionStoreMockPutPending) Expect(ctx context.Context, use
 		mmPutPending.mock.t.Fatalf("SessionStoreMock.PutPending mock is already set by ExpectParams functions")
 	}
 
-	mmPutPending.defaultExpectation.params = &SessionStoreMockPutPendingParams{ctx, userID}
+	mmPutPending.defaultExpectation.params = &SessionStoreMockPutPendingParams{ctx, userID, epoch}
 	mmPutPending.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmPutPending.expectations {
 		if minimock.Equal(e.params, mmPutPending.defaultExpectation.params) {
@@ -1985,8 +1988,31 @@ func (mmPutPending *mSessionStoreMockPutPending) ExpectUserIDParam2(userID strin
 	return mmPutPending
 }
 
+// ExpectEpochParam3 sets up expected param epoch for SessionStore.PutPending
+func (mmPutPending *mSessionStoreMockPutPending) ExpectEpochParam3(epoch int64) *mSessionStoreMockPutPending {
+	if mmPutPending.mock.funcPutPending != nil {
+		mmPutPending.mock.t.Fatalf("SessionStoreMock.PutPending mock is already set by Set")
+	}
+
+	if mmPutPending.defaultExpectation == nil {
+		mmPutPending.defaultExpectation = &SessionStoreMockPutPendingExpectation{}
+	}
+
+	if mmPutPending.defaultExpectation.params != nil {
+		mmPutPending.mock.t.Fatalf("SessionStoreMock.PutPending mock is already set by Expect")
+	}
+
+	if mmPutPending.defaultExpectation.paramPtrs == nil {
+		mmPutPending.defaultExpectation.paramPtrs = &SessionStoreMockPutPendingParamPtrs{}
+	}
+	mmPutPending.defaultExpectation.paramPtrs.epoch = &epoch
+	mmPutPending.defaultExpectation.expectationOrigins.originEpoch = minimock.CallerInfo(1)
+
+	return mmPutPending
+}
+
 // Inspect accepts an inspector function that has same arguments as the SessionStore.PutPending
-func (mmPutPending *mSessionStoreMockPutPending) Inspect(f func(ctx context.Context, userID string)) *mSessionStoreMockPutPending {
+func (mmPutPending *mSessionStoreMockPutPending) Inspect(f func(ctx context.Context, userID string, epoch int64)) *mSessionStoreMockPutPending {
 	if mmPutPending.mock.inspectFuncPutPending != nil {
 		mmPutPending.mock.t.Fatalf("Inspect function is already set for SessionStoreMock.PutPending")
 	}
@@ -2011,7 +2037,7 @@ func (mmPutPending *mSessionStoreMockPutPending) Return(s1 string, err error) *S
 }
 
 // Set uses given function f to mock the SessionStore.PutPending method
-func (mmPutPending *mSessionStoreMockPutPending) Set(f func(ctx context.Context, userID string) (s1 string, err error)) *SessionStoreMock {
+func (mmPutPending *mSessionStoreMockPutPending) Set(f func(ctx context.Context, userID string, epoch int64) (s1 string, err error)) *SessionStoreMock {
 	if mmPutPending.defaultExpectation != nil {
 		mmPutPending.mock.t.Fatalf("Default expectation is already set for the SessionStore.PutPending method")
 	}
@@ -2027,14 +2053,14 @@ func (mmPutPending *mSessionStoreMockPutPending) Set(f func(ctx context.Context,
 
 // When sets expectation for the SessionStore.PutPending which will trigger the result defined by the following
 // Then helper
-func (mmPutPending *mSessionStoreMockPutPending) When(ctx context.Context, userID string) *SessionStoreMockPutPendingExpectation {
+func (mmPutPending *mSessionStoreMockPutPending) When(ctx context.Context, userID string, epoch int64) *SessionStoreMockPutPendingExpectation {
 	if mmPutPending.mock.funcPutPending != nil {
 		mmPutPending.mock.t.Fatalf("SessionStoreMock.PutPending mock is already set by Set")
 	}
 
 	expectation := &SessionStoreMockPutPendingExpectation{
 		mock:               mmPutPending.mock,
-		params:             &SessionStoreMockPutPendingParams{ctx, userID},
+		params:             &SessionStoreMockPutPendingParams{ctx, userID, epoch},
 		expectationOrigins: SessionStoreMockPutPendingExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmPutPending.expectations = append(mmPutPending.expectations, expectation)
@@ -2069,17 +2095,17 @@ func (mmPutPending *mSessionStoreMockPutPending) invocationsDone() bool {
 }
 
 // PutPending implements mm_auth.SessionStore
-func (mmPutPending *SessionStoreMock) PutPending(ctx context.Context, userID string) (s1 string, err error) {
+func (mmPutPending *SessionStoreMock) PutPending(ctx context.Context, userID string, epoch int64) (s1 string, err error) {
 	mm_atomic.AddUint64(&mmPutPending.beforePutPendingCounter, 1)
 	defer mm_atomic.AddUint64(&mmPutPending.afterPutPendingCounter, 1)
 
 	mmPutPending.t.Helper()
 
 	if mmPutPending.inspectFuncPutPending != nil {
-		mmPutPending.inspectFuncPutPending(ctx, userID)
+		mmPutPending.inspectFuncPutPending(ctx, userID, epoch)
 	}
 
-	mm_params := SessionStoreMockPutPendingParams{ctx, userID}
+	mm_params := SessionStoreMockPutPendingParams{ctx, userID, epoch}
 
 	// Record call args
 	mmPutPending.PutPendingMock.mutex.Lock()
@@ -2098,7 +2124,7 @@ func (mmPutPending *SessionStoreMock) PutPending(ctx context.Context, userID str
 		mm_want := mmPutPending.PutPendingMock.defaultExpectation.params
 		mm_want_ptrs := mmPutPending.PutPendingMock.defaultExpectation.paramPtrs
 
-		mm_got := SessionStoreMockPutPendingParams{ctx, userID}
+		mm_got := SessionStoreMockPutPendingParams{ctx, userID, epoch}
 
 		if mm_want_ptrs != nil {
 
@@ -2110,6 +2136,11 @@ func (mmPutPending *SessionStoreMock) PutPending(ctx context.Context, userID str
 			if mm_want_ptrs.userID != nil && !minimock.Equal(*mm_want_ptrs.userID, mm_got.userID) {
 				mmPutPending.t.Errorf("SessionStoreMock.PutPending got unexpected parameter userID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmPutPending.PutPendingMock.defaultExpectation.expectationOrigins.originUserID, *mm_want_ptrs.userID, mm_got.userID, minimock.Diff(*mm_want_ptrs.userID, mm_got.userID))
+			}
+
+			if mm_want_ptrs.epoch != nil && !minimock.Equal(*mm_want_ptrs.epoch, mm_got.epoch) {
+				mmPutPending.t.Errorf("SessionStoreMock.PutPending got unexpected parameter epoch, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmPutPending.PutPendingMock.defaultExpectation.expectationOrigins.originEpoch, *mm_want_ptrs.epoch, mm_got.epoch, minimock.Diff(*mm_want_ptrs.epoch, mm_got.epoch))
 			}
 
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
@@ -2124,9 +2155,9 @@ func (mmPutPending *SessionStoreMock) PutPending(ctx context.Context, userID str
 		return (*mm_results).s1, (*mm_results).err
 	}
 	if mmPutPending.funcPutPending != nil {
-		return mmPutPending.funcPutPending(ctx, userID)
+		return mmPutPending.funcPutPending(ctx, userID, epoch)
 	}
-	mmPutPending.t.Fatalf("Unexpected call to SessionStoreMock.PutPending. %v %v", ctx, userID)
+	mmPutPending.t.Fatalf("Unexpected call to SessionStoreMock.PutPending. %v %v %v", ctx, userID, epoch)
 	return
 }
 
@@ -3606,8 +3637,9 @@ type SessionStoreMockTakePendingParamPtrs struct {
 
 // SessionStoreMockTakePendingResults contains results of the SessionStore.TakePending
 type SessionStoreMockTakePendingResults struct {
-	s1  string
-	err error
+	userID string
+	epoch  int64
+	err    error
 }
 
 // SessionStoreMockTakePendingOrigins contains origins of expectations of the SessionStore.TakePending
@@ -3710,7 +3742,7 @@ func (mmTakePending *mSessionStoreMockTakePending) Inspect(f func(ctx context.Co
 }
 
 // Return sets up results that will be returned by SessionStore.TakePending
-func (mmTakePending *mSessionStoreMockTakePending) Return(s1 string, err error) *SessionStoreMock {
+func (mmTakePending *mSessionStoreMockTakePending) Return(userID string, epoch int64, err error) *SessionStoreMock {
 	if mmTakePending.mock.funcTakePending != nil {
 		mmTakePending.mock.t.Fatalf("SessionStoreMock.TakePending mock is already set by Set")
 	}
@@ -3718,13 +3750,13 @@ func (mmTakePending *mSessionStoreMockTakePending) Return(s1 string, err error) 
 	if mmTakePending.defaultExpectation == nil {
 		mmTakePending.defaultExpectation = &SessionStoreMockTakePendingExpectation{mock: mmTakePending.mock}
 	}
-	mmTakePending.defaultExpectation.results = &SessionStoreMockTakePendingResults{s1, err}
+	mmTakePending.defaultExpectation.results = &SessionStoreMockTakePendingResults{userID, epoch, err}
 	mmTakePending.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
 	return mmTakePending.mock
 }
 
 // Set uses given function f to mock the SessionStore.TakePending method
-func (mmTakePending *mSessionStoreMockTakePending) Set(f func(ctx context.Context, challenge string) (s1 string, err error)) *SessionStoreMock {
+func (mmTakePending *mSessionStoreMockTakePending) Set(f func(ctx context.Context, challenge string) (userID string, epoch int64, err error)) *SessionStoreMock {
 	if mmTakePending.defaultExpectation != nil {
 		mmTakePending.mock.t.Fatalf("Default expectation is already set for the SessionStore.TakePending method")
 	}
@@ -3755,8 +3787,8 @@ func (mmTakePending *mSessionStoreMockTakePending) When(ctx context.Context, cha
 }
 
 // Then sets up SessionStore.TakePending return parameters for the expectation previously defined by the When method
-func (e *SessionStoreMockTakePendingExpectation) Then(s1 string, err error) *SessionStoreMock {
-	e.results = &SessionStoreMockTakePendingResults{s1, err}
+func (e *SessionStoreMockTakePendingExpectation) Then(userID string, epoch int64, err error) *SessionStoreMock {
+	e.results = &SessionStoreMockTakePendingResults{userID, epoch, err}
 	return e.mock
 }
 
@@ -3782,7 +3814,7 @@ func (mmTakePending *mSessionStoreMockTakePending) invocationsDone() bool {
 }
 
 // TakePending implements mm_auth.SessionStore
-func (mmTakePending *SessionStoreMock) TakePending(ctx context.Context, challenge string) (s1 string, err error) {
+func (mmTakePending *SessionStoreMock) TakePending(ctx context.Context, challenge string) (userID string, epoch int64, err error) {
 	mm_atomic.AddUint64(&mmTakePending.beforeTakePendingCounter, 1)
 	defer mm_atomic.AddUint64(&mmTakePending.afterTakePendingCounter, 1)
 
@@ -3802,7 +3834,7 @@ func (mmTakePending *SessionStoreMock) TakePending(ctx context.Context, challeng
 	for _, e := range mmTakePending.TakePendingMock.expectations {
 		if minimock.Equal(*e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.s1, e.results.err
+			return e.results.userID, e.results.epoch, e.results.err
 		}
 	}
 
@@ -3834,7 +3866,7 @@ func (mmTakePending *SessionStoreMock) TakePending(ctx context.Context, challeng
 		if mm_results == nil {
 			mmTakePending.t.Fatal("No results are set for the SessionStoreMock.TakePending")
 		}
-		return (*mm_results).s1, (*mm_results).err
+		return (*mm_results).userID, (*mm_results).epoch, (*mm_results).err
 	}
 	if mmTakePending.funcTakePending != nil {
 		return mmTakePending.funcTakePending(ctx, challenge)

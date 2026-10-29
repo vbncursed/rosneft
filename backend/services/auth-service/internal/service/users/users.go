@@ -26,8 +26,10 @@ type Store interface {
 	SetOwner(ctx context.Context, id string, isOwner bool) (domain.User, error)
 	SetTOTPRequired(ctx context.Context, id string, required bool) (domain.User, error)
 	PermissionsForRoles(ctx context.Context, roleSlugs []string) ([]string, error)
-	// ChangePassword stores the hash and stamps password_changed_at = changedAt.
-	ChangePassword(ctx context.Context, id, hash string, changedAt time.Time) error
+	// ChangePassword stores the hash and stamps password_changed_at with the
+	// later of changedAt and the stored epoch + 1µs, and returns the stamp: two
+	// racing changes must never move the epoch backwards.
+	ChangePassword(ctx context.Context, id, hash string, changedAt time.Time) (time.Time, error)
 	CountAdmins(ctx context.Context, excludeUserID string) (int, error)
 	MarkTourSeen(ctx context.Context, id, tour string) error
 	ResolveLogins(ctx context.Context, ids []string) (map[string]string, error)

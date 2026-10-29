@@ -3,6 +3,7 @@
 package users_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -35,7 +36,7 @@ func TestChangePasswordRevokesOtherSessionsKeepsCurrent(t *testing.T) {
 	mc := minimock.NewController(t)
 	st := mocks.NewStoreMock(mc)
 	st.GetByIDMock.Return(domain.User{ID: "u1", PasswordHash: hash}, nil)
-	st.ChangePasswordMock.Return(nil)
+	st.ChangePasswordMock.Set(func(_ context.Context, _, _ string, at time.Time) (time.Time, error) { return at, nil })
 	svc := users.New(st, sessions)
 
 	assert.NilError(t, svc.ChangePassword(ctx, "u1", current, "correct-horse", "NewPassw0rd!"))

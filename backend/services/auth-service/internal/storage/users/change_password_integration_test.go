@@ -87,7 +87,9 @@ func (s *ChangePasswordSuite) TestSetsTheHashAndStampsPasswordChangedAt() {
 	assert.NilError(s.T(), err)
 
 	at := time.Date(2026, 10, 29, 12, 0, 0, 123456000, time.UTC)
-	assert.NilError(s.T(), s.store.ChangePassword(s.T().Context(), u.ID, "new-hash", at))
+	stamped, err := s.store.ChangePassword(s.T().Context(), u.ID, "new-hash", at)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), stamped.UnixMicro(), at.UnixMicro())
 
 	got := s.passwordChangedAt(u.ID)
 	assert.Assert(s.T(), got != nil)
@@ -98,7 +100,26 @@ func (s *ChangePasswordSuite) TestSetsTheHashAndStampsPasswordChangedAt() {
 }
 
 func (s *ChangePasswordSuite) TestAnUnknownUserIsNotFound() {
-	err := s.store.ChangePassword(s.T().Context(), "00000000-0000-0000-0000-000000000000", "new-hash", time.Now())
+	_, err := s.store.ChangePassword(s.T().Context(), "00000000-0000-0000-0000-000000000000", "new-hash", time.Now())
 
 	assert.ErrorIs(s.T(), err, domain.ErrUserNotFound)
+}
+
+// Two changes race: the second computed its candidate before the first
+// stamped, so the candidate is older than the stored epoch. The epoch must not
+// move backwards (it would revive sessions the first change outdated), and the
+// returned stamp is what the caller's session has to follow.
+func (s *ChangePasswordSuite) TestAnOlderCandidateNeverMovesTheEpochBackwards() {
+	ctx := s.T().Context()
+	u, err := s.store.Create(ctx, domain.User{Email: "p4@example.com", Username: "p4", PasswordHash: "hash"})
+	assert.NilError(s.T(), err)
+	first := time.Date(2026, 10, 29, 12, 0, 0, 500000000, time.UTC)
+	_, err = s.store.ChangePassword(ctx, u.ID, "h1", first)
+	assert.NilError(s.T(), err)
+
+	stamped, err := s.store.ChangePassword(ctx, u.ID, "h2", first.Add(-time.Second))
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), stamped.UnixMicro(), first.UnixMicro()+1)
+	assert.Equal(s.T(), s.passwordChangedAt(u.ID).UnixMicro(), stamped.UnixMicro())
 }

@@ -25,8 +25,12 @@ type SessionStore interface {
 	Create(ctx context.Context, sess domain.Session) (string, error)
 	Get(ctx context.Context, token string) (domain.Session, error)
 	Delete(ctx context.Context, token string) error
-	PutPending(ctx context.Context, userID string) (string, error)
-	TakePending(ctx context.Context, challenge string) (string, error)
+	// PutPending records the user's password epoch in the challenge so a
+	// password change between the two login steps can refuse it.
+	PutPending(ctx context.Context, userID string, epoch int64) (string, error)
+	// TakePending returns the user and the epoch recorded at PutPending; epoch
+	// 0 is a challenge issued before epochs were recorded (unchecked).
+	TakePending(ctx context.Context, challenge string) (userID string, epoch int64, err error)
 	// TakeAttempt reserves one login attempt; false means the budget is spent.
 	TakeAttempt(ctx context.Context, identifier string) (bool, error)
 	// RefundAttempt gives back an attempt that was not a guess (the request

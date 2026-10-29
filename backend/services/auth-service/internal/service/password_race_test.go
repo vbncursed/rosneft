@@ -46,9 +46,9 @@ func TestLoginRacingAPasswordChangeLeavesNoLiveSession(t *testing.T) {
 
 	store := usermocks.NewStoreMock(mc)
 	store.GetByIDMock.Set(func(context.Context, string) (domain.User, error) { return row, nil })
-	store.ChangePasswordMock.Set(func(_ context.Context, _, hash string, at time.Time) error {
+	store.ChangePasswordMock.Set(func(_ context.Context, _, hash string, at time.Time) (time.Time, error) {
 		row.PasswordHash, row.PasswordChangedAt = hash, &at
-		return nil
+		return at, nil
 	})
 	usersSvc := users.New(store, sessions)
 	usersSvc.OnPasswordChange(authSvc.ForgetUser)
@@ -129,9 +129,9 @@ func TestPreDeploySessionDiesOnPasswordChangeEvenWhenCleanupFails(t *testing.T) 
 
 	store := usermocks.NewStoreMock(mc)
 	store.GetByIDMock.Set(func(context.Context, string) (domain.User, error) { return row, nil })
-	store.ChangePasswordMock.Set(func(_ context.Context, _, hash string, at time.Time) error {
+	store.ChangePasswordMock.Set(func(_ context.Context, _, hash string, at time.Time) (time.Time, error) {
 		row.PasswordHash, row.PasswordChangedAt = hash, &at
-		return nil
+		return at, nil
 	})
 	usersSvc := users.New(store, failingCleanup{sessions})
 	usersSvc.OnPasswordChange(authSvc.ForgetUser)
@@ -177,9 +177,9 @@ func TestPreDeploySessionDiesOnAdminResetEvenWhenCleanupFails(t *testing.T) {
 		}
 		return row, nil
 	})
-	store.ChangePasswordMock.Set(func(_ context.Context, _, _ string, at time.Time) error {
+	store.ChangePasswordMock.Set(func(_ context.Context, _, _ string, at time.Time) (time.Time, error) {
 		row.PasswordChangedAt = &at
-		return nil
+		return at, nil
 	})
 	usersSvc := users.New(store, failingCleanup{sessions})
 	usersSvc.OnPasswordChange(authSvc.ForgetUser)

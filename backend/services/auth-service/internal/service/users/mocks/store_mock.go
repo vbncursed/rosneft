@@ -20,7 +20,7 @@ type StoreMock struct {
 	t          minimock.Tester
 	finishOnce sync.Once
 
-	funcChangePassword          func(ctx context.Context, id string, hash string, changedAt time.Time) (err error)
+	funcChangePassword          func(ctx context.Context, id string, hash string, changedAt time.Time) (t1 time.Time, err error)
 	funcChangePasswordOrigin    string
 	inspectFuncChangePassword   func(ctx context.Context, id string, hash string, changedAt time.Time)
 	afterChangePasswordCounter  uint64
@@ -196,6 +196,7 @@ type StoreMockChangePasswordParamPtrs struct {
 
 // StoreMockChangePasswordResults contains results of the Store.ChangePassword
 type StoreMockChangePasswordResults struct {
+	t1  time.Time
 	err error
 }
 
@@ -347,7 +348,7 @@ func (mmChangePassword *mStoreMockChangePassword) Inspect(f func(ctx context.Con
 }
 
 // Return sets up results that will be returned by Store.ChangePassword
-func (mmChangePassword *mStoreMockChangePassword) Return(err error) *StoreMock {
+func (mmChangePassword *mStoreMockChangePassword) Return(t1 time.Time, err error) *StoreMock {
 	if mmChangePassword.mock.funcChangePassword != nil {
 		mmChangePassword.mock.t.Fatalf("StoreMock.ChangePassword mock is already set by Set")
 	}
@@ -355,13 +356,13 @@ func (mmChangePassword *mStoreMockChangePassword) Return(err error) *StoreMock {
 	if mmChangePassword.defaultExpectation == nil {
 		mmChangePassword.defaultExpectation = &StoreMockChangePasswordExpectation{mock: mmChangePassword.mock}
 	}
-	mmChangePassword.defaultExpectation.results = &StoreMockChangePasswordResults{err}
+	mmChangePassword.defaultExpectation.results = &StoreMockChangePasswordResults{t1, err}
 	mmChangePassword.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
 	return mmChangePassword.mock
 }
 
 // Set uses given function f to mock the Store.ChangePassword method
-func (mmChangePassword *mStoreMockChangePassword) Set(f func(ctx context.Context, id string, hash string, changedAt time.Time) (err error)) *StoreMock {
+func (mmChangePassword *mStoreMockChangePassword) Set(f func(ctx context.Context, id string, hash string, changedAt time.Time) (t1 time.Time, err error)) *StoreMock {
 	if mmChangePassword.defaultExpectation != nil {
 		mmChangePassword.mock.t.Fatalf("Default expectation is already set for the Store.ChangePassword method")
 	}
@@ -392,8 +393,8 @@ func (mmChangePassword *mStoreMockChangePassword) When(ctx context.Context, id s
 }
 
 // Then sets up Store.ChangePassword return parameters for the expectation previously defined by the When method
-func (e *StoreMockChangePasswordExpectation) Then(err error) *StoreMock {
-	e.results = &StoreMockChangePasswordResults{err}
+func (e *StoreMockChangePasswordExpectation) Then(t1 time.Time, err error) *StoreMock {
+	e.results = &StoreMockChangePasswordResults{t1, err}
 	return e.mock
 }
 
@@ -419,7 +420,7 @@ func (mmChangePassword *mStoreMockChangePassword) invocationsDone() bool {
 }
 
 // ChangePassword implements mm_users.Store
-func (mmChangePassword *StoreMock) ChangePassword(ctx context.Context, id string, hash string, changedAt time.Time) (err error) {
+func (mmChangePassword *StoreMock) ChangePassword(ctx context.Context, id string, hash string, changedAt time.Time) (t1 time.Time, err error) {
 	mm_atomic.AddUint64(&mmChangePassword.beforeChangePasswordCounter, 1)
 	defer mm_atomic.AddUint64(&mmChangePassword.afterChangePasswordCounter, 1)
 
@@ -439,7 +440,7 @@ func (mmChangePassword *StoreMock) ChangePassword(ctx context.Context, id string
 	for _, e := range mmChangePassword.ChangePasswordMock.expectations {
 		if minimock.Equal(*e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.err
+			return e.results.t1, e.results.err
 		}
 	}
 
@@ -481,7 +482,7 @@ func (mmChangePassword *StoreMock) ChangePassword(ctx context.Context, id string
 		if mm_results == nil {
 			mmChangePassword.t.Fatal("No results are set for the StoreMock.ChangePassword")
 		}
-		return (*mm_results).err
+		return (*mm_results).t1, (*mm_results).err
 	}
 	if mmChangePassword.funcChangePassword != nil {
 		return mmChangePassword.funcChangePassword(ctx, id, hash, changedAt)

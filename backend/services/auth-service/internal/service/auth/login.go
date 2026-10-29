@@ -93,7 +93,7 @@ func (s *Service) startSession(ctx context.Context, u domain.User) (string, stri
 		return "", "", err
 	}
 	if enabled {
-		challenge, err := s.sessions.PutPending(ctx, u.ID)
+		challenge, err := s.sessions.PutPending(ctx, u.ID, u.PasswordEpoch())
 		if err != nil {
 			return "", "", err
 		}

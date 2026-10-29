@@ -70,8 +70,19 @@ func (s *Service) change(ctx context.Context, userID, keepToken, oldPlain, newPl
 	if err := s.sessions.SetPasswordEpoch(ctx, keepToken, at.UnixMicro()); err != nil {
 		return fmt.Errorf("users.ChangePassword: keep session: %w", err)
 	}
-	if err := s.store.ChangePassword(ctx, userID, hash, at); err != nil {
+	stamped, err := s.store.ChangePassword(ctx, userID, hash, at)
+	if err != nil {
 		return err
+	}
+	// A concurrent change can have stamped later than our candidate, and the
+	// store keeps the later one. Our session sits at the candidate, behind the
+	// row, so ValidateToken would refuse it: move it again. If that fails the
+	// password is changed and the caller merely has to sign in again.
+	if stamped.UnixMicro() != at.UnixMicro() {
+		if err := s.sessions.SetPasswordEpoch(ctx, keepToken, stamped.UnixMicro()); err != nil {
+			slog.Warn("users.ChangePassword: keep session at the stored epoch failed; it will be refused",
+				"user_id", userID, "error", err)
+		}
 	}
 	s.passwordChanged(userID)
 	_ = s.sessions.ClearChangePasswordFails(ctx, userID)

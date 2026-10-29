@@ -44,6 +44,11 @@ type authzCache struct {
 	ttl time.Duration
 	mu  sync.RWMutex
 	m   map[string]authzEntry
+	// gen counts drops per user. A reader captures it with get, before it loads
+	// from the store, and set stores only if no drop happened since: a request
+	// that missed the cache before a password change must not put its
+	// pre-change snapshot back after the change dropped it.
+	gen map[string]uint64
 }
 
 type authzEntry struct {
@@ -52,28 +57,36 @@ type authzEntry struct {
 }
 
 func newAuthzCache(ttl time.Duration) *authzCache {
-	return &authzCache{ttl: ttl, m: make(map[string]authzEntry)}
+	return &authzCache{ttl: ttl, m: make(map[string]authzEntry), gen: make(map[string]uint64)}
 }
 
-func (c *authzCache) get(userID string) (authz, bool) {
+// get returns the live snapshot, and the generation to hand to set if it missed.
+func (c *authzCache) get(userID string) (authz, uint64, bool) {
 	c.mu.RLock()
 	e, ok := c.m[userID]
+	gen := c.gen[userID]
 	c.mu.RUnlock()
 	if !ok || time.Now().After(e.exp) {
-		return authz{}, false
+		return authz{}, gen, false
 	}
-	return e.a, true
+	return e.a, gen, true
 }
 
-func (c *authzCache) set(userID string, a authz) {
+// set stores a snapshot loaded after get returned gen, unless a drop ran since.
+func (c *authzCache) set(userID string, a authz, gen uint64) {
 	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.gen[userID] != gen {
+		return
+	}
 	c.m[userID] = authzEntry{a: a, exp: time.Now().Add(c.ttl)}
-	c.mu.Unlock()
 }
 
-// drop forgets a user's snapshot so the next ValidateToken reads the row again.
+// drop forgets a user's snapshot so the next ValidateToken reads the row again,
+// and invalidates every load already in flight.
 func (c *authzCache) drop(userID string) {
 	c.mu.Lock()
 	delete(c.m, userID)
+	c.gen[userID]++
 	c.mu.Unlock()
 }

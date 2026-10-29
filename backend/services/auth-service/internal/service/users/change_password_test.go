@@ -70,12 +70,12 @@ func (s *ChangePasswordSuite) TestChangePasswordClearsFailsAndChangesOnSuccess()
 	s.ss.ClearChangePasswordFailsMock.Expect(s.ctx, "u1").Return(nil)
 	s.ss.DeleteUserExceptMock.Expect(s.ctx, "u1", "tok").Return(nil)
 	s.ss.SetPasswordEpochMock.Return(nil)
-	s.st.ChangePasswordMock.Set(func(_ context.Context, id, newHash string, _ time.Time) error {
+	s.st.ChangePasswordMock.Set(func(_ context.Context, id, newHash string, at time.Time) (time.Time, error) {
 		assert.Equal(s.T(), id, "u1")
 		ok, verr := password.Verify("NewPassw0rd!", newHash)
 		assert.NilError(s.T(), verr)
 		assert.Assert(s.T(), ok)
-		return nil
+		return at, nil
 	})
 
 	err = s.svc.ChangePassword(s.ctx, "u1", "tok", "correct-horse", "NewPassw0rd!")
@@ -101,9 +101,9 @@ func (s *ChangePasswordSuite) TestChangePasswordMovesOwnSessionToTheStampedEpoch
 		steps, epoch = append(steps, "session"), e
 		return nil
 	})
-	s.st.ChangePasswordMock.Set(func(_ context.Context, _, _ string, at time.Time) error {
+	s.st.ChangePasswordMock.Set(func(_ context.Context, _, _ string, at time.Time) (time.Time, error) {
 		steps, stamped = append(steps, "row"), at
-		return nil
+		return at, nil
 	})
 	var forgotten []string
 	s.svc.OnPasswordChange(func(id string) { forgotten = append(forgotten, id) })
@@ -114,6 +114,33 @@ func (s *ChangePasswordSuite) TestChangePasswordMovesOwnSessionToTheStampedEpoch
 	assert.Equal(s.T(), epoch, stamped.UnixMicro())
 	assert.Assert(s.T(), epoch > domain.NeverChangedEpoch)
 	assert.DeepEqual(s.T(), forgotten, []string{"u1"})
+}
+
+// A concurrent change stamped later than our candidate and the store kept the
+// later stamp: the caller's session must follow the row, or ValidateToken
+// refuses the session that just made the change.
+func (s *ChangePasswordSuite) TestChangePasswordMovesTheSessionToTheStampTheStoreReturned() {
+	hash, err := password.Hash("correct-horse")
+	assert.NilError(s.T(), err)
+	s.ss.TakeChangePasswordAttemptMock.Return(true, nil)
+	s.st.GetByIDMock.Return(domain.User{ID: "u1", PasswordHash: hash}, nil)
+	s.ss.ClearChangePasswordFailsMock.Return(nil)
+	s.ss.DeleteUserExceptMock.Return(nil)
+	var epochs []int64
+	s.ss.SetPasswordEpochMock.Set(func(_ context.Context, _ string, e int64) error {
+		epochs = append(epochs, e)
+		return nil
+	})
+	var candidate time.Time
+	later := time.Now().Add(time.Hour).UTC().Truncate(time.Microsecond)
+	s.st.ChangePasswordMock.Set(func(_ context.Context, _, _ string, at time.Time) (time.Time, error) {
+		candidate = at
+		return later, nil
+	})
+
+	assert.NilError(s.T(), s.svc.ChangePassword(s.ctx, "u1", "tok", "correct-horse", "NewPassw0rd!"))
+
+	assert.DeepEqual(s.T(), epochs, []int64{candidate.UnixMicro(), later.UnixMicro()})
 }
 
 // If the caller's session cannot be moved, nothing has changed yet: the error
@@ -141,7 +168,9 @@ func (s *ChangePasswordSuite) TestChangePasswordSucceedsWhenCleanupFails() {
 	s.ss.TakeChangePasswordAttemptMock.Expect(s.ctx, "u1").Return(true, nil)
 	s.st.GetByIDMock.Expect(s.ctx, "u1").Return(domain.User{ID: "u1", PasswordHash: hash}, nil)
 	s.ss.SetPasswordEpochMock.Return(nil)
-	s.st.ChangePasswordMock.Return(nil)
+	s.st.ChangePasswordMock.Set(
+		func(_ context.Context, _, _ string, at time.Time) (time.Time, error) { return at, nil },
+	)
 	s.ss.ClearChangePasswordFailsMock.Expect(s.ctx, "u1").Return(nil)
 	s.ss.DeleteUserExceptMock.Expect(s.ctx, "u1", "tok").Return(errors.New("redis down"))
 
@@ -173,7 +202,7 @@ func (s *ChangePasswordSuite) TestChangePasswordRefundsTheAttemptOnOurOwnFailure
 		{"store write fails", func(st *mocks.StoreMock, ss *mocks.SessionsMock) {
 			st.GetByIDMock.Return(domain.User{ID: "u1", PasswordHash: hash}, nil)
 			ss.SetPasswordEpochMock.Return(nil)
-			st.ChangePasswordMock.Return(boom)
+			st.ChangePasswordMock.Return(time.Time{}, boom)
 		}},
 	}
 	for _, tt := range tests {

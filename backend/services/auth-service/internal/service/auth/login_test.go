@@ -92,7 +92,7 @@ func (s *LoginSuite) TestLogin2FARequired() {
 		Return(domain.User{ID: "u1", Status: domain.StatusActive, PasswordHash: hash}, nil)
 	s.ss.ClearFailsMock.Expect(s.ctx, "ivan").Return(nil)
 	s.tf.IsEnabledMock.Expect(s.ctx, "u1").Return(true, nil)
-	s.ss.PutPendingMock.Expect(s.ctx, "u1").Return("chal1", nil)
+	s.ss.PutPendingMock.Expect(s.ctx, "u1", int64(1)).Return("chal1", nil)
 
 	token, challenge, err := s.svc.Login(s.ctx, "ivan", "pw")
 	assert.NilError(s.T(), err)
@@ -215,7 +215,7 @@ func (s *LoginSuite) TestLoginPutPendingErrorIsReturned() {
 		Return(domain.User{ID: "u1", Status: domain.StatusActive, PasswordHash: hash}, nil)
 	s.ss.ClearFailsMock.Expect(s.ctx, "ivan").Return(nil)
 	s.tf.IsEnabledMock.Expect(s.ctx, "u1").Return(true, nil)
-	s.ss.PutPendingMock.Expect(s.ctx, "u1").Return("", boom)
+	s.ss.PutPendingMock.Expect(s.ctx, "u1", int64(1)).Return("", boom)
 
 	token, challenge, err := s.svc.Login(s.ctx, "ivan", "pw")
 	assert.Equal(s.T(), err, boom)

@@ -13,7 +13,7 @@ func (s *Service) LoginVerify2FA(ctx context.Context, challenge, code string) (s
 	if challenge == "" || code == "" {
 		return "", fmt.Errorf("auth.LoginVerify2FA: %w: challenge and code required", domain.ErrInvalidInput)
 	}
-	userID, err := s.sessions.TakePending(ctx, challenge)
+	userID, epoch, err := s.sessions.TakePending(ctx, challenge)
 	if err != nil {
 		return "", err
 	}
@@ -27,6 +27,12 @@ func (s *Service) LoginVerify2FA(ctx context.Context, challenge, code string) (s
 	u, err := s.users.GetByID(ctx, userID)
 	if err != nil {
 		return "", err
+	}
+	// The password this challenge was issued under is gone: Login's first step
+	// read the row before the change, and issue() would stamp the new epoch.
+	// epoch 0 is a challenge from before epochs were recorded: unchecked.
+	if epoch != 0 && u.PasswordEpoch() != epoch {
+		return "", domain.ErrTwoFAInvalidCode
 	}
 	if err := checkActive(u); err != nil {
 		return "", err
