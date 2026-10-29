@@ -47,6 +47,8 @@ func (s *ChangePasswordSuite) TestChangePasswordRefusesWhenLocked() {
 	assert.ErrorIs(s.T(), err, domain.ErrLoginThrottled)
 }
 
+// A wrong old password is a guess and stays counted: no Refund, no Clear (the
+// strict mock fails the test if either is called).
 func (s *ChangePasswordSuite) TestChangePasswordRegistersFailOnWrongOldPassword() {
 	hash, err := password.Hash("correct-horse")
 	assert.NilError(s.T(), err)
@@ -123,6 +125,7 @@ func (s *ChangePasswordSuite) TestChangePasswordStopsBeforeTheRowWhenSessionCann
 	s.ss.TakeChangePasswordAttemptMock.Return(true, nil)
 	s.st.GetByIDMock.Return(domain.User{ID: "u1", PasswordHash: hash}, nil)
 	s.ss.SetPasswordEpochMock.Return(boom)
+	s.ss.RefundChangePasswordAttemptMock.Expect(s.ctx, "u1").Return(nil)
 
 	err = s.svc.ChangePassword(s.ctx, "u1", "tok", "correct-horse", "NewPassw0rd!")
 
@@ -145,4 +148,46 @@ func (s *ChangePasswordSuite) TestChangePasswordSucceedsWhenCleanupFails() {
 	err = s.svc.ChangePassword(s.ctx, "u1", "tok", "correct-horse", "NewPassw0rd!")
 
 	assert.NilError(s.T(), err)
+}
+
+// Failures that are not a wrong old password give the reserved attempt back, so
+// a database blip cannot lock the user out of changing their own password.
+func (s *ChangePasswordSuite) TestChangePasswordRefundsTheAttemptOnOurOwnFailures() {
+	hash, err := password.Hash("correct-horse")
+	assert.NilError(s.T(), err)
+	boom := errors.New("db down")
+	tests := []struct {
+		name  string
+		setup func(st *mocks.StoreMock, ss *mocks.SessionsMock)
+	}{
+		{"user lookup fails", func(st *mocks.StoreMock, _ *mocks.SessionsMock) {
+			st.GetByIDMock.Return(domain.User{}, boom)
+		}},
+		{"stored hash is malformed", func(st *mocks.StoreMock, _ *mocks.SessionsMock) {
+			st.GetByIDMock.Return(domain.User{ID: "u1", PasswordHash: "not-a-phc"}, nil)
+		}},
+		{"own session cannot be moved", func(st *mocks.StoreMock, ss *mocks.SessionsMock) {
+			st.GetByIDMock.Return(domain.User{ID: "u1", PasswordHash: hash}, nil)
+			ss.SetPasswordEpochMock.Return(boom)
+		}},
+		{"store write fails", func(st *mocks.StoreMock, ss *mocks.SessionsMock) {
+			st.GetByIDMock.Return(domain.User{ID: "u1", PasswordHash: hash}, nil)
+			ss.SetPasswordEpochMock.Return(nil)
+			st.ChangePasswordMock.Return(boom)
+		}},
+	}
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			mc := minimock.NewController(s.T())
+			st, ss := mocks.NewStoreMock(mc), mocks.NewSessionsMock(mc)
+			ss.TakeChangePasswordAttemptMock.Return(true, nil)
+			ss.RefundChangePasswordAttemptMock.Expect(s.ctx, "u1").Return(nil)
+			tt.setup(st, ss)
+
+			err := users.New(st, ss).ChangePassword(s.ctx, "u1", "tok", "correct-horse", "NewPassw0rd!")
+
+			assert.Assert(s.T(), err != nil)
+			assert.Assert(s.T(), !errors.Is(err, domain.ErrInvalidCredential))
+		})
+	}
 }

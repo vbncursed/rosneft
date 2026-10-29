@@ -56,6 +56,8 @@ func (s *LoginSuite) TestLoginSuccessNo2FA() {
 	assert.Equal(s.T(), challenge, "")
 }
 
+// A wrong password is a guess: it stays counted, so neither Refund nor Clear
+// is expected (the strict mock fails the test if either is called).
 func (s *LoginSuite) TestLoginWrongPassword() {
 	hash, _ := password.Hash("pw")
 	s.ss.TakeAttemptMock.Expect(s.ctx, "ivan").Return(true, nil)
@@ -153,10 +155,12 @@ func (s *LoginSuite) TestLoginLockCheckErrorIsReturned() {
 	assert.Equal(s.T(), err, boom)
 }
 
-// A stored hash that cannot be parsed is a server fault, not a failed attempt:
-// no RegisterFail (the strict mock fails the test if it is called).
+// A stored hash that cannot be parsed is a server fault, not a guess: the
+// reserved attempt is given back (RefundAttempt), and never cleared — a clear
+// would also wipe the guesses already counted.
 func (s *LoginSuite) TestLoginMalformedHashIsVerifyError() {
 	s.ss.TakeAttemptMock.Expect(s.ctx, "ivan").Return(true, nil)
+	s.ss.RefundAttemptMock.Expect(s.ctx, "ivan").Return(nil)
 	s.us.GetByIdentifierMock.Expect(s.ctx, "ivan").
 		Return(domain.User{ID: "u1", Status: domain.StatusActive, PasswordHash: "not-a-phc"}, nil)
 

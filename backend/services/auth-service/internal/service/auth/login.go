@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"time"
@@ -38,6 +39,11 @@ func (s *Service) Login(ctx context.Context, identifier, plain string) (string, 
 
 	u, err := s.authenticate(ctx, identifier, plain)
 	if err != nil {
+		// Only a wrong credential is a guess; a malformed stored hash is our
+		// failure and must not burn the account's budget.
+		if !errors.Is(err, domain.ErrInvalidCredential) {
+			_ = s.sessions.RefundAttempt(ctx, identifier)
+		}
 		return "", "", err
 	}
 	// A right password gives the attempt back, even for an account that is
@@ -51,8 +57,8 @@ func (s *Service) Login(ctx context.Context, identifier, plain string) (string, 
 	return s.startSession(ctx, u)
 }
 
-// authenticate resolves the user and checks the password. Every credential
-// failure registers against the throttle and answers ErrInvalidCredential.
+// authenticate resolves the user and checks the password. A credential failure
+// answers ErrInvalidCredential, which stays counted against the throttle.
 func (s *Service) authenticate(ctx context.Context, identifier, plain string) (domain.User, error) {
 	u, err := s.users.GetByIdentifier(ctx, identifier)
 	if err != nil {
@@ -73,7 +79,7 @@ func (s *Service) authenticate(ctx context.Context, identifier, plain string) (d
 	return u, nil
 }
 
-// failCredential answers a failed attempt, which TakeAttempt already counted.
+// failCredential answers a wrong credential; TakeAttempt already counted it.
 func (s *Service) failCredential() error {
 	metricLogins.WithLabelValues("failed").Inc()
 	return domain.ErrInvalidCredential

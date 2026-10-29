@@ -19,6 +19,12 @@ func (s *Store) TakeChangePasswordAttempt(ctx context.Context, userID string) (b
 	return n <= int64(s.maxFails), nil
 }
 
+// RefundChangePasswordAttempt gives back an attempt that was not a guess (see
+// RefundAttempt).
+func (s *Store) RefundChangePasswordAttempt(ctx context.Context, userID string) error {
+	return failcount.Refund(ctx, s.rdb, changePasswordFailKey(userID))
+}
+
 // ClearChangePasswordFails resets the counter after a successful password change.
 func (s *Store) ClearChangePasswordFails(ctx context.Context, userID string) error {
 	if err := s.rdb.Del(ctx, changePasswordFailKey(userID)).Err(); err != nil {

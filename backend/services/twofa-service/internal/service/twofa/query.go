@@ -40,6 +40,17 @@ func (s *Service) Verify(ctx context.Context, userID, code string) (bool, error)
 	if !allowed {
 		return false, domain.ErrTwoFALocked
 	}
+	ok, err := s.check(ctx, userID, code)
+	// A wrong code is (false, nil) and stays counted. Any error is ours (store,
+	// cipher, recovery codes) or not a guess at all (2FA off): give the attempt back.
+	if err != nil {
+		_ = s.limiter.Refund(ctx, userID)
+	}
+	return ok, err
+}
+
+// check is Verify after its attempt has been reserved.
+func (s *Service) check(ctx context.Context, userID, code string) (bool, error) {
 	c, err := s.store.Get(ctx, userID)
 	if err != nil {
 		return false, err

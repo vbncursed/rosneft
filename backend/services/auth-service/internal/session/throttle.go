@@ -19,6 +19,12 @@ func (s *Store) TakeAttempt(ctx context.Context, identifier string) (bool, error
 	return n <= int64(s.maxFails), nil
 }
 
+// RefundAttempt gives back an attempt TakeAttempt reserved for a request that
+// failed without the password being wrong (it was not a guess).
+func (s *Store) RefundAttempt(ctx context.Context, identifier string) error {
+	return failcount.Refund(ctx, s.rdb, failKey(identifier))
+}
+
 // ClearFails resets the counter after a successful login.
 func (s *Store) ClearFails(ctx context.Context, identifier string) error {
 	if err := s.rdb.Del(ctx, failKey(identifier)).Err(); err != nil {

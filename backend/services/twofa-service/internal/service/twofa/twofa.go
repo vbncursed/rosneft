@@ -35,6 +35,9 @@ type Cipher interface {
 type RateLimiter interface {
 	// TakeAttempt reserves one attempt; false means the budget is spent.
 	TakeAttempt(ctx context.Context, userID string) (bool, error)
+	// Refund gives back an attempt that was not a guess (the request failed for
+	// a reason other than a wrong code).
+	Refund(ctx context.Context, userID string) error
 	Clear(ctx context.Context, userID string) error
 }
 

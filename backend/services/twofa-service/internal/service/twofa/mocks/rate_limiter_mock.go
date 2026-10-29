@@ -25,6 +25,13 @@ type RateLimiterMock struct {
 	beforeClearCounter uint64
 	ClearMock          mRateLimiterMockClear
 
+	funcRefund          func(ctx context.Context, userID string) (err error)
+	funcRefundOrigin    string
+	inspectFuncRefund   func(ctx context.Context, userID string)
+	afterRefundCounter  uint64
+	beforeRefundCounter uint64
+	RefundMock          mRateLimiterMockRefund
+
 	funcTakeAttempt          func(ctx context.Context, userID string) (b1 bool, err error)
 	funcTakeAttemptOrigin    string
 	inspectFuncTakeAttempt   func(ctx context.Context, userID string)
@@ -43,6 +50,9 @@ func NewRateLimiterMock(t minimock.Tester) *RateLimiterMock {
 
 	m.ClearMock = mRateLimiterMockClear{mock: m}
 	m.ClearMock.callArgs = []*RateLimiterMockClearParams{}
+
+	m.RefundMock = mRateLimiterMockRefund{mock: m}
+	m.RefundMock.callArgs = []*RateLimiterMockRefundParams{}
 
 	m.TakeAttemptMock = mRateLimiterMockTakeAttempt{mock: m}
 	m.TakeAttemptMock.callArgs = []*RateLimiterMockTakeAttemptParams{}
@@ -391,6 +401,348 @@ func (m *RateLimiterMock) MinimockClearInspect() {
 	if !m.ClearMock.invocationsDone() && afterClearCounter > 0 {
 		m.t.Errorf("Expected %d calls to RateLimiterMock.Clear at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.ClearMock.expectedInvocations), m.ClearMock.expectedInvocationsOrigin, afterClearCounter)
+	}
+}
+
+type mRateLimiterMockRefund struct {
+	optional           bool
+	mock               *RateLimiterMock
+	defaultExpectation *RateLimiterMockRefundExpectation
+	expectations       []*RateLimiterMockRefundExpectation
+
+	callArgs []*RateLimiterMockRefundParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RateLimiterMockRefundExpectation specifies expectation struct of the RateLimiter.Refund
+type RateLimiterMockRefundExpectation struct {
+	mock               *RateLimiterMock
+	params             *RateLimiterMockRefundParams
+	paramPtrs          *RateLimiterMockRefundParamPtrs
+	expectationOrigins RateLimiterMockRefundExpectationOrigins
+	results            *RateLimiterMockRefundResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RateLimiterMockRefundParams contains parameters of the RateLimiter.Refund
+type RateLimiterMockRefundParams struct {
+	ctx    context.Context
+	userID string
+}
+
+// RateLimiterMockRefundParamPtrs contains pointers to parameters of the RateLimiter.Refund
+type RateLimiterMockRefundParamPtrs struct {
+	ctx    *context.Context
+	userID *string
+}
+
+// RateLimiterMockRefundResults contains results of the RateLimiter.Refund
+type RateLimiterMockRefundResults struct {
+	err error
+}
+
+// RateLimiterMockRefundOrigins contains origins of expectations of the RateLimiter.Refund
+type RateLimiterMockRefundExpectationOrigins struct {
+	origin       string
+	originCtx    string
+	originUserID string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmRefund *mRateLimiterMockRefund) Optional() *mRateLimiterMockRefund {
+	mmRefund.optional = true
+	return mmRefund
+}
+
+// Expect sets up expected params for RateLimiter.Refund
+func (mmRefund *mRateLimiterMockRefund) Expect(ctx context.Context, userID string) *mRateLimiterMockRefund {
+	if mmRefund.mock.funcRefund != nil {
+		mmRefund.mock.t.Fatalf("RateLimiterMock.Refund mock is already set by Set")
+	}
+
+	if mmRefund.defaultExpectation == nil {
+		mmRefund.defaultExpectation = &RateLimiterMockRefundExpectation{}
+	}
+
+	if mmRefund.defaultExpectation.paramPtrs != nil {
+		mmRefund.mock.t.Fatalf("RateLimiterMock.Refund mock is already set by ExpectParams functions")
+	}
+
+	mmRefund.defaultExpectation.params = &RateLimiterMockRefundParams{ctx, userID}
+	mmRefund.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmRefund.expectations {
+		if minimock.Equal(e.params, mmRefund.defaultExpectation.params) {
+			mmRefund.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmRefund.defaultExpectation.params)
+		}
+	}
+
+	return mmRefund
+}
+
+// ExpectCtxParam1 sets up expected param ctx for RateLimiter.Refund
+func (mmRefund *mRateLimiterMockRefund) ExpectCtxParam1(ctx context.Context) *mRateLimiterMockRefund {
+	if mmRefund.mock.funcRefund != nil {
+		mmRefund.mock.t.Fatalf("RateLimiterMock.Refund mock is already set by Set")
+	}
+
+	if mmRefund.defaultExpectation == nil {
+		mmRefund.defaultExpectation = &RateLimiterMockRefundExpectation{}
+	}
+
+	if mmRefund.defaultExpectation.params != nil {
+		mmRefund.mock.t.Fatalf("RateLimiterMock.Refund mock is already set by Expect")
+	}
+
+	if mmRefund.defaultExpectation.paramPtrs == nil {
+		mmRefund.defaultExpectation.paramPtrs = &RateLimiterMockRefundParamPtrs{}
+	}
+	mmRefund.defaultExpectation.paramPtrs.ctx = &ctx
+	mmRefund.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmRefund
+}
+
+// ExpectUserIDParam2 sets up expected param userID for RateLimiter.Refund
+func (mmRefund *mRateLimiterMockRefund) ExpectUserIDParam2(userID string) *mRateLimiterMockRefund {
+	if mmRefund.mock.funcRefund != nil {
+		mmRefund.mock.t.Fatalf("RateLimiterMock.Refund mock is already set by Set")
+	}
+
+	if mmRefund.defaultExpectation == nil {
+		mmRefund.defaultExpectation = &RateLimiterMockRefundExpectation{}
+	}
+
+	if mmRefund.defaultExpectation.params != nil {
+		mmRefund.mock.t.Fatalf("RateLimiterMock.Refund mock is already set by Expect")
+	}
+
+	if mmRefund.defaultExpectation.paramPtrs == nil {
+		mmRefund.defaultExpectation.paramPtrs = &RateLimiterMockRefundParamPtrs{}
+	}
+	mmRefund.defaultExpectation.paramPtrs.userID = &userID
+	mmRefund.defaultExpectation.expectationOrigins.originUserID = minimock.CallerInfo(1)
+
+	return mmRefund
+}
+
+// Inspect accepts an inspector function that has same arguments as the RateLimiter.Refund
+func (mmRefund *mRateLimiterMockRefund) Inspect(f func(ctx context.Context, userID string)) *mRateLimiterMockRefund {
+	if mmRefund.mock.inspectFuncRefund != nil {
+		mmRefund.mock.t.Fatalf("Inspect function is already set for RateLimiterMock.Refund")
+	}
+
+	mmRefund.mock.inspectFuncRefund = f
+
+	return mmRefund
+}
+
+// Return sets up results that will be returned by RateLimiter.Refund
+func (mmRefund *mRateLimiterMockRefund) Return(err error) *RateLimiterMock {
+	if mmRefund.mock.funcRefund != nil {
+		mmRefund.mock.t.Fatalf("RateLimiterMock.Refund mock is already set by Set")
+	}
+
+	if mmRefund.defaultExpectation == nil {
+		mmRefund.defaultExpectation = &RateLimiterMockRefundExpectation{mock: mmRefund.mock}
+	}
+	mmRefund.defaultExpectation.results = &RateLimiterMockRefundResults{err}
+	mmRefund.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmRefund.mock
+}
+
+// Set uses given function f to mock the RateLimiter.Refund method
+func (mmRefund *mRateLimiterMockRefund) Set(f func(ctx context.Context, userID string) (err error)) *RateLimiterMock {
+	if mmRefund.defaultExpectation != nil {
+		mmRefund.mock.t.Fatalf("Default expectation is already set for the RateLimiter.Refund method")
+	}
+
+	if len(mmRefund.expectations) > 0 {
+		mmRefund.mock.t.Fatalf("Some expectations are already set for the RateLimiter.Refund method")
+	}
+
+	mmRefund.mock.funcRefund = f
+	mmRefund.mock.funcRefundOrigin = minimock.CallerInfo(1)
+	return mmRefund.mock
+}
+
+// When sets expectation for the RateLimiter.Refund which will trigger the result defined by the following
+// Then helper
+func (mmRefund *mRateLimiterMockRefund) When(ctx context.Context, userID string) *RateLimiterMockRefundExpectation {
+	if mmRefund.mock.funcRefund != nil {
+		mmRefund.mock.t.Fatalf("RateLimiterMock.Refund mock is already set by Set")
+	}
+
+	expectation := &RateLimiterMockRefundExpectation{
+		mock:               mmRefund.mock,
+		params:             &RateLimiterMockRefundParams{ctx, userID},
+		expectationOrigins: RateLimiterMockRefundExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmRefund.expectations = append(mmRefund.expectations, expectation)
+	return expectation
+}
+
+// Then sets up RateLimiter.Refund return parameters for the expectation previously defined by the When method
+func (e *RateLimiterMockRefundExpectation) Then(err error) *RateLimiterMock {
+	e.results = &RateLimiterMockRefundResults{err}
+	return e.mock
+}
+
+// Times sets number of times RateLimiter.Refund should be invoked
+func (mmRefund *mRateLimiterMockRefund) Times(n uint64) *mRateLimiterMockRefund {
+	if n == 0 {
+		mmRefund.mock.t.Fatalf("Times of RateLimiterMock.Refund mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmRefund.expectedInvocations, n)
+	mmRefund.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmRefund
+}
+
+func (mmRefund *mRateLimiterMockRefund) invocationsDone() bool {
+	if len(mmRefund.expectations) == 0 && mmRefund.defaultExpectation == nil && mmRefund.mock.funcRefund == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmRefund.mock.afterRefundCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmRefund.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// Refund implements mm_twofa.RateLimiter
+func (mmRefund *RateLimiterMock) Refund(ctx context.Context, userID string) (err error) {
+	mm_atomic.AddUint64(&mmRefund.beforeRefundCounter, 1)
+	defer mm_atomic.AddUint64(&mmRefund.afterRefundCounter, 1)
+
+	mmRefund.t.Helper()
+
+	if mmRefund.inspectFuncRefund != nil {
+		mmRefund.inspectFuncRefund(ctx, userID)
+	}
+
+	mm_params := RateLimiterMockRefundParams{ctx, userID}
+
+	// Record call args
+	mmRefund.RefundMock.mutex.Lock()
+	mmRefund.RefundMock.callArgs = append(mmRefund.RefundMock.callArgs, &mm_params)
+	mmRefund.RefundMock.mutex.Unlock()
+
+	for _, e := range mmRefund.RefundMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmRefund.RefundMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmRefund.RefundMock.defaultExpectation.Counter, 1)
+		mm_want := mmRefund.RefundMock.defaultExpectation.params
+		mm_want_ptrs := mmRefund.RefundMock.defaultExpectation.paramPtrs
+
+		mm_got := RateLimiterMockRefundParams{ctx, userID}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmRefund.t.Errorf("RateLimiterMock.Refund got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmRefund.RefundMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.userID != nil && !minimock.Equal(*mm_want_ptrs.userID, mm_got.userID) {
+				mmRefund.t.Errorf("RateLimiterMock.Refund got unexpected parameter userID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmRefund.RefundMock.defaultExpectation.expectationOrigins.originUserID, *mm_want_ptrs.userID, mm_got.userID, minimock.Diff(*mm_want_ptrs.userID, mm_got.userID))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmRefund.t.Errorf("RateLimiterMock.Refund got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmRefund.RefundMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmRefund.RefundMock.defaultExpectation.results
+		if mm_results == nil {
+			mmRefund.t.Fatal("No results are set for the RateLimiterMock.Refund")
+		}
+		return (*mm_results).err
+	}
+	if mmRefund.funcRefund != nil {
+		return mmRefund.funcRefund(ctx, userID)
+	}
+	mmRefund.t.Fatalf("Unexpected call to RateLimiterMock.Refund. %v %v", ctx, userID)
+	return
+}
+
+// RefundAfterCounter returns a count of finished RateLimiterMock.Refund invocations
+func (mmRefund *RateLimiterMock) RefundAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmRefund.afterRefundCounter)
+}
+
+// RefundBeforeCounter returns a count of RateLimiterMock.Refund invocations
+func (mmRefund *RateLimiterMock) RefundBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmRefund.beforeRefundCounter)
+}
+
+// Calls returns a list of arguments used in each call to RateLimiterMock.Refund.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmRefund *mRateLimiterMockRefund) Calls() []*RateLimiterMockRefundParams {
+	mmRefund.mutex.RLock()
+
+	argCopy := make([]*RateLimiterMockRefundParams, len(mmRefund.callArgs))
+	copy(argCopy, mmRefund.callArgs)
+
+	mmRefund.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockRefundDone returns true if the count of the Refund invocations corresponds
+// the number of defined expectations
+func (m *RateLimiterMock) MinimockRefundDone() bool {
+	if m.RefundMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.RefundMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.RefundMock.invocationsDone()
+}
+
+// MinimockRefundInspect logs each unmet expectation
+func (m *RateLimiterMock) MinimockRefundInspect() {
+	for _, e := range m.RefundMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RateLimiterMock.Refund at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterRefundCounter := mm_atomic.LoadUint64(&m.afterRefundCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.RefundMock.defaultExpectation != nil && afterRefundCounter < 1 {
+		if m.RefundMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RateLimiterMock.Refund at\n%s", m.RefundMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RateLimiterMock.Refund at\n%s with params: %#v", m.RefundMock.defaultExpectation.expectationOrigins.origin, *m.RefundMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcRefund != nil && afterRefundCounter < 1 {
+		m.t.Errorf("Expected call to RateLimiterMock.Refund at\n%s", m.funcRefundOrigin)
+	}
+
+	if !m.RefundMock.invocationsDone() && afterRefundCounter > 0 {
+		m.t.Errorf("Expected %d calls to RateLimiterMock.Refund at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.RefundMock.expectedInvocations), m.RefundMock.expectedInvocationsOrigin, afterRefundCounter)
 	}
 }
 
@@ -743,6 +1095,8 @@ func (m *RateLimiterMock) MinimockFinish() {
 		if !m.minimockDone() {
 			m.MinimockClearInspect()
 
+			m.MinimockRefundInspect()
+
 			m.MinimockTakeAttemptInspect()
 		}
 	})
@@ -768,5 +1122,6 @@ func (m *RateLimiterMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockClearDone() &&
+		m.MinimockRefundDone() &&
 		m.MinimockTakeAttemptDone()
 }

@@ -2,6 +2,7 @@ package twofa
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/vbncursed/rosneft/backend/services/twofa-service/internal/domain"
@@ -19,6 +20,16 @@ func (s *Service) confirmTOTP(ctx context.Context, userID, code string) error {
 	if !allowed {
 		return domain.ErrTwoFALocked
 	}
+	err = s.confirm(ctx, userID, code)
+	// Only a wrong code is a guess; every other failure gives the attempt back.
+	if err != nil && !errors.Is(err, domain.ErrTwoFAInvalidCode) {
+		_ = s.limiter.Refund(ctx, userID)
+	}
+	return err
+}
+
+// confirm is confirmTOTP after its attempt has been reserved.
+func (s *Service) confirm(ctx context.Context, userID, code string) error {
 	c, err := s.store.Get(ctx, userID)
 	if err != nil {
 		return err

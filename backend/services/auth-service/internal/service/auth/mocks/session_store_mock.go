@@ -54,6 +54,13 @@ type SessionStoreMock struct {
 	beforePutPendingCounter uint64
 	PutPendingMock          mSessionStoreMockPutPending
 
+	funcRefundAttempt          func(ctx context.Context, identifier string) (err error)
+	funcRefundAttemptOrigin    string
+	inspectFuncRefundAttempt   func(ctx context.Context, identifier string)
+	afterRefundAttemptCounter  uint64
+	beforeRefundAttemptCounter uint64
+	RefundAttemptMock          mSessionStoreMockRefundAttempt
+
 	funcTakeAttempt          func(ctx context.Context, identifier string) (b1 bool, err error)
 	funcTakeAttemptOrigin    string
 	inspectFuncTakeAttempt   func(ctx context.Context, identifier string)
@@ -91,6 +98,9 @@ func NewSessionStoreMock(t minimock.Tester) *SessionStoreMock {
 
 	m.PutPendingMock = mSessionStoreMockPutPending{mock: m}
 	m.PutPendingMock.callArgs = []*SessionStoreMockPutPendingParams{}
+
+	m.RefundAttemptMock = mSessionStoreMockRefundAttempt{mock: m}
+	m.RefundAttemptMock.callArgs = []*SessionStoreMockRefundAttemptParams{}
 
 	m.TakeAttemptMock = mSessionStoreMockTakeAttempt{mock: m}
 	m.TakeAttemptMock.callArgs = []*SessionStoreMockTakeAttemptParams{}
@@ -1816,6 +1826,348 @@ func (m *SessionStoreMock) MinimockPutPendingInspect() {
 	}
 }
 
+type mSessionStoreMockRefundAttempt struct {
+	optional           bool
+	mock               *SessionStoreMock
+	defaultExpectation *SessionStoreMockRefundAttemptExpectation
+	expectations       []*SessionStoreMockRefundAttemptExpectation
+
+	callArgs []*SessionStoreMockRefundAttemptParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// SessionStoreMockRefundAttemptExpectation specifies expectation struct of the SessionStore.RefundAttempt
+type SessionStoreMockRefundAttemptExpectation struct {
+	mock               *SessionStoreMock
+	params             *SessionStoreMockRefundAttemptParams
+	paramPtrs          *SessionStoreMockRefundAttemptParamPtrs
+	expectationOrigins SessionStoreMockRefundAttemptExpectationOrigins
+	results            *SessionStoreMockRefundAttemptResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// SessionStoreMockRefundAttemptParams contains parameters of the SessionStore.RefundAttempt
+type SessionStoreMockRefundAttemptParams struct {
+	ctx        context.Context
+	identifier string
+}
+
+// SessionStoreMockRefundAttemptParamPtrs contains pointers to parameters of the SessionStore.RefundAttempt
+type SessionStoreMockRefundAttemptParamPtrs struct {
+	ctx        *context.Context
+	identifier *string
+}
+
+// SessionStoreMockRefundAttemptResults contains results of the SessionStore.RefundAttempt
+type SessionStoreMockRefundAttemptResults struct {
+	err error
+}
+
+// SessionStoreMockRefundAttemptOrigins contains origins of expectations of the SessionStore.RefundAttempt
+type SessionStoreMockRefundAttemptExpectationOrigins struct {
+	origin           string
+	originCtx        string
+	originIdentifier string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmRefundAttempt *mSessionStoreMockRefundAttempt) Optional() *mSessionStoreMockRefundAttempt {
+	mmRefundAttempt.optional = true
+	return mmRefundAttempt
+}
+
+// Expect sets up expected params for SessionStore.RefundAttempt
+func (mmRefundAttempt *mSessionStoreMockRefundAttempt) Expect(ctx context.Context, identifier string) *mSessionStoreMockRefundAttempt {
+	if mmRefundAttempt.mock.funcRefundAttempt != nil {
+		mmRefundAttempt.mock.t.Fatalf("SessionStoreMock.RefundAttempt mock is already set by Set")
+	}
+
+	if mmRefundAttempt.defaultExpectation == nil {
+		mmRefundAttempt.defaultExpectation = &SessionStoreMockRefundAttemptExpectation{}
+	}
+
+	if mmRefundAttempt.defaultExpectation.paramPtrs != nil {
+		mmRefundAttempt.mock.t.Fatalf("SessionStoreMock.RefundAttempt mock is already set by ExpectParams functions")
+	}
+
+	mmRefundAttempt.defaultExpectation.params = &SessionStoreMockRefundAttemptParams{ctx, identifier}
+	mmRefundAttempt.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmRefundAttempt.expectations {
+		if minimock.Equal(e.params, mmRefundAttempt.defaultExpectation.params) {
+			mmRefundAttempt.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmRefundAttempt.defaultExpectation.params)
+		}
+	}
+
+	return mmRefundAttempt
+}
+
+// ExpectCtxParam1 sets up expected param ctx for SessionStore.RefundAttempt
+func (mmRefundAttempt *mSessionStoreMockRefundAttempt) ExpectCtxParam1(ctx context.Context) *mSessionStoreMockRefundAttempt {
+	if mmRefundAttempt.mock.funcRefundAttempt != nil {
+		mmRefundAttempt.mock.t.Fatalf("SessionStoreMock.RefundAttempt mock is already set by Set")
+	}
+
+	if mmRefundAttempt.defaultExpectation == nil {
+		mmRefundAttempt.defaultExpectation = &SessionStoreMockRefundAttemptExpectation{}
+	}
+
+	if mmRefundAttempt.defaultExpectation.params != nil {
+		mmRefundAttempt.mock.t.Fatalf("SessionStoreMock.RefundAttempt mock is already set by Expect")
+	}
+
+	if mmRefundAttempt.defaultExpectation.paramPtrs == nil {
+		mmRefundAttempt.defaultExpectation.paramPtrs = &SessionStoreMockRefundAttemptParamPtrs{}
+	}
+	mmRefundAttempt.defaultExpectation.paramPtrs.ctx = &ctx
+	mmRefundAttempt.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmRefundAttempt
+}
+
+// ExpectIdentifierParam2 sets up expected param identifier for SessionStore.RefundAttempt
+func (mmRefundAttempt *mSessionStoreMockRefundAttempt) ExpectIdentifierParam2(identifier string) *mSessionStoreMockRefundAttempt {
+	if mmRefundAttempt.mock.funcRefundAttempt != nil {
+		mmRefundAttempt.mock.t.Fatalf("SessionStoreMock.RefundAttempt mock is already set by Set")
+	}
+
+	if mmRefundAttempt.defaultExpectation == nil {
+		mmRefundAttempt.defaultExpectation = &SessionStoreMockRefundAttemptExpectation{}
+	}
+
+	if mmRefundAttempt.defaultExpectation.params != nil {
+		mmRefundAttempt.mock.t.Fatalf("SessionStoreMock.RefundAttempt mock is already set by Expect")
+	}
+
+	if mmRefundAttempt.defaultExpectation.paramPtrs == nil {
+		mmRefundAttempt.defaultExpectation.paramPtrs = &SessionStoreMockRefundAttemptParamPtrs{}
+	}
+	mmRefundAttempt.defaultExpectation.paramPtrs.identifier = &identifier
+	mmRefundAttempt.defaultExpectation.expectationOrigins.originIdentifier = minimock.CallerInfo(1)
+
+	return mmRefundAttempt
+}
+
+// Inspect accepts an inspector function that has same arguments as the SessionStore.RefundAttempt
+func (mmRefundAttempt *mSessionStoreMockRefundAttempt) Inspect(f func(ctx context.Context, identifier string)) *mSessionStoreMockRefundAttempt {
+	if mmRefundAttempt.mock.inspectFuncRefundAttempt != nil {
+		mmRefundAttempt.mock.t.Fatalf("Inspect function is already set for SessionStoreMock.RefundAttempt")
+	}
+
+	mmRefundAttempt.mock.inspectFuncRefundAttempt = f
+
+	return mmRefundAttempt
+}
+
+// Return sets up results that will be returned by SessionStore.RefundAttempt
+func (mmRefundAttempt *mSessionStoreMockRefundAttempt) Return(err error) *SessionStoreMock {
+	if mmRefundAttempt.mock.funcRefundAttempt != nil {
+		mmRefundAttempt.mock.t.Fatalf("SessionStoreMock.RefundAttempt mock is already set by Set")
+	}
+
+	if mmRefundAttempt.defaultExpectation == nil {
+		mmRefundAttempt.defaultExpectation = &SessionStoreMockRefundAttemptExpectation{mock: mmRefundAttempt.mock}
+	}
+	mmRefundAttempt.defaultExpectation.results = &SessionStoreMockRefundAttemptResults{err}
+	mmRefundAttempt.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmRefundAttempt.mock
+}
+
+// Set uses given function f to mock the SessionStore.RefundAttempt method
+func (mmRefundAttempt *mSessionStoreMockRefundAttempt) Set(f func(ctx context.Context, identifier string) (err error)) *SessionStoreMock {
+	if mmRefundAttempt.defaultExpectation != nil {
+		mmRefundAttempt.mock.t.Fatalf("Default expectation is already set for the SessionStore.RefundAttempt method")
+	}
+
+	if len(mmRefundAttempt.expectations) > 0 {
+		mmRefundAttempt.mock.t.Fatalf("Some expectations are already set for the SessionStore.RefundAttempt method")
+	}
+
+	mmRefundAttempt.mock.funcRefundAttempt = f
+	mmRefundAttempt.mock.funcRefundAttemptOrigin = minimock.CallerInfo(1)
+	return mmRefundAttempt.mock
+}
+
+// When sets expectation for the SessionStore.RefundAttempt which will trigger the result defined by the following
+// Then helper
+func (mmRefundAttempt *mSessionStoreMockRefundAttempt) When(ctx context.Context, identifier string) *SessionStoreMockRefundAttemptExpectation {
+	if mmRefundAttempt.mock.funcRefundAttempt != nil {
+		mmRefundAttempt.mock.t.Fatalf("SessionStoreMock.RefundAttempt mock is already set by Set")
+	}
+
+	expectation := &SessionStoreMockRefundAttemptExpectation{
+		mock:               mmRefundAttempt.mock,
+		params:             &SessionStoreMockRefundAttemptParams{ctx, identifier},
+		expectationOrigins: SessionStoreMockRefundAttemptExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmRefundAttempt.expectations = append(mmRefundAttempt.expectations, expectation)
+	return expectation
+}
+
+// Then sets up SessionStore.RefundAttempt return parameters for the expectation previously defined by the When method
+func (e *SessionStoreMockRefundAttemptExpectation) Then(err error) *SessionStoreMock {
+	e.results = &SessionStoreMockRefundAttemptResults{err}
+	return e.mock
+}
+
+// Times sets number of times SessionStore.RefundAttempt should be invoked
+func (mmRefundAttempt *mSessionStoreMockRefundAttempt) Times(n uint64) *mSessionStoreMockRefundAttempt {
+	if n == 0 {
+		mmRefundAttempt.mock.t.Fatalf("Times of SessionStoreMock.RefundAttempt mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmRefundAttempt.expectedInvocations, n)
+	mmRefundAttempt.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmRefundAttempt
+}
+
+func (mmRefundAttempt *mSessionStoreMockRefundAttempt) invocationsDone() bool {
+	if len(mmRefundAttempt.expectations) == 0 && mmRefundAttempt.defaultExpectation == nil && mmRefundAttempt.mock.funcRefundAttempt == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmRefundAttempt.mock.afterRefundAttemptCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmRefundAttempt.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// RefundAttempt implements mm_auth.SessionStore
+func (mmRefundAttempt *SessionStoreMock) RefundAttempt(ctx context.Context, identifier string) (err error) {
+	mm_atomic.AddUint64(&mmRefundAttempt.beforeRefundAttemptCounter, 1)
+	defer mm_atomic.AddUint64(&mmRefundAttempt.afterRefundAttemptCounter, 1)
+
+	mmRefundAttempt.t.Helper()
+
+	if mmRefundAttempt.inspectFuncRefundAttempt != nil {
+		mmRefundAttempt.inspectFuncRefundAttempt(ctx, identifier)
+	}
+
+	mm_params := SessionStoreMockRefundAttemptParams{ctx, identifier}
+
+	// Record call args
+	mmRefundAttempt.RefundAttemptMock.mutex.Lock()
+	mmRefundAttempt.RefundAttemptMock.callArgs = append(mmRefundAttempt.RefundAttemptMock.callArgs, &mm_params)
+	mmRefundAttempt.RefundAttemptMock.mutex.Unlock()
+
+	for _, e := range mmRefundAttempt.RefundAttemptMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmRefundAttempt.RefundAttemptMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmRefundAttempt.RefundAttemptMock.defaultExpectation.Counter, 1)
+		mm_want := mmRefundAttempt.RefundAttemptMock.defaultExpectation.params
+		mm_want_ptrs := mmRefundAttempt.RefundAttemptMock.defaultExpectation.paramPtrs
+
+		mm_got := SessionStoreMockRefundAttemptParams{ctx, identifier}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmRefundAttempt.t.Errorf("SessionStoreMock.RefundAttempt got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmRefundAttempt.RefundAttemptMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.identifier != nil && !minimock.Equal(*mm_want_ptrs.identifier, mm_got.identifier) {
+				mmRefundAttempt.t.Errorf("SessionStoreMock.RefundAttempt got unexpected parameter identifier, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmRefundAttempt.RefundAttemptMock.defaultExpectation.expectationOrigins.originIdentifier, *mm_want_ptrs.identifier, mm_got.identifier, minimock.Diff(*mm_want_ptrs.identifier, mm_got.identifier))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmRefundAttempt.t.Errorf("SessionStoreMock.RefundAttempt got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmRefundAttempt.RefundAttemptMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmRefundAttempt.RefundAttemptMock.defaultExpectation.results
+		if mm_results == nil {
+			mmRefundAttempt.t.Fatal("No results are set for the SessionStoreMock.RefundAttempt")
+		}
+		return (*mm_results).err
+	}
+	if mmRefundAttempt.funcRefundAttempt != nil {
+		return mmRefundAttempt.funcRefundAttempt(ctx, identifier)
+	}
+	mmRefundAttempt.t.Fatalf("Unexpected call to SessionStoreMock.RefundAttempt. %v %v", ctx, identifier)
+	return
+}
+
+// RefundAttemptAfterCounter returns a count of finished SessionStoreMock.RefundAttempt invocations
+func (mmRefundAttempt *SessionStoreMock) RefundAttemptAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmRefundAttempt.afterRefundAttemptCounter)
+}
+
+// RefundAttemptBeforeCounter returns a count of SessionStoreMock.RefundAttempt invocations
+func (mmRefundAttempt *SessionStoreMock) RefundAttemptBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmRefundAttempt.beforeRefundAttemptCounter)
+}
+
+// Calls returns a list of arguments used in each call to SessionStoreMock.RefundAttempt.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmRefundAttempt *mSessionStoreMockRefundAttempt) Calls() []*SessionStoreMockRefundAttemptParams {
+	mmRefundAttempt.mutex.RLock()
+
+	argCopy := make([]*SessionStoreMockRefundAttemptParams, len(mmRefundAttempt.callArgs))
+	copy(argCopy, mmRefundAttempt.callArgs)
+
+	mmRefundAttempt.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockRefundAttemptDone returns true if the count of the RefundAttempt invocations corresponds
+// the number of defined expectations
+func (m *SessionStoreMock) MinimockRefundAttemptDone() bool {
+	if m.RefundAttemptMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.RefundAttemptMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.RefundAttemptMock.invocationsDone()
+}
+
+// MinimockRefundAttemptInspect logs each unmet expectation
+func (m *SessionStoreMock) MinimockRefundAttemptInspect() {
+	for _, e := range m.RefundAttemptMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to SessionStoreMock.RefundAttempt at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterRefundAttemptCounter := mm_atomic.LoadUint64(&m.afterRefundAttemptCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.RefundAttemptMock.defaultExpectation != nil && afterRefundAttemptCounter < 1 {
+		if m.RefundAttemptMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to SessionStoreMock.RefundAttempt at\n%s", m.RefundAttemptMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to SessionStoreMock.RefundAttempt at\n%s with params: %#v", m.RefundAttemptMock.defaultExpectation.expectationOrigins.origin, *m.RefundAttemptMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcRefundAttempt != nil && afterRefundAttemptCounter < 1 {
+		m.t.Errorf("Expected call to SessionStoreMock.RefundAttempt at\n%s", m.funcRefundAttemptOrigin)
+	}
+
+	if !m.RefundAttemptMock.invocationsDone() && afterRefundAttemptCounter > 0 {
+		m.t.Errorf("Expected %d calls to SessionStoreMock.RefundAttempt at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.RefundAttemptMock.expectedInvocations), m.RefundAttemptMock.expectedInvocationsOrigin, afterRefundAttemptCounter)
+	}
+}
+
 type mSessionStoreMockTakeAttempt struct {
 	optional           bool
 	mock               *SessionStoreMock
@@ -2516,6 +2868,8 @@ func (m *SessionStoreMock) MinimockFinish() {
 
 			m.MinimockPutPendingInspect()
 
+			m.MinimockRefundAttemptInspect()
+
 			m.MinimockTakeAttemptInspect()
 
 			m.MinimockTakePendingInspect()
@@ -2547,6 +2901,7 @@ func (m *SessionStoreMock) minimockDone() bool {
 		m.MinimockDeleteDone() &&
 		m.MinimockGetDone() &&
 		m.MinimockPutPendingDone() &&
+		m.MinimockRefundAttemptDone() &&
 		m.MinimockTakeAttemptDone() &&
 		m.MinimockTakePendingDone()
 }

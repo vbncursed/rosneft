@@ -30,3 +30,22 @@ func Take(ctx context.Context, rdb redis.Scripter, key string, window time.Durat
 	}
 	return n, nil
 }
+
+// Refund gives back one attempt that was reserved but was not a guess (the
+// request failed for a reason other than a wrong credential). It never goes
+// below zero and never recreates an expired key: a counter that already left
+// its window has nothing to give back, and a bare DECR would mint a key
+// without a TTL.
+var refund = redis.NewScript(`
+if redis.call('EXISTS', KEYS[1]) == 0 then return 0 end
+local n = redis.call('DECR', KEYS[1])
+if n <= 0 then redis.call('DEL', KEYS[1]) end
+return n`)
+
+// Refund undoes one Take on key.
+func Refund(ctx context.Context, rdb redis.Scripter, key string) error {
+	if err := refund.Run(ctx, rdb, []string{key}).Err(); err != nil {
+		return fmt.Errorf("failcount.Refund: %w", err)
+	}
+	return nil
+}

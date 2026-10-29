@@ -36,6 +36,12 @@ func (s *Store) TakeAttempt(ctx context.Context, userID string) (bool, error) {
 	return n <= int64(s.maxFails), nil
 }
 
+// Refund gives back an attempt TakeAttempt reserved for a request that failed
+// without the code being wrong (it was not a guess).
+func (s *Store) Refund(ctx context.Context, userID string) error {
+	return failcount.Refund(ctx, s.rdb, failKey(userID))
+}
+
 // Clear resets the counter after a successful verify.
 func (s *Store) Clear(ctx context.Context, userID string) error {
 	if err := s.rdb.Del(ctx, failKey(userID)).Err(); err != nil {

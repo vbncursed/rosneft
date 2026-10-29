@@ -242,3 +242,96 @@ func (s *TwoFASuite) TestDisableRightCodeClearsFails() {
 
 	assert.NilError(s.T(), s.svc.Disable(s.ctx, "u1", code))
 }
+
+// A failure that is not a wrong code (store, cipher, recovery list or consume,
+// 2FA not enabled) is not a guess: Verify gives the attempt back. A wrong code
+// stays counted: TestVerifyWrongCodeRegistersFail sets no Refund expectation.
+func (s *TwoFASuite) TestVerifyRefundsTheAttemptOnOurOwnFailures() {
+	secret, _ := s.enrolled()
+	plain, hashes, err := totp.GenerateRecovery(1)
+	assert.NilError(s.T(), err)
+	boom := errors.New("db down")
+	on := domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}
+	tests := []struct {
+		name  string
+		code  string
+		setup func(st *mocks.StoreMock, rec *mocks.RecoveryMock, ciph *mocks.CipherMock)
+		want  error
+	}{
+		{"store fails", "000000", func(st *mocks.StoreMock, _ *mocks.RecoveryMock, _ *mocks.CipherMock) {
+			st.GetMock.Return(domain.Credential{}, boom)
+		}, boom},
+		{"2fa not enabled", "000000", func(st *mocks.StoreMock, _ *mocks.RecoveryMock, _ *mocks.CipherMock) {
+			st.GetMock.Return(domain.Credential{UserID: "u1"}, nil)
+		}, domain.ErrTwoFANotEnabled},
+		{"decrypt fails", "000000", func(st *mocks.StoreMock, _ *mocks.RecoveryMock, ciph *mocks.CipherMock) {
+			st.GetMock.Return(on, nil)
+			ciph.DecryptMock.Return(nil, boom)
+		}, boom},
+		{"recovery list fails", "000000", func(st *mocks.StoreMock, rec *mocks.RecoveryMock, ciph *mocks.CipherMock) {
+			st.GetMock.Return(on, nil)
+			ciph.DecryptMock.Return([]byte(secret), nil)
+			rec.ListMock.Return(nil, nil, boom)
+		}, boom},
+		{
+			"recovery consume fails",
+			plain[0],
+			func(st *mocks.StoreMock, rec *mocks.RecoveryMock, ciph *mocks.CipherMock) {
+				st.GetMock.Return(on, nil)
+				ciph.DecryptMock.Return([]byte(secret), nil)
+				rec.ListMock.Return([]string{"id0"}, hashes, nil)
+				rec.ConsumeMock.Return(false, boom)
+			},
+			boom,
+		},
+	}
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			mc := minimock.NewController(s.T())
+			st, rec, ciph, lim := mocks.NewStoreMock(mc), mocks.NewRecoveryMock(mc), mocks.NewCipherMock(mc),
+				mocks.NewRateLimiterMock(mc)
+			lim.TakeAttemptMock.Return(true, nil)
+			lim.RefundMock.Expect(s.ctx, "u1").Return(nil)
+			tt.setup(st, rec, ciph)
+
+			_, err := twofa.New(st, rec, ciph, lim, "Andrey").Verify(s.ctx, "u1", tt.code)
+
+			assert.ErrorIs(s.T(), err, tt.want)
+		})
+	}
+}
+
+// Disable and Regenerate share the limiter: their non-guess failures give the
+// attempt back too, a wrong code (TestDisableWrongCodeRegistersFail) does not.
+func (s *TwoFASuite) TestConfirmTOTPRefundsTheAttemptOnOurOwnFailures() {
+	boom := errors.New("db down")
+	tests := []struct {
+		name  string
+		setup func(st *mocks.StoreMock, ciph *mocks.CipherMock)
+		want  error
+	}{
+		{"store fails", func(st *mocks.StoreMock, _ *mocks.CipherMock) {
+			st.GetMock.Return(domain.Credential{}, boom)
+		}, boom},
+		{"2fa not enabled", func(st *mocks.StoreMock, _ *mocks.CipherMock) {
+			st.GetMock.Return(domain.Credential{UserID: "u1"}, nil)
+		}, domain.ErrTwoFANotEnabled},
+		{"decrypt fails", func(st *mocks.StoreMock, ciph *mocks.CipherMock) {
+			st.GetMock.Return(domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}, nil)
+			ciph.DecryptMock.Return(nil, boom)
+		}, boom},
+	}
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			mc := minimock.NewController(s.T())
+			st, ciph, lim := mocks.NewStoreMock(mc), mocks.NewCipherMock(mc), mocks.NewRateLimiterMock(mc)
+			lim.TakeAttemptMock.Return(true, nil)
+			lim.RefundMock.Expect(s.ctx, "u1").Return(nil)
+			tt.setup(st, ciph)
+
+			err := twofa.New(st, mocks.NewRecoveryMock(mc), ciph, lim, "Andrey").Disable(s.ctx, "u1", "000000")
+
+			assert.ErrorIs(s.T(), err, tt.want)
+		})
+	}
+}

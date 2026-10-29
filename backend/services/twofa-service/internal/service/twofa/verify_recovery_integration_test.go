@@ -49,7 +49,12 @@ func TestVerifyRecoveryCodeIsSingleUseUnderConcurrency(t *testing.T) {
 	secret, _, err := totp.Generate("Andrey", "ivan")
 	assert.NilError(t, err)
 	mc := minimock.NewController(t)
-	st := mocks.NewStoreMock(mc).GetMock.Return(domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}, nil)
+	st := mocks.NewStoreMock(
+		mc,
+	).GetMock.Return(
+		domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true},
+		nil,
+	)
 	ciph := mocks.NewCipherMock(mc).DecryptMock.Return([]byte(secret), nil)
 	lim := mocks.NewRateLimiterMock(mc)
 	lim.TakeAttemptMock.Return(true, nil)

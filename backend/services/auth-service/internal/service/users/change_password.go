@@ -2,6 +2,7 @@ package users
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -37,6 +38,17 @@ func (s *Service) ChangePassword(ctx context.Context, userID, keepToken, oldPlai
 	if !allowed {
 		return domain.ErrLoginThrottled
 	}
+	err = s.change(ctx, userID, keepToken, oldPlain, newPlain)
+	// Only a wrong old password is a guess; a lookup, hash or store failure is
+	// ours and must not burn the user's budget.
+	if err != nil && !errors.Is(err, domain.ErrInvalidCredential) {
+		_ = s.sessions.RefundChangePasswordAttempt(ctx, userID)
+	}
+	return err
+}
+
+// change is ChangePassword after its attempt has been reserved.
+func (s *Service) change(ctx context.Context, userID, keepToken, oldPlain, newPlain string) error {
 	u, err := s.store.GetByID(ctx, userID)
 	if err != nil {
 		return err

@@ -29,6 +29,9 @@ type SessionStore interface {
 	TakePending(ctx context.Context, challenge string) (string, error)
 	// TakeAttempt reserves one login attempt; false means the budget is spent.
 	TakeAttempt(ctx context.Context, identifier string) (bool, error)
+	// RefundAttempt gives back an attempt that was not a guess (the request
+	// failed for a reason other than a wrong password).
+	RefundAttempt(ctx context.Context, identifier string) error
 	ClearFails(ctx context.Context, identifier string) error
 }
 

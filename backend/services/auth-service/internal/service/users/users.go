@@ -49,6 +49,8 @@ type Sessions interface {
 	SetPasswordEpoch(ctx context.Context, token string, epoch int64) error
 	// TakeChangePasswordAttempt reserves one attempt; false means the budget is spent.
 	TakeChangePasswordAttempt(ctx context.Context, userID string) (bool, error)
+	// RefundChangePasswordAttempt gives back an attempt that was not a guess.
+	RefundChangePasswordAttempt(ctx context.Context, userID string) error
 	ClearChangePasswordFails(ctx context.Context, userID string) error
 }
 
