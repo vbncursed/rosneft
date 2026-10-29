@@ -90,7 +90,7 @@ func (s *UsersSuite) TestUpdateRejectsDroppingTheLastAdminRole() {
 func (s *UsersSuite) TestUpdateAllowsDroppingAnAdminRoleWhenAnotherAdminRemains() {
 	s.st.GetByIDMock.Expect(s.ctx, "admin1").Return(domain.User{ID: "admin1", RoleSlugs: []string{"admin"}}, nil)
 	s.st.CountAdminsMock.Expect(s.ctx, "admin1").Return(1, nil)
-	s.st.SetRolesMock.Expect(s.ctx, "admin1", nil).Return(domain.User{ID: "admin1"}, nil)
+	s.st.SetRolesMock.Expect(s.ctx, "admin1", "admin1", nil).Return(domain.User{ID: "admin1"}, nil)
 
 	_, err := s.svc.Update(s.ctx, "admin1", false, "admin1", nil, "", "")
 

@@ -1,6 +1,7 @@
 package users
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -27,7 +28,7 @@ func (s *Store) Create(ctx context.Context, u domain.User) (domain.User, error) 
 			Scan(&id); err != nil {
 			return createError(err)
 		}
-		return bindRoles(ctx, tx, id, u.RoleSlugs)
+		return bindRoles(ctx, tx, deref(u.CreatedBy), id, u.RoleSlugs)
 	})
 	if err != nil {
 		return domain.User{}, err
@@ -46,14 +47,16 @@ func createError(err error) error {
 }
 
 // bindRoles resolves role slugs to ids and inserts user_roles rows. A slug the
-// user's tenant cannot see (a custom role of another company) or that does not
-// exist → ErrRoleNotFound (fails closed). The tenant is the user's owning admin,
-// as for roles.List; Root (empty owning admin) sees every role.
-func bindRoles(ctx context.Context, tx pgx.Tx, userID string, slugs []string) error {
+// acting tenant cannot see (a custom role of another company) or that does not
+// exist → ErrRoleNotFound (fails closed). The boundary is who ACTS, as in
+// roles.List: the actor's owning admin sees global roles plus its own, and Root
+// (empty owning admin) sees every role, whoever the target user is. Without an
+// actor (none recorded) the target's own tenant is used.
+func bindRoles(ctx context.Context, tx pgx.Tx, actorID, userID string, slugs []string) error {
 	if len(slugs) == 0 {
 		return nil
 	}
-	tenant, err := resolveOwningAdmin(ctx, tx, userID)
+	tenant, err := resolveOwningAdmin(ctx, tx, cmp.Or(actorID, userID))
 	if err != nil {
 		return err
 	}
@@ -74,4 +77,11 @@ func bindRoles(ctx context.Context, tx pgx.Tx, userID string, slugs []string) er
 		}
 	}
 	return nil
+}
+
+func deref(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

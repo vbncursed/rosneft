@@ -31,5 +31,5 @@ func (s *Service) Update(
 			return domain.User{}, err
 		}
 	}
-	return s.store.SetRoles(ctx, id, roleSlugs)
+	return s.store.SetRoles(ctx, actorID, id, roleSlugs)
 }

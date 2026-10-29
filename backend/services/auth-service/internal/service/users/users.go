@@ -22,7 +22,7 @@ type Store interface {
 		ownerID, hidePrivilegedExcept string,
 	) ([]domain.User, error)
 	SetStatus(ctx context.Context, id, status string, deletedAt *time.Time) (domain.User, error)
-	SetRoles(ctx context.Context, id string, roleSlugs []string) (domain.User, error)
+	SetRoles(ctx context.Context, actorID, id string, roleSlugs []string) (domain.User, error)
 	SetOwner(ctx context.Context, id string, isOwner bool) (domain.User, error)
 	SetTOTPRequired(ctx context.Context, id string, required bool) (domain.User, error)
 	PermissionsForRoles(ctx context.Context, roleSlugs []string) ([]string, error)

@@ -43,7 +43,7 @@ func (s *UsersSuite) TestCreateRefusesAdminRoleFromNonRoot() {
 func (s *UsersSuite) TestUpdateOwnerAssignsAdmin() {
 	s.st.GetByIDMock.When(s.ctx, "u2").Then(domain.User{ID: "u2"}, nil)
 	s.st.GetByIDMock.When(s.ctx, "owner").Then(domain.User{ID: "owner", IsOwner: true}, nil)
-	s.st.SetRolesMock.Expect(s.ctx, "u2", []string{"admin"}).
+	s.st.SetRolesMock.Expect(s.ctx, "owner", "u2", []string{"admin"}).
 		Return(domain.User{ID: "u2", RoleSlugs: []string{"admin"}}, nil)
 
 	out, err := s.svc.Update(s.ctx, "owner", true, "u2", []string{"admin"}, "", "")
@@ -55,7 +55,7 @@ func (s *UsersSuite) TestUpdateOwnerAssignsAdmin() {
 // nil, which the old guard wrongly treated as "no change".
 func (s *UsersSuite) TestUpdateClearsAllRoles() {
 	s.st.GetByIDMock.When(s.ctx, "u2").Then(domain.User{ID: "u2", RoleSlugs: []string{"editor"}}, nil)
-	s.st.SetRolesMock.Expect(s.ctx, "u2", nil).Return(domain.User{ID: "u2"}, nil)
+	s.st.SetRolesMock.Expect(s.ctx, "owner", "u2", nil).Return(domain.User{ID: "u2"}, nil)
 
 	out, err := s.svc.Update(s.ctx, "owner", true, "u2", nil, "", "")
 	assert.NilError(s.T(), err)
