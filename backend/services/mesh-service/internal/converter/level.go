@@ -71,6 +71,25 @@ func planeNormal(positions []vertex) (n [3]float64, flatness float64, ok bool) {
 	if len(positions) < 3 {
 		return n, 0, false
 	}
+	vals, vecs := eigenSym3(covariance(positions))
+	order := []int{0, 1, 2}
+	slices.SortFunc(order, func(i, j int) int { return cmp.Compare(vals[i], vals[j]) })
+	lo, mid, hi := vals[order[0]], vals[order[1]], vals[order[2]]
+	if hi <= 0 || mid <= 1e-12*hi {
+		return n, 0, false
+	}
+	for i := range 3 {
+		n[i] = vecs[i][order[0]]
+	}
+	if n[1] < 0 {
+		n = [3]float64{-n[0], -n[1], -n[2]}
+	}
+	return n, math.Sqrt(max(lo, 0) / mid), true
+}
+
+// covariance is the symmetric 3×3 covariance sum (not normalised) of the
+// positions about their mean.
+func covariance(positions []vertex) [3][3]float64 {
 	var mean [3]float64
 	for _, p := range positions {
 		for i := range 3 {
@@ -94,20 +113,7 @@ func planeNormal(positions []vertex) (n [3]float64, flatness float64, ok bool) {
 			cov[i][j] = cov[j][i]
 		}
 	}
-	vals, vecs := eigenSym3(cov)
-	order := []int{0, 1, 2}
-	slices.SortFunc(order, func(i, j int) int { return cmp.Compare(vals[i], vals[j]) })
-	lo, mid, hi := vals[order[0]], vals[order[1]], vals[order[2]]
-	if hi <= 0 || mid <= 1e-12*hi {
-		return n, 0, false
-	}
-	for i := range 3 {
-		n[i] = vecs[i][order[0]]
-	}
-	if n[1] < 0 {
-		n = [3]float64{-n[0], -n[1], -n[2]}
-	}
-	return n, math.Sqrt(max(lo, 0) / mid), true
+	return cov
 }
 
 // eigenSym3 diagonalises a symmetric 3×3 matrix with cyclic Jacobi rotations;
