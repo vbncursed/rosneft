@@ -2,6 +2,7 @@ package blobstore
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -115,4 +116,15 @@ func TestWriteAtomicRemovesTheTempFileOnPanic(t *testing.T) {
 	assert.Equal(t, len(left), 0, "temp file leaked: %v", left)
 	_, err = os.Stat(final)
 	assert.Assert(t, os.IsNotExist(err))
+}
+
+func TestStatNamesABadHashAsInvalid(t *testing.T) {
+	fs, err := NewFS(t.TempDir())
+	assert.NilError(t, err)
+	for _, hash := range []string{"", "a", "../../etc/passwd", "zz11"} {
+		_, err := fs.Stat(t.Context(), hash)
+		assert.Assert(t, errors.Is(err, ErrInvalidHash), "%q: %v", hash, err)
+	}
+	_, err = fs.Stat(t.Context(), "abcdef")
+	assert.Assert(t, errors.Is(err, ErrNotFound), "a well-formed absent hash is not found: %v", err)
 }

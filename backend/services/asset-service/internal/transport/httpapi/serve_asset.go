@@ -18,13 +18,16 @@ func (h *Handler) serveAsset(w http.ResponseWriter, r *http.Request) {
 
 	blob, err := h.svc.Stat(r.Context(), hash)
 	if err != nil {
-		if errors.Is(err, blobstore.ErrNotFound) {
+		switch {
+		case errors.Is(err, blobstore.ErrNotFound):
 			http.NotFound(w, r)
-			return
+		case errors.Is(err, blobstore.ErrInvalidHash):
+			http.Error(w, "bad request", http.StatusBadRequest)
+		default:
+			// Disk or metadata failure: ours, not the caller's. Generic body, detail on the log line.
+			h.logger.ErrorContext(r.Context(), "asset: stat failed", "hash", hash, "err", err)
+			http.Error(w, "internal error", http.StatusInternalServerError)
 		}
-		// blobstore validates hash format — non-hex, traversal etc. are 400s.
-		h.logger.WarnContext(r.Context(), "asset: stat failed", "hash", hash, "err", err)
-		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
 

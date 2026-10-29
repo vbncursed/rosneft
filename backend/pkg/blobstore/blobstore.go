@@ -14,6 +14,10 @@ import (
 // ErrNotFound is returned when the blob does not exist.
 var ErrNotFound = errors.New("blobstore: blob not found")
 
+// ErrInvalidHash is returned when a hash is not usable as a blob key (too short
+// or not hex). It is the caller's mistake, unlike a disk or metadata failure.
+var ErrInvalidHash = errors.New("blobstore: invalid hash")
+
 // Blob carries metadata about a stored binary artifact.
 type Blob struct {
 	Hash        string `json:"hash"`         // content hash (caller-provided, hex), used as cache key
