@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/qmuntal/gltf"
+
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/glbexport"
 )
 
@@ -97,18 +99,9 @@ func (b *builder) placement(p glbexport.Placement) (object, error) {
 // A node reached twice, a tree deeper than maxDepth, a camera or a skin are
 // refused, as in glbexport.
 func (b *builder) walk(in *input, i int, parent mat4, seen map[int]bool, depth int, obj *object) error {
-	switch {
-	case i < 0 || i >= len(in.doc.Nodes):
-		return malformed("node %d out of range [0, %d)", i, len(in.doc.Nodes))
-	case depth > maxDepth:
-		return malformed("node tree deeper than %d", maxDepth)
-	case seen[i]:
-		return malformed("node %d reached twice", i)
-	}
-	seen[i] = true
-	n := in.doc.Nodes[i]
-	if n.Camera != nil || n.Skin != nil {
-		return unsupported("node %d uses a camera or skin", i)
+	n, err := claimNode(in.doc, i, seen, depth)
+	if err != nil {
+		return err
 	}
 	world := parent.mul(nodeLocal(n))
 	if n.Mesh != nil {
@@ -122,6 +115,26 @@ func (b *builder) walk(in *input, i int, parent mat4, seen map[int]bool, depth i
 		}
 	}
 	return nil
+}
+
+// claimNode marks node i visited and returns it. It refuses an index that
+// does not exist, a tree deeper than maxDepth, a node visited before, and a
+// camera or skin, in that order.
+func claimNode(doc *gltf.Document, i int, seen map[int]bool, depth int) (*gltf.Node, error) {
+	switch {
+	case i < 0 || i >= len(doc.Nodes):
+		return nil, malformed("node %d out of range [0, %d)", i, len(doc.Nodes))
+	case depth > maxDepth:
+		return nil, malformed("node tree deeper than %d", maxDepth)
+	case seen[i]:
+		return nil, malformed("node %d reached twice", i)
+	}
+	seen[i] = true
+	n := doc.Nodes[i]
+	if n.Camera != nil || n.Skin != nil {
+		return nil, unsupported("node %d uses a camera or skin", i)
+	}
+	return n, nil
 }
 
 // addInstance records a mesh-node and counts it against the ceilings.

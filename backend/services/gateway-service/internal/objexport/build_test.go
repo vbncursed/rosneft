@@ -182,3 +182,117 @@ func (s *BuildSuite) TestCeilings() {
 		})
 	}
 }
+
+// chain replaces the nodes with a single path n nodes deep, rooted at node 0.
+func chain(n int) func(d *gltf.Document) {
+	return func(d *gltf.Document) {
+		d.Nodes = make([]*gltf.Node, n)
+		for i := range d.Nodes {
+			d.Nodes[i] = &gltf.Node{}
+			if i+1 < n {
+				d.Nodes[i].Children = []int{i + 1}
+			}
+		}
+	}
+}
+
+// Every refusal walk makes, with its exact text. The cases that fail on two
+// counts pin the order: range, depth, reached twice, camera or skin, mesh.
+func (s *BuildSuite) TestWalkRefusals() {
+	const camera = `objexport: unsupported glTF feature: node 0 uses a camera or skin`
+	cases := []struct {
+		name   string
+		mutate func(d *gltf.Document)
+		want   error
+		msg    string
+	}{
+		{
+			"scene root out of range",
+			func(d *gltf.Document) { d.Scenes[0].Nodes = []int{5} },
+			ErrMalformed,
+			"objexport: malformed glb: node 5 out of range [0, 1)",
+		},
+		{
+			"negative child",
+			func(d *gltf.Document) { d.Nodes[0].Children = []int{-1} },
+			ErrMalformed,
+			"objexport: malformed glb: node -1 out of range [0, 1)",
+		},
+		{
+			"child one past the end",
+			func(d *gltf.Document) { d.Nodes[0].Children = []int{1} },
+			ErrMalformed,
+			"objexport: malformed glb: node 1 out of range [0, 1)",
+		},
+		{
+			"cycle",
+			func(d *gltf.Document) { d.Nodes[0].Children = []int{0} },
+			ErrMalformed,
+			"objexport: malformed glb: node 0 reached twice",
+		},
+		{
+			"two parents",
+			func(d *gltf.Document) {
+				d.Nodes = append(d.Nodes, &gltf.Node{}, &gltf.Node{})
+				d.Nodes[0].Children = []int{1, 2}
+				d.Nodes[1].Children = []int{2}
+			},
+			ErrMalformed,
+			"objexport: malformed glb: node 2 reached twice",
+		},
+		{"camera", func(d *gltf.Document) { d.Nodes[0].Camera = new(0) }, ErrUnsupported, camera},
+		{"skin", func(d *gltf.Document) { d.Nodes[0].Skin = new(0) }, ErrUnsupported, camera},
+		{
+			"mesh out of range",
+			func(d *gltf.Document) { d.Nodes[0].Mesh = new(9) },
+			ErrMalformed,
+			"objexport: malformed glb: mesh 9 out of range [0, 1)",
+		},
+		{
+			"camera is refused before the mesh is looked at",
+			func(d *gltf.Document) { d.Nodes[0].Camera, d.Nodes[0].Mesh = new(0), new(9) },
+			ErrUnsupported,
+			camera,
+		},
+		{
+			"depth is refused before reached twice",
+			func(d *gltf.Document) { chain(maxDepth)(d); d.Nodes[maxDepth-1].Children = []int{0} },
+			ErrMalformed,
+			"objexport: malformed glb: node tree deeper than 256",
+		},
+		{
+			"depth is refused before camera",
+			func(d *gltf.Document) { chain(maxDepth + 1)(d); d.Nodes[maxDepth].Camera = new(0) },
+			ErrMalformed,
+			"objexport: malformed glb: node tree deeper than 256",
+		},
+	}
+	for _, tc := range cases {
+		s.Run(tc.name, func() {
+			doc, bin := validDoc()
+			tc.mutate(doc)
+
+			_, err := Build(
+				[]glbexport.Placement{place("x", "x")},
+				map[string]glbexport.Head{"x": loose(doc, int64(len(bin)))},
+				testOpts(),
+			)
+
+			assert.ErrorIs(s.T(), err, tc.want)
+			assert.ErrorContains(s.T(), err, tc.msg)
+		})
+	}
+}
+
+func (s *BuildSuite) TestDeepestTreePasses() {
+	doc, bin := validDoc()
+	chain(maxDepth)(doc)
+
+	_, err := Build(
+		[]glbexport.Placement{place("x", "x")},
+		map[string]glbexport.Head{"x": loose(doc, int64(len(bin)))},
+		testOpts(),
+	)
+
+	assert.NilError(s.T(), err)
+}
