@@ -23,24 +23,9 @@ func (c *Catalog) CreatePlacements(
 	territorySlug, key string,
 	items []domain.Placement,
 ) ([]domain.Placement, error) {
-	if len(items) == 0 || len(items) > maxPlacementBatch {
-		return nil, fmt.Errorf("service.CreatePlacements: %w: a batch holds 1 to %d placements, got %d",
-			domain.ErrInvalidInput, maxPlacementBatch, len(items))
-	}
-	prepared := make([]domain.Placement, len(items))
-	// A set: copies of one object share their allowlist, so a batch names the
-	// same panorama many times and the check needs each id once.
-	panoramaIDs := map[int64]struct{}{}
-	for i, p := range items {
-		p.TerritorySlug = territorySlug
-		ready, err := preparePlacement(p)
-		if err != nil {
-			return nil, fmt.Errorf("service.CreatePlacements: %w", domain.ItemError{Index: i, Err: err})
-		}
-		prepared[i] = ready
-		for _, id := range ready.VisiblePanoramaIDs {
-			panoramaIDs[id] = struct{}{}
-		}
+	prepared, panoramaIDs, err := prepareBatch(territorySlug, items)
+	if err != nil {
+		return nil, err
 	}
 	// A replay answers the batch as stored, before anything is checked against
 	// the territory as it is now — a panorama deleted since must not turn the
@@ -53,10 +38,35 @@ func (c *Catalog) CreatePlacements(
 		}
 	}
 	if len(panoramaIDs) > 0 {
-		ids := slices.Collect(maps.Keys(panoramaIDs))
-		if err := c.requirePanoramasOnTerritory(ctx, territorySlug, ids); err != nil {
+		if err := c.requirePanoramasOnTerritory(ctx, territorySlug, panoramaIDs); err != nil {
 			return nil, fmt.Errorf("service.CreatePlacements: %w", err)
 		}
 	}
 	return c.repo.CreatePlacements(ctx, key, prepared)
+}
+
+// prepareBatch checks the batch size, pins every item to territorySlug and
+// validates it, and returns the items with the distinct panorama ids their
+// allowlists name. The first bad item wins, reported by its position.
+func prepareBatch(territorySlug string, items []domain.Placement) ([]domain.Placement, []int64, error) {
+	if len(items) == 0 || len(items) > maxPlacementBatch {
+		return nil, nil, fmt.Errorf("service.CreatePlacements: %w: a batch holds 1 to %d placements, got %d",
+			domain.ErrInvalidInput, maxPlacementBatch, len(items))
+	}
+	prepared := make([]domain.Placement, len(items))
+	// A set: copies of one object share their allowlist, so a batch names the
+	// same panorama many times and the check needs each id once.
+	panoramaIDs := map[int64]struct{}{}
+	for i, p := range items {
+		p.TerritorySlug = territorySlug
+		ready, err := preparePlacement(p)
+		if err != nil {
+			return nil, nil, fmt.Errorf("service.CreatePlacements: %w", domain.ItemError{Index: i, Err: err})
+		}
+		prepared[i] = ready
+		for _, id := range ready.VisiblePanoramaIDs {
+			panoramaIDs[id] = struct{}{}
+		}
+	}
+	return prepared, slices.Collect(maps.Keys(panoramaIDs)), nil
 }
