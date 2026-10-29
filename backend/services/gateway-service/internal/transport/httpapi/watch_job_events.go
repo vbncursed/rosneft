@@ -95,40 +95,20 @@ func (s *Server) scopedJob(ctx context.Context, id string) (domain.Job, error) {
 	return job, nil
 }
 
+// jobFetcher matches Service.GetJob exactly.
+type jobFetcher func(ctx context.Context, id string) (domain.Job, error)
+
 // streamJob is split out so it can be tested with a fake fetcher without
-// running an HTTP server. The signature matches Service.GetJob exactly.
-func streamJob(
-	ctx context.Context,
-	w http.ResponseWriter,
-	flusher http.Flusher,
-	id string,
-	fetch func(ctx context.Context, id string) (domain.Job, error),
-) {
+// running an HTTP server.
+func streamJob(ctx context.Context, w http.ResponseWriter, flusher http.Flusher, id string, fetch jobFetcher) {
 	tick := time.NewTicker(jobEventInterval)
 	defer tick.Stop()
 	keepalive := time.NewTicker(jobEventKeepalive)
 	defer keepalive.Stop()
 
-	var last domain.Job
-	emit := func(job domain.Job) bool {
-		if !writeJobEvent(w, job) {
-			return false
-		}
-		flusher.Flush()
-		last = job
-		return job.Status == domain.JobStatusSucceeded || job.Status == domain.JobStatusFailed
-	}
-
+	st := &jobStream{w: w, flusher: flusher}
 	// Send the first snapshot immediately so the client doesn't wait a tick.
-	if job, err := fetch(ctx, id); err == nil {
-		if emit(job) {
-			return
-		}
-	} else if errors.Is(err, domain.ErrJobNotFound) {
-		if body, err := json.Marshal(apperr.Body{Code: apperr.SlugNotFound, Message: "job not found"}); err == nil {
-			writeNamedEvent(w, "error", string(body))
-			flusher.Flush()
-		}
+	if st.first(ctx, id, fetch) {
 		return
 	}
 
@@ -140,17 +120,70 @@ func streamJob(
 			_, _ = fmt.Fprint(w, ": keepalive\n\n")
 			flusher.Flush()
 		case <-tick.C:
-			job, err := fetch(ctx, id)
-			if err != nil {
-				continue
-			}
-			if !job.UpdatedAt.Equal(last.UpdatedAt) || job.Status != last.Status {
-				if emit(job) {
-					return
-				}
+			if st.poll(ctx, id, fetch) {
+				return
 			}
 		}
 	}
+}
+
+// jobStream is one open SSE response and the last job it sent.
+type jobStream struct {
+	w       http.ResponseWriter
+	flusher http.Flusher
+	last    domain.Job
+}
+
+// emit sends one job frame and reports whether the job is terminal. A failed
+// write is not reported: the stream ends with its context.
+func (st *jobStream) emit(job domain.Job) bool {
+	if !writeJobEvent(st.w, job) {
+		return false
+	}
+	st.flusher.Flush()
+	st.last = job
+	return isTerminalJob(job)
+}
+
+// first sends the opening snapshot, or the `error` frame for an unknown id.
+// Any other fetch error is not fatal: the ticks retry. True ends the stream.
+func (st *jobStream) first(ctx context.Context, id string, fetch jobFetcher) bool {
+	job, err := fetch(ctx, id)
+	switch {
+	case err == nil:
+		return st.emit(job)
+	case errors.Is(err, domain.ErrJobNotFound):
+		st.notFound()
+		return true
+	}
+	return false
+}
+
+func (st *jobStream) notFound() {
+	body, err := json.Marshal(apperr.Body{Code: apperr.SlugNotFound, Message: "job not found"})
+	if err != nil {
+		return
+	}
+	writeNamedEvent(st.w, "error", string(body))
+	st.flusher.Flush()
+}
+
+// poll re-fetches through the tenant gate and sends the job only if it
+// changed. True ends the stream.
+func (st *jobStream) poll(ctx context.Context, id string, fetch jobFetcher) bool {
+	job, err := fetch(ctx, id)
+	if err != nil || !jobChanged(st.last, job) {
+		return false
+	}
+	return st.emit(job)
+}
+
+func isTerminalJob(job domain.Job) bool {
+	return job.Status == domain.JobStatusSucceeded || job.Status == domain.JobStatusFailed
+}
+
+func jobChanged(last, job domain.Job) bool {
+	return !job.UpdatedAt.Equal(last.UpdatedAt) || job.Status != last.Status
 }
 
 // writeJobEvent emits a single SSE `event: job` frame whose data is the
