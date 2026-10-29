@@ -33,8 +33,8 @@ type Cipher interface {
 
 // RateLimiter throttles the login Verify step per user.
 type RateLimiter interface {
-	IsLocked(ctx context.Context, userID string) (bool, error)
-	RegisterFail(ctx context.Context, userID string) error
+	// TakeAttempt reserves one attempt; false means the budget is spent.
+	TakeAttempt(ctx context.Context, userID string) (bool, error)
 	Clear(ctx context.Context, userID string) error
 }
 

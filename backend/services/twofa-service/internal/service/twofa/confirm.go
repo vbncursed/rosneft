@@ -12,11 +12,11 @@ import (
 // Verify's per-user limiter, so a stolen cookie cannot guess codes here
 // without also burning the login budget.
 func (s *Service) confirmTOTP(ctx context.Context, userID, code string) error {
-	locked, err := s.limiter.IsLocked(ctx, userID)
+	allowed, err := s.limiter.TakeAttempt(ctx, userID)
 	if err != nil {
 		return err
 	}
-	if locked {
+	if !allowed {
 		return domain.ErrTwoFALocked
 	}
 	c, err := s.store.Get(ctx, userID)
@@ -31,7 +31,6 @@ func (s *Service) confirmTOTP(ctx context.Context, userID, code string) error {
 		return fmt.Errorf("twofa.confirmTOTP: decrypt: %w", err)
 	}
 	if !totp.Validate(string(secretPlain), code) {
-		_ = s.limiter.RegisterFail(ctx, userID)
 		return domain.ErrTwoFAInvalidCode
 	}
 	_ = s.limiter.Clear(ctx, userID)

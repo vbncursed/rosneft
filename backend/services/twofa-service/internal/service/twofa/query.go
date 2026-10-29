@@ -33,11 +33,11 @@ func (s *Service) EnabledFor(ctx context.Context, userIDs []string) ([]string, e
 // Verify checks a TOTP or one-time recovery code for a user with 2FA enabled.
 // It is rate-limited per user: locked after too many fails, cleared on success.
 func (s *Service) Verify(ctx context.Context, userID, code string) (bool, error) {
-	locked, err := s.limiter.IsLocked(ctx, userID)
+	allowed, err := s.limiter.TakeAttempt(ctx, userID)
 	if err != nil {
 		return false, err
 	}
-	if locked {
+	if !allowed {
 		return false, domain.ErrTwoFALocked
 	}
 	c, err := s.store.Get(ctx, userID)
@@ -71,7 +71,6 @@ func (s *Service) Verify(ctx context.Context, userID, code string) (bool, error)
 			return true, nil
 		}
 	}
-	_ = s.limiter.RegisterFail(ctx, userID)
 	metricTwofaVerifications.WithLabelValues("failed").Inc()
 	return false, nil
 }

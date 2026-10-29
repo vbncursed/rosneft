@@ -52,9 +52,8 @@ func TestVerifyRecoveryCodeIsSingleUseUnderConcurrency(t *testing.T) {
 	st := mocks.NewStoreMock(mc).GetMock.Return(domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}, nil)
 	ciph := mocks.NewCipherMock(mc).DecryptMock.Return([]byte(secret), nil)
 	lim := mocks.NewRateLimiterMock(mc)
-	lim.IsLockedMock.Return(false, nil)
+	lim.TakeAttemptMock.Return(true, nil)
 	lim.ClearMock.Return(nil)
-	lim.RegisterFailMock.Return(nil)
 	svc := twofa.New(st, rec, ciph, lim, "Andrey")
 
 	const attempts = 16

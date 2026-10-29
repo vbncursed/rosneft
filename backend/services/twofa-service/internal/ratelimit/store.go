@@ -1,14 +1,15 @@
 // Package ratelimit throttles 2FA verify attempts per user in Redis. It mirrors
-// auth-service's session login throttle (same Incr/Expire/Get/Del shape).
+// auth-service's session login throttle (same failcount counter).
 package ratelimit
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
+
+	"github.com/vbncursed/rosneft/backend/pkg/failcount"
 )
 
 type Store struct {
@@ -23,28 +24,16 @@ func New(rdb *redis.Client, maxFails int, lockTTL time.Duration) *Store {
 
 func failKey(userID string) string { return "2fa_fails:" + userID }
 
-// IsLocked reports whether the user has reached the fail threshold.
-func (s *Store) IsLocked(ctx context.Context, userID string) (bool, error) {
-	n, err := s.rdb.Get(ctx, failKey(userID)).Int()
-	if errors.Is(err, redis.Nil) {
-		return false, nil
-	}
+// TakeAttempt reserves one verify attempt and reports whether it is within the
+// budget. The attempt is counted before the code is checked, so concurrent
+// guesses cannot all pass a check made before any of them was counted; a
+// successful verify gives the budget back through Clear.
+func (s *Store) TakeAttempt(ctx context.Context, userID string) (bool, error) {
+	n, err := failcount.Take(ctx, s.rdb, failKey(userID), s.lockTTL)
 	if err != nil {
-		return false, fmt.Errorf("ratelimit.IsLocked: %w", err)
+		return false, fmt.Errorf("ratelimit.TakeAttempt: %w", err)
 	}
-	return n >= s.maxFails, nil
-}
-
-// RegisterFail increments the failure counter, arming the lock TTL on first fail.
-func (s *Store) RegisterFail(ctx context.Context, userID string) error {
-	n, err := s.rdb.Incr(ctx, failKey(userID)).Result()
-	if err != nil {
-		return fmt.Errorf("ratelimit.RegisterFail: %w", err)
-	}
-	if n == 1 {
-		s.rdb.Expire(ctx, failKey(userID), s.lockTTL)
-	}
-	return nil
+	return n <= int64(s.maxFails), nil
 }
 
 // Clear resets the counter after a successful verify.

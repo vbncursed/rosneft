@@ -13,18 +13,18 @@ import (
 // attempts are throttled the same way Login throttles them, through
 // dedicated Sessions methods keyed by userID under their own Redis
 // namespace — see the Sessions interface doc for why reusing Login's
-// IsLocked/RegisterFail/ClearFails would not be safe here: Login's
+// TakeAttempt/ClearFails would not be safe here: Login's
 // identifier reaches its throttle key with no validation, so it could be
 // crafted to alias any string derived from a userID.
 func (s *Service) ChangePassword(ctx context.Context, userID, oldPlain, newPlain string) error {
 	if err := validate.Password(newPlain); err != nil {
 		return err
 	}
-	locked, err := s.sessions.IsChangePasswordLocked(ctx, userID)
+	allowed, err := s.sessions.TakeChangePasswordAttempt(ctx, userID)
 	if err != nil {
 		return err
 	}
-	if locked {
+	if !allowed {
 		return domain.ErrLoginThrottled
 	}
 	u, err := s.store.GetByID(ctx, userID)
@@ -36,7 +36,6 @@ func (s *Service) ChangePassword(ctx context.Context, userID, oldPlain, newPlain
 		return fmt.Errorf("users.ChangePassword: verify: %w", err)
 	}
 	if !ok {
-		_ = s.sessions.RegisterChangePasswordFail(ctx, userID)
 		return domain.ErrInvalidCredential
 	}
 	hash, err := password.Hash(newPlain)

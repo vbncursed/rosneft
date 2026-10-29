@@ -25,19 +25,12 @@ type RateLimiterMock struct {
 	beforeClearCounter uint64
 	ClearMock          mRateLimiterMockClear
 
-	funcIsLocked          func(ctx context.Context, userID string) (b1 bool, err error)
-	funcIsLockedOrigin    string
-	inspectFuncIsLocked   func(ctx context.Context, userID string)
-	afterIsLockedCounter  uint64
-	beforeIsLockedCounter uint64
-	IsLockedMock          mRateLimiterMockIsLocked
-
-	funcRegisterFail          func(ctx context.Context, userID string) (err error)
-	funcRegisterFailOrigin    string
-	inspectFuncRegisterFail   func(ctx context.Context, userID string)
-	afterRegisterFailCounter  uint64
-	beforeRegisterFailCounter uint64
-	RegisterFailMock          mRateLimiterMockRegisterFail
+	funcTakeAttempt          func(ctx context.Context, userID string) (b1 bool, err error)
+	funcTakeAttemptOrigin    string
+	inspectFuncTakeAttempt   func(ctx context.Context, userID string)
+	afterTakeAttemptCounter  uint64
+	beforeTakeAttemptCounter uint64
+	TakeAttemptMock          mRateLimiterMockTakeAttempt
 }
 
 // NewRateLimiterMock returns a mock for mm_twofa.RateLimiter
@@ -51,11 +44,8 @@ func NewRateLimiterMock(t minimock.Tester) *RateLimiterMock {
 	m.ClearMock = mRateLimiterMockClear{mock: m}
 	m.ClearMock.callArgs = []*RateLimiterMockClearParams{}
 
-	m.IsLockedMock = mRateLimiterMockIsLocked{mock: m}
-	m.IsLockedMock.callArgs = []*RateLimiterMockIsLockedParams{}
-
-	m.RegisterFailMock = mRateLimiterMockRegisterFail{mock: m}
-	m.RegisterFailMock.callArgs = []*RateLimiterMockRegisterFailParams{}
+	m.TakeAttemptMock = mRateLimiterMockTakeAttempt{mock: m}
+	m.TakeAttemptMock.callArgs = []*RateLimiterMockTakeAttemptParams{}
 
 	t.Cleanup(m.MinimockFinish)
 
@@ -404,50 +394,50 @@ func (m *RateLimiterMock) MinimockClearInspect() {
 	}
 }
 
-type mRateLimiterMockIsLocked struct {
+type mRateLimiterMockTakeAttempt struct {
 	optional           bool
 	mock               *RateLimiterMock
-	defaultExpectation *RateLimiterMockIsLockedExpectation
-	expectations       []*RateLimiterMockIsLockedExpectation
+	defaultExpectation *RateLimiterMockTakeAttemptExpectation
+	expectations       []*RateLimiterMockTakeAttemptExpectation
 
-	callArgs []*RateLimiterMockIsLockedParams
+	callArgs []*RateLimiterMockTakeAttemptParams
 	mutex    sync.RWMutex
 
 	expectedInvocations       uint64
 	expectedInvocationsOrigin string
 }
 
-// RateLimiterMockIsLockedExpectation specifies expectation struct of the RateLimiter.IsLocked
-type RateLimiterMockIsLockedExpectation struct {
+// RateLimiterMockTakeAttemptExpectation specifies expectation struct of the RateLimiter.TakeAttempt
+type RateLimiterMockTakeAttemptExpectation struct {
 	mock               *RateLimiterMock
-	params             *RateLimiterMockIsLockedParams
-	paramPtrs          *RateLimiterMockIsLockedParamPtrs
-	expectationOrigins RateLimiterMockIsLockedExpectationOrigins
-	results            *RateLimiterMockIsLockedResults
+	params             *RateLimiterMockTakeAttemptParams
+	paramPtrs          *RateLimiterMockTakeAttemptParamPtrs
+	expectationOrigins RateLimiterMockTakeAttemptExpectationOrigins
+	results            *RateLimiterMockTakeAttemptResults
 	returnOrigin       string
 	Counter            uint64
 }
 
-// RateLimiterMockIsLockedParams contains parameters of the RateLimiter.IsLocked
-type RateLimiterMockIsLockedParams struct {
+// RateLimiterMockTakeAttemptParams contains parameters of the RateLimiter.TakeAttempt
+type RateLimiterMockTakeAttemptParams struct {
 	ctx    context.Context
 	userID string
 }
 
-// RateLimiterMockIsLockedParamPtrs contains pointers to parameters of the RateLimiter.IsLocked
-type RateLimiterMockIsLockedParamPtrs struct {
+// RateLimiterMockTakeAttemptParamPtrs contains pointers to parameters of the RateLimiter.TakeAttempt
+type RateLimiterMockTakeAttemptParamPtrs struct {
 	ctx    *context.Context
 	userID *string
 }
 
-// RateLimiterMockIsLockedResults contains results of the RateLimiter.IsLocked
-type RateLimiterMockIsLockedResults struct {
+// RateLimiterMockTakeAttemptResults contains results of the RateLimiter.TakeAttempt
+type RateLimiterMockTakeAttemptResults struct {
 	b1  bool
 	err error
 }
 
-// RateLimiterMockIsLockedOrigins contains origins of expectations of the RateLimiter.IsLocked
-type RateLimiterMockIsLockedExpectationOrigins struct {
+// RateLimiterMockTakeAttemptOrigins contains origins of expectations of the RateLimiter.TakeAttempt
+type RateLimiterMockTakeAttemptExpectationOrigins struct {
 	origin       string
 	originCtx    string
 	originUserID string
@@ -458,634 +448,292 @@ type RateLimiterMockIsLockedExpectationOrigins struct {
 // Optional() makes method check to work in '0 or more' mode.
 // It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
 // catch the problems when the expected method call is totally skipped during test run.
-func (mmIsLocked *mRateLimiterMockIsLocked) Optional() *mRateLimiterMockIsLocked {
-	mmIsLocked.optional = true
-	return mmIsLocked
+func (mmTakeAttempt *mRateLimiterMockTakeAttempt) Optional() *mRateLimiterMockTakeAttempt {
+	mmTakeAttempt.optional = true
+	return mmTakeAttempt
 }
 
-// Expect sets up expected params for RateLimiter.IsLocked
-func (mmIsLocked *mRateLimiterMockIsLocked) Expect(ctx context.Context, userID string) *mRateLimiterMockIsLocked {
-	if mmIsLocked.mock.funcIsLocked != nil {
-		mmIsLocked.mock.t.Fatalf("RateLimiterMock.IsLocked mock is already set by Set")
+// Expect sets up expected params for RateLimiter.TakeAttempt
+func (mmTakeAttempt *mRateLimiterMockTakeAttempt) Expect(ctx context.Context, userID string) *mRateLimiterMockTakeAttempt {
+	if mmTakeAttempt.mock.funcTakeAttempt != nil {
+		mmTakeAttempt.mock.t.Fatalf("RateLimiterMock.TakeAttempt mock is already set by Set")
 	}
 
-	if mmIsLocked.defaultExpectation == nil {
-		mmIsLocked.defaultExpectation = &RateLimiterMockIsLockedExpectation{}
+	if mmTakeAttempt.defaultExpectation == nil {
+		mmTakeAttempt.defaultExpectation = &RateLimiterMockTakeAttemptExpectation{}
 	}
 
-	if mmIsLocked.defaultExpectation.paramPtrs != nil {
-		mmIsLocked.mock.t.Fatalf("RateLimiterMock.IsLocked mock is already set by ExpectParams functions")
+	if mmTakeAttempt.defaultExpectation.paramPtrs != nil {
+		mmTakeAttempt.mock.t.Fatalf("RateLimiterMock.TakeAttempt mock is already set by ExpectParams functions")
 	}
 
-	mmIsLocked.defaultExpectation.params = &RateLimiterMockIsLockedParams{ctx, userID}
-	mmIsLocked.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
-	for _, e := range mmIsLocked.expectations {
-		if minimock.Equal(e.params, mmIsLocked.defaultExpectation.params) {
-			mmIsLocked.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmIsLocked.defaultExpectation.params)
+	mmTakeAttempt.defaultExpectation.params = &RateLimiterMockTakeAttemptParams{ctx, userID}
+	mmTakeAttempt.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmTakeAttempt.expectations {
+		if minimock.Equal(e.params, mmTakeAttempt.defaultExpectation.params) {
+			mmTakeAttempt.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmTakeAttempt.defaultExpectation.params)
 		}
 	}
 
-	return mmIsLocked
+	return mmTakeAttempt
 }
 
-// ExpectCtxParam1 sets up expected param ctx for RateLimiter.IsLocked
-func (mmIsLocked *mRateLimiterMockIsLocked) ExpectCtxParam1(ctx context.Context) *mRateLimiterMockIsLocked {
-	if mmIsLocked.mock.funcIsLocked != nil {
-		mmIsLocked.mock.t.Fatalf("RateLimiterMock.IsLocked mock is already set by Set")
+// ExpectCtxParam1 sets up expected param ctx for RateLimiter.TakeAttempt
+func (mmTakeAttempt *mRateLimiterMockTakeAttempt) ExpectCtxParam1(ctx context.Context) *mRateLimiterMockTakeAttempt {
+	if mmTakeAttempt.mock.funcTakeAttempt != nil {
+		mmTakeAttempt.mock.t.Fatalf("RateLimiterMock.TakeAttempt mock is already set by Set")
 	}
 
-	if mmIsLocked.defaultExpectation == nil {
-		mmIsLocked.defaultExpectation = &RateLimiterMockIsLockedExpectation{}
+	if mmTakeAttempt.defaultExpectation == nil {
+		mmTakeAttempt.defaultExpectation = &RateLimiterMockTakeAttemptExpectation{}
 	}
 
-	if mmIsLocked.defaultExpectation.params != nil {
-		mmIsLocked.mock.t.Fatalf("RateLimiterMock.IsLocked mock is already set by Expect")
+	if mmTakeAttempt.defaultExpectation.params != nil {
+		mmTakeAttempt.mock.t.Fatalf("RateLimiterMock.TakeAttempt mock is already set by Expect")
 	}
 
-	if mmIsLocked.defaultExpectation.paramPtrs == nil {
-		mmIsLocked.defaultExpectation.paramPtrs = &RateLimiterMockIsLockedParamPtrs{}
+	if mmTakeAttempt.defaultExpectation.paramPtrs == nil {
+		mmTakeAttempt.defaultExpectation.paramPtrs = &RateLimiterMockTakeAttemptParamPtrs{}
 	}
-	mmIsLocked.defaultExpectation.paramPtrs.ctx = &ctx
-	mmIsLocked.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+	mmTakeAttempt.defaultExpectation.paramPtrs.ctx = &ctx
+	mmTakeAttempt.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
 
-	return mmIsLocked
+	return mmTakeAttempt
 }
 
-// ExpectUserIDParam2 sets up expected param userID for RateLimiter.IsLocked
-func (mmIsLocked *mRateLimiterMockIsLocked) ExpectUserIDParam2(userID string) *mRateLimiterMockIsLocked {
-	if mmIsLocked.mock.funcIsLocked != nil {
-		mmIsLocked.mock.t.Fatalf("RateLimiterMock.IsLocked mock is already set by Set")
+// ExpectUserIDParam2 sets up expected param userID for RateLimiter.TakeAttempt
+func (mmTakeAttempt *mRateLimiterMockTakeAttempt) ExpectUserIDParam2(userID string) *mRateLimiterMockTakeAttempt {
+	if mmTakeAttempt.mock.funcTakeAttempt != nil {
+		mmTakeAttempt.mock.t.Fatalf("RateLimiterMock.TakeAttempt mock is already set by Set")
 	}
 
-	if mmIsLocked.defaultExpectation == nil {
-		mmIsLocked.defaultExpectation = &RateLimiterMockIsLockedExpectation{}
+	if mmTakeAttempt.defaultExpectation == nil {
+		mmTakeAttempt.defaultExpectation = &RateLimiterMockTakeAttemptExpectation{}
 	}
 
-	if mmIsLocked.defaultExpectation.params != nil {
-		mmIsLocked.mock.t.Fatalf("RateLimiterMock.IsLocked mock is already set by Expect")
+	if mmTakeAttempt.defaultExpectation.params != nil {
+		mmTakeAttempt.mock.t.Fatalf("RateLimiterMock.TakeAttempt mock is already set by Expect")
 	}
 
-	if mmIsLocked.defaultExpectation.paramPtrs == nil {
-		mmIsLocked.defaultExpectation.paramPtrs = &RateLimiterMockIsLockedParamPtrs{}
+	if mmTakeAttempt.defaultExpectation.paramPtrs == nil {
+		mmTakeAttempt.defaultExpectation.paramPtrs = &RateLimiterMockTakeAttemptParamPtrs{}
 	}
-	mmIsLocked.defaultExpectation.paramPtrs.userID = &userID
-	mmIsLocked.defaultExpectation.expectationOrigins.originUserID = minimock.CallerInfo(1)
+	mmTakeAttempt.defaultExpectation.paramPtrs.userID = &userID
+	mmTakeAttempt.defaultExpectation.expectationOrigins.originUserID = minimock.CallerInfo(1)
 
-	return mmIsLocked
+	return mmTakeAttempt
 }
 
-// Inspect accepts an inspector function that has same arguments as the RateLimiter.IsLocked
-func (mmIsLocked *mRateLimiterMockIsLocked) Inspect(f func(ctx context.Context, userID string)) *mRateLimiterMockIsLocked {
-	if mmIsLocked.mock.inspectFuncIsLocked != nil {
-		mmIsLocked.mock.t.Fatalf("Inspect function is already set for RateLimiterMock.IsLocked")
+// Inspect accepts an inspector function that has same arguments as the RateLimiter.TakeAttempt
+func (mmTakeAttempt *mRateLimiterMockTakeAttempt) Inspect(f func(ctx context.Context, userID string)) *mRateLimiterMockTakeAttempt {
+	if mmTakeAttempt.mock.inspectFuncTakeAttempt != nil {
+		mmTakeAttempt.mock.t.Fatalf("Inspect function is already set for RateLimiterMock.TakeAttempt")
 	}
 
-	mmIsLocked.mock.inspectFuncIsLocked = f
+	mmTakeAttempt.mock.inspectFuncTakeAttempt = f
 
-	return mmIsLocked
+	return mmTakeAttempt
 }
 
-// Return sets up results that will be returned by RateLimiter.IsLocked
-func (mmIsLocked *mRateLimiterMockIsLocked) Return(b1 bool, err error) *RateLimiterMock {
-	if mmIsLocked.mock.funcIsLocked != nil {
-		mmIsLocked.mock.t.Fatalf("RateLimiterMock.IsLocked mock is already set by Set")
+// Return sets up results that will be returned by RateLimiter.TakeAttempt
+func (mmTakeAttempt *mRateLimiterMockTakeAttempt) Return(b1 bool, err error) *RateLimiterMock {
+	if mmTakeAttempt.mock.funcTakeAttempt != nil {
+		mmTakeAttempt.mock.t.Fatalf("RateLimiterMock.TakeAttempt mock is already set by Set")
 	}
 
-	if mmIsLocked.defaultExpectation == nil {
-		mmIsLocked.defaultExpectation = &RateLimiterMockIsLockedExpectation{mock: mmIsLocked.mock}
+	if mmTakeAttempt.defaultExpectation == nil {
+		mmTakeAttempt.defaultExpectation = &RateLimiterMockTakeAttemptExpectation{mock: mmTakeAttempt.mock}
 	}
-	mmIsLocked.defaultExpectation.results = &RateLimiterMockIsLockedResults{b1, err}
-	mmIsLocked.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
-	return mmIsLocked.mock
+	mmTakeAttempt.defaultExpectation.results = &RateLimiterMockTakeAttemptResults{b1, err}
+	mmTakeAttempt.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmTakeAttempt.mock
 }
 
-// Set uses given function f to mock the RateLimiter.IsLocked method
-func (mmIsLocked *mRateLimiterMockIsLocked) Set(f func(ctx context.Context, userID string) (b1 bool, err error)) *RateLimiterMock {
-	if mmIsLocked.defaultExpectation != nil {
-		mmIsLocked.mock.t.Fatalf("Default expectation is already set for the RateLimiter.IsLocked method")
+// Set uses given function f to mock the RateLimiter.TakeAttempt method
+func (mmTakeAttempt *mRateLimiterMockTakeAttempt) Set(f func(ctx context.Context, userID string) (b1 bool, err error)) *RateLimiterMock {
+	if mmTakeAttempt.defaultExpectation != nil {
+		mmTakeAttempt.mock.t.Fatalf("Default expectation is already set for the RateLimiter.TakeAttempt method")
 	}
 
-	if len(mmIsLocked.expectations) > 0 {
-		mmIsLocked.mock.t.Fatalf("Some expectations are already set for the RateLimiter.IsLocked method")
+	if len(mmTakeAttempt.expectations) > 0 {
+		mmTakeAttempt.mock.t.Fatalf("Some expectations are already set for the RateLimiter.TakeAttempt method")
 	}
 
-	mmIsLocked.mock.funcIsLocked = f
-	mmIsLocked.mock.funcIsLockedOrigin = minimock.CallerInfo(1)
-	return mmIsLocked.mock
+	mmTakeAttempt.mock.funcTakeAttempt = f
+	mmTakeAttempt.mock.funcTakeAttemptOrigin = minimock.CallerInfo(1)
+	return mmTakeAttempt.mock
 }
 
-// When sets expectation for the RateLimiter.IsLocked which will trigger the result defined by the following
+// When sets expectation for the RateLimiter.TakeAttempt which will trigger the result defined by the following
 // Then helper
-func (mmIsLocked *mRateLimiterMockIsLocked) When(ctx context.Context, userID string) *RateLimiterMockIsLockedExpectation {
-	if mmIsLocked.mock.funcIsLocked != nil {
-		mmIsLocked.mock.t.Fatalf("RateLimiterMock.IsLocked mock is already set by Set")
+func (mmTakeAttempt *mRateLimiterMockTakeAttempt) When(ctx context.Context, userID string) *RateLimiterMockTakeAttemptExpectation {
+	if mmTakeAttempt.mock.funcTakeAttempt != nil {
+		mmTakeAttempt.mock.t.Fatalf("RateLimiterMock.TakeAttempt mock is already set by Set")
 	}
 
-	expectation := &RateLimiterMockIsLockedExpectation{
-		mock:               mmIsLocked.mock,
-		params:             &RateLimiterMockIsLockedParams{ctx, userID},
-		expectationOrigins: RateLimiterMockIsLockedExpectationOrigins{origin: minimock.CallerInfo(1)},
+	expectation := &RateLimiterMockTakeAttemptExpectation{
+		mock:               mmTakeAttempt.mock,
+		params:             &RateLimiterMockTakeAttemptParams{ctx, userID},
+		expectationOrigins: RateLimiterMockTakeAttemptExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
-	mmIsLocked.expectations = append(mmIsLocked.expectations, expectation)
+	mmTakeAttempt.expectations = append(mmTakeAttempt.expectations, expectation)
 	return expectation
 }
 
-// Then sets up RateLimiter.IsLocked return parameters for the expectation previously defined by the When method
-func (e *RateLimiterMockIsLockedExpectation) Then(b1 bool, err error) *RateLimiterMock {
-	e.results = &RateLimiterMockIsLockedResults{b1, err}
+// Then sets up RateLimiter.TakeAttempt return parameters for the expectation previously defined by the When method
+func (e *RateLimiterMockTakeAttemptExpectation) Then(b1 bool, err error) *RateLimiterMock {
+	e.results = &RateLimiterMockTakeAttemptResults{b1, err}
 	return e.mock
 }
 
-// Times sets number of times RateLimiter.IsLocked should be invoked
-func (mmIsLocked *mRateLimiterMockIsLocked) Times(n uint64) *mRateLimiterMockIsLocked {
+// Times sets number of times RateLimiter.TakeAttempt should be invoked
+func (mmTakeAttempt *mRateLimiterMockTakeAttempt) Times(n uint64) *mRateLimiterMockTakeAttempt {
 	if n == 0 {
-		mmIsLocked.mock.t.Fatalf("Times of RateLimiterMock.IsLocked mock can not be zero")
+		mmTakeAttempt.mock.t.Fatalf("Times of RateLimiterMock.TakeAttempt mock can not be zero")
 	}
-	mm_atomic.StoreUint64(&mmIsLocked.expectedInvocations, n)
-	mmIsLocked.expectedInvocationsOrigin = minimock.CallerInfo(1)
-	return mmIsLocked
+	mm_atomic.StoreUint64(&mmTakeAttempt.expectedInvocations, n)
+	mmTakeAttempt.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmTakeAttempt
 }
 
-func (mmIsLocked *mRateLimiterMockIsLocked) invocationsDone() bool {
-	if len(mmIsLocked.expectations) == 0 && mmIsLocked.defaultExpectation == nil && mmIsLocked.mock.funcIsLocked == nil {
+func (mmTakeAttempt *mRateLimiterMockTakeAttempt) invocationsDone() bool {
+	if len(mmTakeAttempt.expectations) == 0 && mmTakeAttempt.defaultExpectation == nil && mmTakeAttempt.mock.funcTakeAttempt == nil {
 		return true
 	}
 
-	totalInvocations := mm_atomic.LoadUint64(&mmIsLocked.mock.afterIsLockedCounter)
-	expectedInvocations := mm_atomic.LoadUint64(&mmIsLocked.expectedInvocations)
+	totalInvocations := mm_atomic.LoadUint64(&mmTakeAttempt.mock.afterTakeAttemptCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmTakeAttempt.expectedInvocations)
 
 	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
 }
 
-// IsLocked implements mm_twofa.RateLimiter
-func (mmIsLocked *RateLimiterMock) IsLocked(ctx context.Context, userID string) (b1 bool, err error) {
-	mm_atomic.AddUint64(&mmIsLocked.beforeIsLockedCounter, 1)
-	defer mm_atomic.AddUint64(&mmIsLocked.afterIsLockedCounter, 1)
+// TakeAttempt implements mm_twofa.RateLimiter
+func (mmTakeAttempt *RateLimiterMock) TakeAttempt(ctx context.Context, userID string) (b1 bool, err error) {
+	mm_atomic.AddUint64(&mmTakeAttempt.beforeTakeAttemptCounter, 1)
+	defer mm_atomic.AddUint64(&mmTakeAttempt.afterTakeAttemptCounter, 1)
 
-	mmIsLocked.t.Helper()
+	mmTakeAttempt.t.Helper()
 
-	if mmIsLocked.inspectFuncIsLocked != nil {
-		mmIsLocked.inspectFuncIsLocked(ctx, userID)
+	if mmTakeAttempt.inspectFuncTakeAttempt != nil {
+		mmTakeAttempt.inspectFuncTakeAttempt(ctx, userID)
 	}
 
-	mm_params := RateLimiterMockIsLockedParams{ctx, userID}
+	mm_params := RateLimiterMockTakeAttemptParams{ctx, userID}
 
 	// Record call args
-	mmIsLocked.IsLockedMock.mutex.Lock()
-	mmIsLocked.IsLockedMock.callArgs = append(mmIsLocked.IsLockedMock.callArgs, &mm_params)
-	mmIsLocked.IsLockedMock.mutex.Unlock()
+	mmTakeAttempt.TakeAttemptMock.mutex.Lock()
+	mmTakeAttempt.TakeAttemptMock.callArgs = append(mmTakeAttempt.TakeAttemptMock.callArgs, &mm_params)
+	mmTakeAttempt.TakeAttemptMock.mutex.Unlock()
 
-	for _, e := range mmIsLocked.IsLockedMock.expectations {
+	for _, e := range mmTakeAttempt.TakeAttemptMock.expectations {
 		if minimock.Equal(*e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.b1, e.results.err
 		}
 	}
 
-	if mmIsLocked.IsLockedMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmIsLocked.IsLockedMock.defaultExpectation.Counter, 1)
-		mm_want := mmIsLocked.IsLockedMock.defaultExpectation.params
-		mm_want_ptrs := mmIsLocked.IsLockedMock.defaultExpectation.paramPtrs
+	if mmTakeAttempt.TakeAttemptMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmTakeAttempt.TakeAttemptMock.defaultExpectation.Counter, 1)
+		mm_want := mmTakeAttempt.TakeAttemptMock.defaultExpectation.params
+		mm_want_ptrs := mmTakeAttempt.TakeAttemptMock.defaultExpectation.paramPtrs
 
-		mm_got := RateLimiterMockIsLockedParams{ctx, userID}
+		mm_got := RateLimiterMockTakeAttemptParams{ctx, userID}
 
 		if mm_want_ptrs != nil {
 
 			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
-				mmIsLocked.t.Errorf("RateLimiterMock.IsLocked got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmIsLocked.IsLockedMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+				mmTakeAttempt.t.Errorf("RateLimiterMock.TakeAttempt got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmTakeAttempt.TakeAttemptMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
 			}
 
 			if mm_want_ptrs.userID != nil && !minimock.Equal(*mm_want_ptrs.userID, mm_got.userID) {
-				mmIsLocked.t.Errorf("RateLimiterMock.IsLocked got unexpected parameter userID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmIsLocked.IsLockedMock.defaultExpectation.expectationOrigins.originUserID, *mm_want_ptrs.userID, mm_got.userID, minimock.Diff(*mm_want_ptrs.userID, mm_got.userID))
+				mmTakeAttempt.t.Errorf("RateLimiterMock.TakeAttempt got unexpected parameter userID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmTakeAttempt.TakeAttemptMock.defaultExpectation.expectationOrigins.originUserID, *mm_want_ptrs.userID, mm_got.userID, minimock.Diff(*mm_want_ptrs.userID, mm_got.userID))
 			}
 
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmIsLocked.t.Errorf("RateLimiterMock.IsLocked got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-				mmIsLocked.IsLockedMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+			mmTakeAttempt.t.Errorf("RateLimiterMock.TakeAttempt got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmTakeAttempt.TakeAttemptMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		mm_results := mmIsLocked.IsLockedMock.defaultExpectation.results
+		mm_results := mmTakeAttempt.TakeAttemptMock.defaultExpectation.results
 		if mm_results == nil {
-			mmIsLocked.t.Fatal("No results are set for the RateLimiterMock.IsLocked")
+			mmTakeAttempt.t.Fatal("No results are set for the RateLimiterMock.TakeAttempt")
 		}
 		return (*mm_results).b1, (*mm_results).err
 	}
-	if mmIsLocked.funcIsLocked != nil {
-		return mmIsLocked.funcIsLocked(ctx, userID)
+	if mmTakeAttempt.funcTakeAttempt != nil {
+		return mmTakeAttempt.funcTakeAttempt(ctx, userID)
 	}
-	mmIsLocked.t.Fatalf("Unexpected call to RateLimiterMock.IsLocked. %v %v", ctx, userID)
+	mmTakeAttempt.t.Fatalf("Unexpected call to RateLimiterMock.TakeAttempt. %v %v", ctx, userID)
 	return
 }
 
-// IsLockedAfterCounter returns a count of finished RateLimiterMock.IsLocked invocations
-func (mmIsLocked *RateLimiterMock) IsLockedAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmIsLocked.afterIsLockedCounter)
+// TakeAttemptAfterCounter returns a count of finished RateLimiterMock.TakeAttempt invocations
+func (mmTakeAttempt *RateLimiterMock) TakeAttemptAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmTakeAttempt.afterTakeAttemptCounter)
 }
 
-// IsLockedBeforeCounter returns a count of RateLimiterMock.IsLocked invocations
-func (mmIsLocked *RateLimiterMock) IsLockedBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmIsLocked.beforeIsLockedCounter)
+// TakeAttemptBeforeCounter returns a count of RateLimiterMock.TakeAttempt invocations
+func (mmTakeAttempt *RateLimiterMock) TakeAttemptBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmTakeAttempt.beforeTakeAttemptCounter)
 }
 
-// Calls returns a list of arguments used in each call to RateLimiterMock.IsLocked.
+// Calls returns a list of arguments used in each call to RateLimiterMock.TakeAttempt.
 // The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmIsLocked *mRateLimiterMockIsLocked) Calls() []*RateLimiterMockIsLockedParams {
-	mmIsLocked.mutex.RLock()
+func (mmTakeAttempt *mRateLimiterMockTakeAttempt) Calls() []*RateLimiterMockTakeAttemptParams {
+	mmTakeAttempt.mutex.RLock()
 
-	argCopy := make([]*RateLimiterMockIsLockedParams, len(mmIsLocked.callArgs))
-	copy(argCopy, mmIsLocked.callArgs)
+	argCopy := make([]*RateLimiterMockTakeAttemptParams, len(mmTakeAttempt.callArgs))
+	copy(argCopy, mmTakeAttempt.callArgs)
 
-	mmIsLocked.mutex.RUnlock()
+	mmTakeAttempt.mutex.RUnlock()
 
 	return argCopy
 }
 
-// MinimockIsLockedDone returns true if the count of the IsLocked invocations corresponds
+// MinimockTakeAttemptDone returns true if the count of the TakeAttempt invocations corresponds
 // the number of defined expectations
-func (m *RateLimiterMock) MinimockIsLockedDone() bool {
-	if m.IsLockedMock.optional {
+func (m *RateLimiterMock) MinimockTakeAttemptDone() bool {
+	if m.TakeAttemptMock.optional {
 		// Optional methods provide '0 or more' call count restriction.
 		return true
 	}
 
-	for _, e := range m.IsLockedMock.expectations {
+	for _, e := range m.TakeAttemptMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
 			return false
 		}
 	}
 
-	return m.IsLockedMock.invocationsDone()
+	return m.TakeAttemptMock.invocationsDone()
 }
 
-// MinimockIsLockedInspect logs each unmet expectation
-func (m *RateLimiterMock) MinimockIsLockedInspect() {
-	for _, e := range m.IsLockedMock.expectations {
+// MinimockTakeAttemptInspect logs each unmet expectation
+func (m *RateLimiterMock) MinimockTakeAttemptInspect() {
+	for _, e := range m.TakeAttemptMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to RateLimiterMock.IsLocked at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+			m.t.Errorf("Expected call to RateLimiterMock.TakeAttempt at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
 		}
 	}
 
-	afterIsLockedCounter := mm_atomic.LoadUint64(&m.afterIsLockedCounter)
+	afterTakeAttemptCounter := mm_atomic.LoadUint64(&m.afterTakeAttemptCounter)
 	// if default expectation was set then invocations count should be greater than zero
-	if m.IsLockedMock.defaultExpectation != nil && afterIsLockedCounter < 1 {
-		if m.IsLockedMock.defaultExpectation.params == nil {
-			m.t.Errorf("Expected call to RateLimiterMock.IsLocked at\n%s", m.IsLockedMock.defaultExpectation.returnOrigin)
+	if m.TakeAttemptMock.defaultExpectation != nil && afterTakeAttemptCounter < 1 {
+		if m.TakeAttemptMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RateLimiterMock.TakeAttempt at\n%s", m.TakeAttemptMock.defaultExpectation.returnOrigin)
 		} else {
-			m.t.Errorf("Expected call to RateLimiterMock.IsLocked at\n%s with params: %#v", m.IsLockedMock.defaultExpectation.expectationOrigins.origin, *m.IsLockedMock.defaultExpectation.params)
+			m.t.Errorf("Expected call to RateLimiterMock.TakeAttempt at\n%s with params: %#v", m.TakeAttemptMock.defaultExpectation.expectationOrigins.origin, *m.TakeAttemptMock.defaultExpectation.params)
 		}
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcIsLocked != nil && afterIsLockedCounter < 1 {
-		m.t.Errorf("Expected call to RateLimiterMock.IsLocked at\n%s", m.funcIsLockedOrigin)
+	if m.funcTakeAttempt != nil && afterTakeAttemptCounter < 1 {
+		m.t.Errorf("Expected call to RateLimiterMock.TakeAttempt at\n%s", m.funcTakeAttemptOrigin)
 	}
 
-	if !m.IsLockedMock.invocationsDone() && afterIsLockedCounter > 0 {
-		m.t.Errorf("Expected %d calls to RateLimiterMock.IsLocked at\n%s but found %d calls",
-			mm_atomic.LoadUint64(&m.IsLockedMock.expectedInvocations), m.IsLockedMock.expectedInvocationsOrigin, afterIsLockedCounter)
-	}
-}
-
-type mRateLimiterMockRegisterFail struct {
-	optional           bool
-	mock               *RateLimiterMock
-	defaultExpectation *RateLimiterMockRegisterFailExpectation
-	expectations       []*RateLimiterMockRegisterFailExpectation
-
-	callArgs []*RateLimiterMockRegisterFailParams
-	mutex    sync.RWMutex
-
-	expectedInvocations       uint64
-	expectedInvocationsOrigin string
-}
-
-// RateLimiterMockRegisterFailExpectation specifies expectation struct of the RateLimiter.RegisterFail
-type RateLimiterMockRegisterFailExpectation struct {
-	mock               *RateLimiterMock
-	params             *RateLimiterMockRegisterFailParams
-	paramPtrs          *RateLimiterMockRegisterFailParamPtrs
-	expectationOrigins RateLimiterMockRegisterFailExpectationOrigins
-	results            *RateLimiterMockRegisterFailResults
-	returnOrigin       string
-	Counter            uint64
-}
-
-// RateLimiterMockRegisterFailParams contains parameters of the RateLimiter.RegisterFail
-type RateLimiterMockRegisterFailParams struct {
-	ctx    context.Context
-	userID string
-}
-
-// RateLimiterMockRegisterFailParamPtrs contains pointers to parameters of the RateLimiter.RegisterFail
-type RateLimiterMockRegisterFailParamPtrs struct {
-	ctx    *context.Context
-	userID *string
-}
-
-// RateLimiterMockRegisterFailResults contains results of the RateLimiter.RegisterFail
-type RateLimiterMockRegisterFailResults struct {
-	err error
-}
-
-// RateLimiterMockRegisterFailOrigins contains origins of expectations of the RateLimiter.RegisterFail
-type RateLimiterMockRegisterFailExpectationOrigins struct {
-	origin       string
-	originCtx    string
-	originUserID string
-}
-
-// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
-// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
-// Optional() makes method check to work in '0 or more' mode.
-// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
-// catch the problems when the expected method call is totally skipped during test run.
-func (mmRegisterFail *mRateLimiterMockRegisterFail) Optional() *mRateLimiterMockRegisterFail {
-	mmRegisterFail.optional = true
-	return mmRegisterFail
-}
-
-// Expect sets up expected params for RateLimiter.RegisterFail
-func (mmRegisterFail *mRateLimiterMockRegisterFail) Expect(ctx context.Context, userID string) *mRateLimiterMockRegisterFail {
-	if mmRegisterFail.mock.funcRegisterFail != nil {
-		mmRegisterFail.mock.t.Fatalf("RateLimiterMock.RegisterFail mock is already set by Set")
-	}
-
-	if mmRegisterFail.defaultExpectation == nil {
-		mmRegisterFail.defaultExpectation = &RateLimiterMockRegisterFailExpectation{}
-	}
-
-	if mmRegisterFail.defaultExpectation.paramPtrs != nil {
-		mmRegisterFail.mock.t.Fatalf("RateLimiterMock.RegisterFail mock is already set by ExpectParams functions")
-	}
-
-	mmRegisterFail.defaultExpectation.params = &RateLimiterMockRegisterFailParams{ctx, userID}
-	mmRegisterFail.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
-	for _, e := range mmRegisterFail.expectations {
-		if minimock.Equal(e.params, mmRegisterFail.defaultExpectation.params) {
-			mmRegisterFail.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmRegisterFail.defaultExpectation.params)
-		}
-	}
-
-	return mmRegisterFail
-}
-
-// ExpectCtxParam1 sets up expected param ctx for RateLimiter.RegisterFail
-func (mmRegisterFail *mRateLimiterMockRegisterFail) ExpectCtxParam1(ctx context.Context) *mRateLimiterMockRegisterFail {
-	if mmRegisterFail.mock.funcRegisterFail != nil {
-		mmRegisterFail.mock.t.Fatalf("RateLimiterMock.RegisterFail mock is already set by Set")
-	}
-
-	if mmRegisterFail.defaultExpectation == nil {
-		mmRegisterFail.defaultExpectation = &RateLimiterMockRegisterFailExpectation{}
-	}
-
-	if mmRegisterFail.defaultExpectation.params != nil {
-		mmRegisterFail.mock.t.Fatalf("RateLimiterMock.RegisterFail mock is already set by Expect")
-	}
-
-	if mmRegisterFail.defaultExpectation.paramPtrs == nil {
-		mmRegisterFail.defaultExpectation.paramPtrs = &RateLimiterMockRegisterFailParamPtrs{}
-	}
-	mmRegisterFail.defaultExpectation.paramPtrs.ctx = &ctx
-	mmRegisterFail.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
-
-	return mmRegisterFail
-}
-
-// ExpectUserIDParam2 sets up expected param userID for RateLimiter.RegisterFail
-func (mmRegisterFail *mRateLimiterMockRegisterFail) ExpectUserIDParam2(userID string) *mRateLimiterMockRegisterFail {
-	if mmRegisterFail.mock.funcRegisterFail != nil {
-		mmRegisterFail.mock.t.Fatalf("RateLimiterMock.RegisterFail mock is already set by Set")
-	}
-
-	if mmRegisterFail.defaultExpectation == nil {
-		mmRegisterFail.defaultExpectation = &RateLimiterMockRegisterFailExpectation{}
-	}
-
-	if mmRegisterFail.defaultExpectation.params != nil {
-		mmRegisterFail.mock.t.Fatalf("RateLimiterMock.RegisterFail mock is already set by Expect")
-	}
-
-	if mmRegisterFail.defaultExpectation.paramPtrs == nil {
-		mmRegisterFail.defaultExpectation.paramPtrs = &RateLimiterMockRegisterFailParamPtrs{}
-	}
-	mmRegisterFail.defaultExpectation.paramPtrs.userID = &userID
-	mmRegisterFail.defaultExpectation.expectationOrigins.originUserID = minimock.CallerInfo(1)
-
-	return mmRegisterFail
-}
-
-// Inspect accepts an inspector function that has same arguments as the RateLimiter.RegisterFail
-func (mmRegisterFail *mRateLimiterMockRegisterFail) Inspect(f func(ctx context.Context, userID string)) *mRateLimiterMockRegisterFail {
-	if mmRegisterFail.mock.inspectFuncRegisterFail != nil {
-		mmRegisterFail.mock.t.Fatalf("Inspect function is already set for RateLimiterMock.RegisterFail")
-	}
-
-	mmRegisterFail.mock.inspectFuncRegisterFail = f
-
-	return mmRegisterFail
-}
-
-// Return sets up results that will be returned by RateLimiter.RegisterFail
-func (mmRegisterFail *mRateLimiterMockRegisterFail) Return(err error) *RateLimiterMock {
-	if mmRegisterFail.mock.funcRegisterFail != nil {
-		mmRegisterFail.mock.t.Fatalf("RateLimiterMock.RegisterFail mock is already set by Set")
-	}
-
-	if mmRegisterFail.defaultExpectation == nil {
-		mmRegisterFail.defaultExpectation = &RateLimiterMockRegisterFailExpectation{mock: mmRegisterFail.mock}
-	}
-	mmRegisterFail.defaultExpectation.results = &RateLimiterMockRegisterFailResults{err}
-	mmRegisterFail.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
-	return mmRegisterFail.mock
-}
-
-// Set uses given function f to mock the RateLimiter.RegisterFail method
-func (mmRegisterFail *mRateLimiterMockRegisterFail) Set(f func(ctx context.Context, userID string) (err error)) *RateLimiterMock {
-	if mmRegisterFail.defaultExpectation != nil {
-		mmRegisterFail.mock.t.Fatalf("Default expectation is already set for the RateLimiter.RegisterFail method")
-	}
-
-	if len(mmRegisterFail.expectations) > 0 {
-		mmRegisterFail.mock.t.Fatalf("Some expectations are already set for the RateLimiter.RegisterFail method")
-	}
-
-	mmRegisterFail.mock.funcRegisterFail = f
-	mmRegisterFail.mock.funcRegisterFailOrigin = minimock.CallerInfo(1)
-	return mmRegisterFail.mock
-}
-
-// When sets expectation for the RateLimiter.RegisterFail which will trigger the result defined by the following
-// Then helper
-func (mmRegisterFail *mRateLimiterMockRegisterFail) When(ctx context.Context, userID string) *RateLimiterMockRegisterFailExpectation {
-	if mmRegisterFail.mock.funcRegisterFail != nil {
-		mmRegisterFail.mock.t.Fatalf("RateLimiterMock.RegisterFail mock is already set by Set")
-	}
-
-	expectation := &RateLimiterMockRegisterFailExpectation{
-		mock:               mmRegisterFail.mock,
-		params:             &RateLimiterMockRegisterFailParams{ctx, userID},
-		expectationOrigins: RateLimiterMockRegisterFailExpectationOrigins{origin: minimock.CallerInfo(1)},
-	}
-	mmRegisterFail.expectations = append(mmRegisterFail.expectations, expectation)
-	return expectation
-}
-
-// Then sets up RateLimiter.RegisterFail return parameters for the expectation previously defined by the When method
-func (e *RateLimiterMockRegisterFailExpectation) Then(err error) *RateLimiterMock {
-	e.results = &RateLimiterMockRegisterFailResults{err}
-	return e.mock
-}
-
-// Times sets number of times RateLimiter.RegisterFail should be invoked
-func (mmRegisterFail *mRateLimiterMockRegisterFail) Times(n uint64) *mRateLimiterMockRegisterFail {
-	if n == 0 {
-		mmRegisterFail.mock.t.Fatalf("Times of RateLimiterMock.RegisterFail mock can not be zero")
-	}
-	mm_atomic.StoreUint64(&mmRegisterFail.expectedInvocations, n)
-	mmRegisterFail.expectedInvocationsOrigin = minimock.CallerInfo(1)
-	return mmRegisterFail
-}
-
-func (mmRegisterFail *mRateLimiterMockRegisterFail) invocationsDone() bool {
-	if len(mmRegisterFail.expectations) == 0 && mmRegisterFail.defaultExpectation == nil && mmRegisterFail.mock.funcRegisterFail == nil {
-		return true
-	}
-
-	totalInvocations := mm_atomic.LoadUint64(&mmRegisterFail.mock.afterRegisterFailCounter)
-	expectedInvocations := mm_atomic.LoadUint64(&mmRegisterFail.expectedInvocations)
-
-	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
-}
-
-// RegisterFail implements mm_twofa.RateLimiter
-func (mmRegisterFail *RateLimiterMock) RegisterFail(ctx context.Context, userID string) (err error) {
-	mm_atomic.AddUint64(&mmRegisterFail.beforeRegisterFailCounter, 1)
-	defer mm_atomic.AddUint64(&mmRegisterFail.afterRegisterFailCounter, 1)
-
-	mmRegisterFail.t.Helper()
-
-	if mmRegisterFail.inspectFuncRegisterFail != nil {
-		mmRegisterFail.inspectFuncRegisterFail(ctx, userID)
-	}
-
-	mm_params := RateLimiterMockRegisterFailParams{ctx, userID}
-
-	// Record call args
-	mmRegisterFail.RegisterFailMock.mutex.Lock()
-	mmRegisterFail.RegisterFailMock.callArgs = append(mmRegisterFail.RegisterFailMock.callArgs, &mm_params)
-	mmRegisterFail.RegisterFailMock.mutex.Unlock()
-
-	for _, e := range mmRegisterFail.RegisterFailMock.expectations {
-		if minimock.Equal(*e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.err
-		}
-	}
-
-	if mmRegisterFail.RegisterFailMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmRegisterFail.RegisterFailMock.defaultExpectation.Counter, 1)
-		mm_want := mmRegisterFail.RegisterFailMock.defaultExpectation.params
-		mm_want_ptrs := mmRegisterFail.RegisterFailMock.defaultExpectation.paramPtrs
-
-		mm_got := RateLimiterMockRegisterFailParams{ctx, userID}
-
-		if mm_want_ptrs != nil {
-
-			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
-				mmRegisterFail.t.Errorf("RateLimiterMock.RegisterFail got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmRegisterFail.RegisterFailMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
-			}
-
-			if mm_want_ptrs.userID != nil && !minimock.Equal(*mm_want_ptrs.userID, mm_got.userID) {
-				mmRegisterFail.t.Errorf("RateLimiterMock.RegisterFail got unexpected parameter userID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmRegisterFail.RegisterFailMock.defaultExpectation.expectationOrigins.originUserID, *mm_want_ptrs.userID, mm_got.userID, minimock.Diff(*mm_want_ptrs.userID, mm_got.userID))
-			}
-
-		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmRegisterFail.t.Errorf("RateLimiterMock.RegisterFail got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-				mmRegisterFail.RegisterFailMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmRegisterFail.RegisterFailMock.defaultExpectation.results
-		if mm_results == nil {
-			mmRegisterFail.t.Fatal("No results are set for the RateLimiterMock.RegisterFail")
-		}
-		return (*mm_results).err
-	}
-	if mmRegisterFail.funcRegisterFail != nil {
-		return mmRegisterFail.funcRegisterFail(ctx, userID)
-	}
-	mmRegisterFail.t.Fatalf("Unexpected call to RateLimiterMock.RegisterFail. %v %v", ctx, userID)
-	return
-}
-
-// RegisterFailAfterCounter returns a count of finished RateLimiterMock.RegisterFail invocations
-func (mmRegisterFail *RateLimiterMock) RegisterFailAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmRegisterFail.afterRegisterFailCounter)
-}
-
-// RegisterFailBeforeCounter returns a count of RateLimiterMock.RegisterFail invocations
-func (mmRegisterFail *RateLimiterMock) RegisterFailBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmRegisterFail.beforeRegisterFailCounter)
-}
-
-// Calls returns a list of arguments used in each call to RateLimiterMock.RegisterFail.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmRegisterFail *mRateLimiterMockRegisterFail) Calls() []*RateLimiterMockRegisterFailParams {
-	mmRegisterFail.mutex.RLock()
-
-	argCopy := make([]*RateLimiterMockRegisterFailParams, len(mmRegisterFail.callArgs))
-	copy(argCopy, mmRegisterFail.callArgs)
-
-	mmRegisterFail.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockRegisterFailDone returns true if the count of the RegisterFail invocations corresponds
-// the number of defined expectations
-func (m *RateLimiterMock) MinimockRegisterFailDone() bool {
-	if m.RegisterFailMock.optional {
-		// Optional methods provide '0 or more' call count restriction.
-		return true
-	}
-
-	for _, e := range m.RegisterFailMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	return m.RegisterFailMock.invocationsDone()
-}
-
-// MinimockRegisterFailInspect logs each unmet expectation
-func (m *RateLimiterMock) MinimockRegisterFailInspect() {
-	for _, e := range m.RegisterFailMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to RateLimiterMock.RegisterFail at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
-		}
-	}
-
-	afterRegisterFailCounter := mm_atomic.LoadUint64(&m.afterRegisterFailCounter)
-	// if default expectation was set then invocations count should be greater than zero
-	if m.RegisterFailMock.defaultExpectation != nil && afterRegisterFailCounter < 1 {
-		if m.RegisterFailMock.defaultExpectation.params == nil {
-			m.t.Errorf("Expected call to RateLimiterMock.RegisterFail at\n%s", m.RegisterFailMock.defaultExpectation.returnOrigin)
-		} else {
-			m.t.Errorf("Expected call to RateLimiterMock.RegisterFail at\n%s with params: %#v", m.RegisterFailMock.defaultExpectation.expectationOrigins.origin, *m.RegisterFailMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcRegisterFail != nil && afterRegisterFailCounter < 1 {
-		m.t.Errorf("Expected call to RateLimiterMock.RegisterFail at\n%s", m.funcRegisterFailOrigin)
-	}
-
-	if !m.RegisterFailMock.invocationsDone() && afterRegisterFailCounter > 0 {
-		m.t.Errorf("Expected %d calls to RateLimiterMock.RegisterFail at\n%s but found %d calls",
-			mm_atomic.LoadUint64(&m.RegisterFailMock.expectedInvocations), m.RegisterFailMock.expectedInvocationsOrigin, afterRegisterFailCounter)
+	if !m.TakeAttemptMock.invocationsDone() && afterTakeAttemptCounter > 0 {
+		m.t.Errorf("Expected %d calls to RateLimiterMock.TakeAttempt at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.TakeAttemptMock.expectedInvocations), m.TakeAttemptMock.expectedInvocationsOrigin, afterTakeAttemptCounter)
 	}
 }
 
@@ -1095,9 +743,7 @@ func (m *RateLimiterMock) MinimockFinish() {
 		if !m.minimockDone() {
 			m.MinimockClearInspect()
 
-			m.MinimockIsLockedInspect()
-
-			m.MinimockRegisterFailInspect()
+			m.MinimockTakeAttemptInspect()
 		}
 	})
 }
@@ -1122,6 +768,5 @@ func (m *RateLimiterMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockClearDone() &&
-		m.MinimockIsLockedDone() &&
-		m.MinimockRegisterFailDone()
+		m.MinimockTakeAttemptDone()
 }

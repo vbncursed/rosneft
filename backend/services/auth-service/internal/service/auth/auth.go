@@ -27,8 +27,8 @@ type SessionStore interface {
 	Delete(ctx context.Context, token string) error
 	PutPending(ctx context.Context, userID string) (string, error)
 	TakePending(ctx context.Context, challenge string) (string, error)
-	RegisterFail(ctx context.Context, identifier string) error
-	IsLocked(ctx context.Context, identifier string) (bool, error)
+	// TakeAttempt reserves one login attempt; false means the budget is spent.
+	TakeAttempt(ctx context.Context, identifier string) (bool, error)
 	ClearFails(ctx context.Context, identifier string) error
 }
 

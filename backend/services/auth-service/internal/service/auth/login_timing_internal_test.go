@@ -51,9 +51,8 @@ func (s *LoginTimingSuite) phcParams(phc string) string {
 
 func (s *LoginTimingSuite) TestUnknownIdentifierRunsDummyVerify() {
 	ctx := s.T().Context()
-	s.ss.IsLockedMock.Return(false, nil)
+	s.ss.TakeAttemptMock.Return(true, nil)
 	s.us.GetByIdentifierMock.Return(domain.User{}, domain.ErrUserNotFound)
-	s.ss.RegisterFailMock.Expect(ctx, "ghost").Return(nil)
 
 	token, challenge, err := s.svc.Login(ctx, "ghost", "whatever")
 
@@ -64,15 +63,13 @@ func (s *LoginTimingSuite) TestUnknownIdentifierRunsDummyVerify() {
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), s.phcParams(s.verified[0]), s.phcParams(real), "dummy hash drifted from password.Hash")
 	assert.Equal(s.T(), s.ss.CreateAfterCounter(), uint64(0), "session created")
-	assert.Equal(s.T(), s.ss.RegisterFailAfterCounter(), uint64(1))
 }
 
 func (s *LoginTimingSuite) TestWrongPasswordVerifiesOnce() {
 	hash, err := password.Hash("pw")
 	assert.NilError(s.T(), err)
-	s.ss.IsLockedMock.Return(false, nil)
+	s.ss.TakeAttemptMock.Return(true, nil)
 	s.us.GetByIdentifierMock.Return(domain.User{ID: "u1", Status: domain.StatusActive, PasswordHash: hash}, nil)
-	s.ss.RegisterFailMock.Return(nil)
 
 	_, _, err = s.svc.Login(s.T().Context(), "ivan", "WRONG")
 
@@ -81,7 +78,7 @@ func (s *LoginTimingSuite) TestWrongPasswordVerifiesOnce() {
 }
 
 func (s *LoginTimingSuite) TestLockedDoesNotVerify() {
-	s.ss.IsLockedMock.Return(true, nil)
+	s.ss.TakeAttemptMock.Return(false, nil)
 
 	_, _, err := s.svc.Login(s.T().Context(), "ghost", "whatever")
 
@@ -100,8 +97,7 @@ func TestLoginTimingMeasure(t *testing.T) {
 	svc := New(us, ss, mocks.NewTwoFAVerifierMock(mc), mocks.NewPasskeyVerifierMock(mc), time.Hour)
 	hash, err := password.Hash("pw")
 	assert.NilError(t, err)
-	ss.IsLockedMock.Return(false, nil)
-	ss.RegisterFailMock.Return(nil)
+	ss.TakeAttemptMock.Return(true, nil)
 	known := domain.User{ID: "u1", Status: domain.StatusActive, PasswordHash: hash}
 	us.GetByIdentifierMock.Set(func(_ context.Context, id string) (domain.User, error) {
 		if id == "ivan" {

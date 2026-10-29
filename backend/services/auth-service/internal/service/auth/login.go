@@ -26,11 +26,13 @@ func (s *Service) Login(ctx context.Context, identifier, plain string) (string, 
 		return "", "", fmt.Errorf("auth.Login: %w: identifier and password required", domain.ErrInvalidInput)
 	}
 
-	locked, err := s.sessions.IsLocked(ctx, identifier)
+	// The attempt is counted before the password is checked, so concurrent
+	// guesses cannot all pass a check made before any of them was counted.
+	allowed, err := s.sessions.TakeAttempt(ctx, identifier)
 	if err != nil {
 		return "", "", err
 	}
-	if locked {
+	if !allowed {
 		return "", "", domain.ErrLoginThrottled
 	}
 
@@ -38,10 +40,12 @@ func (s *Service) Login(ctx context.Context, identifier, plain string) (string, 
 	if err != nil {
 		return "", "", err
 	}
+	// A right password gives the attempt back, even for an account that is
+	// frozen: the attempt was not a guess.
+	_ = s.sessions.ClearFails(ctx, identifier)
 	if err := checkActive(u); err != nil {
 		return "", "", err
 	}
-	_ = s.sessions.ClearFails(ctx, identifier)
 	metricLogins.WithLabelValues("succeeded").Inc()
 
 	return s.startSession(ctx, u)
@@ -57,21 +61,20 @@ func (s *Service) authenticate(ctx context.Context, identifier, plain string) (d
 		// microseconds and a known user's takes tens of ms, which gives the
 		// existence away.
 		_, _ = s.verify(plain, s.dummyHash())
-		return domain.User{}, s.failCredential(ctx, identifier)
+		return domain.User{}, s.failCredential()
 	}
 	ok, err := s.verify(plain, u.PasswordHash)
 	if err != nil {
 		return domain.User{}, fmt.Errorf("auth.Login: verify: %w", err)
 	}
 	if !ok {
-		return domain.User{}, s.failCredential(ctx, identifier)
+		return domain.User{}, s.failCredential()
 	}
 	return u, nil
 }
 
-// failCredential counts one failed attempt and returns the answer for it.
-func (s *Service) failCredential(ctx context.Context, identifier string) error {
-	_ = s.sessions.RegisterFail(ctx, identifier)
+// failCredential answers a failed attempt, which TakeAttempt already counted.
+func (s *Service) failCredential() error {
 	metricLogins.WithLabelValues("failed").Inc()
 	return domain.ErrInvalidCredential
 }

@@ -2,34 +2,21 @@ package session
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
-	"github.com/redis/go-redis/v9"
+	"github.com/vbncursed/rosneft/backend/pkg/failcount"
 )
 
-// RegisterFail increments the failure counter, arming the lock TTL on first fail.
-func (s *Store) RegisterFail(ctx context.Context, identifier string) error {
-	n, err := s.rdb.Incr(ctx, failKey(identifier)).Result()
+// TakeAttempt reserves one login attempt for identifier and reports whether it
+// is within the budget. The count is taken before the password is checked, so
+// concurrent guesses cannot all slip past a check made before any was counted;
+// a successful login gives the budget back through ClearFails.
+func (s *Store) TakeAttempt(ctx context.Context, identifier string) (bool, error) {
+	n, err := failcount.Take(ctx, s.rdb, failKey(identifier), s.lockTTL)
 	if err != nil {
-		return fmt.Errorf("session.RegisterFail: %w", err)
+		return false, fmt.Errorf("session.TakeAttempt: %w", err)
 	}
-	if n == 1 {
-		s.rdb.Expire(ctx, failKey(identifier), s.lockTTL)
-	}
-	return nil
-}
-
-// IsLocked reports whether identifier has exceeded maxFails.
-func (s *Store) IsLocked(ctx context.Context, identifier string) (bool, error) {
-	n, err := s.rdb.Get(ctx, failKey(identifier)).Int()
-	if errors.Is(err, redis.Nil) {
-		return false, nil
-	}
-	if err != nil {
-		return false, fmt.Errorf("session.IsLocked: %w", err)
-	}
-	return n >= s.maxFails, nil
+	return n <= int64(s.maxFails), nil
 }
 
 // ClearFails resets the counter after a successful login.

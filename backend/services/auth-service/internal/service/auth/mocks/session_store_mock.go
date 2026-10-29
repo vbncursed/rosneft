@@ -47,13 +47,6 @@ type SessionStoreMock struct {
 	beforeGetCounter uint64
 	GetMock          mSessionStoreMockGet
 
-	funcIsLocked          func(ctx context.Context, identifier string) (b1 bool, err error)
-	funcIsLockedOrigin    string
-	inspectFuncIsLocked   func(ctx context.Context, identifier string)
-	afterIsLockedCounter  uint64
-	beforeIsLockedCounter uint64
-	IsLockedMock          mSessionStoreMockIsLocked
-
 	funcPutPending          func(ctx context.Context, userID string) (s1 string, err error)
 	funcPutPendingOrigin    string
 	inspectFuncPutPending   func(ctx context.Context, userID string)
@@ -61,12 +54,12 @@ type SessionStoreMock struct {
 	beforePutPendingCounter uint64
 	PutPendingMock          mSessionStoreMockPutPending
 
-	funcRegisterFail          func(ctx context.Context, identifier string) (err error)
-	funcRegisterFailOrigin    string
-	inspectFuncRegisterFail   func(ctx context.Context, identifier string)
-	afterRegisterFailCounter  uint64
-	beforeRegisterFailCounter uint64
-	RegisterFailMock          mSessionStoreMockRegisterFail
+	funcTakeAttempt          func(ctx context.Context, identifier string) (b1 bool, err error)
+	funcTakeAttemptOrigin    string
+	inspectFuncTakeAttempt   func(ctx context.Context, identifier string)
+	afterTakeAttemptCounter  uint64
+	beforeTakeAttemptCounter uint64
+	TakeAttemptMock          mSessionStoreMockTakeAttempt
 
 	funcTakePending          func(ctx context.Context, challenge string) (s1 string, err error)
 	funcTakePendingOrigin    string
@@ -96,14 +89,11 @@ func NewSessionStoreMock(t minimock.Tester) *SessionStoreMock {
 	m.GetMock = mSessionStoreMockGet{mock: m}
 	m.GetMock.callArgs = []*SessionStoreMockGetParams{}
 
-	m.IsLockedMock = mSessionStoreMockIsLocked{mock: m}
-	m.IsLockedMock.callArgs = []*SessionStoreMockIsLockedParams{}
-
 	m.PutPendingMock = mSessionStoreMockPutPending{mock: m}
 	m.PutPendingMock.callArgs = []*SessionStoreMockPutPendingParams{}
 
-	m.RegisterFailMock = mSessionStoreMockRegisterFail{mock: m}
-	m.RegisterFailMock.callArgs = []*SessionStoreMockRegisterFailParams{}
+	m.TakeAttemptMock = mSessionStoreMockTakeAttempt{mock: m}
+	m.TakeAttemptMock.callArgs = []*SessionStoreMockTakeAttemptParams{}
 
 	m.TakePendingMock = mSessionStoreMockTakePending{mock: m}
 	m.TakePendingMock.callArgs = []*SessionStoreMockTakePendingParams{}
@@ -1483,349 +1473,6 @@ func (m *SessionStoreMock) MinimockGetInspect() {
 	}
 }
 
-type mSessionStoreMockIsLocked struct {
-	optional           bool
-	mock               *SessionStoreMock
-	defaultExpectation *SessionStoreMockIsLockedExpectation
-	expectations       []*SessionStoreMockIsLockedExpectation
-
-	callArgs []*SessionStoreMockIsLockedParams
-	mutex    sync.RWMutex
-
-	expectedInvocations       uint64
-	expectedInvocationsOrigin string
-}
-
-// SessionStoreMockIsLockedExpectation specifies expectation struct of the SessionStore.IsLocked
-type SessionStoreMockIsLockedExpectation struct {
-	mock               *SessionStoreMock
-	params             *SessionStoreMockIsLockedParams
-	paramPtrs          *SessionStoreMockIsLockedParamPtrs
-	expectationOrigins SessionStoreMockIsLockedExpectationOrigins
-	results            *SessionStoreMockIsLockedResults
-	returnOrigin       string
-	Counter            uint64
-}
-
-// SessionStoreMockIsLockedParams contains parameters of the SessionStore.IsLocked
-type SessionStoreMockIsLockedParams struct {
-	ctx        context.Context
-	identifier string
-}
-
-// SessionStoreMockIsLockedParamPtrs contains pointers to parameters of the SessionStore.IsLocked
-type SessionStoreMockIsLockedParamPtrs struct {
-	ctx        *context.Context
-	identifier *string
-}
-
-// SessionStoreMockIsLockedResults contains results of the SessionStore.IsLocked
-type SessionStoreMockIsLockedResults struct {
-	b1  bool
-	err error
-}
-
-// SessionStoreMockIsLockedOrigins contains origins of expectations of the SessionStore.IsLocked
-type SessionStoreMockIsLockedExpectationOrigins struct {
-	origin           string
-	originCtx        string
-	originIdentifier string
-}
-
-// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
-// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
-// Optional() makes method check to work in '0 or more' mode.
-// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
-// catch the problems when the expected method call is totally skipped during test run.
-func (mmIsLocked *mSessionStoreMockIsLocked) Optional() *mSessionStoreMockIsLocked {
-	mmIsLocked.optional = true
-	return mmIsLocked
-}
-
-// Expect sets up expected params for SessionStore.IsLocked
-func (mmIsLocked *mSessionStoreMockIsLocked) Expect(ctx context.Context, identifier string) *mSessionStoreMockIsLocked {
-	if mmIsLocked.mock.funcIsLocked != nil {
-		mmIsLocked.mock.t.Fatalf("SessionStoreMock.IsLocked mock is already set by Set")
-	}
-
-	if mmIsLocked.defaultExpectation == nil {
-		mmIsLocked.defaultExpectation = &SessionStoreMockIsLockedExpectation{}
-	}
-
-	if mmIsLocked.defaultExpectation.paramPtrs != nil {
-		mmIsLocked.mock.t.Fatalf("SessionStoreMock.IsLocked mock is already set by ExpectParams functions")
-	}
-
-	mmIsLocked.defaultExpectation.params = &SessionStoreMockIsLockedParams{ctx, identifier}
-	mmIsLocked.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
-	for _, e := range mmIsLocked.expectations {
-		if minimock.Equal(e.params, mmIsLocked.defaultExpectation.params) {
-			mmIsLocked.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmIsLocked.defaultExpectation.params)
-		}
-	}
-
-	return mmIsLocked
-}
-
-// ExpectCtxParam1 sets up expected param ctx for SessionStore.IsLocked
-func (mmIsLocked *mSessionStoreMockIsLocked) ExpectCtxParam1(ctx context.Context) *mSessionStoreMockIsLocked {
-	if mmIsLocked.mock.funcIsLocked != nil {
-		mmIsLocked.mock.t.Fatalf("SessionStoreMock.IsLocked mock is already set by Set")
-	}
-
-	if mmIsLocked.defaultExpectation == nil {
-		mmIsLocked.defaultExpectation = &SessionStoreMockIsLockedExpectation{}
-	}
-
-	if mmIsLocked.defaultExpectation.params != nil {
-		mmIsLocked.mock.t.Fatalf("SessionStoreMock.IsLocked mock is already set by Expect")
-	}
-
-	if mmIsLocked.defaultExpectation.paramPtrs == nil {
-		mmIsLocked.defaultExpectation.paramPtrs = &SessionStoreMockIsLockedParamPtrs{}
-	}
-	mmIsLocked.defaultExpectation.paramPtrs.ctx = &ctx
-	mmIsLocked.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
-
-	return mmIsLocked
-}
-
-// ExpectIdentifierParam2 sets up expected param identifier for SessionStore.IsLocked
-func (mmIsLocked *mSessionStoreMockIsLocked) ExpectIdentifierParam2(identifier string) *mSessionStoreMockIsLocked {
-	if mmIsLocked.mock.funcIsLocked != nil {
-		mmIsLocked.mock.t.Fatalf("SessionStoreMock.IsLocked mock is already set by Set")
-	}
-
-	if mmIsLocked.defaultExpectation == nil {
-		mmIsLocked.defaultExpectation = &SessionStoreMockIsLockedExpectation{}
-	}
-
-	if mmIsLocked.defaultExpectation.params != nil {
-		mmIsLocked.mock.t.Fatalf("SessionStoreMock.IsLocked mock is already set by Expect")
-	}
-
-	if mmIsLocked.defaultExpectation.paramPtrs == nil {
-		mmIsLocked.defaultExpectation.paramPtrs = &SessionStoreMockIsLockedParamPtrs{}
-	}
-	mmIsLocked.defaultExpectation.paramPtrs.identifier = &identifier
-	mmIsLocked.defaultExpectation.expectationOrigins.originIdentifier = minimock.CallerInfo(1)
-
-	return mmIsLocked
-}
-
-// Inspect accepts an inspector function that has same arguments as the SessionStore.IsLocked
-func (mmIsLocked *mSessionStoreMockIsLocked) Inspect(f func(ctx context.Context, identifier string)) *mSessionStoreMockIsLocked {
-	if mmIsLocked.mock.inspectFuncIsLocked != nil {
-		mmIsLocked.mock.t.Fatalf("Inspect function is already set for SessionStoreMock.IsLocked")
-	}
-
-	mmIsLocked.mock.inspectFuncIsLocked = f
-
-	return mmIsLocked
-}
-
-// Return sets up results that will be returned by SessionStore.IsLocked
-func (mmIsLocked *mSessionStoreMockIsLocked) Return(b1 bool, err error) *SessionStoreMock {
-	if mmIsLocked.mock.funcIsLocked != nil {
-		mmIsLocked.mock.t.Fatalf("SessionStoreMock.IsLocked mock is already set by Set")
-	}
-
-	if mmIsLocked.defaultExpectation == nil {
-		mmIsLocked.defaultExpectation = &SessionStoreMockIsLockedExpectation{mock: mmIsLocked.mock}
-	}
-	mmIsLocked.defaultExpectation.results = &SessionStoreMockIsLockedResults{b1, err}
-	mmIsLocked.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
-	return mmIsLocked.mock
-}
-
-// Set uses given function f to mock the SessionStore.IsLocked method
-func (mmIsLocked *mSessionStoreMockIsLocked) Set(f func(ctx context.Context, identifier string) (b1 bool, err error)) *SessionStoreMock {
-	if mmIsLocked.defaultExpectation != nil {
-		mmIsLocked.mock.t.Fatalf("Default expectation is already set for the SessionStore.IsLocked method")
-	}
-
-	if len(mmIsLocked.expectations) > 0 {
-		mmIsLocked.mock.t.Fatalf("Some expectations are already set for the SessionStore.IsLocked method")
-	}
-
-	mmIsLocked.mock.funcIsLocked = f
-	mmIsLocked.mock.funcIsLockedOrigin = minimock.CallerInfo(1)
-	return mmIsLocked.mock
-}
-
-// When sets expectation for the SessionStore.IsLocked which will trigger the result defined by the following
-// Then helper
-func (mmIsLocked *mSessionStoreMockIsLocked) When(ctx context.Context, identifier string) *SessionStoreMockIsLockedExpectation {
-	if mmIsLocked.mock.funcIsLocked != nil {
-		mmIsLocked.mock.t.Fatalf("SessionStoreMock.IsLocked mock is already set by Set")
-	}
-
-	expectation := &SessionStoreMockIsLockedExpectation{
-		mock:               mmIsLocked.mock,
-		params:             &SessionStoreMockIsLockedParams{ctx, identifier},
-		expectationOrigins: SessionStoreMockIsLockedExpectationOrigins{origin: minimock.CallerInfo(1)},
-	}
-	mmIsLocked.expectations = append(mmIsLocked.expectations, expectation)
-	return expectation
-}
-
-// Then sets up SessionStore.IsLocked return parameters for the expectation previously defined by the When method
-func (e *SessionStoreMockIsLockedExpectation) Then(b1 bool, err error) *SessionStoreMock {
-	e.results = &SessionStoreMockIsLockedResults{b1, err}
-	return e.mock
-}
-
-// Times sets number of times SessionStore.IsLocked should be invoked
-func (mmIsLocked *mSessionStoreMockIsLocked) Times(n uint64) *mSessionStoreMockIsLocked {
-	if n == 0 {
-		mmIsLocked.mock.t.Fatalf("Times of SessionStoreMock.IsLocked mock can not be zero")
-	}
-	mm_atomic.StoreUint64(&mmIsLocked.expectedInvocations, n)
-	mmIsLocked.expectedInvocationsOrigin = minimock.CallerInfo(1)
-	return mmIsLocked
-}
-
-func (mmIsLocked *mSessionStoreMockIsLocked) invocationsDone() bool {
-	if len(mmIsLocked.expectations) == 0 && mmIsLocked.defaultExpectation == nil && mmIsLocked.mock.funcIsLocked == nil {
-		return true
-	}
-
-	totalInvocations := mm_atomic.LoadUint64(&mmIsLocked.mock.afterIsLockedCounter)
-	expectedInvocations := mm_atomic.LoadUint64(&mmIsLocked.expectedInvocations)
-
-	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
-}
-
-// IsLocked implements mm_auth.SessionStore
-func (mmIsLocked *SessionStoreMock) IsLocked(ctx context.Context, identifier string) (b1 bool, err error) {
-	mm_atomic.AddUint64(&mmIsLocked.beforeIsLockedCounter, 1)
-	defer mm_atomic.AddUint64(&mmIsLocked.afterIsLockedCounter, 1)
-
-	mmIsLocked.t.Helper()
-
-	if mmIsLocked.inspectFuncIsLocked != nil {
-		mmIsLocked.inspectFuncIsLocked(ctx, identifier)
-	}
-
-	mm_params := SessionStoreMockIsLockedParams{ctx, identifier}
-
-	// Record call args
-	mmIsLocked.IsLockedMock.mutex.Lock()
-	mmIsLocked.IsLockedMock.callArgs = append(mmIsLocked.IsLockedMock.callArgs, &mm_params)
-	mmIsLocked.IsLockedMock.mutex.Unlock()
-
-	for _, e := range mmIsLocked.IsLockedMock.expectations {
-		if minimock.Equal(*e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.b1, e.results.err
-		}
-	}
-
-	if mmIsLocked.IsLockedMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmIsLocked.IsLockedMock.defaultExpectation.Counter, 1)
-		mm_want := mmIsLocked.IsLockedMock.defaultExpectation.params
-		mm_want_ptrs := mmIsLocked.IsLockedMock.defaultExpectation.paramPtrs
-
-		mm_got := SessionStoreMockIsLockedParams{ctx, identifier}
-
-		if mm_want_ptrs != nil {
-
-			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
-				mmIsLocked.t.Errorf("SessionStoreMock.IsLocked got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmIsLocked.IsLockedMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
-			}
-
-			if mm_want_ptrs.identifier != nil && !minimock.Equal(*mm_want_ptrs.identifier, mm_got.identifier) {
-				mmIsLocked.t.Errorf("SessionStoreMock.IsLocked got unexpected parameter identifier, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmIsLocked.IsLockedMock.defaultExpectation.expectationOrigins.originIdentifier, *mm_want_ptrs.identifier, mm_got.identifier, minimock.Diff(*mm_want_ptrs.identifier, mm_got.identifier))
-			}
-
-		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmIsLocked.t.Errorf("SessionStoreMock.IsLocked got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-				mmIsLocked.IsLockedMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmIsLocked.IsLockedMock.defaultExpectation.results
-		if mm_results == nil {
-			mmIsLocked.t.Fatal("No results are set for the SessionStoreMock.IsLocked")
-		}
-		return (*mm_results).b1, (*mm_results).err
-	}
-	if mmIsLocked.funcIsLocked != nil {
-		return mmIsLocked.funcIsLocked(ctx, identifier)
-	}
-	mmIsLocked.t.Fatalf("Unexpected call to SessionStoreMock.IsLocked. %v %v", ctx, identifier)
-	return
-}
-
-// IsLockedAfterCounter returns a count of finished SessionStoreMock.IsLocked invocations
-func (mmIsLocked *SessionStoreMock) IsLockedAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmIsLocked.afterIsLockedCounter)
-}
-
-// IsLockedBeforeCounter returns a count of SessionStoreMock.IsLocked invocations
-func (mmIsLocked *SessionStoreMock) IsLockedBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmIsLocked.beforeIsLockedCounter)
-}
-
-// Calls returns a list of arguments used in each call to SessionStoreMock.IsLocked.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmIsLocked *mSessionStoreMockIsLocked) Calls() []*SessionStoreMockIsLockedParams {
-	mmIsLocked.mutex.RLock()
-
-	argCopy := make([]*SessionStoreMockIsLockedParams, len(mmIsLocked.callArgs))
-	copy(argCopy, mmIsLocked.callArgs)
-
-	mmIsLocked.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockIsLockedDone returns true if the count of the IsLocked invocations corresponds
-// the number of defined expectations
-func (m *SessionStoreMock) MinimockIsLockedDone() bool {
-	if m.IsLockedMock.optional {
-		// Optional methods provide '0 or more' call count restriction.
-		return true
-	}
-
-	for _, e := range m.IsLockedMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	return m.IsLockedMock.invocationsDone()
-}
-
-// MinimockIsLockedInspect logs each unmet expectation
-func (m *SessionStoreMock) MinimockIsLockedInspect() {
-	for _, e := range m.IsLockedMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to SessionStoreMock.IsLocked at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
-		}
-	}
-
-	afterIsLockedCounter := mm_atomic.LoadUint64(&m.afterIsLockedCounter)
-	// if default expectation was set then invocations count should be greater than zero
-	if m.IsLockedMock.defaultExpectation != nil && afterIsLockedCounter < 1 {
-		if m.IsLockedMock.defaultExpectation.params == nil {
-			m.t.Errorf("Expected call to SessionStoreMock.IsLocked at\n%s", m.IsLockedMock.defaultExpectation.returnOrigin)
-		} else {
-			m.t.Errorf("Expected call to SessionStoreMock.IsLocked at\n%s with params: %#v", m.IsLockedMock.defaultExpectation.expectationOrigins.origin, *m.IsLockedMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcIsLocked != nil && afterIsLockedCounter < 1 {
-		m.t.Errorf("Expected call to SessionStoreMock.IsLocked at\n%s", m.funcIsLockedOrigin)
-	}
-
-	if !m.IsLockedMock.invocationsDone() && afterIsLockedCounter > 0 {
-		m.t.Errorf("Expected %d calls to SessionStoreMock.IsLocked at\n%s but found %d calls",
-			mm_atomic.LoadUint64(&m.IsLockedMock.expectedInvocations), m.IsLockedMock.expectedInvocationsOrigin, afterIsLockedCounter)
-	}
-}
-
 type mSessionStoreMockPutPending struct {
 	optional           bool
 	mock               *SessionStoreMock
@@ -2169,49 +1816,50 @@ func (m *SessionStoreMock) MinimockPutPendingInspect() {
 	}
 }
 
-type mSessionStoreMockRegisterFail struct {
+type mSessionStoreMockTakeAttempt struct {
 	optional           bool
 	mock               *SessionStoreMock
-	defaultExpectation *SessionStoreMockRegisterFailExpectation
-	expectations       []*SessionStoreMockRegisterFailExpectation
+	defaultExpectation *SessionStoreMockTakeAttemptExpectation
+	expectations       []*SessionStoreMockTakeAttemptExpectation
 
-	callArgs []*SessionStoreMockRegisterFailParams
+	callArgs []*SessionStoreMockTakeAttemptParams
 	mutex    sync.RWMutex
 
 	expectedInvocations       uint64
 	expectedInvocationsOrigin string
 }
 
-// SessionStoreMockRegisterFailExpectation specifies expectation struct of the SessionStore.RegisterFail
-type SessionStoreMockRegisterFailExpectation struct {
+// SessionStoreMockTakeAttemptExpectation specifies expectation struct of the SessionStore.TakeAttempt
+type SessionStoreMockTakeAttemptExpectation struct {
 	mock               *SessionStoreMock
-	params             *SessionStoreMockRegisterFailParams
-	paramPtrs          *SessionStoreMockRegisterFailParamPtrs
-	expectationOrigins SessionStoreMockRegisterFailExpectationOrigins
-	results            *SessionStoreMockRegisterFailResults
+	params             *SessionStoreMockTakeAttemptParams
+	paramPtrs          *SessionStoreMockTakeAttemptParamPtrs
+	expectationOrigins SessionStoreMockTakeAttemptExpectationOrigins
+	results            *SessionStoreMockTakeAttemptResults
 	returnOrigin       string
 	Counter            uint64
 }
 
-// SessionStoreMockRegisterFailParams contains parameters of the SessionStore.RegisterFail
-type SessionStoreMockRegisterFailParams struct {
+// SessionStoreMockTakeAttemptParams contains parameters of the SessionStore.TakeAttempt
+type SessionStoreMockTakeAttemptParams struct {
 	ctx        context.Context
 	identifier string
 }
 
-// SessionStoreMockRegisterFailParamPtrs contains pointers to parameters of the SessionStore.RegisterFail
-type SessionStoreMockRegisterFailParamPtrs struct {
+// SessionStoreMockTakeAttemptParamPtrs contains pointers to parameters of the SessionStore.TakeAttempt
+type SessionStoreMockTakeAttemptParamPtrs struct {
 	ctx        *context.Context
 	identifier *string
 }
 
-// SessionStoreMockRegisterFailResults contains results of the SessionStore.RegisterFail
-type SessionStoreMockRegisterFailResults struct {
+// SessionStoreMockTakeAttemptResults contains results of the SessionStore.TakeAttempt
+type SessionStoreMockTakeAttemptResults struct {
+	b1  bool
 	err error
 }
 
-// SessionStoreMockRegisterFailOrigins contains origins of expectations of the SessionStore.RegisterFail
-type SessionStoreMockRegisterFailExpectationOrigins struct {
+// SessionStoreMockTakeAttemptOrigins contains origins of expectations of the SessionStore.TakeAttempt
+type SessionStoreMockTakeAttemptExpectationOrigins struct {
 	origin           string
 	originCtx        string
 	originIdentifier string
@@ -2222,292 +1870,292 @@ type SessionStoreMockRegisterFailExpectationOrigins struct {
 // Optional() makes method check to work in '0 or more' mode.
 // It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
 // catch the problems when the expected method call is totally skipped during test run.
-func (mmRegisterFail *mSessionStoreMockRegisterFail) Optional() *mSessionStoreMockRegisterFail {
-	mmRegisterFail.optional = true
-	return mmRegisterFail
+func (mmTakeAttempt *mSessionStoreMockTakeAttempt) Optional() *mSessionStoreMockTakeAttempt {
+	mmTakeAttempt.optional = true
+	return mmTakeAttempt
 }
 
-// Expect sets up expected params for SessionStore.RegisterFail
-func (mmRegisterFail *mSessionStoreMockRegisterFail) Expect(ctx context.Context, identifier string) *mSessionStoreMockRegisterFail {
-	if mmRegisterFail.mock.funcRegisterFail != nil {
-		mmRegisterFail.mock.t.Fatalf("SessionStoreMock.RegisterFail mock is already set by Set")
+// Expect sets up expected params for SessionStore.TakeAttempt
+func (mmTakeAttempt *mSessionStoreMockTakeAttempt) Expect(ctx context.Context, identifier string) *mSessionStoreMockTakeAttempt {
+	if mmTakeAttempt.mock.funcTakeAttempt != nil {
+		mmTakeAttempt.mock.t.Fatalf("SessionStoreMock.TakeAttempt mock is already set by Set")
 	}
 
-	if mmRegisterFail.defaultExpectation == nil {
-		mmRegisterFail.defaultExpectation = &SessionStoreMockRegisterFailExpectation{}
+	if mmTakeAttempt.defaultExpectation == nil {
+		mmTakeAttempt.defaultExpectation = &SessionStoreMockTakeAttemptExpectation{}
 	}
 
-	if mmRegisterFail.defaultExpectation.paramPtrs != nil {
-		mmRegisterFail.mock.t.Fatalf("SessionStoreMock.RegisterFail mock is already set by ExpectParams functions")
+	if mmTakeAttempt.defaultExpectation.paramPtrs != nil {
+		mmTakeAttempt.mock.t.Fatalf("SessionStoreMock.TakeAttempt mock is already set by ExpectParams functions")
 	}
 
-	mmRegisterFail.defaultExpectation.params = &SessionStoreMockRegisterFailParams{ctx, identifier}
-	mmRegisterFail.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
-	for _, e := range mmRegisterFail.expectations {
-		if minimock.Equal(e.params, mmRegisterFail.defaultExpectation.params) {
-			mmRegisterFail.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmRegisterFail.defaultExpectation.params)
+	mmTakeAttempt.defaultExpectation.params = &SessionStoreMockTakeAttemptParams{ctx, identifier}
+	mmTakeAttempt.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmTakeAttempt.expectations {
+		if minimock.Equal(e.params, mmTakeAttempt.defaultExpectation.params) {
+			mmTakeAttempt.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmTakeAttempt.defaultExpectation.params)
 		}
 	}
 
-	return mmRegisterFail
+	return mmTakeAttempt
 }
 
-// ExpectCtxParam1 sets up expected param ctx for SessionStore.RegisterFail
-func (mmRegisterFail *mSessionStoreMockRegisterFail) ExpectCtxParam1(ctx context.Context) *mSessionStoreMockRegisterFail {
-	if mmRegisterFail.mock.funcRegisterFail != nil {
-		mmRegisterFail.mock.t.Fatalf("SessionStoreMock.RegisterFail mock is already set by Set")
+// ExpectCtxParam1 sets up expected param ctx for SessionStore.TakeAttempt
+func (mmTakeAttempt *mSessionStoreMockTakeAttempt) ExpectCtxParam1(ctx context.Context) *mSessionStoreMockTakeAttempt {
+	if mmTakeAttempt.mock.funcTakeAttempt != nil {
+		mmTakeAttempt.mock.t.Fatalf("SessionStoreMock.TakeAttempt mock is already set by Set")
 	}
 
-	if mmRegisterFail.defaultExpectation == nil {
-		mmRegisterFail.defaultExpectation = &SessionStoreMockRegisterFailExpectation{}
+	if mmTakeAttempt.defaultExpectation == nil {
+		mmTakeAttempt.defaultExpectation = &SessionStoreMockTakeAttemptExpectation{}
 	}
 
-	if mmRegisterFail.defaultExpectation.params != nil {
-		mmRegisterFail.mock.t.Fatalf("SessionStoreMock.RegisterFail mock is already set by Expect")
+	if mmTakeAttempt.defaultExpectation.params != nil {
+		mmTakeAttempt.mock.t.Fatalf("SessionStoreMock.TakeAttempt mock is already set by Expect")
 	}
 
-	if mmRegisterFail.defaultExpectation.paramPtrs == nil {
-		mmRegisterFail.defaultExpectation.paramPtrs = &SessionStoreMockRegisterFailParamPtrs{}
+	if mmTakeAttempt.defaultExpectation.paramPtrs == nil {
+		mmTakeAttempt.defaultExpectation.paramPtrs = &SessionStoreMockTakeAttemptParamPtrs{}
 	}
-	mmRegisterFail.defaultExpectation.paramPtrs.ctx = &ctx
-	mmRegisterFail.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+	mmTakeAttempt.defaultExpectation.paramPtrs.ctx = &ctx
+	mmTakeAttempt.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
 
-	return mmRegisterFail
+	return mmTakeAttempt
 }
 
-// ExpectIdentifierParam2 sets up expected param identifier for SessionStore.RegisterFail
-func (mmRegisterFail *mSessionStoreMockRegisterFail) ExpectIdentifierParam2(identifier string) *mSessionStoreMockRegisterFail {
-	if mmRegisterFail.mock.funcRegisterFail != nil {
-		mmRegisterFail.mock.t.Fatalf("SessionStoreMock.RegisterFail mock is already set by Set")
+// ExpectIdentifierParam2 sets up expected param identifier for SessionStore.TakeAttempt
+func (mmTakeAttempt *mSessionStoreMockTakeAttempt) ExpectIdentifierParam2(identifier string) *mSessionStoreMockTakeAttempt {
+	if mmTakeAttempt.mock.funcTakeAttempt != nil {
+		mmTakeAttempt.mock.t.Fatalf("SessionStoreMock.TakeAttempt mock is already set by Set")
 	}
 
-	if mmRegisterFail.defaultExpectation == nil {
-		mmRegisterFail.defaultExpectation = &SessionStoreMockRegisterFailExpectation{}
+	if mmTakeAttempt.defaultExpectation == nil {
+		mmTakeAttempt.defaultExpectation = &SessionStoreMockTakeAttemptExpectation{}
 	}
 
-	if mmRegisterFail.defaultExpectation.params != nil {
-		mmRegisterFail.mock.t.Fatalf("SessionStoreMock.RegisterFail mock is already set by Expect")
+	if mmTakeAttempt.defaultExpectation.params != nil {
+		mmTakeAttempt.mock.t.Fatalf("SessionStoreMock.TakeAttempt mock is already set by Expect")
 	}
 
-	if mmRegisterFail.defaultExpectation.paramPtrs == nil {
-		mmRegisterFail.defaultExpectation.paramPtrs = &SessionStoreMockRegisterFailParamPtrs{}
+	if mmTakeAttempt.defaultExpectation.paramPtrs == nil {
+		mmTakeAttempt.defaultExpectation.paramPtrs = &SessionStoreMockTakeAttemptParamPtrs{}
 	}
-	mmRegisterFail.defaultExpectation.paramPtrs.identifier = &identifier
-	mmRegisterFail.defaultExpectation.expectationOrigins.originIdentifier = minimock.CallerInfo(1)
+	mmTakeAttempt.defaultExpectation.paramPtrs.identifier = &identifier
+	mmTakeAttempt.defaultExpectation.expectationOrigins.originIdentifier = minimock.CallerInfo(1)
 
-	return mmRegisterFail
+	return mmTakeAttempt
 }
 
-// Inspect accepts an inspector function that has same arguments as the SessionStore.RegisterFail
-func (mmRegisterFail *mSessionStoreMockRegisterFail) Inspect(f func(ctx context.Context, identifier string)) *mSessionStoreMockRegisterFail {
-	if mmRegisterFail.mock.inspectFuncRegisterFail != nil {
-		mmRegisterFail.mock.t.Fatalf("Inspect function is already set for SessionStoreMock.RegisterFail")
+// Inspect accepts an inspector function that has same arguments as the SessionStore.TakeAttempt
+func (mmTakeAttempt *mSessionStoreMockTakeAttempt) Inspect(f func(ctx context.Context, identifier string)) *mSessionStoreMockTakeAttempt {
+	if mmTakeAttempt.mock.inspectFuncTakeAttempt != nil {
+		mmTakeAttempt.mock.t.Fatalf("Inspect function is already set for SessionStoreMock.TakeAttempt")
 	}
 
-	mmRegisterFail.mock.inspectFuncRegisterFail = f
+	mmTakeAttempt.mock.inspectFuncTakeAttempt = f
 
-	return mmRegisterFail
+	return mmTakeAttempt
 }
 
-// Return sets up results that will be returned by SessionStore.RegisterFail
-func (mmRegisterFail *mSessionStoreMockRegisterFail) Return(err error) *SessionStoreMock {
-	if mmRegisterFail.mock.funcRegisterFail != nil {
-		mmRegisterFail.mock.t.Fatalf("SessionStoreMock.RegisterFail mock is already set by Set")
+// Return sets up results that will be returned by SessionStore.TakeAttempt
+func (mmTakeAttempt *mSessionStoreMockTakeAttempt) Return(b1 bool, err error) *SessionStoreMock {
+	if mmTakeAttempt.mock.funcTakeAttempt != nil {
+		mmTakeAttempt.mock.t.Fatalf("SessionStoreMock.TakeAttempt mock is already set by Set")
 	}
 
-	if mmRegisterFail.defaultExpectation == nil {
-		mmRegisterFail.defaultExpectation = &SessionStoreMockRegisterFailExpectation{mock: mmRegisterFail.mock}
+	if mmTakeAttempt.defaultExpectation == nil {
+		mmTakeAttempt.defaultExpectation = &SessionStoreMockTakeAttemptExpectation{mock: mmTakeAttempt.mock}
 	}
-	mmRegisterFail.defaultExpectation.results = &SessionStoreMockRegisterFailResults{err}
-	mmRegisterFail.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
-	return mmRegisterFail.mock
+	mmTakeAttempt.defaultExpectation.results = &SessionStoreMockTakeAttemptResults{b1, err}
+	mmTakeAttempt.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmTakeAttempt.mock
 }
 
-// Set uses given function f to mock the SessionStore.RegisterFail method
-func (mmRegisterFail *mSessionStoreMockRegisterFail) Set(f func(ctx context.Context, identifier string) (err error)) *SessionStoreMock {
-	if mmRegisterFail.defaultExpectation != nil {
-		mmRegisterFail.mock.t.Fatalf("Default expectation is already set for the SessionStore.RegisterFail method")
+// Set uses given function f to mock the SessionStore.TakeAttempt method
+func (mmTakeAttempt *mSessionStoreMockTakeAttempt) Set(f func(ctx context.Context, identifier string) (b1 bool, err error)) *SessionStoreMock {
+	if mmTakeAttempt.defaultExpectation != nil {
+		mmTakeAttempt.mock.t.Fatalf("Default expectation is already set for the SessionStore.TakeAttempt method")
 	}
 
-	if len(mmRegisterFail.expectations) > 0 {
-		mmRegisterFail.mock.t.Fatalf("Some expectations are already set for the SessionStore.RegisterFail method")
+	if len(mmTakeAttempt.expectations) > 0 {
+		mmTakeAttempt.mock.t.Fatalf("Some expectations are already set for the SessionStore.TakeAttempt method")
 	}
 
-	mmRegisterFail.mock.funcRegisterFail = f
-	mmRegisterFail.mock.funcRegisterFailOrigin = minimock.CallerInfo(1)
-	return mmRegisterFail.mock
+	mmTakeAttempt.mock.funcTakeAttempt = f
+	mmTakeAttempt.mock.funcTakeAttemptOrigin = minimock.CallerInfo(1)
+	return mmTakeAttempt.mock
 }
 
-// When sets expectation for the SessionStore.RegisterFail which will trigger the result defined by the following
+// When sets expectation for the SessionStore.TakeAttempt which will trigger the result defined by the following
 // Then helper
-func (mmRegisterFail *mSessionStoreMockRegisterFail) When(ctx context.Context, identifier string) *SessionStoreMockRegisterFailExpectation {
-	if mmRegisterFail.mock.funcRegisterFail != nil {
-		mmRegisterFail.mock.t.Fatalf("SessionStoreMock.RegisterFail mock is already set by Set")
+func (mmTakeAttempt *mSessionStoreMockTakeAttempt) When(ctx context.Context, identifier string) *SessionStoreMockTakeAttemptExpectation {
+	if mmTakeAttempt.mock.funcTakeAttempt != nil {
+		mmTakeAttempt.mock.t.Fatalf("SessionStoreMock.TakeAttempt mock is already set by Set")
 	}
 
-	expectation := &SessionStoreMockRegisterFailExpectation{
-		mock:               mmRegisterFail.mock,
-		params:             &SessionStoreMockRegisterFailParams{ctx, identifier},
-		expectationOrigins: SessionStoreMockRegisterFailExpectationOrigins{origin: minimock.CallerInfo(1)},
+	expectation := &SessionStoreMockTakeAttemptExpectation{
+		mock:               mmTakeAttempt.mock,
+		params:             &SessionStoreMockTakeAttemptParams{ctx, identifier},
+		expectationOrigins: SessionStoreMockTakeAttemptExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
-	mmRegisterFail.expectations = append(mmRegisterFail.expectations, expectation)
+	mmTakeAttempt.expectations = append(mmTakeAttempt.expectations, expectation)
 	return expectation
 }
 
-// Then sets up SessionStore.RegisterFail return parameters for the expectation previously defined by the When method
-func (e *SessionStoreMockRegisterFailExpectation) Then(err error) *SessionStoreMock {
-	e.results = &SessionStoreMockRegisterFailResults{err}
+// Then sets up SessionStore.TakeAttempt return parameters for the expectation previously defined by the When method
+func (e *SessionStoreMockTakeAttemptExpectation) Then(b1 bool, err error) *SessionStoreMock {
+	e.results = &SessionStoreMockTakeAttemptResults{b1, err}
 	return e.mock
 }
 
-// Times sets number of times SessionStore.RegisterFail should be invoked
-func (mmRegisterFail *mSessionStoreMockRegisterFail) Times(n uint64) *mSessionStoreMockRegisterFail {
+// Times sets number of times SessionStore.TakeAttempt should be invoked
+func (mmTakeAttempt *mSessionStoreMockTakeAttempt) Times(n uint64) *mSessionStoreMockTakeAttempt {
 	if n == 0 {
-		mmRegisterFail.mock.t.Fatalf("Times of SessionStoreMock.RegisterFail mock can not be zero")
+		mmTakeAttempt.mock.t.Fatalf("Times of SessionStoreMock.TakeAttempt mock can not be zero")
 	}
-	mm_atomic.StoreUint64(&mmRegisterFail.expectedInvocations, n)
-	mmRegisterFail.expectedInvocationsOrigin = minimock.CallerInfo(1)
-	return mmRegisterFail
+	mm_atomic.StoreUint64(&mmTakeAttempt.expectedInvocations, n)
+	mmTakeAttempt.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmTakeAttempt
 }
 
-func (mmRegisterFail *mSessionStoreMockRegisterFail) invocationsDone() bool {
-	if len(mmRegisterFail.expectations) == 0 && mmRegisterFail.defaultExpectation == nil && mmRegisterFail.mock.funcRegisterFail == nil {
+func (mmTakeAttempt *mSessionStoreMockTakeAttempt) invocationsDone() bool {
+	if len(mmTakeAttempt.expectations) == 0 && mmTakeAttempt.defaultExpectation == nil && mmTakeAttempt.mock.funcTakeAttempt == nil {
 		return true
 	}
 
-	totalInvocations := mm_atomic.LoadUint64(&mmRegisterFail.mock.afterRegisterFailCounter)
-	expectedInvocations := mm_atomic.LoadUint64(&mmRegisterFail.expectedInvocations)
+	totalInvocations := mm_atomic.LoadUint64(&mmTakeAttempt.mock.afterTakeAttemptCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmTakeAttempt.expectedInvocations)
 
 	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
 }
 
-// RegisterFail implements mm_auth.SessionStore
-func (mmRegisterFail *SessionStoreMock) RegisterFail(ctx context.Context, identifier string) (err error) {
-	mm_atomic.AddUint64(&mmRegisterFail.beforeRegisterFailCounter, 1)
-	defer mm_atomic.AddUint64(&mmRegisterFail.afterRegisterFailCounter, 1)
+// TakeAttempt implements mm_auth.SessionStore
+func (mmTakeAttempt *SessionStoreMock) TakeAttempt(ctx context.Context, identifier string) (b1 bool, err error) {
+	mm_atomic.AddUint64(&mmTakeAttempt.beforeTakeAttemptCounter, 1)
+	defer mm_atomic.AddUint64(&mmTakeAttempt.afterTakeAttemptCounter, 1)
 
-	mmRegisterFail.t.Helper()
+	mmTakeAttempt.t.Helper()
 
-	if mmRegisterFail.inspectFuncRegisterFail != nil {
-		mmRegisterFail.inspectFuncRegisterFail(ctx, identifier)
+	if mmTakeAttempt.inspectFuncTakeAttempt != nil {
+		mmTakeAttempt.inspectFuncTakeAttempt(ctx, identifier)
 	}
 
-	mm_params := SessionStoreMockRegisterFailParams{ctx, identifier}
+	mm_params := SessionStoreMockTakeAttemptParams{ctx, identifier}
 
 	// Record call args
-	mmRegisterFail.RegisterFailMock.mutex.Lock()
-	mmRegisterFail.RegisterFailMock.callArgs = append(mmRegisterFail.RegisterFailMock.callArgs, &mm_params)
-	mmRegisterFail.RegisterFailMock.mutex.Unlock()
+	mmTakeAttempt.TakeAttemptMock.mutex.Lock()
+	mmTakeAttempt.TakeAttemptMock.callArgs = append(mmTakeAttempt.TakeAttemptMock.callArgs, &mm_params)
+	mmTakeAttempt.TakeAttemptMock.mutex.Unlock()
 
-	for _, e := range mmRegisterFail.RegisterFailMock.expectations {
+	for _, e := range mmTakeAttempt.TakeAttemptMock.expectations {
 		if minimock.Equal(*e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.err
+			return e.results.b1, e.results.err
 		}
 	}
 
-	if mmRegisterFail.RegisterFailMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmRegisterFail.RegisterFailMock.defaultExpectation.Counter, 1)
-		mm_want := mmRegisterFail.RegisterFailMock.defaultExpectation.params
-		mm_want_ptrs := mmRegisterFail.RegisterFailMock.defaultExpectation.paramPtrs
+	if mmTakeAttempt.TakeAttemptMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmTakeAttempt.TakeAttemptMock.defaultExpectation.Counter, 1)
+		mm_want := mmTakeAttempt.TakeAttemptMock.defaultExpectation.params
+		mm_want_ptrs := mmTakeAttempt.TakeAttemptMock.defaultExpectation.paramPtrs
 
-		mm_got := SessionStoreMockRegisterFailParams{ctx, identifier}
+		mm_got := SessionStoreMockTakeAttemptParams{ctx, identifier}
 
 		if mm_want_ptrs != nil {
 
 			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
-				mmRegisterFail.t.Errorf("SessionStoreMock.RegisterFail got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmRegisterFail.RegisterFailMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+				mmTakeAttempt.t.Errorf("SessionStoreMock.TakeAttempt got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmTakeAttempt.TakeAttemptMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
 			}
 
 			if mm_want_ptrs.identifier != nil && !minimock.Equal(*mm_want_ptrs.identifier, mm_got.identifier) {
-				mmRegisterFail.t.Errorf("SessionStoreMock.RegisterFail got unexpected parameter identifier, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmRegisterFail.RegisterFailMock.defaultExpectation.expectationOrigins.originIdentifier, *mm_want_ptrs.identifier, mm_got.identifier, minimock.Diff(*mm_want_ptrs.identifier, mm_got.identifier))
+				mmTakeAttempt.t.Errorf("SessionStoreMock.TakeAttempt got unexpected parameter identifier, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmTakeAttempt.TakeAttemptMock.defaultExpectation.expectationOrigins.originIdentifier, *mm_want_ptrs.identifier, mm_got.identifier, minimock.Diff(*mm_want_ptrs.identifier, mm_got.identifier))
 			}
 
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmRegisterFail.t.Errorf("SessionStoreMock.RegisterFail got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-				mmRegisterFail.RegisterFailMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+			mmTakeAttempt.t.Errorf("SessionStoreMock.TakeAttempt got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmTakeAttempt.TakeAttemptMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		mm_results := mmRegisterFail.RegisterFailMock.defaultExpectation.results
+		mm_results := mmTakeAttempt.TakeAttemptMock.defaultExpectation.results
 		if mm_results == nil {
-			mmRegisterFail.t.Fatal("No results are set for the SessionStoreMock.RegisterFail")
+			mmTakeAttempt.t.Fatal("No results are set for the SessionStoreMock.TakeAttempt")
 		}
-		return (*mm_results).err
+		return (*mm_results).b1, (*mm_results).err
 	}
-	if mmRegisterFail.funcRegisterFail != nil {
-		return mmRegisterFail.funcRegisterFail(ctx, identifier)
+	if mmTakeAttempt.funcTakeAttempt != nil {
+		return mmTakeAttempt.funcTakeAttempt(ctx, identifier)
 	}
-	mmRegisterFail.t.Fatalf("Unexpected call to SessionStoreMock.RegisterFail. %v %v", ctx, identifier)
+	mmTakeAttempt.t.Fatalf("Unexpected call to SessionStoreMock.TakeAttempt. %v %v", ctx, identifier)
 	return
 }
 
-// RegisterFailAfterCounter returns a count of finished SessionStoreMock.RegisterFail invocations
-func (mmRegisterFail *SessionStoreMock) RegisterFailAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmRegisterFail.afterRegisterFailCounter)
+// TakeAttemptAfterCounter returns a count of finished SessionStoreMock.TakeAttempt invocations
+func (mmTakeAttempt *SessionStoreMock) TakeAttemptAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmTakeAttempt.afterTakeAttemptCounter)
 }
 
-// RegisterFailBeforeCounter returns a count of SessionStoreMock.RegisterFail invocations
-func (mmRegisterFail *SessionStoreMock) RegisterFailBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmRegisterFail.beforeRegisterFailCounter)
+// TakeAttemptBeforeCounter returns a count of SessionStoreMock.TakeAttempt invocations
+func (mmTakeAttempt *SessionStoreMock) TakeAttemptBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmTakeAttempt.beforeTakeAttemptCounter)
 }
 
-// Calls returns a list of arguments used in each call to SessionStoreMock.RegisterFail.
+// Calls returns a list of arguments used in each call to SessionStoreMock.TakeAttempt.
 // The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmRegisterFail *mSessionStoreMockRegisterFail) Calls() []*SessionStoreMockRegisterFailParams {
-	mmRegisterFail.mutex.RLock()
+func (mmTakeAttempt *mSessionStoreMockTakeAttempt) Calls() []*SessionStoreMockTakeAttemptParams {
+	mmTakeAttempt.mutex.RLock()
 
-	argCopy := make([]*SessionStoreMockRegisterFailParams, len(mmRegisterFail.callArgs))
-	copy(argCopy, mmRegisterFail.callArgs)
+	argCopy := make([]*SessionStoreMockTakeAttemptParams, len(mmTakeAttempt.callArgs))
+	copy(argCopy, mmTakeAttempt.callArgs)
 
-	mmRegisterFail.mutex.RUnlock()
+	mmTakeAttempt.mutex.RUnlock()
 
 	return argCopy
 }
 
-// MinimockRegisterFailDone returns true if the count of the RegisterFail invocations corresponds
+// MinimockTakeAttemptDone returns true if the count of the TakeAttempt invocations corresponds
 // the number of defined expectations
-func (m *SessionStoreMock) MinimockRegisterFailDone() bool {
-	if m.RegisterFailMock.optional {
+func (m *SessionStoreMock) MinimockTakeAttemptDone() bool {
+	if m.TakeAttemptMock.optional {
 		// Optional methods provide '0 or more' call count restriction.
 		return true
 	}
 
-	for _, e := range m.RegisterFailMock.expectations {
+	for _, e := range m.TakeAttemptMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
 			return false
 		}
 	}
 
-	return m.RegisterFailMock.invocationsDone()
+	return m.TakeAttemptMock.invocationsDone()
 }
 
-// MinimockRegisterFailInspect logs each unmet expectation
-func (m *SessionStoreMock) MinimockRegisterFailInspect() {
-	for _, e := range m.RegisterFailMock.expectations {
+// MinimockTakeAttemptInspect logs each unmet expectation
+func (m *SessionStoreMock) MinimockTakeAttemptInspect() {
+	for _, e := range m.TakeAttemptMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to SessionStoreMock.RegisterFail at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+			m.t.Errorf("Expected call to SessionStoreMock.TakeAttempt at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
 		}
 	}
 
-	afterRegisterFailCounter := mm_atomic.LoadUint64(&m.afterRegisterFailCounter)
+	afterTakeAttemptCounter := mm_atomic.LoadUint64(&m.afterTakeAttemptCounter)
 	// if default expectation was set then invocations count should be greater than zero
-	if m.RegisterFailMock.defaultExpectation != nil && afterRegisterFailCounter < 1 {
-		if m.RegisterFailMock.defaultExpectation.params == nil {
-			m.t.Errorf("Expected call to SessionStoreMock.RegisterFail at\n%s", m.RegisterFailMock.defaultExpectation.returnOrigin)
+	if m.TakeAttemptMock.defaultExpectation != nil && afterTakeAttemptCounter < 1 {
+		if m.TakeAttemptMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to SessionStoreMock.TakeAttempt at\n%s", m.TakeAttemptMock.defaultExpectation.returnOrigin)
 		} else {
-			m.t.Errorf("Expected call to SessionStoreMock.RegisterFail at\n%s with params: %#v", m.RegisterFailMock.defaultExpectation.expectationOrigins.origin, *m.RegisterFailMock.defaultExpectation.params)
+			m.t.Errorf("Expected call to SessionStoreMock.TakeAttempt at\n%s with params: %#v", m.TakeAttemptMock.defaultExpectation.expectationOrigins.origin, *m.TakeAttemptMock.defaultExpectation.params)
 		}
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcRegisterFail != nil && afterRegisterFailCounter < 1 {
-		m.t.Errorf("Expected call to SessionStoreMock.RegisterFail at\n%s", m.funcRegisterFailOrigin)
+	if m.funcTakeAttempt != nil && afterTakeAttemptCounter < 1 {
+		m.t.Errorf("Expected call to SessionStoreMock.TakeAttempt at\n%s", m.funcTakeAttemptOrigin)
 	}
 
-	if !m.RegisterFailMock.invocationsDone() && afterRegisterFailCounter > 0 {
-		m.t.Errorf("Expected %d calls to SessionStoreMock.RegisterFail at\n%s but found %d calls",
-			mm_atomic.LoadUint64(&m.RegisterFailMock.expectedInvocations), m.RegisterFailMock.expectedInvocationsOrigin, afterRegisterFailCounter)
+	if !m.TakeAttemptMock.invocationsDone() && afterTakeAttemptCounter > 0 {
+		m.t.Errorf("Expected %d calls to SessionStoreMock.TakeAttempt at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.TakeAttemptMock.expectedInvocations), m.TakeAttemptMock.expectedInvocationsOrigin, afterTakeAttemptCounter)
 	}
 }
 
@@ -2866,11 +2514,9 @@ func (m *SessionStoreMock) MinimockFinish() {
 
 			m.MinimockGetInspect()
 
-			m.MinimockIsLockedInspect()
-
 			m.MinimockPutPendingInspect()
 
-			m.MinimockRegisterFailInspect()
+			m.MinimockTakeAttemptInspect()
 
 			m.MinimockTakePendingInspect()
 		}
@@ -2900,8 +2546,7 @@ func (m *SessionStoreMock) minimockDone() bool {
 		m.MinimockCreateDone() &&
 		m.MinimockDeleteDone() &&
 		m.MinimockGetDone() &&
-		m.MinimockIsLockedDone() &&
 		m.MinimockPutPendingDone() &&
-		m.MinimockRegisterFailDone() &&
+		m.MinimockTakeAttemptDone() &&
 		m.MinimockTakePendingDone()
 }
