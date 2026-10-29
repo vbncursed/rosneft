@@ -49,9 +49,21 @@ linters:
           disabled: true
         - name: exported
           disabled: true
+        # One concern per file: at most 200 lines of code, blank lines and
+        # comments not counted (the frontend and desktop rule). Tests are
+        # exempt below.
+        - name: file-length-limit
+          arguments:
+            - max: 200
+              skipComments: true
+              skipBlankLines: true
 
   exclusions:
     rules:
+      # The file-length rule is for production code: a table-driven or suite
+      # test file legitimately runs longer than one concern of logic.
+      - path: _test\.go
+        text: file-length-limit
       # G115 (integer overflow on conversion) is switched off only where the
       # value cannot leave its range, and each directory has its own reason.
       # It stays ON in gateway-service/internal/transport: that is where
