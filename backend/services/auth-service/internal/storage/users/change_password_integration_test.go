@@ -86,16 +86,19 @@ func (s *ChangePasswordSuite) TestSetsTheHashAndStampsPasswordChangedAt() {
 	)
 	assert.NilError(s.T(), err)
 
-	assert.NilError(s.T(), s.store.ChangePassword(s.T().Context(), u.ID, "new-hash"))
+	at := time.Date(2026, 10, 29, 12, 0, 0, 123456000, time.UTC)
+	assert.NilError(s.T(), s.store.ChangePassword(s.T().Context(), u.ID, "new-hash", at))
 
-	assert.Assert(s.T(), s.passwordChangedAt(u.ID) != nil)
+	got := s.passwordChangedAt(u.ID)
+	assert.Assert(s.T(), got != nil)
+	assert.Equal(s.T(), got.UnixMicro(), at.UnixMicro())
 	reread, err := s.store.GetByID(s.T().Context(), u.ID)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), reread.PasswordHash, "new-hash")
 }
 
 func (s *ChangePasswordSuite) TestAnUnknownUserIsNotFound() {
-	err := s.store.ChangePassword(s.T().Context(), "00000000-0000-0000-0000-000000000000", "new-hash")
+	err := s.store.ChangePassword(s.T().Context(), "00000000-0000-0000-0000-000000000000", "new-hash", time.Now())
 
 	assert.ErrorIs(s.T(), err, domain.ErrUserNotFound)
 }

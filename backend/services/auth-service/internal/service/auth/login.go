@@ -99,11 +99,14 @@ func (s *Service) startSession(ctx context.Context, u domain.User) (string, stri
 
 // issue creates a session proving the login is live. Authorization is re-read
 // from the database on each ValidateToken, so nothing role-derived is stored.
+// The password epoch is the exception: it is the epoch of the user row this
+// login read, so a password change that lands afterwards outdates the session.
 func (s *Service) issue(ctx context.Context, u domain.User) (string, error) {
 	return s.sessions.Create(ctx, domain.Session{
 		UserID:         u.ID,
 		Status:         u.Status,
 		AbsoluteExpiry: time.Now().Add(s.absoluteTTL),
+		PwEpoch:        u.PasswordEpoch(),
 	})
 }
 

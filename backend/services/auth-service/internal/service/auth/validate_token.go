@@ -1,6 +1,10 @@
 package auth
 
-import "context"
+import (
+	"context"
+
+	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
+)
 
 // ValidateToken authenticates a token against its live Redis session, then
 // returns the caller's authorization (permissions, owner flag, territory scope,
@@ -38,8 +42,20 @@ func (s *Service) ValidateToken(
 			owningAdmin:  scopeOwningAdmin(u.RoleSlugs, resolvedAdmin, u.ID),
 			auditCompany: resolvedAdmin,
 			totpRequired: u.TOTPRequired,
+			pwEpoch:      u.PasswordEpoch(),
 		}
 		s.authz.set(u.ID, a)
+	}
+
+	// A session minted under an older password than the user's current one is
+	// dead (a Login that raced the change). PwEpoch 0 is a session stored before
+	// epochs existed and is not checked. The epoch rides on the snapshot above,
+	// so this costs no extra round trip; like any other authorization change it
+	// is enforced within authzCacheTTL on other replicas, and at once here
+	// because the password change drops the snapshot (ForgetUser).
+	if sess.PwEpoch != 0 && sess.PwEpoch < a.pwEpoch {
+		_ = s.sessions.Delete(ctx, token)
+		return "", nil, false, "", "", false, domain.ErrSessionInvalid
 	}
 
 	// totpRequired is policy — a column on the user row, cached in the
@@ -70,3 +86,7 @@ func (s *Service) ValidateToken(
 	}
 	return sess.UserID, a.perms, a.isOwner, a.owningAdmin, a.auditCompany, mustEnroll, nil
 }
+
+// ForgetUser drops the cached authorization snapshot of a user, so a password
+// change is enforced by the next ValidateToken instead of after authzCacheTTL.
+func (s *Service) ForgetUser(userID string) { s.authz.drop(userID) }

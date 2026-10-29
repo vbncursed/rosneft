@@ -32,6 +32,8 @@ type User struct {
 	// together, a twofa-service outage would be indistinguishable from a user
 	// who has simply not enrolled yet.
 	TOTPRequired bool
+	// PasswordChangedAt is nil until the password is first changed.
+	PasswordChangedAt *time.Time
 	// OnboardingToursSeen lists the first-run tours this user has finished or
 	// skipped, by id. Empty until they complete their first one.
 	OnboardingToursSeen []string
@@ -39,4 +41,17 @@ type User struct {
 	// filled by the same query that loads the slugs — the join onto roles is
 	// already there, so the title is one more column rather than a second read.
 	RoleTitles map[string]string
+}
+
+// NeverChangedEpoch is the password epoch of a user whose password was never
+// changed. It is nonzero because zero means "session predates epochs".
+const NeverChangedEpoch int64 = 1
+
+// PasswordEpoch orders a user's passwords: it grows with every change. A
+// session minted under an older epoch than the user's current one is dead.
+func (u User) PasswordEpoch() int64 {
+	if u.PasswordChangedAt == nil {
+		return NeverChangedEpoch
+	}
+	return u.PasswordChangedAt.UnixMicro()
 }

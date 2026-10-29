@@ -39,6 +39,13 @@ type SessionsMock struct {
 	beforeDeleteUserExceptCounter uint64
 	DeleteUserExceptMock          mSessionsMockDeleteUserExcept
 
+	funcSetPasswordEpoch          func(ctx context.Context, token string, epoch int64) (err error)
+	funcSetPasswordEpochOrigin    string
+	inspectFuncSetPasswordEpoch   func(ctx context.Context, token string, epoch int64)
+	afterSetPasswordEpochCounter  uint64
+	beforeSetPasswordEpochCounter uint64
+	SetPasswordEpochMock          mSessionsMockSetPasswordEpoch
+
 	funcTakeChangePasswordAttempt          func(ctx context.Context, userID string) (b1 bool, err error)
 	funcTakeChangePasswordAttemptOrigin    string
 	inspectFuncTakeChangePasswordAttempt   func(ctx context.Context, userID string)
@@ -63,6 +70,9 @@ func NewSessionsMock(t minimock.Tester) *SessionsMock {
 
 	m.DeleteUserExceptMock = mSessionsMockDeleteUserExcept{mock: m}
 	m.DeleteUserExceptMock.callArgs = []*SessionsMockDeleteUserExceptParams{}
+
+	m.SetPasswordEpochMock = mSessionsMockSetPasswordEpoch{mock: m}
+	m.SetPasswordEpochMock.callArgs = []*SessionsMockSetPasswordEpochParams{}
 
 	m.TakeChangePasswordAttemptMock = mSessionsMockTakeChangePasswordAttempt{mock: m}
 	m.TakeChangePasswordAttemptMock.callArgs = []*SessionsMockTakeChangePasswordAttemptParams{}
@@ -1129,6 +1139,379 @@ func (m *SessionsMock) MinimockDeleteUserExceptInspect() {
 	}
 }
 
+type mSessionsMockSetPasswordEpoch struct {
+	optional           bool
+	mock               *SessionsMock
+	defaultExpectation *SessionsMockSetPasswordEpochExpectation
+	expectations       []*SessionsMockSetPasswordEpochExpectation
+
+	callArgs []*SessionsMockSetPasswordEpochParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// SessionsMockSetPasswordEpochExpectation specifies expectation struct of the Sessions.SetPasswordEpoch
+type SessionsMockSetPasswordEpochExpectation struct {
+	mock               *SessionsMock
+	params             *SessionsMockSetPasswordEpochParams
+	paramPtrs          *SessionsMockSetPasswordEpochParamPtrs
+	expectationOrigins SessionsMockSetPasswordEpochExpectationOrigins
+	results            *SessionsMockSetPasswordEpochResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// SessionsMockSetPasswordEpochParams contains parameters of the Sessions.SetPasswordEpoch
+type SessionsMockSetPasswordEpochParams struct {
+	ctx   context.Context
+	token string
+	epoch int64
+}
+
+// SessionsMockSetPasswordEpochParamPtrs contains pointers to parameters of the Sessions.SetPasswordEpoch
+type SessionsMockSetPasswordEpochParamPtrs struct {
+	ctx   *context.Context
+	token *string
+	epoch *int64
+}
+
+// SessionsMockSetPasswordEpochResults contains results of the Sessions.SetPasswordEpoch
+type SessionsMockSetPasswordEpochResults struct {
+	err error
+}
+
+// SessionsMockSetPasswordEpochOrigins contains origins of expectations of the Sessions.SetPasswordEpoch
+type SessionsMockSetPasswordEpochExpectationOrigins struct {
+	origin      string
+	originCtx   string
+	originToken string
+	originEpoch string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmSetPasswordEpoch *mSessionsMockSetPasswordEpoch) Optional() *mSessionsMockSetPasswordEpoch {
+	mmSetPasswordEpoch.optional = true
+	return mmSetPasswordEpoch
+}
+
+// Expect sets up expected params for Sessions.SetPasswordEpoch
+func (mmSetPasswordEpoch *mSessionsMockSetPasswordEpoch) Expect(ctx context.Context, token string, epoch int64) *mSessionsMockSetPasswordEpoch {
+	if mmSetPasswordEpoch.mock.funcSetPasswordEpoch != nil {
+		mmSetPasswordEpoch.mock.t.Fatalf("SessionsMock.SetPasswordEpoch mock is already set by Set")
+	}
+
+	if mmSetPasswordEpoch.defaultExpectation == nil {
+		mmSetPasswordEpoch.defaultExpectation = &SessionsMockSetPasswordEpochExpectation{}
+	}
+
+	if mmSetPasswordEpoch.defaultExpectation.paramPtrs != nil {
+		mmSetPasswordEpoch.mock.t.Fatalf("SessionsMock.SetPasswordEpoch mock is already set by ExpectParams functions")
+	}
+
+	mmSetPasswordEpoch.defaultExpectation.params = &SessionsMockSetPasswordEpochParams{ctx, token, epoch}
+	mmSetPasswordEpoch.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmSetPasswordEpoch.expectations {
+		if minimock.Equal(e.params, mmSetPasswordEpoch.defaultExpectation.params) {
+			mmSetPasswordEpoch.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSetPasswordEpoch.defaultExpectation.params)
+		}
+	}
+
+	return mmSetPasswordEpoch
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Sessions.SetPasswordEpoch
+func (mmSetPasswordEpoch *mSessionsMockSetPasswordEpoch) ExpectCtxParam1(ctx context.Context) *mSessionsMockSetPasswordEpoch {
+	if mmSetPasswordEpoch.mock.funcSetPasswordEpoch != nil {
+		mmSetPasswordEpoch.mock.t.Fatalf("SessionsMock.SetPasswordEpoch mock is already set by Set")
+	}
+
+	if mmSetPasswordEpoch.defaultExpectation == nil {
+		mmSetPasswordEpoch.defaultExpectation = &SessionsMockSetPasswordEpochExpectation{}
+	}
+
+	if mmSetPasswordEpoch.defaultExpectation.params != nil {
+		mmSetPasswordEpoch.mock.t.Fatalf("SessionsMock.SetPasswordEpoch mock is already set by Expect")
+	}
+
+	if mmSetPasswordEpoch.defaultExpectation.paramPtrs == nil {
+		mmSetPasswordEpoch.defaultExpectation.paramPtrs = &SessionsMockSetPasswordEpochParamPtrs{}
+	}
+	mmSetPasswordEpoch.defaultExpectation.paramPtrs.ctx = &ctx
+	mmSetPasswordEpoch.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmSetPasswordEpoch
+}
+
+// ExpectTokenParam2 sets up expected param token for Sessions.SetPasswordEpoch
+func (mmSetPasswordEpoch *mSessionsMockSetPasswordEpoch) ExpectTokenParam2(token string) *mSessionsMockSetPasswordEpoch {
+	if mmSetPasswordEpoch.mock.funcSetPasswordEpoch != nil {
+		mmSetPasswordEpoch.mock.t.Fatalf("SessionsMock.SetPasswordEpoch mock is already set by Set")
+	}
+
+	if mmSetPasswordEpoch.defaultExpectation == nil {
+		mmSetPasswordEpoch.defaultExpectation = &SessionsMockSetPasswordEpochExpectation{}
+	}
+
+	if mmSetPasswordEpoch.defaultExpectation.params != nil {
+		mmSetPasswordEpoch.mock.t.Fatalf("SessionsMock.SetPasswordEpoch mock is already set by Expect")
+	}
+
+	if mmSetPasswordEpoch.defaultExpectation.paramPtrs == nil {
+		mmSetPasswordEpoch.defaultExpectation.paramPtrs = &SessionsMockSetPasswordEpochParamPtrs{}
+	}
+	mmSetPasswordEpoch.defaultExpectation.paramPtrs.token = &token
+	mmSetPasswordEpoch.defaultExpectation.expectationOrigins.originToken = minimock.CallerInfo(1)
+
+	return mmSetPasswordEpoch
+}
+
+// ExpectEpochParam3 sets up expected param epoch for Sessions.SetPasswordEpoch
+func (mmSetPasswordEpoch *mSessionsMockSetPasswordEpoch) ExpectEpochParam3(epoch int64) *mSessionsMockSetPasswordEpoch {
+	if mmSetPasswordEpoch.mock.funcSetPasswordEpoch != nil {
+		mmSetPasswordEpoch.mock.t.Fatalf("SessionsMock.SetPasswordEpoch mock is already set by Set")
+	}
+
+	if mmSetPasswordEpoch.defaultExpectation == nil {
+		mmSetPasswordEpoch.defaultExpectation = &SessionsMockSetPasswordEpochExpectation{}
+	}
+
+	if mmSetPasswordEpoch.defaultExpectation.params != nil {
+		mmSetPasswordEpoch.mock.t.Fatalf("SessionsMock.SetPasswordEpoch mock is already set by Expect")
+	}
+
+	if mmSetPasswordEpoch.defaultExpectation.paramPtrs == nil {
+		mmSetPasswordEpoch.defaultExpectation.paramPtrs = &SessionsMockSetPasswordEpochParamPtrs{}
+	}
+	mmSetPasswordEpoch.defaultExpectation.paramPtrs.epoch = &epoch
+	mmSetPasswordEpoch.defaultExpectation.expectationOrigins.originEpoch = minimock.CallerInfo(1)
+
+	return mmSetPasswordEpoch
+}
+
+// Inspect accepts an inspector function that has same arguments as the Sessions.SetPasswordEpoch
+func (mmSetPasswordEpoch *mSessionsMockSetPasswordEpoch) Inspect(f func(ctx context.Context, token string, epoch int64)) *mSessionsMockSetPasswordEpoch {
+	if mmSetPasswordEpoch.mock.inspectFuncSetPasswordEpoch != nil {
+		mmSetPasswordEpoch.mock.t.Fatalf("Inspect function is already set for SessionsMock.SetPasswordEpoch")
+	}
+
+	mmSetPasswordEpoch.mock.inspectFuncSetPasswordEpoch = f
+
+	return mmSetPasswordEpoch
+}
+
+// Return sets up results that will be returned by Sessions.SetPasswordEpoch
+func (mmSetPasswordEpoch *mSessionsMockSetPasswordEpoch) Return(err error) *SessionsMock {
+	if mmSetPasswordEpoch.mock.funcSetPasswordEpoch != nil {
+		mmSetPasswordEpoch.mock.t.Fatalf("SessionsMock.SetPasswordEpoch mock is already set by Set")
+	}
+
+	if mmSetPasswordEpoch.defaultExpectation == nil {
+		mmSetPasswordEpoch.defaultExpectation = &SessionsMockSetPasswordEpochExpectation{mock: mmSetPasswordEpoch.mock}
+	}
+	mmSetPasswordEpoch.defaultExpectation.results = &SessionsMockSetPasswordEpochResults{err}
+	mmSetPasswordEpoch.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmSetPasswordEpoch.mock
+}
+
+// Set uses given function f to mock the Sessions.SetPasswordEpoch method
+func (mmSetPasswordEpoch *mSessionsMockSetPasswordEpoch) Set(f func(ctx context.Context, token string, epoch int64) (err error)) *SessionsMock {
+	if mmSetPasswordEpoch.defaultExpectation != nil {
+		mmSetPasswordEpoch.mock.t.Fatalf("Default expectation is already set for the Sessions.SetPasswordEpoch method")
+	}
+
+	if len(mmSetPasswordEpoch.expectations) > 0 {
+		mmSetPasswordEpoch.mock.t.Fatalf("Some expectations are already set for the Sessions.SetPasswordEpoch method")
+	}
+
+	mmSetPasswordEpoch.mock.funcSetPasswordEpoch = f
+	mmSetPasswordEpoch.mock.funcSetPasswordEpochOrigin = minimock.CallerInfo(1)
+	return mmSetPasswordEpoch.mock
+}
+
+// When sets expectation for the Sessions.SetPasswordEpoch which will trigger the result defined by the following
+// Then helper
+func (mmSetPasswordEpoch *mSessionsMockSetPasswordEpoch) When(ctx context.Context, token string, epoch int64) *SessionsMockSetPasswordEpochExpectation {
+	if mmSetPasswordEpoch.mock.funcSetPasswordEpoch != nil {
+		mmSetPasswordEpoch.mock.t.Fatalf("SessionsMock.SetPasswordEpoch mock is already set by Set")
+	}
+
+	expectation := &SessionsMockSetPasswordEpochExpectation{
+		mock:               mmSetPasswordEpoch.mock,
+		params:             &SessionsMockSetPasswordEpochParams{ctx, token, epoch},
+		expectationOrigins: SessionsMockSetPasswordEpochExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmSetPasswordEpoch.expectations = append(mmSetPasswordEpoch.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Sessions.SetPasswordEpoch return parameters for the expectation previously defined by the When method
+func (e *SessionsMockSetPasswordEpochExpectation) Then(err error) *SessionsMock {
+	e.results = &SessionsMockSetPasswordEpochResults{err}
+	return e.mock
+}
+
+// Times sets number of times Sessions.SetPasswordEpoch should be invoked
+func (mmSetPasswordEpoch *mSessionsMockSetPasswordEpoch) Times(n uint64) *mSessionsMockSetPasswordEpoch {
+	if n == 0 {
+		mmSetPasswordEpoch.mock.t.Fatalf("Times of SessionsMock.SetPasswordEpoch mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmSetPasswordEpoch.expectedInvocations, n)
+	mmSetPasswordEpoch.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmSetPasswordEpoch
+}
+
+func (mmSetPasswordEpoch *mSessionsMockSetPasswordEpoch) invocationsDone() bool {
+	if len(mmSetPasswordEpoch.expectations) == 0 && mmSetPasswordEpoch.defaultExpectation == nil && mmSetPasswordEpoch.mock.funcSetPasswordEpoch == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmSetPasswordEpoch.mock.afterSetPasswordEpochCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmSetPasswordEpoch.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// SetPasswordEpoch implements mm_users.Sessions
+func (mmSetPasswordEpoch *SessionsMock) SetPasswordEpoch(ctx context.Context, token string, epoch int64) (err error) {
+	mm_atomic.AddUint64(&mmSetPasswordEpoch.beforeSetPasswordEpochCounter, 1)
+	defer mm_atomic.AddUint64(&mmSetPasswordEpoch.afterSetPasswordEpochCounter, 1)
+
+	mmSetPasswordEpoch.t.Helper()
+
+	if mmSetPasswordEpoch.inspectFuncSetPasswordEpoch != nil {
+		mmSetPasswordEpoch.inspectFuncSetPasswordEpoch(ctx, token, epoch)
+	}
+
+	mm_params := SessionsMockSetPasswordEpochParams{ctx, token, epoch}
+
+	// Record call args
+	mmSetPasswordEpoch.SetPasswordEpochMock.mutex.Lock()
+	mmSetPasswordEpoch.SetPasswordEpochMock.callArgs = append(mmSetPasswordEpoch.SetPasswordEpochMock.callArgs, &mm_params)
+	mmSetPasswordEpoch.SetPasswordEpochMock.mutex.Unlock()
+
+	for _, e := range mmSetPasswordEpoch.SetPasswordEpochMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmSetPasswordEpoch.SetPasswordEpochMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmSetPasswordEpoch.SetPasswordEpochMock.defaultExpectation.Counter, 1)
+		mm_want := mmSetPasswordEpoch.SetPasswordEpochMock.defaultExpectation.params
+		mm_want_ptrs := mmSetPasswordEpoch.SetPasswordEpochMock.defaultExpectation.paramPtrs
+
+		mm_got := SessionsMockSetPasswordEpochParams{ctx, token, epoch}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmSetPasswordEpoch.t.Errorf("SessionsMock.SetPasswordEpoch got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPasswordEpoch.SetPasswordEpochMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.token != nil && !minimock.Equal(*mm_want_ptrs.token, mm_got.token) {
+				mmSetPasswordEpoch.t.Errorf("SessionsMock.SetPasswordEpoch got unexpected parameter token, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPasswordEpoch.SetPasswordEpochMock.defaultExpectation.expectationOrigins.originToken, *mm_want_ptrs.token, mm_got.token, minimock.Diff(*mm_want_ptrs.token, mm_got.token))
+			}
+
+			if mm_want_ptrs.epoch != nil && !minimock.Equal(*mm_want_ptrs.epoch, mm_got.epoch) {
+				mmSetPasswordEpoch.t.Errorf("SessionsMock.SetPasswordEpoch got unexpected parameter epoch, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPasswordEpoch.SetPasswordEpochMock.defaultExpectation.expectationOrigins.originEpoch, *mm_want_ptrs.epoch, mm_got.epoch, minimock.Diff(*mm_want_ptrs.epoch, mm_got.epoch))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmSetPasswordEpoch.t.Errorf("SessionsMock.SetPasswordEpoch got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmSetPasswordEpoch.SetPasswordEpochMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmSetPasswordEpoch.SetPasswordEpochMock.defaultExpectation.results
+		if mm_results == nil {
+			mmSetPasswordEpoch.t.Fatal("No results are set for the SessionsMock.SetPasswordEpoch")
+		}
+		return (*mm_results).err
+	}
+	if mmSetPasswordEpoch.funcSetPasswordEpoch != nil {
+		return mmSetPasswordEpoch.funcSetPasswordEpoch(ctx, token, epoch)
+	}
+	mmSetPasswordEpoch.t.Fatalf("Unexpected call to SessionsMock.SetPasswordEpoch. %v %v %v", ctx, token, epoch)
+	return
+}
+
+// SetPasswordEpochAfterCounter returns a count of finished SessionsMock.SetPasswordEpoch invocations
+func (mmSetPasswordEpoch *SessionsMock) SetPasswordEpochAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetPasswordEpoch.afterSetPasswordEpochCounter)
+}
+
+// SetPasswordEpochBeforeCounter returns a count of SessionsMock.SetPasswordEpoch invocations
+func (mmSetPasswordEpoch *SessionsMock) SetPasswordEpochBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetPasswordEpoch.beforeSetPasswordEpochCounter)
+}
+
+// Calls returns a list of arguments used in each call to SessionsMock.SetPasswordEpoch.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmSetPasswordEpoch *mSessionsMockSetPasswordEpoch) Calls() []*SessionsMockSetPasswordEpochParams {
+	mmSetPasswordEpoch.mutex.RLock()
+
+	argCopy := make([]*SessionsMockSetPasswordEpochParams, len(mmSetPasswordEpoch.callArgs))
+	copy(argCopy, mmSetPasswordEpoch.callArgs)
+
+	mmSetPasswordEpoch.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockSetPasswordEpochDone returns true if the count of the SetPasswordEpoch invocations corresponds
+// the number of defined expectations
+func (m *SessionsMock) MinimockSetPasswordEpochDone() bool {
+	if m.SetPasswordEpochMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.SetPasswordEpochMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.SetPasswordEpochMock.invocationsDone()
+}
+
+// MinimockSetPasswordEpochInspect logs each unmet expectation
+func (m *SessionsMock) MinimockSetPasswordEpochInspect() {
+	for _, e := range m.SetPasswordEpochMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to SessionsMock.SetPasswordEpoch at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterSetPasswordEpochCounter := mm_atomic.LoadUint64(&m.afterSetPasswordEpochCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.SetPasswordEpochMock.defaultExpectation != nil && afterSetPasswordEpochCounter < 1 {
+		if m.SetPasswordEpochMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to SessionsMock.SetPasswordEpoch at\n%s", m.SetPasswordEpochMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to SessionsMock.SetPasswordEpoch at\n%s with params: %#v", m.SetPasswordEpochMock.defaultExpectation.expectationOrigins.origin, *m.SetPasswordEpochMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcSetPasswordEpoch != nil && afterSetPasswordEpochCounter < 1 {
+		m.t.Errorf("Expected call to SessionsMock.SetPasswordEpoch at\n%s", m.funcSetPasswordEpochOrigin)
+	}
+
+	if !m.SetPasswordEpochMock.invocationsDone() && afterSetPasswordEpochCounter > 0 {
+		m.t.Errorf("Expected %d calls to SessionsMock.SetPasswordEpoch at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.SetPasswordEpochMock.expectedInvocations), m.SetPasswordEpochMock.expectedInvocationsOrigin, afterSetPasswordEpochCounter)
+	}
+}
+
 type mSessionsMockTakeChangePasswordAttempt struct {
 	optional           bool
 	mock               *SessionsMock
@@ -1482,6 +1865,8 @@ func (m *SessionsMock) MinimockFinish() {
 
 			m.MinimockDeleteUserExceptInspect()
 
+			m.MinimockSetPasswordEpochInspect()
+
 			m.MinimockTakeChangePasswordAttemptInspect()
 		}
 	})
@@ -1509,5 +1894,6 @@ func (m *SessionsMock) minimockDone() bool {
 		m.MinimockClearChangePasswordFailsDone() &&
 		m.MinimockDeleteUserDone() &&
 		m.MinimockDeleteUserExceptDone() &&
+		m.MinimockSetPasswordEpochDone() &&
 		m.MinimockTakeChangePasswordAttemptDone()
 }

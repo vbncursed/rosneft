@@ -26,7 +26,8 @@ type Store interface {
 	SetOwner(ctx context.Context, id string, isOwner bool) (domain.User, error)
 	SetTOTPRequired(ctx context.Context, id string, required bool) (domain.User, error)
 	PermissionsForRoles(ctx context.Context, roleSlugs []string) ([]string, error)
-	ChangePassword(ctx context.Context, id, hash string) error
+	// ChangePassword stores the hash and stamps password_changed_at = changedAt.
+	ChangePassword(ctx context.Context, id, hash string, changedAt time.Time) error
 	CountAdmins(ctx context.Context, excludeUserID string) (int, error)
 	MarkTourSeen(ctx context.Context, id, tour string) error
 	ResolveLogins(ctx context.Context, ids []string) (map[string]string, error)
@@ -41,8 +42,11 @@ type Store interface {
 // session.changePasswordFailKey and session/store_test.go.
 type Sessions interface {
 	DeleteUser(ctx context.Context, userID string) error
-	// DeleteUserExcept signs the user out everywhere but keepToken.
+	// DeleteUserExcept signs the user out everywhere but keepToken. It is
+	// cleanup: the password epoch is what refuses the older sessions.
 	DeleteUserExcept(ctx context.Context, userID, keepToken string) error
+	// SetPasswordEpoch moves a live session to a password epoch.
+	SetPasswordEpoch(ctx context.Context, token string, epoch int64) error
 	// TakeChangePasswordAttempt reserves one attempt; false means the budget is spent.
 	TakeChangePasswordAttempt(ctx context.Context, userID string) (bool, error)
 	ClearChangePasswordFails(ctx context.Context, userID string) error
@@ -52,11 +56,33 @@ type Sessions interface {
 type Service struct {
 	store    Store
 	sessions Sessions
+	// onPasswordChange drops the auth service's cached snapshot of the user, so
+	// the new password epoch is enforced at once rather than after the cache TTL.
+	onPasswordChange func(userID string)
 }
 
 // New constructs the user service.
 func New(store Store, sessions Sessions) *Service {
 	return &Service{store: store, sessions: sessions}
+}
+
+// OnPasswordChange registers the hook called once a password has been stored.
+func (s *Service) OnPasswordChange(f func(userID string)) { s.onPasswordChange = f }
+
+func (s *Service) passwordChanged(userID string) {
+	if s.onPasswordChange != nil {
+		s.onPasswordChange(userID)
+	}
+}
+
+// nextChangeTime is the password_changed_at for a change made now: strictly
+// after the user's current epoch, so epochs grow even if a clock steps back.
+func nextChangeTime(u domain.User, now time.Time) time.Time {
+	at := now.UTC().Truncate(time.Microsecond)
+	if prev := u.PasswordEpoch(); at.UnixMicro() <= prev {
+		at = time.UnixMicro(prev + 1).UTC()
+	}
+	return at
 }
 
 // guard enforces the self-target and last-admin invariants shared by freeze

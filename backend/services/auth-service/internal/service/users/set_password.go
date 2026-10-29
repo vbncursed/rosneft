@@ -3,6 +3,8 @@ package users
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"time"
 
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/password"
@@ -38,13 +40,16 @@ func (s *Service) SetPassword(ctx context.Context, actorID string, scopeAll bool
 	if err != nil {
 		return fmt.Errorf("users.SetPassword: hash: %w", err)
 	}
-	if err := s.store.ChangePassword(ctx, id, hash); err != nil {
+	if err := s.store.ChangePassword(ctx, id, hash, nextChangeTime(target, time.Now())); err != nil {
 		return err
 	}
-	// The password has already changed. The failure is still returned so the
-	// admin retries, and a retry sets the same password and signs out again.
+	s.passwordChanged(id)
+	// Cleanup only: the new password epoch already refuses every older session
+	// in ValidateToken, including one a concurrent Login with the old password
+	// mints after this SMEMBERS, so the failure is logged, not returned.
 	if err := s.sessions.DeleteUser(ctx, id); err != nil {
-		return fmt.Errorf("users.SetPassword: sign out: %w", err)
+		slog.Warn("users.SetPassword: sign out failed; the epoch still refuses the sessions",
+			"user_id", id, "error", err)
 	}
 	return nil
 }

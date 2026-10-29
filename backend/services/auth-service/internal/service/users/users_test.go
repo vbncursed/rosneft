@@ -147,7 +147,7 @@ var privilegedOps = []privilegedOp{
 			return svc.SetPassword(ctx, actor, all, id, newPassword)
 		},
 		writes: func(t *testing.T, st *mocks.StoreMock, ss *mocks.SessionsMock, target string) {
-			st.ChangePasswordMock.Set(func(_ context.Context, id, _ string) error {
+			st.ChangePasswordMock.Set(func(_ context.Context, id, _ string, _ time.Time) error {
 				assert.Equal(t, id, target)
 				return nil
 			})

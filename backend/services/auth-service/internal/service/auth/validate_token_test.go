@@ -193,3 +193,67 @@ func (s *ValidateTokenSuite) TestCachedHitStillReportsMustEnroll() {
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), second, true)
 }
+
+// A session minted under an older password than the user's current one is dead
+// (a Login that raced the change); equal, newer and pre-epoch (zero) sessions
+// live, and so does a session of a user whose password was never changed.
+func (s *ValidateTokenSuite) TestSessionOlderThanThePasswordEpochIsRefused() {
+	changedAt := time.UnixMicro(2_000_000).UTC()
+	tests := []struct {
+		name    string
+		changed *time.Time
+		epoch   int64
+		valid   bool
+	}{
+		{"minted before the change", &changedAt, 1_999_999, false},
+		{"minted under the never-changed epoch, then changed", &changedAt, domain.NeverChangedEpoch, false},
+		{"minted under the current epoch", &changedAt, 2_000_000, true},
+		{"moved ahead of the row by the change itself", &changedAt, 2_000_001, true},
+		{"stored before epochs existed", &changedAt, 0, true},
+		{"password never changed", nil, domain.NeverChangedEpoch, true},
+	}
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			mc := minimock.NewController(s.T())
+			us, ss := mocks.NewUserStoreMock(mc), mocks.NewSessionStoreMock(mc)
+			svc := auth.New(us, ss, mocks.NewTwoFAVerifierMock(mc), mocks.NewPasskeyVerifierMock(mc), time.Hour)
+			ss.GetMock.Return(domain.Session{UserID: "u1", PwEpoch: tt.epoch}, nil)
+			us.GetByIDMock.Return(domain.User{ID: "u1", PasswordChangedAt: tt.changed}, nil)
+			us.ResolveOwningAdminMock.Return("", nil)
+			if !tt.valid {
+				ss.DeleteMock.Expect(s.ctx, "tok").Return(nil)
+			}
+
+			_, _, _, _, _, _, err := svc.ValidateToken(s.ctx, "tok")
+
+			if tt.valid {
+				assert.NilError(s.T(), err)
+				return
+			}
+			assert.ErrorIs(s.T(), err, domain.ErrSessionInvalid)
+		})
+	}
+}
+
+// The epoch rides on the cached snapshot (no extra read per request), so a
+// password change in this process must drop the snapshot: otherwise a session
+// the racing Login minted stays valid until the cache entry expires.
+func (s *ValidateTokenSuite) TestForgetUserEnforcesANewPasswordEpochAtOnce() {
+	changed := time.UnixMicro(2_000_000).UTC()
+	s.ss.GetMock.Return(domain.Session{UserID: "u1", PwEpoch: domain.NeverChangedEpoch}, nil)
+	s.us.GetByIDMock.Set(func(context.Context, string) (domain.User, error) { return domain.User{ID: "u1"}, nil })
+	s.us.ResolveOwningAdminMock.Return("", nil)
+	_, _, _, _, _, _, err := s.svc.ValidateToken(s.ctx, "tok")
+	assert.NilError(s.T(), err) // snapshot cached with the never-changed epoch
+
+	s.us.GetByIDMock.Set(func(context.Context, string) (domain.User, error) {
+		return domain.User{ID: "u1", PasswordChangedAt: &changed}, nil
+	})
+	s.ss.DeleteMock.Return(nil)
+	_, _, _, _, _, _, err = s.svc.ValidateToken(s.ctx, "tok")
+	assert.NilError(s.T(), err) // still the cached snapshot: this is the staleness being closed
+
+	s.svc.ForgetUser("u1")
+	_, _, _, _, _, _, err = s.svc.ValidateToken(s.ctx, "tok")
+	assert.ErrorIs(s.T(), err, domain.ErrSessionInvalid)
+}

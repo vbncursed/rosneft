@@ -3,17 +3,23 @@ package users
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"time"
 
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/password"
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/validate"
 )
 
-// ChangePassword verifies the old password, stores the new hash and signs the
-// user out everywhere except keepToken, the session that made the change:
-// whoever else held a session may have learned the old password. If the
-// sign-out fails the password has still changed and the error is returned, so
-// the user retries and the retry signs out again. Failed
+// ChangePassword verifies the old password, stores the new hash and ends every
+// other session of the user: whoever else held one may have learned the old
+// password. The boundary is the password epoch, not the deletion: the session
+// that makes the change is moved to the new epoch first, the new
+// password_changed_at then outdates every other session (ValidateToken refuses
+// them), including one a concurrent Login with the old password mints after
+// this returns. DeleteUserExcept only removes the dead keys, so its failure is
+// logged and the change still succeeds; failing the request would make a retry
+// useless anyway, as the old password no longer verifies. Failed
 // attempts are throttled the same way Login throttles them, through
 // dedicated Sessions methods keyed by userID under their own Redis
 // namespace — see the Sessions interface doc for why reusing Login's
@@ -46,12 +52,20 @@ func (s *Service) ChangePassword(ctx context.Context, userID, keepToken, oldPlai
 	if err != nil {
 		return fmt.Errorf("users.ChangePassword: hash: %w", err)
 	}
-	if err := s.store.ChangePassword(ctx, userID, hash); err != nil {
+	at := nextChangeTime(u, time.Now())
+	// Before the row changes, so the caller's own session is never between
+	// epochs. If the store then fails, the session is merely ahead of the row.
+	if err := s.sessions.SetPasswordEpoch(ctx, keepToken, at.UnixMicro()); err != nil {
+		return fmt.Errorf("users.ChangePassword: keep session: %w", err)
+	}
+	if err := s.store.ChangePassword(ctx, userID, hash, at); err != nil {
 		return err
 	}
+	s.passwordChanged(userID)
 	_ = s.sessions.ClearChangePasswordFails(ctx, userID)
 	if err := s.sessions.DeleteUserExcept(ctx, userID, keepToken); err != nil {
-		return fmt.Errorf("users.ChangePassword: sign out others: %w", err)
+		slog.Warn("users.ChangePassword: sign out others failed; the epoch still refuses them",
+			"user_id", userID, "error", err)
 	}
 	return nil
 }

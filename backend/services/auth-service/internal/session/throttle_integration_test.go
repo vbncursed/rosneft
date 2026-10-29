@@ -29,6 +29,7 @@ func (failExpire) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 		return next(ctx, cmd)
 	}
 }
+
 func (failExpire) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.ProcessPipelineHook {
 	return next
 }

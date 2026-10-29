@@ -28,6 +28,9 @@ type authz struct {
 	owningAdmin  string
 	auditCompany string
 	totpRequired bool
+	// pwEpoch is the user's current password epoch; a session minted under an
+	// older one is refused.
+	pwEpoch int64
 }
 
 // authzCache memoizes the DB hydration done by ValidateToken, keyed by user id,
@@ -65,5 +68,12 @@ func (c *authzCache) get(userID string) (authz, bool) {
 func (c *authzCache) set(userID string, a authz) {
 	c.mu.Lock()
 	c.m[userID] = authzEntry{a: a, exp: time.Now().Add(c.ttl)}
+	c.mu.Unlock()
+}
+
+// drop forgets a user's snapshot so the next ValidateToken reads the row again.
+func (c *authzCache) drop(userID string) {
+	c.mu.Lock()
+	delete(c.m, userID)
 	c.mu.Unlock()
 }
