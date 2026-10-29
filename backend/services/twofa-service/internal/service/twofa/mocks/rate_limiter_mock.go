@@ -18,6 +18,13 @@ type RateLimiterMock struct {
 	t          minimock.Tester
 	finishOnce sync.Once
 
+	funcClaimStep          func(ctx context.Context, userID string, step int64) (b1 bool, err error)
+	funcClaimStepOrigin    string
+	inspectFuncClaimStep   func(ctx context.Context, userID string, step int64)
+	afterClaimStepCounter  uint64
+	beforeClaimStepCounter uint64
+	ClaimStepMock          mRateLimiterMockClaimStep
+
 	funcClear          func(ctx context.Context, userID string) (err error)
 	funcClearOrigin    string
 	inspectFuncClear   func(ctx context.Context, userID string)
@@ -48,6 +55,9 @@ func NewRateLimiterMock(t minimock.Tester) *RateLimiterMock {
 		controller.RegisterMocker(m)
 	}
 
+	m.ClaimStepMock = mRateLimiterMockClaimStep{mock: m}
+	m.ClaimStepMock.callArgs = []*RateLimiterMockClaimStepParams{}
+
 	m.ClearMock = mRateLimiterMockClear{mock: m}
 	m.ClearMock.callArgs = []*RateLimiterMockClearParams{}
 
@@ -60,6 +70,380 @@ func NewRateLimiterMock(t minimock.Tester) *RateLimiterMock {
 	t.Cleanup(m.MinimockFinish)
 
 	return m
+}
+
+type mRateLimiterMockClaimStep struct {
+	optional           bool
+	mock               *RateLimiterMock
+	defaultExpectation *RateLimiterMockClaimStepExpectation
+	expectations       []*RateLimiterMockClaimStepExpectation
+
+	callArgs []*RateLimiterMockClaimStepParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RateLimiterMockClaimStepExpectation specifies expectation struct of the RateLimiter.ClaimStep
+type RateLimiterMockClaimStepExpectation struct {
+	mock               *RateLimiterMock
+	params             *RateLimiterMockClaimStepParams
+	paramPtrs          *RateLimiterMockClaimStepParamPtrs
+	expectationOrigins RateLimiterMockClaimStepExpectationOrigins
+	results            *RateLimiterMockClaimStepResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RateLimiterMockClaimStepParams contains parameters of the RateLimiter.ClaimStep
+type RateLimiterMockClaimStepParams struct {
+	ctx    context.Context
+	userID string
+	step   int64
+}
+
+// RateLimiterMockClaimStepParamPtrs contains pointers to parameters of the RateLimiter.ClaimStep
+type RateLimiterMockClaimStepParamPtrs struct {
+	ctx    *context.Context
+	userID *string
+	step   *int64
+}
+
+// RateLimiterMockClaimStepResults contains results of the RateLimiter.ClaimStep
+type RateLimiterMockClaimStepResults struct {
+	b1  bool
+	err error
+}
+
+// RateLimiterMockClaimStepOrigins contains origins of expectations of the RateLimiter.ClaimStep
+type RateLimiterMockClaimStepExpectationOrigins struct {
+	origin       string
+	originCtx    string
+	originUserID string
+	originStep   string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmClaimStep *mRateLimiterMockClaimStep) Optional() *mRateLimiterMockClaimStep {
+	mmClaimStep.optional = true
+	return mmClaimStep
+}
+
+// Expect sets up expected params for RateLimiter.ClaimStep
+func (mmClaimStep *mRateLimiterMockClaimStep) Expect(ctx context.Context, userID string, step int64) *mRateLimiterMockClaimStep {
+	if mmClaimStep.mock.funcClaimStep != nil {
+		mmClaimStep.mock.t.Fatalf("RateLimiterMock.ClaimStep mock is already set by Set")
+	}
+
+	if mmClaimStep.defaultExpectation == nil {
+		mmClaimStep.defaultExpectation = &RateLimiterMockClaimStepExpectation{}
+	}
+
+	if mmClaimStep.defaultExpectation.paramPtrs != nil {
+		mmClaimStep.mock.t.Fatalf("RateLimiterMock.ClaimStep mock is already set by ExpectParams functions")
+	}
+
+	mmClaimStep.defaultExpectation.params = &RateLimiterMockClaimStepParams{ctx, userID, step}
+	mmClaimStep.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmClaimStep.expectations {
+		if minimock.Equal(e.params, mmClaimStep.defaultExpectation.params) {
+			mmClaimStep.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmClaimStep.defaultExpectation.params)
+		}
+	}
+
+	return mmClaimStep
+}
+
+// ExpectCtxParam1 sets up expected param ctx for RateLimiter.ClaimStep
+func (mmClaimStep *mRateLimiterMockClaimStep) ExpectCtxParam1(ctx context.Context) *mRateLimiterMockClaimStep {
+	if mmClaimStep.mock.funcClaimStep != nil {
+		mmClaimStep.mock.t.Fatalf("RateLimiterMock.ClaimStep mock is already set by Set")
+	}
+
+	if mmClaimStep.defaultExpectation == nil {
+		mmClaimStep.defaultExpectation = &RateLimiterMockClaimStepExpectation{}
+	}
+
+	if mmClaimStep.defaultExpectation.params != nil {
+		mmClaimStep.mock.t.Fatalf("RateLimiterMock.ClaimStep mock is already set by Expect")
+	}
+
+	if mmClaimStep.defaultExpectation.paramPtrs == nil {
+		mmClaimStep.defaultExpectation.paramPtrs = &RateLimiterMockClaimStepParamPtrs{}
+	}
+	mmClaimStep.defaultExpectation.paramPtrs.ctx = &ctx
+	mmClaimStep.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmClaimStep
+}
+
+// ExpectUserIDParam2 sets up expected param userID for RateLimiter.ClaimStep
+func (mmClaimStep *mRateLimiterMockClaimStep) ExpectUserIDParam2(userID string) *mRateLimiterMockClaimStep {
+	if mmClaimStep.mock.funcClaimStep != nil {
+		mmClaimStep.mock.t.Fatalf("RateLimiterMock.ClaimStep mock is already set by Set")
+	}
+
+	if mmClaimStep.defaultExpectation == nil {
+		mmClaimStep.defaultExpectation = &RateLimiterMockClaimStepExpectation{}
+	}
+
+	if mmClaimStep.defaultExpectation.params != nil {
+		mmClaimStep.mock.t.Fatalf("RateLimiterMock.ClaimStep mock is already set by Expect")
+	}
+
+	if mmClaimStep.defaultExpectation.paramPtrs == nil {
+		mmClaimStep.defaultExpectation.paramPtrs = &RateLimiterMockClaimStepParamPtrs{}
+	}
+	mmClaimStep.defaultExpectation.paramPtrs.userID = &userID
+	mmClaimStep.defaultExpectation.expectationOrigins.originUserID = minimock.CallerInfo(1)
+
+	return mmClaimStep
+}
+
+// ExpectStepParam3 sets up expected param step for RateLimiter.ClaimStep
+func (mmClaimStep *mRateLimiterMockClaimStep) ExpectStepParam3(step int64) *mRateLimiterMockClaimStep {
+	if mmClaimStep.mock.funcClaimStep != nil {
+		mmClaimStep.mock.t.Fatalf("RateLimiterMock.ClaimStep mock is already set by Set")
+	}
+
+	if mmClaimStep.defaultExpectation == nil {
+		mmClaimStep.defaultExpectation = &RateLimiterMockClaimStepExpectation{}
+	}
+
+	if mmClaimStep.defaultExpectation.params != nil {
+		mmClaimStep.mock.t.Fatalf("RateLimiterMock.ClaimStep mock is already set by Expect")
+	}
+
+	if mmClaimStep.defaultExpectation.paramPtrs == nil {
+		mmClaimStep.defaultExpectation.paramPtrs = &RateLimiterMockClaimStepParamPtrs{}
+	}
+	mmClaimStep.defaultExpectation.paramPtrs.step = &step
+	mmClaimStep.defaultExpectation.expectationOrigins.originStep = minimock.CallerInfo(1)
+
+	return mmClaimStep
+}
+
+// Inspect accepts an inspector function that has same arguments as the RateLimiter.ClaimStep
+func (mmClaimStep *mRateLimiterMockClaimStep) Inspect(f func(ctx context.Context, userID string, step int64)) *mRateLimiterMockClaimStep {
+	if mmClaimStep.mock.inspectFuncClaimStep != nil {
+		mmClaimStep.mock.t.Fatalf("Inspect function is already set for RateLimiterMock.ClaimStep")
+	}
+
+	mmClaimStep.mock.inspectFuncClaimStep = f
+
+	return mmClaimStep
+}
+
+// Return sets up results that will be returned by RateLimiter.ClaimStep
+func (mmClaimStep *mRateLimiterMockClaimStep) Return(b1 bool, err error) *RateLimiterMock {
+	if mmClaimStep.mock.funcClaimStep != nil {
+		mmClaimStep.mock.t.Fatalf("RateLimiterMock.ClaimStep mock is already set by Set")
+	}
+
+	if mmClaimStep.defaultExpectation == nil {
+		mmClaimStep.defaultExpectation = &RateLimiterMockClaimStepExpectation{mock: mmClaimStep.mock}
+	}
+	mmClaimStep.defaultExpectation.results = &RateLimiterMockClaimStepResults{b1, err}
+	mmClaimStep.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmClaimStep.mock
+}
+
+// Set uses given function f to mock the RateLimiter.ClaimStep method
+func (mmClaimStep *mRateLimiterMockClaimStep) Set(f func(ctx context.Context, userID string, step int64) (b1 bool, err error)) *RateLimiterMock {
+	if mmClaimStep.defaultExpectation != nil {
+		mmClaimStep.mock.t.Fatalf("Default expectation is already set for the RateLimiter.ClaimStep method")
+	}
+
+	if len(mmClaimStep.expectations) > 0 {
+		mmClaimStep.mock.t.Fatalf("Some expectations are already set for the RateLimiter.ClaimStep method")
+	}
+
+	mmClaimStep.mock.funcClaimStep = f
+	mmClaimStep.mock.funcClaimStepOrigin = minimock.CallerInfo(1)
+	return mmClaimStep.mock
+}
+
+// When sets expectation for the RateLimiter.ClaimStep which will trigger the result defined by the following
+// Then helper
+func (mmClaimStep *mRateLimiterMockClaimStep) When(ctx context.Context, userID string, step int64) *RateLimiterMockClaimStepExpectation {
+	if mmClaimStep.mock.funcClaimStep != nil {
+		mmClaimStep.mock.t.Fatalf("RateLimiterMock.ClaimStep mock is already set by Set")
+	}
+
+	expectation := &RateLimiterMockClaimStepExpectation{
+		mock:               mmClaimStep.mock,
+		params:             &RateLimiterMockClaimStepParams{ctx, userID, step},
+		expectationOrigins: RateLimiterMockClaimStepExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmClaimStep.expectations = append(mmClaimStep.expectations, expectation)
+	return expectation
+}
+
+// Then sets up RateLimiter.ClaimStep return parameters for the expectation previously defined by the When method
+func (e *RateLimiterMockClaimStepExpectation) Then(b1 bool, err error) *RateLimiterMock {
+	e.results = &RateLimiterMockClaimStepResults{b1, err}
+	return e.mock
+}
+
+// Times sets number of times RateLimiter.ClaimStep should be invoked
+func (mmClaimStep *mRateLimiterMockClaimStep) Times(n uint64) *mRateLimiterMockClaimStep {
+	if n == 0 {
+		mmClaimStep.mock.t.Fatalf("Times of RateLimiterMock.ClaimStep mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmClaimStep.expectedInvocations, n)
+	mmClaimStep.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmClaimStep
+}
+
+func (mmClaimStep *mRateLimiterMockClaimStep) invocationsDone() bool {
+	if len(mmClaimStep.expectations) == 0 && mmClaimStep.defaultExpectation == nil && mmClaimStep.mock.funcClaimStep == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmClaimStep.mock.afterClaimStepCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmClaimStep.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ClaimStep implements mm_twofa.RateLimiter
+func (mmClaimStep *RateLimiterMock) ClaimStep(ctx context.Context, userID string, step int64) (b1 bool, err error) {
+	mm_atomic.AddUint64(&mmClaimStep.beforeClaimStepCounter, 1)
+	defer mm_atomic.AddUint64(&mmClaimStep.afterClaimStepCounter, 1)
+
+	mmClaimStep.t.Helper()
+
+	if mmClaimStep.inspectFuncClaimStep != nil {
+		mmClaimStep.inspectFuncClaimStep(ctx, userID, step)
+	}
+
+	mm_params := RateLimiterMockClaimStepParams{ctx, userID, step}
+
+	// Record call args
+	mmClaimStep.ClaimStepMock.mutex.Lock()
+	mmClaimStep.ClaimStepMock.callArgs = append(mmClaimStep.ClaimStepMock.callArgs, &mm_params)
+	mmClaimStep.ClaimStepMock.mutex.Unlock()
+
+	for _, e := range mmClaimStep.ClaimStepMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.b1, e.results.err
+		}
+	}
+
+	if mmClaimStep.ClaimStepMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmClaimStep.ClaimStepMock.defaultExpectation.Counter, 1)
+		mm_want := mmClaimStep.ClaimStepMock.defaultExpectation.params
+		mm_want_ptrs := mmClaimStep.ClaimStepMock.defaultExpectation.paramPtrs
+
+		mm_got := RateLimiterMockClaimStepParams{ctx, userID, step}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmClaimStep.t.Errorf("RateLimiterMock.ClaimStep got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmClaimStep.ClaimStepMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.userID != nil && !minimock.Equal(*mm_want_ptrs.userID, mm_got.userID) {
+				mmClaimStep.t.Errorf("RateLimiterMock.ClaimStep got unexpected parameter userID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmClaimStep.ClaimStepMock.defaultExpectation.expectationOrigins.originUserID, *mm_want_ptrs.userID, mm_got.userID, minimock.Diff(*mm_want_ptrs.userID, mm_got.userID))
+			}
+
+			if mm_want_ptrs.step != nil && !minimock.Equal(*mm_want_ptrs.step, mm_got.step) {
+				mmClaimStep.t.Errorf("RateLimiterMock.ClaimStep got unexpected parameter step, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmClaimStep.ClaimStepMock.defaultExpectation.expectationOrigins.originStep, *mm_want_ptrs.step, mm_got.step, minimock.Diff(*mm_want_ptrs.step, mm_got.step))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmClaimStep.t.Errorf("RateLimiterMock.ClaimStep got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmClaimStep.ClaimStepMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmClaimStep.ClaimStepMock.defaultExpectation.results
+		if mm_results == nil {
+			mmClaimStep.t.Fatal("No results are set for the RateLimiterMock.ClaimStep")
+		}
+		return (*mm_results).b1, (*mm_results).err
+	}
+	if mmClaimStep.funcClaimStep != nil {
+		return mmClaimStep.funcClaimStep(ctx, userID, step)
+	}
+	mmClaimStep.t.Fatalf("Unexpected call to RateLimiterMock.ClaimStep. %v %v %v", ctx, userID, step)
+	return
+}
+
+// ClaimStepAfterCounter returns a count of finished RateLimiterMock.ClaimStep invocations
+func (mmClaimStep *RateLimiterMock) ClaimStepAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmClaimStep.afterClaimStepCounter)
+}
+
+// ClaimStepBeforeCounter returns a count of RateLimiterMock.ClaimStep invocations
+func (mmClaimStep *RateLimiterMock) ClaimStepBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmClaimStep.beforeClaimStepCounter)
+}
+
+// Calls returns a list of arguments used in each call to RateLimiterMock.ClaimStep.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmClaimStep *mRateLimiterMockClaimStep) Calls() []*RateLimiterMockClaimStepParams {
+	mmClaimStep.mutex.RLock()
+
+	argCopy := make([]*RateLimiterMockClaimStepParams, len(mmClaimStep.callArgs))
+	copy(argCopy, mmClaimStep.callArgs)
+
+	mmClaimStep.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockClaimStepDone returns true if the count of the ClaimStep invocations corresponds
+// the number of defined expectations
+func (m *RateLimiterMock) MinimockClaimStepDone() bool {
+	if m.ClaimStepMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ClaimStepMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ClaimStepMock.invocationsDone()
+}
+
+// MinimockClaimStepInspect logs each unmet expectation
+func (m *RateLimiterMock) MinimockClaimStepInspect() {
+	for _, e := range m.ClaimStepMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RateLimiterMock.ClaimStep at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterClaimStepCounter := mm_atomic.LoadUint64(&m.afterClaimStepCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ClaimStepMock.defaultExpectation != nil && afterClaimStepCounter < 1 {
+		if m.ClaimStepMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RateLimiterMock.ClaimStep at\n%s", m.ClaimStepMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RateLimiterMock.ClaimStep at\n%s with params: %#v", m.ClaimStepMock.defaultExpectation.expectationOrigins.origin, *m.ClaimStepMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcClaimStep != nil && afterClaimStepCounter < 1 {
+		m.t.Errorf("Expected call to RateLimiterMock.ClaimStep at\n%s", m.funcClaimStepOrigin)
+	}
+
+	if !m.ClaimStepMock.invocationsDone() && afterClaimStepCounter > 0 {
+		m.t.Errorf("Expected %d calls to RateLimiterMock.ClaimStep at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ClaimStepMock.expectedInvocations), m.ClaimStepMock.expectedInvocationsOrigin, afterClaimStepCounter)
+	}
 }
 
 type mRateLimiterMockClear struct {
@@ -1093,6 +1477,8 @@ func (m *RateLimiterMock) MinimockTakeAttemptInspect() {
 func (m *RateLimiterMock) MinimockFinish() {
 	m.finishOnce.Do(func() {
 		if !m.minimockDone() {
+			m.MinimockClaimStepInspect()
+
 			m.MinimockClearInspect()
 
 			m.MinimockRefundInspect()
@@ -1121,6 +1507,7 @@ func (m *RateLimiterMock) MinimockWait(timeout mm_time.Duration) {
 func (m *RateLimiterMock) minimockDone() bool {
 	done := true
 	return done &&
+		m.MinimockClaimStepDone() &&
 		m.MinimockClearDone() &&
 		m.MinimockRefundDone() &&
 		m.MinimockTakeAttemptDone()

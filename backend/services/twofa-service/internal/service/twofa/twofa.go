@@ -31,8 +31,11 @@ type Cipher interface {
 	Decrypt(ct []byte) ([]byte, error)
 }
 
-// RateLimiter throttles the login Verify step per user.
+// RateLimiter throttles the TOTP checks per user and refuses replayed codes.
 type RateLimiter interface {
+	// ClaimStep records a TOTP time step as spent; false means that step or a
+	// later one was already accepted (a replay). Atomic per user.
+	ClaimStep(ctx context.Context, userID string, step int64) (bool, error)
 	// TakeAttempt reserves one attempt; false means the budget is spent.
 	TakeAttempt(ctx context.Context, userID string) (bool, error)
 	// Refund gives back an attempt that was not a guess (the request failed for

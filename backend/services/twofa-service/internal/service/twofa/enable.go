@@ -25,7 +25,9 @@ func (s *Service) Enable(ctx context.Context, userID, code string) ([]string, er
 	if err != nil {
 		return nil, fmt.Errorf("twofa.Enable: decrypt: %w", err)
 	}
-	if !totp.Validate(string(secretPlain), code) {
+	if ok, err := s.acceptTOTP(ctx, userID, secretPlain, code); err != nil {
+		return nil, err
+	} else if !ok {
 		return nil, domain.ErrTwoFAInvalidCode
 	}
 	if err := s.store.Set(ctx, userID, true, c.Secret); err != nil {

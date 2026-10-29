@@ -28,8 +28,27 @@ func (s *TOTPSuite) TestTOTPRoundTrip() {
 	// Generate a current code the same way an authenticator app would.
 	code, err := pqtotp.GenerateCode(secret, time.Now())
 	assert.NilError(s.T(), err)
-	assert.Assert(s.T(), totp.Validate(secret, code))
-	assert.Assert(s.T(), !totp.Validate(secret, "000000"))
+	_, ok := totp.Validate(secret, code)
+	assert.Assert(s.T(), ok)
+	_, ok = totp.Validate(secret, "000000")
+	assert.Assert(s.T(), !ok)
+}
+
+// Validate names the time step the code belongs to: the replay guard keys on
+// it. A code from the previous step is still accepted (clock skew) but reports
+// that earlier step, so it cannot be mistaken for a fresh one.
+func (s *TOTPSuite) TestValidateReportsTheMatchedStep() {
+	secret, _, err := totp.Generate("Andrey", "ivan")
+	assert.NilError(s.T(), err)
+	before := time.Now().Unix() / 30
+	prev, err := pqtotp.GenerateCode(secret, time.Now().Add(-30*time.Second))
+	assert.NilError(s.T(), err)
+	after := time.Now().Unix() / 30
+
+	step, ok := totp.Validate(secret, prev)
+
+	assert.Assert(s.T(), ok)
+	assert.Assert(s.T(), step >= before-1 && step <= after-1, "step %d, want %d..%d", step, before-1, after-1)
 }
 
 func (s *TOTPSuite) TestRecoveryCodes() {

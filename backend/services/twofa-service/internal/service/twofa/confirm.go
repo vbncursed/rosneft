@@ -41,9 +41,21 @@ func (s *Service) confirm(ctx context.Context, userID, code string) error {
 	if err != nil {
 		return fmt.Errorf("twofa.confirmTOTP: decrypt: %w", err)
 	}
-	if !totp.Validate(string(secretPlain), code) {
+	if ok, err := s.acceptTOTP(ctx, userID, secretPlain, code); err != nil {
+		return err
+	} else if !ok {
 		return domain.ErrTwoFAInvalidCode
 	}
 	_ = s.limiter.Clear(ctx, userID)
 	return nil
+}
+
+// acceptTOTP is true for a valid code whose time step was not accepted before,
+// and records the step so the same code cannot be used twice.
+func (s *Service) acceptTOTP(ctx context.Context, userID string, secret []byte, code string) (bool, error) {
+	step, ok := totp.Validate(string(secret), code)
+	if !ok {
+		return false, nil
+	}
+	return s.limiter.ClaimStep(ctx, userID, step)
 }
