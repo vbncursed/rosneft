@@ -33,6 +33,12 @@ type SessionStore interface {
 	// failed for a reason other than a wrong password).
 	RefundAttempt(ctx context.Context, identifier string) error
 	ClearFails(ctx context.Context, identifier string) error
+	// The change-password budget, keyed by user id. VerifyPassword (the
+	// step-up factor) draws on the same budget, so a stolen session cannot
+	// guess the password through step-up at the general API rate.
+	TakeChangePasswordAttempt(ctx context.Context, userID string) (bool, error)
+	RefundChangePasswordAttempt(ctx context.Context, userID string) error
+	ClearChangePasswordFails(ctx context.Context, userID string) error
 }
 
 // TwoFAVerifier delegates 2FA checks to twofa-service.
