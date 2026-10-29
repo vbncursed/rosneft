@@ -15,6 +15,7 @@ import (
 
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/migrate"
+	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/storage/roles"
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/storage/users"
 )
 
@@ -93,4 +94,57 @@ func (s *CreateSuite) TestATakenLoginIsOneRefusalWhicheverFieldCollided() {
 			assert.Equal(s.T(), err.Error(), "email or username is unavailable")
 		})
 	}
+}
+
+// Roles are visible by tenant: a role slug names a row of another company only
+// if the caller guesses it, and binding it must fail like an unknown slug.
+func (s *CreateSuite) TestARoleOfAnotherTenantCannotBeBound() {
+	ctx := s.T().Context()
+	rs := roles.New(s.pool)
+	a, err := s.create("tenant-a@example.com", "tenant-a")
+	assert.NilError(s.T(), err)
+	b, err := s.create("tenant-b@example.com", "tenant-b")
+	assert.NilError(s.T(), err)
+	_, err = rs.Create(ctx, domain.Role{Slug: "a-only", Title: "A only", OwnerAdminID: a.ID})
+	assert.NilError(s.T(), err)
+	_, err = rs.Create(ctx, domain.Role{Slug: "b-only", Title: "B only", OwnerAdminID: b.ID})
+	assert.NilError(s.T(), err)
+	_, err = rs.Create(ctx, domain.Role{Slug: "shared", Title: "Global"})
+	assert.NilError(s.T(), err)
+	mk := func(name string, slugs ...string) (domain.User, error) {
+		return s.store.Create(ctx, domain.User{
+			Email: name + "@example.com", Username: name, PasswordHash: "hash",
+			CreatedBy: &a.ID, RoleSlugs: slugs,
+		})
+	}
+
+	_, err = mk("sneaky", "b-only")
+	assert.ErrorIs(s.T(), err, domain.ErrRoleNotFound)
+
+	u, err := mk("fine", "a-only", "shared")
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), u.RoleSlugs, []string{"a-only", "shared"})
+
+	_, err = s.store.SetRoles(ctx, u.ID, []string{"b-only"})
+	assert.ErrorIs(s.T(), err, domain.ErrRoleNotFound)
+	got, err := s.store.GetByID(ctx, u.ID)
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), got.RoleSlugs, []string{"a-only", "shared"})
+}
+
+// Root (is_owner) sees every role, as roles.List does for allAccess.
+func (s *CreateSuite) TestRootCanBindAnyRole() {
+	ctx := s.T().Context()
+	owner, err := s.create("c-owner@example.com", "c-owner")
+	assert.NilError(s.T(), err)
+	_, err = roles.New(s.pool).Create(ctx, domain.Role{Slug: "c-only", Title: "C only", OwnerAdminID: owner.ID})
+	assert.NilError(s.T(), err)
+
+	root, err := s.store.Create(ctx, domain.User{
+		Email: "root2@example.com", Username: "root2", PasswordHash: "hash", IsOwner: true,
+		RoleSlugs: []string{"c-only"},
+	})
+
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), root.RoleSlugs, []string{"c-only"})
 }

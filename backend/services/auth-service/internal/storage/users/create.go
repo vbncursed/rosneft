@@ -45,12 +45,23 @@ func createError(err error) error {
 	return fmt.Errorf("users.Create: insert: %w", err)
 }
 
-// bindRoles resolves role slugs to ids and inserts user_roles rows. Unknown
-// slug → ErrRoleNotFound (fails closed).
+// bindRoles resolves role slugs to ids and inserts user_roles rows. A slug the
+// user's tenant cannot see (a custom role of another company) or that does not
+// exist → ErrRoleNotFound (fails closed). The tenant is the user's owning admin,
+// as for roles.List; Root (empty owning admin) sees every role.
 func bindRoles(ctx context.Context, tx pgx.Tx, userID string, slugs []string) error {
+	if len(slugs) == 0 {
+		return nil
+	}
+	tenant, err := resolveOwningAdmin(ctx, tx, userID)
+	if err != nil {
+		return err
+	}
 	for _, slug := range slugs {
 		var roleID string
-		if err := tx.QueryRow(ctx, `SELECT id FROM roles WHERE slug = $1`, slug).Scan(&roleID); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT id FROM roles WHERE slug = $1
+			AND (owner_admin_id IS NULL OR $2::text = '' OR owner_admin_id = NULLIF($2, '')::uuid)`,
+			slug, tenant).Scan(&roleID); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
 				return domain.ErrRoleNotFound
 			}
