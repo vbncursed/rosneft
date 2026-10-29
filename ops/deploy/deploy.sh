@@ -226,9 +226,7 @@ deploy() { apply "$1" "${2:-deploy}" && checks "$MANIFEST_ID"; }
 rollback() { log "rolling back to $1"; deploy "$1" rollback; }
 
 write_deployed() {
-  mkdir -p "$STATE"
-  echo "$SHA" >"$ROOT/.deployed"
-  echo "$SHA" >>"$STATE/history"
+  mkdir -p "$STATE" && echo "$SHA" >"$ROOT/.deployed" && echo "$SHA" >>"$STATE/history"
 }
 
 prune_images() { # keeps this deploy, the one before it and the last three in history
@@ -284,11 +282,17 @@ main() {
   run backup || { notify "deploy $s7 aborted: pre-deploy backup failed, nothing was changed"; exit 1; }
 
   if deploy "$SHA"; then
-    run write_deployed
-    # A failed refresh must not fail a deploy that is already live.
+    # The release is already live: a failed state write or refresh must not fail the
+    # deploy (exit 1 means "rolled back"), but it must be loud, because a stale
+    # .deployed makes the next rollback target the wrong version.
+    local warn=""
+    run write_deployed || {
+      warn=" WARNING: recording the deploy state failed (.deployed/history stale; check $ROOT/.deployed and $STATE)"
+      log "WARN: recording the deploy state failed"
+    }
     run install -m0755 "$ROOT/ops/deploy/deploy.sh" "$SELF_INSTALL" || log "forced command refresh failed"
-    notify "$(success_text)"
-    run prune_images
+    notify "$(success_text)$warn"
+    run prune_images || log "WARN: image prune failed"
     exit 0
   fi
   local reason=$FAIL_REASON

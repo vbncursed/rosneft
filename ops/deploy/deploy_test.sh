@@ -406,6 +406,22 @@ go "$SHA2" vbncursed
 ok "failed notification: deploy still exit 0" [ "$rc" -eq 0 ]
 no "failed notification: token still not in argv" grep -q -- 'bot-token' "$CALLS"
 
+echo "=== 13c. a failed state write is loud but does not mask a live deploy ==="
+for broken in STATE DEPLOYED; do
+  fresh
+  echo "$SHA1" > "$ANDREY_ROOT/.deployed"
+  case $broken in
+    STATE) export ANDREY_STATE=/dev/null/state ;;
+    DEPLOYED) rm "$ANDREY_ROOT/.deployed"; mkdir "$ANDREY_ROOT/.deployed" ;;
+  esac
+  go "$SHA2" vbncursed
+  ok "$broken: exit 0, the release is live" [ "$rc" -eq 0 ]
+  ok "$broken: frontend is live" [ "$(live_id)" = "$SHA2" ]
+  ok "$broken: WARN in the log" grep -q 'WARN: recording the deploy state failed' <<<"$log"
+  ok "$broken: Telegram notice carries the warning" calls_have "text=deploy ${SHA2:0:7} ok .*WARNING: .*state"
+  ok "$broken: forced command still refreshed" cmp -s "$ANDREY_ROOT/ops/deploy/deploy.sh" "$ANDREY_SELF"
+done
+
 echo "=== 14. registry login: before pull, logout always, token never leaks ==="
 for scenario in success rollback failed; do
   fresh
