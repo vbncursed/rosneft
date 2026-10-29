@@ -3,8 +3,10 @@
 package storage_test
 
 import (
+	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"gotest.tools/v3/assert"
 
@@ -184,4 +186,102 @@ func (s *BatchSuite) TestAConcurrentPairOnOneKeyWritesOneBatch() {
 		assert.DeepEqual(s.T(), idsOf(got[0]), idsOf(got[1]))
 	}
 	assert.Equal(s.T(), s.countOn("idem-race"), rounds*size)
+}
+
+// seedPanorama anchors a panorama to territory and answers its id.
+func (s *BatchSuite) seedPanorama(ctx context.Context, territory, slug string) int64 {
+	var id int64
+	err := s.pool.QueryRow(ctx, `
+		INSERT INTO panoramas (territory_id, slug, title, source_blob_hash)
+		SELECT id, $2, $2, $2 FROM territories WHERE slug = $1 RETURNING id`, territory, slug).Scan(&id)
+	assert.NilError(s.T(), err)
+	return id
+}
+
+func withPanoramas(ps []domain.Placement, ids ...int64) []domain.Placement {
+	for i := range ps {
+		ps[i].VisiblePanoramaIDs = ids
+	}
+	return ps
+}
+
+// The service checks the allowlists before the write; a panorama deleted in
+// between would leave a dangling id no scrub ever reaches. Storage re-checks
+// inside the writing transaction, so the batch is refused and nothing lands.
+func (s *BatchSuite) TestAPanoramaGoneBeforeTheWriteIsRefusedAndNothingLands() {
+	ctx := s.T().Context()
+	s.seedTerritory(ctx, "pano-gone", s.admin)
+	s.seedModel(ctx, "pano-gone-pump")
+	id := s.seedPanorama(ctx, "pano-gone", "p1")
+	_, err := s.pool.Exec(ctx, `DELETE FROM panoramas WHERE id = $1`, id)
+	assert.NilError(s.T(), err)
+
+	_, err = s.pg.CreatePlacements(ctx, "", withPanoramas(batchOf("pano-gone", "pano-gone-pump", 2, 0), id))
+
+	assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
+	assert.ErrorContains(s.T(), err, fmt.Sprintf(`panorama %d is not on territory "pano-gone"`, id))
+	assert.Equal(s.T(), s.countOn("pano-gone"), 0)
+}
+
+// Panorama ids are global: one of another territory is as foreign as a gone one.
+func (s *BatchSuite) TestAPanoramaOfAnotherTerritoryIsRefused() {
+	ctx := s.T().Context()
+	s.seedTerritory(ctx, "pano-mine", s.admin)
+	s.seedTerritory(ctx, "pano-theirs", s.admin)
+	s.seedModel(ctx, "pano-mine-pump")
+	foreign := s.seedPanorama(ctx, "pano-theirs", "p1")
+
+	_, err := s.pg.CreatePlacements(ctx, "", withPanoramas(batchOf("pano-mine", "pano-mine-pump", 1, 0), foreign))
+
+	assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
+	assert.Equal(s.T(), s.countOn("pano-mine"), 0)
+}
+
+// A stored keyed batch is answered before the panorama check: the retry of a
+// batch that landed must not become a refusal because a panorama went since.
+func (s *BatchSuite) TestAKeyedReplayIsAnsweredEvenIfItsPanoramaIsGone() {
+	ctx := s.T().Context()
+	s.seedTerritory(ctx, "pano-replay", s.admin)
+	s.seedModel(ctx, "pano-replay-pump")
+	id := s.seedPanorama(ctx, "pano-replay", "p1")
+	batch := withPanoramas(batchOf("pano-replay", "pano-replay-pump", 2, 0), id)
+	first, err := s.pg.CreatePlacements(ctx, "k-pano", batch)
+	assert.NilError(s.T(), err)
+	_, err = s.pool.Exec(ctx, `DELETE FROM panoramas WHERE id = $1`, id)
+	assert.NilError(s.T(), err)
+
+	again, err := s.pg.CreatePlacements(ctx, "k-pano", batch)
+
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), idsOf(again), idsOf(first))
+}
+
+// A delete that is already running holds the panorama row: the write waits for
+// it and then sees the panorama gone, instead of reading the pre-delete
+// snapshot and storing a dangling id.
+func (s *BatchSuite) TestAWriteWaitsForARunningPanoramaDelete() {
+	ctx := s.T().Context()
+	s.seedTerritory(ctx, "pano-lock", s.admin)
+	s.seedModel(ctx, "pano-lock-pump")
+	id := s.seedPanorama(ctx, "pano-lock", "p1")
+	tx, err := s.pool.Begin(ctx)
+	assert.NilError(s.T(), err)
+	defer func() { _ = tx.Rollback(ctx) }()
+	_, err = tx.Exec(ctx, `DELETE FROM panoramas WHERE id = $1`, id)
+	assert.NilError(s.T(), err)
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := s.pg.CreatePlacements(ctx, "", withPanoramas(batchOf("pano-lock", "pano-lock-pump", 1, 0), id))
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		s.T().Fatalf("the write finished (%v) while the delete was still open", err)
+	case <-time.After(500 * time.Millisecond):
+	}
+	assert.NilError(s.T(), tx.Commit(ctx))
+
+	assert.ErrorIs(s.T(), <-done, domain.ErrInvalidInput)
+	assert.Equal(s.T(), s.countOn("pano-lock"), 0)
 }
