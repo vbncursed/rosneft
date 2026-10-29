@@ -123,6 +123,11 @@ cat > "$BIN/curl" <<'STUB'
 #!/usr/bin/env bash
 echo "curl $*" >> "$CALLS"
 url=${*: -1}
+# a curl config on stdin (-K -) carries the Telegram URL, token included
+if [[ " $* " == *" -K - "* ]]; then
+  cfg=$(cat); printf '%s\n' "$cfg" >> "$WORK/curl_stdin"
+  url=$(sed -n 's/^url *= *"\(.*\)"$/\1/p' <<<"$cfg")
+fi
 live=$(sed -n 's/.*"id":"\([^"]*\)".*/\1/p' "$ANDREY_WWW/shell-manifest.json" 2>/dev/null || true)
 case "$url" in
   *api.telegram.org*) [[ -z ${STUB_TG_FAIL:-} ]] || exit 22 ;;
@@ -158,7 +163,7 @@ fresh() {
   rm -rf "$WORK/s"; mkdir -p "$WORK/s"/{root,www,state,logs,backups,secrets,tmp}
   mkdir -p "$WORK/s/root/ops/deploy"; echo "# checkout copy" > "$WORK/s/root/ops/deploy/deploy.sh"
   echo "bot-token" > "$WORK/s/secrets/telegram_bot_token"; echo "42" > "$WORK/s/secrets/telegram_chat_id"
-  : > "$CALLS"; rm -f "$WORK/login_stdin" "$WORK/orphan_gone"
+  : > "$CALLS"; rm -f "$WORK/login_stdin" "$WORK/curl_stdin" "$WORK/orphan_gone"
   export ANDREY_ROOT="$WORK/s/root" ANDREY_WWW="$WORK/s/www" ANDREY_STATE="$WORK/s/state" \
     ANDREY_LOGS="$WORK/s/logs" ANDREY_BACKUPS="$WORK/s/backups" ANDREY_SECRETS="$WORK/s/secrets" \
     ANDREY_ORIGIN="https://x.test" ANDREY_LOCK="$WORK/s/lock" ANDREY_CHECK_TIMEOUT=0 ANDREY_CHECK_INTERVAL=0 \
@@ -387,6 +392,19 @@ fresh
 export STUB_TG_FAIL=1
 go "$SHA2" vbncursed
 ok "still exit 0" [ "$rc" -eq 0 ]
+
+echo "=== 13b. the Telegram token is in curl's stdin, never in argv ==="
+fresh
+go "$SHA2" vbncursed
+ok "token reaches curl through stdin" grep -q 'api.telegram.org/botbot-token/sendMessage' "$WORK/curl_stdin"
+no "token not in any curl argv" grep -q -- 'bot-token' "$CALLS"
+no "token not in the log or output" grep -q -- 'bot-token' <<<"$log$out"
+ok "message text is still urlencoded by curl" calls_have 'data-urlencode text=deploy '
+fresh
+export STUB_TG_FAIL=1
+go "$SHA2" vbncursed
+ok "failed notification: deploy still exit 0" [ "$rc" -eq 0 ]
+no "failed notification: token still not in argv" grep -q -- 'bot-token' "$CALLS"
 
 echo "=== 14. registry login: before pull, logout always, token never leaks ==="
 for scenario in success rollback failed; do

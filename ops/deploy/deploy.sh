@@ -100,9 +100,11 @@ wait_for() {
 notify() {
   log "notify: $1"
   [[ -z ${DRY_RUN:-} && -r $SECRETS/telegram_bot_token && -r $SECRETS/telegram_chat_id ]] || return 0
-  curl -fsS --max-time 10 \
-    --data-urlencode "chat_id=$(<"$SECRETS/telegram_chat_id")" --data-urlencode "text=$1" \
-    "https://api.telegram.org/bot$(<"$SECRETS/telegram_bot_token")/sendMessage" >/dev/null 2>&1 || true
+  # The URL carries the bot token, so it goes in a curl config on stdin (printf is a
+  # builtin): argv is world-readable in /proc while curl runs.
+  printf 'url = "https://api.telegram.org/bot%s/sendMessage"\n' "$(<"$SECRETS/telegram_bot_token")" |
+    curl -fsS --max-time 10 -K - \
+      --data-urlencode "chat_id=$(<"$SECRETS/telegram_chat_id")" --data-urlencode "text=$1" >/dev/null 2>&1 || true
 }
 
 backup() {
