@@ -83,7 +83,19 @@ func Password(s string) error {
 			passwordMax,
 		)
 	}
-	var upper, lower, digit, special bool
+	upper, lower, digit, special := passwordClasses(s)
+	if !upper || !lower || !digit || !special {
+		return fmt.Errorf(
+			"validate: %w: password needs an upper-case, lower-case, digit, and special character",
+			domain.ErrInvalidInput,
+		)
+	}
+	return nil
+}
+
+// passwordClasses reports which character classes s contains; anything that is
+// not a letter or digit counts as special.
+func passwordClasses(s string) (upper, lower, digit, special bool) {
 	for _, r := range s {
 		switch {
 		case unicode.IsUpper(r):
@@ -96,11 +108,5 @@ func Password(s string) error {
 			special = true
 		}
 	}
-	if !upper || !lower || !digit || !special {
-		return fmt.Errorf(
-			"validate: %w: password needs an upper-case, lower-case, digit, and special character",
-			domain.ErrInvalidInput,
-		)
-	}
-	return nil
+	return upper, lower, digit, special
 }

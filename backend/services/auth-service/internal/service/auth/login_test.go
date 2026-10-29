@@ -2,6 +2,7 @@ package auth_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -137,4 +138,120 @@ func (s *LoginSuite) TestLoginFoldsIdentifierOnFailure() {
 func (s *LoginSuite) TestLoginRejectsWhitespaceOnlyIdentifier() {
 	_, _, err := s.svc.Login(s.ctx, "   ", "pw")
 	assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
+}
+
+func (s *LoginSuite) TestLoginRejectsEmptyPassword() {
+	_, _, err := s.svc.Login(s.ctx, "ivan", "")
+	assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
+	assert.ErrorContains(s.T(), err, "identifier and password required")
+}
+
+func (s *LoginSuite) TestLoginLockCheckErrorIsReturned() {
+	boom := errors.New("redis down")
+	s.ss.IsLockedMock.Expect(s.ctx, "ivan").Return(false, boom)
+
+	_, _, err := s.svc.Login(s.ctx, "ivan", "pw")
+	assert.Equal(s.T(), err, boom)
+}
+
+// Any lookup failure, not only "not found", is an auth failure, and a failing
+// RegisterFail does not change the answer.
+func (s *LoginSuite) TestLoginUnknownUserIgnoresRegisterFailError() {
+	s.ss.IsLockedMock.Expect(s.ctx, "ghost").Return(false, nil)
+	s.us.GetByIdentifierMock.Expect(s.ctx, "ghost").Return(domain.User{}, domain.ErrUserNotFound)
+	s.ss.RegisterFailMock.Expect(s.ctx, "ghost").Return(errors.New("redis down"))
+
+	_, _, err := s.svc.Login(s.ctx, "ghost", "pw")
+	assert.Equal(s.T(), err, domain.ErrInvalidCredential)
+}
+
+func (s *LoginSuite) TestLoginWrongPasswordIgnoresRegisterFailError() {
+	hash, _ := password.Hash("pw")
+	s.ss.IsLockedMock.Expect(s.ctx, "ivan").Return(false, nil)
+	s.us.GetByIdentifierMock.Expect(s.ctx, "ivan").
+		Return(domain.User{ID: "u1", Status: domain.StatusActive, PasswordHash: hash}, nil)
+	s.ss.RegisterFailMock.Expect(s.ctx, "ivan").Return(errors.New("redis down"))
+
+	_, _, err := s.svc.Login(s.ctx, "ivan", "WRONG")
+	assert.Equal(s.T(), err, domain.ErrInvalidCredential)
+}
+
+// A stored hash that cannot be parsed is a server fault, not a failed attempt:
+// no RegisterFail (the strict mock fails the test if it is called).
+func (s *LoginSuite) TestLoginMalformedHashIsVerifyError() {
+	s.ss.IsLockedMock.Expect(s.ctx, "ivan").Return(false, nil)
+	s.us.GetByIdentifierMock.Expect(s.ctx, "ivan").
+		Return(domain.User{ID: "u1", Status: domain.StatusActive, PasswordHash: "not-a-phc"}, nil)
+
+	_, _, err := s.svc.Login(s.ctx, "ivan", "pw")
+	assert.Assert(s.T(), err != nil)
+	assert.Assert(s.T(), !errors.Is(err, domain.ErrInvalidCredential))
+	assert.ErrorContains(s.T(), err, "auth.Login: verify: ")
+}
+
+func (s *LoginSuite) TestLoginDeleted() {
+	hash, _ := password.Hash("pw")
+	s.ss.IsLockedMock.Expect(s.ctx, "ivan").Return(false, nil)
+	s.us.GetByIdentifierMock.Expect(s.ctx, "ivan").
+		Return(domain.User{ID: "u1", Status: domain.StatusDeleted, PasswordHash: hash}, nil)
+
+	_, _, err := s.svc.Login(s.ctx, "ivan", "pw")
+	assert.ErrorIs(s.T(), err, domain.ErrAccountDeleted)
+}
+
+// The status is checked only after the password: a frozen account with a wrong
+// password is a plain bad credential and counts as a failed attempt.
+func (s *LoginSuite) TestLoginFrozenWrongPasswordIsInvalidCredential() {
+	hash, _ := password.Hash("pw")
+	s.ss.IsLockedMock.Expect(s.ctx, "ivan").Return(false, nil)
+	s.us.GetByIdentifierMock.Expect(s.ctx, "ivan").
+		Return(domain.User{ID: "u1", Status: domain.StatusFrozen, PasswordHash: hash}, nil)
+	s.ss.RegisterFailMock.Expect(s.ctx, "ivan").Return(nil)
+
+	_, _, err := s.svc.Login(s.ctx, "ivan", "WRONG")
+	assert.Equal(s.T(), err, domain.ErrInvalidCredential)
+}
+
+func (s *LoginSuite) TestLoginTwoFAStatusErrorIsReturned() {
+	hash, _ := password.Hash("pw")
+	boom := errors.New("2fa store down")
+	s.ss.IsLockedMock.Expect(s.ctx, "ivan").Return(false, nil)
+	s.us.GetByIdentifierMock.Expect(s.ctx, "ivan").
+		Return(domain.User{ID: "u1", Status: domain.StatusActive, PasswordHash: hash}, nil)
+	s.ss.ClearFailsMock.Expect(s.ctx, "ivan").Return(nil)
+	s.tf.IsEnabledMock.Expect(s.ctx, "u1").Return(false, boom)
+
+	token, challenge, err := s.svc.Login(s.ctx, "ivan", "pw")
+	assert.Equal(s.T(), err, boom)
+	assert.Equal(s.T(), token+challenge, "")
+}
+
+func (s *LoginSuite) TestLoginPutPendingErrorIsReturned() {
+	hash, _ := password.Hash("pw")
+	boom := errors.New("redis down")
+	s.ss.IsLockedMock.Expect(s.ctx, "ivan").Return(false, nil)
+	s.us.GetByIdentifierMock.Expect(s.ctx, "ivan").
+		Return(domain.User{ID: "u1", Status: domain.StatusActive, PasswordHash: hash}, nil)
+	s.ss.ClearFailsMock.Expect(s.ctx, "ivan").Return(nil)
+	s.tf.IsEnabledMock.Expect(s.ctx, "u1").Return(true, nil)
+	s.ss.PutPendingMock.Expect(s.ctx, "u1").Return("", boom)
+
+	token, challenge, err := s.svc.Login(s.ctx, "ivan", "pw")
+	assert.Equal(s.T(), err, boom)
+	assert.Equal(s.T(), token+challenge, "")
+}
+
+func (s *LoginSuite) TestLoginSessionCreateErrorIsReturned() {
+	hash, _ := password.Hash("pw")
+	boom := errors.New("redis down")
+	s.ss.IsLockedMock.Expect(s.ctx, "ivan").Return(false, nil)
+	s.us.GetByIdentifierMock.Expect(s.ctx, "ivan").
+		Return(domain.User{ID: "u1", Status: domain.StatusActive, PasswordHash: hash}, nil)
+	s.ss.ClearFailsMock.Expect(s.ctx, "ivan").Return(nil)
+	s.tf.IsEnabledMock.Expect(s.ctx, "u1").Return(false, nil)
+	s.ss.CreateMock.Return("", boom)
+
+	token, challenge, err := s.svc.Login(s.ctx, "ivan", "pw")
+	assert.Equal(s.T(), err, boom)
+	assert.Equal(s.T(), token+challenge, "")
 }

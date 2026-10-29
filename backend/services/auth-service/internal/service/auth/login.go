@@ -34,25 +34,9 @@ func (s *Service) Login(ctx context.Context, identifier, plain string) (string, 
 		return "", "", domain.ErrLoginThrottled
 	}
 
-	u, err := s.users.GetByIdentifier(ctx, identifier)
+	u, err := s.authenticate(ctx, identifier, plain)
 	if err != nil {
-		// Unknown user is an auth failure, not a 404 — don't leak existence.
-		// The verify below is for time alone: without it this path returns in
-		// microseconds and a known user's takes tens of ms, which gives the
-		// existence away.
-		_, _ = s.verify(plain, s.dummyHash())
-		_ = s.sessions.RegisterFail(ctx, identifier)
-		metricLogins.WithLabelValues("failed").Inc()
-		return "", "", domain.ErrInvalidCredential
-	}
-	ok, err := s.verify(plain, u.PasswordHash)
-	if err != nil {
-		return "", "", fmt.Errorf("auth.Login: verify: %w", err)
-	}
-	if !ok {
-		_ = s.sessions.RegisterFail(ctx, identifier)
-		metricLogins.WithLabelValues("failed").Inc()
-		return "", "", domain.ErrInvalidCredential
+		return "", "", err
 	}
 	if err := checkActive(u); err != nil {
 		return "", "", err
@@ -60,6 +44,41 @@ func (s *Service) Login(ctx context.Context, identifier, plain string) (string, 
 	_ = s.sessions.ClearFails(ctx, identifier)
 	metricLogins.WithLabelValues("succeeded").Inc()
 
+	return s.startSession(ctx, u)
+}
+
+// authenticate resolves the user and checks the password. Every credential
+// failure registers against the throttle and answers ErrInvalidCredential.
+func (s *Service) authenticate(ctx context.Context, identifier, plain string) (domain.User, error) {
+	u, err := s.users.GetByIdentifier(ctx, identifier)
+	if err != nil {
+		// Unknown user is an auth failure, not a 404 — don't leak existence.
+		// The verify below is for time alone: without it this path returns in
+		// microseconds and a known user's takes tens of ms, which gives the
+		// existence away.
+		_, _ = s.verify(plain, s.dummyHash())
+		return domain.User{}, s.failCredential(ctx, identifier)
+	}
+	ok, err := s.verify(plain, u.PasswordHash)
+	if err != nil {
+		return domain.User{}, fmt.Errorf("auth.Login: verify: %w", err)
+	}
+	if !ok {
+		return domain.User{}, s.failCredential(ctx, identifier)
+	}
+	return u, nil
+}
+
+// failCredential counts one failed attempt and returns the answer for it.
+func (s *Service) failCredential(ctx context.Context, identifier string) error {
+	_ = s.sessions.RegisterFail(ctx, identifier)
+	metricLogins.WithLabelValues("failed").Inc()
+	return domain.ErrInvalidCredential
+}
+
+// startSession hands out the session token, or the 2FA challenge (token empty)
+// when the account has a second factor.
+func (s *Service) startSession(ctx context.Context, u domain.User) (string, string, error) {
 	enabled, err := s.twofa.IsEnabled(ctx, u.ID)
 	if err != nil {
 		return "", "", err
