@@ -2,6 +2,8 @@ package passkey_test
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"testing"
 
@@ -77,4 +79,40 @@ func (s *LoginSuite) TestFinishLoginExpiredCeremony() {
 
 	_, err := s.svc.FinishLogin(s.ctx, "flow", "{}")
 	assert.ErrorIs(s.T(), err, domain.ErrCeremonyExpired)
+}
+
+// The real engine labels every library failure ErrAssertionInvalid, the
+// handler's own store errors included (engine.go assertionInvalid). A database
+// failure while loading the user's credentials is a server fault, not a bad
+// assertion: it must come back as the store's error (a 5xx), never as a 401.
+func (s *LoginSuite) TestFinishLoginStoreFailureIsNotAnInvalidAssertion() {
+	errDB := errors.New("db down")
+	s.cer.TakeMock.Return(ceremony.State{}, nil)
+	s.store.ListByUserMock.Return(nil, errDB)
+	s.eng.FinishLoginMock.Set(
+		func(handler lib.DiscoverableUserHandler, _ lib.SessionData, _ io.Reader) (*lib.Credential, error) {
+			_, err := handler([]byte("raw"), []byte("user-9"))
+			return nil, fmt.Errorf("%w: %s", domain.ErrAssertionInvalid, err.Error())
+		},
+	)
+
+	_, err := s.svc.FinishLogin(s.ctx, "flow", "{}")
+	assert.ErrorIs(s.T(), err, errDB)
+	assert.Assert(s.T(), !errors.Is(err, domain.ErrAssertionInvalid))
+}
+
+// No stored passkeys for the handle is a failed login, however the engine
+// words it.
+func (s *LoginSuite) TestFinishLoginNoCredentialsStaysAnInvalidAssertion() {
+	s.cer.TakeMock.Return(ceremony.State{}, nil)
+	s.store.ListByUserMock.Return(nil, nil)
+	s.eng.FinishLoginMock.Set(
+		func(handler lib.DiscoverableUserHandler, _ lib.SessionData, _ io.Reader) (*lib.Credential, error) {
+			_, err := handler([]byte("raw"), []byte("user-9"))
+			return nil, fmt.Errorf("%w: %s", domain.ErrAssertionInvalid, err.Error())
+		},
+	)
+
+	_, err := s.svc.FinishLogin(s.ctx, "flow", "{}")
+	assert.ErrorIs(s.T(), err, domain.ErrAssertionInvalid)
 }
