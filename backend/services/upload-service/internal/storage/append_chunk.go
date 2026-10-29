@@ -35,34 +35,9 @@ func (f *FS) AppendChunk(_ context.Context, id string, offset int64, data []byte
 		return meta.Offset, fmt.Errorf("%w: write would exceed declared size %d", domain.ErrSizeExceeded, meta.Size)
 	}
 
-	w, err := os.OpenFile( //nolint:gosec // G304: dataPath comes from paths(), whose session id passed validateID (hex and dash only)
-		dataPath,
-		os.O_CREATE|os.O_WRONLY,
-		0o600,
-	)
-	if err != nil {
-		return meta.Offset, fmt.Errorf("storage.AppendChunk: open: %w", err)
-	}
 	end := meta.Offset + int64(len(data))
-	if _, err := w.WriteAt(data, meta.Offset); err != nil {
-		_ = w.Close()
-		return meta.Offset, fmt.Errorf("storage.AppendChunk: write: %w", err)
-	}
-	// Cut leftovers of an earlier, longer failed attempt.
-	if err := w.Truncate(end); err != nil {
-		_ = w.Close()
-		return meta.Offset, fmt.Errorf("storage.AppendChunk: truncate: %w", err)
-	}
-	// Sync, then close, before advancing the offset: Close does not flush to
-	// disk, so only Sync tells us the bytes are durable. An ENOSPC/EIO here
-	// must fail the chunk; recording it as accepted would lose it silently,
-	// as the client would never re-send it.
-	if err := w.Sync(); err != nil {
-		_ = w.Close()
-		return meta.Offset, fmt.Errorf("storage.AppendChunk: sync: %w", err)
-	}
-	if err := w.Close(); err != nil {
-		return meta.Offset, fmt.Errorf("storage.AppendChunk: close: %w", err)
+	if err := writeChunk(dataPath, meta.Offset, data); err != nil {
+		return meta.Offset, err
 	}
 
 	// The offset advances only once the meta is durable; on failure the bytes
@@ -74,6 +49,40 @@ func (f *FS) AppendChunk(_ context.Context, id string, offset int64, data []byte
 		return start, err
 	}
 	return end, nil
+}
+
+// writeChunk puts data at offset and cuts the file to the end of it, durably:
+// WriteAt, Truncate, Sync, then Close, in that order.
+func writeChunk(dataPath string, offset int64, data []byte) error {
+	w, err := os.OpenFile( //nolint:gosec // G304: dataPath comes from paths(), whose session id passed validateID (hex and dash only)
+		dataPath,
+		os.O_CREATE|os.O_WRONLY,
+		0o600,
+	)
+	if err != nil {
+		return fmt.Errorf("storage.AppendChunk: open: %w", err)
+	}
+	if _, err := w.WriteAt(data, offset); err != nil {
+		_ = w.Close()
+		return fmt.Errorf("storage.AppendChunk: write: %w", err)
+	}
+	// Cut leftovers of an earlier, longer failed attempt.
+	if err := w.Truncate(offset + int64(len(data))); err != nil {
+		_ = w.Close()
+		return fmt.Errorf("storage.AppendChunk: truncate: %w", err)
+	}
+	// Sync, then close, before advancing the offset: Close does not flush to
+	// disk, so only Sync tells us the bytes are durable. An ENOSPC/EIO here
+	// must fail the chunk; recording it as accepted would lose it silently,
+	// as the client would never re-send it.
+	if err := w.Sync(); err != nil {
+		_ = w.Close()
+		return fmt.Errorf("storage.AppendChunk: sync: %w", err)
+	}
+	if err := w.Close(); err != nil {
+		return fmt.Errorf("storage.AppendChunk: close: %w", err)
+	}
+	return nil
 }
 
 func readMeta(path string) (domain.Session, error) {
