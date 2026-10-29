@@ -40,66 +40,63 @@ func parseMTL(r io.Reader) ([]material, error) {
 		mats []material
 		cur  *material
 	)
-	flush := func() {
-		if cur != nil {
-			mats = append(mats, *cur)
-			cur = nil
-		}
-	}
-
 	for sc.Scan() {
 		line := bytes.TrimSpace(sc.Bytes())
 		if len(line) == 0 || line[0] == '#' {
 			continue
 		}
 		key, rest := splitDirective(line)
-		switch string(key) {
-		case "newmtl":
-			flush()
-			cur = &material{
-				name:  string(bytes.TrimSpace(rest)),
-				kd:    [3]float32{1, 1, 1},
-				alpha: 1,
-			}
-		case "Kd":
-			if cur == nil {
-				continue
-			}
-			r, g, b, err := parseTriplet(rest)
-			if err != nil {
-				return nil, fmt.Errorf("%w: parseMTL: Kd %q: %w", domain.ErrBadSource, rest, err)
-			}
-			cur.kd = [3]float32{r, g, b}
-		case "d":
-			if cur == nil {
-				continue
-			}
-			v, err := parseSingleFloat(rest)
-			if err != nil {
-				return nil, fmt.Errorf("%w: parseMTL: d %q: %w", domain.ErrBadSource, rest, err)
-			}
-			cur.alpha = v
-		case "Tr":
-			if cur == nil {
-				continue
-			}
-			v, err := parseSingleFloat(rest)
-			if err != nil {
-				return nil, fmt.Errorf("%w: parseMTL: Tr %q: %w", domain.ErrBadSource, rest, err)
-			}
-			cur.alpha = 1 - v
-		case "map_Kd":
-			if cur == nil {
-				continue
-			}
-			cur.diffuseMap = stripMapOptions(string(bytes.TrimSpace(rest)))
+		if string(key) == "newmtl" {
+			// cur points into mats and is replaced before the next append.
+			mats = append(mats, newMaterial(rest))
+			cur = &mats[len(mats)-1]
+			continue
+		}
+		apply, known := mtlDirectives[string(key)]
+		if !known || cur == nil {
+			continue
+		}
+		if err := apply(cur, rest); err != nil {
+			return nil, fmt.Errorf("%w: parseMTL: %s %q: %w", domain.ErrBadSource, key, rest, err)
 		}
 	}
 	if err := sc.Err(); err != nil {
 		return nil, fmt.Errorf("%w: parseMTL: scan: %w", domain.ErrBadSource, err)
 	}
-	flush()
 	return mats, nil
+}
+
+// newMaterial starts a material from a `newmtl` line: white, opaque, no map.
+func newMaterial(rest []byte) material {
+	return material{
+		name:  string(bytes.TrimSpace(rest)),
+		kd:    [3]float32{1, 1, 1},
+		alpha: 1,
+	}
+}
+
+// mtlDirectives maps each supported directive to the setter that applies it
+// to the current material; every other directive is skipped.
+var mtlDirectives = map[string]func(m *material, rest []byte) error{
+	"Kd": func(m *material, rest []byte) error {
+		r, g, b, err := parseTriplet(rest)
+		m.kd = [3]float32{r, g, b}
+		return err
+	},
+	"d": func(m *material, rest []byte) error {
+		v, err := parseSingleFloat(rest)
+		m.alpha = v
+		return err
+	},
+	"Tr": func(m *material, rest []byte) error {
+		v, err := parseSingleFloat(rest)
+		m.alpha = 1 - v
+		return err
+	},
+	"map_Kd": func(m *material, rest []byte) error {
+		m.diffuseMap = stripMapOptions(string(bytes.TrimSpace(rest)))
+		return nil
+	},
 }
 
 // splitDirective splits "Kd 1 0 0" into ("Kd", " 1 0 0"). Multi-word
@@ -141,63 +138,4 @@ func parseSingleFloat(b []byte) (float32, error) {
 		return 0, err
 	}
 	return float32(f), nil
-}
-
-// mapKdFlagArgs is the argument count for each MTL texture-option flag we
-// know about. The list comes from the Wavefront MTL spec — anything not
-// listed defaults to 1 argument, which covers the long tail of vendor flags
-// gracefully.
-var mapKdFlagArgs = map[string]int{
-	"-blendu":  1,
-	"-blendv":  1,
-	"-cc":      1,
-	"-clamp":   1,
-	"-mm":      2,
-	"-o":       3,
-	"-s":       3,
-	"-t":       3,
-	"-texres":  1,
-	"-imfchan": 1,
-	"-bm":      1,
-	"-type":    1,
-	"-boost":   1,
-}
-
-// stripMapOptions consumes the `-flag value [value...]` prefixes that some
-// exporters emit before the texture path on a `map_Kd` line. The remainder
-// is returned verbatim — including spaces, which SketchUp exports happily
-// embed in directory names.
-func stripMapOptions(s string) string {
-	for {
-		s = trimLeftSpace(s)
-		if len(s) == 0 || s[0] != '-' {
-			return s
-		}
-		flag, rest := splitToken(s)
-		argc, ok := mapKdFlagArgs[flag]
-		if !ok {
-			argc = 1
-		}
-		s = rest
-		for range argc {
-			s = trimLeftSpace(s)
-			_, s = splitToken(s)
-		}
-	}
-}
-
-// splitToken returns (firstWhitespaceDelimitedToken, remainder).
-func splitToken(s string) (string, string) {
-	end := 0
-	for end < len(s) && s[end] != ' ' && s[end] != '\t' {
-		end++
-	}
-	return s[:end], s[end:]
-}
-
-func trimLeftSpace(s string) string {
-	for len(s) > 0 && (s[0] == ' ' || s[0] == '\t') {
-		s = s[1:]
-	}
-	return s
 }
