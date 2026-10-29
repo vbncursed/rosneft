@@ -62,3 +62,16 @@ func TestLoginKeepsServerFaults(t *testing.T) {
 		assert.Equal(t, status.Code(err), code)
 	}
 }
+
+// passkey-service keeps the WebAuthn library's own text in an assertion
+// failure's message (for its log); the gateway puts a 4xx message in the body,
+// so a login refusal must carry the sentinel alone.
+func TestLoginDoesNotLeakVerificationDetail(t *testing.T) {
+	const detail = "passkey assertion invalid: Error validating origin: expected https://secret.example"
+	for _, code := range []codes.Code{codes.Unauthenticated, codes.NotFound} {
+		c := &Client{cc: failingPasskey{err: status.Error(code, detail)}}
+		_, err := c.FinishLogin(t.Context(), "f", "{}")
+		assert.ErrorIs(t, err, domain.ErrInvalidCredential, code.String())
+		assert.Equal(t, err.Error(), domain.ErrInvalidCredential.Error(), code.String())
+	}
+}

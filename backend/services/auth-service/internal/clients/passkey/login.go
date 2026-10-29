@@ -42,7 +42,9 @@ func refusal(err error) error {
 	case codes.FailedPrecondition:
 		sentinel = domain.ErrPasskeyCeremonyExpired
 	case codes.Unauthenticated, codes.NotFound:
-		sentinel = domain.ErrInvalidCredential
+		// Bare sentinel: the message carries the WebAuthn library's own text
+		// (kept for passkey's log), and a 4xx body is shown to the caller.
+		return domain.ErrInvalidCredential
 	case codes.InvalidArgument:
 		sentinel = domain.ErrInvalidInput
 	default:
