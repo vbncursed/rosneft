@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
-import { StatTile, type StatTileTone } from "@/entities/metric";
+import type { StatTileTone } from "@/entities/metric";
 import type { User } from "@/entities/user";
 import { FilterBar } from "@/features/audit-filter";
 import { Button } from "@/shared/ui/button";
-import { CoverageMeter, type CoverageSegment } from "@/shared/ui/coverage-meter";
+import type { CoverageSegment } from "@/shared/ui/coverage-meter";
 import { Icon } from "@/shared/ui/icon";
 import { PageHeader } from "@/widgets/page-header";
+import { StatsRow } from "@/widgets/stats-row";
 import { PeopleGroups, type PeopleGroup } from "@/widgets/people-groups";
 import { PersonInspector, type PersonDetail } from "@/widgets/person-inspector";
 
@@ -86,24 +87,7 @@ export function UsersPage({
         }
       />
 
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]">
-        <CoverageMeter
-          label={coverage.label}
-          detail={coverage.detail}
-          segments={coverage.segments}
-          className="rounded-[11px] border border-line bg-panel px-4.5 py-4"
-        />
-        {stats.map((stat) => (
-          <StatTile
-            key={stat.label}
-            size="lg"
-            label={stat.label}
-            state={{ kind: "value", value: stat.value }}
-            hint={stat.hint}
-            tone={stat.tone ?? "fg"}
-          />
-        ))}
-      </div>
+      <StatsRow meter={coverage} stats={stats} />
 
       <FilterBar query={query} onChange={onQueryChange} label="Filter people" placeholder={FILTER_PLACEHOLDER} />
 
