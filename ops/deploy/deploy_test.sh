@@ -35,7 +35,9 @@ echo "=== 1b. valid_actor ==="
 ok "accepts vbncursed" valid_actor vbncursed
 ok "accepts a-b" valid_actor a-b
 ok "accepts 39 chars" valid_actor "$(printf 'a%.0s' {1..39})"
-for bad in "" "$(printf 'a%.0s' {1..40})" "a b" "x;id" '$(id)' "a"$'\n'; do
+ok "accepts dependabot[bot]" valid_actor 'dependabot[bot]'
+ok "accepts github-actions[bot]" valid_actor 'github-actions[bot]'
+for bad in "" "$(printf 'a%.0s' {1..40})" "a b" "x;id" '$(id)' "a"$'\n' 'a;b' 'a[bot]x' '[bot]' 'a[bot][bot]' 'a[bot]'$'\n' 'a[b]' 'a*[bot]'; do
   no "rejects actor '$bad'" valid_actor "$bad"
 done
 
@@ -346,6 +348,12 @@ echo "PASS: no args, SSH_ORIGINAL_COMMAND unset: refused"
 fresh
 go "$SHA1"
 ok "args: missing actor refused" [ "$rc" -eq 2 ]
+
+echo "=== 9b. a bot actor deploys and logs in under its own name ==="
+fresh
+go "$SHA2" 'dependabot[bot]'
+ok "bot: exit 0" [ "$rc" -eq 0 ]
+ok "bot: login as the bot" calls_have '^docker login ghcr.io -u dependabot\[bot\] --password-stdin'
 
 echo "=== 10. a held lock fails cleanly after the timeout ==="
 fresh

@@ -41,8 +41,10 @@ images_to_prune() {
   done
 }
 
-# GitHub username rules: the registry login runs as this user.
-valid_actor() { [[ $1 =~ ^[A-Za-z0-9-]{1,39}$ ]]; }
+# GitHub username rules plus one optional trailing [bot] (dependabot[bot]); the registry
+# login runs as this user. Only ever expanded quoted (docker login -u, log), never in a
+# pattern or a file name, so [ ] cannot glob.
+valid_actor() { [[ $1 =~ ^[A-Za-z0-9-]{1,39}(\[bot\])?$ ]]; }
 
 last_files() { echo "index.html sw.js shell-manifest.json offline.html"; }
 
