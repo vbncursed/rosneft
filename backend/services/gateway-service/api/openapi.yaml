@@ -885,7 +885,7 @@ components:
       properties:
         flowId: { type: string }
         assertionJson: { type: string, description: navigator.credentials.get() result JSON }
-    PasskeyDeleteRequest:
+    PasskeyStepUpRequest:
       type: object
       properties:
         password: { type: string, format: password, description: sent when 2FA is off }
@@ -2759,8 +2759,18 @@ paths:
   /api/auth/passkey/register/begin:
     post:
       tags: [auth]
-      summary: Begin passkey enrollment for the authenticated user
+      summary: Begin passkey enrollment for the authenticated user (requires step-up re-auth)
+      description: >
+        Requires re-authentication, like deleting a passkey: a TOTP code when
+        2FA is enabled, otherwise the account password. The server picks the
+        factor from the 2FA state. Without it the ceremony does not start, so a
+        stolen session cannot enrol its own key.
       security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PasskeyStepUpRequest' }
       responses:
         '200':
           description: WebAuthn creation options + a flow id
@@ -2768,6 +2778,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/PasskeyBeginResponse' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /api/auth/passkey/register/finish:
     post:
@@ -2817,7 +2828,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/PasskeyDeleteRequest' }
+            schema: { $ref: '#/components/schemas/PasskeyStepUpRequest' }
       responses:
         '204': { description: Passkey deleted }
         '401': { $ref: '#/components/responses/Unauthorized' }

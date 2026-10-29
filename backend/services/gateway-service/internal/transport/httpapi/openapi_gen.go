@@ -709,15 +709,6 @@ type PasskeyCredential struct {
 	Name       *string `json:"name,omitempty"`
 }
 
-// PasskeyDeleteRequest defines model for PasskeyDeleteRequest.
-type PasskeyDeleteRequest struct {
-	// Code TOTP or recovery code
-	Code *string `json:"code,omitempty"`
-
-	// Password sent when 2FA is off
-	Password *string `json:"password,omitempty"`
-}
-
 // PasskeyListResponse defines model for PasskeyListResponse.
 type PasskeyListResponse struct {
 	Credentials *[]PasskeyCredential `json:"credentials,omitempty"`
@@ -736,6 +727,15 @@ type PasskeyRegisterFinishRequest struct {
 	CredentialJson string  `json:"credentialJson"`
 	FlowId         string  `json:"flowId"`
 	Name           *string `json:"name,omitempty"`
+}
+
+// PasskeyStepUpRequest defines model for PasskeyStepUpRequest.
+type PasskeyStepUpRequest struct {
+	// Code TOTP or recovery code
+	Code *string `json:"code,omitempty"`
+
+	// Password sent when 2FA is off
+	Password *string `json:"password,omitempty"`
 }
 
 // Placement defines model for Placement.
