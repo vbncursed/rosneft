@@ -19,7 +19,8 @@ type Store interface {
 type Recovery interface {
 	Replace(ctx context.Context, userID string, hashes []string) error
 	List(ctx context.Context, userID string) (ids, hashes []string, err error)
-	MarkUsed(ctx context.Context, id string) error
+	// Consume spends one code; false means another caller already did.
+	Consume(ctx context.Context, id string) (consumed bool, err error)
 	DeleteAll(ctx context.Context, userID string) error
 	// Counts reports unused and issued recovery codes for the account screen.
 	Counts(ctx context.Context, userID string) (remaining, total int, err error)

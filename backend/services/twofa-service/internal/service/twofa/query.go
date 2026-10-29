@@ -61,12 +61,15 @@ func (s *Service) Verify(ctx context.Context, userID, code string) (bool, error)
 		return false, err
 	}
 	if idx, ok := totp.MatchRecovery(code, hashes); ok {
-		if err := s.recovery.MarkUsed(ctx, ids[idx]); err != nil {
+		consumed, err := s.recovery.Consume(ctx, ids[idx])
+		if err != nil {
 			return false, err
 		}
-		_ = s.limiter.Clear(ctx, userID)
-		metricTwofaVerifications.WithLabelValues("succeeded").Inc()
-		return true, nil
+		if consumed {
+			_ = s.limiter.Clear(ctx, userID)
+			metricTwofaVerifications.WithLabelValues("succeeded").Inc()
+			return true, nil
+		}
 	}
 	_ = s.limiter.RegisterFail(ctx, userID)
 	metricTwofaVerifications.WithLabelValues("failed").Inc()

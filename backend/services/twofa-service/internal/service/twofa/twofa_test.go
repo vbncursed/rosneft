@@ -93,12 +93,31 @@ func (s *TwoFASuite) TestVerifyRecoveryFallback() {
 	s.st.GetMock.Expect(s.ctx, "u1").Return(domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}, nil)
 	s.ciph.DecryptMock.Expect([]byte("ct")).Return([]byte(secret), nil)
 	s.rec.ListMock.Expect(s.ctx, "u1").Return([]string{"id0", "id1", "id2"}, hashes, nil)
-	s.rec.MarkUsedMock.Expect(s.ctx, "id0").Return(nil)
+	s.rec.ConsumeMock.Expect(s.ctx, "id0").Return(true, nil)
 	s.lim.ClearMock.Expect(s.ctx, "u1").Return(nil)
 
 	ok, err := s.svc.Verify(s.ctx, "u1", plain[0])
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), ok)
+}
+
+// Another Verify spent the code between our List and Consume: this attempt is
+// a failed one, not a second success.
+func (s *TwoFASuite) TestVerifyRecoveryAlreadyConsumedFails() {
+	secret, _ := s.enrolled()
+	plain, hashes, err := totp.GenerateRecovery(1)
+	assert.NilError(s.T(), err)
+
+	s.lim.IsLockedMock.Expect(s.ctx, "u1").Return(false, nil)
+	s.st.GetMock.Expect(s.ctx, "u1").Return(domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}, nil)
+	s.ciph.DecryptMock.Expect([]byte("ct")).Return([]byte(secret), nil)
+	s.rec.ListMock.Expect(s.ctx, "u1").Return([]string{"id0"}, hashes, nil)
+	s.rec.ConsumeMock.Expect(s.ctx, "id0").Return(false, nil)
+	s.lim.RegisterFailMock.Expect(s.ctx, "u1").Return(nil)
+
+	ok, err := s.svc.Verify(s.ctx, "u1", plain[0])
+	assert.NilError(s.T(), err)
+	assert.Assert(s.T(), !ok)
 }
 
 func (s *TwoFASuite) TestRegenerateRequiresValidCode() {
