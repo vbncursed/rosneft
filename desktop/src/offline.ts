@@ -1,33 +1,12 @@
 import { assertDeclaredWithin, eachLimit } from "./limit";
-import type { Progress, SavedTerritory, SaveError } from "./ipc-contract";
+import type { Progress, SavedTerritory } from "./ipc-contract";
 import type { SettingsFile } from "./settings";
 import type { Pin, Store } from "./store";
-import { isHash } from "./validate";
+import { checked, Gone, reasonOf, SaveFailure, SessionChanged, throttled } from "./offline-errors";
+import { sceneHashes, type SceneLike } from "./offline-scene";
+import { Semaphore } from "./semaphore";
 
-type Hashed = { hash: string };
-export type SceneLike = {
-  territory: { slug: string; title: string };
-  artifact?: Hashed & { artifacts?: Hashed[] };
-  placements: { modelSlug: string }[];
-  modelOptions: { slug: string; thumbnailBlobHash?: string; artifacts: Hashed[] }[];
-  panoramas?: { sourceBlobHash: string; thumbnailBlobHash?: string }[];
-  documents?: { sourceBlobHash: string }[];
-};
-
-/** Everything the viewer fetches from /api/assets for this territory: every LOD (the level follows screen size), placed models only. */
-export function sceneHashes(scene: SceneLike): string[] {
-  const placed = new Set(scene.placements.map((p) => p.modelSlug));
-  const all = [
-    scene.artifact?.hash,
-    ...(scene.artifact?.artifacts ?? []).map((a) => a.hash),
-    ...scene.modelOptions.flatMap((m) =>
-      placed.has(m.slug) ? [m.thumbnailBlobHash, ...m.artifacts.map((a) => a.hash)] : [],
-    ),
-    ...(scene.panoramas ?? []).flatMap((p) => [p.sourceBlobHash, p.thumbnailBlobHash]),
-    ...(scene.documents ?? []).map((d) => d.sourceBlobHash),
-  ];
-  return [...new Set(all.filter(isHash))];
-}
+export { sceneHashes, type SceneLike };
 
 export type SaverDeps = {
   origin: string;
@@ -38,41 +17,6 @@ export type SaverDeps = {
   now?: () => Date;
 };
 
-class SaveFailure extends Error {
-  constructor(readonly reason: SaveError) {
-    super(reason);
-  }
-}
-
-/** The server no longer knows the territory (404). Only a resync of a synced copy acts on it. */
-class Gone extends Error {}
-
-/** The signed-in user is no longer the one this save started for. */
-class SessionChanged extends Error {}
-
-function reasonOf(err: unknown): SaveError {
-  if (err instanceof SaveFailure) return err.reason;
-  if ((err as { code?: unknown })?.code === "ENOSPC") return "no-space";
-  if (String((err as { message?: unknown })?.message).includes("net::ERR")) return "network";
-  return "failed";
-}
-
-function throttled(emit: (p: Progress) => void, ms: number) {
-  let last = 0;
-  return (p: Progress) => {
-    const now = Date.now();
-    if (now - last < ms) return;
-    last = now;
-    emit(p);
-  };
-}
-
-function checked(res: Response): Response {
-  if (res.status === 401) throw new SaveFailure("signed-out");
-  if (res.status !== 200) throw new SaveFailure("failed");
-  return res;
-}
-
 const upsert = (pins: Pin[], pin: Pin): Pin[] => [...pins.filter((p) => p.slug !== pin.slug), pin];
 
 const SAVES_AT_ONCE = 2;
@@ -80,8 +24,7 @@ const DOWNLOADS_AT_ONCE = 4;
 
 export class OfflineSaver {
   private readonly jobs = new Map<string, { promise: Promise<void>; abort: AbortController }>();
-  private free = SAVES_AT_ONCE;
-  private readonly waiting: (() => void)[] = [];
+  private readonly slots = new Semaphore(SAVES_AT_ONCE);
 
   constructor(private readonly d: SaverDeps) {}
 
@@ -160,33 +103,6 @@ export class OfflineSaver {
     for (const pin of await this.d.store.readPins(user)) void this.save(pin.slug, true);
   }
 
-  /** Rejects on abort without taking a slot: a cancelled queued save must not wait for one. */
-  private acquire(signal: AbortSignal): Promise<void> {
-    if (signal.aborted) return Promise.reject(signal.reason);
-    if (this.free > 0) {
-      this.free -= 1;
-      return Promise.resolve();
-    }
-    return new Promise<void>((resolve, reject) => {
-      const turn = () => {
-        signal.removeEventListener("abort", onAbort);
-        resolve();
-      };
-      const onAbort = () => {
-        this.waiting.splice(this.waiting.indexOf(turn), 1);
-        reject(signal.reason);
-      };
-      this.waiting.push(turn);
-      signal.addEventListener("abort", onAbort, { once: true });
-    });
-  }
-
-  private release(): void {
-    const next = this.waiting.shift();
-    if (next) next();
-    else this.free += 1;
-  }
-
   /** Only a fetch that throws is a network failure; anything else that throws is our own. */
   private async get(url: string, signal: AbortSignal): Promise<Response> {
     try {
@@ -215,7 +131,7 @@ export class OfflineSaver {
     const report = throttled(emit, 250);
     emit({ slug, state: "queued", done: 0, total: 0 });
     try {
-      await this.acquire(signal);
+      await this.slots.acquire(signal);
     } catch {
       return emit({ slug, state: "cancelled", done: 0, total: 0 });
     }
@@ -298,7 +214,7 @@ export class OfflineSaver {
       else if (silent) console.warn("offline: resync failed", slug, err);
       else emit({ slug, state: "failed", done: 0, total: 0, error: reasonOf(err) });
     } finally {
-      this.release();
+      this.slots.release();
     }
   }
 }

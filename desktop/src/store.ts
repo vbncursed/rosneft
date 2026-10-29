@@ -7,67 +7,26 @@ import { pipeline } from "node:stream/promises";
 import type { ReadableStream as NodeWebStream } from "node:stream/web";
 import { atomicWrite } from "./atomic-write";
 import { byteCap } from "./limit";
+import { decodeSnapshot, encodeSnapshot } from "./snapshot-codec";
 import { isHash, isUserId } from "./validate";
+import {
+  newestMtime,
+  pickVictims,
+  staleUserDirs,
+  totalSize,
+  type BlobFile,
+  type Pin,
+  type SnapshotMeta,
+} from "./store-policy";
 
-export type SnapshotMeta = { status: number; headers: [string, string][] };
-export type Pin = {
-  slug: string;
-  title: string;
-  hashes: string[];
-  bytes: number;
-  savedAt: string;
-  syncedAt: string | null;
-};
-export type BlobFile = { hash: string; size: number; mtimeMs: number };
-
-const totalSize = (list: BlobFile[]) => list.reduce((n, f) => n + f.size, 0);
-
-/**
- * Least-recently-*modified* first, never a pinned file. Not LRU: a cache hit
- * reads the file and leaves its mtime alone; a real LRU would need a side-index.
- */
-export function pickVictims(files: BlobFile[], pinned: ReadonlySet<string>, limit: number): string[] {
-  let total = totalSize(files);
-  const victims: string[] = [];
-  const candidates = files.filter((f) => !pinned.has(f.hash)).toSorted((a, b) => a.mtimeMs - b.mtimeMs);
-  for (const f of candidates) {
-    if (total <= limit) break;
-    victims.push(f.hash);
-    total -= f.size;
-  }
-  return victims;
-}
-
-/**
- * Design choice, not a spec: a user directory idle this long is plaintext on disk for nobody's benefit and
- * counts toward disk use, so the next start removes it. Their next sign-in just re-caches.
- */
-export const USER_RETENTION_MS = 30 * 86_400_000;
-
-/** Other users' directories idle past retention. Unknown current user (`keep` null) keeps everything: fail safe. */
-export function staleUserDirs(
-  entries: { name: string; mtimeMs: number }[],
-  now: number,
-  keep: string | null,
-): string[] {
-  if (keep === null) return [];
-  return entries
-    .filter((e) => isUserId(e.name) && e.name !== keep && now - e.mtimeMs > USER_RETENTION_MS)
-    .map((e) => e.name);
-}
-
-/** The directory's own mtime or its direct children's (pins.json, blobs/, snapshots/), whichever is newest; Infinity on error keeps it. */
-async function newestMtime(dir: string): Promise<number> {
-  try {
-    const kids = await readdir(dir);
-    const times = await Promise.all(
-      [dir, ...kids.map((k) => path.join(dir, k))].map(async (p) => (await stat(p)).mtimeMs),
-    );
-    return Math.max(...times);
-  } catch {
-    return Infinity;
-  }
-}
+export {
+  pickVictims,
+  staleUserDirs,
+  USER_RETENTION_MS,
+  type BlobFile,
+  type Pin,
+  type SnapshotMeta,
+} from "./store-policy";
 
 export class Store {
   private pinChain: Promise<unknown> = Promise.resolve();
@@ -118,26 +77,17 @@ export class Store {
     return path.join(this.userDir(user), "snapshots", createHash("sha256").update(key).digest("hex"));
   }
 
-  /** One file per key — [4-byte meta length][meta JSON][body] — so a body can never be paired with another response's headers. */
+  /** One file per key, so a body can never be paired with another response's headers. */
   async readSnapshot(user: string, key: string): Promise<{ meta: SnapshotMeta; body: Buffer } | null> {
     try {
-      const data = await readFile(this.snapshotFile(user, key));
-      const metaEnd = 4 + data.readUInt32BE(0);
-      if (metaEnd > data.length) return null;
-      return {
-        meta: JSON.parse(data.subarray(4, metaEnd).toString("utf8")) as SnapshotMeta,
-        body: data.subarray(metaEnd),
-      };
+      return decodeSnapshot(await readFile(this.snapshotFile(user, key)));
     } catch {
       return null;
     }
   }
 
   async writeSnapshot(user: string, key: string, meta: SnapshotMeta, body: Buffer): Promise<void> {
-    const json = Buffer.from(JSON.stringify(meta));
-    const head = Buffer.alloc(4);
-    head.writeUInt32BE(json.length);
-    await atomicWrite(this.snapshotFile(user, key), Buffer.concat([head, json, body]), this.tmpFile());
+    await atomicWrite(this.snapshotFile(user, key), encodeSnapshot(meta, body), this.tmpFile());
   }
 
   async removeSnapshot(user: string, key: string): Promise<void> {

@@ -7,6 +7,8 @@
     "eqeqeq": ["error", "always", { "null": "ignore" }],
     "require-unicode-regexp": "error",
     "no-negated-condition": "error",
+    // The 200-line file cap (code lines; blank lines and comments do not count). Specs are exempt below.
+    "max-lines": ["error", { "max": 200, "skipBlankLines": true, "skipComments": true }],
     "typescript/no-floating-promises": "error",
     // Async handlers handed to callback props; conditions, spreads and arguments stay checked.
     "typescript/no-misused-promises": ["error", { "checksVoidReturn": { "attributes": false, "properties": false } }],
@@ -26,7 +28,9 @@
         // `expect(fake.method)` is the vitest idiom.
         "typescript/unbound-method": "off",
         // Test steps run in order on purpose.
-        "no-await-in-loop": "off"
+        "no-await-in-loop": "off",
+        // The cap binds product files only.
+        "max-lines": "off"
       }
     }
   ]
