@@ -13,6 +13,9 @@ on:
       - "desktop/**"
       - ".github/workflows/desktop.yml"
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-22.04
@@ -40,8 +43,8 @@ jobs:
 
   build:
     needs: check
-    # The default workflow token is read-only; creating a release needs write.
-    # Granted here rather than repo-wide so check keeps the read-only default.
+    # The workflow token is read-only (top of file); creating a release needs write.
+    # Granted here rather than workflow-wide so check keeps read-only.
     permissions:
       contents: write
     strategy:
