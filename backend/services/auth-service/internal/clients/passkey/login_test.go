@@ -52,6 +52,7 @@ func TestLoginTranslatesPasskeyStatus(t *testing.T) {
 		assert.ErrorIs(t, err, tc.want, tc.code.String())
 		_, err = c.FinishLogin(t.Context(), "f", "{}")
 		assert.ErrorIs(t, err, tc.want, tc.code.String())
+		assert.Equal(t, err.Error(), tc.want.Error(), tc.code.String())
 	}
 }
 

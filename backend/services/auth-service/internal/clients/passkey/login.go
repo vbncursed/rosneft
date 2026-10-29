@@ -2,7 +2,6 @@ package passkey
 
 import (
 	"context"
-	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -31,24 +30,23 @@ func (c *Client) FinishLogin(ctx context.Context, flowID, assertionJSON string) 
 
 // refusal turns passkey-service's client-fault statuses into auth's domain
 // sentinels so they surface as 4xx; Internal, Unavailable and the rest pass
-// through unchanged and stay server errors.
+// through unchanged and stay server errors. The bare sentinel is returned, not
+// the foreign message: passkey already words it with its own sentinel (the
+// body would repeat itself) and, for an assertion failure, with the WebAuthn
+// library's text, which a 4xx body must not show.
 func refusal(err error) error {
 	st, ok := status.FromError(err)
 	if !ok {
 		return err
 	}
-	var sentinel error
 	switch st.Code() {
 	case codes.FailedPrecondition:
-		sentinel = domain.ErrPasskeyCeremonyExpired
+		return domain.ErrPasskeyCeremonyExpired
 	case codes.Unauthenticated, codes.NotFound:
-		// Bare sentinel: the message carries the WebAuthn library's own text
-		// (kept for passkey's log), and a 4xx body is shown to the caller.
 		return domain.ErrInvalidCredential
 	case codes.InvalidArgument:
-		sentinel = domain.ErrInvalidInput
+		return domain.ErrInvalidInput
 	default:
 		return err
 	}
-	return fmt.Errorf("%w: %s", sentinel, st.Message())
 }

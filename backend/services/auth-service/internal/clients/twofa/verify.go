@@ -2,7 +2,6 @@ package twofa
 
 import (
 	"context"
-	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -26,7 +25,7 @@ func (c *Client) Verify(ctx context.Context, userID, code string) (bool, error) 
 	if err != nil {
 		// A lockout is a refusal (403), not a fault; other statuses stay as they are.
 		if st, ok := status.FromError(err); ok && st.Code() == codes.ResourceExhausted {
-			return false, fmt.Errorf("%w: %s", domain.ErrLoginThrottled, st.Message())
+			return false, domain.ErrLoginThrottled
 		}
 		return false, err
 	}

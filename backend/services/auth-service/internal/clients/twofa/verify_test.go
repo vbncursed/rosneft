@@ -31,6 +31,7 @@ func TestVerifyTranslatesLockout(t *testing.T) {
 	c := &Client{cc: failingTwoFA{err: status.Error(codes.ResourceExhausted, "locked")}}
 	_, err := c.Verify(t.Context(), "u", "123456")
 	assert.ErrorIs(t, err, domain.ErrLoginThrottled)
+	assert.Equal(t, err.Error(), domain.ErrLoginThrottled.Error())
 }
 
 func TestVerifyKeepsServerFaults(t *testing.T) {
