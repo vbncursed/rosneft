@@ -112,7 +112,8 @@ export class Shell {
     if (!res.ok || !(res.headers.get("content-type") ?? "").includes("application/json")) return;
     const manifest = parseManifest(await res.json());
     if (!manifest) return;
-    if (manifest.id === (await this.currentId()) && (await this.hasIndex(manifest.id))) return this.sweep(manifest.id);
+    const sameAsCurrent = manifest.id === (await this.currentId());
+    if (sameAsCurrent && (await this.hasIndex(manifest.id))) return this.sweep(manifest.id);
 
     const staging = path.join(this.root, `${manifest.id}.tmp`);
     await rm(staging, { recursive: true, force: true });
@@ -138,8 +139,22 @@ export class Shell {
         throw new Error(`shell: ${f.path} is ${size} bytes, manifest says ${f.size}`);
     });
 
-    await rm(path.join(this.root, manifest.id), { recursive: true, force: true });
-    await rename(staging, path.join(this.root, manifest.id));
+    const generation = path.join(this.root, manifest.id);
+    if (sameAsCurrent) {
+      // `current` points here: never remove or replace the directory (a gap would serve offline.html, and Windows
+      // refuses to remove open files). Move the files in one by one; each rename is atomic.
+      for (const f of manifest.files) {
+        const dest = path.join(generation, ...f.path.split("/").filter(Boolean));
+        // oxlint-disable-next-line no-await-in-loop -- a handful of renames; sequential keeps index.html's turn simple
+        await mkdir(path.dirname(dest), { recursive: true });
+        // oxlint-disable-next-line no-await-in-loop -- see above
+        await rename(path.join(staging, ...f.path.split("/").filter(Boolean)), dest);
+      }
+      await rm(staging, { recursive: true, force: true });
+    } else {
+      await rm(generation, { recursive: true, force: true });
+      await rename(staging, generation);
+    }
     await atomicWrite(path.join(this.root, "current"), manifest.id);
     await this.sweep(manifest.id);
   }

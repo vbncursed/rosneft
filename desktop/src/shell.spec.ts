@@ -4,6 +4,16 @@ import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { contentType, HTML_SLACK, parseManifest, Shell, sizeAcceptable } from "./shell";
 
+const ops: string[] = [];
+vi.mock("node:fs/promises", async (orig) => {
+  const real = await orig<typeof import("node:fs/promises")>();
+  return {
+    ...real,
+    rm: (p: string, ...r: [object?]) => (ops.push(`rm ${p}`), real.rm(p, ...r)),
+    rename: (a: string, b: string) => (ops.push(`rename ${a} ${b}`), real.rename(a, b)),
+  };
+});
+
 const ORIGIN = "https://andrey.vbncursed.fun";
 const ID1 = "a".repeat(32);
 const ID2 = "b".repeat(32);
@@ -201,6 +211,20 @@ describe("Shell", () => {
     rmSync(path.join(dir, ID1, "index.html"));
     await s.refresh();
     expect(await s.file("/index.html")).toMatchObject({ size: 4 });
+  });
+
+  it("restores a missing index.html without ever removing or replacing the generation current points at", async () => {
+    const dir = root();
+    const s = new Shell(dir, ORIGIN, server({ "/index.html": "<v1>", "/a.js": "js" }, ID1));
+    await s.refresh();
+    rmSync(path.join(dir, ID1, "index.html"));
+    ops.length = 0;
+    await s.refresh();
+    const gen = path.join(dir, ID1);
+    expect(ops.filter((o) => o === `rm ${gen}` || o.endsWith(` ${gen}`))).toEqual([]);
+    expect(await s.file("/index.html")).toMatchObject({ size: 4 });
+    expect(await s.file("/a.js")).toMatchObject({ size: 2 });
+    expect(readdirSync(dir).toSorted()).toEqual([ID1, "current"]);
   });
 
   it("does not fetch twice for overlapping refreshes", async () => {
