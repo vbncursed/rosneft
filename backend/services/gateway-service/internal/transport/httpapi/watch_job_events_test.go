@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/suite"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"gotest.tools/v3/assert"
 
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
@@ -47,12 +49,16 @@ type watchServiceStub struct {
 	job      domain.Job
 	visible  map[string]bool
 	lookedUp []string
+	lookErr  error // answers every territory lookup when set (catalog down)
 }
 
 func (w *watchServiceStub) GetJob(context.Context, string) (domain.Job, error) { return w.job, nil }
 
 func (w *watchServiceStub) GetTerritory(_ context.Context, slug, _ string) (domain.Territory, error) {
 	w.lookedUp = append(w.lookedUp, slug)
+	if w.lookErr != nil {
+		return domain.Territory{}, w.lookErr
+	}
 	if w.visible[slug] {
 		return domain.Territory{Slug: slug}, nil
 	}
@@ -70,6 +76,59 @@ func (s *WatchJobEventsSuite) TestScopedFetchHidesAnotherTenantsTerritoryJob() {
 	_, err := srv.scopedJob(ctx, "j1")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrJobNotFound))
 	assert.DeepEqual(s.T(), stub.lookedUp, []string{"theirs"})
+}
+
+// A catalog that is down (restart during a deploy, timeout) says nothing about
+// access: scopedJob must not turn it into "job not found", which ends the stream.
+func (s *WatchJobEventsSuite) TestScopedFetchKeepsATransientCatalogErrorTransient() {
+	down := status.Error(codes.Unavailable, "catalog restarting")
+	stub := &watchServiceStub{
+		job:     domain.Job{ID: "j1", Kind: domain.KindTerritory, Slug: "mine", Status: domain.JobStatusRunning},
+		lookErr: down,
+	}
+	ctx := authhttp.NewTestContext(context.Background(), false, "admin-1")
+
+	_, err := New(stub).scopedJob(ctx, "j1")
+
+	assert.Assert(s.T(), errors.Is(err, down), "got %v", err)
+	assert.Assert(s.T(), !errors.Is(err, domain.ErrJobNotFound))
+}
+
+// Through the real tenant gate: one catalog blip between two ticks must not
+// close the stream, and the job's next change still arrives.
+func (s *WatchJobEventsSuite) TestStreamSurvivesACatalogBlipBehindTheTenantGate() {
+	stub := &watchServiceStub{
+		job:     domain.Job{ID: "j1", Kind: domain.KindTerritory, Slug: "mine", Status: domain.JobStatusRunning},
+		visible: map[string]bool{"mine": true},
+	}
+	srv := New(stub)
+	ctx := authhttp.NewTestContext(context.Background(), false, "admin-1")
+	calls := 0
+	fetch := func(c context.Context, id string) (domain.Job, error) {
+		calls++
+		switch calls {
+		case 2:
+			stub.lookErr = status.Error(codes.Unavailable, "catalog restarting")
+		case 3:
+			stub.lookErr = nil
+			stub.job.Status = domain.JobStatusSucceeded
+		}
+		return srv.scopedJob(c, id)
+	}
+	synctest.Test(s.T(), func(t *testing.T) {
+		rec := &flushCounter{ResponseRecorder: httptest.NewRecorder()}
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			streamJob(ctx, rec, rec, "j1", fetch)
+		}()
+		time.Sleep(3 * jobEventInterval)
+		synctest.Wait()
+		<-done
+		body := rec.Body.String()
+		assert.Assert(t, !strings.Contains(body, "event: error"), body)
+		assert.Assert(t, strings.Contains(body, `"status":"succeeded"`), body)
+	})
 }
 
 func (s *WatchJobEventsSuite) TestScopedFetchPassesOwnTerritoryModelsAndRoot() {
