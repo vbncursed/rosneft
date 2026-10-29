@@ -6,6 +6,7 @@ import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as NodeWebStream } from "node:stream/web";
 import { atomicWrite } from "./atomic-write";
+import { byteCap } from "./limit";
 import { isHash, isUserId } from "./validate";
 
 export type SnapshotMeta = { status: number; headers: [string, string][] };
@@ -160,6 +161,7 @@ export class Store {
     type: string,
     body: ReadableStream<Uint8Array>,
     signal?: AbortSignal,
+    maxBytes = Infinity,
   ): Promise<number> {
     const dest = this.blobPath(user, hash);
     const tmp = this.tmpFile();
@@ -173,7 +175,13 @@ export class Store {
       },
     });
     try {
-      await pipeline(Readable.fromWeb(body as NodeWebStream<Uint8Array>), count, createWriteStream(tmp), { signal });
+      await pipeline(
+        Readable.fromWeb(body as NodeWebStream<Uint8Array>),
+        byteCap(maxBytes, `store: ${hash}`),
+        count,
+        createWriteStream(tmp),
+        { signal },
+      );
       if (digest.digest("hex") !== hash) throw new Error(`store: ${hash} did not hash to itself`);
       await mkdir(path.dirname(dest), { recursive: true });
       await rename(tmp, dest);

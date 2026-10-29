@@ -1,4 +1,4 @@
-import { eachLimit } from "./limit";
+import { assertDeclaredWithin, eachLimit } from "./limit";
 import type { Progress, SavedTerritory, SaveError } from "./ipc-contract";
 import type { SettingsFile } from "./settings";
 import type { Pin, Store } from "./store";
@@ -255,6 +255,7 @@ export class OfflineSaver {
         } else {
           const res = checked(await this.get(`${this.d.origin}/api/assets/${hash}`, signal));
           if (!res.body) throw new SaveFailure("failed");
+          assertDeclaredWithin(res.headers, this.d.settings.value.limit, `blob ${hash}`);
           this.still(user);
           // Await first: `bytes += await …` reads bytes before the suspension and loses concurrent downloads' sizes.
           const size = await store.writeBlob(
@@ -263,6 +264,7 @@ export class OfflineSaver {
             res.headers.get("content-type") ?? "application/octet-stream",
             res.body,
             signal,
+            this.d.settings.value.limit,
           );
           bytes += size;
         }

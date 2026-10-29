@@ -5,7 +5,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as NodeWebStream } from "node:stream/web";
 import { atomicWrite } from "./atomic-write";
-import { eachLimit } from "./limit";
+import { assertDeclaredWithin, byteCap, eachLimit } from "./limit";
 
 export type ShellManifest = { id: string; files: { path: string; size: number }[] };
 
@@ -37,6 +37,11 @@ export function parseManifest(raw: unknown): ShellManifest | null {
  */
 export const sizeAcceptable = (urlPath: string, actual: number, expected: number): boolean =>
   urlPath.endsWith(".html") ? actual >= expected : actual === expected;
+
+/** How much longer than the manifest an HTML file may stream (Cloudflare's appended script is about 1 KB). */
+export const HTML_SLACK = 64 * 1024;
+const capFor = (urlPath: string, expected: number): number =>
+  urlPath.endsWith(".html") ? expected + HTML_SLACK : expected;
 
 const TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -116,7 +121,18 @@ export class Shell {
       if (!r.ok || !r.body) throw new Error(`shell: ${f.path} answered ${r.status}`);
       const dest = path.join(staging, ...f.path.split("/").filter(Boolean));
       await mkdir(path.dirname(dest), { recursive: true });
-      await pipeline(Readable.fromWeb(r.body as NodeWebStream<Uint8Array>), createWriteStream(dest));
+      const cap = capFor(f.path, f.size);
+      assertDeclaredWithin(r.headers, cap, `shell: ${f.path}`);
+      try {
+        await pipeline(
+          Readable.fromWeb(r.body as NodeWebStream<Uint8Array>),
+          byteCap(cap, `shell: ${f.path}`),
+          createWriteStream(dest),
+        );
+      } catch (err) {
+        await rm(dest, { force: true });
+        throw err;
+      }
       const size = (await stat(dest)).size;
       if (!sizeAcceptable(f.path, size, f.size))
         throw new Error(`shell: ${f.path} is ${size} bytes, manifest says ${f.size}`);

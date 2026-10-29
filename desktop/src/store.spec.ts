@@ -168,6 +168,17 @@ describe("Store", () => {
     expect(readdirSync(path.join(root, "tmp"))).toEqual([]);
   });
 
+  it("a body over the cap is refused mid-stream and leaves nothing behind", async () => {
+    const h = sha("x".repeat(100));
+    await expect(store.writeBlob(A, h, "x", body("x".repeat(100)), undefined, 10)).rejects.toThrow(/exceeds/u);
+    expect(readdirSync(path.join(root, "tmp"))).toEqual([]);
+    expect(await store.blob(A, h)).toBeNull();
+  });
+  it("a body exactly at the cap is stored", async () => {
+    const h = sha("abcd");
+    expect(await store.writeBlob(A, h, "x", body("abcd"), undefined, 4)).toBe(4);
+  });
+
   it("an aborted write rejects and leaves nothing behind", async () => {
     const h = sha("hello");
     const ac = new AbortController();
