@@ -37,15 +37,62 @@ export function pickVictims(files: BlobFile[], pinned: ReadonlySet<string>, limi
   return victims;
 }
 
+/**
+ * Design choice, not a spec: a user directory idle this long is plaintext on disk for nobody's benefit and
+ * counts toward disk use, so the next start removes it. Their next sign-in just re-caches.
+ */
+export const USER_RETENTION_MS = 30 * 86_400_000;
+
+/** Other users' directories idle past retention. Unknown current user (`keep` null) keeps everything: fail safe. */
+export function staleUserDirs(
+  entries: { name: string; mtimeMs: number }[],
+  now: number,
+  keep: string | null,
+): string[] {
+  if (keep === null) return [];
+  return entries
+    .filter((e) => isUserId(e.name) && e.name !== keep && now - e.mtimeMs > USER_RETENTION_MS)
+    .map((e) => e.name);
+}
+
+/** The directory's own mtime or its direct children's (pins.json, blobs/, snapshots/), whichever is newest; Infinity on error keeps it. */
+async function newestMtime(dir: string): Promise<number> {
+  try {
+    const kids = await readdir(dir);
+    const times = await Promise.all(
+      [dir, ...kids.map((k) => path.join(dir, k))].map(async (p) => (await stat(p)).mtimeMs),
+    );
+    return Math.max(...times);
+  } catch {
+    return Infinity;
+  }
+}
+
 export class Store {
   private pinChain: Promise<unknown> = Promise.resolve();
 
   constructor(private readonly root: string) {}
 
   /** tmp/ is outside everything eviction sweeps; a hard kill can only orphan files there. */
-  async init(): Promise<void> {
+  async init(currentUser: string | null = null): Promise<void> {
     await rm(this.tmpDir(), { recursive: true, force: true });
     await mkdir(this.tmpDir(), { recursive: true });
+    await this.purgeIdleUsers(currentUser);
+  }
+
+  /** Startup only, before any session exists, so nothing races it. Best-effort: a locked directory waits for the next start. */
+  private async purgeIdleUsers(currentUser: string | null): Promise<void> {
+    const base = path.join(this.root, "users");
+    const names = await readdir(base).catch(() => [] as string[]);
+    const entries = await Promise.all(
+      names.map(async (name) => ({ name, mtimeMs: await newestMtime(path.join(base, name)) })),
+    );
+    for (const name of staleUserDirs(entries, Date.now(), currentUser)) {
+      // oxlint-disable-next-line no-await-in-loop -- best-effort cleanup at startup
+      await rm(path.join(base, name), { recursive: true, force: true }).catch((err: unknown) =>
+        console.warn("store: could not remove idle user", name, err),
+      );
+    }
   }
 
   private tmpDir(): string {
