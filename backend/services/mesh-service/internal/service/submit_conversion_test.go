@@ -82,7 +82,8 @@ func (s *SubmitConversionSuite) TestModelKindIsForwarded() {
 
 func (s *SubmitConversionSuite) TestTakesTheTargetLockBeforeQueueing() {
 	job := domain.Job{ID: "fixed-id", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusPending}
-	s.queue.TryLockTargetMock.Expect(s.ctx, domain.KindTerritory, "t1", service.TargetLockTTL).Return(true, nil)
+	s.queue.TryLockTargetMock.Expect(s.ctx, domain.KindTerritory, "t1", "fixed-id", service.TargetLockTTL).
+		Return(true, nil)
 	s.queue.ListTargetJobsMock.Return(nil, nil)
 	s.queue.SaveJobMock.Expect(s.ctx, job).Return(nil)
 	s.queue.EnqueueJobMock.Expect(s.ctx, "fixed-id").Return(nil)
@@ -144,7 +145,7 @@ func (s *SubmitConversionSuite) TestReleasesTheLockWhenSaveFails() {
 	s.queue.TryLockTargetMock.Return(true, nil)
 	s.queue.ListTargetJobsMock.Return(nil, nil)
 	s.queue.SaveJobMock.Return(errors.New("redis down"))
-	s.queue.UnlockTargetMock.Expect(s.ctx, domain.KindTerritory, "t1").Return(nil)
+	s.queue.UnlockTargetMock.Expect(s.ctx, domain.KindTerritory, "t1", "fixed-id").Return(nil)
 
 	_, _, err := s.svc.SubmitConversion(s.ctx, domain.KindTerritory, "t1")
 	assert.ErrorContains(s.T(), err, "redis down")
@@ -155,7 +156,7 @@ func (s *SubmitConversionSuite) TestReleasesTheLockWhenEnqueueFails() {
 	s.queue.ListTargetJobsMock.Return(nil, nil)
 	s.queue.SaveJobMock.Return(nil)
 	s.queue.EnqueueJobMock.Return(errors.New("redis full"))
-	s.queue.UnlockTargetMock.Expect(s.ctx, domain.KindTerritory, "t1").Return(nil)
+	s.queue.UnlockTargetMock.Expect(s.ctx, domain.KindTerritory, "t1", "fixed-id").Return(nil)
 
 	_, _, err := s.svc.SubmitConversion(s.ctx, domain.KindTerritory, "t1")
 	assert.ErrorContains(s.T(), err, "redis full")
@@ -246,7 +247,7 @@ func (s *SubmitConversionSuite) TestQueuesAnewWhenARunningJobsClaimLapsed() {
 func (s *SubmitConversionSuite) TestReleasesTheLockWhenTheIndexReadFails() {
 	s.queue.TryLockTargetMock.Return(true, nil)
 	s.queue.ListTargetJobsMock.Return(nil, errors.New("redis down"))
-	s.queue.UnlockTargetMock.Expect(s.ctx, domain.KindTerritory, "t1").Return(nil)
+	s.queue.UnlockTargetMock.Expect(s.ctx, domain.KindTerritory, "t1", "fixed-id").Return(nil)
 
 	_, _, err := s.svc.SubmitConversion(s.ctx, domain.KindTerritory, "t1")
 	assert.ErrorContains(s.T(), err, "redis down")
@@ -380,7 +381,7 @@ func (s *SubmitConversionSuite) TestFailureAtEachStepNamesItAndReleasesOnlyAnOwn
 			s.SetupTest()
 			st.arrange(locked)
 			if locked && st.releasesLock {
-				s.queue.UnlockTargetMock.Expect(s.ctx, domain.KindTerritory, "t1").Return(nil)
+				s.queue.UnlockTargetMock.Expect(s.ctx, domain.KindTerritory, "t1", "fixed-id").Return(nil)
 			}
 
 			got, created, err := s.svc.SubmitConversion(s.ctx, domain.KindTerritory, "t1")

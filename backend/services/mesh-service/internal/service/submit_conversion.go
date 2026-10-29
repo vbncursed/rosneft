@@ -46,13 +46,16 @@ func (m *Mesh) submit(ctx context.Context, kind domain.Kind, slug string, backfi
 		return domain.Job{}, false, err
 	}
 
-	locked, err := m.queue.TryLockTarget(ctx, kind, slug, TargetLockTTL)
+	// The claim's owner is the id of the job it is for, so the worker that
+	// runs that job (markRunning, ProcessJob's unlock) acts on the same token.
+	id := m.idGen()
+	locked, err := m.queue.TryLockTarget(ctx, kind, slug, id, TargetLockTTL)
 	if err != nil {
 		return domain.Job{}, false, fmt.Errorf("service.SubmitConversion: lock: %w", err)
 	}
 	live, err := m.liveJob(ctx, kind, slug)
 	if err != nil {
-		m.releaseClaim(ctx, kind, slug, locked)
+		m.releaseClaim(ctx, kind, slug, id, locked)
 		return domain.Job{}, false, err
 	}
 	// A held claim means the live job is being looked after. A free one still
@@ -62,7 +65,7 @@ func (m *Mesh) submit(ctx context.Context, kind domain.Kind, slug string, backfi
 		job, err := m.followLive(ctx, *live, backfill)
 		return job, false, err
 	}
-	return m.queueNew(ctx, kind, slug, backfill, locked)
+	return m.queueNew(ctx, id, kind, slug, backfill, locked)
 }
 
 // validateSubmit is the request check: both a kind and a slug are required.
@@ -91,21 +94,21 @@ func (m *Mesh) followLive(ctx context.Context, live domain.Job, backfill bool) (
 // queueNew persists a fresh Pending job and pushes it onto the queue; locked
 // says whether this call took the claim.
 func (m *Mesh) queueNew(
-	ctx context.Context, kind domain.Kind, slug string, backfill, locked bool,
+	ctx context.Context, id string, kind domain.Kind, slug string, backfill, locked bool,
 ) (domain.Job, bool, error) {
 	job := domain.Job{
-		ID:       m.idGen(),
+		ID:       id,
 		Kind:     kind,
 		Slug:     slug,
 		Status:   domain.JobStatusPending,
 		Backfill: backfill,
 	}
 	if err := m.queue.SaveJob(ctx, job); err != nil {
-		m.releaseClaim(ctx, kind, slug, locked)
+		m.releaseClaim(ctx, kind, slug, id, locked)
 		return domain.Job{}, false, fmt.Errorf("service.SubmitConversion: save: %w", err)
 	}
 	if err := m.queue.EnqueueJob(ctx, job.ID); err != nil {
-		m.releaseClaim(ctx, kind, slug, locked)
+		m.releaseClaim(ctx, kind, slug, id, locked)
 		return domain.Job{}, false, fmt.Errorf("service.SubmitConversion: enqueue: %w", err)
 	}
 	saved, err := m.queue.GetJob(ctx, job.ID)
@@ -119,9 +122,9 @@ func (m *Mesh) queueNew(
 // took. Falling through a stale lock means someone else holds the key: inside
 // the TOCTOU window SubmitConversion documents that someone is a live submitter, and unlocking here
 // would leave their job running unprotected.
-func (m *Mesh) releaseClaim(ctx context.Context, kind domain.Kind, slug string, locked bool) {
+func (m *Mesh) releaseClaim(ctx context.Context, kind domain.Kind, slug, owner string, locked bool) {
 	if locked {
-		_ = m.queue.UnlockTarget(ctx, kind, slug)
+		_ = m.queue.UnlockTarget(ctx, kind, slug, owner)
 	}
 }
 

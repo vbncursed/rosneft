@@ -213,7 +213,7 @@ func (s *ReconcileSuite) TestPlainBackfillBacksOffFromARecentFailure() {
 		s.catalog.HasLOD0Mock.Return(true, false, nil)
 		var locked []string
 		s.queue.TryLockTargetMock.Set(
-			func(_ context.Context, _ domain.Kind, slug string, _ time.Duration) (bool, error) {
+			func(_ context.Context, _ domain.Kind, slug, _ string, _ time.Duration) (bool, error) {
 				locked = append(locked, slug)
 				return true, nil
 			},
