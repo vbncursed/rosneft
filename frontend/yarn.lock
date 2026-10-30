@@ -1311,12 +1311,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:^26.6.5":
+"@types/node@npm:*":
   version: 26.6.5
   resolution: "@types/node@npm:26.6.5"
   dependencies:
     undici-types: "npm:~8.9.0"
   checksum: 10c0/4f791f69466ace7842c09e7bef96cb1ddbb65cf3db916ef7e84f0e2b2a17220b6b816dc7539d01520cadfb17ed7169b8214910900493e0a83be8bc7d124ec20a
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:^26.6.6":
+  version: 26.6.6
+  resolution: "@types/node@npm:26.6.6"
+  dependencies:
+    undici-types: "npm:~8.9.0"
+  checksum: 10c0/5cb63f644f6e85a257a9cd2403cbcbe196760e2a35fd3ec9fb8b5cff663e14cc832b198cc17b53f870a2e30900ed45a1fb3f53e6589aba26b8e8c484aa672053
   languageName: node
   linkType: hard
 
@@ -2441,7 +2450,7 @@ __metadata:
     "@testing-library/jest-dom": "npm:^7.0.1"
     "@testing-library/react": "npm:^16.3.3"
     "@testing-library/user-event": "npm:^14.6.8"
-    "@types/node": "npm:^26.6.5"
+    "@types/node": "npm:^26.6.6"
     "@types/react": "npm:~19.3.0"
     "@types/react-dom": "npm:~19.3.0"
     "@types/three": "npm:0.186.0"
@@ -2460,7 +2469,7 @@ __metadata:
     react-dom: "npm:~19.3.1"
     tailwindcss: "npm:4.3.3"
     three: "npm:0.186.1"
-    three-mesh-bvh: "npm:0.9.16"
+    three-mesh-bvh: "npm:0.9.17"
     three-stdlib: "npm:2.36.1"
     typescript: "npm:7.0.2"
     vite: "npm:^8.3.5"
@@ -4362,12 +4371,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"three-mesh-bvh@npm:0.9.16":
-  version: 0.9.16
-  resolution: "three-mesh-bvh@npm:0.9.16"
+"three-mesh-bvh@npm:0.9.17":
+  version: 0.9.17
+  resolution: "three-mesh-bvh@npm:0.9.17"
   peerDependencies:
     three: ">= 0.159.0"
-  checksum: 10c0/19f42c366f5f4fe3710d89fce8b29a6107fa636e77656298effb85ef8f48e25286deaf495a24c755f7d455c18d462d3ad74f21c4c2edbd88b95e6bff3cff532d
+  checksum: 10c0/6ec216af3a99d046475d84570f4cbddef09b547a2ba4534d304656c589abd1fcd786691cb54cd1ca1259db9e8fe0352885881b4906efb368cb6292a5639bd6ef
   languageName: node
   linkType: hard
 
