@@ -18,7 +18,11 @@ type Details = { slug: string; title: string; description?: string };
  * invalidated mark, so a copy another write had already marked stale gets it
  * back. Both are read before the cancel, which changes them.
  */
-async function mergeInto<T>(client: QueryClient, queryKey: unknown[], update: (old: T | undefined) => T | undefined) {
+export async function mergeInto<T>(
+  client: QueryClient,
+  queryKey: unknown[],
+  update: (old: T | undefined) => T | undefined,
+) {
   const before = client.getQueryState(queryKey);
   const wasFetching = before?.fetchStatus === "fetching";
   await client.cancelQueries({ queryKey, exact: true });

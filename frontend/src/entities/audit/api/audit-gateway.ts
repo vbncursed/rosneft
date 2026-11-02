@@ -41,19 +41,20 @@ function toQuery(filters: AuditFilters, cursor: number | null, limit: number | n
   return s ? `?${s}` : "";
 }
 
+const toPage = (page: AuditPageDto): AuditPageResult => ({
+  entries: (page.entries ?? []).map(toAuditEntry),
+  nextCursor: page.nextCursor && page.nextCursor > 0 ? page.nextCursor : null,
+  refs: page.refs ?? {},
+  total: page.total ?? null,
+});
+
 /** One page of the company journal. A nextCursor of 0 or absent is the last page. */
 export async function listAudit(
   filters: AuditFilters,
   cursor: number | null,
   limit = DEFAULT_LIMIT,
 ): Promise<AuditPageResult> {
-  const page = await httpGet<AuditPageDto>(`/api/audit${toQuery(filters, cursor, limit)}`);
-  return {
-    entries: (page.entries ?? []).map(toAuditEntry),
-    nextCursor: page.nextCursor && page.nextCursor > 0 ? page.nextCursor : null,
-    refs: page.refs ?? {},
-    total: page.total ?? null,
-  };
+  return toPage(await httpGet<AuditPageDto>(`/api/audit${toQuery(filters, cursor, limit)}`));
 }
 
 /**
@@ -63,13 +64,7 @@ export async function listAudit(
  * into the whole company's journal.
  */
 export async function listMyAudit(cursor: number | null, limit = DEFAULT_LIMIT): Promise<AuditPageResult> {
-  const page = await httpGet<AuditPageDto>(`/api/audit/mine${toQuery({}, cursor, limit)}`);
-  return {
-    entries: (page.entries ?? []).map(toAuditEntry),
-    nextCursor: page.nextCursor && page.nextCursor > 0 ? page.nextCursor : null,
-    refs: page.refs ?? {},
-    total: page.total ?? null,
-  };
+  return toPage(await httpGet<AuditPageDto>(`/api/audit/mine${toQuery({}, cursor, limit)}`));
 }
 
 export const listAuditActors = async (): Promise<AuditActor[]> =>

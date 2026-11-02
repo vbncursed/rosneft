@@ -14,6 +14,7 @@ const DOC: Document = {
   title: FILE,
   sourceBlobHash: "h",
   createdAt: "2026-09-01T00:00:00Z",
+  calibration: null,
 };
 
 const documentWindow = (over: Partial<ViewerOverlaysProps["document"]> = {}) => ({
@@ -68,6 +69,7 @@ const props = (over: Partial<ViewerOverlaysProps> = {}): ViewerOverlaysProps => 
   error: null,
   switchTo3d: null,
   document: null,
+  plan: null,
   documentLayerRef: { current: null },
   ...over,
 });

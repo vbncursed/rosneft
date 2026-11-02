@@ -6,6 +6,7 @@ import { ModelLibraryPage, type ModelLibraryPageProps } from "./model-library-pa
 import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const card = (slug: string, title: string, over: Partial<ModelCardModel> = {}): ModelCardModel => ({
+  tag: { slug: "tanks", title: "Tanks" },
   slug,
   title,
   status: "ready",

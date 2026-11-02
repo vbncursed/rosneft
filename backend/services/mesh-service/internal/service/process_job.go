@@ -3,11 +3,8 @@ package service
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
-	"os"
 
-	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/converter"
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 )
 
@@ -61,87 +58,6 @@ func (m *Mesh) ProcessJob(ctx context.Context, jobID string) error {
 	}
 	m.requeueIfSourceReplaced(ctx, job, source)
 	return nil
-}
-
-// runConversion does the actual work. It mutates job.ArtifactHash on success.
-// Progress checkpoints (0..1) bump in coarse stages — frontend renders a
-// determinate bar so the user can tell the difference between "stuck" and
-// "running long". Errors from UpdateProgress are swallowed: a missed tick
-// must not fail the conversion.
-//
-// It returns the source hash it converted; the target is read exactly once,
-// here, so ProcessJob re-checks it afterwards — see requeueIfSourceReplaced.
-func (m *Mesh) runConversion(ctx context.Context, j *domain.Job) (string, error) {
-	// progress mirrors each report onto j, so markFailed saves the stage the
-	// job actually reached rather than the copy loaded before the first one.
-	progress := func(fraction float32, stage string) {
-		j.Progress, j.Stage = fraction, stage
-		_ = m.UpdateProgress(ctx, j.ID, fraction, stage)
-	}
-	progress(0.05, "fetching")
-
-	target, err := m.catalog.GetTarget(ctx, j.Kind, j.Slug)
-	if err != nil {
-		if errors.Is(err, domain.ErrTargetNotFound) {
-			return "", err
-		}
-		return "", fmt.Errorf("get target: %w", err)
-	}
-	if target.SourceBlobHash == "" {
-		return "", fmt.Errorf("%w: target has no source_blob_hash", domain.ErrBadSource)
-	}
-
-	workDir, err := os.MkdirTemp("", "mesh-job-*")
-	if err != nil {
-		return "", fmt.Errorf("tmp dir: %w", err)
-	}
-	defer func() { _ = os.RemoveAll(workDir) }()
-
-	if err := m.fetchAndExtract(ctx, target.SourceBlobHash, workDir); err != nil {
-		return "", fmt.Errorf("fetch/extract source: %w", err)
-	}
-	progress(0.20, "extracting")
-
-	objPath, err := findFirstOBJ(workDir)
-	if err != nil {
-		return "", fmt.Errorf("locate obj: %w", err)
-	}
-	progress(0.30, "parsing")
-
-	convCtx := converter.WithProgress(ctx, func(stage string, fraction float32) {
-		progress(fraction, stage)
-	})
-	if j.Kind == domain.KindModel {
-		// Models are authored Y-up; only territories (photogrammetry) are Z-up.
-		convCtx = converter.WithYUpSource(convCtx)
-	}
-	results, err := m.converter.ConvertLODs(convCtx, workDir, objPath)
-	if err != nil {
-		return "", fmt.Errorf("convert: %w", err)
-	}
-	if len(results) == 0 {
-		return "", fmt.Errorf("convert: no LOD results")
-	}
-
-	// Per-LOD register pass. Distribute the remaining 0.30 evenly across
-	// every result so the bar moves smoothly toward 1.0 as artifacts land.
-	span := float32(0.30) / float32(len(results))
-	for i, r := range results {
-		if err := m.persistLOD(ctx, j.Kind, j.Slug, uint32(i), r); err != nil {
-			return "", err
-		}
-		if i == 0 {
-			// Placements follow the mesh, never lead it: see rescaleAfterConvert.
-			if err := m.rescaleAfterConvert(ctx, j.Kind, j.Slug, results); err != nil {
-				return "", err
-			}
-		}
-		progress(0.70+span*float32(i+1), fmt.Sprintf("lod-%d", i))
-	}
-	j.ArtifactHash = results[0].ArtifactHash
-	j.Progress = 1.0
-	j.Stage = "registering"
-	return target.SourceBlobHash, nil
 }
 
 // persistLOD writes one LOD artifact to the BlobStore and registers it in

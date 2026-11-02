@@ -4,6 +4,8 @@ import { toPlacement, toPlacementGroup, type Placement, type PlacementGroup, typ
 import { toTerritory, type Territory } from "@/entities/territory";
 import { toPanorama, toPhaseHidden, type Panorama, type PhaseHidden } from "@/entities/panorama";
 import { toDocument, type Document } from "@/entities/document";
+import { toZone, type Zone } from "@/entities/zone";
+import { toModelTag, type ModelTag } from "@/entities/model-tag";
 import { toStoredChain, type StoredChain } from "@/entities/measurement";
 import type { LodArtifact } from "../model/lod";
 
@@ -27,6 +29,7 @@ export type ModelOption = {
   slug: string;
   title: string;
   thumbnailBlobHash?: string;
+  tag: ModelTag;
   bboxMin?: Vec3;
   bboxMax?: Vec3;
   chain: LodArtifact[];
@@ -43,6 +46,8 @@ export type SceneBundle = {
   measurements: StoredChain[];
   /** The territory's user groups (G-2), `[]` when none; the scene is their only reader. */
   placementGroups: PlacementGroup[];
+  /** The territory's zones, `[]` when none or for a snapshot saved before they existed. */
+  zones: Zone[];
   /** Each job phase's shared flag (D5). */
   phaseHidden: PhaseHidden;
 };
@@ -65,6 +70,7 @@ const toOption = (o: OptionDto): ModelOption => ({
   slug: o.slug,
   title: o.title,
   thumbnailBlobHash: o.thumbnailBlobHash,
+  tag: toModelTag(o.tag),
   bboxMin: o.bboxMin,
   bboxMax: o.bboxMax,
   chain: o.artifacts ?? [],
@@ -82,6 +88,7 @@ export async function getSceneBundle(slug: string): Promise<SceneBundle> {
     documents: (d.documents ?? []).map(toDocument),
     measurements: d.measurements.map(toStoredChain),
     placementGroups: (d.placementGroups ?? []).map(toPlacementGroup),
+    zones: (d.zones ?? []).map(toZone),
     phaseHidden: toPhaseHidden(d.panoramaPhases),
   };
 }

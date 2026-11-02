@@ -62,7 +62,7 @@ type UsersSvc interface {
 	SetOwner(ctx context.Context, actorID, id string, isOwner bool) (domain.User, error)
 	SetTOTPRequired(ctx context.Context, actorID string, scopeAll bool, id string, required bool) (domain.User, error)
 	SetPassword(ctx context.Context, actorID string, scopeAll bool, id, password string) error
-	ChangePassword(ctx context.Context, userID, oldPlain, newPlain string) error
+	ChangePassword(ctx context.Context, userID, keepToken, oldPlain, newPlain string) error
 	MarkTourSeen(ctx context.Context, userID, tour string) error
 }
 
@@ -163,6 +163,7 @@ var statusByCode = map[codes.Code][]error{
 		domain.ErrSelfTarget,
 		domain.ErrSystemRole,
 		domain.ErrRoleInUse,
+		domain.ErrPasskeyCeremonyExpired,
 	},
 }
 

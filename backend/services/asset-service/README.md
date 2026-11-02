@@ -12,7 +12,7 @@ network. The browser never talks to `asset` directly.
 
 | Method     | Path             | Description                                  | Response headers |
 | ---        | ---              | ---                                          | --- |
-| `GET`      | `/assets/{hash}` | Streams the blob bytes from disk (Range-aware via `http.ServeContent`). | `Content-Type` (from blob, e.g. `model/gltf-binary`), `Cache-Control: public, max-age=31536000, immutable`, `ETag: "<full SHA-256>"`; `Accept-Ranges`/`Content-Range` on Range requests |
+| `GET`      | `/assets/{hash}` | Streams the blob bytes from disk (Range-aware via `http.ServeContent`). | `Content-Type` (from blob, e.g. `model/gltf-binary`), `Cache-Control: private, max-age=31536000, immutable`, `ETag: "<full SHA-256>"`; `Accept-Ranges`/`Content-Range` on Range requests |
 | `HEAD`     | `/assets/{hash}` | Same headers as `GET` plus `Content-Length`, no body. | `Content-Type`, `Cache-Control`, `ETag`, `Content-Length` |
 | `GET`      | `/healthz`       | Liveness probe — always `200 {"status":"ok",…}`. | JSON |
 | `GET`      | `/readyz`        | Readiness probe — `200` once ready, else `503 not_ready`. | JSON |

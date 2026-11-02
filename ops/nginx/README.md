@@ -5,7 +5,12 @@
     scp ops/nginx/rosneft.conf         root@85.192.26.113:/etc/nginx/sites-available/rosneft
     scp ops/nginx/limits.conf          root@85.192.26.113:/etc/nginx/conf.d/limits.conf
     scp ops/nginx/security-headers.conf root@85.192.26.113:/etc/nginx/snippets/security-headers.conf
+    scp ops/nginx/cloudflare-realip.conf root@85.192.26.113:/etc/nginx/snippets/cloudflare-realip.conf
     ssh root@85.192.26.113 'nginx -t && systemctl reload nginx'
+
+`cloudflare-realip.conf` подключается только из vhost `rosneft` (не из `conf.d/`, чтобы не задеть
+соседний vhost simpa-bot): он возвращает адрес посетителя из `CF-Connecting-IP`, иначе все лимиты
+`limit_req` считают адрес узла Cloudflare. Диапазоны обновляйте по https://www.cloudflare.com/ips-v4 и /ips-v6.
 
 `security-headers.conf` уезжает в `snippets/`, а не в `conf.d/`: всё, что
 лежит в `conf.d/`, nginx подключает в блок `http` сам, и `add_header` из него

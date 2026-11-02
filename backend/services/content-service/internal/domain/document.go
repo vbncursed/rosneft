@@ -11,4 +11,6 @@ type Document struct {
 	Title          string
 	SourceBlobHash string
 	CreatedAt      time.Time
+	// Calibration is nil until the document is calibrated.
+	Calibration *Calibration
 }

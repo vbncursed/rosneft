@@ -55,3 +55,18 @@ func (s *UsersSuite) TestCreateTrimsUsername() {
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), got, "Ernest")
 }
+
+// The creator is the acting principal whose tenant decides which roles the new
+// account may be given (storage bindRoles), so it must reach the store.
+func (s *UsersSuite) TestCreateRecordsTheActorAsCreator() {
+	var got *string
+	s.st.CreateMock.Set(func(_ context.Context, u domain.User) (domain.User, error) {
+		got = u.CreatedBy
+		return domain.User{ID: "u1"}, nil
+	})
+
+	_, err := s.svc.Create(s.ctx, "root-1", "ernest@gmail.com", "ernest", "Passw0rd!", nil)
+
+	assert.NilError(s.T(), err)
+	assert.Assert(s.T(), got != nil && *got == "root-1")
+}

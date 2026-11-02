@@ -16,7 +16,7 @@ func scanUser(r rowScanner) (domain.User, error) {
 	var u domain.User
 	err := r.Scan(&u.ID, &u.Email, &u.Username, &u.PasswordHash, &u.Status,
 		&u.CreatedAt, &u.UpdatedAt, &u.DeletedAt, &u.CreatedBy, &u.IsOwner,
-		&u.OnboardingToursSeen, &u.TOTPRequired)
+		&u.OnboardingToursSeen, &u.TOTPRequired, &u.PasswordChangedAt)
 	return u, err
 }
 

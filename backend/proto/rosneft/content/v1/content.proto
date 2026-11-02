@@ -30,6 +30,12 @@ service ContentService {
   rpc ListDocuments(ListDocumentsRequest) returns (ListDocumentsResponse);
   rpc CreateDocument(CreateDocumentRequest) returns (CreateDocumentResponse);
   rpc DeleteDocument(DeleteDocumentRequest) returns (DeleteDocumentResponse);
+
+  // A document's calibration is scoped by territory_slug like DeleteDocument:
+  // a document of another territory is NOT_FOUND, same as an unknown one. Put
+  // replaces the whole set (2–20 points, all on one page) in one transaction.
+  rpc PutDocumentCalibration(PutDocumentCalibrationRequest) returns (PutDocumentCalibrationResponse);
+  rpc DeleteDocumentCalibration(DeleteDocumentCalibrationRequest) returns (DeleteDocumentCalibrationResponse);
 }
 
 message Vec3 {
@@ -147,6 +153,28 @@ message Document {
   string title = 3;
   string source_blob_hash = 4;
   google.protobuf.Timestamp created_at = 5;
+  // Absent when the document is not calibrated.
+  Calibration calibration = 6;
+}
+
+// CalibrationPoint pairs a point on the PDF page (pt, top-left origin, y down:
+// pdf.js viewport at scale 1, rotation 0) with a point in the territory's
+// normalised scene space, optionally with its UTM easting/northing (both or
+// neither).
+message CalibrationPoint {
+  double pdf_x = 1;
+  double pdf_y = 2;
+  double scene_x = 3;
+  double scene_y = 4;
+  double scene_z = 5;
+  optional double utm_e = 6;
+  optional double utm_n = 7;
+}
+
+// Calibration is a document's point pairs, all on one 1-based page.
+message Calibration {
+  int32 page = 1;
+  repeated CalibrationPoint points = 2;
 }
 
 message ListDocumentsRequest {
@@ -171,3 +199,18 @@ message DeleteDocumentRequest {
   string territory_slug = 2;
 }
 message DeleteDocumentResponse {}
+
+message PutDocumentCalibrationRequest {
+  string territory_slug = 1;
+  int64 document_id = 2;
+  Calibration calibration = 3;
+}
+message PutDocumentCalibrationResponse {
+  Calibration calibration = 1;
+}
+
+message DeleteDocumentCalibrationRequest {
+  string territory_slug = 1;
+  int64 document_id = 2;
+}
+message DeleteDocumentCalibrationResponse {}

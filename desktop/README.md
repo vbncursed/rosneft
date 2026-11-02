@@ -105,7 +105,7 @@ its password, and a one-line base64 of the `.p12`). **Back it up.** Lose it and
 the next certificate has a new identity: one extra Keychain prompt after that
 update, then stable again. CI reads it from two repository secrets,
 `MAC_CSC_LINK` (the base64 line) and `MAC_CSC_KEY_PASSWORD`, on the macOS job
-only; `mac.sign` in `electron-builder.yml` (`src/signing.ts`) imports it into a
+only, and not on pull requests (those sign ad-hoc); `mac.sign` in `electron-builder.yml` (`src/signing.ts`) imports it into a
 throwaway keychain. Without the secrets the build falls back to ad-hoc. It is not
 an Apple certificate, so Gatekeeper still needs the `xattr` step below.
 

@@ -43,7 +43,15 @@ func (h *Handlers) passkeyLoginFinish(w http.ResponseWriter, r *http.Request) {
 
 // --- passkey enrollment + management (authenticated; passkey-service) ---
 
+// passkeyRegisterBegin requires the same step-up as passkeyDelete: a stolen
+// session must not be able to enrol the attacker's own key, which would bypass
+// 2FA and outlive a password change. The gate sits at the entry, so the
+// ceremony cannot start without it.
 func (h *Handlers) passkeyRegisterBegin(w http.ResponseWriter, r *http.Request) {
+	var req stepUpRequest
+	if !decode(w, r, &req) || !h.stepUp(w, r, req) {
+		return
+	}
 	// The principal carries no login, and authenticators display it. Begin is a
 	// once-per-enrolment call, so one GetMe here costs far less than the one
 	// passkey used to make on every management RPC.
@@ -92,19 +100,19 @@ func (h *Handlers) passkeyList(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, r, http.StatusOK, map[string]any{"credentials": out})
 }
 
-// passkeyDelete requires step-up re-authentication: a TOTP code when the user
-// has 2FA on, otherwise their password. The gateway picks the factor from the
-// server-side 2FA state so a password can't stand in for a stronger factor.
-func (h *Handlers) passkeyDelete(w http.ResponseWriter, r *http.Request) {
-	var req struct{ Password, Code string }
-	if !decode(w, r, &req) {
-		return
-	}
+// stepUpRequest is the body of every passkey call that re-authenticates.
+type stepUpRequest struct{ Password, Code string }
+
+// stepUp re-authenticates the caller: a TOTP code when the user has 2FA on,
+// otherwise their password. The gateway picks the factor from the server-side
+// 2FA state so a password can't stand in for a stronger factor. It writes the
+// refusal itself and reports whether the caller may go on.
+func (h *Handlers) stepUp(w http.ResponseWriter, r *http.Request, req stepUpRequest) bool {
 	uid := principalUserID(r.Context())
 	enabled, err := h.twofa.IsEnabled(r.Context(), uid)
 	if err != nil {
 		fail(w, r, err)
-		return
+		return false
 	}
 	var ok bool
 	if enabled {
@@ -114,12 +122,22 @@ func (h *Handlers) passkeyDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		fail(w, r, err)
-		return
+		return false
 	}
 	if !ok {
 		apperr.Write(w, http.StatusForbidden, apperr.SlugForbidden, "re-authentication failed")
+		return false
+	}
+	return true
+}
+
+// passkeyDelete requires step-up re-authentication, see stepUp.
+func (h *Handlers) passkeyDelete(w http.ResponseWriter, r *http.Request) {
+	var req stepUpRequest
+	if !decode(w, r, &req) || !h.stepUp(w, r, req) {
 		return
 	}
+	uid := principalUserID(r.Context())
 	if err := h.passkey.DeleteCredential(r.Context(), uid, chi.URLParam(r, "id")); err != nil {
 		fail(w, r, err)
 		return

@@ -16,7 +16,13 @@ vi.mock("@/features/edit-entity", () => ({
   EditDetailsDialog: ({ title }: { title: string }) => <div role="dialog" aria-label={`Edit ${title}`} />,
 }));
 
-const MODEL: Model = { slug: "valve-assembly", title: "Valve Assembly", sourceBlobHash: "a".repeat(64), usageCount: 2 };
+const MODEL: Model = {
+  slug: "valve-assembly",
+  title: "Valve Assembly",
+  tag: { slug: "tanks", title: "Tanks" },
+  sourceBlobHash: "a".repeat(64),
+  usageCount: 2,
+};
 
 type ReadyState = Extract<ModelDetailState, { phase: "ready" }>;
 
@@ -28,6 +34,13 @@ const readyState = (over: Partial<ReadyState> = {}): ReadyState => ({
   jobError: null,
   canDelete: true,
   canWrite: true,
+  tags: [
+    { slug: "tanks", title: "Tanks" },
+    { slug: "pumps", title: "Pumps" },
+  ],
+  tagsError: null,
+  tagBusy: false,
+  onTag: vi.fn(),
   thumbnailBusy: false,
   onDelete: vi.fn(),
   onThumbnail: vi.fn(),

@@ -30,6 +30,7 @@ const territory = (
 });
 
 const model = (slug: string, title: string, usageCount: number): ModelCardModel => ({
+  tag: { slug: "tanks", title: "Tanks" },
   slug,
   title,
   status: "ready",

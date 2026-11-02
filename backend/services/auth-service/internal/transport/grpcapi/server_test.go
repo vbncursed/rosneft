@@ -32,3 +32,9 @@ func (s *MapErrorSuite) TestARefusalStartsAtItsSentinel() {
 	assert.Equal(s.T(), st.Code(), codes.InvalidArgument)
 	assert.Equal(s.T(), st.Message(), "invalid input: identifier and password required")
 }
+
+// An expired passkey flow is a 422 refusal, not an Internal fault.
+func (s *MapErrorSuite) TestPasskeyCeremonyExpiredIsFailedPrecondition() {
+	err := mapError(fmt.Errorf("%w: gone", domain.ErrPasskeyCeremonyExpired))
+	assert.Equal(s.T(), status.Code(err), codes.FailedPrecondition)
+}

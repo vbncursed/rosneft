@@ -67,7 +67,7 @@ function useAnchorRect(selector: string, reveal: boolean): { rect: Rect | null; 
 export function TourOverlay({ tour }: { tour: Tour }) {
   const { step, stepIndex, total, next, prev, skip } = tour;
   const selector = step && !step.center ? `[data-tour="${step.id}"]` : "";
-  const { rect, tracking } = useAnchorRect(selector, step?.tab !== undefined);
+  const { rect, tracking } = useAnchorRect(selector, step?.tab !== undefined || step?.reveal === true);
   // An inline style wins over the transition utility outright — no second
   // utility on the same property (see the clsx rule in frontend/CLAUDE.md).
   const follow: CSSProperties = tracking ? { transition: "none" } : {};

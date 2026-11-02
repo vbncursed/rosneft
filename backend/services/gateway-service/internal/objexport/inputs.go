@@ -62,15 +62,9 @@ func (in *input) view(i int) (*gltf.BufferView, error) {
 // accessor resolves accessor i, which must be of type typ and one of comps.
 // Every range is checked here, so Write never touches a document.
 func (in *input) accessor(i int, typ gltf.AccessorType, comps ...gltf.ComponentType) (accessor, error) {
-	if i < 0 || i >= len(in.doc.Accessors) {
-		return accessor{}, malformed("accessor %d out of range [0, %d)", i, len(in.doc.Accessors))
-	}
-	a := in.doc.Accessors[i]
-	switch {
-	case a.Type != typ || !slices.Contains(comps, a.ComponentType) || a.Normalized:
-		return accessor{}, unsupported("accessor %d is %v %v (normalized %t)", i, a.ComponentType, a.Type, a.Normalized)
-	case a.BufferView == nil:
-		return accessor{}, unsupported("accessor %d has no bufferView", i)
+	a, err := in.accessorDef(i, typ, comps)
+	if err != nil {
+		return accessor{}, err
 	}
 	v, err := in.view(*a.BufferView)
 	if err != nil {
@@ -78,9 +72,7 @@ func (in *input) accessor(i int, typ gltf.AccessorType, comps ...gltf.ComponentT
 	}
 	elem := gltf.SizeOfElement(a.ComponentType, a.Type)
 	stride := cmp.Or(v.ByteStride, elem)
-	// avail is the room for the last element's start, so no product overflows.
-	avail := int64(v.ByteLength) - int64(a.ByteOffset) - int64(elem)
-	if stride < elem || a.Count < 1 || a.ByteOffset < 0 || avail < 0 || int64(a.Count-1) > avail/int64(stride) {
+	if !fitsView(a, v, elem, stride) {
 		return accessor{}, malformed(
 			"accessor %d: %d elements of %d bytes at stride %d do not fit its bufferView",
 			i,
@@ -89,17 +81,31 @@ func (in *input) accessor(i int, typ gltf.AccessorType, comps ...gltf.ComponentT
 			stride,
 		)
 	}
-	return accessor{
-		off: in.head.BinOffset + int64(
-			v.ByteOffset,
-		) + int64(
-			a.ByteOffset,
-		),
-		stride: stride,
-		elem:   elem,
-		count:  a.Count,
-		comp:   a.ComponentType,
-	}, nil
+	off := in.head.BinOffset + int64(v.ByteOffset) + int64(a.ByteOffset)
+	return accessor{off: off, stride: stride, elem: elem, count: a.Count, comp: a.ComponentType}, nil
+}
+
+// accessorDef returns accessor i after the checks that need no bufferView:
+// in range, of type typ, one of comps, not normalized, backed by a view.
+func (in *input) accessorDef(i int, typ gltf.AccessorType, comps []gltf.ComponentType) (*gltf.Accessor, error) {
+	if i < 0 || i >= len(in.doc.Accessors) {
+		return nil, malformed("accessor %d out of range [0, %d)", i, len(in.doc.Accessors))
+	}
+	a := in.doc.Accessors[i]
+	switch {
+	case a.Type != typ || !slices.Contains(comps, a.ComponentType) || a.Normalized:
+		return nil, unsupported("accessor %d is %v %v (normalized %t)", i, a.ComponentType, a.Type, a.Normalized)
+	case a.BufferView == nil:
+		return nil, unsupported("accessor %d has no bufferView", i)
+	}
+	return a, nil
+}
+
+// fitsView reports whether all of a's elements lie inside its view v.
+func fitsView(a *gltf.Accessor, v *gltf.BufferView, elem, stride int) bool {
+	// avail is the room for the last element's start, so no product overflows.
+	avail := int64(v.ByteLength) - int64(a.ByteOffset) - int64(elem)
+	return stride >= elem && a.Count >= 1 && a.ByteOffset >= 0 && avail >= 0 && int64(a.Count-1) <= avail/int64(stride)
 }
 
 // resolveMesh resolves mesh i: its primitives' accessors, once per input.
@@ -129,13 +135,8 @@ func (in *input) resolveMesh(i int) (*meshData, error) {
 
 // primitive resolves one primitive, adding its accessors to md's distinct sets.
 func (in *input) primitive(md *meshData, p *gltf.Primitive, posAt, uvAt map[int]int) (primitive, error) {
-	switch {
-	case p.Mode != gltf.PrimitiveTriangles:
-		return primitive{}, unsupported("primitive mode %v", p.Mode)
-	case p.Indices == nil:
-		return primitive{}, unsupported("primitive without indices")
-	case len(p.Targets) > 0:
-		return primitive{}, unsupported("morph targets")
+	if err := checkPrimitiveSupported(p); err != nil {
+		return primitive{}, err
 	}
 	pos, ok := p.Attributes["POSITION"]
 	if !ok {
@@ -145,39 +146,78 @@ func (in *input) primitive(md *meshData, p *gltf.Primitive, posAt, uvAt map[int]
 	if err != nil {
 		return primitive{}, err
 	}
+	idx, err := in.triangleIndices(*p.Indices)
+	if err != nil {
+		return primitive{}, err
+	}
+	pr := primitive{pos: distinct(&md.pos, posAt, pos, pa), uv: -1, indices: idx}
+	if uv, ok := p.Attributes["TEXCOORD_0"]; ok {
+		ua, err := in.texcoords(uv, pa.count)
+		if err != nil {
+			return primitive{}, err
+		}
+		pr.uv = distinct(&md.uvs, uvAt, uv, ua)
+	}
+	if pr.mtl, err = in.material(md, p.Material); err != nil {
+		return primitive{}, err
+	}
+	return pr, nil
+}
+
+// checkPrimitiveSupported refuses the primitives a plain OBJ cannot carry.
+func checkPrimitiveSupported(p *gltf.Primitive) error {
+	switch {
+	case p.Mode != gltf.PrimitiveTriangles:
+		return unsupported("primitive mode %v", p.Mode)
+	case p.Indices == nil:
+		return unsupported("primitive without indices")
+	case len(p.Targets) > 0:
+		return unsupported("morph targets")
+	}
+	return nil
+}
+
+// triangleIndices resolves the index accessor, whose count must be whole triangles.
+func (in *input) triangleIndices(i int) (accessor, error) {
 	idx, err := in.accessor(
-		*p.Indices,
+		i,
 		gltf.AccessorScalar,
 		gltf.ComponentUbyte,
 		gltf.ComponentUshort,
 		gltf.ComponentUint,
 	)
 	if err != nil {
-		return primitive{}, err
+		return accessor{}, err
 	}
 	if idx.count%3 != 0 {
-		return primitive{}, malformed("index count %d is not a multiple of 3", idx.count)
+		return accessor{}, malformed("index count %d is not a multiple of 3", idx.count)
 	}
-	pr := primitive{pos: distinct(&md.pos, posAt, pos, pa), uv: -1, indices: idx, mtl: "default"}
-	if uv, ok := p.Attributes["TEXCOORD_0"]; ok {
-		ua, err := in.accessor(uv, gltf.AccessorVec2, gltf.ComponentFloat)
-		if err != nil {
-			return primitive{}, err
-		}
-		if ua.count != pa.count {
-			return primitive{}, malformed("TEXCOORD_0 has %d elements, POSITION %d", ua.count, pa.count)
-		}
-		pr.uv = distinct(&md.uvs, uvAt, uv, ua)
+	return idx, nil
+}
+
+// texcoords resolves the TEXCOORD_0 accessor, one UV per position.
+func (in *input) texcoords(i, positions int) (accessor, error) {
+	ua, err := in.accessor(i, gltf.AccessorVec2, gltf.ComponentFloat)
+	if err != nil {
+		return accessor{}, err
 	}
+	if ua.count != positions {
+		return accessor{}, malformed("TEXCOORD_0 has %d elements, POSITION %d", ua.count, positions)
+	}
+	return ua, nil
+}
+
+// material names the output material of a primitive; none means "default",
+// which md remembers so the writer emits it.
+func (in *input) material(md *meshData, m *int) (string, error) {
 	switch {
-	case p.Material == nil:
+	case m == nil:
 		md.usesDefault = true
-	case *p.Material < 0 || *p.Material >= len(in.mats):
-		return primitive{}, malformed("material %d out of range [0, %d)", *p.Material, len(in.mats))
-	default:
-		pr.mtl = in.mats[*p.Material]
+		return "default", nil
+	case *m < 0 || *m >= len(in.mats):
+		return "", malformed("material %d out of range [0, %d)", *m, len(in.mats))
 	}
-	return pr, nil
+	return in.mats[*m], nil
 }
 
 // distinct returns accessor i's slot in set, adding a on first sight.

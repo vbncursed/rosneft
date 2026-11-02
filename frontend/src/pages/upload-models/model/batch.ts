@@ -47,9 +47,10 @@ export function batchStats(rows: QueueRow[]): { archives: string; total: string;
   };
 }
 
-/** The Upload button is live only with something to run and every untouched title filled in. */
-export const canRun = (rows: QueueRow[], running: boolean): boolean =>
+/** The Upload button is live only with a tag chosen, something to run and every untouched title filled in. */
+export const canRun = (rows: QueueRow[], running: boolean, tagSlug: string | null): boolean =>
   !running &&
+  tagSlug !== null &&
   rows.some((r) => r.status === "queued" || r.status === "failed") &&
   rows.filter((r) => r.status !== "done").every((r) => r.title.trim() !== "");
 

@@ -31,3 +31,4 @@ export {
 } from "./model/access";
 export { AccessRow, type AccessRowProps, type AccessVia } from "./ui/access-row";
 export { TerritoryAccessRow, type TerritoryAccessRowProps } from "./ui/territory-access-row";
+export { sceneScale, utmToScene, type SourceBbox } from "./model/utm-to-scene";

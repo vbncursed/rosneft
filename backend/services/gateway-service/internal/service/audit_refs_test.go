@@ -3,6 +3,7 @@ package service_test
 import (
 	"context"
 	"errors"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -183,4 +184,25 @@ func (s *AuditRefsSuite) TestWantRefsFalseSkipsBothResolvers() {
 
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), refs == nil)
+}
+
+// End to end through the gateway: a zone_tag row sends kinds zone and model_tag
+// to catalog and the names come back keyed by the snapshot's own fields.
+func (s *AuditRefsSuite) TestZoneTagRowIsNamedThroughCatalog() {
+	s.audit.ListEntriesMock.Return(domain.AuditPage{Entries: []domain.AuditEntry{{
+		Entity: "zone_tag", NewRow: `{"zone_id":7,"tag_id":3}`,
+	}}}, nil)
+	s.catalog.ResolveLabelsMock.Set(
+		func(_ context.Context, refs []domain.LabelRef) (map[string]string, error) {
+			assert.Equal(s.T(), len(refs), 2)
+			assert.Assert(s.T(), slices.Contains(refs, domain.LabelRef{Kind: "zone", ID: "7"}))
+			assert.Assert(s.T(), slices.Contains(refs, domain.LabelRef{Kind: "model_tag", ID: "3"}))
+			return map[string]string{"zone:7": "Camp", "model_tag:3": "Power generation"}, nil
+		})
+
+	_, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditScope{All: true}, "tok", true)
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), refs["zone_id:7"], "Camp")
+	assert.Equal(s.T(), refs["tag_id:3"], "Power generation")
 }

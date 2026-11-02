@@ -21,6 +21,9 @@ var labelKinds = map[string]struct{}{
 	"model":           {},
 	"panorama":        {},
 	"placement_group": {},
+	"zone":            {},
+	"model_tag":       {},
+	"document":        {},
 }
 
 // ResolveLabels names catalog rows for the audit journal.

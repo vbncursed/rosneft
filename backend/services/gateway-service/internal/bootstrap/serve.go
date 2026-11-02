@@ -4,13 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os/signal"
 	"syscall"
+	"time"
 
-	"google.golang.org/grpc"
+	"github.com/go-chi/chi/v5"
 
 	"github.com/vbncursed/rosneft/backend/pkg/grpcutil"
+	"github.com/vbncursed/rosneft/backend/pkg/healthz"
 	"github.com/vbncursed/rosneft/backend/pkg/metrics"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/config"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
@@ -33,95 +36,16 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	rootCtx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	cat, err := InitCatalog(cfg)
+	gc, err := dialClients(cfg)
 	if err != nil {
-		return fmt.Errorf("init catalog: %w", err)
+		return err
 	}
-	defer func() { _ = cat.Close() }()
+	defer gc.Close()
 
-	con, err := InitContent(cfg)
+	router, hz, err := buildRouter(cfg, gc, logger)
 	if err != nil {
-		return fmt.Errorf("init content: %w", err)
+		return err
 	}
-	defer func() { _ = con.Close() }()
-
-	m, err := InitMesh(cfg)
-	if err != nil {
-		return fmt.Errorf("init mesh: %w", err)
-	}
-	defer func() { _ = m.Close() }()
-
-	up, err := InitUpload(cfg)
-	if err != nil {
-		return fmt.Errorf("init upload: %w", err)
-	}
-	defer func() { _ = up.Close() }()
-
-	authClient, err := InitAuth(cfg)
-	if err != nil {
-		return fmt.Errorf("init auth: %w", err)
-	}
-	defer func() { _ = authClient.Close() }()
-
-	twofaClient, err := InitTwoFA(cfg)
-	if err != nil {
-		return fmt.Errorf("init twofa: %w", err)
-	}
-	defer func() { _ = twofaClient.Close() }()
-
-	passkeyClient, err := InitPasskey(cfg)
-	if err != nil {
-		return fmt.Errorf("init passkey: %w", err)
-	}
-	defer func() { _ = passkeyClient.Close() }()
-
-	auditClient, err := InitAudit(cfg)
-	if err != nil {
-		return fmt.Errorf("init audit: %w", err)
-	}
-	defer func() { _ = auditClient.Close() }()
-
-	svc := InitService(cat, con, m, up, auditClient, authClient)
-	authH := authhttp.New(authClient, twofaClient, passkeyClient, auditClient, cat, logger,
-		authhttp.CookieOptions{Secure: cfg.CookieSecure, TTL: cfg.SessionCookieTTL},
-		[]byte(cfg.CSRFSecret))
-
-	assetProxy, err := InitAssetProxy(cfg)
-	if err != nil {
-		return fmt.Errorf("init asset proxy: %w", err)
-	}
-
-	assetClient, err := InitAssetClient(cfg)
-	if err != nil {
-		return fmt.Errorf("init asset client: %w", err)
-	}
-
-	prom := InitPrometheus(cfg)
-	metricsHandler := InitMetricsHandler(prom, logger)
-	summaryHandler := InitConsoleSummary(svc, authClient, prom, logger)
-
-	backends := map[string]grpc.ClientConnInterface{
-		"catalog": cat.Conn(),
-		"content": con.Conn(),
-		"auth":    authClient.Conn(),
-		"twofa":   twofaClient.Conn(),
-		"passkey": passkeyClient.Conn(),
-		"mesh":    m.Conn(),
-		"upload":  up.Conn(),
-		"audit":   auditClient.Conn(),
-	}
-
-	router, hz := InitRouter(
-		svc,
-		assetProxy,
-		assetClient.Open,
-		metricsHandler,
-		summaryHandler,
-		authH,
-		logger,
-		cfg,
-		backends,
-	)
 
 	// gateway runs no gRPC server (Health stays nil) but is a Prometheus
 	// scrape target like every gRPC service, so it needs the same
@@ -144,36 +68,81 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 		WriteTimeout:      cfg.WriteTimeout,
 		IdleTimeout:       cfg.IdleTimeout,
 	}
+	if err := serveUntilDone(rootCtx, srv, cfg.MetricsAddr, logger); err != nil {
+		return err
+	}
 
+	//nolint:contextcheck // shutdown must outlive rootCtx, already cancelled here; shutdownHTTP builds a fresh timeout context by design
+	shutdownHTTP(srv, hz, cfg.ShutdownTimeout, logger)
+	return nil
+}
+
+// buildRouter wires the service, the auth handlers, the asset proxy and the
+// console endpoints onto the root router.
+func buildRouter(cfg config.Config, gc *gatewayClients, logger *slog.Logger) (chi.Router, *healthz.Handler, error) {
+	svc := InitService(gc.cat, gc.con, gc.mesh, gc.up, gc.audit, gc.auth)
+	authH := authhttp.New(gc.auth, gc.twofa, gc.passkey, gc.audit, gc.cat, logger,
+		authhttp.CookieOptions{Secure: cfg.CookieSecure, TTL: cfg.SessionCookieTTL},
+		[]byte(cfg.CSRFSecret))
+
+	assetProxy, err := InitAssetProxy(cfg)
+	if err != nil {
+		return nil, nil, fmt.Errorf("init asset proxy: %w", err)
+	}
+	assetClient, err := InitAssetClient(cfg)
+	if err != nil {
+		return nil, nil, fmt.Errorf("init asset client: %w", err)
+	}
+
+	prom := InitPrometheus(cfg)
+	router, hz := InitRouter(
+		svc,
+		assetProxy,
+		assetClient.Open,
+		InitMetricsHandler(prom, logger),
+		InitConsoleSummary(svc, gc.auth, prom, logger),
+		authH,
+		logger,
+		cfg,
+		gc.conns(),
+	)
+	return router, hz, nil
+}
+
+// serveUntilDone starts the metrics listener and the HTTP server and blocks
+// until the context is cancelled (nil) or the HTTP server fails.
+func serveUntilDone(ctx context.Context, srv *http.Server, metricsAddr string, logger *slog.Logger) error {
 	serveErr := make(chan error, 1)
 	go func() {
-		if err := metrics.Serve(cfg.MetricsAddr); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		if err := metrics.Serve(metricsAddr); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("metrics: listener failed", "err", err)
 		}
 	}()
-	logger.Info("metrics: serving", "addr", cfg.MetricsAddr)
+	logger.Info("metrics: serving", "addr", metricsAddr)
 	go func() { serveErr <- srv.ListenAndServe() }()
-	logger.Info("gateway: serving HTTP", "addr", cfg.HTTPAddr)
+	logger.Info("gateway: serving HTTP", "addr", srv.Addr)
 
 	select {
-	case <-rootCtx.Done():
+	case <-ctx.Done():
 		logger.Info("gateway: shutdown signal received")
 	case err := <-serveErr:
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return fmt.Errorf("http serve: %w", err)
 		}
 	}
-
-	hz.MarkNotReady()
-
-	stopCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
-	defer cancel()
-	if err := srv.Shutdown( //nolint:contextcheck // shutdown must outlive rootCtx, which is already cancelled here; stopCtx is a fresh Background-derived timeout by design
-		stopCtx,
-	); err != nil {
-		logger.Warn("gateway: shutdown forced", "err", err)
-	} else {
-		logger.Info("gateway: graceful shutdown complete")
-	}
 	return nil
+}
+
+// shutdownHTTP flips /readyz to not-ready first, so the balancer stops sending
+// traffic, then drains the server within timeout. The context is a fresh one:
+// the run context is already cancelled when this is called.
+func shutdownHTTP(srv *http.Server, hz *healthz.Handler, timeout time.Duration, logger *slog.Logger) {
+	hz.MarkNotReady()
+	stopCtx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	if err := srv.Shutdown(stopCtx); err != nil {
+		logger.Warn("gateway: shutdown forced", "err", err)
+		return
+	}
+	logger.Info("gateway: graceful shutdown complete")
 }

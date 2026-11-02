@@ -27,4 +27,31 @@ describe("DocumentRow", () => {
       "ease-out",
     );
   });
+
+  it("offers Align plan on an unaligned file and Edit zones on an aligned one, only when allowed", async () => {
+    const onAlign = vi.fn();
+    const { rerender } = render(<DocumentRow id={3} name="plan.pdf" onOpen={vi.fn()} onAlign={onAlign} />);
+    await userEvent.click(screen.getByRole("button", { name: "Align plan for plan.pdf" }));
+    expect(onAlign).toHaveBeenCalledWith(3);
+
+    rerender(<DocumentRow id={3} name="plan.pdf" onOpen={vi.fn()} onAlign={onAlign} aligned />);
+    expect(screen.getByRole("button", { name: "Edit zones of plan.pdf" })).toHaveTextContent("Edit zones");
+
+    rerender(<DocumentRow id={3} name="plan.pdf" onOpen={vi.fn()} aligned />);
+    expect(screen.queryByRole("button", { name: /zones|Align/ })).toBeNull();
+  });
+});
+
+describe("DocumentRow tour anchor", () => {
+  it("anchors the tour on the Align plan button, and on Edit zones once aligned", () => {
+    const { rerender } = render(<DocumentRow id={1} name="p.pdf" onOpen={vi.fn()} onAlign={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Align plan for p.pdf" })).toHaveAttribute("data-tour", "document-align");
+    rerender(<DocumentRow id={1} name="p.pdf" onOpen={vi.fn()} onAlign={vi.fn()} aligned />);
+    expect(screen.getByRole("button", { name: "Edit zones of p.pdf" })).toHaveAttribute("data-tour", "document-align");
+  });
+
+  it("has no anchor for a reader without the grant, so the tour step skips itself", () => {
+    const { container } = render(<DocumentRow id={1} name="p.pdf" onOpen={vi.fn()} />);
+    expect(container.querySelector('[data-tour="document-align"]')).toBeNull();
+  });
 });

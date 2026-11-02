@@ -38,6 +38,7 @@ export function ModelCard({ card, href, onOpen, meta, actions }: ModelCardProps)
       thumbnailUrl={card.thumbnailUrl ?? undefined}
       noImageLabel={card.thumbnailUrl ? undefined : "no image"}
       meta={meta}
+      chips={[{ label: card.tag.title, tone: "plain" }]}
       trailing={card.trailing}
       onOpen={onOpen}
       href={href}

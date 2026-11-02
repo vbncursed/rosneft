@@ -15,6 +15,7 @@ func (s *Server) UpdateModel(
 		Title:             req.Title,
 		Description:       req.Description,
 		ThumbnailBlobHash: req.ThumbnailBlobHash,
+		TagSlug:           req.TagSlug,
 	})
 	if err != nil {
 		return nil, mapError(err)

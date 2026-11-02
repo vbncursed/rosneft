@@ -93,28 +93,36 @@ describe("batchStats", () => {
 
 describe("canRun", () => {
   it("is true with a queued row and every non-done title filled in", () => {
-    expect(canRun([row({ status: "queued", title: "A" })], false)).toBe(true);
+    expect(canRun([row({ status: "queued", title: "A" })], false, "tanks")).toBe(true);
+  });
+
+  it("is false while no tag is chosen", () => {
+    expect(canRun([row({ status: "queued", title: "A" })], false, null)).toBe(false);
   });
 
   it("is false while a batch is already running", () => {
-    expect(canRun([row({ status: "queued" })], true)).toBe(false);
+    expect(canRun([row({ status: "queued" })], true, "tanks")).toBe(false);
   });
 
   it("is false with nothing queued or failed to run", () => {
-    expect(canRun([row({ status: "done" })], false)).toBe(false);
+    expect(canRun([row({ status: "done" })], false, "tanks")).toBe(false);
   });
 
   it("retries a failed row alongside a queued one", () => {
-    expect(canRun([row({ id: "1", status: "failed" }), row({ id: "2", status: "queued" })], false)).toBe(true);
+    expect(canRun([row({ id: "1", status: "failed" }), row({ id: "2", status: "queued" })], false, "tanks")).toBe(true);
   });
 
   it("is false when a queued row's title is blank", () => {
-    expect(canRun([row({ status: "queued", title: "  " })], false)).toBe(false);
+    expect(canRun([row({ status: "queued", title: "  " })], false, "tanks")).toBe(false);
   });
 
   it("ignores a blank title on a row that already finished", () => {
     expect(
-      canRun([row({ id: "1", status: "done", title: "" }), row({ id: "2", status: "queued", title: "B" })], false),
+      canRun(
+        [row({ id: "1", status: "done", title: "" }), row({ id: "2", status: "queued", title: "B" })],
+        false,
+        "tanks",
+      ),
     ).toBe(true);
   });
 });

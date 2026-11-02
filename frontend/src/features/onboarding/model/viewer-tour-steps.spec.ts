@@ -2,13 +2,15 @@ import { describe, expect, it } from "vitest";
 import { VIEWER_TOUR, VIEWER_TOUR_STEPS } from "./viewer-tour-steps";
 
 describe("the viewer tour's steps", () => {
-  it("visits all sixteen controls, in order", () => {
+  it("visits all nineteen controls, in order", () => {
     expect(VIEWER_TOUR_STEPS.map((s) => s.id)).toEqual([
       "intro",
       "catalog-link",
+      "download",
       "reset-camera",
       "free-cam",
       "measure",
+      "lod-switcher",
       "overlays-tabs",
       "panorama-picker",
       "toggle-markers",
@@ -17,6 +19,7 @@ describe("the viewer tour's steps", () => {
       "external-link",
       "add-panorama",
       "add-document",
+      "zones-section",
       "add-object",
       "objects-list",
       "shortcuts",
@@ -45,6 +48,7 @@ describe("the viewer tour's steps", () => {
       "external-link",
       "add-panorama",
       "add-document",
+      "zones-section",
     ];
     const PLACEMENTS_STEPS = ["add-object", "objects-list"];
     for (const step of VIEWER_TOUR_STEPS) {

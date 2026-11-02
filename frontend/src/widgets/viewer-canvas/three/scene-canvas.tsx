@@ -1,5 +1,5 @@
-import { Suspense, useCallback, useMemo, useRef } from "react";
-import { Canvas, type ThreeEvent } from "@react-three/fiber";
+import { Suspense, useMemo, useRef } from "react";
+import { Canvas } from "@react-three/fiber";
 import { Bounds } from "@react-three/drei";
 import type { Group } from "three";
 import type { SceneColors } from "../model/scene-colors";
@@ -14,82 +14,68 @@ import GlbPreloader from "./glb-preloader";
 import GltfModel from "./gltf-model";
 import Ktx2Init from "./ktx2-init";
 import Lighting from "./lighting";
-import MeasurementLayer from "./measurement-layer";
+import { SceneMeasurements } from "./scene-measurements";
 import PanoramaScene from "./panorama-scene";
 import PlacementsLayer from "./placements-layer";
+import SiteLayers from "./site-layers";
+import { usePointPicking } from "./use-point-picking";
 
-export type SceneCanvasProps = ViewerCanvasProps & { colors: SceneColors };
-
-export default function SceneCanvas({
-  parentLods,
-  targetLod,
-  retryVersion,
-  resetVersion,
-  playing,
-  free,
-  walk,
-  placements,
-  placementGroups,
-  mode,
-  selectedId,
-  gizmo,
-  snap,
-  canWrite,
-  chains,
-  activeChainId,
-  canEditMeasurements,
-  unitRatio,
-  focusRequest,
-  activePanorama,
-  calibrationGhost,
-  panoramaBitmap,
-  panoramaStatus,
-  panoramaProgress,
-  panoramaOpacity,
-  calibrating,
-  panoramas,
-  panoramaPhaseHidden,
-  showMarkers,
-  markerNames,
-  showMeasurements,
-  markerLabels,
-  move,
-  cameraPositionRef,
-  cameraYawRef,
-  colors,
-  onPick,
-  onActivatePanorama,
-  onMarkerGrab,
-  onMarkerMove,
-  onMarkerDrop,
-  onTransformCommit,
-  onMeasurePoint,
-  onCloseActiveChain,
-  onRemoveSegment,
-  onRemoveChain,
-  onLod,
-  onPlayStop,
-  onWalkRefused,
-}: SceneCanvasProps) {
+export default function SceneCanvas(props: ViewerCanvasProps & { colors: SceneColors }) {
+  const {
+    parentLods,
+    targetLod,
+    retryVersion,
+    resetVersion,
+    playing,
+    free,
+    walk,
+    placements,
+    placementGroups,
+    mode,
+    selectedId,
+    gizmo,
+    snap,
+    canWrite,
+    unitRatio,
+    focusRequest,
+    activePanorama,
+    calibrationGhost,
+    panoramaBitmap,
+    panoramaStatus,
+    panoramaProgress,
+    panoramaOpacity,
+    calibrating,
+    panoramas,
+    panoramaPhaseHidden,
+    showMarkers,
+    markerNames,
+    markerLabels,
+    move,
+    cameraPositionRef,
+    cameraYawRef,
+    site,
+    pickScene,
+    colors,
+    onPick,
+    onActivatePanorama,
+    onMarkerGrab,
+    onMarkerMove,
+    onMarkerDrop,
+    onTransformCommit,
+    onMeasurePoint,
+    onLod,
+    onPlayStop,
+    onWalkRefused,
+  } = props;
   // Orbit is the only mode that edits a selection; every other mode is
   // picking points, so the gizmo hides and clicks reach the wrapper group.
-  const pointMode = mode !== "orbit";
+  const pointMode = mode !== "orbit" || pickScene;
 
   const bgArgs = useMemo<[string]>(() => [colors.background], [colors.background]);
   const gridArgs = useMemo<[number, number, string, string]>(() => [6, 24, colors.grid, colors.grid], [colors.grid]);
 
-  const handlePointerMissed = useCallback(() => {
-    // While picking points an empty-space click is just "no surface" — leave
-    // the pending point alone. Otherwise treat empty clicks as deselect.
-    if (!pointMode) onPick(null);
-  }, [pointMode, onPick]);
+  const { handlePointerMissed, handleSceneClick } = usePointPicking(pointMode, onPick, onMeasurePoint);
 
-  // Dedupe handle: R3F dispatches one synthetic event per raycast
-  // intersection, but they all share the same DOM nativeEvent. We
-  // process only the first event per native click; the rest are ignored.
-  // (stopPropagation alone is not enough — separate intersection events
-  // start with fresh `stopped` state and can still reach the wrapper.)
-  const lastNativeRef = useRef<Event | null>(null);
   // Shared ref to the territory's outer group: PlacementsLayer points its
   // surface-snap raycaster at it, and GltfModel forwards through to <group>.
   const territoryRef = useRef<Group>(null);
@@ -98,21 +84,6 @@ export default function SceneCanvas({
   // parent is that group, and every placement hangs off the wrapper beside it.
   // Everything drawn under it is solid to the free cam's walker: hidden placements are not mounted, so they are not.
   const wrapperRef = useRef<Group>(null);
-
-  // Wrapper-group click is the catch-all for in-scene points. Use the first
-  // intersection's world point — that's the surface the user actually
-  // targeted, regardless of how many objects sit behind it.
-  const handleSceneClick = useCallback(
-    (event: ThreeEvent<MouseEvent>) => {
-      if (!pointMode) return;
-      if (lastNativeRef.current === event.nativeEvent) return;
-      lastNativeRef.current = event.nativeEvent;
-      event.stopPropagation();
-      const hit = event.intersections[0]?.point ?? event.point;
-      onMeasurePoint({ x: hit.x, y: hit.y, z: hit.z });
-    },
-    [pointMode, onMeasurePoint],
-  );
 
   return (
     <Canvas
@@ -220,18 +191,18 @@ export default function SceneCanvas({
         ) : null}
       </AutoLodClock>
 
-      <MeasurementLayer
-        // Measure mode wins over the switch: nobody measures blind.
-        visible={showMeasurements || mode === "measure"}
-        chains={chains}
-        activeChainId={activeChainId}
-        canEditSaved={canEditMeasurements}
+      {/* Beside the wrapper, not in it: a zone or the plan is never solid for the walker, never framed by Bounds,
+          and no measure or place ray can reach it. */}
+      <SiteLayers
+        site={site}
+        interactive={!pointMode && !move.active && !free && !calibrating}
+        hidden={activePanorama !== null}
         unitRatio={unitRatio}
-        lineColor={colors.accent}
-        onCloseActive={onCloseActiveChain}
-        onRemoveSegment={onRemoveSegment}
-        onRemoveChain={onRemoveChain}
+        color={colors.accent}
+        territoryRef={territoryRef}
       />
+
+      <SceneMeasurements {...props} />
 
       {/* Above CameraRig on purpose: React runs sibling cleanups in tree
           order, and PanoramaRig has to put the controls back before CameraRig

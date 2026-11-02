@@ -18,13 +18,16 @@ func (h *Handler) serveAsset(w http.ResponseWriter, r *http.Request) {
 
 	blob, err := h.svc.Stat(r.Context(), hash)
 	if err != nil {
-		if errors.Is(err, blobstore.ErrNotFound) {
+		switch {
+		case errors.Is(err, blobstore.ErrNotFound):
 			http.NotFound(w, r)
-			return
+		case errors.Is(err, blobstore.ErrInvalidHash):
+			http.Error(w, "bad request", http.StatusBadRequest)
+		default:
+			// Disk or metadata failure: ours, not the caller's. Generic body, detail on the log line.
+			h.logger.ErrorContext(r.Context(), "asset: stat failed", "hash", hash, "err", err)
+			http.Error(w, "internal error", http.StatusInternalServerError)
 		}
-		// blobstore validates hash format — non-hex, traversal etc. are 400s.
-		h.logger.WarnContext(r.Context(), "asset: stat failed", "hash", hash, "err", err)
-		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
 
@@ -38,8 +41,10 @@ func (h *Handler) serveAsset(w http.ResponseWriter, r *http.Request) {
 	// the same pair, byte for byte).
 	w.Header().Set("Content-Security-Policy", "sandbox; default-src 'none'")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	// Content-addressed: blob never changes for a given hash, so cache forever.
-	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	// Content-addressed: the bytes never change for a hash, so cache forever, but
+	// "private": the route is tenant-scoped behind the gateway, and a shared cache
+	// that ignores auth must not serve one tenant's blob to another.
+	w.Header().Set("Cache-Control", "private, max-age=31536000, immutable")
 
 	if matchEtag(r.Header.Get("If-None-Match"), etag) {
 		w.WriteHeader(http.StatusNotModified)

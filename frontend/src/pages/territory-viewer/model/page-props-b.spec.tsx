@@ -32,6 +32,7 @@ const doc = (id: number, title: string): Document => ({
   title,
   sourceBlobHash: `d${id}`,
   createdAt: "2026-09-14T10:00:00Z",
+  calibration: null,
 });
 
 /** The page's parts with the panorama slice populated — the rest is the fixture's. */

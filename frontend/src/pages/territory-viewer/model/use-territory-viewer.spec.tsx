@@ -1,6 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, renderHook, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { act, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import type { ReactElement, ReactNode } from "react";
+import type { PlanLayersProps } from "../ui/plan-layers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Placement } from "@/entities/placement";
 import type { SceneBundle } from "@/entities/scene";
@@ -21,7 +23,9 @@ const {
   markTourSeen,
   createMeasurement,
   deleteMeasurements,
+  deleteZone,
 } = vi.hoisted(() => ({
+  deleteZone: vi.fn(),
   createMeasurement: vi.fn(),
   deleteMeasurements: vi.fn(),
   getSceneBundle: vi.fn(),
@@ -57,6 +61,7 @@ vi.mock("@/entities/measurement", async (importOriginal) => ({
   createMeasurement,
   deleteMeasurements,
 }));
+vi.mock("@/entities/zone", async (importOriginal) => ({ ...(await importOriginal<object>()), deleteZone }));
 vi.mock("@/features/onboarding", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   markTourSeen,
@@ -103,6 +108,7 @@ const BUNDLE: SceneBundle = {
   placements: [placement(4)],
   modelOptions: [
     {
+      tag: { slug: "tanks", title: "Tanks" },
       slug: "storage-tank-500",
       title: "storage-tank-500",
       bboxMin: { x: 0, y: 0, z: 0 },
@@ -133,6 +139,7 @@ const BUNDLE: SceneBundle = {
       title: "Fire plan.pdf",
       sourceBlobHash: "d7",
       createdAt: "2026-09-14T10:00:00Z",
+      calibration: null,
     },
   ],
   measurements: [
@@ -146,6 +153,7 @@ const BUNDLE: SceneBundle = {
     },
   ],
   placementGroups: [],
+  zones: [],
   phaseHidden: { prior: false, current: false, post: false },
 };
 
@@ -226,6 +234,8 @@ describe("useTerritoryViewer", () => {
     markTourSeen.mockReset().mockResolvedValue(undefined);
     createMeasurement.mockReset().mockImplementation((_slug, body) => Promise.resolve({ serverId: 32, ...body }));
     deleteMeasurements.mockReset().mockResolvedValue(undefined);
+    deleteZone.mockReset().mockResolvedValue(undefined);
+    localStorage.clear();
   });
 
   describe("the four states", () => {
@@ -421,6 +431,8 @@ describe("useTerritoryViewer", () => {
         for (const key of Object.keys(first.canvas) as (keyof typeof first.canvas)[]) {
           expect(second.canvas[key], key).toBe(first.canvas[key]);
         }
+        // The candidate squares ride inside `site`; naming them pins that a fold never renews them.
+        expect(second.canvas.site.preview).toBe(first.canvas.site.preview);
       });
     });
   });
@@ -670,7 +682,7 @@ describe("useTerritoryViewer", () => {
     it("lists the territory's captures and its PDFs on the View tab", async () => {
       const state = await ready(mount());
       expect(state.panel?.viewTab.panoramas.rows.map((r) => r.title)).toEqual(["Control room"]);
-      expect(state.panel?.viewTab.documents.rows).toEqual([{ id: 7, name: "Fire plan.pdf" }]);
+      expect(state.panel?.viewTab.documents.rows).toEqual([{ id: 7, name: "Fire plan.pdf", aligned: false }]);
     });
 
     it("cycles into the first panorama on P — the key reaches the list through the ref", async () => {
@@ -865,6 +877,275 @@ describe("useTerritoryViewer", () => {
       await ready(r);
       await act(async () => now(r).panel!.placements.groupActions.onCreate("Tank farm"));
       expect(now(r).panel!.placements.sections.userGroups.map((s) => s.group.title)).toEqual(["Tank farm"]);
+    });
+  });
+
+  describe("site zones", () => {
+    const ZONE = {
+      id: 5,
+      title: "Tank row",
+      corners: [
+        { x: 0, y: 0, z: 0 },
+        { x: 0.2, y: 0, z: 0 },
+        { x: 0.2, y: 0, z: 0.1 },
+        { x: 0, y: 0, z: 0.1 },
+      ],
+      tags: [{ slug: "tanks", title: "Tanks" }],
+      drawingWidthM: null,
+      drawingHeightM: null,
+      createdAt: "",
+      updatedAt: "",
+    };
+    // Zones seed once, so the bundle has to be in the cache before the first render.
+    const withZone = () => {
+      client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      client.setQueryData(["scene", SLUG], { ...BUNDLE, zones: [ZONE] });
+      return renderHook(() => useTerritoryViewer(SLUG), { wrapper });
+    };
+
+    it("hands the canvas the bundle's zones, shown by default, and counts them in the View tab", async () => {
+      const state = await ready(withZone());
+      expect(state.canvas.site.zones.map((z) => z.id)).toEqual([5]);
+      expect(state.canvas.site.showZones).toBe(true);
+      expect(state.panel?.viewTab.zones).toMatchObject({ count: 1, show: true });
+    });
+
+    it("switches the zones off, and remembers it under andrey.zones", async () => {
+      const r = withZone();
+      const state = await ready(r);
+      act(() => state.panel!.viewTab.zones.onToggle());
+      expect(now(r).canvas.site.showZones).toBe(false);
+      expect(localStorage.getItem("andrey.zones")).toBe("hidden");
+    });
+
+    it("has no plan switch in the Zones section, whatever is aligned", async () => {
+      expect((await ready(withZone())).panel?.viewTab.zones).not.toHaveProperty("plan");
+    });
+
+    it("offers Align plan to a zone:write reader only", async () => {
+      getMe.mockResolvedValue(principal({ permissions: ["territory:read"] }));
+      expect((await ready(withZone())).panel?.viewTab.documents.onAlign).toBeUndefined();
+      getMe.mockResolvedValue(principal({ permissions: ["territory:read", "zone:write"] }));
+      expect((await ready(withZone())).panel?.viewTab.documents.onAlign).toBeTypeOf("function");
+    });
+
+    it("opens the editor from a PDF row: the plan layer mounts and the card gets its slot", async () => {
+      getMe.mockResolvedValue(principal({ permissions: ["zone:write"] }));
+      const r = withZone();
+      const state = await ready(r);
+      expect(state.overlays.plan).toBeNull();
+      act(() => state.panel!.viewTab.documents.onAlign!(7));
+      expect(now(r).overlays.plan).not.toBeNull();
+      expect(now(r).panel?.zone).not.toBeNull();
+    });
+
+    it("selects a zone from the canvas, and a placement pick lets go of it", async () => {
+      const r = withZone();
+      await ready(r);
+      act(() => now(r).canvas.site.onSelectZone(5));
+      expect(now(r).canvas.site.selectedZoneId).toBe(5);
+      expect(now(r).panel?.zone).not.toBeNull();
+      act(() => now(r).canvas.onPick(4));
+      expect(now(r).canvas.site.selectedZoneId).toBeNull();
+    });
+
+    describe("the zone's model picker", () => {
+      const CRANE = {
+        tag: { slug: "cranes", title: "Cranes" },
+        slug: "tower-crane",
+        title: "tower-crane",
+        bboxMin: { x: 0, y: 0, z: 0 },
+        bboxMax: { x: 3, y: 3, z: 3 },
+        chain: [{ lod: 0, hash: "c0", size: 1 }],
+      };
+      const withLibrary = () => {
+        client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+        client.setQueryData(["scene", SLUG], {
+          ...BUNDLE,
+          zones: [ZONE],
+          modelOptions: [...BUNDLE.modelOptions, CRANE],
+        });
+        return renderHook(() => useTerritoryViewer(SLUG), { wrapper });
+      };
+
+      it("draws the zones for a reader who can only read, with no plan session and no plan layer", async () => {
+        getMe.mockResolvedValue(principal({ permissions: ["territory:read"] }));
+        const state = await ready(withLibrary());
+        expect(state.canvas.site.zones.map((z) => z.id)).toEqual([5]);
+        expect(state.canvas.site.showZones).toBe(true);
+        expect(state.overlays.plan).toBeNull();
+      });
+
+      it("opens the add-objects picker from the card's button, not the click, filtered to the zone's tags, with the whole library one switch away", async () => {
+        getMe.mockResolvedValue(principal({ permissions: ["territory:read", "placement:create"] }));
+        const r = withLibrary();
+        await ready(r);
+        expect(now(r).picker.open).toBe(false);
+        act(() => now(r).canvas.site.onSelectZone(5));
+        expect(now(r).picker.open).toBe(false);
+        render(<>{now(r).panel!.zone}</>);
+        await userEvent.click(screen.getByRole("button", { name: "Add objects" }));
+        const { picker } = now(r);
+        expect(picker.open).toBe(true);
+        expect(picker.zone?.title).toBe("Tank row");
+        expect(picker.zone?.models.map((m) => m.slug)).toEqual(["storage-tank-500"]);
+        expect(picker.options.map((m) => m.slug)).toEqual(["storage-tank-500", "tower-crane"]);
+      });
+
+      it("opens no picker for a reader without placement:create, but still gives the card", async () => {
+        getMe.mockResolvedValue(principal({ permissions: ["territory:read"] }));
+        const r = withLibrary();
+        await ready(r);
+        act(() => now(r).canvas.site.onSelectZone(5));
+        expect(now(r).picker.open).toBe(false);
+        expect(now(r).picker.zone).toBeUndefined();
+        expect(now(r).panel?.zone).not.toBeNull();
+        render(<>{now(r).panel!.zone}</>);
+        expect(screen.queryByRole("button", { name: "Add objects" })).toBeNull();
+      });
+
+      it("places at the zone's centre along its long axis, and closes", async () => {
+        getMe.mockResolvedValue(principal({ permissions: ["territory:read", "placement:create"] }));
+        createPlacements.mockResolvedValue([placement(10)]);
+        const r = withLibrary();
+        await ready(r);
+        act(() => now(r).canvas.site.onSelectZone(5));
+        render(<>{now(r).panel!.zone}</>);
+        await userEvent.click(screen.getByRole("button", { name: "Add objects" }));
+        await act(async () => now(r).picker.onPlace("storage-tank-500", 1));
+        expect(createPlacements).toHaveBeenCalledWith(
+          SLUG,
+          [
+            expect.objectContaining({
+              modelSlug: "storage-tank-500",
+              position: { x: expect.closeTo(0.1, 10), y: 0, z: expect.closeTo(0.05, 10) },
+              rotation: { x: 0, y: expect.closeTo(0, 10), z: 0 },
+            }),
+          ],
+          expect.any(String),
+        );
+        expect(now(r).picker.open).toBe(false);
+      });
+    });
+
+    it("lets go of the zone on a click into empty space, and on Escape", async () => {
+      const r = withZone();
+      await ready(r);
+      act(() => now(r).canvas.site.onSelectZone(5));
+      act(() => now(r).canvas.onPick(null));
+      expect(now(r).canvas.site.selectedZoneId).toBeNull();
+
+      act(() => now(r).canvas.site.onSelectZone(5));
+      act(() => {
+        fireEvent.keyDown(window, { key: "Escape" });
+      });
+      expect(now(r).canvas.site.selectedZoneId).toBeNull();
+    });
+
+    it("deletes a zone from its card and marks the bundle stale", async () => {
+      getMe.mockResolvedValue(principal({ permissions: ["zone:write"] }));
+      const r = withZone();
+      await ready(r);
+      act(() => now(r).canvas.site.onSelectZone(5));
+      render(<>{now(r).panel!.zone}</>);
+      await userEvent.click(screen.getByRole("button", { name: "Delete Tank row" }));
+      await userEvent.click(screen.getByRole("button", { name: "Delete" }));
+      await waitFor(() => expect(deleteZone).toHaveBeenCalledWith(SLUG, 5));
+      await waitFor(() => expect(client.getQueryState(["scene", SLUG])?.isInvalidated).toBe(true));
+      expect(now(r).canvas.site.zones).toEqual([]);
+    });
+
+    it("sends a click on the model to the editor while it waits for a point", async () => {
+      getMe.mockResolvedValue(principal({ permissions: ["zone:write"] }));
+      const r = withZone();
+      const state = await ready(r);
+      act(() => state.panel!.viewTab.documents.onAlign!(7));
+      const layer = (now(r).overlays.plan as ReactElement<{ children: ReactElement<PlanLayersProps> }>).props.children
+        .props;
+      const accept = vi.fn();
+      layer.acceptRef.current = accept;
+      act(() => layer.onPlan({ image: {} as ImageBitmap, awaitingScenePick: true, preview: null }));
+      expect(now(r).canvas.pickScene).toBe(true);
+      act(() => now(r).canvas.onMeasurePoint({ x: 1, y: 2, z: 3 }));
+      expect(accept).toHaveBeenCalledWith({ x: 1, y: 2, z: 3 });
+      expect(now(r).canvas.chains.filter((c) => c.serverId === undefined)).toEqual([]);
+    });
+
+    describe("the zones' tours", () => {
+      const SEEN = ["viewer", "panorama"];
+
+      it("starts the card tour the first time a zone is clicked, and opens the panel for it", async () => {
+        const r = withZone();
+        await ready(r);
+        expect(now(r).zoneTours.card.active).toBe(false);
+        act(() => now(r).canvas.site.onSelectZone(5));
+        expect(now(r).picker.open).toBe(false);
+        expect(now(r).zoneTours.card.active).toBe(true);
+        expect(now(r).zoneTours.card.step?.id).toBe("zone-card");
+        expect(now(r).panel?.collapsed).toBe(false);
+        expect(now(r).overlays.tools.find((t) => t.key === "tour")?.state).not.toBe("active");
+      });
+
+      it("starts the card tour right after the click, with or without placement:create", async () => {
+        getMe.mockResolvedValue(principal({ permissions: ["territory:read"], onboardingToursSeen: SEEN }));
+        const reader = withZone();
+        await ready(reader);
+        act(() => now(reader).canvas.site.onSelectZone(5));
+        expect(now(reader).picker.open).toBe(false);
+        expect(now(reader).zoneTours.card.active).toBe(true);
+
+        getMe.mockResolvedValue(principal({ permissions: ["placement:create"], onboardingToursSeen: SEEN }));
+        const r = withZone();
+        await ready(r);
+        act(() => now(r).canvas.site.onSelectZone(5));
+        expect(now(r).picker.open).toBe(false);
+        expect(now(r).zoneTours.card.active).toBe(true);
+      });
+
+      it("stays shut for a reader who has seen it", async () => {
+        getMe.mockResolvedValue(principal({ onboardingToursSeen: [...SEEN, "zone-card"] }));
+        const r = withZone();
+        await ready(r);
+        act(() => now(r).canvas.site.onSelectZone(5));
+        expect(now(r).zoneTours.card.active).toBe(false);
+      });
+
+      it("waits for the viewer tour", async () => {
+        getMe.mockResolvedValue(principal({ onboardingToursSeen: [] }));
+        const r = withZone();
+        await ready(r);
+        act(() => now(r).canvas.site.onSelectZone(5));
+        expect(now(r).tour.active).toBe(true);
+        expect(now(r).zoneTours.card.active).toBe(false);
+      });
+
+      it("starts the plan tour once the editor has drawn the plan, on the View tab", async () => {
+        getMe.mockResolvedValue(principal({ permissions: ["zone:write"], onboardingToursSeen: SEEN }));
+        const r = withZone();
+        const state = await ready(r);
+        act(() => state.panel!.viewTab.documents.onAlign!(7));
+        // Opened, but the lazy plan layer has not drawn anything: no anchors yet, so no tour.
+        expect(now(r).zoneTours.plan.active).toBe(false);
+        const layer = (now(r).overlays.plan as ReactElement<{ children: ReactElement<PlanLayersProps> }>).props.children
+          .props;
+        act(() => layer.onPlan({ image: {} as ImageBitmap, awaitingScenePick: false, preview: null }));
+        expect(now(r).zoneTours.plan.active).toBe(true);
+        expect(now(r).zoneTours.plan.step?.id).toBe("document-align");
+        expect(now(r).panel?.tab).toBe("view");
+        expect(now(r).panel?.collapsed).toBe(false);
+      });
+
+      it("points the rail's Replay at the card while a zone is open, and at the viewer tour otherwise", async () => {
+        getMe.mockResolvedValue(principal({ onboardingToursSeen: [...SEEN, "zone-card"] }));
+        const r = withZone();
+        await ready(r);
+        act(() => now(r).overlays.onReplayTour());
+        expect(now(r).tour.active).toBe(true);
+        act(() => now(r).tour.skip());
+        act(() => now(r).canvas.site.onSelectZone(5));
+        act(() => now(r).overlays.onReplayTour());
+        expect(now(r).zoneTours.card.active).toBe(true);
+      });
     });
   });
 });

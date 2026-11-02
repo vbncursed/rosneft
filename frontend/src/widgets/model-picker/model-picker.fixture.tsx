@@ -4,7 +4,13 @@ import type { ModelOption } from "@/entities/scene";
 import { ModelPicker } from "./ui/model-picker";
 import { PlaceObjectsModal } from "./ui/place-objects-modal";
 
-const model = (slug: string, title: string): Model => ({ slug, title, sourceBlobHash: "a", usageCount: 0 });
+const model = (slug: string, title: string): Model => ({
+  slug,
+  title,
+  tag: { slug: "tanks", title: "Tanks" },
+  sourceBlobHash: "a",
+  usageCount: 0,
+});
 
 const MODELS = [
   { model: model("pump-jack", "Pump Jack") },
@@ -15,12 +21,27 @@ const MODELS = [
 const lods = (sizes: number[]): ModelOption["chain"] => sizes.map((size, lod) => ({ lod, hash: `h${lod}`, size }));
 
 const OPTIONS: ModelOption[] = [
-  { slug: "storage-tank-500", title: "storage-tank-500", chain: lods([8_400_000, 2_100_000, 900_000]) },
-  { slug: "pump-jack", title: "pump-jack", chain: lods([3_200_000, 800_000]) },
-  { slug: "flare-stack", title: "flare-stack", chain: lods([5_700_000, 1_400_000, 600_000]) },
-  { slug: "pipe-rack-12m", title: "pipe-rack-12m", chain: lods([1_900_000]) },
-  { slug: "valve-station", title: "valve-station", chain: lods([2_400_000, 600_000]) },
-  { slug: "cooling-tower", title: "cooling-tower", chain: [] },
+  {
+    slug: "storage-tank-500",
+    title: "storage-tank-500",
+    tag: { slug: "tanks", title: "Tanks" },
+    chain: lods([8_400_000, 2_100_000, 900_000]),
+  },
+  { slug: "pump-jack", title: "pump-jack", tag: { slug: "tanks", title: "Tanks" }, chain: lods([3_200_000, 800_000]) },
+  {
+    slug: "flare-stack",
+    title: "flare-stack",
+    tag: { slug: "tanks", title: "Tanks" },
+    chain: lods([5_700_000, 1_400_000, 600_000]),
+  },
+  { slug: "pipe-rack-12m", title: "pipe-rack-12m", tag: { slug: "tanks", title: "Tanks" }, chain: lods([1_900_000]) },
+  {
+    slug: "valve-station",
+    title: "valve-station",
+    tag: { slug: "tanks", title: "Tanks" },
+    chain: lods([2_400_000, 600_000]),
+  },
+  { slug: "cooling-tower", title: "cooling-tower", tag: { slug: "tanks", title: "Tanks" }, chain: [] },
 ];
 
 function Live() {
@@ -69,6 +90,7 @@ export default {
       onClose={() => {}}
       territoryTitle="Refinery Block C"
       options={Array.from({ length: 40 }, (_, i) => ({
+        tag: { slug: "tanks", title: "Tanks" },
         slug: `model-${i}`,
         title: `model-${i}`,
         chain: lods([2_000_000]),

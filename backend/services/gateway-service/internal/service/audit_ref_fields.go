@@ -27,11 +27,19 @@ var refFields = map[string]map[string]string{
 		"visible_panorama_ids": "panorama",
 		"group_id":             "placement_group",
 	},
+	// A re-tag changes models.tag_id; the journal shows the tag's name.
+	"model": {"tag_id": "model_tag"},
 	// created_by is the author's uuid; it names a user wherever it appears.
 	"measurement":     {"territory_id": "territory", "created_by": "user"},
 	"placement_group": {"territory_id": "territory"},
 	"panorama":        {"territory_id": "territory"},
 	"document":        {"territory_id": "territory"},
+	// A zone belongs to a territory. Its tag and a calibration point have a
+	// composite key and no territory_id: they point at their zone and their
+	// document, and so are named through those.
+	"zone":        {"territory_id": "territory", "created_by": "user"},
+	"zone_tag":    {"zone_id": "zone", "tag_id": "model_tag"},
+	"calibration": {"document_id": "document"},
 	// A phase flag has no id of its own; its key is territory_id + phase.
 	"panorama_phase": {"territory_id": "territory"},
 }

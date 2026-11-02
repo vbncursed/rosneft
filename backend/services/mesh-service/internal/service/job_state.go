@@ -16,7 +16,7 @@ import (
 // the TTL clears regardless — and either way ProcessJob's own outcome
 // (published artifacts, or a job already marked Failed) is already decided.
 func (m *Mesh) unlockTarget(ctx context.Context, job domain.Job) {
-	if err := m.queue.UnlockTarget(ctx, job.Kind, job.Slug); err != nil {
+	if err := m.queue.UnlockTarget(ctx, job.Kind, job.Slug, job.ID); err != nil {
 		slog.WarnContext(ctx, "process: unlock target failed", "kind", job.Kind, "slug", job.Slug, "err", err)
 	}
 }
@@ -35,7 +35,7 @@ func terminalCtx(ctx context.Context) (context.Context, context.CancelFunc) {
 func (m *Mesh) markRunning(ctx context.Context, j *domain.Job) error {
 	// The claim restarts with the run: TargetLockTTL bounds the conversion,
 	// never the time the job waited in the stream.
-	if err := m.queue.HoldTarget(ctx, j.Kind, j.Slug, TargetLockTTL); err != nil {
+	if err := m.queue.HoldTarget(ctx, j.Kind, j.Slug, j.ID, TargetLockTTL); err != nil {
 		return fmt.Errorf("service.ProcessJob: hold: %w", err)
 	}
 	j.Status = domain.JobStatusRunning

@@ -53,9 +53,10 @@ func (s *TwoFASuite) enrolled() (plainSecret, currentCode string) {
 
 func (s *TwoFASuite) TestVerifyTOTPSuccess() {
 	secret, code := s.enrolled()
-	s.lim.IsLockedMock.Expect(s.ctx, "u1").Return(false, nil)
+	s.lim.TakeAttemptMock.Expect(s.ctx, "u1").Return(true, nil)
 	s.st.GetMock.Expect(s.ctx, "u1").Return(domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}, nil)
 	s.ciph.DecryptMock.Expect([]byte("ct")).Return([]byte(secret), nil)
+	s.lim.ClaimStepMock.Return(true, nil)
 	s.lim.ClearMock.Expect(s.ctx, "u1").Return(nil)
 
 	ok, err := s.svc.Verify(s.ctx, "u1", code)
@@ -63,8 +64,74 @@ func (s *TwoFASuite) TestVerifyTOTPSuccess() {
 	assert.Assert(s.T(), ok)
 }
 
+// A phished code replayed inside its ~90 s window: the step was already
+// accepted, so the valid-looking code is a failed attempt, not a second login.
+func (s *TwoFASuite) TestVerifyReplayedTOTPIsRefused() {
+	secret, code := s.enrolled()
+	s.lim.TakeAttemptMock.Expect(s.ctx, "u1").Return(true, nil)
+	s.st.GetMock.Expect(s.ctx, "u1").Return(domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}, nil)
+	s.ciph.DecryptMock.Expect([]byte("ct")).Return([]byte(secret), nil)
+	s.lim.ClaimStepMock.Return(false, nil)
+	s.rec.ListMock.Expect(s.ctx, "u1").Return(nil, nil, nil)
+
+	ok, err := s.svc.Verify(s.ctx, "u1", code)
+
+	assert.NilError(s.T(), err)
+	assert.Assert(s.T(), !ok)
+}
+
+// Disable is a TOTP check too: a replayed code must not switch 2FA off (Set and
+// DeleteAll are unstubbed, so minimock fails the test if they are reached).
+func (s *TwoFASuite) TestDisableAndRegenerateRefuseAReplayedCode() {
+	secret, code := s.enrolled()
+	s.lim.TakeAttemptMock.Return(true, nil)
+	s.st.GetMock.Return(domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}, nil)
+	s.ciph.DecryptMock.Return([]byte(secret), nil)
+	s.lim.ClaimStepMock.Return(false, nil)
+
+	assert.ErrorIs(s.T(), s.svc.Disable(s.ctx, "u1", code), domain.ErrTwoFAInvalidCode)
+	_, err := s.svc.Regenerate(s.ctx, "u1", code)
+	assert.ErrorIs(s.T(), err, domain.ErrTwoFAInvalidCode)
+}
+
+// The enrolment code is a TOTP like any other: it is recorded, and a replay of
+// it is refused (nothing is enabled).
+func (s *TwoFASuite) TestEnableRecordsTheStepAndRefusesAReplay() {
+	secret, code := s.enrolled()
+	s.st.GetMock.Return(domain.Credential{UserID: "u1", Secret: []byte("ct")}, nil)
+	s.ciph.DecryptMock.Return([]byte(secret), nil)
+	s.lim.ClaimStepMock.Return(false, nil)
+
+	_, err := s.svc.Enable(s.ctx, "u1", code)
+
+	assert.ErrorIs(s.T(), err, domain.ErrTwoFAInvalidCode)
+}
+
+// Enabling must come after the recovery codes are saved: if saving fails, 2FA
+// stays off (Set is unstubbed, so minimock fails the test if it was reached
+// first) and a retry is not answered AlreadyEnabled but goes through.
+func (s *TwoFASuite) TestEnableLeavesTwoFAOffWhenSavingTheCodesFailsAndARetrySucceeds() {
+	secret, code := s.enrolled()
+	s.st.GetMock.Return(domain.Credential{UserID: "u1", Secret: []byte("ct")}, nil)
+	s.ciph.DecryptMock.Return([]byte(secret), nil)
+	s.lim.ClaimStepMock.Return(true, nil)
+	s.rec.ReplaceMock.Return(errors.New("db down"))
+
+	_, err := s.svc.Enable(s.ctx, "u1", code)
+
+	assert.ErrorContains(s.T(), err, "db down")
+
+	s.rec.ReplaceMock.Return(nil)
+	s.st.SetMock.Expect(s.ctx, "u1", true, []byte("ct")).Return(nil)
+
+	codes, err := s.svc.Enable(s.ctx, "u1", code)
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(codes), 10)
+}
+
 func (s *TwoFASuite) TestVerifyLockedShortCircuits() {
-	s.lim.IsLockedMock.Expect(s.ctx, "u1").Return(true, nil)
+	s.lim.TakeAttemptMock.Expect(s.ctx, "u1").Return(false, nil)
 
 	ok, err := s.svc.Verify(s.ctx, "u1", "123456")
 	assert.ErrorIs(s.T(), err, domain.ErrTwoFALocked)
@@ -73,11 +140,10 @@ func (s *TwoFASuite) TestVerifyLockedShortCircuits() {
 
 func (s *TwoFASuite) TestVerifyWrongCodeRegistersFail() {
 	secret, _ := s.enrolled()
-	s.lim.IsLockedMock.Expect(s.ctx, "u1").Return(false, nil)
+	s.lim.TakeAttemptMock.Expect(s.ctx, "u1").Return(true, nil)
 	s.st.GetMock.Expect(s.ctx, "u1").Return(domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}, nil)
 	s.ciph.DecryptMock.Expect([]byte("ct")).Return([]byte(secret), nil)
 	s.rec.ListMock.Expect(s.ctx, "u1").Return(nil, nil, nil)
-	s.lim.RegisterFailMock.Expect(s.ctx, "u1").Return(nil)
 
 	ok, err := s.svc.Verify(s.ctx, "u1", "000000")
 	assert.NilError(s.T(), err)
@@ -89,11 +155,11 @@ func (s *TwoFASuite) TestVerifyRecoveryFallback() {
 	plain, hashes, err := totp.GenerateRecovery(3)
 	assert.NilError(s.T(), err)
 
-	s.lim.IsLockedMock.Expect(s.ctx, "u1").Return(false, nil)
+	s.lim.TakeAttemptMock.Expect(s.ctx, "u1").Return(true, nil)
 	s.st.GetMock.Expect(s.ctx, "u1").Return(domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}, nil)
 	s.ciph.DecryptMock.Expect([]byte("ct")).Return([]byte(secret), nil)
 	s.rec.ListMock.Expect(s.ctx, "u1").Return([]string{"id0", "id1", "id2"}, hashes, nil)
-	s.rec.MarkUsedMock.Expect(s.ctx, "id0").Return(nil)
+	s.rec.ConsumeMock.Expect(s.ctx, "id0").Return(true, nil)
 	s.lim.ClearMock.Expect(s.ctx, "u1").Return(nil)
 
 	ok, err := s.svc.Verify(s.ctx, "u1", plain[0])
@@ -101,10 +167,27 @@ func (s *TwoFASuite) TestVerifyRecoveryFallback() {
 	assert.Assert(s.T(), ok)
 }
 
+// Another Verify spent the code between our List and Consume: this attempt is
+// a failed one, not a second success.
+func (s *TwoFASuite) TestVerifyRecoveryAlreadyConsumedFails() {
+	secret, _ := s.enrolled()
+	plain, hashes, err := totp.GenerateRecovery(1)
+	assert.NilError(s.T(), err)
+
+	s.lim.TakeAttemptMock.Expect(s.ctx, "u1").Return(true, nil)
+	s.st.GetMock.Expect(s.ctx, "u1").Return(domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}, nil)
+	s.ciph.DecryptMock.Expect([]byte("ct")).Return([]byte(secret), nil)
+	s.rec.ListMock.Expect(s.ctx, "u1").Return([]string{"id0"}, hashes, nil)
+	s.rec.ConsumeMock.Expect(s.ctx, "id0").Return(false, nil)
+
+	ok, err := s.svc.Verify(s.ctx, "u1", plain[0])
+	assert.NilError(s.T(), err)
+	assert.Assert(s.T(), !ok)
+}
+
 func (s *TwoFASuite) TestRegenerateRequiresValidCode() {
 	secret, _ := s.enrolled()
-	s.lim.IsLockedMock.Expect(s.ctx, "u1").Return(false, nil)
-	s.lim.RegisterFailMock.Expect(s.ctx, "u1").Return(nil)
+	s.lim.TakeAttemptMock.Expect(s.ctx, "u1").Return(true, nil)
 	s.st.GetMock.Expect(s.ctx, "u1").Return(domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}, nil)
 	s.ciph.DecryptMock.Expect([]byte("ct")).Return([]byte(secret), nil)
 
@@ -197,7 +280,7 @@ func (s *TwoFASuite) TestStatusOfADisabledCredentialIsOffWithNoCodes() {
 // Disable and Regenerate take a TOTP code, so a stolen cookie could brute-force
 // it unless they share Verify's per-user lock.
 func (s *TwoFASuite) TestDisableAndRegenerateRefuseALockedUser() {
-	s.lim.IsLockedMock.Expect(s.ctx, "u1").Return(true, nil)
+	s.lim.TakeAttemptMock.Expect(s.ctx, "u1").Return(false, nil)
 
 	err := s.svc.Disable(s.ctx, "u1", "123456")
 	assert.ErrorIs(s.T(), err, domain.ErrTwoFALocked)
@@ -207,10 +290,9 @@ func (s *TwoFASuite) TestDisableAndRegenerateRefuseALockedUser() {
 
 func (s *TwoFASuite) TestDisableWrongCodeRegistersFail() {
 	secret, _ := s.enrolled()
-	s.lim.IsLockedMock.Expect(s.ctx, "u1").Return(false, nil)
+	s.lim.TakeAttemptMock.Expect(s.ctx, "u1").Return(true, nil)
 	s.st.GetMock.Expect(s.ctx, "u1").Return(domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}, nil)
 	s.ciph.DecryptMock.Expect([]byte("ct")).Return([]byte(secret), nil)
-	s.lim.RegisterFailMock.Expect(s.ctx, "u1").Return(nil)
 
 	err := s.svc.Disable(s.ctx, "u1", "000000")
 	assert.ErrorIs(s.T(), err, domain.ErrTwoFAInvalidCode)
@@ -218,12 +300,106 @@ func (s *TwoFASuite) TestDisableWrongCodeRegistersFail() {
 
 func (s *TwoFASuite) TestDisableRightCodeClearsFails() {
 	secret, code := s.enrolled()
-	s.lim.IsLockedMock.Expect(s.ctx, "u1").Return(false, nil)
+	s.lim.TakeAttemptMock.Expect(s.ctx, "u1").Return(true, nil)
 	s.st.GetMock.Expect(s.ctx, "u1").Return(domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}, nil)
 	s.ciph.DecryptMock.Expect([]byte("ct")).Return([]byte(secret), nil)
+	s.lim.ClaimStepMock.Return(true, nil)
 	s.lim.ClearMock.Expect(s.ctx, "u1").Return(nil)
 	s.st.SetMock.Return(nil)
 	s.rec.DeleteAllMock.Expect(s.ctx, "u1").Return(nil)
 
 	assert.NilError(s.T(), s.svc.Disable(s.ctx, "u1", code))
+}
+
+// A failure that is not a wrong code (store, cipher, recovery list or consume,
+// 2FA not enabled) is not a guess: Verify gives the attempt back. A wrong code
+// stays counted: TestVerifyWrongCodeRegistersFail sets no Refund expectation.
+func (s *TwoFASuite) TestVerifyRefundsTheAttemptOnOurOwnFailures() {
+	secret, _ := s.enrolled()
+	plain, hashes, err := totp.GenerateRecovery(1)
+	assert.NilError(s.T(), err)
+	boom := errors.New("db down")
+	on := domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}
+	tests := []struct {
+		name  string
+		code  string
+		setup func(st *mocks.StoreMock, rec *mocks.RecoveryMock, ciph *mocks.CipherMock)
+		want  error
+	}{
+		{"store fails", "000000", func(st *mocks.StoreMock, _ *mocks.RecoveryMock, _ *mocks.CipherMock) {
+			st.GetMock.Return(domain.Credential{}, boom)
+		}, boom},
+		{"2fa not enabled", "000000", func(st *mocks.StoreMock, _ *mocks.RecoveryMock, _ *mocks.CipherMock) {
+			st.GetMock.Return(domain.Credential{UserID: "u1"}, nil)
+		}, domain.ErrTwoFANotEnabled},
+		{"decrypt fails", "000000", func(st *mocks.StoreMock, _ *mocks.RecoveryMock, ciph *mocks.CipherMock) {
+			st.GetMock.Return(on, nil)
+			ciph.DecryptMock.Return(nil, boom)
+		}, boom},
+		{"recovery list fails", "000000", func(st *mocks.StoreMock, rec *mocks.RecoveryMock, ciph *mocks.CipherMock) {
+			st.GetMock.Return(on, nil)
+			ciph.DecryptMock.Return([]byte(secret), nil)
+			rec.ListMock.Return(nil, nil, boom)
+		}, boom},
+		{
+			"recovery consume fails",
+			plain[0],
+			func(st *mocks.StoreMock, rec *mocks.RecoveryMock, ciph *mocks.CipherMock) {
+				st.GetMock.Return(on, nil)
+				ciph.DecryptMock.Return([]byte(secret), nil)
+				rec.ListMock.Return([]string{"id0"}, hashes, nil)
+				rec.ConsumeMock.Return(false, boom)
+			},
+			boom,
+		},
+	}
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			mc := minimock.NewController(s.T())
+			st, rec, ciph, lim := mocks.NewStoreMock(mc), mocks.NewRecoveryMock(mc), mocks.NewCipherMock(mc),
+				mocks.NewRateLimiterMock(mc)
+			lim.TakeAttemptMock.Return(true, nil)
+			lim.RefundMock.Expect(s.ctx, "u1").Return(nil)
+			tt.setup(st, rec, ciph)
+
+			_, err := twofa.New(st, rec, ciph, lim, "Andrey").Verify(s.ctx, "u1", tt.code)
+
+			assert.ErrorIs(s.T(), err, tt.want)
+		})
+	}
+}
+
+// Disable and Regenerate share the limiter: their non-guess failures give the
+// attempt back too, a wrong code (TestDisableWrongCodeRegistersFail) does not.
+func (s *TwoFASuite) TestConfirmTOTPRefundsTheAttemptOnOurOwnFailures() {
+	boom := errors.New("db down")
+	tests := []struct {
+		name  string
+		setup func(st *mocks.StoreMock, ciph *mocks.CipherMock)
+		want  error
+	}{
+		{"store fails", func(st *mocks.StoreMock, _ *mocks.CipherMock) {
+			st.GetMock.Return(domain.Credential{}, boom)
+		}, boom},
+		{"2fa not enabled", func(st *mocks.StoreMock, _ *mocks.CipherMock) {
+			st.GetMock.Return(domain.Credential{UserID: "u1"}, nil)
+		}, domain.ErrTwoFANotEnabled},
+		{"decrypt fails", func(st *mocks.StoreMock, ciph *mocks.CipherMock) {
+			st.GetMock.Return(domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true}, nil)
+			ciph.DecryptMock.Return(nil, boom)
+		}, boom},
+	}
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			mc := minimock.NewController(s.T())
+			st, ciph, lim := mocks.NewStoreMock(mc), mocks.NewCipherMock(mc), mocks.NewRateLimiterMock(mc)
+			lim.TakeAttemptMock.Return(true, nil)
+			lim.RefundMock.Expect(s.ctx, "u1").Return(nil)
+			tt.setup(st, ciph)
+
+			err := twofa.New(st, mocks.NewRecoveryMock(mc), ciph, lim, "Andrey").Disable(s.ctx, "u1", "000000")
+
+			assert.ErrorIs(s.T(), err, tt.want)
+		})
+	}
 }

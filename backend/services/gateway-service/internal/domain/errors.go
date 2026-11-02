@@ -24,6 +24,10 @@ var (
 	// ErrPlacementGroupNotFound also covers a group of another territory: the
 	// catalog scopes every group id by slug.
 	ErrPlacementGroupNotFound = errors.New("placement group not found")
+	// ErrZoneNotFound also covers a zone of another territory: the catalog
+	// scopes every zone id by slug.
+	ErrZoneNotFound     = errors.New("zone not found")
+	ErrModelTagNotFound = errors.New("model tag not found")
 	// ErrIdempotencyConflict is a batch create whose Idempotency-Key already
 	// names a stored batch of another size on the territory — a 409.
 	ErrIdempotencyConflict = errors.New("idempotency key reused with a different batch")

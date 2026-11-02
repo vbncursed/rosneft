@@ -18,7 +18,10 @@ import {
 import type { ModelOption } from "@/entities/scene";
 import { HttpError, messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
+import { rowPosition, sameOrigin, type PlacementOrigin } from "./placement-origin";
 import { useBulkWrites } from "./use-bulk-writes";
+
+export type { PlacementOrigin };
 
 export type PlacementsEditorParams = {
   slug: string;
@@ -57,7 +60,13 @@ export function usePlacementsEditor({
   // same model × count × group placed again is that action retried, and must carry its
   // key: the batch may have landed with only the answer lost. Anything else, or
   // anything after a success, is a new action and gets a new key.
-  const unsettled = useRef<{ modelSlug: string; total: number; groupId: number | null; key: string } | null>(null);
+  const unsettled = useRef<{
+    modelSlug: string;
+    total: number;
+    groupId: number | null;
+    origin: PlacementOrigin | null;
+    key: string;
+  } | null>(null);
 
   const resolve = useCallback(
     (p: Placement): ResolvedPlacement => ({
@@ -70,13 +79,21 @@ export function usePlacementsEditor({
   );
 
   const create = useCallback(
-    async (modelSlug: string, count: number, groupId: number | null = null): Promise<number | null> => {
+    async (
+      modelSlug: string,
+      count: number,
+      groupId: number | null = null,
+      origin: PlacementOrigin | null = null,
+    ): Promise<number | null> => {
       const total = Math.max(1, Math.floor(count));
       const retried = unsettled.current;
       const action =
-        retried?.modelSlug === modelSlug && retried.total === total && retried.groupId === groupId
+        retried?.modelSlug === modelSlug &&
+        retried.total === total &&
+        retried.groupId === groupId &&
+        sameOrigin(retried.origin, origin)
           ? retried
-          : { modelSlug, total, groupId, key: crypto.randomUUID() };
+          : { modelSlug, total, groupId, origin, key: crypto.randomUUID() };
       unsettled.current = action;
       setMutation(creating);
       setPlacing({ total });
@@ -92,7 +109,8 @@ export function usePlacementsEditor({
         const step = 2 * scale * 1.1;
         const items = Array.from({ length: total }, (_, i) => ({
           modelSlug,
-          position: { x: i * step, y: 0, z: 0 },
+          position: rowPosition(i, step, origin),
+          ...(origin ? { rotation: { x: 0, y: origin.yaw, z: 0 } } : {}),
           scale: { x: scale, y: scale, z: scale },
           visiblePanoramaIds: panoramaIds,
           // A group's own Add (G-4); absent means No group.

@@ -14,7 +14,7 @@ func TestParseOBJSuite(t *testing.T) { suite.Run(t, new(ParseOBJSuite)) }
 
 func (s *ParseOBJSuite) TestBasicTriangle() {
 	obj := "v 1 2 3\nv 4 5 6\nv 7 8 9\nf 1 2 3\n"
-	src, err := parseOBJ(strings.NewReader(obj))
+	src, err := parseOBJWithUp(strings.NewReader(obj), false)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(src.positions), 3)
 	assert.Equal(s.T(), len(src.groups[0].triangles), 1)
@@ -45,7 +45,7 @@ func (s *ParseOBJSuite) TestParseOBJYUpKeepsAxes() {
 
 func (s *ParseOBJSuite) TestQuadFanTriangulation() {
 	obj := "v 0 0 0\nv 1 0 0\nv 1 1 0\nv 0 1 0\nf 1 2 3 4\n"
-	src, err := parseOBJ(strings.NewReader(obj))
+	src, err := parseOBJWithUp(strings.NewReader(obj), false)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(src.groups[0].triangles), 2)
 	assert.Equal(s.T(), src.groups[0].triangles[0], triangle{0, 1, 2})
@@ -54,7 +54,7 @@ func (s *ParseOBJSuite) TestQuadFanTriangulation() {
 
 func (s *ParseOBJSuite) TestNgonTriangulation() {
 	obj := "v 0 0 0\nv 1 0 0\nv 1 1 0\nv 0.5 1.5 0\nv 0 1 0\nf 1 2 3 4 5\n"
-	src, err := parseOBJ(strings.NewReader(obj))
+	src, err := parseOBJWithUp(strings.NewReader(obj), false)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(src.groups[0].triangles), 3)
 	assert.Equal(s.T(), src.groups[0].triangles[0], triangle{0, 1, 2})
@@ -64,7 +64,7 @@ func (s *ParseOBJSuite) TestNgonTriangulation() {
 
 func (s *ParseOBJSuite) TestNegativeIndices() {
 	obj := "v 0 0 0\nv 1 0 0\nv 0 1 0\nf -3 -2 -1\n"
-	src, err := parseOBJ(strings.NewReader(obj))
+	src, err := parseOBJWithUp(strings.NewReader(obj), false)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(src.groups[0].triangles), 1)
 	assert.Equal(s.T(), src.groups[0].triangles[0], triangle{0, 1, 2})
@@ -82,7 +82,7 @@ func (s *ParseOBJSuite) TestFaceFormats() {
 	}
 	for name, tc := range cases {
 		s.Run(name, func() {
-			src, err := parseOBJ(strings.NewReader(tc.obj))
+			src, err := parseOBJWithUp(strings.NewReader(tc.obj), false)
 			assert.NilError(s.T(), err)
 			assert.Equal(s.T(), len(src.groups[0].triangles), 1)
 			assert.Equal(s.T(), src.groups[0].triangles[0], triangle{0, 1, 2})
@@ -94,7 +94,7 @@ func (s *ParseOBJSuite) TestFaceFormats() {
 func (s *ParseOBJSuite) TestUVsParsedAndVFlipped() {
 	// OBJ uv (0.25, 0.75) → glTF uv (0.25, 0.25).
 	obj := "v 0 0 0\nv 1 0 0\nv 0 1 0\nvt 0.25 0.75\nvt 1 0\nvt 0 1\nf 1/1 2/2 3/3\n"
-	src, err := parseOBJ(strings.NewReader(obj))
+	src, err := parseOBJWithUp(strings.NewReader(obj), false)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), src.hasUVs, true)
 	assert.Equal(s.T(), len(src.uvs), 3)
@@ -116,7 +116,7 @@ vt 0 1
 f 1/1 2/3 3/4
 f 1/2 4/3 3/4
 `
-	src, err := parseOBJ(strings.NewReader(obj))
+	src, err := parseOBJWithUp(strings.NewReader(obj), false)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), src.hasUVs, true)
 	// Unique (v,vt) pairs: (1,1), (2,3), (3,4), (1,2), (4,3) = 5.
@@ -126,7 +126,7 @@ f 1/2 4/3 3/4
 
 func (s *ParseOBJSuite) TestSkipsCommentsAndBlanks() {
 	obj := "# comment\n\n   \nv 0 0 0\n# v 99 99 99\nv 1 0 0\nv 0 1 0\nf 1 2 3\n"
-	src, err := parseOBJ(strings.NewReader(obj))
+	src, err := parseOBJWithUp(strings.NewReader(obj), false)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(src.positions), 3)
 	assert.Equal(s.T(), len(src.groups[0].triangles), 1)
@@ -144,7 +144,7 @@ v 1 0 0
 v 0 1 0
 f 1 2 3
 `
-	src, err := parseOBJ(strings.NewReader(obj))
+	src, err := parseOBJWithUp(strings.NewReader(obj), false)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(src.positions), 3)
 	assert.Equal(s.T(), len(src.groups[0].triangles), 1)
@@ -152,30 +152,30 @@ f 1 2 3
 
 func (s *ParseOBJSuite) TestIndexOutOfRange() {
 	obj := "v 0 0 0\nf 1 2 3\n"
-	_, err := parseOBJ(strings.NewReader(obj))
+	_, err := parseOBJWithUp(strings.NewReader(obj), false)
 	assert.ErrorContains(s.T(), err, "out of range")
 }
 
 func (s *ParseOBJSuite) TestZeroIndexRejected() {
 	obj := "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 0 1 2\n"
-	_, err := parseOBJ(strings.NewReader(obj))
+	_, err := parseOBJWithUp(strings.NewReader(obj), false)
 	assert.ErrorContains(s.T(), err, "out of range")
 }
 
 func (s *ParseOBJSuite) TestFaceTooFewVertices() {
 	obj := "v 0 0 0\nv 1 0 0\nf 1 2\n"
-	_, err := parseOBJ(strings.NewReader(obj))
+	_, err := parseOBJWithUp(strings.NewReader(obj), false)
 	assert.ErrorContains(s.T(), err, "needs >=3")
 }
 
 func (s *ParseOBJSuite) TestVertexMalformed() {
 	obj := "v 1 not_a_number 3\n"
-	_, err := parseOBJ(strings.NewReader(obj))
+	_, err := parseOBJWithUp(strings.NewReader(obj), false)
 	assert.Assert(s.T(), err != nil)
 }
 
 func (s *ParseOBJSuite) TestEmpty() {
-	src, err := parseOBJ(strings.NewReader(""))
+	src, err := parseOBJWithUp(strings.NewReader(""), false)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(src.positions), 0)
 	assert.Equal(s.T(), len(src.groups), 0)
@@ -194,7 +194,7 @@ f 2 4 3
 usemtl alpha
 f 1 4 2
 `
-	src, err := parseOBJ(strings.NewReader(obj))
+	src, err := parseOBJWithUp(strings.NewReader(obj), false)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(src.groups), 2)
 	assert.Equal(s.T(), src.groups[0].name, "alpha")
@@ -205,14 +205,14 @@ f 1 4 2
 
 func (s *ParseOBJSuite) TestMtllibCaptured() {
 	obj := "mtllib foo bar.mtl\nv 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n"
-	src, err := parseOBJ(strings.NewReader(obj))
+	src, err := parseOBJWithUp(strings.NewReader(obj), false)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), src.mtllib, "foo bar.mtl")
 }
 
 func (s *ParseOBJSuite) TestVertexWithFourComponents() {
 	obj := "v 1 2 3 1.0\n"
-	src, err := parseOBJ(strings.NewReader(obj))
+	src, err := parseOBJWithUp(strings.NewReader(obj), false)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(src.positions), 0) // no faces → no output positions
 	// objPositions parsed but only emitted via face refs.

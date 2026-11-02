@@ -4,7 +4,7 @@
 SHELLCHECK := docker run --rm -v "$(CURDIR)":/mnt -w /mnt koalaman/shellcheck:v0.11.0
 
 # promtool from the image prod runs (docker-compose.yml): rule syntax and the alert unit tests.
-PROMTOOL := docker run --rm --entrypoint promtool -v "$(CURDIR)/prometheus":/p -w /p prom/prometheus:v3.15.0
+PROMTOOL := docker run --rm --entrypoint promtool -v "$(CURDIR)/prometheus":/p -w /p prom/prometheus:v3.15.1
 
 .PHONY: check
 check:

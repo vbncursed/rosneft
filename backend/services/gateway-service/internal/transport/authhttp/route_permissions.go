@@ -34,10 +34,13 @@ var routePerms = map[string][]string{
 	"DELETE /api/territories/{slug}": {"territory:delete"},
 	// Replacing the source model is a write on the territory: it feeds a
 	// reconversion, same grant as PATCH.
-	"POST /api/territories/{slug}/source":           {"territory:write"},
-	"POST /api/models":                              {"model:write"},
-	"PATCH /api/models/{slug}":                      {"model:write"},
-	"DELETE /api/models/{slug}":                     {"model:delete"},
+	"POST /api/territories/{slug}/source": {"territory:write"},
+	"POST /api/models":                    {"model:write"},
+	"PATCH /api/models/{slug}":            {"model:write"},
+	"DELETE /api/models/{slug}":           {"model:delete"},
+	// Tags are added and retitled, never deleted: there is no DELETE route.
+	"POST /api/model-tags":                          {"model:write"},
+	"PATCH /api/model-tags/{slug}":                  {"model:write"},
 	"POST /api/territories/{slug}/placements":       {"placement:create"},
 	"POST /api/territories/{slug}/placements/batch": {"placement:create"},
 	"PUT /api/territories/{slug}/placements/{id}":   {"placement:write"},
@@ -76,6 +79,13 @@ var routePerms = map[string][]string{
 	"PUT /api/territories/{slug}/measurements/{id}":    {"measurement:write"},
 	"DELETE /api/territories/{slug}/measurements/{id}": {"measurement:delete"},
 	"DELETE /api/territories/{slug}/measurements":      {"measurement:delete"},
+	// Zones and the calibration that places them are one editing job: one
+	// grant, held by the Company Owner and the Scene Editor (auth 00020).
+	"POST /api/territories/{slug}/zones":                        {"zone:write"},
+	"PATCH /api/territories/{slug}/zones/{id}":                  {"zone:write"},
+	"DELETE /api/territories/{slug}/zones/{id}":                 {"zone:write"},
+	"PUT /api/territories/{slug}/documents/{id}/calibration":    {"zone:write"},
+	"DELETE /api/territories/{slug}/documents/{id}/calibration": {"zone:write"},
 }
 
 // RequirePermissionForRoute enforces routePerms against the principal. Routes

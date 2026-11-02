@@ -54,12 +54,15 @@ func (s *Store) List(ctx context.Context, userID string) (ids, hashes []string, 
 	return ids, hashes, rows.Err()
 }
 
-// MarkUsed stamps a code as consumed.
-func (s *Store) MarkUsed(ctx context.Context, id string) error {
-	if _, err := s.pool.Exec(ctx, `UPDATE twofa_recovery_codes SET used_at = now() WHERE id = $1`, id); err != nil {
-		return fmt.Errorf("recovery.MarkUsed: %w", err)
+// Consume atomically spends a code: the conditional UPDATE lets exactly one
+// of any number of concurrent callers see consumed=true.
+func (s *Store) Consume(ctx context.Context, id string) (consumed bool, err error) {
+	tag, err := s.pool.Exec(ctx,
+		`UPDATE twofa_recovery_codes SET used_at = now() WHERE id = $1 AND used_at IS NULL`, id)
+	if err != nil {
+		return false, fmt.Errorf("recovery.Consume: %w", err)
 	}
-	return nil
+	return tag.RowsAffected() == 1, nil
 }
 
 // DeleteAll removes every code for a user (on 2FA disable).

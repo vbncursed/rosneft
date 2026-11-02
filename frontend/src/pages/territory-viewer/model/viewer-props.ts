@@ -13,6 +13,7 @@ import type { UploadModalProps } from "@/widgets/upload-modal";
 import type { FoldedSection, SectionFold, ViewTabProps } from "@/widgets/view-tab";
 import type { LodReport, ViewerCanvasProps } from "@/widgets/viewer-canvas";
 import type { DocumentParts, PanoramaParts } from "./overlay-parts";
+import type { ZoneParts } from "./use-viewer-zones";
 import type { PlacementFormView } from "./use-placement-form";
 import type { ErrorCopy, Grants, HeaderPill, RailToolState } from "./viewer-view";
 
@@ -101,6 +102,11 @@ export type ViewerOverlaysProps = {
    * and dragged in, and `usePipWindow` measures it through this.
    */
   documentLayerRef: RefObject<HTMLDivElement | null>;
+  /**
+   * The plan layer, in the same floating layer as the document window: the
+   * alignment editor's window while a PDF is open for it. Null otherwise.
+   */
+  plan: ReactNode;
 };
 
 export type ViewerPanelProps = {
@@ -112,6 +118,8 @@ export type ViewerPanelProps = {
   /** The whole View tab: the scene's facts, its panoramas and its documents. */
   viewTab: ViewTabProps;
   placements: PlacementsPanelProps;
+  /** Above whichever tab is open: the align card while the editor is, and the selected zone's card. */
+  zone: ReactNode;
 };
 
 export type TerritoryViewerPageProps = {
@@ -126,6 +134,8 @@ export type TerritoryViewerPageProps = {
   tour: Tour;
   /** The panorama tour (Task 17); the viewer tour stands in until it is written. */
   panoramaTour: Tour;
+  /** The plan editor's and the zone card's tours; at most one is on screen. */
+  zoneTours: { plan: Tour; card: Tour };
   /** Nothing on screen yet and nothing failed — the skeleton card stands in. */
   loadingScene: boolean;
 };
@@ -237,8 +247,10 @@ export type PageParts = {
   form: PlacementFormView | null;
   tour: Tour;
   panoramaTour: Tour;
+  zoneTours: { plan: Tour; card: Tour };
   panoramas: PanoramaParts;
   documents: DocumentParts;
+  zones: ZoneParts;
   panel: { tab: OverlaysTab; collapsed: boolean };
   /** The View tab's Panoramas and Documents folds (`useViewSections`). */
   sections: Record<FoldedSection, SectionFold>;

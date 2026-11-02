@@ -1,6 +1,7 @@
 import { act, render } from "@testing-library/react";
 import { createElement, isValidElement, type ReactNode } from "react";
 import { beforeAll, describe, expect, it } from "vitest";
+import { preloadPlanLayers } from "@/pages/territory-viewer";
 import { preloadModelViewer, preloadViewer } from "@/widgets/viewer-canvas";
 
 /**
@@ -41,7 +42,7 @@ describe("every fixture renders", () => {
   // act had closed, and woke every root still waiting on it in the middle of
   // some other test. Loaded up front, the lazy boundary resolves within a
   // microtask — inside the act each fixture now awaits, canvas and all.
-  beforeAll(() => Promise.all([preloadViewer(), preloadModelViewer()]));
+  beforeAll(() => Promise.all([preloadViewer(), preloadModelViewer(), preloadPlanLayers()]));
 
   it("finds the fixtures to check — a broken glob must not pass silently", () => {
     expect(paths.length).toBeGreaterThan(40);

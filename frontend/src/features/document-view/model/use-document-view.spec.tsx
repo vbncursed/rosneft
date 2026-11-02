@@ -9,6 +9,7 @@ const document = (id: number): Document => ({
   title: `doc-${id}.pdf`,
   sourceBlobHash: `h${id}`,
   createdAt: "t0",
+  calibration: null,
 });
 
 const docs = [document(1), document(2)];

@@ -53,6 +53,7 @@ func (s *Server) UpdateModel(ctx context.Context, req UpdateModelRequestObject) 
 		Title:             req.Body.Title,
 		Description:       req.Body.Description,
 		ThumbnailBlobHash: req.Body.ThumbnailBlobHash,
+		TagSlug:           req.Body.TagSlug,
 	}, blobScope(ctx))
 	switch {
 	case isNotFound(err):
@@ -113,7 +114,7 @@ func (s *Server) GetModelArtifact(
 	return GetModelArtifact200JSONResponse(artifactToAPI(a, false)), nil
 }
 
-func entityToModel(body EntityCreate) domain.Model {
+func entityToModel(body ModelCreate) domain.Model {
 	desc := ""
 	if body.Description != nil {
 		desc = *body.Description
@@ -129,5 +130,6 @@ func entityToModel(body EntityCreate) domain.Model {
 		Description:       desc,
 		SourceBlobHash:    body.SourceBlobHash,
 		ThumbnailBlobHash: thumbnail,
+		Tag:               domain.ModelTag{Slug: body.TagSlug},
 	}
 }

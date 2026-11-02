@@ -27,7 +27,13 @@ const TERRITORY = {
   updatedAt: "2026-08-31T00:00:00Z",
   lods: [{ lod: 0, hash: "h", size: 1024 }],
 };
-const MODEL = { slug: "m-1", title: "M 1", sourceBlobHash: "b".repeat(64), lods: [] };
+const MODEL = {
+  slug: "m-1",
+  title: "M 1",
+  tag: { slug: "tanks", title: "Tanks" },
+  sourceBlobHash: "b".repeat(64),
+  lods: [],
+};
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
@@ -99,6 +105,14 @@ describe("useContent", () => {
     const { result } = renderHook(() => useContent(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
     expect(result.current.canCreateTerritory).toBe(true);
+  });
+
+  it("offers tag management on model:write alone", async () => {
+    const { result } = renderHook(() => useContent(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.canManageTags).toBe(true);
+    client.setQueryData(["me"], { ...PRINCIPAL, permissions: ["territory:write"] });
+    await waitFor(() => expect(result.current.canManageTags).toBe(false));
   });
 
   it("knows which kinds the viewer may delete", async () => {
@@ -233,5 +247,22 @@ describe("useContent", () => {
       await client.refetchQueries({ queryKey: ["territories"] });
     });
     expect(result.current.status).toBe("ready");
+  });
+});
+
+describe("useContent tags tour", () => {
+  it("starts the Tags card tour once the page is ready for a tag manager", async () => {
+    const { result } = renderHook(() => useContent(), { wrapper });
+    expect(result.current.tagsTour.active).toBe(false);
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.tagsTour.active).toBe(true);
+    expect(result.current.tagsTour.step?.id).toBe("content-tags");
+  });
+
+  it("stays idle for a reader who cannot manage tags", async () => {
+    client.setQueryData(["me"], { ...PRINCIPAL, permissions: ["territory:write"] });
+    const { result } = renderHook(() => useContent(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.tagsTour.active).toBe(false);
   });
 });

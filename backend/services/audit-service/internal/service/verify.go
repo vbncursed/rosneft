@@ -43,32 +43,16 @@ func (s *Service) Verify(ctx context.Context, witnessed map[int64]string) (domai
 
 	res := domain.VerifyResult{OK: true, Checked: len(all)}
 	for i, c := range all {
-		if i > 0 && c.PrevDigest != all[i-1].Digest {
-			return fail(res, c.ID, fmt.Sprintf(
-				"chain broken: prev_digest %q does not match checkpoint %d digest %q",
-				c.PrevDigest, all[i-1].ID, all[i-1].Digest)), nil
-		}
-
-		got := seedDigest()
+		var prev *domain.Checkpoint
 		if i > 0 {
-			_, _, got, err = s.store.ComputeDigest(ctx, c.FromID, c.ToID, c.PrevDigest)
-			if err != nil {
-				return domain.VerifyResult{}, fmt.Errorf("audit.Verify: checkpoint %d: %w", c.ID, err)
-			}
+			prev = &all[i-1]
 		}
-		if got != c.Digest {
-			return fail(res, c.ID, fmt.Sprintf(
-				"rows in (%d, %d] no longer digest to %q (got %q)",
-				c.FromID, c.ToID, c.Digest, got)), nil
+		reason, err := s.checkpointFailure(ctx, c, prev, witnessed)
+		if err != nil {
+			return domain.VerifyResult{}, err
 		}
-
-		// Keyed by checkpoint id, not to_id: quiet intervals repeat to_id across
-		// consecutive checkpoints, so that key would compare a checkpoint against
-		// a sibling's digest and fail an untouched journal.
-		if w, seen := witnessed[c.ID]; seen && w != c.Digest {
-			return fail(res, c.ID, fmt.Sprintf(
-				"witness disagrees at checkpoint %d: file has %q, database has %q",
-				c.ID, w, c.Digest)), nil
+		if reason != "" {
+			return fail(res, c.ID, reason), nil
 		}
 	}
 
@@ -111,4 +95,43 @@ func fail(res domain.VerifyResult, id int64, reason string) domain.VerifyResult 
 	res.FailedID = id
 	res.Reason = reason
 	return res
+}
+
+// checkpointFailure checks one checkpoint: its link to prev (nil for the seed),
+// its recomputed digest, then the witness; the first failure's reason wins.
+func (s *Service) checkpointFailure(
+	ctx context.Context,
+	c domain.Checkpoint,
+	prev *domain.Checkpoint,
+	witnessed map[int64]string,
+) (string, error) {
+	if prev != nil && c.PrevDigest != prev.Digest {
+		return fmt.Sprintf(
+			"chain broken: prev_digest %q does not match checkpoint %d digest %q",
+			c.PrevDigest, prev.ID, prev.Digest), nil
+	}
+
+	got := seedDigest()
+	if prev != nil {
+		var err error
+		_, _, got, err = s.store.ComputeDigest(ctx, c.FromID, c.ToID, c.PrevDigest)
+		if err != nil {
+			return "", fmt.Errorf("audit.Verify: checkpoint %d: %w", c.ID, err)
+		}
+	}
+	if got != c.Digest {
+		return fmt.Sprintf(
+			"rows in (%d, %d] no longer digest to %q (got %q)",
+			c.FromID, c.ToID, c.Digest, got), nil
+	}
+
+	// Keyed by checkpoint id, not to_id: quiet intervals repeat to_id across
+	// consecutive checkpoints, so that key would compare a checkpoint against
+	// a sibling's digest and fail an untouched journal.
+	if w, seen := witnessed[c.ID]; seen && w != c.Digest {
+		return fmt.Sprintf(
+			"witness disagrees at checkpoint %d: file has %q, database has %q",
+			c.ID, w, c.Digest), nil
+	}
+	return "", nil
 }

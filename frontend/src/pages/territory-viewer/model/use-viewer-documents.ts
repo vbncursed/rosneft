@@ -73,6 +73,7 @@ export function useViewerDocuments({ slug, initial, onChanged, reveal, onOpen }:
     window: view.window,
     pip,
     onOpen: view.open,
+    setCalibration: list.setCalibration,
     onWindow: view.setWindow,
     onDelete,
     onExit: view.close,

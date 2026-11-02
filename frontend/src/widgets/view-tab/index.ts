@@ -4,6 +4,7 @@ export { AnchorCard, type AnchorCardProps } from "./ui/anchor-card";
 export { AnchorFields, type AnchorFieldsProps } from "./ui/anchor-fields";
 export { CalibrationCard, type CalibrationCardProps } from "./ui/calibration-card";
 export { PanoramaRow, type PanoramaRowProps, type PanoramaRowView } from "./ui/panorama-row";
+export { ZonesSection, type ZonesSectionProps } from "./ui/zones-section";
 export { DocumentRow, type DocumentRowProps } from "./ui/document-row";
 export { SectionHead, type SectionHeadProps } from "./ui/section-head";
 export { ExternalLink, type ExternalLinkProps } from "./ui/external-link";

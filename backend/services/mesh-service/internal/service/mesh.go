@@ -30,22 +30,24 @@ type Queue interface {
 	// touching its other fields; later SaveJobs never write the mark back.
 	ClearBackfill(ctx context.Context, id string) error
 
-	// TryLockTarget claims a target for one conversion. Reports false when
+	// TryLockTarget claims a target for one conversion on behalf of owner (the
+	// job's id: the claim stands for that job). Reports false when
 	// another attempt already holds it. The lock is what stops the reconciler
 	// re-queueing an entity whose conversion is still running, and what stops
 	// a user-initiated submit racing the reconciler: HasLOD0 only turns true
 	// at the very end of processing, so a conversion longer than the tick
 	// interval would otherwise be queued again on every tick.
-	TryLockTarget(ctx context.Context, kind domain.Kind, slug string, ttl time.Duration) (bool, error)
+	TryLockTarget(ctx context.Context, kind domain.Kind, slug, owner string, ttl time.Duration) (bool, error)
 
-	// HoldTarget claims a target unconditionally, restarting its TTL. The
+	// HoldTarget claims a target for owner unconditionally, restarting its TTL. The
 	// worker calls it as a job starts, so the claim bounds the run alone and
 	// never the time the job waited in the stream.
-	HoldTarget(ctx context.Context, kind domain.Kind, slug string, ttl time.Duration) error
+	HoldTarget(ctx context.Context, kind domain.Kind, slug, owner string, ttl time.Duration) error
 
-	// UnlockTarget releases the claim. Failing to call it is not fatal — the
-	// TTL expires — but it delays the next legitimate reconcile.
-	UnlockTarget(ctx context.Context, kind domain.Kind, slug string) error
+	// UnlockTarget releases owner's claim, and only that: a claim that lapsed
+	// and now belongs to another owner survives. Failing to call it is not
+	// fatal — the TTL expires — but it delays the next legitimate reconcile.
+	UnlockTarget(ctx context.Context, kind domain.Kind, slug, owner string) error
 
 	// ForgetTarget drops the target's entry from the index. The job hash
 	// stays: a subscriber holding the id must still be able to read it.

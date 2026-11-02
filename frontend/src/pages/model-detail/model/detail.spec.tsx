@@ -4,6 +4,7 @@ import { aboutRows, artifactFile, artifactRows, headerMeta, lodRange, shortHash 
 const model = {
   slug: "valve",
   title: "Valve",
+  tag: { slug: "tanks", title: "Tanks" },
   sourceBlobHash: `9f1c${"0".repeat(56)}82ab`,
   usageCount: 2,
   createdAt: "2026-09-02T10:00:00Z",

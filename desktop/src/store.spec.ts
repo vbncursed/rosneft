@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, readdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { pickVictims, Store, type Pin } from "./store";
+import { pickVictims, staleUserDirs, Store, USER_RETENTION_MS, type Pin } from "./store";
 
 const A = "0b5e8a3c-1f2d-4c5b-9a7e-3d2c1b0a9f8e";
 const B = "1c6f9b4d-2a3e-4d6c-8b8f-4e3d2c1b0a9f";
@@ -40,6 +40,50 @@ describe("pickVictims", () => {
   });
   it("picks nothing under the limit", () => {
     expect(pickVictims(files, new Set(), 1000)).toEqual([]);
+  });
+});
+
+const touch = async (user: string, ageMs: number) => {
+  const d = path.join(root, "users", user);
+  mkdirSync(path.join(d, "blobs"), { recursive: true });
+  writeFileSync(path.join(d, "pins.json"), "[]");
+  const t = new Date(Date.now() - ageMs);
+  for (const p of [path.join(d, "blobs"), path.join(d, "pins.json"), d]) utimesSync(p, t, t);
+};
+
+describe("staleUserDirs", () => {
+  const now = 100 * 86_400_000;
+  const old = now - USER_RETENTION_MS - 1;
+  const fresh = now - USER_RETENTION_MS + 1000;
+  it.each([
+    ["an old dir of another user", [{ name: B, mtimeMs: old }], A, [B]],
+    ["a recent dir of another user", [{ name: B, mtimeMs: fresh }], A, []],
+    ["the current user, however old", [{ name: A, mtimeMs: old }], A, []],
+    ["everything when the current user is unknown", [{ name: B, mtimeMs: old }], null, []],
+    ["a name that is not a user id", [{ name: "tmp", mtimeMs: old }], A, []],
+  ])("%s", (_n, entries, keep, want) => {
+    expect(staleUserDirs(entries, now, keep)).toEqual(want);
+  });
+});
+
+describe("Store.init purge", () => {
+  it("removes a long-idle other user's directory and keeps the current user's", async () => {
+    await touch(A, 2 * USER_RETENTION_MS);
+    await touch(B, 2 * USER_RETENTION_MS);
+    await new Store(root).init(A);
+    expect(readdirSync(path.join(root, "users"))).toEqual([A]);
+  });
+  it("keeps every user when the current one is unknown", async () => {
+    await touch(B, 2 * USER_RETENTION_MS);
+    await new Store(root).init(null);
+    expect(readdirSync(path.join(root, "users"))).toEqual([B]);
+  });
+  it("keeps another user's directory with a recent write inside", async () => {
+    await touch(B, 2 * USER_RETENTION_MS);
+    const t = new Date();
+    utimesSync(path.join(root, "users", B, "pins.json"), t, t);
+    await new Store(root).init(A);
+    expect(readdirSync(path.join(root, "users"))).toEqual([B]);
   });
 });
 
@@ -122,6 +166,17 @@ describe("Store", () => {
     await expect(store.writeBlob(A, h, "x", body("hello"))).rejects.toThrow();
     expect(readdirSync(blobs).filter((n) => n.endsWith(".type"))).toEqual([]);
     expect(readdirSync(path.join(root, "tmp"))).toEqual([]);
+  });
+
+  it("a body over the cap is refused mid-stream and leaves nothing behind", async () => {
+    const h = sha("x".repeat(100));
+    await expect(store.writeBlob(A, h, "x", body("x".repeat(100)), undefined, 10)).rejects.toThrow(/exceeds/u);
+    expect(readdirSync(path.join(root, "tmp"))).toEqual([]);
+    expect(await store.blob(A, h)).toBeNull();
+  });
+  it("a body exactly at the cap is stored", async () => {
+    const h = sha("abcd");
+    expect(await store.writeBlob(A, h, "x", body("abcd"), undefined, 4)).toBe(4);
   });
 
   it("an aborted write rejects and leaves nothing behind", async () => {

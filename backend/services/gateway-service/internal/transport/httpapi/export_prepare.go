@@ -146,23 +146,9 @@ type exportSource struct {
 // read, the 409 for a territory without LOD0, the 409 notReady when a plain
 // variant lacks a plain copy for something it draws, and the head reads.
 func (s *Server) loadExport(ctx context.Context, slug string, v exportVariant) (exportSource, *exportRefusal) {
-	scopeAdminID, allAccess := authhttp.Scope(ctx)
-	if !allAccess && scopeAdminID == "" {
-		return exportSource{}, territoryMissing()
-	}
-	bundle, err := s.svc.GetSceneBundle(ctx, slug, scopeAdminID)
-	switch {
-	case isNotFound(err):
-		return exportSource{}, territoryMissing()
-	case err != nil:
-		return exportSource{}, exportFailed(ctx, err)
-	}
-	if bundle.Artifact == nil {
-		return exportSource{}, &exportRefusal{
-			http.StatusConflict,
-			apperr.SlugConflict,
-			"territory is not converted yet",
-		}
+	bundle, ref := s.convertedBundle(ctx, slug)
+	if ref != nil {
+		return exportSource{}, ref
 	}
 
 	placements, skipped := exportPlacements(bundle, v)
@@ -181,4 +167,28 @@ func (s *Server) loadExport(ctx context.Context, slug string, v exportVariant) (
 		return exportSource{}, exportFailed(ctx, err)
 	}
 	return exportSource{bundle: bundle, placements: placements, heads: heads}, nil
+}
+
+// convertedBundle re-checks the caller's scope and reads the scene bundle; the
+// bundle's Artifact is non-nil when the refusal is nil.
+func (s *Server) convertedBundle(ctx context.Context, slug string) (domain.SceneBundle, *exportRefusal) {
+	scopeAdminID, allAccess := authhttp.Scope(ctx)
+	if !allAccess && scopeAdminID == "" {
+		return domain.SceneBundle{}, territoryMissing()
+	}
+	bundle, err := s.svc.GetSceneBundle(ctx, slug, scopeAdminID)
+	switch {
+	case isNotFound(err):
+		return domain.SceneBundle{}, territoryMissing()
+	case err != nil:
+		return domain.SceneBundle{}, exportFailed(ctx, err)
+	}
+	if bundle.Artifact == nil {
+		return domain.SceneBundle{}, &exportRefusal{
+			http.StatusConflict,
+			apperr.SlugConflict,
+			"territory is not converted yet",
+		}
+	}
+	return bundle, nil
 }

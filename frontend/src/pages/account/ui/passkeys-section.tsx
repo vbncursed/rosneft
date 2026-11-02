@@ -13,7 +13,7 @@ export type PasskeysSectionProps = {
   passkeys: Passkey[] | null;
   /** Still asking. Distinct from null, which is an answer we failed to get. */
   loading: boolean;
-  /** me.totpEnabled: which factor the gateway will demand for a removal. */
+  /** me.totpEnabled: which factor the gateway will demand for adding or removing a key. */
   totpEnabled: boolean | null;
   removalBusy: boolean;
   /** Resolves only on success — the dialog closes off this, never on a refused credential. */
@@ -104,7 +104,12 @@ export function PasskeysSection({
         </div>
       )}
 
-      <AddPasskeyModal open={adding} onClose={() => setAdding(false)} onAdded={onAdded} />
+      <AddPasskeyModal
+        open={adding}
+        factor={removalFactor(totpEnabled)}
+        onClose={() => setAdding(false)}
+        onAdded={onAdded}
+      />
       {removing ? (
         <RemovePasskeyModal
           open

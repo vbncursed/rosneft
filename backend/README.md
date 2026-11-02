@@ -170,6 +170,18 @@ for m in pkg proto services/*; do (cd $m && GOWORK=off go list -m -u \
 | `upload-service` | — |
 | `asset-service` | — (does not import `proto`; HTTP-only) |
 
+### 2026-10-30 refresh (compose images)
+
+| Image | From → To |
+| --- | --- |
+| `redis` | 8.10.2 → **8.10.3** |
+| `prom/prometheus` | v3.15.0 → **v3.15.1** (also the `PROMTOOL` image in `ops/Makefile`) |
+| `prom/alertmanager` | v0.34.1 → **v0.34.2** |
+
+`postgres` 18.6, `golang` 1.27.3-alpine and `node` 26-alpine are already the newest tags on Docker Hub.
+`debian:12-slim` and the distroless `*-debian12` images stay on Debian 12 (the gltfpack build and the
+mesh-worker runtime must share a glibc).
+
 ### 2026-10-20 refresh (Go 1.27.3)
 
 | Dependency / tool | From → To | Note |

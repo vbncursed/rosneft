@@ -1,6 +1,7 @@
 import { createReadStream } from "node:fs";
 import { Readable } from "node:stream";
 import { withBlobCsp, withCsp } from "./csp";
+import { assertDeclaredWithin } from "./limit";
 import { offlineResponse } from "./offline-page";
 import { parseRange } from "./range";
 import { classify, endsSession, serverUnreachable, type Route } from "./route";
@@ -162,8 +163,10 @@ async function afterNetwork(
   if (route.kind === "blob" && user && res.status === 200 && res.body && !req.headers.has("range")) {
     const [toPage, toDisk] = res.body.tee();
     const type = res.headers.get("content-type") ?? "application/octet-stream";
-    void d.store
-      .writeBlob(user, route.hash, type, toDisk)
+    const cap = d.settings.value.limit;
+    void Promise.resolve()
+      .then(() => assertDeclaredWithin(res.headers, cap, `blob ${route.hash}`))
+      .then(() => d.store.writeBlob(user, route.hash, type, toDisk, undefined, cap))
       .then(() => scheduleEvict(user))
       .catch((err: unknown) => {
         warn(err);

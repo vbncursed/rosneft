@@ -18,6 +18,7 @@ func buildModelOptions(models []domain.Model) []domain.AssetOption {
 		options[i] = domain.AssetOption{
 			Slug:              m.Slug,
 			Title:             m.Title,
+			Tag:               m.Tag,
 			ThumbnailBlobHash: m.ThumbnailBlobHash,
 			BBoxMin:           m.BBoxMin,
 			BBoxMax:           m.BBoxMax,

@@ -1,14 +1,16 @@
 // Package ratelimit throttles 2FA verify attempts per user in Redis. It mirrors
-// auth-service's session login throttle (same Incr/Expire/Get/Del shape).
+// auth-service's session login throttle (same failcount counter).
 package ratelimit
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/redis/go-redis/v9"
+
+	"github.com/vbncursed/rosneft/backend/pkg/failcount"
 )
 
 type Store struct {
@@ -23,28 +25,22 @@ func New(rdb *redis.Client, maxFails int, lockTTL time.Duration) *Store {
 
 func failKey(userID string) string { return "2fa_fails:" + userID }
 
-// IsLocked reports whether the user has reached the fail threshold.
-func (s *Store) IsLocked(ctx context.Context, userID string) (bool, error) {
-	n, err := s.rdb.Get(ctx, failKey(userID)).Int()
-	if errors.Is(err, redis.Nil) {
-		return false, nil
-	}
+// TakeAttempt reserves one verify attempt and reports whether it is within the
+// budget. The attempt is counted before the code is checked, so concurrent
+// guesses cannot all pass a check made before any of them was counted; a
+// successful verify gives the budget back through Clear.
+func (s *Store) TakeAttempt(ctx context.Context, userID string) (bool, error) {
+	n, err := failcount.Take(ctx, s.rdb, failKey(userID), s.lockTTL)
 	if err != nil {
-		return false, fmt.Errorf("ratelimit.IsLocked: %w", err)
+		return false, fmt.Errorf("ratelimit.TakeAttempt: %w", err)
 	}
-	return n >= s.maxFails, nil
+	return n <= int64(s.maxFails), nil
 }
 
-// RegisterFail increments the failure counter, arming the lock TTL on first fail.
-func (s *Store) RegisterFail(ctx context.Context, userID string) error {
-	n, err := s.rdb.Incr(ctx, failKey(userID)).Result()
-	if err != nil {
-		return fmt.Errorf("ratelimit.RegisterFail: %w", err)
-	}
-	if n == 1 {
-		s.rdb.Expire(ctx, failKey(userID), s.lockTTL)
-	}
-	return nil
+// Refund gives back an attempt TakeAttempt reserved for a request that failed
+// without the code being wrong (it was not a guess).
+func (s *Store) Refund(ctx context.Context, userID string) error {
+	return failcount.Refund(ctx, s.rdb, failKey(userID))
 }
 
 // Clear resets the counter after a successful verify.
@@ -53,4 +49,27 @@ func (s *Store) Clear(ctx context.Context, userID string) error {
 		return fmt.Errorf("ratelimit.Clear: %w", err)
 	}
 	return nil
+}
+
+// stepTTL outlives a code: one is accepted for 3 steps (±1 skew), 90 s.
+const stepTTL = 2 * time.Minute
+
+// claimStep advances the last accepted step only when the new one is later.
+var claimStep = redis.NewScript(`
+local cur = redis.call('GET', KEYS[1])
+if cur and tonumber(cur) >= tonumber(ARGV[1]) then return 0 end
+redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2])
+return 1`)
+
+// ClaimStep records step as the user's last accepted TOTP step. It reports
+// false when that step or a later one was already accepted: the code is a
+// replay. The compare-and-advance is one script, so of any number of parallel
+// submissions of one code exactly one gets true.
+func (s *Store) ClaimStep(ctx context.Context, userID string, step int64) (bool, error) {
+	n, err := claimStep.Run(ctx, s.rdb, []string{"2fa_step:" + userID},
+		strconv.FormatInt(step, 10), int(stepTTL.Seconds())).Int()
+	if err != nil {
+		return false, fmt.Errorf("ratelimit.ClaimStep: %w", err)
+	}
+	return n == 1, nil
 }
