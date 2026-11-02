@@ -238,3 +238,7 @@ export function errorCopy(e: ViewerError, at: Date): ErrorCopy {
  * the one row whose whole job is the date; the mock spells it `4 Sep 2026`.
  */
 export const uploadedLine = (iso: string | null): string => longDate(iso ?? undefined) ?? "—";
+
+/** Responsive thresholds for the viewer controls. */
+export const COMPACT = "(max-width: 1280px)";
+export const TOUCH = "(hover: none) and (pointer: coarse)";

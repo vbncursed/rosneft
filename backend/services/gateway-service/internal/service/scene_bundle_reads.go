@@ -19,6 +19,7 @@ type sceneReads struct {
 	documents  []domain.Document
 	measures   []domain.Measurement
 	groups     []domain.PlacementGroup
+	zones      []domain.Zone
 	phases     []domain.PanoramaPhase
 }
 
@@ -47,6 +48,9 @@ func (g *Gateway) readScene(ctx context.Context, slug, scopeAdminID string) (sce
 	}))
 	gr.Go(tolerant(&d.groups, func() ([]domain.PlacementGroup, error) {
 		return g.catalog.ListPlacementGroups(gctx, slug)
+	}))
+	gr.Go(tolerant(&d.zones, func() ([]domain.Zone, error) {
+		return g.catalog.ListZones(gctx, slug)
 	}))
 	gr.Go(func() error {
 		m, err := g.catalog.ListModels(gctx, true)

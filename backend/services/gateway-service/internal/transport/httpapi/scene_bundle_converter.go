@@ -20,22 +20,7 @@ func sceneBundleToAPI(b domain.SceneBundle) SceneBundle {
 		out.Placements[i] = placementToAPI(p)
 	}
 	for i, m := range b.ModelOptions {
-		opt := AssetOption{
-			Slug:      m.Slug,
-			Title:     m.Title,
-			Tag:       modelTagToAPI(m.Tag),
-			Artifacts: lodChainToAPI(m.LODs),
-		}
-		if m.ThumbnailBlobHash != "" {
-			opt.ThumbnailBlobHash = &m.ThumbnailBlobHash
-		}
-		if m.BBoxMin != nil {
-			opt.BboxMin = new(vec3ToAPI(*m.BBoxMin))
-		}
-		if m.BBoxMax != nil {
-			opt.BboxMax = new(vec3ToAPI(*m.BBoxMax))
-		}
-		out.ModelOptions[i] = opt
+		out.ModelOptions[i] = assetOptionToAPI(m)
 	}
 	if b.Artifact != nil {
 		out.Artifact = new(artifactToAPI(*b.Artifact, true))
@@ -47,6 +32,7 @@ func assetOptionToAPI(m domain.AssetOption) AssetOption {
 	opt := AssetOption{
 		Slug:      m.Slug,
 		Title:     m.Title,
+		Tag:       modelTagToAPI(m.Tag),
 		Artifacts: lodChainToAPI(m.LODs),
 	}
 	if m.ThumbnailBlobHash != "" {

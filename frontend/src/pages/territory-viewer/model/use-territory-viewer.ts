@@ -13,7 +13,7 @@ import { unanswered } from "@/shared/lib/unanswered";
 import { useOverlaysPanel } from "@/widgets/overlays-panel";
 import { decodeImageBitmap } from "@/widgets/viewer-canvas";
 import { pageProps, type TerritoryViewerPageProps } from "./page-props";
-import { grantsOf, measureGrants } from "./viewer-view";
+import { COMPACT, TOUCH, grantsOf, measureGrants } from "./viewer-view";
 import { usePageHandlers } from "./use-page-handlers";
 import { usePlacementForm } from "./use-placement-form";
 import { useViewSections } from "./use-view-sections";
@@ -32,11 +32,6 @@ export type TerritoryViewerState =
 
 /** Never read — `error` is non-null only when `failedAt` is. */
 const UNSTAMPED = new Date(0);
-
-/** Under this the panel is 300 wide and the gizmo keys lose their brackets. */
-const COMPACT = "(max-width: 1280px)";
-/** A touch screen: no hover to point a free cam with. */
-const TOUCH = "(hover: none) and (pointer: coarse)";
 
 /**
  * Everything the viewer page draws: the bundle, the principal's grants, and
