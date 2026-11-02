@@ -39,12 +39,16 @@ func (s *Service) FinishLogin(ctx context.Context, flowID, assertionJSON string)
 		return "", err
 	}
 	var resolvedUserID string
+	// The engine labels every library failure ErrAssertionInvalid, the store's
+	// included; a store fault is the server's, so it is kept to answer as one.
+	var storeErr error
 	handler := func(_, userHandle []byte) (lib.User, error) {
 		// userHandle is the resident credential's user id (we stored the raw
 		// auth user id at registration).
 		userID := string(userHandle)
 		creds, err := s.store.ListByUser(ctx, userID)
 		if err != nil {
+			storeErr = err
 			return nil, err
 		}
 		if len(creds) == 0 {
@@ -54,6 +58,9 @@ func (s *Service) FinishLogin(ctx context.Context, flowID, assertionJSON string)
 		return pkwa.NewUser(userID, userID, creds), nil
 	}
 	cred, err := s.engine.FinishLogin(handler, st.Session, strings.NewReader(assertionJSON))
+	if storeErr != nil {
+		return "", storeErr
+	}
 	if err != nil {
 		return "", err
 	}

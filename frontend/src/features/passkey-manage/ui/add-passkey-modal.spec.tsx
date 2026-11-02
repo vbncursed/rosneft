@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { HttpError } from "@/shared/api";
 import { clearNotices } from "@/shared/lib/notify";
 import { Toaster } from "@/widgets/toaster";
 import { AddPasskeyModal, type AddPasskeyModalProps } from "./add-passkey-modal";
@@ -26,8 +27,11 @@ const props = (over: Partial<AddPasskeyModalProps> = {}): AddPasskeyModalProps =
   open: true,
   onClose: vi.fn(),
   onAdded: vi.fn(),
+  factor: "password",
   ...over,
 });
+
+const fillPassword = (pw = "hunter2!") => userEvent.type(screen.getByLabelText("Account password"), pw);
 
 afterEach(() => {
   clearNotices();
@@ -35,13 +39,72 @@ afterEach(() => {
 });
 
 describe("AddPasskeyModal", () => {
-  it("keeps Continue disabled until a name is typed", async () => {
+  it("keeps Continue disabled until a name and the factor are given", async () => {
     render(<AddPasskeyModal {...props()} />);
     const submit = screen.getByRole("button", { name: "Continue" });
     expect(submit).toBeDisabled();
 
     await userEvent.type(screen.getByLabelText("Passkey name"), "MacBook Pro");
+    expect(submit).toBeDisabled();
+    await fillPassword();
     expect(submit).toBeEnabled();
+  });
+
+  it("sends the password with the begin call", async () => {
+    beginRegistration.mockResolvedValue({ optionsJson: "{}", flowId: "flow-1" });
+    createCredential.mockResolvedValue("{}");
+    finishRegistration.mockResolvedValue(CREDENTIAL);
+
+    render(<AddPasskeyModal {...props()} />);
+    await userEvent.type(screen.getByLabelText("Passkey name"), "MacBook Pro");
+    await fillPassword("s3cret");
+    await userEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    await waitFor(() => expect(beginRegistration).toHaveBeenCalledWith({ password: "s3cret" }));
+  });
+
+  it("sends the authenticator code with the begin call when 2FA is on", async () => {
+    beginRegistration.mockResolvedValue({ optionsJson: "{}", flowId: "flow-1" });
+    createCredential.mockResolvedValue("{}");
+    finishRegistration.mockResolvedValue(CREDENTIAL);
+
+    render(<AddPasskeyModal {...props({ factor: "code" })} />);
+    await userEvent.type(screen.getByLabelText("Passkey name"), "MacBook Pro");
+    for (let i = 0; i < 6; i++) await userEvent.type(screen.getByLabelText(`Digit ${i + 1} of 6`), "402913".charAt(i));
+    await userEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    await waitFor(() => expect(beginRegistration).toHaveBeenCalledWith({ code: "402913" }));
+  });
+
+  // A stolen session that cannot answer the step-up must get nothing: the 403
+  // is toasted, the ceremony never runs, and the form is back with the name kept.
+  it("toasts a refused factor, skips the ceremony and returns to the form", async () => {
+    beginRegistration.mockRejectedValue(new HttpError(403, null, "re-authentication failed"));
+    const onClose = vi.fn();
+
+    render(
+      <>
+        <Toaster />
+        <AddPasskeyModal {...props({ onClose })} />
+      </>,
+    );
+    await userEvent.type(screen.getByLabelText("Passkey name"), "MacBook Pro");
+    await fillPassword("wrong");
+    await userEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    expect(await screen.findByText("re-authentication failed")).toBeInTheDocument();
+    expect(createCredential).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Passkey name")).toHaveValue("MacBook Pro");
+    expect(screen.getByLabelText("Account password")).toHaveValue("");
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+  });
+
+  it("offers no way forward when the 2FA state is unavailable", async () => {
+    render(<AddPasskeyModal {...props({ factor: "unavailable" })} />);
+    await userEvent.type(screen.getByLabelText("Passkey name"), "MacBook Pro");
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+    expect(screen.getByText(/Two-factor status is unavailable/)).toBeInTheDocument();
   });
 
   it("runs the ceremony and hands the server's credential to onAdded", async () => {
@@ -53,6 +116,7 @@ describe("AddPasskeyModal", () => {
 
     render(<AddPasskeyModal {...props({ onAdded, onClose })} />);
     await userEvent.type(screen.getByLabelText("Passkey name"), "MacBook Pro");
+    await fillPassword();
     await userEvent.click(screen.getByRole("button", { name: "Continue" }));
 
     await waitFor(() => expect(onAdded).toHaveBeenCalledWith(CREDENTIAL));
@@ -73,6 +137,7 @@ describe("AddPasskeyModal", () => {
       const onClose = vi.fn();
       const { rerender } = render(<AddPasskeyModal {...props({ onClose })} />);
       await userEvent.type(screen.getByLabelText("Passkey name"), "MacBook Pro");
+      await fillPassword();
       await userEvent.click(screen.getByRole("button", { name: "Continue" }));
       await waitFor(() => expect(onClose).toHaveBeenCalled());
 
@@ -95,6 +160,7 @@ describe("AddPasskeyModal", () => {
 
     render(<AddPasskeyModal {...props()} />);
     await userEvent.type(screen.getByLabelText("Passkey name"), "  MacBook Pro  ");
+    await fillPassword();
     await userEvent.click(screen.getByRole("button", { name: "Continue" }));
 
     await waitFor(() => expect(finishRegistration).toHaveBeenCalled());
@@ -115,6 +181,7 @@ describe("AddPasskeyModal", () => {
       </>,
     );
     await userEvent.type(screen.getByLabelText("Passkey name"), "MacBook Pro");
+    await fillPassword();
     await userEvent.click(screen.getByRole("button", { name: "Continue" }));
 
     await waitFor(() => expect(onClose).toHaveBeenCalled());
@@ -133,6 +200,7 @@ describe("AddPasskeyModal", () => {
       </>,
     );
     await userEvent.type(screen.getByLabelText("Passkey name"), "MacBook Pro");
+    await fillPassword();
     await userEvent.click(screen.getByRole("button", { name: "Continue" }));
 
     expect(await screen.findByText("Something went wrong. Try again.")).toBeInTheDocument();

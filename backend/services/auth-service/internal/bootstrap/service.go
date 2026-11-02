@@ -54,6 +54,7 @@ func InitService(
 
 	authS := authsvc.New(us, sess, twofaC, passkeyC, cfg.SessionAbsoluteTTL)
 	userS := usersvc.New(us, sess)
+	userS.OnPasswordChange(authS.ForgetUser)
 	roleS := rolesvc.New(rs, ps, us)
 
 	return grpcapi.New(authS, userS, roleS), us, twofaC, passkeyC, nil

@@ -29,7 +29,7 @@ func (f *FS) Finalize(
 	}
 	defer f.lock(id)()
 	defer func() {
-		if err == nil || errors.Is(err, domain.ErrInvalidInput) {
+		if sessionSettled(err) {
 			_ = os.RemoveAll(dir)
 		}
 	}()
@@ -38,24 +38,45 @@ func (f *FS) Finalize(
 	if err != nil {
 		return "", 0, err
 	}
+	size, err := checkSizes(dataPath, meta)
+	if err != nil {
+		return "", 0, err
+	}
 
+	hash, err := hashFile(dataPath)
+	if err != nil {
+		return "", 0, err
+	}
+	if err := putFile(ctx, dataPath, hash, putBlob); err != nil {
+		return "", 0, err
+	}
+	return hash, size, nil
+}
+
+// sessionSettled reports whether the session directory may go: the blob was
+// published, or the session can never succeed. Anything else keeps it.
+func sessionSettled(err error) bool {
+	return err == nil || errors.Is(err, domain.ErrInvalidInput)
+}
+
+// checkSizes returns the size of the data file once it agrees with the session.
+// The recorded offset is what the client was told; the file is what would be
+// published. They must agree with the declared size or the blob is wrong.
+func checkSizes(dataPath string, meta domain.Session) (int64, error) {
 	src, err := os.Open( //nolint:gosec // G304: dataPath comes from paths(), whose session id passed validateID (hex and dash only)
 		dataPath,
 	)
 	if err != nil {
-		return "", 0, fmt.Errorf("storage.Finalize: open: %w", err)
+		return 0, fmt.Errorf("storage.Finalize: open: %w", err)
 	}
 	defer func() { _ = src.Close() }()
 
 	stat, err := src.Stat()
 	if err != nil {
-		return "", 0, fmt.Errorf("storage.Finalize: stat: %w", err)
+		return 0, fmt.Errorf("storage.Finalize: stat: %w", err)
 	}
-
-	// The recorded offset is what the client was told; the file is what would be
-	// published. They must agree with the declared size or the blob is wrong.
 	if meta.Offset != meta.Size || stat.Size() != meta.Size {
-		return "", 0, fmt.Errorf(
+		return 0, fmt.Errorf(
 			"%w: declared %d, recorded %d, on disk %d",
 			domain.ErrInvalidInput,
 			meta.Size,
@@ -63,25 +84,28 @@ func (f *FS) Finalize(
 			stat.Size(),
 		)
 	}
+	return stat.Size(), nil
+}
 
-	hash, err := hashFile(dataPath)
-	if err != nil {
-		return "", 0, err
-	}
-
-	// Re-open for the put pass so the reader is at offset 0.
+// putFile opens the data file afresh, so the reader is at offset 0, and hands
+// it to putBlob.
+func putFile(
+	ctx context.Context,
+	dataPath, hash string,
+	putBlob func(ctx context.Context, hash string, r io.Reader) error,
+) error {
 	body, err := os.Open( //nolint:gosec // G304: dataPath comes from paths(), whose session id passed validateID (hex and dash only)
 		dataPath,
 	)
 	if err != nil {
-		return "", 0, fmt.Errorf("storage.Finalize: reopen: %w", err)
+		return fmt.Errorf("storage.Finalize: reopen: %w", err)
 	}
 	defer func() { _ = body.Close() }()
 
 	if err := putBlob(ctx, hash, body); err != nil {
-		return "", 0, fmt.Errorf("storage.Finalize: put blob: %w", err)
+		return fmt.Errorf("storage.Finalize: put blob: %w", err)
 	}
-	return hash, stat.Size(), nil
+	return nil
 }
 
 // Abort removes the session directory without publishing anything. It takes the

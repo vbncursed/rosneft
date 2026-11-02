@@ -65,28 +65,44 @@ func (b *builder) mtlBlock(in *input, imgs map[int]string, name string, m *gltf.
 // image resolves a base-colour texture to the file name its image ships as,
 // registering the image on first sight.
 func (b *builder) image(in *input, imgs map[int]string, t *gltf.TextureInfo) (string, error) {
-	if t.TexCoord != 0 {
-		return "", unsupported("baseColorTexture uses TEXCOORD_%d", t.TexCoord)
+	src, err := textureSource(in.doc, t)
+	if err != nil {
+		return "", err
 	}
-	if t.Index < 0 || t.Index >= len(in.doc.Textures) {
-		return "", malformed("texture %d out of range [0, %d)", t.Index, len(in.doc.Textures))
-	}
-	src := in.doc.Textures[t.Index].Source
-	if src == nil {
-		return "", unsupported("texture %d has no source", t.Index)
-	}
-	if *src < 0 || *src >= len(in.doc.Images) {
-		return "", malformed("image %d out of range [0, %d)", *src, len(in.doc.Images))
-	}
-	if name, ok := imgs[*src]; ok {
+	if name, ok := imgs[src]; ok {
 		return name, nil
 	}
-	im := in.doc.Images[*src]
+	return b.addImage(in, imgs, src)
+}
+
+// textureSource is the index of the image a base-colour texture points at.
+// TEXCOORD, the texture, its source and the image are checked in that order.
+func textureSource(doc *gltf.Document, t *gltf.TextureInfo) (int, error) {
+	if t.TexCoord != 0 {
+		return 0, unsupported("baseColorTexture uses TEXCOORD_%d", t.TexCoord)
+	}
+	if t.Index < 0 || t.Index >= len(doc.Textures) {
+		return 0, malformed("texture %d out of range [0, %d)", t.Index, len(doc.Textures))
+	}
+	src := doc.Textures[t.Index].Source
+	if src == nil {
+		return 0, unsupported("texture %d has no source", t.Index)
+	}
+	if *src < 0 || *src >= len(doc.Images) {
+		return 0, malformed("image %d out of range [0, %d)", *src, len(doc.Images))
+	}
+	return *src, nil
+}
+
+// addImage numbers image src, which must be a JPEG or PNG in a bufferView,
+// and queues its bytes for the archive.
+func (b *builder) addImage(in *input, imgs map[int]string, src int) (string, error) {
+	im := in.doc.Images[src]
 	if im.MimeType != "image/jpeg" && im.MimeType != "image/png" {
-		return "", unsupported("image %d is %q", *src, im.MimeType)
+		return "", unsupported("image %d is %q", src, im.MimeType)
 	}
 	if im.BufferView == nil {
-		return "", unsupported("image %d is not in a bufferView", *src)
+		return "", unsupported("image %d is not in a bufferView", src)
 	}
 	v, err := in.view(*im.BufferView)
 	if err != nil {
@@ -94,7 +110,7 @@ func (b *builder) image(in *input, imgs map[int]string, t *gltf.TextureInfo) (st
 	}
 	name := imageFile(b.imgN, im.Name, im.MimeType)
 	b.imgN++
-	imgs[*src] = name
+	imgs[src] = name
 	b.images = append(
 		b.images,
 		imageRef{name: name, hash: in.hash, off: in.head.BinOffset + int64(v.ByteOffset), length: int64(v.ByteLength)},

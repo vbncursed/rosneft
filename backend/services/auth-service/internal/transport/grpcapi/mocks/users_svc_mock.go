@@ -19,9 +19,9 @@ type UsersSvcMock struct {
 	t          minimock.Tester
 	finishOnce sync.Once
 
-	funcChangePassword          func(ctx context.Context, userID string, oldPlain string, newPlain string) (err error)
+	funcChangePassword          func(ctx context.Context, userID string, keepToken string, oldPlain string, newPlain string) (err error)
 	funcChangePasswordOrigin    string
-	inspectFuncChangePassword   func(ctx context.Context, userID string, oldPlain string, newPlain string)
+	inspectFuncChangePassword   func(ctx context.Context, userID string, keepToken string, oldPlain string, newPlain string)
 	afterChangePasswordCounter  uint64
 	beforeChangePasswordCounter uint64
 	ChangePasswordMock          mUsersSvcMockChangePassword
@@ -199,18 +199,20 @@ type UsersSvcMockChangePasswordExpectation struct {
 
 // UsersSvcMockChangePasswordParams contains parameters of the UsersSvc.ChangePassword
 type UsersSvcMockChangePasswordParams struct {
-	ctx      context.Context
-	userID   string
-	oldPlain string
-	newPlain string
+	ctx       context.Context
+	userID    string
+	keepToken string
+	oldPlain  string
+	newPlain  string
 }
 
 // UsersSvcMockChangePasswordParamPtrs contains pointers to parameters of the UsersSvc.ChangePassword
 type UsersSvcMockChangePasswordParamPtrs struct {
-	ctx      *context.Context
-	userID   *string
-	oldPlain *string
-	newPlain *string
+	ctx       *context.Context
+	userID    *string
+	keepToken *string
+	oldPlain  *string
+	newPlain  *string
 }
 
 // UsersSvcMockChangePasswordResults contains results of the UsersSvc.ChangePassword
@@ -220,11 +222,12 @@ type UsersSvcMockChangePasswordResults struct {
 
 // UsersSvcMockChangePasswordOrigins contains origins of expectations of the UsersSvc.ChangePassword
 type UsersSvcMockChangePasswordExpectationOrigins struct {
-	origin         string
-	originCtx      string
-	originUserID   string
-	originOldPlain string
-	originNewPlain string
+	origin          string
+	originCtx       string
+	originUserID    string
+	originKeepToken string
+	originOldPlain  string
+	originNewPlain  string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -238,7 +241,7 @@ func (mmChangePassword *mUsersSvcMockChangePassword) Optional() *mUsersSvcMockCh
 }
 
 // Expect sets up expected params for UsersSvc.ChangePassword
-func (mmChangePassword *mUsersSvcMockChangePassword) Expect(ctx context.Context, userID string, oldPlain string, newPlain string) *mUsersSvcMockChangePassword {
+func (mmChangePassword *mUsersSvcMockChangePassword) Expect(ctx context.Context, userID string, keepToken string, oldPlain string, newPlain string) *mUsersSvcMockChangePassword {
 	if mmChangePassword.mock.funcChangePassword != nil {
 		mmChangePassword.mock.t.Fatalf("UsersSvcMock.ChangePassword mock is already set by Set")
 	}
@@ -251,7 +254,7 @@ func (mmChangePassword *mUsersSvcMockChangePassword) Expect(ctx context.Context,
 		mmChangePassword.mock.t.Fatalf("UsersSvcMock.ChangePassword mock is already set by ExpectParams functions")
 	}
 
-	mmChangePassword.defaultExpectation.params = &UsersSvcMockChangePasswordParams{ctx, userID, oldPlain, newPlain}
+	mmChangePassword.defaultExpectation.params = &UsersSvcMockChangePasswordParams{ctx, userID, keepToken, oldPlain, newPlain}
 	mmChangePassword.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmChangePassword.expectations {
 		if minimock.Equal(e.params, mmChangePassword.defaultExpectation.params) {
@@ -308,8 +311,31 @@ func (mmChangePassword *mUsersSvcMockChangePassword) ExpectUserIDParam2(userID s
 	return mmChangePassword
 }
 
-// ExpectOldPlainParam3 sets up expected param oldPlain for UsersSvc.ChangePassword
-func (mmChangePassword *mUsersSvcMockChangePassword) ExpectOldPlainParam3(oldPlain string) *mUsersSvcMockChangePassword {
+// ExpectKeepTokenParam3 sets up expected param keepToken for UsersSvc.ChangePassword
+func (mmChangePassword *mUsersSvcMockChangePassword) ExpectKeepTokenParam3(keepToken string) *mUsersSvcMockChangePassword {
+	if mmChangePassword.mock.funcChangePassword != nil {
+		mmChangePassword.mock.t.Fatalf("UsersSvcMock.ChangePassword mock is already set by Set")
+	}
+
+	if mmChangePassword.defaultExpectation == nil {
+		mmChangePassword.defaultExpectation = &UsersSvcMockChangePasswordExpectation{}
+	}
+
+	if mmChangePassword.defaultExpectation.params != nil {
+		mmChangePassword.mock.t.Fatalf("UsersSvcMock.ChangePassword mock is already set by Expect")
+	}
+
+	if mmChangePassword.defaultExpectation.paramPtrs == nil {
+		mmChangePassword.defaultExpectation.paramPtrs = &UsersSvcMockChangePasswordParamPtrs{}
+	}
+	mmChangePassword.defaultExpectation.paramPtrs.keepToken = &keepToken
+	mmChangePassword.defaultExpectation.expectationOrigins.originKeepToken = minimock.CallerInfo(1)
+
+	return mmChangePassword
+}
+
+// ExpectOldPlainParam4 sets up expected param oldPlain for UsersSvc.ChangePassword
+func (mmChangePassword *mUsersSvcMockChangePassword) ExpectOldPlainParam4(oldPlain string) *mUsersSvcMockChangePassword {
 	if mmChangePassword.mock.funcChangePassword != nil {
 		mmChangePassword.mock.t.Fatalf("UsersSvcMock.ChangePassword mock is already set by Set")
 	}
@@ -331,8 +357,8 @@ func (mmChangePassword *mUsersSvcMockChangePassword) ExpectOldPlainParam3(oldPla
 	return mmChangePassword
 }
 
-// ExpectNewPlainParam4 sets up expected param newPlain for UsersSvc.ChangePassword
-func (mmChangePassword *mUsersSvcMockChangePassword) ExpectNewPlainParam4(newPlain string) *mUsersSvcMockChangePassword {
+// ExpectNewPlainParam5 sets up expected param newPlain for UsersSvc.ChangePassword
+func (mmChangePassword *mUsersSvcMockChangePassword) ExpectNewPlainParam5(newPlain string) *mUsersSvcMockChangePassword {
 	if mmChangePassword.mock.funcChangePassword != nil {
 		mmChangePassword.mock.t.Fatalf("UsersSvcMock.ChangePassword mock is already set by Set")
 	}
@@ -355,7 +381,7 @@ func (mmChangePassword *mUsersSvcMockChangePassword) ExpectNewPlainParam4(newPla
 }
 
 // Inspect accepts an inspector function that has same arguments as the UsersSvc.ChangePassword
-func (mmChangePassword *mUsersSvcMockChangePassword) Inspect(f func(ctx context.Context, userID string, oldPlain string, newPlain string)) *mUsersSvcMockChangePassword {
+func (mmChangePassword *mUsersSvcMockChangePassword) Inspect(f func(ctx context.Context, userID string, keepToken string, oldPlain string, newPlain string)) *mUsersSvcMockChangePassword {
 	if mmChangePassword.mock.inspectFuncChangePassword != nil {
 		mmChangePassword.mock.t.Fatalf("Inspect function is already set for UsersSvcMock.ChangePassword")
 	}
@@ -380,7 +406,7 @@ func (mmChangePassword *mUsersSvcMockChangePassword) Return(err error) *UsersSvc
 }
 
 // Set uses given function f to mock the UsersSvc.ChangePassword method
-func (mmChangePassword *mUsersSvcMockChangePassword) Set(f func(ctx context.Context, userID string, oldPlain string, newPlain string) (err error)) *UsersSvcMock {
+func (mmChangePassword *mUsersSvcMockChangePassword) Set(f func(ctx context.Context, userID string, keepToken string, oldPlain string, newPlain string) (err error)) *UsersSvcMock {
 	if mmChangePassword.defaultExpectation != nil {
 		mmChangePassword.mock.t.Fatalf("Default expectation is already set for the UsersSvc.ChangePassword method")
 	}
@@ -396,14 +422,14 @@ func (mmChangePassword *mUsersSvcMockChangePassword) Set(f func(ctx context.Cont
 
 // When sets expectation for the UsersSvc.ChangePassword which will trigger the result defined by the following
 // Then helper
-func (mmChangePassword *mUsersSvcMockChangePassword) When(ctx context.Context, userID string, oldPlain string, newPlain string) *UsersSvcMockChangePasswordExpectation {
+func (mmChangePassword *mUsersSvcMockChangePassword) When(ctx context.Context, userID string, keepToken string, oldPlain string, newPlain string) *UsersSvcMockChangePasswordExpectation {
 	if mmChangePassword.mock.funcChangePassword != nil {
 		mmChangePassword.mock.t.Fatalf("UsersSvcMock.ChangePassword mock is already set by Set")
 	}
 
 	expectation := &UsersSvcMockChangePasswordExpectation{
 		mock:               mmChangePassword.mock,
-		params:             &UsersSvcMockChangePasswordParams{ctx, userID, oldPlain, newPlain},
+		params:             &UsersSvcMockChangePasswordParams{ctx, userID, keepToken, oldPlain, newPlain},
 		expectationOrigins: UsersSvcMockChangePasswordExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmChangePassword.expectations = append(mmChangePassword.expectations, expectation)
@@ -438,17 +464,17 @@ func (mmChangePassword *mUsersSvcMockChangePassword) invocationsDone() bool {
 }
 
 // ChangePassword implements mm_grpcapi.UsersSvc
-func (mmChangePassword *UsersSvcMock) ChangePassword(ctx context.Context, userID string, oldPlain string, newPlain string) (err error) {
+func (mmChangePassword *UsersSvcMock) ChangePassword(ctx context.Context, userID string, keepToken string, oldPlain string, newPlain string) (err error) {
 	mm_atomic.AddUint64(&mmChangePassword.beforeChangePasswordCounter, 1)
 	defer mm_atomic.AddUint64(&mmChangePassword.afterChangePasswordCounter, 1)
 
 	mmChangePassword.t.Helper()
 
 	if mmChangePassword.inspectFuncChangePassword != nil {
-		mmChangePassword.inspectFuncChangePassword(ctx, userID, oldPlain, newPlain)
+		mmChangePassword.inspectFuncChangePassword(ctx, userID, keepToken, oldPlain, newPlain)
 	}
 
-	mm_params := UsersSvcMockChangePasswordParams{ctx, userID, oldPlain, newPlain}
+	mm_params := UsersSvcMockChangePasswordParams{ctx, userID, keepToken, oldPlain, newPlain}
 
 	// Record call args
 	mmChangePassword.ChangePasswordMock.mutex.Lock()
@@ -467,7 +493,7 @@ func (mmChangePassword *UsersSvcMock) ChangePassword(ctx context.Context, userID
 		mm_want := mmChangePassword.ChangePasswordMock.defaultExpectation.params
 		mm_want_ptrs := mmChangePassword.ChangePasswordMock.defaultExpectation.paramPtrs
 
-		mm_got := UsersSvcMockChangePasswordParams{ctx, userID, oldPlain, newPlain}
+		mm_got := UsersSvcMockChangePasswordParams{ctx, userID, keepToken, oldPlain, newPlain}
 
 		if mm_want_ptrs != nil {
 
@@ -479,6 +505,11 @@ func (mmChangePassword *UsersSvcMock) ChangePassword(ctx context.Context, userID
 			if mm_want_ptrs.userID != nil && !minimock.Equal(*mm_want_ptrs.userID, mm_got.userID) {
 				mmChangePassword.t.Errorf("UsersSvcMock.ChangePassword got unexpected parameter userID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmChangePassword.ChangePasswordMock.defaultExpectation.expectationOrigins.originUserID, *mm_want_ptrs.userID, mm_got.userID, minimock.Diff(*mm_want_ptrs.userID, mm_got.userID))
+			}
+
+			if mm_want_ptrs.keepToken != nil && !minimock.Equal(*mm_want_ptrs.keepToken, mm_got.keepToken) {
+				mmChangePassword.t.Errorf("UsersSvcMock.ChangePassword got unexpected parameter keepToken, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmChangePassword.ChangePasswordMock.defaultExpectation.expectationOrigins.originKeepToken, *mm_want_ptrs.keepToken, mm_got.keepToken, minimock.Diff(*mm_want_ptrs.keepToken, mm_got.keepToken))
 			}
 
 			if mm_want_ptrs.oldPlain != nil && !minimock.Equal(*mm_want_ptrs.oldPlain, mm_got.oldPlain) {
@@ -503,9 +534,9 @@ func (mmChangePassword *UsersSvcMock) ChangePassword(ctx context.Context, userID
 		return (*mm_results).err
 	}
 	if mmChangePassword.funcChangePassword != nil {
-		return mmChangePassword.funcChangePassword(ctx, userID, oldPlain, newPlain)
+		return mmChangePassword.funcChangePassword(ctx, userID, keepToken, oldPlain, newPlain)
 	}
-	mmChangePassword.t.Fatalf("Unexpected call to UsersSvcMock.ChangePassword. %v %v %v %v", ctx, userID, oldPlain, newPlain)
+	mmChangePassword.t.Fatalf("Unexpected call to UsersSvcMock.ChangePassword. %v %v %v %v %v", ctx, userID, keepToken, oldPlain, newPlain)
 	return
 }
 

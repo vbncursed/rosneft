@@ -15,8 +15,15 @@ export async function listPasskeys(): Promise<Passkey[]> {
   return (d.credentials ?? []).map(toPasskey);
 }
 
-export async function beginRegistration(): Promise<{ optionsJson: string; flowId: string }> {
-  const d = await httpPost<{ optionsJson?: string; flowId?: string }>("/api/auth/passkey/register/begin");
+/**
+ * Takes the same step-up factor as removePasskey (the gateway re-derives which
+ * one from live 2FA state); a wrong one is `403 re-authentication failed`.
+ */
+export async function beginRegistration(credential: {
+  code?: string;
+  password?: string;
+}): Promise<{ optionsJson: string; flowId: string }> {
+  const d = await httpPost<{ optionsJson?: string; flowId?: string }>("/api/auth/passkey/register/begin", credential);
   return { optionsJson: d.optionsJson ?? "", flowId: d.flowId ?? "" };
 }
 

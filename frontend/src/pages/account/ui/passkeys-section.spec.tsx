@@ -127,9 +127,10 @@ describe("PasskeysSection · adding", () => {
     createCredential.mockResolvedValue("{}");
     finishRegistration.mockResolvedValue(added);
     const onAdded = vi.fn();
-    render(<PasskeysSection {...props({ onAdded })} />);
+    render(<PasskeysSection {...props({ onAdded, totpEnabled: false })} />);
     await userEvent.click(screen.getByRole("button", { name: "Add passkey" }));
     await userEvent.type(screen.getByLabelText("Passkey name"), "Probe");
+    await userEvent.type(screen.getByLabelText("Account password"), "hunter2!");
     await userEvent.click(screen.getByRole("button", { name: "Continue" }));
     await waitFor(() => expect(onAdded).toHaveBeenCalledExactlyOnceWith(added));
     expect(screen.queryByRole("heading", { name: "Name this passkey" })).not.toBeInTheDocument();

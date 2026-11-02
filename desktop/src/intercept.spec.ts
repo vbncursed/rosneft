@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -121,6 +121,16 @@ describe("createHandler", () => {
     expect(res.headers.get("content-type")).toBe("model/gltf-binary");
     expect(res.headers.get("content-length")).toBe("9");
     expect(h.net).not.toHaveBeenCalled();
+  });
+
+  it("does not store a blob that declares more than the disk limit, and still serves the page", async () => {
+    const hash = sha("big");
+    const h = await harness(async () => new Response("big", { headers: { "content-length": String(6 * 2 ** 30) } }));
+    await h.settings.update({ limit: 5 * 2 ** 30 });
+    expect(await (await h.handle(req(`/api/assets/${hash}`))).text()).toBe("big");
+    await new Promise((r) => setTimeout(r, 50));
+    expect(await h.store.blob(A, hash)).toBeNull();
+    expect(readdirSync(path.join(h.root, "cache", "tmp"))).toEqual([]);
   });
 
   it("serves a byte range of a cached blob, and 416 past its end", async () => {

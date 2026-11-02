@@ -26,7 +26,7 @@ services:
 
   redis:
     restart: unless-stopped
-    image: redis:8.10.2
+    image: redis:8.10.3
     networks: [default, identity]
     environment:
       <<: *tz
@@ -411,7 +411,7 @@ services:
 
   prometheus:
     restart: unless-stopped
-    image: prom/prometheus:v3.15.0
+    image: prom/prometheus:v3.15.1
     networks: [default, identity]
     environment:
       <<: *tz
@@ -429,7 +429,7 @@ services:
 
   alertmanager:
     restart: unless-stopped
-    image: prom/alertmanager:v0.34.1
+    image: prom/alertmanager:v0.34.2
     environment:
       <<: *tz
     command:

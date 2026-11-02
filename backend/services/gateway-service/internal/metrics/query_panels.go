@@ -19,6 +19,30 @@ const maxParallelPanels = 4
 // panelsTimeout, not for a per-query timeout per wave of panels, and a panel
 // still waiting for a slot when it passes gives up without asking.
 func (c *Client) QueryPanels(ctx context.Context, ids []string, rng string) (map[string][]Series, error) {
+	ids, err := validPanelRequest(ids, rng)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, c.panelsTimeout)
+	defer cancel()
+	results, errs := c.queryAll(ctx, ids, rng)
+
+	out := make(map[string][]Series, len(ids))
+	for i, id := range ids {
+		if errs[i] == nil {
+			out[id] = results[i]
+		}
+	}
+	if len(out) == 0 {
+		return nil, errors.Join(errs...)
+	}
+	return out, nil
+}
+
+// validPanelRequest sorts and de-duplicates ids and checks every id, then the
+// range, before anything is asked; an unknown id is reported ahead of a bad range.
+func validPanelRequest(ids []string, rng string) ([]string, error) {
 	ids = slices.Compact(slices.Sorted(slices.Values(ids)))
 	if len(ids) == 0 {
 		return nil, ErrUnknownPanel
@@ -31,9 +55,13 @@ func (c *Client) QueryPanels(ctx context.Context, ids []string, rng string) (map
 	if _, ok := rangeSeconds[rng]; !ok {
 		return nil, ErrBadRange
 	}
+	return ids, nil
+}
 
-	ctx, cancel := context.WithTimeout(ctx, c.panelsTimeout)
-	defer cancel()
+// queryAll runs Query for every id, at most maxParallelPanels at once, and
+// returns the answers and errors index-aligned with ids. A panel still waiting
+// for a slot when ctx ends gives up without asking.
+func (c *Client) queryAll(ctx context.Context, ids []string, rng string) ([][]Series, []error) {
 	results := make([][]Series, len(ids))
 	errs := make([]error, len(ids))
 	sem := make(chan struct{}, maxParallelPanels)
@@ -51,15 +79,5 @@ func (c *Client) QueryPanels(ctx context.Context, ids []string, rng string) (map
 		})
 	}
 	wg.Wait()
-
-	out := make(map[string][]Series, len(ids))
-	for i, id := range ids {
-		if errs[i] == nil {
-			out[id] = results[i]
-		}
-	}
-	if len(out) == 0 {
-		return nil, errors.Join(errs...)
-	}
-	return out, nil
+	return results, errs
 }

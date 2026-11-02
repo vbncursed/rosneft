@@ -6,36 +6,27 @@ import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import type { ReadableStream as NodeWebStream } from "node:stream/web";
 import { atomicWrite } from "./atomic-write";
+import { byteCap } from "./limit";
+import { decodeSnapshot, encodeSnapshot } from "./snapshot-codec";
 import { isHash, isUserId } from "./validate";
+import {
+  newestMtime,
+  pickVictims,
+  staleUserDirs,
+  totalSize,
+  type BlobFile,
+  type Pin,
+  type SnapshotMeta,
+} from "./store-policy";
 
-export type SnapshotMeta = { status: number; headers: [string, string][] };
-export type Pin = {
-  slug: string;
-  title: string;
-  hashes: string[];
-  bytes: number;
-  savedAt: string;
-  syncedAt: string | null;
-};
-export type BlobFile = { hash: string; size: number; mtimeMs: number };
-
-const totalSize = (list: BlobFile[]) => list.reduce((n, f) => n + f.size, 0);
-
-/**
- * Least-recently-*modified* first, never a pinned file. Not LRU: a cache hit
- * reads the file and leaves its mtime alone; a real LRU would need a side-index.
- */
-export function pickVictims(files: BlobFile[], pinned: ReadonlySet<string>, limit: number): string[] {
-  let total = totalSize(files);
-  const victims: string[] = [];
-  const candidates = files.filter((f) => !pinned.has(f.hash)).toSorted((a, b) => a.mtimeMs - b.mtimeMs);
-  for (const f of candidates) {
-    if (total <= limit) break;
-    victims.push(f.hash);
-    total -= f.size;
-  }
-  return victims;
-}
+export {
+  pickVictims,
+  staleUserDirs,
+  USER_RETENTION_MS,
+  type BlobFile,
+  type Pin,
+  type SnapshotMeta,
+} from "./store-policy";
 
 export class Store {
   private pinChain: Promise<unknown> = Promise.resolve();
@@ -43,9 +34,25 @@ export class Store {
   constructor(private readonly root: string) {}
 
   /** tmp/ is outside everything eviction sweeps; a hard kill can only orphan files there. */
-  async init(): Promise<void> {
+  async init(currentUser: string | null = null): Promise<void> {
     await rm(this.tmpDir(), { recursive: true, force: true });
     await mkdir(this.tmpDir(), { recursive: true });
+    await this.purgeIdleUsers(currentUser);
+  }
+
+  /** Startup only, before any session exists, so nothing races it. Best-effort: a locked directory waits for the next start. */
+  private async purgeIdleUsers(currentUser: string | null): Promise<void> {
+    const base = path.join(this.root, "users");
+    const names = await readdir(base).catch(() => [] as string[]);
+    const entries = await Promise.all(
+      names.map(async (name) => ({ name, mtimeMs: await newestMtime(path.join(base, name)) })),
+    );
+    for (const name of staleUserDirs(entries, Date.now(), currentUser)) {
+      // oxlint-disable-next-line no-await-in-loop -- best-effort cleanup at startup
+      await rm(path.join(base, name), { recursive: true, force: true }).catch((err: unknown) =>
+        console.warn("store: could not remove idle user", name, err),
+      );
+    }
   }
 
   private tmpDir(): string {
@@ -70,26 +77,17 @@ export class Store {
     return path.join(this.userDir(user), "snapshots", createHash("sha256").update(key).digest("hex"));
   }
 
-  /** One file per key — [4-byte meta length][meta JSON][body] — so a body can never be paired with another response's headers. */
+  /** One file per key, so a body can never be paired with another response's headers. */
   async readSnapshot(user: string, key: string): Promise<{ meta: SnapshotMeta; body: Buffer } | null> {
     try {
-      const data = await readFile(this.snapshotFile(user, key));
-      const metaEnd = 4 + data.readUInt32BE(0);
-      if (metaEnd > data.length) return null;
-      return {
-        meta: JSON.parse(data.subarray(4, metaEnd).toString("utf8")) as SnapshotMeta,
-        body: data.subarray(metaEnd),
-      };
+      return decodeSnapshot(await readFile(this.snapshotFile(user, key)));
     } catch {
       return null;
     }
   }
 
   async writeSnapshot(user: string, key: string, meta: SnapshotMeta, body: Buffer): Promise<void> {
-    const json = Buffer.from(JSON.stringify(meta));
-    const head = Buffer.alloc(4);
-    head.writeUInt32BE(json.length);
-    await atomicWrite(this.snapshotFile(user, key), Buffer.concat([head, json, body]), this.tmpFile());
+    await atomicWrite(this.snapshotFile(user, key), encodeSnapshot(meta, body), this.tmpFile());
   }
 
   async removeSnapshot(user: string, key: string): Promise<void> {
@@ -113,6 +111,7 @@ export class Store {
     type: string,
     body: ReadableStream<Uint8Array>,
     signal?: AbortSignal,
+    maxBytes = Infinity,
   ): Promise<number> {
     const dest = this.blobPath(user, hash);
     const tmp = this.tmpFile();
@@ -126,7 +125,13 @@ export class Store {
       },
     });
     try {
-      await pipeline(Readable.fromWeb(body as NodeWebStream<Uint8Array>), count, createWriteStream(tmp), { signal });
+      await pipeline(
+        Readable.fromWeb(body as NodeWebStream<Uint8Array>),
+        byteCap(maxBytes, `store: ${hash}`),
+        count,
+        createWriteStream(tmp),
+        { signal },
+      );
       if (digest.digest("hex") !== hash) throw new Error(`store: ${hash} did not hash to itself`);
       await mkdir(path.dirname(dest), { recursive: true });
       await rename(tmp, dest);

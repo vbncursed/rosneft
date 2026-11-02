@@ -19,7 +19,8 @@ type Store interface {
 type Recovery interface {
 	Replace(ctx context.Context, userID string, hashes []string) error
 	List(ctx context.Context, userID string) (ids, hashes []string, err error)
-	MarkUsed(ctx context.Context, id string) error
+	// Consume spends one code; false means another caller already did.
+	Consume(ctx context.Context, id string) (consumed bool, err error)
 	DeleteAll(ctx context.Context, userID string) error
 	// Counts reports unused and issued recovery codes for the account screen.
 	Counts(ctx context.Context, userID string) (remaining, total int, err error)
@@ -30,10 +31,16 @@ type Cipher interface {
 	Decrypt(ct []byte) ([]byte, error)
 }
 
-// RateLimiter throttles the login Verify step per user.
+// RateLimiter throttles the TOTP checks per user and refuses replayed codes.
 type RateLimiter interface {
-	IsLocked(ctx context.Context, userID string) (bool, error)
-	RegisterFail(ctx context.Context, userID string) error
+	// ClaimStep records a TOTP time step as spent; false means that step or a
+	// later one was already accepted (a replay). Atomic per user.
+	ClaimStep(ctx context.Context, userID string, step int64) (bool, error)
+	// TakeAttempt reserves one attempt; false means the budget is spent.
+	TakeAttempt(ctx context.Context, userID string) (bool, error)
+	// Refund gives back an attempt that was not a guess (the request failed for
+	// a reason other than a wrong code).
+	Refund(ctx context.Context, userID string) error
 	Clear(ctx context.Context, userID string) error
 }
 

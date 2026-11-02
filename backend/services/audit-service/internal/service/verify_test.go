@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"strings"
 	"testing"
 
@@ -217,4 +218,140 @@ func (s *VerifySuite) TestOlderWitnessThanDatabaseIsNotAFailure() {
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), got.OK, true, got.Reason)
+}
+
+// verify runs Verify over store and returns the result, failing on an error.
+func (s *VerifySuite) verify(store *mocks.StoreMock, witnessed map[int64]string) domain.VerifyResult {
+	got, err := service.New(store).Verify(s.T().Context(), witnessed)
+	assert.NilError(s.T(), err)
+	return got
+}
+
+// The reported id and message of every failure, word for word.
+func (s *VerifySuite) TestFailureReportsExactIDAndReason() {
+	tampered := chain()
+	tampered[0].Digest = "forged"
+	tampered[1].PrevDigest = "forged"
+	relinked := chain()
+	relinked[1].PrevDigest = "unrelated"
+	cases := []struct {
+		name      string
+		list      []domain.Checkpoint
+		computed  string
+		witnessed map[int64]string
+		id        int64
+		reason    string
+	}{
+		{
+			name: "broken link", list: relinked,
+			id:     2,
+			reason: `chain broken: prev_digest "unrelated" does not match checkpoint 1 digest "` + seedDigest + `"`,
+		},
+		{
+			name: "edited rows", list: chain(), computed: "different", id: 2,
+			reason: `rows in (0, 9] no longer digest to "good" (got "different")`,
+		},
+		{
+			name: "forged seed", list: tampered, id: 1,
+			reason: `rows in (0, 0] no longer digest to "forged" (got "` + seedDigest + `")`,
+		},
+		{
+			name: "witness disagrees", list: chain(), computed: "good", witnessed: map[int64]string{2: "other"}, id: 2,
+			reason: `witness disagrees at checkpoint 2: file has "other", database has "good"`,
+		},
+		{
+			name: "seed witness disagrees", list: chain(), witnessed: map[int64]string{1: "other"}, id: 1,
+			reason: `witness disagrees at checkpoint 1: file has "other", database has "` + seedDigest + `"`,
+		},
+		{
+			name: "digest is judged before the witness", list: chain(), computed: "different",
+			witnessed: map[int64]string{2: "other"}, id: 2,
+			reason: `rows in (0, 9] no longer digest to "good" (got "different")`,
+		},
+		{
+			name:      "lowest missing witnessed id",
+			list:      chain(),
+			computed:  "good",
+			witnessed: map[int64]string{9: "x", 7: "y", 3: "z", 2: "good"},
+			id:        3,
+			reason:    "witness records checkpoint 3 but the database has no such checkpoint: the journal tail was removed",
+		},
+		{
+			name:      "witness against empty database",
+			list:      nil,
+			witnessed: map[int64]string{4: "x"},
+			id:        4,
+			reason:    "witness records checkpoint 4 but the database has no such checkpoint: the journal tail was removed",
+		},
+	}
+	for _, c := range cases {
+		store := mocks.NewStoreMock(s.mc).ListCheckpointsMock.Return(c.list, nil)
+		if c.computed != "" {
+			store.ComputeDigestMock.Return(9, 9, c.computed, nil)
+		}
+		got := s.verify(store, c.witnessed)
+		assert.Equal(s.T(), got.OK, false, c.name)
+		assert.Equal(s.T(), got.FailedID, c.id, c.name)
+		assert.Equal(s.T(), got.Reason, c.reason, c.name)
+		assert.Equal(s.T(), got.Checked, len(c.list), c.name)
+	}
+}
+
+// The first failure stops the walk: a later checkpoint is never recomputed.
+func (s *VerifySuite) TestFirstFailureStopsTheWalk() {
+	list := append(chain(), domain.Checkpoint{ID: 3, FromID: 9, ToID: 12, Digest: "d3", PrevDigest: "good"})
+	store := mocks.NewStoreMock(s.mc).ListCheckpointsMock.Return(list, nil).
+		ComputeDigestMock.Return(9, 9, "different", nil)
+
+	got := s.verify(store, nil)
+
+	assert.Equal(s.T(), got.FailedID, int64(2))
+	assert.Equal(s.T(), store.ComputeDigestAfterCounter(), uint64(1))
+}
+
+// Each non-seed checkpoint is recomputed over its own range and prev digest;
+// the seed is never recomputed.
+func (s *VerifySuite) TestRecomputesOverEachCheckpointsRange() {
+	list := append(chain(), domain.Checkpoint{ID: 3, FromID: 9, ToID: 12, Digest: "d3", PrevDigest: "good"})
+	ctx := s.T().Context()
+	store := mocks.NewStoreMock(s.mc).ListCheckpointsMock.Return(list, nil)
+	store.ComputeDigestMock.Set(func(_ context.Context, from, to int64, prev string) (int32, int64, string, error) {
+		switch {
+		case from == 0 && to == 9 && prev == seedDigest:
+			return 9, 9, "good", nil
+		case from == 9 && to == 12 && prev == "good":
+			return 3, 12, "d3", nil
+		}
+		s.T().Errorf("unexpected ComputeDigest(%d, %d, %q)", from, to, prev)
+		return 0, 0, "", nil
+	})
+
+	got, err := service.New(store).Verify(ctx, map[int64]string{3: "d3"})
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), got.OK, true, got.Reason)
+	assert.Equal(s.T(), got.Checked, 3)
+	assert.Equal(s.T(), store.ComputeDigestAfterCounter(), uint64(2))
+}
+
+func (s *VerifySuite) TestListCheckpointsErrorIsReturned() {
+	boom := errors.New("db down")
+	store := mocks.NewStoreMock(s.mc).ListCheckpointsMock.Return(nil, boom)
+
+	got, err := service.New(store).Verify(s.T().Context(), nil)
+
+	assert.Equal(s.T(), err, boom)
+	assert.DeepEqual(s.T(), got, domain.VerifyResult{})
+}
+
+func (s *VerifySuite) TestComputeDigestErrorIsWrappedWithCheckpointID() {
+	boom := errors.New("db down")
+	store := mocks.NewStoreMock(s.mc).ListCheckpointsMock.Return(chain(), nil).
+		ComputeDigestMock.Return(0, 0, "", boom)
+
+	got, err := service.New(store).Verify(s.T().Context(), nil)
+
+	assert.ErrorIs(s.T(), err, boom)
+	assert.Equal(s.T(), err.Error(), "audit.Verify: checkpoint 2: db down")
+	assert.DeepEqual(s.T(), got, domain.VerifyResult{})
 }

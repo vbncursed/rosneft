@@ -127,3 +127,68 @@ func TestAppendChunkRetryShorterThanLeftoverDropsStaleTail(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, string(got), "BBCCCCCC")
 }
+
+func TestAppendChunkUnknownSessionAndBadID(t *testing.T) {
+	fs, _ := newSession(t, 4)
+	_, err := fs.AppendChunk(t.Context(), "ffff", 0, []byte("a"))
+	assert.Assert(t, errors.Is(err, domain.ErrSessionNotFound), "got %v", err)
+
+	_, err = fs.AppendChunk(t.Context(), "../x", 0, []byte("a"))
+	assert.ErrorContains(t, err, "illegal character")
+}
+
+// A wrong offset answers the offset the server holds, so the client can resume.
+func TestAppendChunkOffsetMismatchReportsCurrentOffset(t *testing.T) {
+	fs, dir := newSession(t, 8)
+	ctx := t.Context()
+	_, err := fs.AppendChunk(ctx, sessID, 0, []byte("abcd"))
+	assert.NilError(t, err)
+
+	off, err := fs.AppendChunk(ctx, sessID, 2, []byte("zz"))
+	assert.Assert(t, errors.Is(err, domain.ErrOffsetMismatch), "got %v", err)
+	assert.ErrorContains(t, err, "have 4, got 2")
+	assert.Equal(t, off, int64(4))
+	assert.Equal(t, dataSize(t, dir), int64(4))
+}
+
+func TestAppendChunkOverSizeAfterPartialUploadReportsOffset(t *testing.T) {
+	fs, _ := newSession(t, 6)
+	ctx := t.Context()
+	_, err := fs.AppendChunk(ctx, sessID, 0, []byte("abcd"))
+	assert.NilError(t, err)
+
+	off, err := fs.AppendChunk(ctx, sessID, 4, []byte("xyz"))
+	assert.Assert(t, errors.Is(err, domain.ErrSizeExceeded), "got %v", err)
+	assert.ErrorContains(t, err, "declared size 6")
+	assert.Equal(t, off, int64(4))
+}
+
+// Exactly filling the declared size is allowed, and the acknowledged offset is
+// the one the status then reports.
+func TestAppendChunkFillsDeclaredSizeAndAcknowledgesNewOffset(t *testing.T) {
+	fs, _ := newSession(t, 6)
+	ctx := t.Context()
+	off, err := fs.AppendChunk(ctx, sessID, 0, []byte("abcd"))
+	assert.NilError(t, err)
+	assert.Equal(t, off, int64(4))
+	off, err = fs.AppendChunk(ctx, sessID, 4, []byte("ef"))
+	assert.NilError(t, err)
+	assert.Equal(t, off, int64(6))
+
+	st, err := fs.GetStatus(ctx, sessID)
+	assert.NilError(t, err)
+	assert.Equal(t, st.Offset, int64(6))
+}
+
+// An unopenable data file fails the chunk with the unchanged offset.
+func TestAppendChunkOpenFailureKeepsOffset(t *testing.T) {
+	fs, dir := newSession(t, 8)
+	assert.NilError(t, os.Mkdir(filepath.Join(dir, "data.bin"), 0o750))
+
+	off, err := fs.AppendChunk(t.Context(), sessID, 0, []byte("abcd"))
+	assert.ErrorContains(t, err, "storage.AppendChunk: open")
+	assert.Equal(t, off, int64(0))
+	st, err := fs.GetStatus(t.Context(), sessID)
+	assert.NilError(t, err)
+	assert.Equal(t, st.Offset, int64(0))
+}

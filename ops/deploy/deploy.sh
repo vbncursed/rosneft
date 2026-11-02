@@ -41,8 +41,10 @@ images_to_prune() {
   done
 }
 
-# GitHub username rules: the registry login runs as this user.
-valid_actor() { [[ $1 =~ ^[A-Za-z0-9-]{1,39}$ ]]; }
+# GitHub username rules plus one optional trailing [bot] (dependabot[bot]); the registry
+# login runs as this user. Only ever expanded quoted (docker login -u, log), never in a
+# pattern or a file name, so [ ] cannot glob.
+valid_actor() { [[ $1 =~ ^[A-Za-z0-9-]{1,39}(\[bot\])?$ ]]; }
 
 last_files() { echo "index.html sw.js shell-manifest.json offline.html"; }
 
@@ -98,9 +100,11 @@ wait_for() {
 notify() {
   log "notify: $1"
   [[ -z ${DRY_RUN:-} && -r $SECRETS/telegram_bot_token && -r $SECRETS/telegram_chat_id ]] || return 0
-  curl -fsS --max-time 10 \
-    --data-urlencode "chat_id=$(<"$SECRETS/telegram_chat_id")" --data-urlencode "text=$1" \
-    "https://api.telegram.org/bot$(<"$SECRETS/telegram_bot_token")/sendMessage" >/dev/null 2>&1 || true
+  # The URL carries the bot token, so it goes in a curl config on stdin (printf is a
+  # builtin): argv is world-readable in /proc while curl runs.
+  printf 'url = "https://api.telegram.org/bot%s/sendMessage"\n' "$(<"$SECRETS/telegram_bot_token")" |
+    curl -fsS --max-time 10 -K - \
+      --data-urlencode "chat_id=$(<"$SECRETS/telegram_chat_id")" --data-urlencode "text=$1" >/dev/null 2>&1 || true
 }
 
 backup() {
@@ -222,9 +226,7 @@ deploy() { apply "$1" "${2:-deploy}" && checks "$MANIFEST_ID"; }
 rollback() { log "rolling back to $1"; deploy "$1" rollback; }
 
 write_deployed() {
-  mkdir -p "$STATE"
-  echo "$SHA" >"$ROOT/.deployed"
-  echo "$SHA" >>"$STATE/history"
+  mkdir -p "$STATE" && echo "$SHA" >"$ROOT/.deployed" && echo "$SHA" >>"$STATE/history"
 }
 
 prune_images() { # keeps this deploy, the one before it and the last three in history
@@ -280,11 +282,17 @@ main() {
   run backup || { notify "deploy $s7 aborted: pre-deploy backup failed, nothing was changed"; exit 1; }
 
   if deploy "$SHA"; then
-    run write_deployed
-    # A failed refresh must not fail a deploy that is already live.
+    # The release is already live: a failed state write or refresh must not fail the
+    # deploy (exit 1 means "rolled back"), but it must be loud, because a stale
+    # .deployed makes the next rollback target the wrong version.
+    local warn=""
+    run write_deployed || {
+      warn=" WARNING: recording the deploy state failed (.deployed/history stale; check $ROOT/.deployed and $STATE)"
+      log "WARN: recording the deploy state failed"
+    }
     run install -m0755 "$ROOT/ops/deploy/deploy.sh" "$SELF_INSTALL" || log "forced command refresh failed"
-    notify "$(success_text)"
-    run prune_images
+    notify "$(success_text)$warn"
+    run prune_images || log "WARN: image prune failed"
     exit 0
   fi
   local reason=$FAIL_REASON

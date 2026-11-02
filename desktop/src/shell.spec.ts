@@ -2,7 +2,17 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync }
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { contentType, parseManifest, Shell, sizeAcceptable } from "./shell";
+import { contentType, HTML_SLACK, parseManifest, Shell, sizeAcceptable } from "./shell";
+
+const ops: string[] = [];
+vi.mock("node:fs/promises", async (orig) => {
+  const real = await orig<typeof import("node:fs/promises")>();
+  return {
+    ...real,
+    rm: (p: string, ...r: [object?]) => (ops.push(`rm ${p}`), real.rm(p, ...r)),
+    rename: (a: string, b: string) => (ops.push(`rename ${a} ${b}`), real.rename(a, b)),
+  };
+});
 
 const ORIGIN = "https://andrey.vbncursed.fun";
 const ID1 = "a".repeat(32);
@@ -86,6 +96,30 @@ describe("sizeAcceptable", () => {
     expect(sizeAcceptable("/assets/a.js", 10, 10)).toBe(true);
   });
 });
+
+const endless = (chunks: { n: number }) =>
+  new Response(
+    new ReadableStream<Uint8Array>({
+      pull(c) {
+        chunks.n += 1;
+        c.enqueue(new Uint8Array(1024));
+      },
+    }),
+  );
+const one = (path_: string, size: number, answer: (chunks: { n: number }) => Response) => {
+  const chunks = { n: 0 };
+  const f = vi.fn(async (url: string) =>
+    new URL(url).pathname === "/shell-manifest.json"
+      ? json({
+          id: ID1,
+          files: [{ path: "/index.html", size: 4 }, ...(path_ === "/index.html" ? [] : [{ path: path_, size }])],
+        })
+      : new URL(url).pathname === path_
+        ? answer(chunks)
+        : new Response("<v1>"),
+  );
+  return { f, chunks };
+};
 
 describe("Shell", () => {
   it("swaps the generation when a proxy appends a script to index.html", async () => {
@@ -179,6 +213,20 @@ describe("Shell", () => {
     expect(await s.file("/index.html")).toMatchObject({ size: 4 });
   });
 
+  it("restores a missing index.html without ever removing or replacing the generation current points at", async () => {
+    const dir = root();
+    const s = new Shell(dir, ORIGIN, server({ "/index.html": "<v1>", "/a.js": "js" }, ID1));
+    await s.refresh();
+    rmSync(path.join(dir, ID1, "index.html"));
+    ops.length = 0;
+    await s.refresh();
+    const gen = path.join(dir, ID1);
+    expect(ops.filter((o) => o === `rm ${gen}` || o.endsWith(` ${gen}`))).toEqual([]);
+    expect(await s.file("/index.html")).toMatchObject({ size: 4 });
+    expect(await s.file("/a.js")).toMatchObject({ size: 2 });
+    expect(readdirSync(dir).toSorted()).toEqual([ID1, "current"]);
+  });
+
   it("does not fetch twice for overlapping refreshes", async () => {
     const fetch = server({ "/index.html": "<html>" }, ID1);
     const shell = new Shell(root(), ORIGIN, fetch);
@@ -195,5 +243,40 @@ describe("Shell", () => {
     const shell = new Shell(dir, ORIGIN, server({ "/index.html": "<html>" }, ID1));
     await shell.refresh();
     expect(await shell.file("/../current")).toBeNull();
+  });
+
+  describe("size caps while downloading", () => {
+    it("refuses a Content-Length over the manifest size before reading the body", async () => {
+      const dir = root();
+      const { f, chunks } = one(
+        "/a.js",
+        10,
+        (c) => new Response(endless(c).body, { headers: { "content-length": "999999999" } }),
+      );
+      await new Shell(dir, ORIGIN, f).refresh();
+      expect(existsSync(path.join(dir, "current"))).toBe(false);
+      expect(chunks.n).toBeLessThan(5);
+    });
+    it("aborts an endless body without a Content-Length once it passes the size", async () => {
+      const dir = root();
+      const { f, chunks } = one("/a.js", 10, endless);
+      await new Shell(dir, ORIGIN, f).refresh();
+      expect(existsSync(path.join(dir, "current"))).toBe(false);
+      expect(chunks.n).toBeLessThan(200);
+      expect(existsSync(path.join(dir, `${ID1}.tmp`, "a.js"))).toBe(false);
+    });
+    it("aborts an endless html body past the slack", async () => {
+      const dir = root();
+      const { f, chunks } = one("/index.html", 4, endless);
+      await new Shell(dir, ORIGIN, f).refresh();
+      expect(existsSync(path.join(dir, "current"))).toBe(false);
+      expect(chunks.n * 1024).toBeLessThan(HTML_SLACK + 1024 * 1024);
+    });
+    it("still takes an exact file and an html longer within the slack", async () => {
+      const dir = root();
+      const { f } = one("/a.js", 2, (): Response => new Response("js"));
+      await new Shell(dir, ORIGIN, f).refresh();
+      expect(readFileSync(path.join(dir, "current"), "utf8")).toBe(ID1);
+    });
   });
 });

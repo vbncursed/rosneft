@@ -13,12 +13,26 @@ func jobToProto(j domain.Job) *meshv1.Job {
 		Kind:         kindToProto(j.Kind),
 		Slug:         j.Slug,
 		Status:       statusToProto(j.Status),
-		ErrorMessage: j.ErrorMessage,
+		ErrorMessage: publicError(j),
 		ArtifactHash: j.ArtifactHash,
 		Progress:     j.Progress,
 		Stage:        j.Stage,
 		CreatedAt:    timestamppb.New(j.CreatedAt),
 		UpdatedAt:    timestamppb.New(j.UpdatedAt),
+	}
+}
+
+// publicError is the failure text a client may see. The stored ErrorMessage is
+// the worker's full cause (paths, library output, hostnames) and stays with
+// the job and the worker's log line; like a 5xx body, it never leaves the service.
+func publicError(j domain.Job) string {
+	switch {
+	case j.Status != domain.JobStatusFailed:
+		return ""
+	case j.FailedOnSource:
+		return "source archive is invalid"
+	default:
+		return "conversion failed"
 	}
 }
 

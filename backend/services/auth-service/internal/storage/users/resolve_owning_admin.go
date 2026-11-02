@@ -3,12 +3,24 @@ package users
 import (
 	"context"
 	"fmt"
+
+	"github.com/jackc/pgx/v5"
 )
+
+// queryer is the pool or a transaction: bindRoles resolves the tenant inside
+// the transaction that writes the roles.
+type queryer interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+}
 
 // ResolveOwningAdmin walks the created_by chain upward from userID and returns
 // the owning admin id (see pickOwningAdmin). Empty for a Root. The depth guard
 // caps the walk in case created_by data ever contains a cycle.
 func (s *Store) ResolveOwningAdmin(ctx context.Context, userID string) (string, error) {
+	return resolveOwningAdmin(ctx, s.pool, userID)
+}
+
+func resolveOwningAdmin(ctx context.Context, db queryer, userID string) (string, error) {
 	const q = `
 WITH RECURSIVE chain AS (
     SELECT id, created_by, is_owner, 0 AS depth
@@ -20,7 +32,7 @@ WITH RECURSIVE chain AS (
 )
 SELECT id, is_owner FROM chain ORDER BY depth`
 
-	rows, err := s.pool.Query(ctx, q, userID)
+	rows, err := db.Query(ctx, q, userID)
 	if err != nil {
 		return "", fmt.Errorf("users.ResolveOwningAdmin: query: %w", err)
 	}

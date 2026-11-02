@@ -22,6 +22,7 @@ import (
 type TargetIndexSuite struct {
 	suite.Suite
 	ctr   *tcredis.RedisContainer
+	rdb   *redis.Client
 	store *storage.Redis
 }
 
@@ -37,7 +38,8 @@ func (s *TargetIndexSuite) SetupSuite() {
 	assert.NilError(s.T(), err)
 	opts, err := redis.ParseURL(uri)
 	assert.NilError(s.T(), err)
-	s.store, err = storage.New(ctx, redis.NewClient(opts))
+	s.rdb = redis.NewClient(opts)
+	s.store, err = storage.New(ctx, s.rdb)
 	assert.NilError(s.T(), err)
 }
 

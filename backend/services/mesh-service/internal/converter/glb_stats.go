@@ -47,20 +47,27 @@ func glbStats(body []byte) (vertices, faces uint64, err error) {
 	}
 	for _, mesh := range doc.Meshes {
 		for _, p := range mesh.Primitives {
-			pos, ok := p.Attributes[gltf.POSITION]
-			if !ok || pos < 0 || pos >= len(doc.Accessors) {
-				continue
-			}
-			count := uint64(doc.Accessors[pos].Count)
-			vertices += count
-			if p.Indices != nil && *p.Indices >= 0 && *p.Indices < len(doc.Accessors) {
-				faces += uint64(doc.Accessors[*p.Indices].Count) / 3
-				continue
-			}
-			faces += count / 3
+			v, f := primitiveStats(&doc, p)
+			vertices += v
+			faces += f
 		}
 	}
 	return vertices, faces, nil
+}
+
+// primitiveStats counts one primitive: a primitive with no usable POSITION
+// accessor counts nothing; an indexed one draws indices/3 triangles, else its
+// positions in threes.
+func primitiveStats(doc *gltf.Document, p *gltf.Primitive) (vertices, faces uint64) {
+	pos, ok := p.Attributes[gltf.POSITION]
+	if !ok || pos < 0 || pos >= len(doc.Accessors) {
+		return 0, 0
+	}
+	count := uint64(doc.Accessors[pos].Count)
+	if p.Indices != nil && *p.Indices >= 0 && *p.Indices < len(doc.Accessors) {
+		return count, uint64(doc.Accessors[*p.Indices].Count) / 3
+	}
+	return count, count / 3
 }
 
 // glbJSON extracts the first ("JSON") chunk's raw bytes from a binary glTF

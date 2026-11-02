@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
+	"github.com/redis/go-redis/v9"
 	"gotest.tools/v3/assert"
 
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
@@ -71,4 +73,29 @@ func TestSaveFieldsWriteBackfillOnlyOnCreate(t *testing.T) {
 	assert.Equal(t, created["created_at"], now.Format(time.RFC3339Nano))
 	_, ok := later["backfill"]
 	assert.Assert(t, !ok)
+}
+
+// A late save from a superseded job re-points the index at it. Whatever job the
+// index points at must carry no expiry, or the target's latest job would vanish
+// 30 days later: A running, B submitted, a late save of A, then B finishes.
+func TestSaveJobKeepsTheIndexedJobPermanentAfterALateSupersededSave(t *testing.T) {
+	ctx := t.Context()
+	mr := miniredis.RunT(t)
+	client := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = client.Close() })
+	r, err := New(ctx, client)
+	assert.NilError(t, err)
+	save := func(id string, st domain.JobStatus) {
+		assert.NilError(t, r.SaveJob(ctx, domain.Job{ID: id, Kind: domain.KindModel, Slug: "m", Status: st}))
+	}
+
+	save("A", domain.JobStatusRunning)
+	save("B", domain.JobStatusPending)
+	save("A", domain.JobStatusRunning) // late: index now points at A again
+	assert.Equal(t, mr.TTL(jobKey("A")), time.Duration(0), "the indexed job must not expire")
+	assert.Assert(t, mr.TTL(jobKey("B")) > 0, "the replaced job starts its retention clock")
+	save("B", domain.JobStatusSucceeded)
+
+	assert.Equal(t, mr.TTL(jobKey("B")), time.Duration(0), "the latest job never expires")
+	assert.Assert(t, mr.TTL(jobKey("A")) > 0)
 }

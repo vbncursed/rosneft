@@ -16,7 +16,9 @@ function AddName() {
   return (
     <div className="p-6">
       <Button onClick={() => setOpen(true)}>Add a passkey</Button>
-      {open ? <AddPasskeyModal open onClose={() => setOpen(false)} onAdded={() => setOpen(false)} /> : null}
+      {open ? (
+        <AddPasskeyModal open factor="password" onClose={() => setOpen(false)} onAdded={() => setOpen(false)} />
+      ) : null}
     </div>
   );
 }
@@ -25,7 +27,7 @@ function AddName() {
 function AddCeremony() {
   return (
     <div className="p-6">
-      <AddPasskeyModal open initialStep="ceremony" onClose={() => {}} onAdded={() => {}} />
+      <AddPasskeyModal open factor="password" initialStep="ceremony" onClose={() => {}} onAdded={() => {}} />
     </div>
   );
 }

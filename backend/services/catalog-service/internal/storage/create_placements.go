@@ -65,12 +65,16 @@ func (r *PG) CreatePlacements(ctx context.Context, key string, ps []domain.Place
 	return out, nil
 }
 
-// createBatch answers the batch key already names, or inserts ps under key.
+// createBatch answers the batch key already names, or inserts ps under key
+// once every panorama they name is confirmed on the territory.
 func createBatch(ctx context.Context, tx pgx.Tx, key string, ps []domain.Placement) ([]domain.Placement, error) {
 	if key != "" {
 		if prior, err := batchByKey(ctx, tx, ps[0].TerritorySlug, key, len(ps)); err != nil || prior != nil {
 			return prior, err
 		}
+	}
+	if err := requirePanoramas(ctx, tx, ps[0].TerritorySlug, ps); err != nil {
+		return nil, err
 	}
 	out := make([]domain.Placement, 0, len(ps))
 	for i, p := range ps {

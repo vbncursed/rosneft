@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -102,4 +103,91 @@ func TestGLBStatsRejectsNegativeCount(t *testing.T) {
 	_, _, err := glbStats(body)
 
 	assert.ErrorContains(t, err, "accessor.count")
+}
+
+// glbBytes lays out a GLB header and one chunk of the given type and declared
+// length, followed by body, without any consistency check.
+func glbBytes(magic, chunkType, chunkLen uint32, body []byte) []byte {
+	var buf bytes.Buffer
+	for _, v := range []uint32{magic, 2, 20 + uint32(len(body)), chunkLen, chunkType} {
+		_ = binary.Write(&buf, binary.LittleEndian, v)
+	}
+	buf.Write(body)
+	return buf.Bytes()
+}
+
+func TestGLBStatsContainerErrors(t *testing.T) {
+	json := []byte(`{"asset":{"version":"2.0"}}`)
+	cases := []struct {
+		name string
+		body []byte
+		want string
+	}{
+		{"empty", nil, "glbStats: too short to be a GLB (0 bytes)"},
+		{"19 bytes", make([]byte, 19), "glbStats: too short to be a GLB (19 bytes)"},
+		{
+			"bad magic",
+			glbBytes(0x12345678, 0x4E4F534A, uint32(len(json)), json),
+			"glbStats: not a GLB: bad magic 0x12345678",
+		},
+		{
+			"first chunk is BIN", glbBytes(0x46546C67, 0x004E4942, uint32(len(json)), json),
+			"glbStats: first chunk is not JSON: type 0x4e4942",
+		},
+		{
+			"chunk longer than body", glbBytes(0x46546C67, 0x4E4F534A, uint32(len(json))+1, json),
+			"glbStats: JSON chunk (28 bytes) exceeds body length (47)",
+		},
+		{"invalid JSON", glbBytes(0x46546C67, 0x4E4F534A, 5, []byte("{oops")), "glbStats: decode: "},
+		{"no meshes", glbBytes(0x46546C67, 0x4E4F534A, uint32(len(json)), json), "glbStats: no meshes"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			v, f, err := glbStats(c.body)
+			assert.Assert(t, err != nil)
+			assert.Assert(t, strings.HasPrefix(err.Error(), c.want), "got %q", err.Error())
+			assert.Equal(t, v, uint64(0))
+			assert.Equal(t, f, uint64(0))
+		})
+	}
+}
+
+// Counts add up over every mesh and primitive; a primitive without usable
+// positions is skipped and an unusable index accessor falls back to positions.
+func TestGLBStatsSumsPrimitivesAndSkipsUnusable(t *testing.T) {
+	body := buildGLBFixture(t, `{
+		"asset": {"version": "2.0"},
+		"accessors": [
+			{"componentType": 5126, "count": 6, "type": "VEC3"},
+			{"componentType": 5125, "count": 12, "type": "SCALAR"},
+			{"componentType": 5126, "count": 9, "type": "VEC3"}
+		],
+		"meshes": [
+			{"primitives": [
+				{"attributes": {"POSITION": 0}, "indices": 1},
+				{"attributes": {"NORMAL": 0}, "indices": 1},
+				{"attributes": {"POSITION": 7}, "indices": 1},
+				{"attributes": {"POSITION": 2}},
+				{"attributes": {"POSITION": 2}, "indices": 9}
+			]},
+			{"primitives": [{"attributes": {"POSITION": 0}}]}
+		]
+	}`)
+
+	vertices, faces, err := glbStats(body)
+
+	assert.NilError(t, err)
+	assert.Equal(t, vertices, uint64(6+9+9+6))
+	assert.Equal(t, faces, uint64(12/3+9/3+9/3+6/3))
+}
+
+// The glTF decoder refuses a mesh with no primitives array before glbStats
+// counts anything.
+func TestGLBStatsRejectsMeshWithoutPrimitives(t *testing.T) {
+	body := buildGLBFixture(t, `{"asset": {"version": "2.0"}, "meshes": [{"primitives": []}]}`)
+
+	_, _, err := glbStats(body)
+
+	assert.ErrorContains(t, err, "glbStats: decode: ")
+	assert.ErrorContains(t, err, "mesh.primitives")
 }

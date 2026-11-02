@@ -3,6 +3,8 @@ package storage_test
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -128,4 +130,95 @@ func TestAbortConcurrentWithAppendChunkLeavesNothing(t *testing.T) {
 		_, err := os.Stat(dir)
 		assert.Assert(t, errors.Is(err, os.ErrNotExist), "session dir survived Abort: %v", err)
 	}
+}
+
+func TestFinalizeUnknownSessionAndBadID(t *testing.T) {
+	fs, _ := newSession(t, 4)
+	_, _, err := fs.Finalize(t.Context(), "ffff", acceptAll)
+	assert.Assert(t, errors.Is(err, domain.ErrSessionNotFound), "got %v", err)
+
+	_, _, err = fs.Finalize(t.Context(), "../x", acceptAll)
+	assert.ErrorContains(t, err, "illegal character")
+	assert.Assert(t, !errors.Is(err, domain.ErrInvalidInput))
+}
+
+// Hash and size are those of the bytes on disk, the put pass reads them from the
+// start, and the session is gone afterwards.
+func TestFinalizePublishesHashAndWholeContent(t *testing.T) {
+	fs, dir := newSession(t, 8)
+	ctx := t.Context()
+	_, err := fs.AppendChunk(ctx, sessID, 0, []byte("abcd"))
+	assert.NilError(t, err)
+	_, err = fs.AppendChunk(ctx, sessID, 4, []byte("efgh"))
+	assert.NilError(t, err)
+
+	var gotHash string
+	var got bytes.Buffer
+	hash, size, err := fs.Finalize(ctx, sessID, func(_ context.Context, h string, r io.Reader) error {
+		gotHash = h
+		_, err := io.Copy(&got, r)
+		return err
+	})
+	assert.NilError(t, err)
+	sum := sha256.Sum256([]byte("abcdefgh"))
+	assert.Equal(t, hash, hex.EncodeToString(sum[:]))
+	assert.Equal(t, gotHash, hash)
+	assert.Equal(t, size, int64(8))
+	assert.Equal(t, got.String(), "abcdefgh")
+	_, err = os.Stat(dir)
+	assert.Assert(t, errors.Is(err, os.ErrNotExist), "session dir must be removed, got %v", err)
+}
+
+// A half-uploaded session can never succeed: invalid input, nothing published,
+// session deleted, and the message carries all three sizes.
+func TestFinalizeIncompleteUploadIsInvalidAndRemoved(t *testing.T) {
+	fs, dir := newSession(t, 8)
+	ctx := t.Context()
+	_, err := fs.AppendChunk(ctx, sessID, 0, []byte("abcd"))
+	assert.NilError(t, err)
+
+	called := false
+	_, _, err = fs.Finalize(ctx, sessID, func(context.Context, string, io.Reader) error {
+		called = true
+		return nil
+	})
+	assert.Assert(t, errors.Is(err, domain.ErrInvalidInput), "got %v", err)
+	assert.ErrorContains(t, err, "declared 8, recorded 4, on disk 4")
+	assert.Assert(t, !called)
+	_, err = os.Stat(dir)
+	assert.Assert(t, errors.Is(err, os.ErrNotExist))
+}
+
+// The recorded offset disagreeing with a file that has the declared size is just
+// as fatal: the client was told something other than what would be published.
+func TestFinalizeRecordedOffsetBehindFileIsInvalid(t *testing.T) {
+	fs, dir := newSession(t, 4)
+	assert.NilError(t, os.WriteFile(filepath.Join(dir, "data.bin"), []byte("abcd"), 0o600))
+
+	_, _, err := fs.Finalize(t.Context(), sessID, acceptAll)
+	assert.Assert(t, errors.Is(err, domain.ErrInvalidInput), "got %v", err)
+	assert.ErrorContains(t, err, "declared 4, recorded 0, on disk 4")
+}
+
+// No data file at all is an I/O fault, not bad input: the session is kept.
+func TestFinalizeMissingDataFileKeepsSession(t *testing.T) {
+	fs, dir := newSession(t, 4)
+	_, _, err := fs.Finalize(t.Context(), sessID, acceptAll)
+	assert.ErrorContains(t, err, "storage.Finalize: open")
+	assert.Assert(t, !errors.Is(err, domain.ErrInvalidInput))
+	_, statErr := os.Stat(dir)
+	assert.NilError(t, statErr)
+}
+
+func TestFinalizePutErrorIsWrapped(t *testing.T) {
+	fs, _ := newSession(t, 4)
+	boom := errors.New("blob store down")
+	_, err := fs.AppendChunk(t.Context(), sessID, 0, []byte("abcd"))
+	assert.NilError(t, err)
+
+	hash, size, err := fs.Finalize(t.Context(), sessID, func(context.Context, string, io.Reader) error { return boom })
+	assert.Assert(t, errors.Is(err, boom))
+	assert.Equal(t, err.Error(), "storage.Finalize: put blob: blob store down")
+	assert.Equal(t, hash, "")
+	assert.Equal(t, size, int64(0))
 }

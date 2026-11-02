@@ -77,28 +77,16 @@ func (b *builder) addPlacement(in *instance, p Placement) error {
 // (a cycle, or two parents) is malformed, and so is a tree deeper than
 // maxDepth, which would otherwise recurse as deep as the input is long.
 func (b *builder) copySubtree(in *instance, i int, seen map[int]bool, depth int) (int, error) {
-	if i < 0 || i >= len(in.src.Nodes) {
-		return 0, malformed("node %d out of range [0, %d)", i, len(in.src.Nodes))
-	}
-	if depth > maxDepth {
-		return 0, malformed("node tree deeper than %d", maxDepth)
-	}
-	if seen[i] {
-		return 0, malformed("node %d reached twice", i)
+	if err := checkVisit(len(in.src.Nodes), i, seen, depth); err != nil {
+		return 0, err
 	}
 	seen[i] = true
-	n := *in.src.Nodes[i]
-	if n.Camera != nil || n.Skin != nil {
-		return 0, unsupported("node %d uses a camera or skin", i)
-	}
-	if n.Mesh != nil {
-		if *n.Mesh < 0 || *n.Mesh >= len(in.src.Meshes) {
-			return 0, malformed("mesh %d out of range [0, %d)", *n.Mesh, len(in.src.Meshes))
-		}
-		n.Mesh = new(*n.Mesh + in.meshBase)
+	n, err := in.copyNode(i)
+	if err != nil {
+		return 0, err
 	}
 	idx := len(b.doc.Nodes)
-	b.doc.Nodes = append(b.doc.Nodes, &n)
+	b.doc.Nodes = append(b.doc.Nodes, n)
 	n.Children = nil
 	for _, c := range in.src.Nodes[i].Children {
 		ci, err := b.copySubtree(in, c, seen, depth+1)
@@ -108,4 +96,34 @@ func (b *builder) copySubtree(in *instance, i int, seen map[int]bool, depth int)
 		n.Children = append(n.Children, ci)
 	}
 	return idx, nil
+}
+
+// checkVisit refuses a node index that does not exist, a tree deeper than
+// maxDepth and a node already visited, in that order.
+func checkVisit(count, i int, seen map[int]bool, depth int) error {
+	switch {
+	case i < 0 || i >= count:
+		return malformed("node %d out of range [0, %d)", i, count)
+	case depth > maxDepth:
+		return malformed("node tree deeper than %d", maxDepth)
+	case seen[i]:
+		return malformed("node %d reached twice", i)
+	}
+	return nil
+}
+
+// copyNode is a copy of input node i with its mesh moved to the output's
+// numbering. The children are still the input's.
+func (in *instance) copyNode(i int) (*gltf.Node, error) {
+	n := *in.src.Nodes[i]
+	if n.Camera != nil || n.Skin != nil {
+		return nil, unsupported("node %d uses a camera or skin", i)
+	}
+	if n.Mesh != nil {
+		if *n.Mesh < 0 || *n.Mesh >= len(in.src.Meshes) {
+			return nil, malformed("mesh %d out of range [0, %d)", *n.Mesh, len(in.src.Meshes))
+		}
+		n.Mesh = new(*n.Mesh + in.meshBase)
+	}
+	return &n, nil
 }

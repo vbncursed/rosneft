@@ -2,10 +2,7 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
-
-	"golang.org/x/sync/errgroup"
 
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
@@ -120,6 +117,8 @@ func (g *Gateway) GetSceneBundle(ctx context.Context, slug, scopeAdminID string)
 	if err := gr.Wait(); err != nil {
 		return domain.SceneBundle{}, err
 	}
+	return assembleSceneBundle(d), nil
+}
 
 	bundle.Territory = territory
 	bundle.Placements = nilToEmpty(placements)
@@ -134,12 +133,12 @@ func (g *Gateway) GetSceneBundle(ctx context.Context, slug, scopeAdminID string)
 		// territory: every phase shown. Content lists all three otherwise.
 		bundle.PanoramaPhases = allPhasesShown()
 	}
-	if a, ok := pickLOD0(artifacts); ok {
-		a.LODs = lodChain(artifacts)
+	if a, ok := pickLOD0(d.artifacts); ok {
+		a.LODs = lodChain(d.artifacts)
 		bundle.Artifact = &a
 	}
-	bundle.ModelOptions = buildModelOptions(models)
-	return bundle, nil
+	bundle.ModelOptions = buildModelOptions(d.models)
+	return bundle
 }
 
 // pickLOD0 returns the LOD0 artifact from a catalog list, if present.
