@@ -78,8 +78,8 @@ func (s *ListCountsSuite) seedTerritory(ctx context.Context, slug, srcHash, admi
 
 func (s *ListCountsSuite) seedModel(ctx context.Context, slug, src, thumb string) {
 	_, err := s.pool.Exec(ctx,
-		`INSERT INTO models (slug, title, source_blob_hash, thumbnail_blob_hash)
-		 VALUES ($1,$1,$2,$3)`, slug, src, thumb)
+		`INSERT INTO models (slug, title, source_blob_hash, thumbnail_blob_hash, tag_id)
+		 VALUES ($1,$1,$2,$3, (SELECT id FROM model_tags WHERE slug = 'ungrouped'))`, slug, src, thumb)
 	assert.NilError(s.T(), err)
 }
 

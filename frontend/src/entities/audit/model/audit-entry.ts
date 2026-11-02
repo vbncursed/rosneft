@@ -26,14 +26,18 @@ export type AuditEntry = {
 /** Nobody was behind this — a worker conversion, a migration. */
 export const isSystemChange = (entry: AuditEntry) => entry.actorId === "";
 
+/** Entities whose audit trigger records no label, with how the journal names them. */
+const BY_ID = new Map([["measurement", "measurement"]]);
+
 /**
- * What the journal calls the row's subject. A measurement has no label column
- * — its audit trigger records an empty one — so it is named by kind and id;
- * any other label-less row stays blank, as `summaryOf` expects.
+ * What the journal calls the row's subject. A measurement has no label column —
+ * its audit trigger records an empty one — so it is named by kind and id; any other label-less row stays
+ * blank, as `summaryOf` expects.
  */
 export function entityName(entry: AuditEntry): string {
   if (entry.entityLabel) return entry.entityLabel;
-  return entry.entity === "measurement" && entry.entityId ? `measurement #${entry.entityId}` : "";
+  const kind = BY_ID.get(entry.entity);
+  return kind && entry.entityId ? `${kind} #${entry.entityId}` : "";
 }
 
 /** Who to credit: the login, the bare id if the account is gone, or "system". */

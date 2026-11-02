@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { batchMix, batchStats, MODEL_CHECKLIST } from "../model/batch";
+import { batchMix, batchStats, makeRow, MODEL_CHECKLIST } from "../model/batch";
 import type { UploadModelsState } from "../model/use-upload-models";
 import { UploadModelsScreen } from "./upload-models-screen";
 
@@ -21,6 +21,10 @@ const state = (over: Partial<UploadModelsState> = {}): UploadModelsState => ({
   stats: batchStats([]),
   checks: MODEL_CHECKLIST,
   canUpload: true,
+  tags: [{ slug: "tanks", title: "Tanks" }],
+  tagSlug: "tanks",
+  onTag: vi.fn(),
+  tagsError: null,
   failedNames: [],
   ...over,
 });
@@ -30,6 +34,23 @@ describe("UploadModelsScreen", () => {
     useUploadModels.mockReturnValue(state());
     render(<UploadModelsScreen />);
     expect(screen.getByRole("heading", { level: 1, name: "New models" })).toBeInTheDocument();
+  });
+
+  it("says the tag list failed to load and keeps Upload disabled", () => {
+    const rows = [makeRow(new File(["x"], "a.zip"))];
+    useUploadModels.mockReturnValue(
+      state({
+        rows,
+        mix: batchMix(rows),
+        stats: batchStats(rows),
+        tags: undefined,
+        tagSlug: null,
+        tagsError: "Tags could not be loaded. Try again.",
+      }),
+    );
+    render(<UploadModelsScreen />);
+    expect(screen.getByText("Tags could not be loaded. Try again.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Upload 1 model" })).toBeDisabled();
   });
 
   it("gates the whole form on the hook's canUpload", () => {

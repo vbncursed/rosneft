@@ -5,6 +5,12 @@ import { UploadModelsPage } from "./ui/upload-models-page";
 
 const noop = () => {};
 
+const TAGS = [
+  { slug: "tanks", title: "Tanks" },
+  { slug: "pumps", title: "Pumps" },
+  { slug: "ungrouped", title: "Ungrouped" },
+];
+
 /** A File stand-in with a chosen size — allocating real archive-sized blobs for a fixture is not the point. */
 function fakeFile(name: string, size: number): File {
   const file = new File([], name, { type: "application/zip" });
@@ -51,6 +57,7 @@ const CURRENT = {
 
 function Live() {
   const [rows, setRows] = useState<QueueRow[]>([]);
+  const [tagSlug, setTagSlug] = useState<string | null>(null);
 
   return (
     <CatalogShell>
@@ -70,6 +77,10 @@ function Live() {
         stats={batchStats(rows)}
         checks={MODEL_CHECKLIST}
         canUpload
+        tags={TAGS}
+        tagSlug={tagSlug}
+        onTag={setTagSlug}
+        tagsError={null}
         failedNames={rows.filter((r) => r.status === "failed").map((r) => r.file.name)}
       />
     </CatalogShell>
@@ -93,6 +104,10 @@ export default {
         stats={batchStats([])}
         checks={MODEL_CHECKLIST}
         canUpload
+        tags={TAGS}
+        tagSlug={null}
+        onTag={noop}
+        tagsError={null}
         failedNames={[]}
       />
     </CatalogShell>
@@ -114,6 +129,10 @@ export default {
         stats={batchStats(MIXED_ROWS)}
         checks={MODEL_CHECKLIST}
         canUpload
+        tags={TAGS}
+        tagSlug="tanks"
+        onTag={noop}
+        tagsError={null}
         failedNames={MIXED_ROWS.filter((r) => r.status === "failed").map((r) => r.file.name)}
       />
     </CatalogShell>
@@ -134,6 +153,34 @@ export default {
         stats={batchStats([])}
         checks={MODEL_CHECKLIST}
         canUpload={false}
+        tags={TAGS}
+        tagSlug={null}
+        onTag={noop}
+        tagsError={null}
+        failedNames={[]}
+      />
+    </CatalogShell>
+  ),
+  tagsFailed: (
+    <CatalogShell>
+      <UploadModelsPage
+        rows={MIXED_ROWS.slice(3, 4)}
+        onFiles={noop}
+        onTitle={noop}
+        onRemove={noop}
+        onThumbnail={noop}
+        onClearDone={noop}
+        onRun={noop}
+        onCancel={noop}
+        running={false}
+        mix={batchMix(MIXED_ROWS.slice(3, 4))}
+        stats={batchStats(MIXED_ROWS.slice(3, 4))}
+        checks={MODEL_CHECKLIST}
+        canUpload
+        tags={undefined}
+        tagSlug={null}
+        onTag={noop}
+        tagsError="Tags could not be loaded. Try again."
         failedNames={[]}
       />
     </CatalogShell>

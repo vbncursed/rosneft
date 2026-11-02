@@ -18,6 +18,8 @@ export type LodSwitcherProps = {
   onChange: (choice: Choice) => void;
   label?: string;
   className?: string;
+  /** The onboarding tour's anchor, emitted as `data-tour` on the group. */
+  dataTour?: string;
 };
 
 function nameOf(option: Choice, loading: boolean, onScreen: boolean): string {
@@ -46,6 +48,7 @@ export function LodSwitcher({
   onChange,
   label = "Level of detail",
   className,
+  dataTour,
 }: LodSwitcherProps) {
   const options: Choice[] = ["auto", ...levels];
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
@@ -66,6 +69,7 @@ export function LodSwitcher({
     <div
       role="radiogroup"
       aria-label={label}
+      data-tour={dataTour}
       onBlur={onBlur}
       className={cx("flex gap-1 rounded-[10px] border border-line-2 bg-panel p-1 shadow-elevation", className)}
     >

@@ -5,6 +5,7 @@ import type { Model } from "./model";
 import { toModelCard } from "./model-card";
 
 const model = (over: Partial<Model> = {}): Model => ({
+  tag: { slug: "tanks", title: "Tanks" },
   slug: "pump-jack-unit",
   title: "Pump Jack Unit",
   sourceBlobHash: "a".repeat(64),
@@ -36,6 +37,7 @@ describe("toModelCard", () => {
       title: "Pump Jack Unit",
       status: "ready",
       thumbnailUrl: "/api/assets/" + "b".repeat(64),
+      tag: { slug: "tanks", title: "Tanks" },
       usageCount: 6,
       size: "38 MB",
       lods: "LOD 0-2",

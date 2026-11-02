@@ -14,67 +14,62 @@ import GlbPreloader from "./glb-preloader";
 import GltfModel from "./gltf-model";
 import Ktx2Init from "./ktx2-init";
 import Lighting from "./lighting";
-import MeasurementLayer from "./measurement-layer";
+import { SceneMeasurements } from "./scene-measurements";
 import PanoramaScene from "./panorama-scene";
 import PlacementsLayer from "./placements-layer";
+import SiteLayers from "./site-layers";
 import { usePointPicking } from "./use-point-picking";
 
-export type SceneCanvasProps = ViewerCanvasProps & { colors: SceneColors };
-
-export default function SceneCanvas({
-  parentLods,
-  targetLod,
-  retryVersion,
-  resetVersion,
-  playing,
-  free,
-  walk,
-  placements,
-  placementGroups,
-  mode,
-  selectedId,
-  gizmo,
-  snap,
-  canWrite,
-  chains,
-  activeChainId,
-  canEditMeasurements,
-  unitRatio,
-  focusRequest,
-  activePanorama,
-  calibrationGhost,
-  panoramaBitmap,
-  panoramaStatus,
-  panoramaProgress,
-  panoramaOpacity,
-  calibrating,
-  panoramas,
-  panoramaPhaseHidden,
-  showMarkers,
-  markerNames,
-  showMeasurements,
-  markerLabels,
-  move,
-  cameraPositionRef,
-  cameraYawRef,
-  colors,
-  onPick,
-  onActivatePanorama,
-  onMarkerGrab,
-  onMarkerMove,
-  onMarkerDrop,
-  onTransformCommit,
-  onMeasurePoint,
-  onCloseActiveChain,
-  onRemoveSegment,
-  onRemoveChain,
-  onLod,
-  onPlayStop,
-  onWalkRefused,
-}: SceneCanvasProps) {
+export default function SceneCanvas(props: ViewerCanvasProps & { colors: SceneColors }) {
+  const {
+    parentLods,
+    targetLod,
+    retryVersion,
+    resetVersion,
+    playing,
+    free,
+    walk,
+    placements,
+    placementGroups,
+    mode,
+    selectedId,
+    gizmo,
+    snap,
+    canWrite,
+    unitRatio,
+    focusRequest,
+    activePanorama,
+    calibrationGhost,
+    panoramaBitmap,
+    panoramaStatus,
+    panoramaProgress,
+    panoramaOpacity,
+    calibrating,
+    panoramas,
+    panoramaPhaseHidden,
+    showMarkers,
+    markerNames,
+    markerLabels,
+    move,
+    cameraPositionRef,
+    cameraYawRef,
+    site,
+    pickScene,
+    colors,
+    onPick,
+    onActivatePanorama,
+    onMarkerGrab,
+    onMarkerMove,
+    onMarkerDrop,
+    onTransformCommit,
+    onMeasurePoint,
+    onLod,
+    onPlayStop,
+    onWalkRefused,
+  } = props;
   // Orbit is the only mode that edits a selection; every other mode is
   // picking points, so the gizmo hides and clicks reach the wrapper group.
-  const pointMode = mode !== "orbit";
+  const pointMode = mode !== "orbit" || pickScene;
 
   const bgArgs = useMemo<[string]>(() => [colors.background], [colors.background]);
   const gridArgs = useMemo<[number, number, string, string]>(() => [6, 24, colors.grid, colors.grid], [colors.grid]);
@@ -196,18 +191,18 @@ export default function SceneCanvas({
         ) : null}
       </AutoLodClock>
 
-      <MeasurementLayer
-        // Measure mode wins over the switch: nobody measures blind.
-        visible={showMeasurements || mode === "measure"}
-        chains={chains}
-        activeChainId={activeChainId}
-        canEditSaved={canEditMeasurements}
+      {/* Beside the wrapper, not in it: a zone or the plan is never solid for the walker, never framed by Bounds,
+          and no measure or place ray can reach it. */}
+      <SiteLayers
+        site={site}
+        interactive={!pointMode && !move.active && !free && !calibrating}
+        hidden={activePanorama !== null}
         unitRatio={unitRatio}
-        lineColor={colors.accent}
-        onCloseActive={onCloseActiveChain}
-        onRemoveSegment={onRemoveSegment}
-        onRemoveChain={onRemoveChain}
+        color={colors.accent}
+        territoryRef={territoryRef}
       />
+
+      <SceneMeasurements {...props} />
 
       {/* Above CameraRig on purpose: React runs sibling cleanups in tree
           order, and PanoramaRig has to put the controls back before CameraRig

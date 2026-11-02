@@ -9,7 +9,7 @@ import (
 
 // GetSceneBundle is the single-shot composition for the viewer page. It
 // fans out its reads in parallel — territory, territory artifacts,
-// placements, placement groups, measurements, the model catalog, panoramas,
+// placements, placement groups, measurements, zones, the model catalog, panoramas,
 // panorama phase flags and documents — and stitches the result together.
 //
 // A missing LOD0 territory artifact is not an error: SceneBundle.Artifact
@@ -35,6 +35,7 @@ func assembleSceneBundle(d sceneReads) domain.SceneBundle {
 		Documents:       nilToEmpty(d.documents),
 		Measurements:    nilToEmpty(d.measures),
 		PlacementGroups: nilToEmpty(d.groups),
+		Zones:           nilToEmpty(d.zones),
 		PanoramaPhases:  d.phases,
 	}
 	if d.phases == nil {

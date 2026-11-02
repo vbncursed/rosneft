@@ -3,7 +3,7 @@ import type { Chain } from "@/entities/measurement";
 import type { ResolvedPlacement } from "@/entities/placement";
 import type { LodChoice, ModelOption, SceneViewModel } from "@/entities/scene";
 import type { Tour } from "@/features/onboarding";
-import { basePageParts, IDLE_DOCUMENTS, IDLE_PANORAMAS } from "../territory-viewer-page.fixture";
+import { basePageParts, IDLE_DOCUMENTS, IDLE_PANORAMAS, IDLE_ZONES } from "../territory-viewer-page.fixture";
 import { pageProps, type PageHandlers, type PageParts } from "./page-props";
 import type { Grants } from "./viewer-view";
 
@@ -20,6 +20,7 @@ const OWNER: Grants = {
   measureCreate: true,
   measureWrite: true,
   measureDelete: true,
+  zoneWrite: true,
 };
 const GUEST: Grants = {
   create: false,
@@ -34,6 +35,7 @@ const GUEST: Grants = {
   measureCreate: false,
   measureWrite: false,
   measureDelete: false,
+  zoneWrite: false,
 };
 
 const TANK: ResolvedPlacement = {
@@ -52,7 +54,12 @@ const TANK: ResolvedPlacement = {
 };
 
 const OPTIONS: ModelOption[] = [
-  { slug: "storage-tank-500", title: "storage-tank-500", chain: [{ lod: 0, hash: "m0", size: 1 }] },
+  {
+    slug: "storage-tank-500",
+    title: "storage-tank-500",
+    tag: { slug: "tanks", title: "Tanks" },
+    chain: [{ lod: 0, hash: "m0", size: 1 }],
+  },
 ];
 
 const VM: SceneViewModel = {
@@ -71,6 +78,7 @@ const VM: SceneViewModel = {
   placements: [TANK],
   panoramas: [],
   documents: [],
+  zones: [],
   measurements: [],
   sourceBbox: null,
 };
@@ -163,8 +171,10 @@ const parts = (over: Partial<PageParts> = {}): PageParts => ({
   form: null,
   tour: TOUR,
   panoramaTour: TOUR,
+  zoneTours: { plan: TOUR, card: TOUR },
   panoramas: IDLE_PANORAMAS,
   documents: IDLE_DOCUMENTS,
+  zones: IDLE_ZONES,
   panel: { tab: "view", collapsed: false },
   sections: {
     panoramas: { open: true, locked: false, onToggle: vi.fn() },
@@ -300,6 +310,15 @@ describe("pageProps · overlays", () => {
     // over the top of it, and the two are never both on screen.
     const props = pageProps(parts({ panoramaTour: { ...TOUR, active: true } }));
     expect(props.overlays.tools.every((t) => t.state === "idle")).toBe(true);
+  });
+
+  it("lights no tile while either zones tour runs, and hands both on", () => {
+    for (const which of ["plan", "card"] as const) {
+      const zoneTours = { plan: TOUR, card: TOUR, [which]: { ...TOUR, active: true } };
+      const props = pageProps(parts({ zoneTours }));
+      expect(props.overlays.tools.every((t) => t.state === "idle")).toBe(true);
+      expect(props.zoneTours).toBe(zoneTours);
+    }
   });
 
   it("says what the pointer does", () => {
@@ -694,6 +713,7 @@ describe("pageProps · the LOD switcher goes where the level cannot be chosen", 
       title: "Fire plan.pdf",
       sourceBlobHash: "d7",
       createdAt: "2026-09-01T00:00:00Z",
+      calibration: null,
     };
     expect(pageProps({ ...p, documents: { ...p.documents, list: [active], active } }).overlays.switcher).toBeNull();
   });

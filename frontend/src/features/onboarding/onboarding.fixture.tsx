@@ -7,7 +7,7 @@ import { TourTooltip } from "./ui/tour-tooltip";
 const LAST = VIEWER_TOUR_STEPS.length - 1;
 
 function Tooltip() {
-  const [index, setIndex] = useState(2);
+  const [index, setIndex] = useState(3);
   const step = VIEWER_TOUR_STEPS[index];
   return (
     <TourTooltip
@@ -32,10 +32,16 @@ function FakeViewer() {
           ← Territories
         </span>
         <span className="text-sm font-semibold text-fg">Промплощадка Север-2</span>
+        <span
+          data-tour="download"
+          className="ml-auto rounded-control border border-line-2 px-3 py-1 text-xs text-muted"
+        >
+          Download
+        </span>
       </header>
       <div className="flex min-h-0 flex-1">
         <div className="flex flex-col gap-2 border-r border-line p-2.5">
-          {(["reset-camera", "free-cam", "measure"] as const).map((id) => (
+          {(["reset-camera", "free-cam", "measure", "lod-switcher"] as const).map((id) => (
             <span key={id} data-tour={id} className="size-7 rounded-control border border-line-2 bg-panel-2" />
           ))}
         </div>
@@ -67,7 +73,7 @@ function FakeViewer() {
 }
 
 function Overlay() {
-  const [index, setIndex] = useState(2);
+  const [index, setIndex] = useState(3);
   // Clamped rather than deactivating, so the fixture never empties itself: the
   // overlay's own "skip a step with no anchor" call lands here too.
   const next = useCallback(() => setIndex((i) => Math.min(LAST, i + 1)), []);

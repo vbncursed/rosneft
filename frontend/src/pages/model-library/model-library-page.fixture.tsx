@@ -10,6 +10,7 @@ const THUMB =
 
 const CARDS: ModelCardModel[] = [
   {
+    tag: { slug: "tanks", title: "Tanks" },
     slug: "pump-jack-unit",
     title: "Pump Jack Unit",
     status: "ready",
@@ -20,6 +21,7 @@ const CARDS: ModelCardModel[] = [
     trailing: { label: "in 6 territories", tone: "accent" },
   },
   {
+    tag: { slug: "tanks", title: "Tanks" },
     slug: "storage-tank-500",
     title: "Storage Tank 500",
     status: "ready",
@@ -30,6 +32,7 @@ const CARDS: ModelCardModel[] = [
     trailing: { label: "in 4 territories", tone: "accent" },
   },
   {
+    tag: { slug: "tanks", title: "Tanks" },
     slug: "valve-assembly",
     title: "Valve Assembly",
     status: "ready",
@@ -40,6 +43,7 @@ const CARDS: ModelCardModel[] = [
     trailing: { label: "in 2 territories", tone: "accent" },
   },
   {
+    tag: { slug: "tanks", title: "Tanks" },
     slug: "flare-stack",
     title: "Flare Stack",
     status: "failed",
@@ -50,6 +54,7 @@ const CARDS: ModelCardModel[] = [
     trailing: { label: "unavailable", tone: "bad" },
   },
   {
+    tag: { slug: "tanks", title: "Tanks" },
     slug: "pipe-rack-segment",
     title: "Pipe Rack Segment",
     status: "ready",
@@ -60,6 +65,7 @@ const CARDS: ModelCardModel[] = [
     trailing: { label: "in 9 territories", tone: "accent" },
   },
   {
+    tag: { slug: "tanks", title: "Tanks" },
     slug: "control-cabin",
     title: "Control Cabin",
     status: "ready",
@@ -70,6 +76,7 @@ const CARDS: ModelCardModel[] = [
     trailing: { label: "in 3 territories", tone: "accent" },
   },
   {
+    tag: { slug: "tanks", title: "Tanks" },
     slug: "separator-vessel",
     title: "Separator Vessel",
     status: "converting",
@@ -80,6 +87,7 @@ const CARDS: ModelCardModel[] = [
     trailing: { label: "queued", tone: "warn" },
   },
   {
+    tag: { slug: "tanks", title: "Tanks" },
     slug: "ladder-platform",
     title: "Ladder Platform",
     status: "ready",

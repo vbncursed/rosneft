@@ -43,7 +43,12 @@ func modelToProto(m domain.Model) *catalogv1.Model {
 		UpdatedAt:         timestamppb.New(m.UpdatedAt),
 		UsageCount:        uint32(m.UsageCount),
 		Artifacts:         artifactsToProto(m.Artifacts, modelArtifactToProto),
+		Tag:               modelTagToProto(m.Tag),
 	}
+}
+
+func modelTagToProto(t domain.ModelTag) *catalogv1.ModelTag {
+	return &catalogv1.ModelTag{Slug: t.Slug, Title: t.Title}
 }
 
 func modelFromProto(m *catalogv1.Model) domain.Model {

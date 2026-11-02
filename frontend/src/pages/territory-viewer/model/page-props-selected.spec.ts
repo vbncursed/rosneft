@@ -4,7 +4,9 @@ import type { ModelOption } from "@/entities/scene";
 import { basePageParts } from "../territory-viewer-page.fixture";
 import { detailsOf, selectedBlock, visibilityBlock } from "./page-props-selected";
 
-const OPTIONS: ModelOption[] = [{ slug: "storage-tank-500", title: "storage-tank-500", chain: [] }];
+const OPTIONS: ModelOption[] = [
+  { slug: "storage-tank-500", title: "storage-tank-500", tag: { slug: "tanks", title: "Tanks" }, chain: [] },
+];
 
 const parts = () => basePageParts();
 

@@ -13,7 +13,7 @@ import { unanswered } from "@/shared/lib/unanswered";
 import { useOverlaysPanel } from "@/widgets/overlays-panel";
 import { decodeImageBitmap } from "@/widgets/viewer-canvas";
 import { pageProps, type TerritoryViewerPageProps } from "./page-props";
-import { grantsOf, measureGrants } from "./viewer-view";
+import { COMPACT, TOUCH, grantsOf, measureGrants } from "./viewer-view";
 import { usePageHandlers } from "./use-page-handlers";
 import { usePlacementForm } from "./use-placement-form";
 import { useViewSections } from "./use-view-sections";
@@ -21,6 +21,8 @@ import { useViewerDocuments } from "./use-viewer-documents";
 import { useViewerPanoramas } from "./use-viewer-panoramas";
 import { useViewerPlacements } from "./use-viewer-placements";
 import { useSceneDrop } from "./use-scene-drop";
+import { useViewerZones, useZoneInput } from "./use-viewer-zones";
+import { useZoneTours } from "./use-zone-tours";
 
 export type TerritoryViewerState =
   | { status: "loading" }
@@ -30,11 +32,6 @@ export type TerritoryViewerState =
 
 /** Never read — `error` is non-null only when `failedAt` is. */
 const UNSTAMPED = new Date(0);
-
-/** Under this the panel is 300 wide and the gizmo keys lose their brackets. */
-const COMPACT = "(max-width: 1280px)";
-/** A touch screen: no hover to point a free cam with. */
-const TOUCH = "(hover: none) and (pointer: coarse)";
 
 /**
  * Everything the viewer page draws: the bundle, the principal's grants, and
@@ -114,20 +111,22 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
   // panorama, where a whole panel of controls appears the viewer tour could
   // never point at. It waits for the viewer tour to finish first — both run
   // centred-first, and starting one over the other would fight for the panel.
-  const panoramaSeen = me.data?.onboardingToursSeen.includes(PANORAMA_TOUR) ?? true;
   const panoramaTour = useTour(PANORAMA_TOUR, PANORAMA_TOUR_STEPS, {
-    seen: panoramaSeen,
+    seen: me.data?.onboardingToursSeen.includes(PANORAMA_TOUR) ?? true,
     ready: mode.state.view.kind === "panorama" && !tour.active && me.data !== undefined,
   });
+  // The zones' two tours start from what the zones hook finds on screen, which
+  // is known only after it; `zoneTours.want` below hands that back.
+  const zoneTours = useZoneTours({ seen: me.data?.onboardingToursSeen, blocked: tour.active || panoramaTour.active });
   // The tour reveals a control before it points at one: its step names the tab
   // its anchor lives on, and an inactive tab is not in the DOM at all.
   const panel = useOverlaysPanel(
     mode.state.selectedId,
-    tour.step?.tab ?? panoramaTour.step?.tab,
-    tour.active || panoramaTour.active,
+    tour.step?.tab ?? panoramaTour.step?.tab ?? zoneTours.tab,
+    zoneTours.anyActive,
   );
   // Above the two lists: a finished upload opens its own section (`reveal`).
-  const sections = useViewSections(mode.state, tour.active || panoramaTour.active);
+  const sections = useViewSections(mode.state, zoneTours.anyActive);
 
   const panoramas = useViewerPanoramas({
     slug,
@@ -159,7 +158,6 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
   });
   useEffect(() => {
     cycle.current = panoramas.onCycle;
-    beforeEscape.current = documents.escape;
   });
 
   const { editor, groups } = useViewerPlacements({
@@ -174,7 +172,24 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
   // is handed none: that is the one state where the block only reports.
   const form = usePlacementForm(editor, mode.select, grants.write ? mode.state.selectedId : null);
 
-  const { view, failedAt, on } = usePageHandlers({
+  const unitRatio = computeUnitRatio(dims);
+  const zones = useViewerZones({
+    slug,
+    initialZones: vm?.zones ?? [],
+    bbox: vm?.sourceBbox ?? null,
+    unitRatio,
+    documents,
+    placements: editor.placements,
+    create: editor.create,
+    canWrite: grants.zoneWrite,
+    canPlace: grants.create,
+    onChanged,
+    expandPanel: useCallback(() => panel.setCollapsed(false), [panel]),
+  });
+
+  // The card tour waits for the picker a zone click opens: two aria-modal layers fight over Tab and Escape.
+  zoneTours.want(zones.editorReady && grants.zoneWrite, zones.selected !== null && zones.pick === null);
+  const handlers = usePageHandlers({
     mode,
     measure,
     editor,
@@ -187,6 +202,8 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     openSection: sections.reveal,
     canDeleteMeasurements: grants.measureDelete,
   });
+  const { view, failedAt } = handlers;
+  const on = useZoneInput(zones, handlers.on, beforeEscape, documents.escape);
 
   if (me.isPending || scene.isPending) return { status: "loading" };
   // Only the *scene's* 404 means "no such territory, or not this reader's". A
@@ -214,7 +231,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
         chains: measure.chains,
         activeChainId: measure.activeChainId,
         summary: {
-          ...measureSummary(measure.chains, computeUnitRatio(dims)),
+          ...measureSummary(measure.chains, unitRatio),
           unsaved: notSaved(measure.chains, measure.activeChainId, grants.measureCreate),
         },
         show: ruler.showMeasurements,
@@ -227,8 +244,10 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
       form: form.form,
       tour,
       panoramaTour,
+      zoneTours,
       panoramas,
       documents,
+      zones,
       panel: { tab: panel.tab, collapsed: panel.collapsed },
       sections,
       view: {
@@ -244,7 +263,8 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
         ),
         now: failedAt ?? UNSTAMPED,
       },
-      on,
+      // The rail's Replay belongs to what is on screen: the editor, a zone's card, else the scene.
+      on: { ...on, onReplayTour: zoneTours.replayOf(tour).restart },
     }),
   };
 }

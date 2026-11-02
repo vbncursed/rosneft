@@ -5,6 +5,7 @@ import type { ModelCardModel } from "@/entities/model";
 import { ModelsSection } from "./models-section";
 
 const card = (slug: string): ModelCardModel => ({
+  tag: { slug: "tanks", title: "Tanks" },
   slug,
   title: slug,
   status: "ready",

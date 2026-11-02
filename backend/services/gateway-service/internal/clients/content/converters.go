@@ -51,5 +51,6 @@ func documentFromProto(d *contentv1.Document) domain.Document {
 		Title:          d.GetTitle(),
 		SourceBlobHash: d.GetSourceBlobHash(),
 		CreatedAt:      d.GetCreatedAt().AsTime(),
+		Calibration:    calibrationFromProto(d.GetCalibration()),
 	}
 }

@@ -7,6 +7,7 @@ import { PlaceObjectsModal } from "./place-objects-modal";
 
 const options: ModelOption[] = [
   {
+    tag: { slug: "tanks", title: "Tanks" },
     slug: "tank",
     title: "storage-tank-500",
     chain: [
@@ -15,7 +16,7 @@ const options: ModelOption[] = [
       { lod: 2, hash: "c", size: 1 },
     ],
   },
-  { slug: "raw", title: "not-yet", chain: [] },
+  { slug: "raw", title: "not-yet", tag: { slug: "tanks", title: "Tanks" }, chain: [] },
 ];
 
 describe("PlaceObjectsModal", () => {
@@ -225,7 +226,14 @@ describe("PlaceObjectsModal", () => {
         open
         onClose={vi.fn()}
         territoryTitle="T"
-        options={[{ slug: "one", title: "single", chain: [{ lod: 0, hash: "a", size: 1_048_576 }] }]}
+        options={[
+          {
+            slug: "one",
+            title: "single",
+            tag: { slug: "tanks", title: "Tanks" },
+            chain: [{ lod: 0, hash: "a", size: 1_048_576 }],
+          },
+        ]}
         placing={null}
         onPlace={vi.fn()}
       />,
@@ -252,5 +260,99 @@ describe("PlaceObjectsModal", () => {
 
     expect(onClose).toHaveBeenCalledOnce();
     expect(onPlace).not.toHaveBeenCalled();
+  });
+});
+
+describe("PlaceObjectsModal, opened from a zone", () => {
+  const pumps: ModelOption = {
+    slug: "pump",
+    title: "transfer-pump",
+    tag: { slug: "pumps", title: "Pumps" },
+    chain: [{ lod: 0, hash: "p", size: 1 }],
+  };
+  const library = [...options, pumps];
+  const zone = (models: ModelOption[]) => ({ title: "Tank row", models });
+  const open = (models: ModelOption[], onPlace = vi.fn()) =>
+    render(
+      <PlaceObjectsModal
+        open
+        onClose={vi.fn()}
+        territoryTitle="T"
+        options={library}
+        zone={zone(models)}
+        placing={null}
+        onPlace={onPlace}
+      />,
+    );
+
+  it("lists only the zone's models, and says whose they are", () => {
+    open([options[0]]);
+    expect(screen.getByRole("dialog", { name: "Add objects to Tank row" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /storage-tank-500/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /transfer-pump/ })).toBeNull();
+    expect(screen.getByRole("switch", { name: "Show all models" })).not.toBeChecked();
+  });
+
+  it("shows the whole library after Show all models, and the zone's again after switching it back", async () => {
+    open([options[0]]);
+    await userEvent.click(screen.getByRole("switch", { name: "Show all models" }));
+    expect(screen.getByRole("button", { name: /transfer-pump/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /not-yet/ })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("switch", { name: "Show all models" }));
+    expect(screen.queryByRole("button", { name: /transfer-pump/ })).toBeNull();
+  });
+
+  it("says no model carries the zone's tags, and offers the whole library", async () => {
+    open([]);
+    expect(screen.getByText("No catalog model carries this zone's tags.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("switch", { name: "Show all models" }));
+    expect(screen.getByRole("button", { name: /transfer-pump/ })).toBeInTheDocument();
+  });
+
+  it("searches inside whichever list is showing, and says which", async () => {
+    open([options[0], pumps]);
+    expect(screen.queryByRole("searchbox", { name: "Search the model library" })).toBeNull();
+    await userEvent.type(screen.getByRole("searchbox", { name: "Search this zone's models" }), "pump");
+    expect(screen.getByRole("button", { name: /transfer-pump/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /storage-tank-500/ })).toBeNull();
+  });
+
+  it("names the whole library in the search field once it is showing", async () => {
+    open([options[0]]);
+    await userEvent.click(screen.getByRole("switch", { name: "Show all models" }));
+    expect(screen.getByRole("searchbox", { name: "Search the model library" })).toBeInTheDocument();
+  });
+
+  it("drops the choice when the switch flips, so Place never puts a model the list no longer shows", async () => {
+    const onPlace = vi.fn();
+    open([options[0]], onPlace);
+    await userEvent.click(screen.getByRole("switch", { name: "Show all models" }));
+    await userEvent.click(screen.getByRole("button", { name: /transfer-pump/ }));
+    expect(screen.getByRole("button", { name: "Place" })).toBeEnabled();
+    await userEvent.click(screen.getByRole("switch", { name: "Show all models" }));
+    expect(screen.getByRole("button", { name: "Place" })).toBeDisabled();
+    expect(onPlace).not.toHaveBeenCalled();
+  });
+
+  it("places the chosen model with its count", async () => {
+    const onPlace = vi.fn();
+    open([options[0]], onPlace);
+    await userEvent.click(screen.getByRole("button", { name: /storage-tank-500/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Place" }));
+    expect(onPlace).toHaveBeenCalledWith("tank", 1);
+  });
+
+  it("has no zone switch when it was not opened from a zone", () => {
+    render(
+      <PlaceObjectsModal
+        open
+        onClose={vi.fn()}
+        territoryTitle="T"
+        options={options}
+        placing={null}
+        onPlace={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole("switch", { name: "Show all models" })).toBeNull();
   });
 });

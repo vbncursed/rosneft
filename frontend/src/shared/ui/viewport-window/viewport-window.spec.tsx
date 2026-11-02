@@ -99,6 +99,19 @@ describe("ViewportWindow", () => {
     expect(screen.getByTestId("resize-grip")).toHaveClass("[touch-action:none]", "size-5");
   });
 
+  it("lets the body show and pass clicks through while see-through, keeping the title bar", () => {
+    render(
+      <ViewportWindow title="f.pdf" geometry={GEO} actions={actions()} onResizeStart={vi.fn()} seeThrough>
+        <p>body</p>
+      </ViewportWindow>,
+    );
+    const win = screen.getByRole("dialog");
+    expect(win).toHaveClass("pointer-events-none");
+    expect(win).not.toHaveClass("pointer-events-auto", "bg-panel");
+    expect(screen.getByText("body").parentElement).toHaveClass("opacity-35");
+    expect(screen.getByText("f.pdf").parentElement).toHaveClass("pointer-events-auto");
+  });
+
   it("presses its action buttons", () => {
     render(
       <ViewportWindow title="f.pdf" geometry={GEO} actions={actions()}>

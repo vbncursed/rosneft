@@ -10,6 +10,7 @@ const doc: Document = {
   title: FILE,
   sourceBlobHash: "h1",
   createdAt: "2026-09-01T00:00:00Z",
+  calibration: null,
 };
 
 const GEO = { x: 300, y: 100, w: 560, h: 400 };

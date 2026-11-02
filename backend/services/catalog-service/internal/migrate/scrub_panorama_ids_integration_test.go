@@ -86,7 +86,8 @@ func (s *ScrubPanoramaIDsSuite) TestKeepsOnlyTheOwnTerritorysPanoramas() {
 	for _, slug := range []string{"a", "b"} {
 		s.id(`INSERT INTO territories (slug, title, source_blob_hash) VALUES ($1, $1, $1) RETURNING id`, slug)
 	}
-	s.id(`INSERT INTO models (slug, title, source_blob_hash) VALUES ('pump', 'pump', 'pump') RETURNING id`)
+	s.id(`INSERT INTO models (slug, title, source_blob_hash, tag_id)
+		SELECT 'pump', 'pump', 'pump', id FROM model_tags WHERE slug = 'ungrouped' RETURNING id`)
 	pano := func(territory, slug string) int64 {
 		return s.id(`INSERT INTO panoramas (territory_id, slug, title, source_blob_hash)
 			SELECT id, $2, $2, 'pano' FROM territories WHERE slug = $1 RETURNING id`, territory, slug)

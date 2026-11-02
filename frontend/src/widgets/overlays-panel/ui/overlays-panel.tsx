@@ -23,6 +23,8 @@ export type OverlaysPanelProps = {
   tourId?: string;
   view: ReactNode;
   placements: ReactNode;
+  /** The selected zone's card: above whichever tab is open, absent when no zone is selected. */
+  zone?: ReactNode;
 };
 
 const EDGES = "absolute right-3.5 top-3.5 bottom-3.5";
@@ -66,6 +68,7 @@ export function OverlaysPanel({
   tourId,
   view,
   placements,
+  zone,
 }: OverlaysPanelProps) {
   const [scrolled, setScrolled] = useState(false);
 
@@ -126,15 +129,18 @@ export function OverlaysPanel({
               </div>
             ) : null}
             {/* tabIndex 0: the body scrolls, and a keyboard reader cannot reach a
-                long placements list without a focusable scroll container. */}
+                long placements list without a focusable scroll container.
+                relative: an sr-only checkbox inside is absolute; anchored
+                outside this scroller, its focus scrolled the clipped aside. */}
             <div
               id={PANEL_ID}
               role="tabpanel"
               aria-labelledby={`${PANEL_ID}-${tab}`}
               tabIndex={0}
               onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 0)}
-              className="flex-1 overflow-auto scroll-pt-[26px] p-3.5"
+              className="relative flex-1 overflow-auto scroll-pt-[26px] p-3.5"
             >
+              {zone}
               {tab === "view" ? view : placements}
             </div>
           </div>

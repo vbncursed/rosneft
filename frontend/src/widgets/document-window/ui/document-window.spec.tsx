@@ -16,6 +16,7 @@ const doc: Document = {
   title: FILE,
   sourceBlobHash: "h",
   createdAt: "2026-09-01T00:00:00Z",
+  calibration: null,
 };
 
 const GEO: PipGeometry = { x: 10, y: 20, w: 560, h: 400 };

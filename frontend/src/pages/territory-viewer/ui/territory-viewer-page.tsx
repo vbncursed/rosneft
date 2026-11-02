@@ -34,6 +34,7 @@ export function TerritoryViewerPage({
   upload,
   tour,
   panoramaTour,
+  zoneTours,
   loadingScene,
 }: TerritoryViewerPageProps) {
   return (
@@ -65,6 +66,7 @@ export function TerritoryViewerPage({
             // the panel's root is a zero-height static block.
             tourId="overlays-tabs"
             view={<ViewTab {...panel.viewTab} />}
+            zone={panel.zone}
             placements={
               <div data-tour="objects-list">
                 <PlacementsPanel {...panel.placements} />
@@ -81,11 +83,13 @@ export function TerritoryViewerPage({
 
         <PlaceObjectsModal {...picker} />
         {upload ? <UploadModal {...upload} /> : null}
-        {/* Two tours, never both: the viewer's explains the scene, the
-            panorama's explains a capture, and only the one that was started
-            has a step to draw. */}
+        {/* Never two at once: the viewer's explains the scene, the panorama's
+            a capture, the zones' two the plan editor and a zone's card; only
+            the one that was started has a step to draw. */}
         <TourOverlay tour={tour} />
         <TourOverlay tour={panoramaTour} />
+        <TourOverlay tour={zoneTours.plan} />
+        <TourOverlay tour={zoneTours.card} />
       </div>
     </>
   );

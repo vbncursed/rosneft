@@ -20,8 +20,9 @@ import {
   type CurrentStats,
   type QueueRow,
 } from "./batch";
+import { useBatchTag, type BatchTag } from "./use-batch-tag";
 
-export type UploadModelsState = {
+export type UploadModelsState = BatchTag & {
   rows: QueueRow[];
   onFiles: (files: File[]) => void;
   onTitle: (id: string, title: string) => void;
@@ -50,6 +51,8 @@ export function useUploadModels(): UploadModelsState {
   const client = useQueryClient();
   const navigate = useNavigate();
   const [rows, setRows] = useState<QueueRow[]>([]);
+  const batchTag = useBatchTag();
+  const { tagSlug } = batchTag;
   const [running, setRunning] = useState(false);
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [progress, setProgress] = useState<UploadProgress | null>(null);
@@ -75,12 +78,12 @@ export function useUploadModels(): UploadModelsState {
   const onCancel = () => controller.current?.abort();
 
   const onRun = () => {
-    if (!canRun(rows, running)) return;
+    if (!canRun(rows, running, tagSlug)) return;
     setRunning(true);
-    void run();
+    void run(tagSlug!);
   };
 
-  async function run() {
+  async function run(chosenTag: string) {
     const ids = rowsRef.current.filter((r) => r.status === "queued" || r.status === "failed").map((r) => r.id);
     const created: { slug: string; jobId: string }[] = [];
     // A cancel means "stop and leave the queue as it is" — even a row or two
@@ -127,6 +130,7 @@ export function useUploadModels(): UploadModelsState {
           title: row.title.trim(),
           sourceBlobHash: finalized.hash,
           ...(thumbnailBlobHash ? { thumbnailBlobHash } : {}),
+          tagSlug: chosenTag,
         });
         patchRow(id, { status: "done", progress: 1 });
         created.push({ slug: model.slug, jobId: job.id });
@@ -184,6 +188,7 @@ export function useUploadModels(): UploadModelsState {
     stats: batchStats(rows),
     checks: MODEL_CHECKLIST,
     canUpload: can(me, "model:write"),
+    ...batchTag,
     // A deliberate cancel is not a "fix the archive and re-add it" failure —
     // it does not get the bad-callout treatment.
     failedNames: rows.filter((r) => r.status === "failed" && r.error !== "cancelled").map((r) => r.file.name),

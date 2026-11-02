@@ -63,6 +63,8 @@ type ModelUpdate struct {
 	Title             *string
 	Description       *string
 	ThumbnailBlobHash *string
+	// TagSlug moves the model to another tag; nil leaves it where it is.
+	TagSlug *string
 }
 
 // Model is the gateway view of a catalog model.
@@ -72,8 +74,11 @@ type Model struct {
 	Description       string
 	SourceBlobHash    string
 	ThumbnailBlobHash string
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
+	// Tag is the model's tag. On create only Tag.Slug is read: the caller
+	// names the tag, the catalog answers with its title.
+	Tag       ModelTag
+	CreatedAt time.Time
+	UpdatedAt time.Time
 	// UsageCount is how many distinct territories place this model. Filled on
 	// both the list endpoint and a single-model GET.
 	UsageCount int
@@ -138,6 +143,7 @@ type Job struct {
 type AssetOption struct {
 	Slug              string
 	Title             string
+	Tag               ModelTag
 	ThumbnailBlobHash string
 	BBoxMin           *Vec3
 	BBoxMax           *Vec3
@@ -160,6 +166,7 @@ type SceneBundle struct {
 	Measurements    []Measurement
 	PlacementGroups []PlacementGroup
 	PanoramaPhases  []PanoramaPhase
+	Zones           []Zone
 }
 
 // Placement is the gateway view of a positioned model on a territory.
@@ -180,18 +187,4 @@ type Placement struct {
 	Hidden bool
 	// GroupID is the placement's user group; nil when it is in none.
 	GroupID *int64
-}
-
-// UploadSession mirrors the upload-service session for the frontend.
-type UploadSession struct {
-	ID          string
-	Size        int64
-	Offset      int64
-	ContentType string
-}
-
-// FinalizedBlob is what /api/uploads/{id}/finalize returns.
-type FinalizedBlob struct {
-	Hash string
-	Size int64
 }

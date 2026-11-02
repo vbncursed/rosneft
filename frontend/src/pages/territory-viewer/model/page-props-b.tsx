@@ -50,11 +50,25 @@ export function viewTabProps(p: PageParts): ViewTabProps {
     details: detailsOf(p.slug, p.vm, inside !== null),
     panoramas: panoramasTabProps(p, anchorCard(p)),
     documents: {
-      rows: docs.list.map((document) => ({ id: document.id, name: documentFileName(document) })),
+      rows: docs.list.map((document) => ({
+        id: document.id,
+        name: documentFileName(document),
+        aligned: document.calibration !== null,
+      })),
       canUpload: grants.documentWrite,
       onUpload: docs.upload.onOpen,
-      onOpen: docs.onOpen,
+      // The plan editor and the PDF viewer take the same floating layer: opening one closes the other.
+      onOpen: (id) => {
+        p.zones.closeEditor();
+        docs.onOpen(id);
+      },
+      onAlign: p.zones.onAlign,
       fold: p.sections.documents,
+    },
+    zones: {
+      count: p.zones.list.length,
+      show: p.zones.show,
+      onToggle: p.zones.onToggleShow,
     },
     measurements: {
       saved: measure.chains.filter((c) => c.serverId != null).length,

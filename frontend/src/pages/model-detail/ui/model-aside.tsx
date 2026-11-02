@@ -3,11 +3,13 @@ import { useRef } from "react";
 import type { ConversionStatus } from "@/entities/conversion";
 import type { Artifact } from "@/entities/content";
 import { thumbnailUrl, type Model } from "@/entities/model";
+import type { ModelTag } from "@/entities/model-tag";
 import { ArtifactRow } from "@/shared/ui/artifact-row";
 import { EmptyState } from "@/shared/ui/card";
 import { DetailList } from "@/shared/ui/detail-list";
 import { Icon } from "@/shared/ui/icon";
 import { aboutRows, artifactRows } from "../model/detail";
+import { TagCard } from "./tag-card";
 
 export type ModelAsideProps = {
   model: Model;
@@ -16,6 +18,10 @@ export type ModelAsideProps = {
   jobError: string | null;
   canWrite: boolean;
   thumbnailBusy: boolean;
+  tags: ModelTag[] | undefined;
+  tagsError: string | null;
+  tagBusy: boolean;
+  onTag: (slug: string) => void;
   onThumbnail: (file: File) => void;
   onRemoveThumbnail: () => void;
   onEdit?: () => void;
@@ -123,6 +129,10 @@ export function ModelAside({
   jobError,
   canWrite,
   thumbnailBusy,
+  tags,
+  tagsError,
+  tagBusy,
+  onTag,
   onThumbnail,
   onRemoveThumbnail,
   onEdit,
@@ -143,6 +153,7 @@ export function ModelAside({
         </p>
         <DetailList items={aboutRows(model, artifacts)} />
       </div>
+      <TagCard tag={model.tag} tags={tags} tagsError={tagsError} canWrite={canWrite} busy={tagBusy} onTag={onTag} />
       <ArtifactsCard model={model} status={status} artifacts={artifacts} jobError={jobError} />
       <ThumbnailCard
         model={model}

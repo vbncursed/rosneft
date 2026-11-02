@@ -50,12 +50,26 @@ const panorama = {
   hidden: false,
   updatedAt: "",
 };
-const document = { id: 8, territorySlug: "t", title: "Plot plan.pdf", sourceBlobHash: "d", createdAt: "" };
+const document = {
+  id: 8,
+  territorySlug: "t",
+  title: "Plot plan.pdf",
+  sourceBlobHash: "d",
+  createdAt: "",
+  calibration: null,
+};
 const bundle: SceneBundle = {
   territory,
   artifact,
   placements: [placement],
-  modelOptions: [{ slug: "tank", title: "storage-tank-500", chain: [{ lod: 0, hash: "m0", size: 5 }] }],
+  modelOptions: [
+    {
+      slug: "tank",
+      title: "storage-tank-500",
+      tag: { slug: "tanks", title: "Tanks" },
+      chain: [{ lod: 0, hash: "m0", size: 5 }],
+    },
+  ],
   panoramas: [panorama],
   documents: [document],
   measurements: [
@@ -69,6 +83,7 @@ const bundle: SceneBundle = {
     },
   ],
   placementGroups: [],
+  zones: [],
   phaseHidden: { prior: false, current: false, post: false },
 };
 
@@ -112,6 +127,7 @@ describe("toSceneViewModel", () => {
     const vm = toSceneViewModel(bundle)!;
     expect(vm.panoramas).toBe(bundle.panoramas);
     expect(vm.documents).toBe(bundle.documents);
+    expect(vm.zones).toBe(bundle.zones);
     expect(vm.measurements).toBe(bundle.measurements);
   });
 

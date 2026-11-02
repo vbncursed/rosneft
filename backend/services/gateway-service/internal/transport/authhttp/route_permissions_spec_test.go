@@ -94,3 +94,19 @@ func (s *RoutePermsSpecSuite) TestEveryExceptionIsStillInTheSpec() {
 		assert.Assert(s.T(), mutations[route], "%s is excused but no longer in the spec", route)
 	}
 }
+
+// Tags are never deleted, so the spec carries no DELETE under /api/model-tags.
+func (s *RoutePermsSpecSuite) TestModelTagsHaveNoDeleteOperation() {
+	spec, err := httpapi.GetSpec()
+	assert.NilError(s.T(), err)
+	found := 0
+	for path, item := range spec.Paths.Map() {
+		if path != "/api/model-tags" && path != "/api/model-tags/{slug}" {
+			continue
+		}
+		found++
+		_, hasDelete := item.Operations()[http.MethodDelete]
+		assert.Assert(s.T(), !hasDelete, "%s must have no DELETE", path)
+	}
+	assert.Equal(s.T(), found, 2)
+}

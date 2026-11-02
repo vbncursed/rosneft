@@ -12,6 +12,7 @@ func sceneBundleToAPI(b domain.SceneBundle) SceneBundle {
 		Measurements:    measurementsToAPI(b.Measurements),
 		PlacementGroups: placementGroupsToAPI(b.PlacementGroups),
 		PanoramaPhases:  panoramaPhasesToAPI(b.PanoramaPhases),
+		Zones:           zonesToAPI(b.Zones),
 		Panoramas:       panoramasIfAny(b.Panoramas),
 		Documents:       documentsIfAny(b.Documents),
 	}
@@ -31,6 +32,7 @@ func assetOptionToAPI(m domain.AssetOption) AssetOption {
 	opt := AssetOption{
 		Slug:      m.Slug,
 		Title:     m.Title,
+		Tag:       modelTagToAPI(m.Tag),
 		Artifacts: lodChainToAPI(m.LODs),
 	}
 	if m.ThumbnailBlobHash != "" {

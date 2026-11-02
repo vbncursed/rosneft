@@ -138,7 +138,7 @@ describe("titleOf / showConsole / bareCard / plural", () => {
   it("looks a title up by kind and slug", () => {
     const f = titleOf(
       [{ slug: "a", title: "A", sourceBlobHash: "x", placementCount: 0 }],
-      [{ slug: "a", title: "Model A", sourceBlobHash: "x", usageCount: 0 }],
+      [{ slug: "a", title: "Model A", tag: { slug: "tanks", title: "Tanks" }, sourceBlobHash: "x", usageCount: 0 }],
     );
     expect(f("territory", "a")).toBe("A");
     expect(f("model", "a")).toBe("Model A");

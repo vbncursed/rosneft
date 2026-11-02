@@ -1,6 +1,7 @@
 import { lazy } from "react";
 
-export type { LodReport, ModelCanvasProps, ViewerCanvasProps } from "./ui/props";
+export type { LodReport, ModelCanvasProps, PlanPreview, SiteProps, ViewerCanvasProps } from "./ui/props";
+export type { Ground } from "./three/ground-probe";
 
 /** The default panorama texture decoder: the page hands it to usePanoramaTexture. */
 export { decodeImageBitmap } from "./three/image-bitmap";

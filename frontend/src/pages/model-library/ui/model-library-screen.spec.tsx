@@ -14,6 +14,7 @@ vi.mock("../model/use-model-library", () => ({ useModelLibrary }));
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
 
 const M1: ModelCardModel = {
+  tag: { slug: "tanks", title: "Tanks" },
   slug: "m-1",
   title: "M 1",
   status: "ready",
@@ -24,6 +25,7 @@ const M1: ModelCardModel = {
   trailing: { label: "in 6 territories", tone: "accent" },
 };
 const M2: ModelCardModel = {
+  tag: { slug: "tanks", title: "Tanks" },
   slug: "m-2",
   title: "M 2",
   status: "ready",

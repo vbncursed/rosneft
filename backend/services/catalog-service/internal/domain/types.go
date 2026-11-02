@@ -24,13 +24,15 @@ type Territory struct {
 
 // Model is a placeable 3D asset overlaid on a territory.
 type Model struct {
-	Slug              string    `yaml:"slug"`
-	Title             string    `yaml:"title"`
-	Description       string    `yaml:"description"`
-	SourceBlobHash    string    `yaml:"source_blob_hash"`
-	ThumbnailBlobHash string    `yaml:"thumbnail_blob_hash"`
-	CreatedAt         time.Time `yaml:"-"`
-	UpdatedAt         time.Time `yaml:"-"`
+	Slug              string `yaml:"slug"`
+	Title             string `yaml:"title"`
+	Description       string `yaml:"description"`
+	SourceBlobHash    string `yaml:"source_blob_hash"`
+	ThumbnailBlobHash string `yaml:"thumbnail_blob_hash"`
+	// Tag is the model's one required tag. On a write only Tag.Slug is read.
+	Tag       ModelTag  `yaml:"-"`
+	CreatedAt time.Time `yaml:"-"`
+	UpdatedAt time.Time `yaml:"-"`
 	// UsageCount is how many distinct territories place this model. Filled by
 	// both ListModels and GetModel.
 	UsageCount int `yaml:"-"`
@@ -54,6 +56,7 @@ type ModelPatch struct {
 	Title             *string
 	Description       *string
 	ThumbnailBlobHash *string
+	TagSlug           *string
 }
 
 // Vec3 is a 3D point used for bounding-box corners and placement transforms.

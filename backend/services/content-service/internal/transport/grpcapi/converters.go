@@ -47,5 +47,6 @@ func documentToProto(d domain.Document) *contentv1.Document {
 		Title:          d.Title,
 		SourceBlobHash: d.SourceBlobHash,
 		CreatedAt:      timestamppb.New(d.CreatedAt),
+		Calibration:    calibrationToProto(d.Calibration),
 	}
 }

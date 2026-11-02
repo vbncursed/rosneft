@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import type { Document } from "@/entities/document";
+import type { Calibration, Document } from "@/entities/document";
 import type { CalibrationDraft, Panorama, PanoramaPhase, PanoramaUpdate, PhaseHidden } from "@/entities/panorama";
 import type { Vec3 } from "@/entities/placement";
 import type { DocumentWindowMode } from "@/features/document-view";
@@ -109,6 +109,8 @@ export type DocumentParts = {
   window: DocumentWindowMode;
   pip: DocumentWindowProps["pip"];
   onOpen: (id: number) => void;
+  /** The alignment editor saved or removed a document's calibration. */
+  setCalibration: (id: number, calibration: Calibration | null) => void;
   onWindow: (mode: DocumentWindowMode) => void;
   /** Bound to the open document — the only one the window can delete. */
   onDelete: () => void;

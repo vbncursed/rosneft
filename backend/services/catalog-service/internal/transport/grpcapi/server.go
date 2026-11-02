@@ -42,6 +42,9 @@ type Service interface {
 	GetModel(ctx context.Context, slug string) (domain.Model, error)
 	ListModels(ctx context.Context, withArtifacts bool) ([]domain.Model, error)
 	DeleteModel(ctx context.Context, slug string) error
+	ListModelTags(ctx context.Context) ([]domain.ModelTag, error)
+	CreateModelTag(ctx context.Context, slug, title string) (domain.ModelTag, error)
+	UpdateModelTag(ctx context.Context, slug, title string) (domain.ModelTag, error)
 	RegisterModelArtifact(ctx context.Context, a domain.Artifact) (domain.Artifact, error)
 	GetModelArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)
 	ListModelArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)
@@ -85,6 +88,11 @@ type Service interface {
 	UpdateMeasurement(ctx context.Context, m domain.Measurement) (domain.Measurement, error)
 	DeleteMeasurement(ctx context.Context, territorySlug string, id int64) error
 	DeleteMeasurements(ctx context.Context, territorySlug string) (int, error)
+
+	ListZones(ctx context.Context, territorySlug string) ([]domain.Zone, error)
+	CreateZone(ctx context.Context, territorySlug string, z domain.ZoneCreate) (domain.Zone, error)
+	UpdateZone(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch) (domain.Zone, error)
+	DeleteZone(ctx context.Context, territorySlug string, id int64) error
 }
 
 // Server implements catalogv1.CatalogServiceServer over a Service.
@@ -114,6 +122,8 @@ var statusByCode = map[codes.Code][]error{
 		domain.ErrPlacementNotFound,
 		domain.ErrMeasurementNotFound,
 		domain.ErrPlacementGroupNotFound,
+		domain.ErrZoneNotFound,
+		domain.ErrModelTagNotFound,
 	},
 }
 

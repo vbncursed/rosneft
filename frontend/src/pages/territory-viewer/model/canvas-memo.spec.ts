@@ -4,7 +4,9 @@ import type { ModelOption } from "@/entities/scene";
 import { labelsOf, markerLabels, moveOf } from "./canvas-memo";
 
 describe("markerLabels", () => {
-  const OPTIONS: ModelOption[] = [{ slug: "storage-tank-500", title: "storage-tank-500", chain: [] }];
+  const OPTIONS: ModelOption[] = [
+    { slug: "storage-tank-500", title: "storage-tank-500", tag: { slug: "tanks", title: "Tanks" }, chain: [] },
+  ];
   const placement = (id: number): ResolvedPlacement => ({
     id,
     territorySlug: "refinery-block-c",

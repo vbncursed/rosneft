@@ -164,3 +164,14 @@ describe("LodSwitcher", () => {
     });
   });
 });
+
+describe("LodSwitcher tour anchor", () => {
+  it("emits the anchor on the group only when asked", () => {
+    const { rerender } = render(
+      <LodSwitcher levels={[0, 1]} choice="auto" target={0} shown={0} onChange={vi.fn()} dataTour="lod-switcher" />,
+    );
+    expect(screen.getByRole("radiogroup")).toHaveAttribute("data-tour", "lod-switcher");
+    rerender(<LodSwitcher levels={[0, 1]} choice="auto" target={0} shown={0} onChange={vi.fn()} />);
+    expect(screen.getByRole("radiogroup")).not.toHaveAttribute("data-tour");
+  });
+});

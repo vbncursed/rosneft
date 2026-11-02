@@ -4,6 +4,7 @@ import { matchesModel, tabCounts } from "./catalog";
 
 describe("tabCounts", () => {
   const card = (over: Partial<ModelCardModel> = {}): ModelCardModel => ({
+    tag: { slug: "tanks", title: "Tanks" },
     slug: "m",
     title: "M",
     status: "ready",
@@ -32,6 +33,7 @@ describe("tabCounts", () => {
 
 describe("matchesModel", () => {
   const card = (over: Partial<ModelCardModel> = {}): ModelCardModel => ({
+    tag: { slug: "tanks", title: "Tanks" },
     slug: "pump-jack-unit",
     title: "Pump Jack Unit",
     status: "ready",

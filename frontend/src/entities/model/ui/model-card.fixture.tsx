@@ -7,6 +7,7 @@ const PLACEHOLDER_THUMB =
 
 const CARDS: ModelCardModel[] = [
   {
+    tag: { slug: "tanks", title: "Tanks" },
     slug: "pump-jack-unit",
     title: "Pump Jack Unit",
     status: "ready",
@@ -17,6 +18,7 @@ const CARDS: ModelCardModel[] = [
     trailing: { label: "in 6 territories", tone: "accent" },
   },
   {
+    tag: { slug: "tanks", title: "Tanks" },
     slug: "ladder-platform",
     title: "Ladder Platform",
     status: "ready",
@@ -27,6 +29,7 @@ const CARDS: ModelCardModel[] = [
     trailing: { label: "unused", tone: "muted" },
   },
   {
+    tag: { slug: "tanks", title: "Tanks" },
     slug: "separator-vessel",
     title: "Separator Vessel",
     status: "converting",

@@ -1,18 +1,13 @@
 import type { Vec3 } from "@/entities/placement";
+import { sceneScale, utmToScene, type SourceBbox } from "@/entities/territory";
+
+export type { SourceBbox };
 
 // A GPS fix extracted from a photo's EXIF. Altitude may be absent.
 export interface GpsFix {
   lat: number;
   lon: number;
   alt: number | null;
-}
-
-// The territory model's source-unit bounding box, as exposed by the
-// artifact. It is already in the converter's Y-up frame: x = UTM easting,
-// y = elevation, z = -(UTM northing).
-export interface SourceBbox {
-  min: Vec3;
-  max: Vec3;
 }
 
 const WGS84_A = 6378137.0;
@@ -72,17 +67,9 @@ function wgs84ToUtm(lat: number, lon: number, zone: number): Utm {
 // 2 units. Altitude drives y; when absent, y falls back to the bbox center.
 export function gpsToScenePosition(fix: GpsFix, bbox: SourceBbox): Vec3 | null {
   const { easting, northing } = wgs84ToUtm(fix.lat, fix.lon, utmZone(fix.lon));
-  const sx = easting;
-  const sz = -northing;
-  if (sx < bbox.min.x || sx > bbox.max.x || sz < bbox.min.z || sz > bbox.max.z) {
-    return null;
-  }
-  const cx = (bbox.min.x + bbox.max.x) / 2;
+  const xz = utmToScene(easting, northing, bbox);
+  const scale = sceneScale(bbox);
+  if (!xz || scale === null) return null;
   const cy = (bbox.min.y + bbox.max.y) / 2;
-  const cz = (bbox.min.z + bbox.max.z) / 2;
-  const maxDim = Math.max(bbox.max.x - bbox.min.x, bbox.max.y - bbox.min.y, bbox.max.z - bbox.min.z);
-  if (maxDim <= 0) return null;
-  const scale = 2 / maxDim;
-  const sy = fix.alt ?? cy;
-  return { x: (sx - cx) * scale, y: (sy - cy) * scale, z: (sz - cz) * scale };
+  return { x: xz.x, y: ((fix.alt ?? cy) - cy) * scale, z: xz.z };
 }

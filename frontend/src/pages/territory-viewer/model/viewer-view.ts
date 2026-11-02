@@ -49,6 +49,7 @@ export type Grants = {
   measureCreate: boolean;
   measureWrite: boolean;
   measureDelete: boolean;
+  zoneWrite: boolean;
 };
 
 /** What `me` may do on this page — `null` (not answered yet) may do nothing. */
@@ -65,6 +66,7 @@ export const grantsOf = (me: Principal | null): Grants => ({
   measureCreate: can(me, "measurement:create"),
   measureWrite: can(me, "measurement:write"),
   measureDelete: can(me, "measurement:delete"),
+  zoneWrite: can(me, "zone:write"),
 });
 
 /** The three measurement grants, in the shape the sync plan reads. */
@@ -236,3 +238,7 @@ export function errorCopy(e: ViewerError, at: Date): ErrorCopy {
  * the one row whose whole job is the date; the mock spells it `4 Sep 2026`.
  */
 export const uploadedLine = (iso: string | null): string => longDate(iso ?? undefined) ?? "—";
+
+/** Responsive thresholds for the viewer controls. */
+export const COMPACT = "(max-width: 1280px)";
+export const TOUCH = "(hover: none) and (pointer: coarse)";

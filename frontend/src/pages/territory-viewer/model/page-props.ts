@@ -1,6 +1,7 @@
 import { canEditSaved, computeUnitRatio } from "@/entities/measurement";
 import { groupByModel } from "@/entities/placement";
 import { documentProps, loadingLevel, panoramaCanvasProps, uploadProps, viewTabProps } from "./page-props-b";
+import { planLayer, zoneCard, zonePicker } from "./page-props-zones";
 import { memoLast } from "./memo-last";
 import { placementsPanelProps } from "./page-props-placements";
 import { freeKeys, loadingChip, measuringView, modeChip, stripItems } from "./strip-and-chips";
@@ -103,6 +104,8 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       retryVersion: view.retryVersion,
       focusRequest: view.focusRequest,
       ...panoramaCanvasProps(p, groups),
+      site: p.zones.site,
+      pickScene: p.zones.pickScene,
       onPick: on.onPick,
       onTransformCommit: on.onTransformCommit,
       onMeasurePoint: on.onMeasurePoint,
@@ -123,7 +126,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
         // Either tour: the replay tile lit under the panorama tour would
         // start the viewer's over the top of it, and the two are never both
         // on screen.
-        tourActive: p.tour.active || p.panoramaTour.active,
+        tourActive: p.tour.active || p.panoramaTour.active || p.zoneTours.plan.active || p.zoneTours.card.active,
         view: mode.view,
         documentOpen: docs.window !== null,
         playing: view.playing,
@@ -180,6 +183,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       switchTo3d: inside ? p.panoramas.onExit : null,
       document: docs.window,
       documentLayerRef: p.documents.layerRef,
+      plan: planLayer(p),
       error: error
         ? {
             copy: errorCopy(error, view.now),
@@ -207,9 +211,10 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
           placementsCount: p.placements.length,
           viewTab: viewTabProps(p),
           placements: placementsPanelProps(p, groups),
+          zone: zoneCard(p),
         },
 
-    picker: {
+    picker: zonePicker(p) ?? {
       open: view.pickerOpen,
       onClose: on.onClosePicker,
       territoryTitle: title,
@@ -221,6 +226,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
     upload: uploadProps(p),
     tour: p.tour,
     panoramaTour: p.panoramaTour,
+    zoneTours: p.zoneTours,
     loadingScene: !failed && report.shown === null,
   };
 }

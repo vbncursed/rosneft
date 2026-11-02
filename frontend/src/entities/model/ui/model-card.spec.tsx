@@ -4,6 +4,7 @@ import type { ModelCardModel } from "../model/model-card";
 import { ModelCard } from "./model-card";
 
 const card = (over: Partial<ModelCardModel> = {}): ModelCardModel => ({
+  tag: { slug: "tanks", title: "Tanks" },
   slug: "pump-jack-unit",
   title: "Pump Jack Unit",
   status: "ready",
@@ -21,6 +22,11 @@ describe("ModelCard", () => {
     expect(screen.getByRole("link", { name: "Pump Jack Unit" })).toHaveAttribute("href", "/models/pump-jack-unit");
     expect(screen.getByText("pump-jack-unit")).toBeInTheDocument();
     expect(screen.getByText("in 6 territories")).toBeInTheDocument();
+  });
+
+  it("prints the model's tag as a chip", () => {
+    render(<ModelCard card={card()} href="#" />);
+    expect(screen.getByText("Tanks")).toBeInTheDocument();
   });
 
   it("draws the size only when handed as meta", () => {

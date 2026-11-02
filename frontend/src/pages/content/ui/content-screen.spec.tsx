@@ -20,6 +20,8 @@ const { useContent, navigate } = vi.hoisted(() => ({
   navigate: vi.fn(),
 }));
 vi.mock("../model/use-content", () => ({ useContent }));
+// The card fetches on its own; its behaviour is the feature's spec.
+vi.mock("@/features/manage-model-tags", () => ({ ModelTagsCard: () => <section aria-label="Tags" /> }));
 // A stand-in for the router context: the screen is rendered on its own.
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
 
@@ -49,6 +51,18 @@ const state = (over: Partial<ContentState> = {}): ContentState => ({
   storageBytes: 412 * 1024 * 1024,
   canManage: true,
   canCreateTerritory: true,
+  canManageTags: true,
+  tagsTour: {
+    active: false,
+    step: null,
+    stepIndex: 0,
+    total: 2,
+    isLast: false,
+    next: vi.fn(),
+    prev: vi.fn(),
+    skip: vi.fn(),
+    restart: vi.fn(),
+  },
   canDelete: () => true,
   artifactsOf: () => [artifact()],
   jobOf: () => undefined,
@@ -185,6 +199,16 @@ describe("ContentScreen", () => {
     expect(screen.queryByRole("button", { name: /^Row actions for / })).not.toBeInTheDocument();
   });
 
+  it("draws the Tags card only with model:write", () => {
+    useContent.mockReturnValue(state());
+    const { unmount } = render(<ContentScreen />);
+    expect(screen.getByRole("region", { name: "Tags" })).toBeInTheDocument();
+    unmount();
+    useContent.mockReturnValue(state({ canManageTags: false }));
+    render(<ContentScreen />);
+    expect(screen.queryByRole("region", { name: "Tags" })).not.toBeInTheDocument();
+  });
+
   it("draws no Replace source for a model and no Delete without the grant", () => {
     useContent.mockReturnValue(state({ selected: M, canDelete: () => false }));
     render(<ContentScreen />);
@@ -271,5 +295,24 @@ describe("ContentScreen", () => {
     const dialog = screen.getByRole("dialog", { name: "Delete T 1?" });
     await userEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
     expect(s.confirm).toHaveBeenCalled();
+  });
+});
+
+describe("ContentScreen tags tour", () => {
+  it("draws the tour over the page while it runs", () => {
+    const tagsTour = {
+      active: true,
+      step: { id: "content-tags", center: true as const, title: "Model tags", body: "About tags." },
+      stepIndex: 0,
+      total: 2,
+      isLast: false,
+      next: vi.fn(),
+      prev: vi.fn(),
+      skip: vi.fn(),
+      restart: vi.fn(),
+    };
+    useContent.mockReturnValue(state({ tagsTour }));
+    render(<ContentScreen />);
+    expect(screen.getByRole("dialog", { name: "Tour step 1 of 2" })).toHaveAttribute("aria-modal", "true");
   });
 });

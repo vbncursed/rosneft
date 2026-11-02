@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { deleteDocument, type Document } from "@/entities/document";
+import { deleteDocument, type Calibration, type Document } from "@/entities/document";
 import { messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
 
@@ -24,6 +24,13 @@ export function useDocumentList({ slug, initial, onChanged }: DocumentListParams
   }, [documents]);
 
   const add = useCallback((d: Document) => setDocuments((prev) => [...prev, d]), []);
+
+  // The alignment editor saved or removed a calibration: the row follows without a read.
+  const setCalibration = useCallback(
+    (id: number, calibration: Calibration | null) =>
+      setDocuments((prev) => prev.map((d) => (d.id === id ? { ...d, calibration } : d))),
+    [],
+  );
 
   // Optimistically drop the row, then issue the DELETE; on failure restore
   // the previous list and surface the error.
@@ -50,5 +57,5 @@ export function useDocumentList({ slug, initial, onChanged }: DocumentListParams
     [slug, onChanged],
   );
 
-  return { documents, pendingId, add, remove };
+  return { documents, pendingId, add, remove, setCalibration };
 }
