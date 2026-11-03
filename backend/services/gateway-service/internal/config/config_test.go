@@ -4,61 +4,53 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/suite"
+	"gotest.tools/v3/assert"
 )
 
-func TestLoad(t *testing.T) {
+type ConfigSuite struct{ suite.Suite }
+
+func TestConfigSuite(t *testing.T) { suite.Run(t, new(ConfigSuite)) }
+
+func (s *ConfigSuite) TestLoad() {
+	t := s.T()
 	t.Setenv("GATEWAY_HTTP_ADDR", "")
 	t.Setenv("GATEWAY_COOKIE_SECURE", "")
 	t.Setenv("GATEWAY_ALLOWED_ORIGINS", "")
 
 	t.Run("defaults", func(t *testing.T) {
 		cfg, err := Load(&cobra.Command{})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if cfg.HTTPAddr != ":8080" || !cfg.CookieSecure || len(cfg.AllowedOrigins) != 0 {
-			t.Errorf("defaults: HTTPAddr=%q CookieSecure=%v AllowedOrigins=%v",
-				cfg.HTTPAddr, cfg.CookieSecure, cfg.AllowedOrigins)
-		}
+		assert.NilError(t, err)
+		assert.Equal(t, cfg.HTTPAddr, ":8080")
+		assert.Assert(t, cfg.CookieSecure)
+		assert.Equal(t, len(cfg.AllowedOrigins), 0)
 	})
 
 	t.Run("environment overrides default", func(t *testing.T) {
 		t.Setenv("GATEWAY_HTTP_ADDR", ":1234")
 		cfg, err := Load(&cobra.Command{})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if cfg.HTTPAddr != ":1234" {
-			t.Errorf("HTTPAddr = %q, want :1234", cfg.HTTPAddr)
-		}
+		assert.NilError(t, err)
+		assert.Equal(t, cfg.HTTPAddr, ":1234")
 	})
 
 	t.Run("flag overrides environment", func(t *testing.T) {
 		t.Setenv("GATEWAY_HTTP_ADDR", ":1234")
 		cmd := &cobra.Command{}
 		cmd.Flags().String("http-addr", "", "")
-		if err := cmd.Flags().Set("http-addr", ":5678"); err != nil {
-			t.Fatal(err)
-		}
+		assert.NilError(t, cmd.Flags().Set("http-addr", ":5678"))
 		cfg, err := Load(cmd)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if cfg.HTTPAddr != ":5678" {
-			t.Errorf("HTTPAddr = %q, want :5678", cfg.HTTPAddr)
-		}
+		assert.NilError(t, err)
+		assert.Equal(t, cfg.HTTPAddr, ":5678")
 	})
 }
 
-func TestConfig_Validate(t *testing.T) {
+func (s *ConfigSuite) TestValidate() {
 	valid := Config{
 		CatalogGRPCAddr: "catalog", AuditGRPCAddr: "audit", ContentGRPCAddr: "content",
 		MeshGRPCAddr: "mesh", UploadGRPCAddr: "upload", AuthGRPCAddr: "auth",
 		AssetHTTPAddr: "asset", CSRFSecret: "secret",
 	}
-	if err := valid.Validate(); err != nil {
-		t.Fatalf("valid configuration: %v", err)
-	}
+	assert.NilError(s.T(), valid.Validate())
 
 	cases := []struct {
 		name  string
@@ -74,14 +66,10 @@ func TestConfig_Validate(t *testing.T) {
 		{"csrf-secret", func(c *Config) { c.CSRFSecret = "" }},
 	}
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		s.T().Run(tc.name, func(t *testing.T) {
 			cfg := valid
 			tc.clear(&cfg)
-			err := cfg.Validate()
-			want := "config: " + tc.name + " is required"
-			if err == nil || err.Error() != want {
-				t.Errorf("Validate() = %v, want %q", err, want)
-			}
+			assert.Error(t, cfg.Validate(), "config: "+tc.name+" is required")
 		})
 	}
 }
