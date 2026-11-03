@@ -71,7 +71,7 @@ const SCENE: ViewerView = { kind: "scene" };
  * outlives a view switch. Escape now peels five layers: move, free, the
  * selection, the mode, then the panorama.
  */
-export function viewerModeReducer(state: ViewerModeState, action: ViewerModeAction): ViewerModeState {
+function sceneToolTransition(state: ViewerModeState, action: ViewerModeAction): ViewerModeState | undefined {
   switch (action.type) {
     case "toggleMeasure":
       return state.mode === "measure"
@@ -79,6 +79,17 @@ export function viewerModeReducer(state: ViewerModeState, action: ViewerModeActi
         : { ...state, mode: "measure", selectedId: null, move: false, free: false, walk: false };
     case "exitMeasure":
       return state.mode === "measure" ? { ...state, mode: "orbit" } : state;
+    case "enterPlace":
+      // B-5: inside a panorama nothing is placed — the tile is inert and the key is too.
+      if (state.view.kind === "panorama") return state;
+      return { ...state, mode: "place", selectedId: null, move: false, free: false, walk: false };
+    case "exitPlace":
+      return state.mode === "place" ? { ...state, mode: "orbit" } : state;
+  }
+}
+
+function selectionTransition(state: ViewerModeState, action: ViewerModeAction): ViewerModeState | undefined {
+  switch (action.type) {
     case "setGizmo":
       return { ...state, gizmo: action.gizmo };
     case "toggleSnap":
@@ -87,12 +98,46 @@ export function viewerModeReducer(state: ViewerModeState, action: ViewerModeActi
       return action.id === null
         ? { ...state, selectedId: null }
         : { ...state, mode: "orbit", selectedId: action.id, move: false };
-    case "enterPlace":
-      // B-5: inside a panorama nothing is placed — the tile is inert and the key is too.
+  }
+}
+
+function moveTransition(state: ViewerModeState, action: ViewerModeAction): ViewerModeState | undefined {
+  switch (action.type) {
+    case "toggleMove":
       if (state.view.kind === "panorama") return state;
-      return { ...state, mode: "place", selectedId: null, move: false, free: false, walk: false };
-    case "exitPlace":
-      return state.mode === "place" ? { ...state, mode: "orbit" } : state;
+      return state.move
+        ? { ...state, move: false }
+        : { ...state, move: true, mode: "orbit", selectedId: null, free: false, walk: false };
+    case "exitMove":
+      return state.move ? { ...state, move: false } : state;
+  }
+}
+
+function cameraTransition(state: ViewerModeState, action: ViewerModeAction): ViewerModeState | undefined {
+  switch (action.type) {
+    case "toggleFree":
+      // Inside a panorama the camera stands on the anchor: there is nowhere to fly.
+      if (state.view.kind === "panorama") return state;
+      return state.free
+        ? { ...state, free: false, walk: false }
+        : { ...state, free: true, walk: false, mode: "orbit", move: false };
+    case "exitFree":
+      return state.free ? { ...state, free: false, walk: false } : state;
+  }
+}
+
+function walkTransition(state: ViewerModeState, action: ViewerModeAction): ViewerModeState | undefined {
+  switch (action.type) {
+    case "toggleWalk":
+      // Walking is a way of moving the free cam; outside it there is nothing to walk with.
+      return state.free ? { ...state, walk: !state.walk } : state;
+    case "exitWalk":
+      return state.walk ? { ...state, walk: false } : state;
+  }
+}
+
+function panoramaTransition(state: ViewerModeState, action: ViewerModeAction): ViewerModeState | undefined {
+  switch (action.type) {
     case "enterPanorama":
       return {
         ...state,
@@ -104,26 +149,6 @@ export function viewerModeReducer(state: ViewerModeState, action: ViewerModeActi
       };
     case "exitPanorama":
       return state.view.kind === "scene" ? state : { ...state, view: SCENE };
-    case "toggleMove":
-      if (state.view.kind === "panorama") return state;
-      return state.move
-        ? { ...state, move: false }
-        : { ...state, move: true, mode: "orbit", selectedId: null, free: false, walk: false };
-    case "exitMove":
-      return state.move ? { ...state, move: false } : state;
-    case "toggleFree":
-      // Inside a panorama the camera stands on the anchor: there is nowhere to fly.
-      if (state.view.kind === "panorama") return state;
-      return state.free
-        ? { ...state, free: false, walk: false }
-        : { ...state, free: true, walk: false, mode: "orbit", move: false };
-    case "exitFree":
-      return state.free ? { ...state, free: false, walk: false } : state;
-    case "toggleWalk":
-      // Walking is a way of moving the free cam; outside it there is nothing to walk with.
-      return state.free ? { ...state, walk: !state.walk } : state;
-    case "exitWalk":
-      return state.walk ? { ...state, walk: false } : state;
     case "startEdit":
       // Editing a capture while standing inside a *different* one is
       // incoherent: the rig stands the eye on the edited anchor while the
@@ -137,6 +162,11 @@ export function viewerModeReducer(state: ViewerModeState, action: ViewerModeActi
       };
     case "closeEdit":
       return state.editingPanoramaId === null ? state : { ...state, editingPanoramaId: null };
+  }
+}
+
+function escapeTransition(state: ViewerModeState, action: ViewerModeAction): ViewerModeState | undefined {
+  switch (action.type) {
     case "escape":
       if (action.chainOpen) return state;
       if (state.move) return { ...state, move: false };
@@ -146,4 +176,17 @@ export function viewerModeReducer(state: ViewerModeState, action: ViewerModeActi
       if (state.view.kind === "panorama") return { ...state, view: SCENE };
       return state;
   }
+}
+
+export function viewerModeReducer(state: ViewerModeState, action: ViewerModeAction): ViewerModeState {
+  return (
+    sceneToolTransition(state, action) ??
+    selectionTransition(state, action) ??
+    moveTransition(state, action) ??
+    cameraTransition(state, action) ??
+    walkTransition(state, action) ??
+    panoramaTransition(state, action) ??
+    escapeTransition(state, action) ??
+    state
+  );
 }
