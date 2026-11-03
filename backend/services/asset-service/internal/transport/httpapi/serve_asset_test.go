@@ -12,7 +12,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/suite"
+	"gotest.tools/v3/assert"
+
 	"github.com/vbncursed/rosneft/backend/pkg/blobstore"
+	"github.com/vbncursed/rosneft/backend/services/asset-service/internal/service"
+	"github.com/vbncursed/rosneft/backend/services/asset-service/internal/service/mocks"
 	"github.com/vbncursed/rosneft/backend/services/asset-service/internal/transport/httpapi"
 )
 
@@ -130,6 +136,54 @@ func TestServeAssetStatErrorClasses(t *testing.T) {
 				!strings.Contains(logs.String(), "invalid character") {
 				t.Errorf("detail missing from the log line: %s", logs.String())
 			}
+		})
+	}
+}
+
+type seekableReader struct{ *strings.Reader }
+
+func (seekableReader) Close() error { return nil }
+
+type ServeAssetSuite struct{ suite.Suite }
+
+func TestServeAssetSuite(t *testing.T) { suite.Run(t, new(ServeAssetSuite)) }
+
+func (s *ServeAssetSuite) TestGetAndRange() {
+	tests := []struct {
+		name               string
+		reader             io.ReadCloser
+		err                error
+		status             int
+		body, contentRange string
+	}{
+		{"get error", nil, errors.New("secret disk error"), http.StatusInternalServerError, "internal error\n", ""},
+		{
+			"seekable range",
+			seekableReader{strings.NewReader(testBody)},
+			nil,
+			http.StatusPartialContent,
+			testBody[1:5],
+			"bytes 1-4/25",
+		},
+		{"nonseekable stream", io.NopCloser(bytes.NewBufferString(testBody)), nil, http.StatusOK, testBody, ""},
+	}
+	for _, tt := range tests {
+		s.T().Run(tt.name, func(t *testing.T) {
+			store := mocks.NewStoreMock(minimock.NewController(t))
+			blob := blobstore.Blob{Hash: testHash, Size: int64(len(testBody)), ContentType: "text/html"}
+			store.StatMock.Set(func(context.Context, string) (blobstore.Blob, error) { return blob, nil })
+			store.GetMock.Set(
+				func(context.Context, string) (io.ReadCloser, blobstore.Blob, error) { return tt.reader, blob, tt.err },
+			)
+			mux := http.NewServeMux()
+			httpapi.New(service.New(store), slog.New(slog.DiscardHandler)).Mount(mux)
+			req := httptest.NewRequest(http.MethodGet, "/assets/"+testHash, nil)
+			req.Header.Set("Range", "bytes=1-4")
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+			assert.Equal(t, rec.Code, tt.status)
+			assert.Equal(t, rec.Body.String(), tt.body)
+			assert.Equal(t, rec.Header().Get("Content-Range"), tt.contentRange)
 		})
 	}
 }
