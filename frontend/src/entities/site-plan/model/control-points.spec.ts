@@ -65,4 +65,25 @@ describe("controlPoints on synthetic text", () => {
       ["ME2", 4, 3],
     ]);
   });
+
+  it("chooses the nearest unused coordinate for each labelled axis", () => {
+    const text = {
+      items: [
+        item("ME1", 10, 90),
+        item("E:20", 10, 84),
+        item("E:10", 10, 88),
+        item("N:40", 10, 83),
+        item("N:30", 10, 87),
+      ],
+    };
+    expect(controlPoints(text, FLIP)).toEqual([
+      { label: "ME1", at: { x: 10, y: 10 }, e: 10, n: 30 },
+      { label: "Plan point", at: { x: 10, y: 16 }, e: 20, n: 40 },
+    ]);
+  });
+
+  it("uses the first matching N for a bare pair, even when another is closer", () => {
+    const text = { items: [item("E:1", 10, 90), item("N:2", 10, 82), item("N:3", 10, 89)] };
+    expect(controlPoints(text, FLIP)).toEqual([{ label: "Plan point", at: { x: 10, y: 10 }, e: 1, n: 2 }]);
+  });
 });

@@ -114,4 +114,25 @@ describe("extractPaths", () => {
     );
     expect(p?.closed).toBe(true);
   });
+
+  it("keeps paint state through restore and ignores empty values and unknown paths", () => {
+    const paths = extractPaths(
+      list(
+        [OPS.restore, null],
+        [OPS.setStrokeRGBColor, ["red"]],
+        [OPS.setLineWidth, [2]],
+        [OPS.save, null],
+        [OPS.setStrokeRGBColor, []],
+        [OPS.setLineWidth, []],
+        [OPS.restore, null],
+        [OPS.constructPath, [OPS.stroke, [undefined]]],
+        path(OPS.stroke, 1, 3, 4, 99, 0, 0),
+      ),
+      OPS,
+      [1, 0, 0, 1, 0, 0],
+    );
+    expect(paths).toEqual([
+      { points: [{ x: 3, y: 4 }], closed: false, paint: "stroke", stroke: null, fill: null, lineWidth: 2 },
+    ]);
+  });
 });
