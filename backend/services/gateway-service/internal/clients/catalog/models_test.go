@@ -37,14 +37,17 @@ func TestUpdateModelNotFoundIsTheSentinel(t *testing.T) {
 
 type CatalogListsSuite struct {
 	suite.Suite
-	cc          *grpcmock.ClientConnInterfaceMock
-	cli         *Client
-	ctx         context.Context
-	method      string
-	request     any
-	models      []*catalogv1.Model
-	territories []*catalogv1.Territory
-	err         error
+	cc                 *grpcmock.ClientConnInterfaceMock
+	cli                *Client
+	ctx                context.Context
+	method             string
+	request            any
+	models             []*catalogv1.Model
+	territories        []*catalogv1.Territory
+	placements         []*catalogv1.Placement
+	modelArtifacts     []*catalogv1.ModelArtifact
+	territoryArtifacts []*catalogv1.TerritoryArtifact
+	err                error
 }
 
 func TestCatalogListsSuite(t *testing.T) { suite.Run(t, new(CatalogListsSuite)) }
@@ -55,6 +58,12 @@ func (s *CatalogListsSuite) SetupTest() {
 	s.cc.InvokeMock.Set(func(ctx context.Context, method string, req, reply any, _ ...grpc.CallOption) error {
 		s.ctx, s.method, s.request = ctx, method, req
 		switch r := reply.(type) {
+		case *catalogv1.ListPlacementsResponse:
+			r.Placements = s.placements
+		case *catalogv1.ListModelArtifactsResponse:
+			r.Artifacts = s.modelArtifacts
+		case *catalogv1.ListTerritoryArtifactsResponse:
+			r.Artifacts = s.territoryArtifacts
 		case *catalogv1.ListModelsResponse:
 			r.Models = s.models
 		case *catalogv1.ListTerritoriesResponse:
@@ -147,6 +156,61 @@ func (s *CatalogListsSuite) TestModelsErrors() {
 			assert.Assert(s.T(), errors.Is(err, tc.cause))
 			if tc.invalid {
 				assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
+			}
+		})
+	}
+}
+
+func (s *CatalogListsSuite) TestListModelArtifacts() {
+	s.modelArtifacts = []*catalogv1.ModelArtifact{
+		{
+			ModelSlug:   "yard",
+			Lod:         2,
+			Hash:        "hash",
+			ContentType: "model/gltf-binary",
+			Size:        42,
+			Vertices:    43,
+			Faces:       44,
+			BboxMin:     &catalogv1.Vec3{X: -1, Y: -2, Z: -3},
+			BboxMax:     &catalogv1.Vec3{X: 4, Y: 5, Z: 6},
+			CreatedAt:   timestamppb.New(listStamp),
+			PlainHash:   "plain",
+		},
+	}
+	ctx := s.T().Context()
+	got, err := s.cli.ListModelArtifacts(ctx, "yard")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), s.method, catalogv1.CatalogService_ListModelArtifacts_FullMethodName)
+	assert.Assert(s.T(), s.ctx == ctx)
+	assert.Equal(s.T(), s.request.(*catalogv1.ListModelArtifactsRequest).GetModelSlug(), "yard")
+	assert.Equal(s.T(), len(got), 1)
+	assert.Equal(s.T(), got[0].Slug, "yard")
+	assert.Equal(s.T(), got[0].LOD, uint32(2))
+	assert.Equal(s.T(), got[0].Hash, "hash")
+	assert.Equal(s.T(), got[0].Size, int64(42))
+	assert.Equal(s.T(), got[0].ContentType, "model/gltf-binary")
+	assert.Equal(s.T(), got[0].Vertices, uint64(43))
+	assert.Equal(s.T(), got[0].Faces, uint64(44))
+	assert.DeepEqual(s.T(), got[0].BBoxMin, domain.Vec3{X: -1, Y: -2, Z: -3})
+	assert.DeepEqual(s.T(), got[0].BBoxMax, domain.Vec3{X: 4, Y: 5, Z: 6})
+	assert.Assert(s.T(), got[0].CreatedAt.Equal(listStamp))
+	assert.Equal(s.T(), got[0].PlainHash, "plain")
+	for _, tc := range []struct {
+		name        string
+		cause, want error
+	}{
+		{"not found", status.Error(codes.NotFound, "missing"), domain.ErrModelNotFound},
+		{"unavailable", status.Error(codes.Unavailable, "offline"), nil},
+	} {
+		s.Run(tc.name, func() {
+			s.err = tc.cause
+			got, err := s.cli.ListModelArtifacts(ctx, "yard")
+			assert.Assert(s.T(), got == nil)
+			assert.ErrorContains(s.T(), err, "catalog.ListModelArtifacts:")
+			if tc.want != nil {
+				assert.ErrorIs(s.T(), err, tc.want)
+			} else {
+				assert.ErrorIs(s.T(), err, tc.cause)
 			}
 		})
 	}

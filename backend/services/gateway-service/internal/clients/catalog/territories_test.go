@@ -110,3 +110,58 @@ func (s *CatalogListsSuite) TestTerritoriesErrors() {
 		})
 	}
 }
+
+func (s *CatalogListsSuite) TestListTerritoryArtifacts() {
+	s.territoryArtifacts = []*catalogv1.TerritoryArtifact{
+		{
+			TerritorySlug: "yard",
+			Lod:           2,
+			Hash:          "hash",
+			ContentType:   "model/gltf-binary",
+			Size:          42,
+			Vertices:      43,
+			Faces:         44,
+			BboxMin:       &catalogv1.Vec3{X: -1, Y: -2, Z: -3},
+			BboxMax:       &catalogv1.Vec3{X: 4, Y: 5, Z: 6},
+			CreatedAt:     timestamppb.New(listStamp),
+			PlainHash:     "plain",
+		},
+	}
+	ctx := s.T().Context()
+	got, err := s.cli.ListTerritoryArtifacts(ctx, "yard")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), s.method, catalogv1.CatalogService_ListTerritoryArtifacts_FullMethodName)
+	assert.Assert(s.T(), s.ctx == ctx)
+	assert.Equal(s.T(), s.request.(*catalogv1.ListTerritoryArtifactsRequest).GetTerritorySlug(), "yard")
+	assert.Equal(s.T(), len(got), 1)
+	assert.Equal(s.T(), got[0].Slug, "yard")
+	assert.Equal(s.T(), got[0].LOD, uint32(2))
+	assert.Equal(s.T(), got[0].Hash, "hash")
+	assert.Equal(s.T(), got[0].Size, int64(42))
+	assert.Equal(s.T(), got[0].ContentType, "model/gltf-binary")
+	assert.Equal(s.T(), got[0].Vertices, uint64(43))
+	assert.Equal(s.T(), got[0].Faces, uint64(44))
+	assert.DeepEqual(s.T(), got[0].BBoxMin, domain.Vec3{X: -1, Y: -2, Z: -3})
+	assert.DeepEqual(s.T(), got[0].BBoxMax, domain.Vec3{X: 4, Y: 5, Z: 6})
+	assert.Assert(s.T(), got[0].CreatedAt.Equal(listStamp))
+	assert.Equal(s.T(), got[0].PlainHash, "plain")
+	for _, tc := range []struct {
+		name        string
+		cause, want error
+	}{
+		{"not found", status.Error(codes.NotFound, "missing"), domain.ErrTerritoryNotFound},
+		{"unavailable", status.Error(codes.Unavailable, "offline"), nil},
+	} {
+		s.Run(tc.name, func() {
+			s.err = tc.cause
+			got, err := s.cli.ListTerritoryArtifacts(ctx, "yard")
+			assert.Assert(s.T(), got == nil)
+			assert.ErrorContains(s.T(), err, "catalog.ListTerritoryArtifacts:")
+			if tc.want != nil {
+				assert.ErrorIs(s.T(), err, tc.want)
+			} else {
+				assert.ErrorIs(s.T(), err, tc.cause)
+			}
+		})
+	}
+}
