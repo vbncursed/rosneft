@@ -134,6 +134,75 @@ func (s *TwoFASuite) TestEnableLeavesTwoFAOffWhenSavingTheCodesFailsAndARetrySuc
 	assert.Equal(s.T(), len(codes), 10)
 }
 
+func (s *TwoFASuite) TestEnableRejectsMissingOrInvalidCredentials() {
+	boom := errors.New("store unavailable")
+	for _, tt := range []struct {
+		name       string
+		credential domain.Credential
+		storeErr   error
+		want       error
+	}{
+		{"store failure", domain.Credential{}, boom, boom},
+		{"already enabled", domain.Credential{Enabled: true}, nil, domain.ErrTwoFAAlreadyEnabled},
+		{"no pending secret", domain.Credential{}, nil, domain.ErrTwoFANotEnabled},
+	} {
+		s.Run(tt.name, func() {
+			mc := minimock.NewController(s.T())
+			store := mocks.NewStoreMock(mc).GetMock.Expect(s.ctx, "u1").Return(tt.credential, tt.storeErr)
+			svc := twofa.New(
+				store,
+				mocks.NewRecoveryMock(mc),
+				mocks.NewCipherMock(mc),
+				mocks.NewRateLimiterMock(mc),
+				"Andrey",
+			)
+			codes, err := svc.Enable(s.ctx, "u1", "123456")
+			assert.ErrorIs(s.T(), err, tt.want)
+			assert.Assert(s.T(), codes == nil)
+		})
+	}
+}
+
+func (s *TwoFASuite) TestEnablePropagatesDecryptAndClaimErrors() {
+	secret, code := s.enrolled()
+	boom := errors.New("operation failed")
+	for _, stage := range []string{"decrypt", "claim"} {
+		s.Run(stage, func() {
+			mc := minimock.NewController(s.T())
+			store := mocks.NewStoreMock(mc).
+				GetMock.Expect(s.ctx, "u1").
+				Return(domain.Credential{Secret: []byte("ct")}, nil)
+			cipher, limiter := mocks.NewCipherMock(mc), mocks.NewRateLimiterMock(mc)
+			if stage == "decrypt" {
+				cipher.DecryptMock.Expect([]byte("ct")).Return(nil, boom)
+			} else {
+				cipher.DecryptMock.Expect([]byte("ct")).Return([]byte(secret), nil)
+				limiter.ClaimStepMock.Return(false, boom)
+			}
+			codes, err := twofa.New(store, mocks.NewRecoveryMock(mc), cipher, limiter, "Andrey").
+				Enable(s.ctx, "u1", code)
+			assert.ErrorIs(s.T(), err, boom)
+			assert.Assert(s.T(), codes == nil)
+		})
+	}
+}
+
+func (s *TwoFASuite) TestEnableDoesNotReturnRecoveryCodesWhenEnablingFails() {
+	secret, code := s.enrolled()
+	boom := errors.New("store unavailable")
+	s.st.GetMock.Expect(s.ctx, "u1").Return(domain.Credential{Secret: []byte("ct")}, nil)
+	s.ciph.DecryptMock.Expect([]byte("ct")).Return([]byte(secret), nil)
+	s.lim.ClaimStepMock.Return(true, nil)
+	s.rec.ReplaceMock.ExpectUserIDParam2("u1").Return(nil)
+	s.st.SetMock.Expect(s.ctx, "u1", true, []byte("ct")).Return(boom)
+
+	codes, err := s.svc.Enable(s.ctx, "u1", code)
+
+	assert.ErrorIs(s.T(), err, boom)
+	assert.Assert(s.T(), codes == nil)
+	assert.Equal(s.T(), s.rec.ReplaceAfterCounter(), uint64(1))
+}
+
 func (s *TwoFASuite) TestVerifyLockedShortCircuits() {
 	s.lim.TakeAttemptMock.Expect(s.ctx, "u1").Return(false, nil)
 
