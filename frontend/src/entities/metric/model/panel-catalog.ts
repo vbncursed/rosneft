@@ -83,9 +83,9 @@ const round1 = (v: number) => Math.round(v * 10) / 10;
 // "Errors: 0%" both read as contradictions.
 const nonZero = (v: number) => (v > 0 && v < 0.05 ? "<0.1" : String(round(v)));
 
-/** "—" for nothing; otherwise the unit's own shape. */
-export function formatValue(v: number | null, unit: Unit): string {
-  if (v === null || !Number.isFinite(v)) return "—";
+const formatSeconds = (v: number) => (v < 1 ? `${Math.round(v * 1000)}ms` : `${round(v)}s`);
+
+function formatFiniteValue(v: number, unit: Unit): string {
   switch (unit) {
     case "rps":
       return `${nonZero(v)}/s`;
@@ -94,7 +94,7 @@ export function formatValue(v: number | null, unit: Unit): string {
     case "percent":
       return `${nonZero(v * 100)}%`;
     case "seconds":
-      return v < 1 ? `${Math.round(v * 1000)}ms` : `${round(v)}s`;
+      return formatSeconds(v);
     case "bytes":
       return v >= 1024 ** 3 ? `${round(v / 1024 ** 3)} GB` : `${round(v / 1024 ** 2)} MB`;
     case "mbps":
@@ -102,4 +102,10 @@ export function formatValue(v: number | null, unit: Unit): string {
     case "count":
       return String(round(v));
   }
+}
+
+/** "—" for nothing; otherwise the unit's own shape. */
+export function formatValue(v: number | null, unit: Unit): string {
+  if (v === null || !Number.isFinite(v)) return "—";
+  return formatFiniteValue(v, unit);
 }

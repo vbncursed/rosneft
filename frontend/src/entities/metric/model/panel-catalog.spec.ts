@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ALL_PANELS, formatValue, PANELS, SECTIONS, STAT_IDS } from "./panel-catalog";
+import { ALL_PANELS, formatValue, PANELS, SECTIONS, STAT_IDS, type Unit } from "./panel-catalog";
 
 describe("panel catalogue", () => {
   it("lists every panel once, for the one request that asks for them all", () => {
@@ -58,5 +58,24 @@ describe("panel catalogue", () => {
     // on last > 0, so a 0.004% 5xx share must not render a red "Errors: 0%".
     expect(formatValue(0.00004, "percent")).toBe("<0.1%");
     expect(formatValue(0, "percent")).toBe("0%");
+  });
+
+  it("keeps formatting boundaries and the runtime fallback", () => {
+    for (const value of [null, NaN, Infinity, -Infinity]) {
+      expect(formatValue(value, "rps")).toBe("—");
+    }
+    expect(formatValue(1, "unexpected" as Unit)).toBeUndefined();
+    expect(formatValue(null, "unexpected" as Unit)).toBe("—");
+    expect(formatValue(0.049, "rps")).toBe("<0.1/s");
+    expect(formatValue(0.05, "rps")).toBe("0.1/s");
+    expect(formatValue(0.00049, "percent")).toBe("<0.1%");
+    expect(formatValue(0.0005, "percent")).toBe("0.1%");
+    expect(formatValue(0.999, "seconds")).toBe("999ms");
+    expect(formatValue(1, "seconds")).toBe("1s");
+    expect(formatValue(1024 ** 3 - 1, "bytes")).toBe("1024 MB");
+    expect(formatValue(1024 ** 3, "bytes")).toBe("1 GB");
+    expect(formatValue(9.96, "count")).toBe("10");
+    expect(formatValue(10.4, "cpm")).toBe("10/min");
+    expect(formatValue(10.46, "mbps")).toBe("10.5 MB/s");
   });
 });
