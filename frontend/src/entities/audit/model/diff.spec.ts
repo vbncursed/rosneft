@@ -55,6 +55,48 @@ describe("diffRows", () => {
     expect(diffRows(null, null)).toEqual([]);
   });
 
+  it("treats null snapshots like empty objects", () => {
+    const row = { label: null, value: 3 };
+    expect(diffRows(null, row)).toEqual(diffRows({}, row));
+    expect(diffRows(row, null)).toEqual(diffRows(row, {}));
+    expect(diffRows(null, {})).toEqual([]);
+    expect(diffRows({}, null)).toEqual([]);
+    expect(diffRows(null, { toString: 1 })).toEqual([
+      { field: "toString", before: undefined, after: 1, kind: "added" },
+    ]);
+    expect(diffRows({ toString: 1 }, null)).toEqual([
+      { field: "toString", before: 1, after: undefined, kind: "removed" },
+    ]);
+  });
+
+  it("distinguishes explicit undefined from an absent field", () => {
+    expect(diffRows({}, { value: undefined })).toEqual([
+      { field: "value", before: undefined, after: undefined, kind: "added" },
+    ]);
+    expect(diffRows({ value: undefined }, {})).toEqual([
+      { field: "value", before: undefined, after: undefined, kind: "removed" },
+    ]);
+    expect(diffRows({ value: undefined }, { value: null })).toEqual([
+      { field: "value", before: undefined, after: null, kind: "changed" },
+    ]);
+  });
+
+  it("sorts mixed changes, ignores timestamps, and leaves inputs untouched", () => {
+    const before = { z: 1, m: { x: 1 }, updated_at: "old", a: null };
+    const after = { y: 2, m: { x: 2 }, created_at: "new", b: undefined };
+    const beforeCopy = structuredClone(before);
+    const afterCopy = structuredClone(after);
+    expect(diffRows(before, after)).toEqual([
+      { field: "a", before: null, after: undefined, kind: "removed" },
+      { field: "b", before: undefined, after: undefined, kind: "added" },
+      { field: "m", before: { x: 1 }, after: { x: 2 }, kind: "changed" },
+      { field: "y", before: undefined, after: 2, kind: "added" },
+      { field: "z", before: 1, after: undefined, kind: "removed" },
+    ]);
+    expect(before).toEqual(beforeCopy);
+    expect(after).toEqual(afterCopy);
+  });
+
   it("returns fields in a stable alphabetical order", () => {
     const fields = diffRows({ z: 1, a: 1, m: 1 }, { z: 2, a: 2, m: 2 }).map((f) => f.field);
     expect(fields).toEqual(["a", "m", "z"]);

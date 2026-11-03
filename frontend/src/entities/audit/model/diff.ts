@@ -23,24 +23,26 @@ type Row = Record<string, unknown> | null;
  * is not the same as a column being empty.
  */
 export function diffRows(before: Row, after: Row): DiffField[] {
-  const fields = [...new Set([...Object.keys(before ?? {}), ...Object.keys(after ?? {})])].sort();
+  const beforeRow: Record<string, unknown> = before ?? Object.create(null);
+  const afterRow: Record<string, unknown> = after ?? Object.create(null);
+  const fields = [...new Set([...Object.keys(beforeRow), ...Object.keys(afterRow)])].sort();
   const out: DiffField[] = [];
 
   for (const field of fields) {
     if (IGNORED.has(field)) continue;
-    const hadBefore = before !== null && field in before;
-    const hasAfter = after !== null && field in after;
+    const hadBefore = field in beforeRow;
+    const hasAfter = field in afterRow;
 
     if (!hadBefore) {
-      out.push({ field, before: undefined, after: after?.[field], kind: "added" });
+      out.push({ field, before: undefined, after: afterRow[field], kind: "added" });
       continue;
     }
     if (!hasAfter) {
-      out.push({ field, before: before[field], after: undefined, kind: "removed" });
+      out.push({ field, before: beforeRow[field], after: undefined, kind: "removed" });
       continue;
     }
-    const b = before[field];
-    const a = after[field];
+    const b = beforeRow[field];
+    const a = afterRow[field];
     if (JSON.stringify(b) === JSON.stringify(a)) continue;
     out.push({ field, before: b, after: a, kind: "changed" });
   }
