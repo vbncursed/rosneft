@@ -77,6 +77,32 @@ describe("useZoneList", () => {
     expect(onChanged).toHaveBeenCalledOnce();
   });
 
+  it.each(["remove", "update"] as const)("keeps a different selection when %s drops a zone", async (action) => {
+    let finish!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    if (action === "remove") vi.mocked(deleteZone).mockReturnValue(pending);
+    else
+      vi.mocked(patchZone).mockImplementation(async () => {
+        await pending;
+        throw new HttpError(404, null, "zone not found");
+      });
+    const { result } = list();
+    let operation!: Promise<void>;
+    act(() => {
+      operation = action === "remove" ? result.current.s.remove(1) : result.current.s.update(1, {});
+    });
+    act(() => result.current.s.select(2));
+    await act(async () => {
+      finish();
+      await operation;
+    });
+    expect(result.current.s.zones).toEqual([zone(2)]);
+    expect(result.current.s.selected).toEqual(zone(2));
+    expect(onChanged).toHaveBeenCalledOnce();
+  });
+
   it("keeps a zone the gateway refused to delete, and says why", async () => {
     vi.mocked(deleteZone).mockRejectedValue(new HttpError(403, null, "You don't have permission to do this"));
     const { result } = list();
