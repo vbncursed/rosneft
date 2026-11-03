@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -68,12 +69,7 @@ func validateID(id string) error {
 		return errors.New("storage: empty session id")
 	}
 	for _, c := range id {
-		switch {
-		case c >= '0' && c <= '9':
-		case c >= 'a' && c <= 'f':
-		case c >= 'A' && c <= 'F':
-		case c == '-':
-		default:
+		if !strings.ContainsRune("0123456789abcdefABCDEF-", c) {
 			return fmt.Errorf("storage: session id contains illegal character: %q", id)
 		}
 	}
