@@ -277,6 +277,19 @@ describe("useTerritoryViewer", () => {
       });
       expect(r.result.current.status).toBe("ready");
     });
+
+    it("keeps the selected placement when a background scene refetch returns 404", async () => {
+      const r = mount();
+      const state = await ready(r);
+      act(() => state.canvas.onPick(4));
+      expect(now(r).canvas.selectedId).toBe(4);
+      getSceneBundle.mockRejectedValue(new HttpError(404, null, "territory not found"));
+      await act(async () => {
+        await client.refetchQueries({ queryKey: ["scene", SLUG] });
+      });
+      expect(client.getQueryState(["scene", SLUG])?.error).toBeInstanceOf(HttpError);
+      expect(now(r).canvas.selectedId).toBe(4);
+    });
   });
 
   describe("grants", () => {

@@ -224,6 +224,15 @@ describe("useAlignment, pages and saved sets", () => {
 });
 
 describe("useAlignment, paging back", () => {
+  it("keeps a manual pair made before the page's controls arrive", () => {
+    const { result, rerender } = align({ plan: { page: 1, controls: null } });
+    pickPair(result, [5, 5], [2, 2]);
+    const draft = result.current.pairs;
+    rerender({ plan: { page: 1, controls: EXACT } });
+    expect(result.current.pairs).toEqual(draft);
+    expect(result.current.pairs).toHaveLength(1);
+  });
+
   it("keeps a page's pairs when the reader returns to it", () => {
     const { result, rerender } = align({ bbox: null });
     pickPair(result, [5, 5], [2, 2]);
