@@ -89,3 +89,46 @@ describe("ARCHIVE_CHECKLIST", () => {
     expect(ARCHIVE_CHECKLIST[3]?.label).toBe("Metres as units — the viewer measures in metres");
   });
 });
+
+it("preserves every stage tuple throughout upload", () => {
+  const labels = ["Chunked upload", "Finalize blob", "Parse OBJ + MTL", "Build LOD 0-2", "Compress textures"];
+  const hints = [
+    "8 MB chunks, resumable",
+    "content hash written",
+    "geometry and materials",
+    "three detail levels",
+    "KTX2 artifacts",
+  ];
+  const later = [
+    ["pending", "~1 min"],
+    ["pending", "~2 min"],
+    ["pending", "~1 min"],
+  ];
+  const cases = {
+    idle: [
+      ["pending", "queued"],
+      ["pending", "queued"],
+    ],
+    picked: [
+      ["pending", "queued"],
+      ["pending", "queued"],
+    ],
+    uploading: [
+      ["active", "running"],
+      ["pending", "queued"],
+    ],
+    finalizing: [
+      ["done", "done"],
+      ["active", "running"],
+    ],
+    creating: [
+      ["done", "done"],
+      ["done", "done"],
+    ],
+  } as const;
+  for (const phase of Object.keys(cases) as (keyof typeof cases)[]) {
+    expect(stagesFor(phase).map(({ label, hint, state, time }) => [label, hint, state, time])).toEqual(
+      [...cases[phase], ...later].map(([state, time], i) => [labels[i], hints[i], state, time]),
+    );
+  }
+});

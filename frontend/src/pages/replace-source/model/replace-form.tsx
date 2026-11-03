@@ -1,6 +1,6 @@
-import type { ConversionStage, StageState } from "@/entities/conversion";
+import type { ConversionStage } from "@/entities/conversion";
 import type { Territory } from "@/entities/territory";
-import type { UploadProgressView } from "@/entities/upload";
+import { uploadStageAt, type UploadProgressView } from "@/entities/upload";
 import { formatBytes } from "@/shared/lib/format-bytes";
 import { shortDate } from "@/shared/lib/short-date";
 import type { ChecklistItem } from "@/shared/ui/checklist";
@@ -30,22 +30,9 @@ const BASE: { label: string; hint: string }[] = [
 
 const PENDING_TIME = ["queued", "queued", "~1 min", "~3 min", "~10 s"];
 
-/** Only the first two stages ever move on this page — the conversion pipeline runs after the redirect. */
-function stageAt(index: number, phase: ReplacePhase, percent: number | null): { state: StageState; time: string } {
-  if (index === 0) {
-    if (phase === "uploading") return { state: "active", time: percent === null ? "running" : `${percent}%` };
-    if (phase === "finalizing" || phase === "replacing") return { state: "done", time: "done" };
-  }
-  if (index === 1) {
-    if (phase === "finalizing") return { state: "active", time: "running" };
-    if (phase === "replacing") return { state: "done", time: "done" };
-  }
-  return { state: "pending", time: PENDING_TIME[index] ?? "queued" };
-}
-
 /** The five mocked stages, toned against the replace's own phase; the upload stage's time is the live percentage. */
 export function stagesFor(phase: ReplacePhase, percent: number | null): Stage[] {
-  return BASE.map((stage, i) => ({ ...stage, ...stageAt(i, phase, percent) }));
+  return BASE.map((stage, i) => ({ ...stage, ...uploadStageAt(i, phase, PENDING_TIME[i] ?? "queued", percent) }));
 }
 
 /** The aside's "what is preserved" card — static, unaffected by phase or file. */

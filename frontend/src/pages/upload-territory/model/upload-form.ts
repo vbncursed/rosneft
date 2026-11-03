@@ -1,4 +1,5 @@
-import type { ConversionStage, StageState } from "@/entities/conversion";
+import type { ConversionStage } from "@/entities/conversion";
+import { uploadStageAt } from "@/entities/upload";
 import { formatBytes } from "@/shared/lib/format-bytes";
 import type { ChecklistItem } from "@/shared/ui/checklist";
 
@@ -30,22 +31,9 @@ const BASE: { label: string; hint: string }[] = [
 
 const PENDING_TIME = ["queued", "queued", "~1 min", "~2 min", "~1 min"];
 
-/** Only the first two stages ever move on this page — the conversion pipeline runs after the redirect. */
-function stageAt(index: number, phase: UploadPhase): { state: StageState; time: string } {
-  if (index === 0) {
-    if (phase === "uploading") return { state: "active", time: "running" };
-    if (phase === "finalizing" || phase === "creating") return { state: "done", time: "done" };
-  }
-  if (index === 1) {
-    if (phase === "finalizing") return { state: "active", time: "running" };
-    if (phase === "creating") return { state: "done", time: "done" };
-  }
-  return { state: "pending", time: PENDING_TIME[index] ?? "queued" };
-}
-
 /** The five mocked stages, toned against the upload's own phase. */
 export function stagesFor(phase: UploadPhase): Stage[] {
-  return BASE.map((stage, i) => ({ ...stage, ...stageAt(i, phase) }));
+  return BASE.map((stage, i) => ({ ...stage, ...uploadStageAt(i, phase, PENDING_TIME[i] ?? "queued") }));
 }
 
 /** The aside's "before you submit" card — static, unaffected by phase or file. */
