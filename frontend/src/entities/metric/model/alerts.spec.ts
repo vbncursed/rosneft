@@ -145,4 +145,47 @@ describe("alertsOf", () => {
       },
     ]);
   });
+
+  it("uses the series label and empty defaults when labels are missing", () => {
+    expect(alertsOf([{ label: "Fallback", points: [], labels: {} }])).toEqual([
+      { name: "Fallback", meta: "", state: "pending", service: "", severity: "" },
+    ]);
+  });
+
+  it("counts pending duplicates even when their instances differ", () => {
+    expect(
+      alertsOf([
+        { label: "A", points: [], labels: { instance: "one", alertstate: "pending" } },
+        { label: "A", points: [], labels: { instance: "two", alertstate: "pending" } },
+      ]),
+    ).toEqual([{ name: "A", meta: " · 2 instances", state: "pending", service: "", severity: "" }]);
+  });
+
+  it("keeps firing when a pending duplicate follows it", () => {
+    expect(
+      alertsOf([
+        { label: "A", points: [], labels: { alertstate: "firing" } },
+        { label: "A", points: [], labels: { alertstate: "pending" } },
+      ]),
+    ).toEqual([{ name: "A", meta: " · 2 instances", state: "firing", service: "", severity: "" }]);
+  });
+
+  it("separates service and severity and retains first-seen rule order", () => {
+    expect(
+      alertsOf([
+        { label: "A", points: [], labels: { service: "b", severity: "warning" } },
+        { label: "A", points: [], labels: { service: "a", severity: "warning" } },
+        { label: "A", points: [], labels: { service: "b", severity: "critical" } },
+        { label: "A", points: [], labels: { service: "b", severity: "warning", instance: "other" } },
+      ]),
+    ).toEqual([
+      { name: "A", meta: "b · severity: warning · 2 instances", state: "pending", service: "b", severity: "warning" },
+      { name: "A", meta: "a · severity: warning", state: "pending", service: "a", severity: "warning" },
+      { name: "A", meta: "b · severity: critical", state: "pending", service: "b", severity: "critical" },
+    ]);
+  });
+
+  it("returns no summaries for no series", () => {
+    expect(alertsOf([])).toEqual([]);
+  });
 });
