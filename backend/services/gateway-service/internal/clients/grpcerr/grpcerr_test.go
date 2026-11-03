@@ -90,3 +90,42 @@ func (s *RefusedSuite) TestOtherFailuresAreWrappedWithTheOp() {
 		})
 	}
 }
+
+type MapStatusSuite struct {
+	suite.Suite
+}
+
+func TestMapStatusSuite(t *testing.T) { suite.Run(t, new(MapStatusSuite)) }
+
+func (s *MapStatusSuite) TestMapping() {
+	notFound := errors.New("missing")
+	plain := errors.New("connection failed")
+	for _, tc := range []struct {
+		name        string
+		err         error
+		sentinel    error
+		passthrough bool
+	}{
+		{name: "nil"},
+		{name: "not found", err: status.Error(codes.NotFound, "missing row"), sentinel: notFound},
+		{name: "invalid argument", err: status.Error(codes.InvalidArgument, "bad input"), sentinel: domain.ErrInvalidInput},
+		{name: "other status", err: status.Error(codes.Unavailable, "offline"), passthrough: true},
+		{name: "non-status error", err: plain, passthrough: true},
+	} {
+		s.Run(tc.name, func() {
+			t := s.T()
+			got := grpcerr.MapStatus(tc.err, notFound)
+			if tc.err == nil {
+				assert.NilError(t, got)
+				return
+			}
+			assert.Assert(t, errors.Is(got, tc.err))
+			if tc.sentinel != nil {
+				assert.Assert(t, errors.Is(got, tc.sentinel))
+			}
+			if tc.passthrough {
+				assert.Equal(t, got, tc.err)
+			}
+		})
+	}
+}
