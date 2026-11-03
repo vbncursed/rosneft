@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"gotest.tools/v3/assert"
 
-	"github.com/vbncursed/rosneft/backend/services/content-service/internal/slug"
+	"github.com/vbncursed/rosneft/backend/pkg/slug"
 )
 
 type SlugSuite struct {

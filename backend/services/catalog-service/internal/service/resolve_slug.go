@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/vbncursed/rosneft/backend/pkg/slug"
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
-	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/slug"
 )
 
 // maxSlugAttempts caps the numbered-suffix search so a pathological run of
