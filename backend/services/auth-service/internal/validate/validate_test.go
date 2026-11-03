@@ -122,3 +122,35 @@ func (s *ValidateSuite) TestPasswordMessages() {
 		assert.Equal(s.T(), err.Error(), c.want, c.name)
 	}
 }
+
+func TestTourID(t *testing.T) {
+	tests := []struct {
+		name  string
+		id    string
+		valid bool
+	}{
+		{name: "lowercase digits and dash", id: "viewer-2", valid: true},
+		{name: "single digit", id: "0", valid: true},
+		{name: "trailing dash", id: "viewer-", valid: true},
+		{name: "32 bytes", id: strings.Repeat("a", 32), valid: true},
+		{name: "33 bytes", id: strings.Repeat("a", 33)},
+		{name: "empty", id: ""},
+		{name: "uppercase", id: "Viewer"},
+		{name: "leading dash", id: "-viewer"},
+		{name: "space", id: "tour id"},
+		{name: "underscore", id: "tour_id"},
+		{name: "multibyte", id: "café"},
+		{name: "invalid UTF-8", id: "tour\xff"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validate.TourID(tt.id)
+			if tt.valid {
+				assert.NilError(t, err)
+				return
+			}
+			assert.ErrorIs(t, err, domain.ErrInvalidInput)
+		})
+	}
+}
