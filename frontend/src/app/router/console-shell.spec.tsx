@@ -41,6 +41,7 @@ describe("ConsoleShell", () => {
   it("points the sidebar's way out at Home, which this SPA serves", () => {
     render(<ConsoleShell />);
     expect(screen.getByRole("link", { name: "← Back to site" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("main")).toHaveTextContent("screen");
   });
 
   it("draws nothing at all without a principal in the cache", () => {
