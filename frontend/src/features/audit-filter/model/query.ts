@@ -42,3 +42,9 @@ export function freeText(query: string): string {
     .filter((part) => part && !tokens.has(part))
     .join(" ");
 }
+
+/** Match the whole free-text query against either field, ignoring case. */
+export function matchesFreeText(query: string, first: () => string, second: () => string): boolean {
+  const text = freeText(query).trim().toLowerCase();
+  return text === "" || first().toLowerCase().includes(text) || second().toLowerCase().includes(text);
+}
