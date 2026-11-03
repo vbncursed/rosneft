@@ -123,7 +123,7 @@ func (s *ValidateSuite) TestPasswordMessages() {
 	}
 }
 
-func TestTourID(t *testing.T) {
+func (s *ValidateSuite) TestTourID() {
 	tests := []struct {
 		name  string
 		id    string
@@ -131,6 +131,13 @@ func TestTourID(t *testing.T) {
 	}{
 		{name: "lowercase digits and dash", id: "viewer-2", valid: true},
 		{name: "single digit", id: "0", valid: true},
+		{name: "all lowercase letters", id: "abcdefghijklmnopqrstuvwxyz", valid: true},
+		{name: "all digits", id: "0123456789", valid: true},
+		{name: "consecutive dashes", id: "a--b", valid: true},
+		{name: "single dash", id: "-"},
+		{name: "cyrillic lookalike", id: "а"},
+		{name: "fullwidth digit", id: "１"},
+		{name: "unicode dash", id: "a‐b"},
 		{name: "trailing dash", id: "viewer-", valid: true},
 		{name: "32 bytes", id: strings.Repeat("a", 32), valid: true},
 		{name: "33 bytes", id: strings.Repeat("a", 33)},
@@ -144,7 +151,8 @@ func TestTourID(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		s.Run(tt.name, func() {
+			t := s.T()
 			err := validate.TourID(tt.id)
 			if tt.valid {
 				assert.NilError(t, err)
