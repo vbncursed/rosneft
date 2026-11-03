@@ -220,6 +220,28 @@ describe("panelEntry", () => {
     ]);
   });
 
+  it("keeps hidden count before stale status without mutating the input", () => {
+    const input = ["a", "b", "c", "d"].map((name, i) => ({
+      label: name,
+      labels: { service: name },
+      points: [{ t: 1, v: i }],
+    }));
+    const original = structuredClone(input);
+    const entry = panelEntry("runtime-memory", { kind: "value", series: input, stale: true });
+    expect(entry.meta).toBe("bytes · by service · +1 more · stale — last answer kept");
+    expect(input).toEqual(original);
+  });
+
+  it("uses the selected service for the last reading and shortens its gRPC label", () => {
+    const input = [
+      { label: "/rosneft.catalog.v1.CatalogService/List", labels: { service: "catalog" }, points: [{ t: 0, v: 2 }] },
+      { label: "/rosneft.auth.v1.AuthService/Login", labels: { service: "auth" }, points: [{ t: 0, v: 99 }] },
+    ];
+    const entry = panelEntry("red-rate", { kind: "value", series: input }, "catalog");
+    expect(entry.last).toBe("2/s");
+    expect(entry.series).toEqual([{ label: "Catalog.List", values: [2] }]);
+  });
+
   it("counts what it left off the chart rather than dropping it silently", () => {
     const named = (name: string, v: number): MetricSeries => ({
       label: name,
