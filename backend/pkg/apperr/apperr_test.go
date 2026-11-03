@@ -57,11 +57,42 @@ func (s *AppErrSuite) TestToStatus() {
 	}
 }
 
-func (s *AppErrSuite) TestSlugAndHTTPStatus() {
-	assert.Equal(s.T(), apperr.Slug(codes.NotFound), apperr.SlugNotFound)
-	assert.Equal(s.T(), apperr.Slug(codes.Internal), apperr.SlugInternal)
-	assert.Equal(s.T(), apperr.HTTPStatus(codes.InvalidArgument), http.StatusBadRequest)
-	assert.Equal(s.T(), apperr.HTTPStatus(codes.Unknown), http.StatusInternalServerError)
+func (s *AppErrSuite) TestErrorContract() {
+	tests := []struct {
+		name       string
+		grpcCode   codes.Code
+		slug       string
+		httpStatus int
+		message    string
+	}{
+		{"invalid argument", codes.InvalidArgument, "invalid_input", http.StatusBadRequest, "request detail"},
+		{"unauthenticated", codes.Unauthenticated, "unauthenticated", http.StatusUnauthorized, "request detail"},
+		{"permission denied", codes.PermissionDenied, "forbidden", http.StatusForbidden, "request detail"},
+		{"not found", codes.NotFound, "not_found", http.StatusNotFound, "request detail"},
+		{"already exists", codes.AlreadyExists, "conflict", http.StatusConflict, "request detail"},
+		{
+			"failed precondition",
+			codes.FailedPrecondition,
+			"unprocessable",
+			http.StatusUnprocessableEntity,
+			"request detail",
+		},
+		{"internal", codes.Internal, "internal", http.StatusInternalServerError, "internal error"},
+		{"unavailable", codes.Unavailable, "internal", http.StatusInternalServerError, "internal error"},
+		{"unknown code", codes.Code(999), "internal", http.StatusInternalServerError, "internal error"},
+	}
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			assert.Equal(s.T(), apperr.Slug(tt.grpcCode), tt.slug)
+			assert.Equal(s.T(), apperr.HTTPStatus(tt.grpcCode), tt.httpStatus)
+
+			rec := httptest.NewRecorder()
+			apperr.WriteStatus(rec, status.Error(tt.grpcCode, "request detail"))
+			assert.Equal(s.T(), rec.Code, tt.httpStatus)
+			assert.Equal(s.T(), rec.Header().Get("Content-Type"), "application/json")
+			assert.Equal(s.T(), rec.Body.String(), fmt.Sprintf(`{"code":%q,"message":%q}`+"\n", tt.slug, tt.message))
+		})
+	}
 }
 
 func (s *AppErrSuite) TestWriteStatus() {
