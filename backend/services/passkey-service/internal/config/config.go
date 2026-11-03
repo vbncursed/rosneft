@@ -59,14 +59,14 @@ func Load(cmd *cobra.Command) (Config, error) {
 	if err := v.Unmarshal(&cfg); err != nil {
 		return Config{}, fmt.Errorf("config: unmarshal: %w", err)
 	}
-	// PASSKEY_RP_ORIGINS is a comma-separated env string; viper leaves it as a
-	// single element when it doesn't parse a list, so split defensively.
-	if len(cfg.RPOrigins) == 1 && strings.Contains(cfg.RPOrigins[0], ",") {
-		raw := cfg.RPOrigins[0]
-		cfg.RPOrigins = cfg.RPOrigins[:0]
-		for p := range strings.SplitSeq(raw, ",") {
-			if t := strings.TrimSpace(p); t != "" {
-				cfg.RPOrigins = append(cfg.RPOrigins, t)
+	// Viper may split comma-separated origins before unmarshalling. Normalize
+	// each resulting entry as well as any commas it leaves intact.
+	origins := cfg.RPOrigins
+	cfg.RPOrigins = nil
+	for _, origin := range origins {
+		for part := range strings.SplitSeq(origin, ",") {
+			if trimmed := strings.TrimSpace(part); trimmed != "" {
+				cfg.RPOrigins = append(cfg.RPOrigins, trimmed)
 			}
 		}
 	}
