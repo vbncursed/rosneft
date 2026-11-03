@@ -85,11 +85,17 @@ func (s *ExportSuite) TestCallbackErrorAborts() {
 	ctx := s.T().Context()
 	_, err := s.pool.Exec(ctx, `
 		INSERT INTO audit_log (at, action, entity, result)
-		VALUES (now() - interval '10 days', 'auth.login', 'auth', 'ok')`)
+		VALUES (now() - interval '10 days', 'auth.login', 'auth', 'ok'),
+		       (now() - interval '10 days', 'auth.logout', 'auth', 'ok')`)
 	assert.NilError(s.T(), err)
 
 	boom := errors.New("disk full")
-	err = s.store.ExportBefore(ctx, time.Now(), func(domain.Entry) error { return boom })
+	calls := 0
+	err = s.store.ExportBefore(ctx, time.Now(), func(domain.Entry) error {
+		calls++
+		return boom
+	})
 
 	assert.ErrorIs(s.T(), err, boom)
+	assert.Equal(s.T(), calls, 1)
 }
