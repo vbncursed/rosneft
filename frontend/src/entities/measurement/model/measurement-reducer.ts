@@ -86,41 +86,51 @@ function seed(state: MeasurementState, stored: StoredChain[]): MeasurementState 
   };
 }
 
-export function measurementReducer(state: MeasurementState, action: MeasurementAction): MeasurementState {
-  switch (action.type) {
-    case "click": {
-      if (state.activeChainId == null) {
-        const id = state.nextId;
-        return {
-          ...state,
-          chains: [...state.chains, { id, points: [action.point], closed: false, sync: "local" }],
-          activeChainId: id,
-          nextId: state.nextId + 1,
-        };
+type LifecycleAction = Extract<
+  MeasurementAction,
+  { type: "click" | "closeActive" | "cancelChain" | "toggle" | "exit" }
+>;
+type CollectionAction = Extract<MeasurementAction, { type: "clear" | "removeChain" | "removeSegment" }>;
+type ServerAction = Extract<MeasurementAction, { type: "seed" | "saving" | "saved" | "failed" | "restore" }>;
+
+function click(state: MeasurementState, action: Extract<LifecycleAction, { type: "click" }>): MeasurementState {
+  if (state.activeChainId == null) {
+    const id = state.nextId;
+    return {
+      ...state,
+      chains: [...state.chains, { id, points: [action.point], closed: false, sync: "local" }],
+      activeChainId: id,
+      nextId: state.nextId + 1,
+    };
+  }
+  const activeId = state.activeChainId;
+  let closedNow = false;
+  const chains = state.chains.map((c) => {
+    if (c.id !== activeId) return c;
+    if (shouldCloseAt(c, action.point)) {
+      const closed = closeChainOp(c);
+      // Defensive: only flip the activeChainId off if the chain
+      // genuinely transitioned to closed. closeChainOp is a no-op
+      // when the invariants don't hold, and treating that as a
+      // close would silently drop the point.
+      if (closed.closed) {
+        closedNow = true;
+        return closed;
       }
-      const activeId = state.activeChainId;
-      let closedNow = false;
-      const chains = state.chains.map((c) => {
-        if (c.id !== activeId) return c;
-        if (shouldCloseAt(c, action.point)) {
-          const closed = closeChainOp(c);
-          // Defensive: only flip the activeChainId off if the chain
-          // genuinely transitioned to closed. closeChainOp is a no-op
-          // when the invariants don't hold, and treating that as a
-          // close would silently drop the point.
-          if (closed.closed) {
-            closedNow = true;
-            return closed;
-          }
-        }
-        return appendPoint(c, action.point);
-      });
-      return {
-        ...state,
-        chains,
-        activeChainId: closedNow ? null : activeId,
-      };
     }
+    return appendPoint(c, action.point);
+  });
+  return {
+    ...state,
+    chains,
+    activeChainId: closedNow ? null : activeId,
+  };
+}
+
+function lifecycle(state: MeasurementState, action: LifecycleAction): MeasurementState {
+  switch (action.type) {
+    case "click":
+      return click(state, action);
 
     case "closeActive": {
       if (state.activeChainId == null) return state;
@@ -137,7 +147,11 @@ export function measurementReducer(state: MeasurementState, action: MeasurementA
 
     case "exit":
       return { ...state, measureMode: false, ...finish(state) };
+  }
+}
 
+function collection(state: MeasurementState, action: CollectionAction): MeasurementState {
+  switch (action.type) {
     case "clear":
       return {
         ...state,
@@ -170,7 +184,11 @@ export function measurementReducer(state: MeasurementState, action: MeasurementA
         nextId: state.nextId + newIds.length,
       };
     }
+  }
+}
 
+function serverAcknowledgment(state: MeasurementState, action: ServerAction): MeasurementState {
+  switch (action.type) {
     case "seed":
       return seed(state, action.chains);
 
@@ -187,7 +205,27 @@ export function measurementReducer(state: MeasurementState, action: MeasurementA
       return state.chains.some((c) => c.id === action.chain.id)
         ? state
         : { ...state, chains: [...state.chains, action.chain] };
+  }
+}
 
+export function measurementReducer(state: MeasurementState, action: MeasurementAction): MeasurementState {
+  switch (action.type) {
+    case "click":
+    case "closeActive":
+    case "cancelChain":
+    case "toggle":
+    case "exit":
+      return lifecycle(state, action);
+    case "clear":
+    case "removeChain":
+    case "removeSegment":
+      return collection(state, action);
+    case "seed":
+    case "saving":
+    case "saved":
+    case "failed":
+    case "restore":
+      return serverAcknowledgment(state, action);
     default:
       return state;
   }
