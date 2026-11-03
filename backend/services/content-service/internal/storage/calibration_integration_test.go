@@ -162,3 +162,37 @@ func (s *CalibrationSuite) TestDeleteDocumentDropsCalibration() {
 	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT count(*) FROM document_calibration_points`).Scan(&n))
 	assert.Equal(s.T(), n, 0)
 }
+
+func (s *CalibrationSuite) TestListDocumentsScopeOrderAndEmptyTerritory() {
+	ctx := s.T().Context()
+	var earlier, foreign int64
+	assert.NilError(s.T(), s.pool.QueryRow(ctx, `INSERT INTO territory_documents
+  (territory_id, title, source_blob_hash, created_at)
+  SELECT id, 'earlier', 'early', '2000-01-01' FROM territories WHERE slug = 'a' RETURNING id`).Scan(&earlier))
+	assert.NilError(s.T(), s.pool.QueryRow(ctx, `INSERT INTO territory_documents
+  (territory_id, title, source_blob_hash)
+  SELECT id, 'foreign', 'foreign' FROM territories WHERE slug = 'b' RETURNING id`).Scan(&foreign))
+	want := calibration(7, 3)
+	_, err := s.pg.PutDocumentCalibration(ctx, "a", earlier, want)
+	assert.NilError(s.T(), err)
+	_, err = s.pg.PutDocumentCalibration(ctx, "b", foreign, calibration(8, 2))
+	assert.NilError(s.T(), err)
+	docs, err := s.pg.ListDocuments(ctx, "a")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(docs), 2)
+	assert.Equal(s.T(), docs[0].ID, earlier)
+	assert.DeepEqual(s.T(), docs[0].Calibration, &want)
+	assert.Equal(s.T(), docs[1].ID, s.docA)
+	assert.Assert(s.T(), docs[1].Calibration == nil)
+	docs, err = s.pg.ListDocuments(ctx, "b")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(docs), 1)
+	assert.Equal(s.T(), docs[0].ID, foreign)
+	_, err = s.pool.Exec(ctx, `DELETE FROM territory_documents WHERE territory_id = (SELECT id FROM territories WHERE slug = 'b')`)
+	assert.NilError(s.T(), err)
+	docs, err = s.pg.ListDocuments(ctx, "b")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(docs), 0)
+	_, err = s.pg.ListDocuments(ctx, "missing")
+	assert.ErrorIs(s.T(), err, domain.ErrTerritoryNotFound)
+}

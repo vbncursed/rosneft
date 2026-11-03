@@ -159,3 +159,44 @@ func (s *TerritoryScopeSuite) TestDeletingATerritoryTakesItsPhaseFlags() {
 	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT count(*) FROM panorama_phase_visibility`).Scan(&rows))
 	assert.Equal(s.T(), rows, 0)
 }
+
+func (s *TerritoryScopeSuite) TestListPanoramasScopeAndOrder() {
+	ctx := s.T().Context()
+	earlier := s.panorama("a", "earlier")
+	s.panorama("b", "foreign")
+	_, err := s.pool.Exec(ctx, `UPDATE panoramas SET created_at = '2000-01-01', phase = 'post', hidden = true WHERE id = $1`, earlier)
+	assert.NilError(s.T(), err)
+	got, err := s.pg.ListPanoramas(ctx, "a")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(got), 2)
+	assert.Equal(s.T(), got[0].ID, earlier)
+	assert.Equal(s.T(), got[0].Phase, domain.PhasePost)
+	assert.Assert(s.T(), got[0].Hidden)
+	assert.Equal(s.T(), got[1].ID, s.panoramaA)
+	got, err = s.pg.ListPanoramas(ctx, "b")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(got), 1)
+	assert.Equal(s.T(), got[0].Slug, "foreign")
+	_, err = s.pool.Exec(ctx, `DELETE FROM panoramas WHERE territory_id = (SELECT id FROM territories WHERE slug = 'b')`)
+	assert.NilError(s.T(), err)
+	got, err = s.pg.ListPanoramas(ctx, "b")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(got), 0)
+	_, err = s.pg.ListPanoramas(ctx, "missing")
+	assert.ErrorIs(s.T(), err, domain.ErrTerritoryNotFound)
+}
+
+func (s *TerritoryScopeSuite) TestCreatePanoramaRejectsMissingTerritoryAndDuplicateSlug() {
+	ctx := s.T().Context()
+	p := domain.Panorama{TerritorySlug: "missing", Slug: "north", Title: "north", SourceBlobHash: "src", Phase: domain.PhasePrior}
+	_, err := s.pg.CreatePanorama(ctx, p)
+	assert.ErrorIs(s.T(), err, domain.ErrTerritoryNotFound)
+	p.TerritorySlug = "a"
+	_, err = s.pg.CreatePanorama(ctx, p)
+	assert.ErrorIs(s.T(), err, domain.ErrSlugConflict)
+	p.TerritorySlug = "b"
+	created, err := s.pg.CreatePanorama(ctx, p)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), created.TerritorySlug, "b")
+	assert.Equal(s.T(), created.Slug, "north")
+}
