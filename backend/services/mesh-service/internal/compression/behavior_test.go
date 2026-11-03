@@ -114,3 +114,19 @@ func (s *ProcessSuite) TestCancellation() {
 		assert.ErrorContains(s.T(), err, "context canceled")
 	}
 }
+
+func (s *ProcessSuite) TestAvailable() {
+	assert.NilError(s.T(), New("sh").Available(s.T().Context()))
+	assert.ErrorContains(s.T(), New("rosneft-missing-gltfpack-test").Available(s.T().Context()), "gltfpack not found")
+
+	bin, record := s.executable("exit 3")
+	assert.NilError(s.T(), New(bin).Available(s.T().Context()))
+	raw, err := os.ReadFile(record)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), string(raw), "-h\n")
+
+	missing := filepath.Join(s.T().TempDir(), "missing")
+	err = New(missing).Available(s.T().Context())
+	assert.ErrorContains(s.T(), err, "gltfpack not found")
+	assert.ErrorContains(s.T(), err, missing)
+}
