@@ -1,5 +1,5 @@
 import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
-import { useCallback, useState } from "react";
+import { StrictMode, useCallback, useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { idle, mutating, type MutationState, type ResolvedPlacement } from "@/entities/placement";
 import { useViewerMode } from "@/features/viewer-mode";
@@ -380,5 +380,161 @@ describe("usePlacementForm", () => {
     const { result } = mount();
     act(() => result.current.openNew(4));
     expect(result.current.form?.saving).toBe(false);
+  });
+  it("discards a pending create on deselection, including its late arrival, in StrictMode", () => {
+    const { result, rerender } = renderHook(
+      () => {
+        const [id, setId] = useState<number | null>(7);
+        return { ...usePlacementForm(editor(), setId, id), setId };
+      },
+      { wrapper: StrictMode },
+    );
+    act(() => result.current.openNew(99));
+    act(() => result.current.setId(null));
+    expect(result.current.form).toBeNull();
+    list = [...list, { ...TANK, id: 99 }];
+    rerender();
+    expect(result.current.form).toBeNull();
+    act(() => result.current.setId(99));
+    expect(result.current.form?.kind).toBe("edit");
+  });
+
+  it("keeps an in-flight save's completion behavior when another create is selected", async () => {
+    let finish!: () => void;
+    rename.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const { result } = mount(7);
+    act(() => result.current.form?.onLabel("Sent valve"));
+    act(() => result.current.form?.onSave());
+    expect(rename).toHaveBeenCalledWith(7, "Sent valve");
+    act(() => result.current.openNew(4));
+    act(() => result.current.form?.onLabel("New tank"));
+    expect(result.current.form?.kind).toBe("new");
+    await act(async () => finish());
+    expect(result.current.form).toMatchObject({ kind: "edit", label: "New tank" });
+  });
+
+  it("does not resurrect a deselected draft when its save finishes", async () => {
+    let finish!: () => void;
+    update.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const { result } = mount(7);
+    act(() => result.current.form?.onTransform({ ...VALVE, position: MOVED }));
+    act(() => result.current.form?.onSave());
+    act(() => result.current.selectTo(null));
+    await act(async () => finish());
+    expect(result.current.form).toBeNull();
+    expect(update).toHaveBeenCalledWith(7, expect.objectContaining({ position: MOVED }));
+  });
+
+  it("clears a cancelled create before delete settles and preserves a subsequent selection", async () => {
+    let finish!: () => void;
+    remove.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const { result } = mount();
+    act(() => result.current.openNew(4));
+    act(() => result.current.form?.onCancel());
+    expect(result.current.form).toBeNull();
+    expect(remove).toHaveBeenCalledWith(4);
+    act(() => result.current.selectTo(7));
+    await act(async () => finish());
+    expect(result.current.form).toMatchObject({ kind: "edit", label: "West valve" });
+  });
+  it("ignores callbacks from an unmounted form after deselection", () => {
+    const { result } = mount(7);
+    const form = result.current.form!;
+    act(() => result.current.selectTo(null));
+    act(() => form.onLabel("Too late"));
+    act(() => form.onTransform({ ...VALVE, position: MOVED }));
+    expect(result.current.form).toBeNull();
+  });
+
+  it("keeps the draft if its row vanishes and cancel cannot reload it", () => {
+    const { result, rerender } = mount(7);
+    act(() => result.current.form?.onLabel("Unsaved valve"));
+    list = [TANK];
+    rerender();
+    expect(result.current.form?.transform.position).toEqual(VALVE.position);
+    act(() => result.current.form?.onCancel());
+    expect(result.current.form?.label).toBe("Unsaved valve");
+    expect(remove).not.toHaveBeenCalled();
+  });
+
+  it("ignores rename of an unknown object", () => {
+    const { result } = mount(7);
+    act(() => result.current.openRename(999));
+    expect(result.current.id).toBe(7);
+    expect(result.current.form?.label).toBe("West valve");
+  });
+
+  it("keeps a pending create when rename and its arrival share a commit", () => {
+    const { result } = mount(7);
+    act(() => {
+      result.current.openNew(4);
+      result.current.openRename(4);
+    });
+    expect(result.current.form).toMatchObject({ kind: "new", label: "" });
+  });
+
+  it("replaces a pending create when another object is renamed", () => {
+    const { result, rerender } = mount(7);
+    act(() => result.current.openNew(99));
+    act(() => result.current.openRename(4));
+    list = [...list, { ...TANK, id: 99 }];
+    rerender();
+    expect(result.current.form).toMatchObject({ kind: "edit", label: "" });
+    expect(result.current.id).toBe(4);
+  });
+  it("opens an edit when a previously missing selected row arrives", () => {
+    const { result, rerender } = mount(99);
+    expect(result.current.form).toBeNull();
+    list = [...list, { ...VALVE, id: 99 }];
+    rerender();
+    expect(result.current.form).toMatchObject({ kind: "edit", label: "West valve" });
+  });
+  it("keeps the selected form when an earlier edit's cancel callback runs", () => {
+    const { result } = mount(7);
+    const oldForm = result.current.form!;
+    act(() => result.current.selectTo(4));
+    act(() => oldForm.onCancel());
+    expect(result.current.form).toMatchObject({ kind: "edit", label: "", transform: { position: TANK.position } });
+    act(() => result.current.form?.onSave());
+    expect(rename).toHaveBeenCalledWith(4, "");
+  });
+  it("keeps arrival priority if an earlier edit's cancel runs while a create waits", () => {
+    const { result, rerender } = mount(7);
+    const oldForm = result.current.form!;
+    act(() => result.current.openNew(99));
+    act(() => oldForm.onCancel());
+    // Existing retained callbacks can re-seed an edit while the create waits.
+    // Arrival still owns the eventual new draft and its cancelling delete.
+    expect(result.current.form).toMatchObject({ kind: "edit", label: "West valve" });
+    list = [...list, { ...TANK, id: 99 }];
+    rerender();
+    expect(result.current.form).toMatchObject({ kind: "new", label: "" });
+    act(() => result.current.form?.onCancel());
+    expect(remove).toHaveBeenCalledWith(99);
+  });
+  it("keeps a retained edit on returning to its selection after that row disappears", () => {
+    const { result, rerender } = mount(7);
+    const oldForm = result.current.form!;
+    act(() => result.current.openNew(99));
+    act(() => oldForm.onCancel());
+    list = [];
+    rerender();
+    act(() => result.current.selectTo(7));
+    expect(result.current.form).toMatchObject({ kind: "edit", label: "West valve" });
   });
 });

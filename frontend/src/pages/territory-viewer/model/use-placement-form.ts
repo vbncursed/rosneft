@@ -42,6 +42,110 @@ const editDraft = (p: ResolvedPlacement): Draft => ({
   touched: false,
 });
 
+type FormState = {
+  selectedId: number | null;
+  draft: Draft | null;
+  awaiting: boolean;
+};
+type ChangeDraft = (change: (draft: Draft | null) => Draft | null) => void;
+
+/** An edit follows selection, but retains its fields while that row is missing. */
+function reconcileEdit(state: FormState, picked: ResolvedPlacement | undefined): FormState {
+  if (state.draft && state.draft.id === state.selectedId) return state;
+  const draft = picked ? editDraft(picked) : null;
+  if (draft === state.draft) return state;
+  return { ...state, draft };
+}
+
+/** Selection changes discard pending creates; otherwise arrival takes priority. */
+function reconcileSelection(state: FormState, selectedId: number | null, placements: ResolvedPlacement[]): FormState {
+  const picked = placements.find((p) => p.id === selectedId);
+  if (state.selectedId !== selectedId) {
+    return reconcileEdit({ ...state, selectedId, awaiting: false }, picked);
+  }
+  if (!state.awaiting) return reconcileEdit(state, picked);
+  if (!picked) return state;
+  return { selectedId, draft: { ...editDraft(picked), kind: "new", label: "" }, awaiting: false };
+}
+
+function usePlacementDraft(
+  placements: ResolvedPlacement[],
+  select: (id: number | null) => void,
+  selectedId: number | null,
+) {
+  const [state, setState] = useState<FormState>({ selectedId: null, draft: null, awaiting: false });
+  const next = reconcileSelection(state, selectedId, placements);
+  if (next !== state) setState(next);
+  const changeDraft: ChangeDraft = useCallback((change) => {
+    setState((current) => ({ ...current, draft: change(current.draft) }));
+  }, []);
+  const openNew = useCallback(
+    (id: number) => {
+      setState({ selectedId: id, draft: null, awaiting: true });
+      select(id);
+    },
+    [select],
+  );
+  const openRename = useCallback(
+    (id: number) => {
+      const placement = placements.find((p) => p.id === id);
+      if (!placement) return;
+      setState((current) => ({
+        selectedId: id,
+        awaiting: current.awaiting && current.selectedId === id,
+        draft: current.draft?.id === id && current.draft.kind === "new" ? current.draft : editDraft(placement),
+      }));
+      select(id);
+    },
+    [placements, select],
+  );
+  return { draft: state.draft, changeDraft, openNew, openRename };
+}
+
+/** Untyped numbers belong to the live gizmo; only typed transforms are sent. */
+async function saveDraft(draft: Draft, editor: FormEditor, changeDraft: ChangeDraft) {
+  if (draft.touched) await editor.update(draft.id, { ...draft.transform, label: draft.label });
+  else await editor.rename(draft.id, draft.label);
+  changeDraft((current) => current && { ...current, kind: "edit", touched: false });
+}
+
+/** New objects already exist on the server; edits only reset local fields. */
+async function cancelDraft(
+  draft: Draft,
+  editor: FormEditor,
+  changeDraft: ChangeDraft,
+  select: (id: number | null) => void,
+) {
+  if (draft.kind === "new") {
+    changeDraft(() => null);
+    select(null);
+    await editor.remove(draft.id);
+    return;
+  }
+  const live = editor.placements.find((p) => p.id === draft.id);
+  if (live) changeDraft(() => editDraft(live));
+}
+
+function placementForm(
+  draft: Draft | null,
+  editor: FormEditor,
+  changeDraft: ChangeDraft,
+  select: (id: number | null) => void,
+): PlacementFormView | null {
+  if (!draft) return null;
+  const live = editor.placements.find((p) => p.id === draft.id);
+  return {
+    kind: draft.kind,
+    label: draft.label,
+    onLabel: (label) => changeDraft((current) => current && { ...current, label }),
+    transform: draft.touched || !live ? draft.transform : transformOf(live),
+    onTransform: (transform) => changeDraft((current) => current && { ...current, transform, touched: true }),
+    saving: isMutatingId(editor.mutation, draft.id),
+    onSave: () => void saveDraft(draft, editor, changeDraft),
+    onCancel: () => void cancelDraft(draft, editor, changeDraft, select),
+  };
+}
+
 /**
  * The form under the object list — which is the whole block, not an occasional
  * visitor: anything selected that the reader may write is a live draft, so the
@@ -62,96 +166,6 @@ const editDraft = (p: ResolvedPlacement): Draft => ({
  * refresh that a gizmo drag causes.
  */
 export function usePlacementForm(editor: FormEditor, select: (id: number | null) => void, selectedId: number | null) {
-  const [draft, setDraft] = useState<Draft | null>(null);
-  const [awaited, setAwaited] = useState<number | null>(null);
-  const { placements, mutation, update, rename, remove } = editor;
-
-  // Both branches adjust state during render — React's own alternative to an
-  // effect, so the object and its form land in one commit. The POST that
-  // created an object resolves a microtask before React has committed the row,
-  // so `openNew` names an id the list does not hold yet and the form waits for
-  // it here. If the reader selects elsewhere while it waits, discard the
-  // pending create and let the block follow the new selection.
-  if (awaited !== null && selectedId !== awaited) {
-    setAwaited(null);
-  } else if (awaited !== null) {
-    const arrived = placements.find((p) => p.id === awaited);
-    if (arrived) {
-      setAwaited(null);
-      setDraft({ kind: "new", id: arrived.id, label: "", transform: transformOf(arrived), touched: false });
-    }
-  } else if ((draft?.id ?? null) !== selectedId) {
-    const picked = placements.find((p) => p.id === selectedId) ?? null;
-    // The write has to *change* something. React re-renders a render-phase
-    // update rather than bailing out on an equal value, and the condition that
-    // asked for it would still be true on the way round — so a selected id the
-    // list does not hold (an object deleted under the selection) wrote null
-    // over null until React gave up at 25 renders and threw, taking the route
-    // with it. Nothing below the canvas has an error boundary.
-    if (draft !== null || picked !== null) setDraft(picked && editDraft(picked));
-  }
-
-  const openNew = useCallback(
-    (id: number) => {
-      setDraft(null);
-      setAwaited(id);
-      select(id);
-    },
-    [select],
-  );
-
-  // Rename is now only a way *in* — the draft it seeds is the same one the
-  // selection would have produced, with the label field worth looking at. The
-  // exception is the object's own "new" draft: cancelling one deletes the
-  // object the picker already POSTed, and downgrading it to an edit left that
-  // object in the scene, unnamed, with nothing left to undo it.
-  const openRename = useCallback(
-    (id: number) => {
-      const placement = placements.find((p) => p.id === id);
-      if (!placement) return;
-      setDraft((d) => (d?.id === id && d.kind === "new" ? d : editDraft(placement)));
-      select(id);
-    },
-    [placements, select],
-  );
-
-  // An untouched transform is not this form's to send. The gizmo stays live
-  // under the form and a drag commits its own PUT, so the copy taken when the
-  // draft was seeded is stale the moment the reader positions the object.
-  // `rename` reads the editor's own list, i.e. the last committed transform,
-  // and sends that back with the label. The draft's numbers go out only when
-  // someone typed them. Saving re-seeds rather than closes: the block is a
-  // form for as long as something is selected.
-  const save = useCallback(async () => {
-    if (!draft) return;
-    if (draft.touched) await update(draft.id, { ...draft.transform, label: draft.label });
-    else await rename(draft.id, draft.label);
-    setDraft((d) => d && { ...d, kind: "edit", touched: false });
-  }, [draft, rename, update]);
-
-  const cancel = useCallback(async () => {
-    if (!draft) return;
-    if (draft.kind === "new") {
-      setDraft(null);
-      select(null);
-      await remove(draft.id);
-      return;
-    }
-    const live = placements.find((p) => p.id === draft.id);
-    if (live) setDraft(editDraft(live));
-  }, [draft, placements, remove, select]);
-
-  const live = draft && placements.find((p) => p.id === draft.id);
-  const form: PlacementFormView | null = draft && {
-    kind: draft.kind,
-    label: draft.label,
-    onLabel: (label) => setDraft((d) => d && { ...d, label }),
-    transform: draft.touched || !live ? draft.transform : transformOf(live),
-    onTransform: (transform) => setDraft((d) => d && { ...d, transform, touched: true }),
-    saving: isMutatingId(mutation, draft.id),
-    onSave: () => void save(),
-    onCancel: () => void cancel(),
-  };
-
-  return { form, openNew, openRename };
+  const { draft, changeDraft, openNew, openRename } = usePlacementDraft(editor.placements, select, selectedId);
+  return { form: placementForm(draft, editor, changeDraft, select), openNew, openRename };
 }
