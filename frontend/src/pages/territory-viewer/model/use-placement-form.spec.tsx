@@ -1,7 +1,9 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import { useCallback, useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { idle, mutating, type MutationState, type ResolvedPlacement } from "@/entities/placement";
+import { useViewerMode } from "@/features/viewer-mode";
+import { SelectedBlock } from "@/widgets/placements-panel";
 import { usePlacementForm, type FormEditor } from "./use-placement-form";
 
 const TANK: ResolvedPlacement = {
@@ -43,7 +45,7 @@ const mount = (initial: number | null = null) =>
       select(next);
       setId(next);
     }, []);
-    return { ...usePlacementForm(editor(), selectTo, id), selectTo };
+    return { ...usePlacementForm(editor(), selectTo, id), selectTo, id };
   });
 
 describe("usePlacementForm", () => {
@@ -87,6 +89,105 @@ describe("usePlacementForm", () => {
       label: "",
       transform: { position: TANK.position },
     });
+  });
+
+  it("hides the previous draft while the new placement has not reached the scene", () => {
+    const { result, rerender } = mount(7);
+    act(() => result.current.form?.onLabel("Unsaved valve"));
+    act(() => result.current.openNew(99));
+
+    expect(result.current.id).toBe(99);
+    expect(list.find((p) => p.id === result.current.id)).toBeUndefined();
+    expect(result.current.form).toBeNull();
+
+    list = [...list, { ...TANK, id: 99, position: MOVED }];
+    rerender();
+    expect(result.current.form).toMatchObject({ kind: "new", label: "", transform: { position: MOVED } });
+  });
+
+  it("follows selection when it changes during a pending arrival", () => {
+    const { result, rerender } = mount(7);
+    act(() => result.current.form?.onLabel("Unsaved valve"));
+    act(() => result.current.openNew(99));
+    act(() => result.current.selectTo(4));
+    expect(result.current.id).toBe(4);
+    expect(result.current.form).toMatchObject({ kind: "edit", label: "", transform: { position: TANK.position } });
+
+    list = [...list, { ...TANK, id: 99, position: MOVED }];
+    rerender();
+    expect(result.current.id).toBe(4);
+    expect(result.current.form).toMatchObject({ kind: "edit", label: "", transform: { position: TANK.position } });
+  });
+
+  it("shows and saves the selected object while a new row is delayed", () => {
+    list = [TANK, { ...VALVE, position: MOVED }];
+    function Viewer() {
+      const [id, setId] = useState<number | null>(7);
+      const { form, openNew } = usePlacementForm(editor(), setId, id);
+      const selected = list.find((p) => p.id === id);
+      return (
+        <>
+          <button onClick={() => openNew(99)}>Create</button>
+          <button onClick={() => setId(4)}>Select tank</button>
+          {selected && (
+            <SelectedBlock
+              name={selected.modelSlug}
+              gizmo="translate"
+              onGizmo={() => {}}
+              transform={selected}
+              snap={false}
+              onSnap={() => {}}
+              canWrite
+              form={form}
+              compact={false}
+            />
+          )}
+        </>
+      );
+    }
+    const { rerender } = render(<Viewer />);
+    fireEvent.change(screen.getByRole("textbox", { name: "Label" }), { target: { value: "Unsaved valve" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+    expect(screen.queryByRole("textbox", { name: "Label" })).toBeNull();
+    expect(screen.queryByText("valve")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Select tank" }));
+    expect(screen.getByText("storage-tank-500")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Label" })).toHaveValue("");
+    expect(screen.getByRole("textbox", { name: "Pos x" })).toHaveValue("18.200");
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(rename).toHaveBeenCalledOnce();
+    expect(rename).toHaveBeenCalledWith(4, "");
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(remove).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
+    list = [...list, { ...TANK, id: 99, position: MOVED }];
+    rerender(<Viewer />);
+    expect(screen.getByText("storage-tank-500")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Label" })).toHaveValue("");
+    expect(screen.getByRole("textbox", { name: "Pos x" })).toHaveValue("18.200");
+  });
+
+  it("keeps the awaited create when the viewer reducer selects it after an async create", async () => {
+    const { result, rerender } = renderHook(() => {
+      const mode = useViewerMode({
+        canWrite: true,
+        canMovePoints: false,
+        chainOpen: false,
+        onCancelChain: () => {},
+        onCycle: () => {},
+      });
+      return { ...usePlacementForm(editor(), mode.select, mode.state.selectedId), mode };
+    });
+    act(() => result.current.mode.select(7));
+    await act(async () => {
+      await Promise.resolve();
+      result.current.openNew(99);
+    });
+    expect(result.current.mode.state.selectedId).toBe(99);
+    expect(result.current.form).toBeNull();
+    list = [...list, { ...TANK, id: 99, position: MOVED }];
+    rerender();
+    expect(result.current.form).toMatchObject({ kind: "new", label: "", transform: { position: MOVED } });
   });
 
   it("selects the object it opens on, so the block has something to sit under", () => {

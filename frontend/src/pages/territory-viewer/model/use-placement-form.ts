@@ -70,8 +70,11 @@ export function usePlacementForm(editor: FormEditor, select: (id: number | null)
   // effect, so the object and its form land in one commit. The POST that
   // created an object resolves a microtask before React has committed the row,
   // so `openNew` names an id the list does not hold yet and the form waits for
-  // it here; anything else, the block follows the selection.
-  if (awaited !== null) {
+  // it here. If the reader selects elsewhere while it waits, discard the
+  // pending create and let the block follow the new selection.
+  if (awaited !== null && selectedId !== awaited) {
+    setAwaited(null);
+  } else if (awaited !== null) {
     const arrived = placements.find((p) => p.id === awaited);
     if (arrived) {
       setAwaited(null);
@@ -90,6 +93,7 @@ export function usePlacementForm(editor: FormEditor, select: (id: number | null)
 
   const openNew = useCallback(
     (id: number) => {
+      setDraft(null);
       setAwaited(id);
       select(id);
     },
