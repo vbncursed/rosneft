@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -217,6 +218,53 @@ describe("UserGroupItem", () => {
     expect(a.onDelete).toHaveBeenCalledWith(4);
     expect(screen.getByRole("button", { name: "West yard" })).toHaveFocus();
   });
+
+  it.each([
+    { names: ["East yard", "West yard"], deleted: "East yard", target: "West yard", search: true },
+    { names: ["East yard", "West yard"], deleted: "West yard", target: "East yard", search: true },
+    { names: ["East yard"], deleted: "East yard", target: "Search groups", search: true },
+    { names: ["East yard"], deleted: "East yard", target: null, search: false },
+  ])(
+    "keeps keyboard focus safe after deleting $deleted (target: $target)",
+    async ({ names, deleted, target, search }) => {
+      let finish!: () => void;
+      const pending = new Promise<void>((resolve) => (finish = resolve));
+      function Panel() {
+        const [groups, setGroups] = useState(names);
+        const a = actions({
+          onDelete: (id) => {
+            void pending.then(() => setGroups((current) => current.filter((name) => names.indexOf(name) !== id)));
+          },
+        });
+        return (
+          <div>
+            {search && <input type="search" aria-label="Search groups" />}
+            <ul>
+              {groups.map((name) => (
+                <UserGroupItem
+                  key={name}
+                  section={{ group: { id: names.indexOf(name), title: name, hidden: false }, members: [] }}
+                  ctx={ctx()}
+                  onAdd={null}
+                  actions={a}
+                />
+              ))}
+            </ul>
+          </div>
+        );
+      }
+      render(<Panel />);
+      const user = userEvent.setup();
+      screen.getByRole("button", { name: `Actions for group ${deleted}` }).focus();
+      await user.keyboard("{Enter}{ArrowDown}{Enter}");
+      expect(screen.getByRole("button", { name: deleted })).toBeInTheDocument();
+      await act(async () => finish());
+      expect(screen.queryByRole("button", { name: deleted })).not.toBeInTheDocument();
+      if (target === "Search groups") expect(screen.getByRole("searchbox", { name: target })).toHaveFocus();
+      else if (target) expect(screen.getByRole("button", { name: target })).toHaveFocus();
+      else expect(document.activeElement).toBe(document.body);
+    },
+  );
 
   // The kebab holds focus when a write starts; a natively disabled one drops it.
   it("keeps the menu open-able while a group write is in flight, its actions greyed", async () => {
