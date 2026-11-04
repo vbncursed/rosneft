@@ -256,6 +256,39 @@ describe("useUploadModels", () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
+  it("finishes an in-flight create after cancellation without starting the next row or navigating", async () => {
+    runChunkedUpload.mockResolvedValue({ hash: "hash-a", size: 1 });
+    let resolveCreate!: (value: { model: { slug: string }; job: { id: string } }) => void;
+    createModel.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveCreate = resolve;
+        }),
+    );
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+    const { result } = renderHook(() => ({ s: useUploadModels(), notices: useNotices() }), { wrapper });
+    act(() => result.current.s.onFiles([file("a.zip"), file("b.zip")]));
+    act(() => result.current.s.onTag("tanks"));
+    act(() => result.current.s.onRun());
+    await waitFor(() => expect(result.current.s.rows[0].status).toBe("creating"));
+    expect(createModel).toHaveBeenCalledTimes(1);
+    expect(createModel.mock.calls[0]).toHaveLength(1);
+
+    act(() => result.current.s.onCancel());
+    expect(result.current.s.running).toBe(true);
+    await act(async () => resolveCreate({ model: { slug: "a" }, job: { id: "job-a" } }));
+    await waitFor(() => expect(result.current.s.running).toBe(false));
+
+    expect(result.current.s.rows[0]).toMatchObject({ status: "done", progress: 1 });
+    expect(result.current.s.rows[1].status).toBe("queued");
+    expect(runChunkedUpload).toHaveBeenCalledTimes(1);
+    expect(result.current.s.failedNames).toEqual([]);
+    expect(result.current.notices).toHaveLength(0);
+    expect(navigate).not.toHaveBeenCalled();
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["models"] });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["jobs"] });
+  });
+
   it("retries a failed row on a second onRun", async () => {
     let attempt = 0;
     runChunkedUpload.mockImplementation(() => {
