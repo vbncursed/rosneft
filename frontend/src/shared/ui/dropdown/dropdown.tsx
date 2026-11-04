@@ -30,6 +30,15 @@ export type DropdownProps<T extends string> = {
   describedBy?: string;
 };
 
+function reconcileOption<T extends string>(
+  options: DropdownOption<T>[],
+  cursor: { value: T | undefined; disabled: boolean },
+) {
+  const current = options.find((option) => option.value === cursor.value);
+  if (!current || (current.disabled && !cursor.disabled)) return options.find((option) => !option.disabled);
+  return current;
+}
+
 export function Dropdown<T extends string>({
   options,
   value,
@@ -50,7 +59,17 @@ export function Dropdown<T extends string>({
     0,
     options.findIndex((o) => o.value === value),
   );
-  const [active, setActive] = useState(selectedIndex);
+  const [cursor, setCursor] = useState<{ value: T | undefined; disabled: boolean }>(() => ({
+    value: options[selectedIndex]?.value,
+    disabled: Boolean(options[selectedIndex]?.disabled),
+  }));
+  const current = reconcileOption(options, cursor);
+  const nextCursor = { value: current?.value, disabled: Boolean(current?.disabled) };
+  if (nextCursor.value !== cursor.value || nextCursor.disabled !== cursor.disabled) setCursor(nextCursor);
+  const navigationIndex = current ? options.indexOf(current) : -1;
+  const active = current && !current.disabled ? navigationIndex : -1;
+  const setActive = (index: number) =>
+    setCursor({ value: options[index]?.value, disabled: Boolean(options[index]?.disabled) });
 
   useDismiss(root, open, () => setOpen(false));
 
@@ -77,10 +96,10 @@ export function Dropdown<T extends string>({
     }
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      setActive((i) => nextEnabled(options.length, i, 1, (n) => Boolean(options[n].disabled)));
+      setActive(nextEnabled(options.length, navigationIndex, 1, (n) => Boolean(options[n].disabled)));
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
-      setActive((i) => nextEnabled(options.length, i, -1, (n) => Boolean(options[n].disabled)));
+      setActive(nextEnabled(options.length, navigationIndex, -1, (n) => Boolean(options[n].disabled)));
     } else if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       choose(active);
@@ -130,7 +149,7 @@ export function Dropdown<T extends string>({
           id={listId}
           role="listbox"
           aria-label={ariaLabel ?? label}
-          aria-activedescendant={`${listId}-${active}`}
+          aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
           // Drops from the trigger it is docked to; frequent, so quicker than a menu.
           className="absolute z-10 m-0 w-full origin-top list-none rounded-b-control border border-t-0 border-accent-line bg-panel p-1.5 shadow-elevation transition-[opacity,scale] duration-120 ease-out starting:opacity-0 motion-safe:starting:scale-y-[0.97]"
         >
