@@ -53,7 +53,9 @@ describe("usePlacementForm", () => {
     mutation = idle;
     list = [TANK, VALVE];
     select.mockReset();
-    for (const fn of [update, rename, remove]) fn.mockReset().mockResolvedValue(undefined);
+    update.mockReset().mockResolvedValue(true);
+    rename.mockReset().mockResolvedValue(true);
+    remove.mockReset().mockResolvedValue(undefined);
   });
 
   it("draws no form when nothing is selected", () => {
@@ -290,6 +292,7 @@ describe("usePlacementForm", () => {
     rename.mockImplementation(async (id, label) => {
       const p = list.find((x) => x.id === id)!;
       sent.push({ position: p.position, rotation: p.rotation, scale: p.scale, label });
+      return true;
     });
     const { result, rerender } = mount();
 
@@ -403,8 +406,8 @@ describe("usePlacementForm", () => {
     let finish!: () => void;
     rename.mockImplementation(
       () =>
-        new Promise<void>((resolve) => {
-          finish = resolve;
+        new Promise<boolean>((resolve) => {
+          finish = () => resolve(true);
         }),
     );
     const { result } = mount(7);
@@ -424,8 +427,8 @@ describe("usePlacementForm", () => {
     let finish!: () => void;
     update.mockImplementation(
       () =>
-        new Promise<void>((resolve) => {
-          finish = resolve;
+        new Promise<boolean>((resolve) => {
+          finish = () => resolve(true);
         }),
     );
     const { result } = mount(7);
@@ -543,8 +546,8 @@ describe("usePlacementForm", () => {
     let finish!: () => void;
     rename.mockImplementation(
       () =>
-        new Promise<void>((resolve) => {
-          finish = resolve;
+        new Promise<boolean>((resolve) => {
+          finish = () => resolve(true);
         }),
     );
     const { result } = mount();
@@ -564,8 +567,8 @@ describe("usePlacementForm", () => {
     let finish!: () => void;
     update.mockImplementation(
       () =>
-        new Promise<void>((resolve) => {
-          finish = resolve;
+        new Promise<boolean>((resolve) => {
+          finish = () => resolve(true);
         }),
     );
     const { result } = mount();
@@ -588,8 +591,8 @@ describe("usePlacementForm", () => {
       const finishes: (() => void)[] = [];
       rename.mockImplementation(
         () =>
-          new Promise<void>((resolve) => {
-            finishes.push(resolve);
+          new Promise<boolean>((resolve) => {
+            finishes.push(() => resolve(true));
           }),
       );
       const { result } = mount();
@@ -616,8 +619,8 @@ describe("usePlacementForm", () => {
     let finish!: () => void;
     update.mockImplementation(
       () =>
-        new Promise<void>((resolve) => {
-          finish = resolve;
+        new Promise<boolean>((resolve) => {
+          finish = () => resolve(true);
         }),
     );
     const { result } = mount(7);

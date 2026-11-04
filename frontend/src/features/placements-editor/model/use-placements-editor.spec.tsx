@@ -379,6 +379,28 @@ describe("usePlacementsEditor", () => {
     });
   });
 
+  it("returns the result of updates and renames, including unknown ids", async () => {
+    vi.mocked(updatePlacement).mockImplementation(async (_slug, id, body) => ({ ...placement(id), ...body }));
+    const { result } = editor([placement(1)]);
+    await act(async () => {
+      expect(await result.current.s.update(1, { ...IDENTITY_TRANSFORM, label: "A" })).toBe(true);
+      expect(await result.current.s.rename(1, "B")).toBe(true);
+    });
+    expect(onChanged).toHaveBeenCalledTimes(2);
+    vi.mocked(updatePlacement).mockRejectedValue(new HttpError(400, null, "PUT refused"));
+    onChanged.mockClear();
+    await act(async () => {
+      expect(await result.current.s.update(1, { ...IDENTITY_TRANSFORM, label: "C" })).toBe(false);
+      expect(await result.current.s.rename(1, "D")).toBe(false);
+    });
+    expect(onChanged).not.toHaveBeenCalled();
+    expect(result.current.notices).toHaveLength(1);
+    vi.mocked(updatePlacement).mockClear();
+    await act(async () => expect(await result.current.s.rename(999, "missing")).toBe(false));
+    expect(updatePlacement).not.toHaveBeenCalled();
+    expect(result.current.notices).toHaveLength(1);
+  });
+
   it("commitTransform keeps the label; rename keeps the transform", async () => {
     vi.mocked(updatePlacement).mockImplementation(async (_slug, id, body) => ({ ...placement(id), ...body }));
     const { result } = editor([placement(1, { label: "Tank 4" })]);

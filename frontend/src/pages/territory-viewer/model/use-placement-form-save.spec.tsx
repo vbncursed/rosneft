@@ -123,7 +123,7 @@ describe("placement form save during a subsequent create", () => {
       expect(screen.queryByRole("textbox", { name: "Label" })).toBeNull();
     },
   );
-  it("preserves the editor's existing resolved-after-refusal behavior for the same form session", async () => {
+  it("keeps a refused new draft so Cancel deletes it", async () => {
     vi.mocked(updatePlacement).mockRejectedValue(new HttpError(400, null, "PUT refused"));
     render(
       <StrictMode>
@@ -133,10 +133,42 @@ describe("placement form save during a subsequent create", () => {
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "Place another tank" })));
     expect(screen.getByText("Selected · new")).toBeInTheDocument();
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "Save" })));
-    // FormEditor exposes Promise<void>; the editor reports the refusal and resolves it.
     expect(screen.getByText("PUT refused")).toBeInTheDocument();
+    expect(screen.getByText("Selected · new")).toBeInTheDocument();
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Cancel" })));
+    expect(deletePlacement).toHaveBeenCalledExactlyOnceWith("t", 4);
+  });
+  it.each(["new", "edit"] as const)("keeps typed values after a refused %s save", async (kind) => {
+    vi.mocked(updatePlacement).mockRejectedValue(new HttpError(400, null, "PUT refused"));
+    render(<Viewer />);
+    if (kind === "new")
+      await act(async () => fireEvent.click(screen.getByRole("button", { name: "Place another tank" })));
+    changed.mockClear();
+    fireEvent.change(screen.getByRole("textbox", { name: "Label" }), { target: { value: "My tank" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "Pos x" }), { target: { value: "3" } });
+    fireEvent.blur(screen.getByRole("textbox", { name: "Pos x" }));
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Save" })));
+    expect(screen.getAllByText("PUT refused")).toHaveLength(1);
+    expect(changed).not.toHaveBeenCalled();
+    expect(screen.getByRole("textbox", { name: "Label" })).toHaveValue("My tank");
+    expect(screen.getByRole("textbox", { name: "Pos x" })).toHaveValue("3.000");
+    if (kind === "new") expect(screen.getByText("Selected · new")).toBeInTheDocument();
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Cancel" })));
+    if (kind === "new") expect(deletePlacement).toHaveBeenCalledExactlyOnceWith("t", 4);
+    else expect(deletePlacement).not.toHaveBeenCalled();
+  });
+
+  it("acknowledges a new draft only after a successful retry", async () => {
+    vi.mocked(updatePlacement)
+      .mockRejectedValueOnce(new HttpError(400, null, "PUT refused"))
+      .mockResolvedValueOnce({ ...placement(4), label: "My tank" });
+    render(<Viewer />);
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Place another tank" })));
+    fireEvent.change(screen.getByRole("textbox", { name: "Label" }), { target: { value: "My tank" } });
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Save" })));
+    expect(screen.getByText("Selected · new")).toBeInTheDocument();
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Save" })));
     expect(screen.getByText("Selected")).toBeInTheDocument();
-    expect(screen.queryByText("Selected · new")).toBeNull();
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "Cancel" })));
     expect(deletePlacement).not.toHaveBeenCalled();
   });

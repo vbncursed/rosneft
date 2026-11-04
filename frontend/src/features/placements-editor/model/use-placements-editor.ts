@@ -149,8 +149,10 @@ export function usePlacementsEditor({
         const next = resolve(await updatePlacement(slug, id, body));
         startTransition(() => setPlacements((prev) => prev.map((p) => (p.id === id ? next : p))));
         onChanged();
+        return true;
       } catch (err) {
         notify.error(messageOf(err));
+        return false;
       } finally {
         setMutation(idle);
       }
@@ -216,8 +218,8 @@ export function usePlacementsEditor({
   const rename = useCallback(
     async (id: number, label: string) => {
       const p = placementsRef.current.find((x) => x.id === id);
-      if (!p) return;
-      await update(id, { position: p.position, rotation: p.rotation, scale: p.scale, label });
+      if (!p) return false;
+      return update(id, { position: p.position, rotation: p.rotation, scale: p.scale, label });
     },
     [update],
   );

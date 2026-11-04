@@ -11,8 +11,8 @@ import type { SelectedBlockProps } from "@/widgets/placements-panel";
 export type FormEditor = {
   placements: ResolvedPlacement[];
   mutation: MutationState;
-  update: (id: number, body: PlacementTransform & { label: string }) => Promise<void>;
-  rename: (id: number, label: string) => Promise<void>;
+  update: (id: number, body: PlacementTransform & { label: string }) => Promise<boolean>;
+  rename: (id: number, label: string) => Promise<boolean>;
   remove: (id: number) => Promise<void>;
 };
 
@@ -107,8 +107,10 @@ function usePlacementDraft(
 
 /** Untyped numbers belong to the live gizmo; only typed transforms are sent. */
 async function saveDraft(draft: Draft, editor: FormEditor, changeDraft: ChangeDraft) {
-  if (draft.touched) await editor.update(draft.id, { ...draft.transform, label: draft.label });
-  else await editor.rename(draft.id, draft.label);
+  const saved = draft.touched
+    ? await editor.update(draft.id, { ...draft.transform, label: draft.label })
+    : await editor.rename(draft.id, draft.label);
+  if (!saved) return;
   changeDraft((current) => {
     if (current?.session !== draft.session) return current;
     return { ...current, kind: "edit", touched: current.touched && current.transform !== draft.transform };
