@@ -1,8 +1,7 @@
-import { useId, useRef, useState, type KeyboardEvent } from "react";
+import { useId } from "react";
 import { clsx as cx } from "clsx";
-import { nextEnabled } from "@/shared/lib/roving";
-import { useDismiss } from "@/shared/lib/use-dismiss";
 import { Icon } from "@/shared/ui/icon";
+import { useDropdownInteraction } from "./use-dropdown-interaction";
 
 export type DropdownOption<T extends string> = {
   value: T;
@@ -30,15 +29,6 @@ export type DropdownProps<T extends string> = {
   describedBy?: string;
 };
 
-function reconcileOption<T extends string>(
-  options: DropdownOption<T>[],
-  cursor: { value: T | undefined; disabled: boolean },
-) {
-  const current = options.find((option) => option.value === cursor.value);
-  if (!current || (current.disabled && !cursor.disabled)) return options.find((option) => !option.disabled);
-  return current;
-}
-
 export function Dropdown<T extends string>({
   options,
   value,
@@ -52,59 +42,11 @@ export function Dropdown<T extends string>({
   describedBy,
 }: DropdownProps<T>) {
   const listId = useId();
-  const root = useRef<HTMLDivElement>(null);
-  const button = useRef<HTMLButtonElement>(null);
-  const [open, setOpen] = useState(false);
-  const selectedIndex = Math.max(
-    0,
-    options.findIndex((o) => o.value === value),
-  );
-  const [cursor, setCursor] = useState<{ value: T | undefined; disabled: boolean }>(() => ({
-    value: options[selectedIndex]?.value,
-    disabled: Boolean(options[selectedIndex]?.disabled),
-  }));
-  const current = reconcileOption(options, cursor);
-  const nextCursor = { value: current?.value, disabled: Boolean(current?.disabled) };
-  if (nextCursor.value !== cursor.value || nextCursor.disabled !== cursor.disabled) setCursor(nextCursor);
-  const navigationIndex = current ? options.indexOf(current) : -1;
-  const active = current && !current.disabled ? navigationIndex : -1;
-  const setActive = (index: number) =>
-    setCursor({ value: options[index]?.value, disabled: Boolean(options[index]?.disabled) });
-
-  useDismiss(root, open, () => setOpen(false));
-
-  const selected = options[selectedIndex];
-
-  const choose = (index: number) => {
-    const option = options[index];
-    if (!option || option.disabled) return;
-    // Focus stays on the trigger (aria-activedescendant); a pointer on an
-    // option, which is not focusable, would otherwise drop it to <body>.
-    button.current?.focus();
-    onChange(option.value);
-    setOpen(false);
-  };
-
-  const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (!open) {
-      if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        setActive(selectedIndex);
-        setOpen(true);
-      }
-      return;
-    }
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setActive(nextEnabled(options.length, navigationIndex, 1, (n) => Boolean(options[n].disabled)));
-    } else if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setActive(nextEnabled(options.length, navigationIndex, -1, (n) => Boolean(options[n].disabled)));
-    } else if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      choose(active);
-    }
-  };
+  const { root, button, open, selected, active, setActive, choose, toggle, onKeyDown } = useDropdownInteraction({
+    options,
+    value,
+    onChange,
+  });
 
   return (
     <div ref={root} className={cx("relative", className)}>
@@ -119,10 +61,7 @@ export function Dropdown<T extends string>({
         aria-label={ariaLabel}
         aria-invalid={invalid || undefined}
         aria-describedby={describedBy}
-        onClick={() => {
-          setActive(selectedIndex);
-          setOpen((o) => !o);
-        }}
+        onClick={toggle}
         onKeyDown={onKeyDown}
         className={cx(
           "flex w-full items-center justify-between gap-2.5 border bg-panel-2 px-3 py-2.5 text-[13px] transition-[color,background-color,border-color,scale] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent enabled:active:scale-[0.99]",
