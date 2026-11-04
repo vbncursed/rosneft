@@ -1,16 +1,20 @@
 package httpapi
 
 import (
+	"context"
 	"errors"
 	"reflect"
 	"testing"
 	"time"
 
+	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/suite"
 	"gotest.tools/v3/assert"
 
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/service"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/service/mocks"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
 )
 
@@ -111,4 +115,94 @@ func (s *ListAuditSuite) TestErrorsAndEmptyPage() {
 	assert.NilError(s.T(), err)
 	_, ok := denied.(ListAudit403JSONResponse)
 	assert.Assert(s.T(), ok)
+}
+
+type ListAuditActorsSuite struct{ suite.Suite }
+
+func TestListAuditActorsSuite(t *testing.T) { suite.Run(t, new(ListAuditActorsSuite)) }
+
+func (s *ListAuditActorsSuite) TestActors() {
+	for _, tc := range []struct {
+		name      string
+		principal authhttp.TestPrincipal
+		query     domain.AuditQuery
+	}{
+		{"company", authhttp.TestPrincipal{UserID: "user", AuditCompany: "company", Perms: []string{"audit:read"}}, domain.AuditQuery{CompanyID: "company"}},
+		{"root", authhttp.TestPrincipal{UserID: "root", IsOwner: true}, domain.AuditQuery{AllCompanies: true}},
+	} {
+		s.Run(tc.name, func() {
+			mc := minimock.NewController(s.T())
+			aud, aut := mocks.NewAuditMock(mc), mocks.NewAuthMock(mc)
+			aud.ListActorsMock.Set(func(_ context.Context, q domain.AuditQuery) ([]string, error) {
+				assert.DeepEqual(s.T(), q, tc.query)
+				return []string{"actor-2", "actor-1"}, nil
+			})
+			aut.ResolveUserLoginsMock.Set(
+				func(_ context.Context, token string, ids []string) (map[string]string, error) {
+					assert.Equal(s.T(), token, "")
+					assert.DeepEqual(s.T(), ids, []string{"actor-2", "actor-1"})
+					return map[string]string{"actor-1": "alice", "actor-2": "bob"}, nil
+				},
+			)
+			svc := service.New(nil, nil, nil, nil, aud, aut)
+			ctx := authhttp.NewTestContextFor(s.T().Context(), tc.principal)
+			resp, err := New(svc).ListAuditActors(ctx, ListAuditActorsRequestObject{})
+			assert.NilError(s.T(), err)
+			actors, ok := resp.(ListAuditActors200JSONResponse)
+			assert.Assert(s.T(), ok, "got %T", resp)
+			assert.DeepEqual(
+				s.T(),
+				actors,
+				ListAuditActors200JSONResponse{
+					{Id: "actor-1", Login: new("alice")},
+					{Id: "actor-2", Login: new("bob")},
+				},
+			)
+		})
+	}
+}
+
+func (s *ListAuditActorsSuite) TestErrorsAndEmpty() {
+	for _, tc := range []struct {
+		name      string
+		principal authhttp.TestPrincipal
+		upstream  error
+		want      any
+	}{
+		{"no scope", authhttp.TestPrincipal{}, nil, ListAuditActors403JSONResponse{}},
+		{"own grant", authhttp.TestPrincipal{AuditCompany: "company", Perms: []string{"audit:read_own"}}, nil, ListAuditActors403JSONResponse{}},
+		{"forbidden", authhttp.TestPrincipal{IsOwner: true}, domain.ErrForbidden, ListAuditActors403JSONResponse{}},
+		{"invalid", authhttp.TestPrincipal{IsOwner: true}, domain.ErrInvalidInput, ListAuditActors400JSONResponse{}},
+		{"internal", authhttp.TestPrincipal{IsOwner: true}, errors.New("private detail"), ListAuditActors500JSONResponse{}},
+		{"empty", authhttp.TestPrincipal{IsOwner: true}, nil, ListAuditActors200JSONResponse{}},
+	} {
+		s.Run(tc.name, func() {
+			mc := minimock.NewController(s.T())
+			aud, aut := mocks.NewAuditMock(mc), mocks.NewAuthMock(mc)
+			if tc.principal.IsOwner {
+				aud.ListActorsMock.Return(nil, tc.upstream)
+			}
+			ctx := authhttp.NewTestContextFor(s.T().Context(), tc.principal)
+			resp, err := New(
+				service.New(nil, nil, nil, nil, aud, aut),
+			).ListAuditActors(ctx, ListAuditActorsRequestObject{})
+			assert.NilError(s.T(), err)
+			assert.Equal(s.T(), reflect.TypeOf(resp), reflect.TypeOf(tc.want))
+			if denied, ok := resp.(ListAuditActors403JSONResponse); ok {
+				assert.Equal(s.T(), denied.Code, apperr.SlugForbidden)
+				assert.Equal(s.T(), denied.Message, "no audit scope for this principal")
+			}
+			if internal, ok := resp.(ListAuditActors500JSONResponse); ok {
+				assert.Equal(s.T(), internal.Code, apperr.SlugInternal)
+				assert.Equal(s.T(), internal.Message, apperr.InternalMessage)
+			}
+			if actors, ok := resp.(ListAuditActors200JSONResponse); ok {
+				assert.Assert(s.T(), actors != nil && len(actors) == 0)
+			}
+			if !tc.principal.IsOwner {
+				assert.Equal(s.T(), aud.ListActorsAfterCounter(), uint64(0))
+			}
+			assert.Equal(s.T(), aut.ResolveUserLoginsAfterCounter(), uint64(0))
+		})
+	}
 }
