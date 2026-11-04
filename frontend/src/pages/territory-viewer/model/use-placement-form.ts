@@ -20,6 +20,8 @@ export type FormEditor = {
 export type PlacementFormView = NonNullable<SelectedBlockProps["form"]>;
 
 type Draft = {
+  /** Reopening even the same placement starts a distinct form session. */
+  session: symbol;
   kind: "new" | "edit";
   id: number;
   label: string;
@@ -35,6 +37,7 @@ const transformOf = (p: ResolvedPlacement): PlacementTransform => ({
 });
 
 const editDraft = (p: ResolvedPlacement): Draft => ({
+  session: Symbol(),
   kind: "edit",
   id: p.id,
   label: p.label,
@@ -106,7 +109,10 @@ function usePlacementDraft(
 async function saveDraft(draft: Draft, editor: FormEditor, changeDraft: ChangeDraft) {
   if (draft.touched) await editor.update(draft.id, { ...draft.transform, label: draft.label });
   else await editor.rename(draft.id, draft.label);
-  changeDraft((current) => current && { ...current, kind: "edit", touched: false });
+  changeDraft((current) => {
+    if (current?.session !== draft.session) return current;
+    return { ...current, kind: "edit", touched: current.touched && current.transform !== draft.transform };
+  });
 }
 
 /** New objects already exist on the server; edits only reset local fields. */

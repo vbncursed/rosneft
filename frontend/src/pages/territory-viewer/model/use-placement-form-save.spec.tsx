@@ -1,0 +1,143 @@
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { StrictMode, useState } from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  createPlacements,
+  deletePlacement,
+  IDENTITY_TRANSFORM,
+  updatePlacement,
+  type Placement,
+} from "@/entities/placement";
+import { usePlacementsEditor } from "@/features/placements-editor";
+import { HttpError } from "@/shared/api";
+import { clearNotices, useNotices } from "@/shared/lib/notify";
+import { SelectedBlock } from "@/widgets/placements-panel";
+import { usePlacementForm } from "./use-placement-form";
+
+vi.mock("@/entities/placement", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  createPlacements: vi.fn(),
+  updatePlacement: vi.fn(),
+  deletePlacement: vi.fn(),
+}));
+const placement = (id: number): Placement => ({
+  id,
+  territorySlug: "t",
+  modelSlug: "tank",
+  label: `Tank ${id}`,
+  updatedAt: "now",
+  visiblePanoramaIds: [],
+  hidden: false,
+  groupId: null,
+  ...IDENTITY_TRANSFORM,
+});
+const changed = vi.fn();
+
+function Viewer() {
+  const [id, select] = useState<number | null>(7);
+  const editor = usePlacementsEditor({
+    slug: "t",
+    initial: [{ ...placement(7), chain: [] }],
+    options: [],
+    territoryMaxDim: 1,
+    panoramaIds: [],
+    onChanged: changed,
+  });
+  const form = usePlacementForm(editor, select, id);
+  const notices = useNotices();
+  const selected = editor.placements.find((p) => p.id === id);
+  return (
+    <>
+      <button
+        onClick={async () => {
+          const created = await editor.create("tank", 1);
+          if (created !== null) form.openNew(created);
+        }}
+      >
+        Place another tank
+      </button>
+      {selected && (
+        <SelectedBlock
+          name={`Tank ${selected.id}`}
+          gizmo="translate"
+          onGizmo={() => {}}
+          transform={selected}
+          snap={false}
+          onSnap={() => {}}
+          canWrite
+          form={form.form}
+          compact={false}
+        />
+      )}
+      {notices.map((notice) => (
+        <p key={notice.id}>{notice.message}</p>
+      ))}
+    </>
+  );
+}
+
+describe("placement form save during a subsequent create", () => {
+  beforeEach(() => {
+    vi.mocked(createPlacements)
+      .mockReset()
+      .mockResolvedValue([placement(4)]);
+    vi.mocked(deletePlacement).mockReset().mockResolvedValue(undefined);
+    vi.mocked(updatePlacement).mockReset();
+    changed.mockReset();
+    clearNotices();
+  });
+
+  it.each(["resolved", "rejected"] as const)(
+    "keeps the new tank's Cancel deleting it after the old PUT %s",
+    async (outcome) => {
+      let resolve!: (value: Placement) => void;
+      let reject!: (reason: Error) => void;
+      vi.mocked(updatePlacement).mockImplementation(
+        () =>
+          new Promise<Placement>((yes, no) => {
+            resolve = yes;
+            reject = no;
+          }),
+      );
+      render(
+        <StrictMode>
+          <Viewer />
+        </StrictMode>,
+      );
+      fireEvent.change(screen.getByRole("textbox", { name: "Label" }), { target: { value: "Saved old tank" } });
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+      expect(screen.getByRole("button", { name: "Saving…" })).toBeDisabled();
+      await act(async () => fireEvent.click(screen.getByRole("button", { name: "Place another tank" })));
+      expect(screen.getByText("Tank 4")).toBeInTheDocument();
+      expect(screen.getByText("Selected · new")).toBeInTheDocument();
+      fireEvent.change(screen.getByRole("textbox", { name: "Label" }), { target: { value: "Unsaved new tank" } });
+      await act(async () => {
+        if (outcome === "resolved") resolve({ ...placement(7), label: "Saved old tank" });
+        else reject(new HttpError(400, null, "PUT refused"));
+      });
+      if (outcome === "rejected") expect(screen.getByText("PUT refused")).toBeInTheDocument();
+      expect(screen.getByText("Selected · new")).toBeInTheDocument();
+      expect(screen.getByRole("textbox", { name: "Label" })).toHaveValue("Unsaved new tank");
+      await act(async () => fireEvent.click(screen.getByRole("button", { name: "Cancel" })));
+      expect(deletePlacement).toHaveBeenCalledExactlyOnceWith("t", 4);
+      expect(screen.queryByRole("textbox", { name: "Label" })).toBeNull();
+    },
+  );
+  it("preserves the editor's existing resolved-after-refusal behavior for the same form session", async () => {
+    vi.mocked(updatePlacement).mockRejectedValue(new HttpError(400, null, "PUT refused"));
+    render(
+      <StrictMode>
+        <Viewer />
+      </StrictMode>,
+    );
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Place another tank" })));
+    expect(screen.getByText("Selected · new")).toBeInTheDocument();
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Save" })));
+    // FormEditor exposes Promise<void>; the editor reports the refusal and resolves it.
+    expect(screen.getByText("PUT refused")).toBeInTheDocument();
+    expect(screen.getByText("Selected")).toBeInTheDocument();
+    expect(screen.queryByText("Selected · new")).toBeNull();
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Cancel" })));
+    expect(deletePlacement).not.toHaveBeenCalled();
+  });
+});

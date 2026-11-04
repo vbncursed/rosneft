@@ -399,7 +399,7 @@ describe("usePlacementForm", () => {
     expect(result.current.form?.kind).toBe("edit");
   });
 
-  it("keeps an in-flight save's completion behavior when another create is selected", async () => {
+  it("keeps another create cancellable when an earlier save finishes", async () => {
     let finish!: () => void;
     rename.mockImplementation(
       () =>
@@ -415,7 +415,9 @@ describe("usePlacementForm", () => {
     act(() => result.current.form?.onLabel("New tank"));
     expect(result.current.form?.kind).toBe("new");
     await act(async () => finish());
-    expect(result.current.form).toMatchObject({ kind: "edit", label: "New tank" });
+    expect(result.current.form).toMatchObject({ kind: "new", label: "New tank" });
+    await act(async () => result.current.form?.onCancel());
+    expect(remove).toHaveBeenCalledWith(4);
   });
 
   it("does not resurrect a deselected draft when its save finishes", async () => {
@@ -536,5 +538,100 @@ describe("usePlacementForm", () => {
     rerender();
     act(() => result.current.selectTo(7));
     expect(result.current.form).toMatchObject({ kind: "edit", label: "West valve" });
+  });
+  it("does not acknowledge a reopened create even when it has the saved object's id", async () => {
+    let finish!: () => void;
+    rename.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const { result } = mount();
+    act(() => result.current.openNew(4));
+    act(() => result.current.form?.onLabel("First draft"));
+    act(() => result.current.form?.onSave());
+    act(() => result.current.selectTo(7));
+    act(() => result.current.openNew(4));
+    act(() => result.current.form?.onLabel("Reopened draft"));
+    await act(async () => finish());
+    expect(result.current.form).toMatchObject({ kind: "new", label: "Reopened draft" });
+    await act(async () => result.current.form?.onCancel());
+    expect(remove).toHaveBeenCalledWith(4);
+  });
+
+  it("acknowledges the same create while preserving numbers and label typed after submission", async () => {
+    let finish!: () => void;
+    update.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const { result } = mount();
+    act(() => result.current.openNew(4));
+    act(() => result.current.form?.onTransform({ ...TANK, position: MOVED }));
+    act(() => result.current.form?.onSave());
+    const later = { x: 12, y: 3, z: 4 };
+    act(() => result.current.form?.onTransform({ ...TANK, position: later }));
+    act(() => result.current.form?.onLabel("Typed after Save"));
+    await act(async () => finish());
+    expect(result.current.form).toMatchObject({ kind: "edit", label: "Typed after Save" });
+    expect(result.current.form?.transform.position).toEqual(later);
+    await act(async () => result.current.form?.onCancel());
+    expect(remove).not.toHaveBeenCalled();
+  });
+
+  it.each(["old-first", "new-first"] as const)(
+    "acknowledges only the submitted draft with concurrent saves, %s",
+    async (order) => {
+      const finishes: (() => void)[] = [];
+      rename.mockImplementation(
+        () =>
+          new Promise<void>((resolve) => {
+            finishes.push(resolve);
+          }),
+      );
+      const { result } = mount();
+      act(() => result.current.openNew(4));
+      act(() => result.current.form?.onLabel("First"));
+      act(() => result.current.form?.onSave());
+      act(() => result.current.form?.onLabel("Second"));
+      act(() => result.current.form?.onSave());
+      if (order === "old-first") {
+        await act(async () => finishes[0]());
+        expect(result.current.form).toMatchObject({ kind: "edit", label: "Second" });
+        await act(async () => finishes[1]());
+      } else {
+        await act(async () => finishes[1]());
+        expect(result.current.form).toMatchObject({ kind: "edit", label: "Second" });
+        act(() => result.current.form?.onTransform({ ...TANK, position: MOVED }));
+        await act(async () => finishes[0]());
+        expect(result.current.form?.transform.position).toEqual(MOVED);
+      }
+      expect(result.current.form).toMatchObject({ kind: "edit", label: "Second" });
+    },
+  );
+  it.each(["cancel", "rename"] as const)("does not reset numbers from an edit session opened by %s", async (reopen) => {
+    let finish!: () => void;
+    update.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const { result } = mount(7);
+    act(() => result.current.form?.onTransform({ ...VALVE, position: MOVED }));
+    act(() => result.current.form?.onSave());
+    await act(async () => {
+      if (reopen === "cancel") result.current.form?.onCancel();
+      else result.current.openRename(7);
+    });
+    const later = { x: 31, y: 4, z: 5 };
+    act(() => result.current.form?.onTransform({ ...VALVE, position: later }));
+    act(() => result.current.form?.onLabel("New edit session"));
+    await act(async () => finish());
+    expect(result.current.form).toMatchObject({ kind: "edit", label: "New edit session" });
+    expect(result.current.form?.transform.position).toEqual(later);
   });
 });
