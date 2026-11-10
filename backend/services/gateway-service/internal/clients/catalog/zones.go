@@ -146,3 +146,14 @@ func (c *Client) UpdateModelTag(ctx context.Context, slug, title string) (domain
 	}
 	return modelTagFromProto(resp.GetTag()), nil
 }
+
+func (c *Client) DeleteModelTag(ctx context.Context, slug string) error {
+	_, err := c.cc.DeleteModelTag(ctx, &catalogv1.DeleteModelTagRequest{Slug: slug})
+	if status.Code(err) == codes.AlreadyExists {
+		return grpcerr.Refusal{Msg: status.Convert(err).Message(), Sentinel: domain.ErrModelTagInUse}
+	}
+	if err != nil {
+		return grpcerr.Refused("catalog.DeleteModelTag", err, domain.ErrModelTagNotFound)
+	}
+	return nil
+}

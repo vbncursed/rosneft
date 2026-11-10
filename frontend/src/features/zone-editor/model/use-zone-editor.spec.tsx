@@ -62,6 +62,61 @@ beforeEach(() => {
 });
 
 describe("useZoneEditor", () => {
+  it("adds and edits a manual candidate and discards it on page change", async () => {
+    const { result } = await editor([], 2);
+    const count = result.current.rects.length;
+    act(() => result.current.drawRect({ x: 10, y: 20 }, { x: 30, y: 40 }));
+    expect(result.current.selected).toBe(count);
+    expect(result.current.rects[count].corners[0]).toEqual({ x: 10, y: 20 });
+    act(() => result.current.selectRect(0));
+    act(() => result.current.editManual({ x: 50, y: 60, width: 10, height: 20, angle: 90 }));
+    expect(result.current.rects[count].corners[0].x).toBeCloseTo(60);
+    expect(result.current.selected).toBe(count);
+    act(() => result.current.setPage(2));
+    expect(result.current.manual).toBeNull();
+  });
+
+  it("creates a selected manual draft from the page size", async () => {
+    const { result } = await editor();
+    const size = result.current.pageSize!;
+    const count = result.current.rects.length;
+    act(() => result.current.createManual());
+    expect(result.current.manual).toEqual({
+      x: size.width / 2,
+      y: size.height / 2,
+      width: size.width / 10,
+      height: size.height / 10,
+      angle: 0,
+    });
+    expect(result.current.selected).toBe(count);
+  });
+
+  it.each(["edit", "page"])("keeps a newer manual draft when a pending save finishes after %s", async (change) => {
+    let resolve!: (zone: Zone) => void;
+    vi.mocked(createZone).mockReturnValue(
+      new Promise((done) => {
+        resolve = done;
+      }),
+    );
+    const { result } = await editor([], 2);
+    act(() => result.current.drawRect({ x: 10, y: 20 }, { x: 30, y: 40 }));
+    let saving!: Promise<boolean>;
+    act(() => {
+      saving = result.current.createZone({ title: "Old", tagSlugs: [] });
+    });
+    if (change === "page") {
+      act(() => result.current.setPage(2));
+      await waitFor(() => expect(result.current.image).not.toBeNull());
+      act(() => result.current.drawRect({ x: 30, y: 40 }, { x: 50, y: 60 }));
+    } else act(() => result.current.editManual({ x: 40, y: 50, width: 20, height: 20, angle: 0 }));
+    await act(async () => {
+      resolve({} as Zone);
+      await saving;
+    });
+    expect(result.current.manual?.x).toBe(40);
+    expect(result.current.selected).not.toBeNull();
+  });
+
   it("offers the page, its rectangles, and the automatic alignment", async () => {
     const { result } = await editor();
     expect(result.current.rects.length).toBeGreaterThan(0);

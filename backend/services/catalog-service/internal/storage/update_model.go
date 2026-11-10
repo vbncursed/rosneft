@@ -23,7 +23,7 @@ func (r *PG) UpdateModel(ctx context.Context, slug string, p domain.ModelPatch) 
 				description         = COALESCE($3, description),
 				thumbnail_blob_hash = COALESCE($4, thumbnail_blob_hash),
 				tag_id              = CASE WHEN $5::text IS NULL THEN tag_id
-				                           ELSE (SELECT id FROM model_tags WHERE slug = $5) END,
+				                           ELSE (SELECT id FROM model_tags WHERE slug = $5 FOR KEY SHARE) END,
 				updated_at          = NOW()
 			WHERE slug = $1
 			RETURNING ` + entityColumns + `)

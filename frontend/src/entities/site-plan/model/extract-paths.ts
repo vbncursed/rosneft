@@ -1,3 +1,5 @@
+import type { PdfOptionalContent, PdfOptionalContentConfig } from "../api/pdfjs";
+
 import { apply, mul, type Matrix, type Pt } from "./geometry";
 
 export interface PagePath {
@@ -50,12 +52,16 @@ function subpaths(codes: ArrayLike<number>, m: Matrix): { points: Pt[]; closed: 
   return subs;
 }
 
-type State = { ctm: Matrix; stack: Matrix[]; stroke: string | null; fill: string | null; lineWidth: number };
+type Graphics = { ctm: Matrix; stroke: string | null; fill: string | null; lineWidth: number };
+type State = Graphics & { stack: Graphics[] };
 
 function updateTransform(state: State, fn: number, args: never, ops: Record<string, number>): boolean {
-  if (fn === ops.save) state.stack.push(state.ctm);
-  else if (fn === ops.restore) state.ctm = state.stack.pop() ?? state.ctm;
-  else if (fn === ops.transform) state.ctm = mul(state.ctm, args);
+  if (fn === ops.save)
+    state.stack.push({ ctm: state.ctm, stroke: state.stroke, fill: state.fill, lineWidth: state.lineWidth });
+  else if (fn === ops.restore) {
+    const saved = state.stack.pop();
+    if (saved) Object.assign(state, saved);
+  } else if (fn === ops.transform) state.ctm = mul(state.ctm, args);
   else return false;
   return true;
 }
@@ -82,15 +88,52 @@ function paintedPaths(args: never, paints: Map<number, Paint>, state: State, vie
   }));
 }
 
+function optionalContentVisible(
+  config: Pick<PdfOptionalContentConfig, "isVisible"> | undefined,
+  properties: unknown,
+): boolean {
+  if (!config || !properties || typeof properties !== "object") return true;
+  try {
+    return config.isVisible(properties as PdfOptionalContent);
+  } catch {
+    return true;
+  }
+}
+
 // extractPaths replays a pdf.js operator list and returns every painted subpath
 // in top-down page points (viewport applied).
-export function extractPaths(opList: OpList, ops: Record<string, number>, viewport: number[]): PagePath[] {
+export function extractPaths(
+  opList: OpList,
+  ops: Record<string, number>,
+  viewport: number[],
+  config?: Pick<PdfOptionalContentConfig, "isVisible">,
+): PagePath[] {
+  const visibility: boolean[] = [];
   const paints = new Map<number, Paint>(Object.entries(PAINTS).map(([name, p]) => [ops[name], p]));
   const state: State = { ctm: [1, 0, 0, 1, 0, 0], stack: [], stroke: null, fill: null, lineWidth: 1 };
   const out: PagePath[] = [];
   opList.fnArray.forEach((fn, i) => {
     const args = opList.argsArray[i] as never;
-    if (!updateTransform(state, fn, args, ops) && !updatePaint(state, fn, args, ops) && fn === ops.constructPath) {
+    if (fn === ops.beginMarkedContent) {
+      visibility.push(true);
+      return;
+    }
+    if (fn === ops.beginMarkedContentProps) {
+      const markedArgs: unknown = opList.argsArray[i];
+      const [tag, properties] = Array.isArray(markedArgs) ? markedArgs : [];
+      visibility.push(tag !== "OC" || optionalContentVisible(config, properties));
+      return;
+    }
+    if (fn === ops.endMarkedContent) {
+      visibility.pop();
+      return;
+    }
+    if (
+      !updateTransform(state, fn, args, ops) &&
+      !updatePaint(state, fn, args, ops) &&
+      fn === ops.constructPath &&
+      visibility.every(Boolean)
+    ) {
       for (const path of paintedPaths(args, paints, state, viewport)) out.push(path);
     }
   });

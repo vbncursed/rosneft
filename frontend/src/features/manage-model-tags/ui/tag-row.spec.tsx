@@ -7,17 +7,17 @@ const camps = { slug: "camps", title: "Camps" };
 const renderRow = (onRename = vi.fn().mockResolvedValue(null), tag = camps) => {
   render(
     <ul>
-      <TagRow tag={tag} onRename={onRename} />
+      <TagRow tag={tag} onRename={onRename} onDelete={vi.fn()} />
     </ul>,
   );
   return onRename;
 };
 
 describe("TagRow", () => {
-  it("shows the title and the slug", () => {
+  it("shows the title without the slug", () => {
     renderRow();
     expect(screen.getByText("Camps")).toBeInTheDocument();
-    expect(screen.getByText("camps")).toBeInTheDocument();
+    expect(screen.queryByText("camps")).toBeNull();
   });
 
   it("is read-only for the built-in ungrouped tag", () => {

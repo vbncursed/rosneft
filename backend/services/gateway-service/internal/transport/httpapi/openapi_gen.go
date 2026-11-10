@@ -1269,6 +1269,9 @@ type ServerInterface interface {
 	// CreateModelTag Add a model tag
 	// (POST /api/model-tags)
 	CreateModelTag(w http.ResponseWriter, r *http.Request)
+	// DeleteModelTag Delete an unused model tag
+	// (DELETE /api/model-tags/{slug})
+	DeleteModelTag(w http.ResponseWriter, r *http.Request, slug string)
 	// UpdateModelTag Rename a model tag
 	// (PATCH /api/model-tags/{slug})
 	UpdateModelTag(w http.ResponseWriter, r *http.Request, slug string)
@@ -1479,6 +1482,12 @@ func (_ Unimplemented) ListModelTags(w http.ResponseWriter, r *http.Request) {
 // CreateModelTag Add a model tag
 // (POST /api/model-tags)
 func (_ Unimplemented) CreateModelTag(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteModelTag Delete an unused model tag
+// (DELETE /api/model-tags/{slug})
+func (_ Unimplemented) DeleteModelTag(w http.ResponseWriter, r *http.Request, slug string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2087,6 +2096,32 @@ func (siw *ServerInterfaceWrapper) CreateModelTag(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateModelTag(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteModelTag operation middleware
+func (siw *ServerInterfaceWrapper) DeleteModelTag(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteModelTag(w, r, slug)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4061,6 +4096,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/api/model-tags", wrapper.CreateModelTag)
 	})
 	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/model-tags/{slug}", wrapper.DeleteModelTag)
+	})
+	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/model-tags/{slug}", wrapper.UpdateModelTag)
 	})
 	r.Group(func(r chi.Router) {
@@ -4414,6 +4452,78 @@ func (response CreateModelTag400JSONResponse) VisitCreateModelTagResponse(w http
 type CreateModelTag500JSONResponse struct{ InternalJSONResponse }
 
 func (response CreateModelTag500JSONResponse) VisitCreateModelTagResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteModelTagRequestObject struct {
+	Slug string `json:"slug"`
+}
+
+type DeleteModelTagResponseObject interface {
+	VisitDeleteModelTagResponse(w http.ResponseWriter) error
+}
+
+type DeleteModelTag204Response struct {
+}
+
+func (response DeleteModelTag204Response) VisitDeleteModelTagResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteModelTag400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response DeleteModelTag400JSONResponse) VisitDeleteModelTagResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteModelTag404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response DeleteModelTag404JSONResponse) VisitDeleteModelTagResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteModelTag409JSONResponse Error
+
+func (response DeleteModelTag409JSONResponse) VisitDeleteModelTagResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteModelTag500JSONResponse struct{ InternalJSONResponse }
+
+func (response DeleteModelTag500JSONResponse) VisitDeleteModelTagResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -8240,6 +8350,9 @@ type StrictServerInterface interface {
 	// CreateModelTag Add a model tag
 	// (POST /api/model-tags)
 	CreateModelTag(ctx context.Context, request CreateModelTagRequestObject) (CreateModelTagResponseObject, error)
+	// DeleteModelTag Delete an unused model tag
+	// (DELETE /api/model-tags/{slug})
+	DeleteModelTag(ctx context.Context, request DeleteModelTagRequestObject) (DeleteModelTagResponseObject, error)
 	// UpdateModelTag Rename a model tag
 	// (PATCH /api/model-tags/{slug})
 	UpdateModelTag(ctx context.Context, request UpdateModelTagRequestObject) (UpdateModelTagResponseObject, error)
@@ -8582,6 +8695,32 @@ func (sh *strictHandler) CreateModelTag(w http.ResponseWriter, r *http.Request) 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CreateModelTagResponseObject); ok {
 		if err := validResponse.VisitCreateModelTagResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteModelTag operation middleware
+func (sh *strictHandler) DeleteModelTag(w http.ResponseWriter, r *http.Request, slug string) {
+	var request DeleteModelTagRequestObject
+
+	request.Slug = slug
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteModelTag(ctx, request.(DeleteModelTagRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteModelTag")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteModelTagResponseObject); ok {
+		if err := validResponse.VisitDeleteModelTagResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

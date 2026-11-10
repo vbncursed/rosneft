@@ -38,9 +38,11 @@ describe("useZoneEquipment", () => {
     expect(result.current.sizeLine).toBeNull();
   });
 
-  it("counts the visible placements inside the zone", () => {
-    const { result } = hook(zone(), [at(0.1, 0.05), at(0.1, 0.05, true), at(5, 5)]);
-    expect(result.current.inside).toBe(1);
+  it("counts every placement inside, including hidden placements and members of hidden groups", () => {
+    const inside = [at(0.1, 0.05), at(0.1, 0.05, true), { ...at(0.1, 0.05), groupId: 9 }];
+    const { result } = hook(zone(), [...inside, at(5, 5)]);
+    expect(result.current.insidePlacements).toEqual(inside);
+    expect(result.current.inside).toBe(3);
   });
 
   it("places from the zone's centre, along its long side", async () => {

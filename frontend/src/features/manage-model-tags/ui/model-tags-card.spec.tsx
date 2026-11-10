@@ -40,12 +40,23 @@ const mount = () =>
   );
 
 describe("ModelTagsCard", () => {
-  it("lists every tag with its slug, and no delete control", async () => {
+  it("hides slugs and protects the built-in tag", async () => {
     mount();
     expect(await screen.findByText("Camps")).toBeInTheDocument();
-    expect(screen.getByText("camps")).toBeInTheDocument();
+    expect(screen.queryByText("camps")).toBeNull();
     expect(screen.getByText("Built in, cannot be changed")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /delete|remove/i })).toBeNull();
+    expect(screen.getByRole("button", { name: "Delete Camps" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete Ungrouped" })).toBeNull();
+  });
+
+  it("confirms deletion and reports a conflict", async () => {
+    const user = userEvent.setup();
+    mount();
+    await user.click(await screen.findByRole("button", { name: "Delete Camps" }));
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(false);
+    fetchMock.mockResolvedValueOnce(json({ code: "conflict", message: "Tag is used by models or zones" }, 409));
+    await user.click(screen.getByRole("button", { name: "Confirm delete Camps" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("models or zones");
   });
 
   it("renames a tag through PATCH and marks every scene bundle stale", async () => {
@@ -73,7 +84,6 @@ describe("ModelTagsCard", () => {
         400,
       ),
     );
-    await user.type(screen.getByLabelText("Slug"), "camps");
     await user.type(screen.getByLabelText("Title"), "Camps");
     await user.click(screen.getByRole("button", { name: "Add tag" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("a model tag with this slug or title already exists");

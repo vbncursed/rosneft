@@ -7,15 +7,46 @@ export interface PdfViewport {
   transform: number[];
 }
 
+export type PdfOptionalContentOrder = (string | { name: string; order: PdfOptionalContentOrder })[];
+export type PdfOptionalContent =
+  | { type: "OCG"; id: string }
+  | {
+      type: "OCMD";
+      ids?: string[] | null;
+      policy?: string | null;
+      expression?: unknown[] | null;
+    };
+export interface PdfOptionalContentConfig {
+  getOrder(): PdfOptionalContentOrder | null;
+  getGroup(id: string): { name: string; visible: boolean } | null;
+  setVisibility(id: string, visible: boolean): void;
+  isVisible(group: PdfOptionalContent | null): boolean;
+}
+
+export type PdfTextContent = { items: { str: string; transform: number[] }[] };
+export interface PdfAnnotation {
+  subtype?: string;
+  titleObj?: { str: string };
+  contentsObj?: { str: string };
+  rect?: number[];
+}
+
 export interface PdfPage {
   getViewport(opts: { scale: number; rotation: number }): PdfViewport;
   getOperatorList(): Promise<{ fnArray: number[]; argsArray: unknown[] }>;
-  getTextContent(): Promise<{ items: { str: string; transform: number[] }[] }>;
-  render(opts: { canvas: HTMLCanvasElement; viewport: PdfViewport }): { promise: Promise<void> };
+  getTextContent(): Promise<PdfTextContent>;
+  getAnnotations(opts?: { intent: "display" }): Promise<PdfAnnotation[]>;
+  render(opts: {
+    canvas: HTMLCanvasElement;
+    viewport: PdfViewport;
+    intent?: "display";
+    optionalContentConfigPromise?: Promise<PdfOptionalContentConfig>;
+  }): { promise: Promise<void> };
 }
 
 export interface PdfDocument {
   numPages: number;
+  getOptionalContentConfig(opts: { intent: "display" }): Promise<PdfOptionalContentConfig>;
   getPage(n: number): Promise<PdfPage>;
   /** Frees the worker's copy of the document. */
   destroy?(): Promise<void>;
@@ -51,3 +82,6 @@ export async function openPdf(source: Uint8Array | string): Promise<PdfDocument>
 // Rotation 0 whatever the page's /Rotate says: the maths works in unrotated
 // page points, and the rendered bitmap must use the same frame.
 export const pageViewport = (page: PdfPage): PdfViewport => page.getViewport({ scale: 1, rotation: 0 });
+
+export const displayContentConfig = (document: PdfDocument): Promise<PdfOptionalContentConfig> =>
+  document.getOptionalContentConfig({ intent: "display" });

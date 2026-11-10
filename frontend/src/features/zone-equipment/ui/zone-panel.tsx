@@ -11,6 +11,7 @@ export type ZonePanelProps = {
   /** The drawing's size against the model's; null without a drawing size. */
   sizeLine: { text: string; warn: boolean } | null;
   inside: number;
+  equipment?: string[];
   /** `placement:create`: opens the model list filtered to this zone's tags. Absent, the card offers no placing. */
   onAddObjects?: () => void;
   /** Lets go of the zone: the card closes. */
@@ -29,6 +30,7 @@ export function ZonePanel({
   zone,
   sizeLine,
   inside,
+  equipment,
   onAddObjects,
   onClose,
   onEdit,
@@ -112,6 +114,14 @@ export function ZonePanel({
       <p className="m-0 font-mono text-[11px] text-muted">
         {inside} {inside === 1 ? "placement" : "placements"} inside
       </p>
+      {equipment?.length ? (
+        <ul aria-label="Equipment" className="m-0 list-none p-0 text-xs text-fg">
+          {equipment.map((name, i) => (
+            // oxlint-disable-next-line react/no-array-index-key -- separate placements can share a name
+            <li key={i}>{name}</li>
+          ))}
+        </ul>
+      ) : null}
       {onAddObjects ? (
         <Button size="sm" variant="secondary" onClick={onAddObjects} data-tour="zone-place">
           Add objects

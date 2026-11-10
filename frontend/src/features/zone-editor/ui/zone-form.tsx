@@ -10,14 +10,15 @@ export type ZoneFormProps = {
   canPlace: boolean;
   /** Why the picked rectangle cannot become a zone (it has no area); null when it can. */
   blocked?: string | null;
-  onCreate: (form: ZoneFormValues) => Promise<void>;
+  suggestion?: (ZoneFormValues & { source: "text" | "shx" }) | null;
+  onCreate: (form: ZoneFormValues, unchanged: () => boolean) => Promise<void | boolean>;
 };
 
 const MAX_TITLE = 120;
 
 /** Names the picked rectangle and gives it one to five tags. */
-export function ZoneForm({ rectName, canPlace, blocked = null, onCreate }: ZoneFormProps) {
-  const f = useZoneForm({ canPlace, blocked, onCreate });
+export function ZoneForm({ rectName, canPlace, blocked = null, onCreate, suggestion }: ZoneFormProps) {
+  const f = useZoneForm({ canPlace, blocked, onCreate, suggestion });
   return (
     <form
       aria-label="New zone"
@@ -31,6 +32,9 @@ export function ZoneForm({ rectName, canPlace, blocked = null, onCreate }: ZoneF
       <p className="m-0 text-[12px] text-muted">
         {rectName ? `Selected: ${rectName}` : "Pick a rectangle on the plan to make it a zone."}
       </p>
+      {suggestion?.source === "shx" ? (
+        <p className="m-0 text-[12px] text-muted">Suggested from an SHX annotation; its layer visibility is unknown.</p>
+      ) : null}
       {f.blocked ? <p className="m-0 text-[12px] text-bad">{f.blocked}</p> : null}
       <TextField
         label="Title"

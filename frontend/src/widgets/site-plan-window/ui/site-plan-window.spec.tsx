@@ -151,6 +151,41 @@ describe("SitePlanWindow sheet", () => {
     expect(onPlanClick).toHaveBeenLastCalledWith({ x: 100, y: 100 });
   });
 
+  it("pans and zooms while tracing without adding a point for the drag", () => {
+    const onPlanClick = vi.fn();
+    render(<SitePlanWindow {...props({ onPlanClick, fenceDrawing: true })} />);
+    fireEvent.pointerDown(sheet(), { clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(sheet(), { clientX: 140, clientY: 120, buttons: 1 });
+    fireEvent.pointerUp(sheet(), { clientX: 140, clientY: 120 });
+    expect(onPlanClick).not.toHaveBeenCalled();
+    fireEvent.wheel(sheet(), { clientX: 140, clientY: 120, deltaY: -100 });
+    clickAt(140, 120);
+    expect(onPlanClick.mock.calls[0][0].x).toBeCloseTo(100);
+    expect(onPlanClick.mock.calls[0][0].y).toBeCloseTo(100);
+  });
+
+  it.each([
+    [
+      { pageKey: "a", fenceDrawing: true },
+      { pageKey: "b", fenceDrawing: true },
+    ],
+    [
+      { pageKey: "a", fenceDrawing: true },
+      { pageKey: "a", fenceDrawing: false },
+    ],
+    [
+      { pageKey: "a", placing: false },
+      { pageKey: "a", placing: true },
+    ],
+  ])("discards a press when page or mode changes", (before, after) => {
+    const onPlanClick = vi.fn();
+    const { rerender } = render(<SitePlanWindow {...props({ ...before, onPlanClick })} />);
+    fireEvent.pointerDown(sheet(), { clientX: 100, clientY: 100 });
+    rerender(<SitePlanWindow {...props({ ...after, onPlanClick })} />);
+    fireEvent.pointerUp(sheet(), { clientX: 100, clientY: 100 });
+    expect(onPlanClick).not.toHaveBeenCalled();
+  });
+
   it("ends a pan whose button was let go out of sight, instead of panning on hover", () => {
     const onPlanClick = vi.fn();
     render(<SitePlanWindow {...props({ onPlanClick })} />);
@@ -299,4 +334,38 @@ describe("SitePlanWindow tour anchor", () => {
     render(<SitePlanWindow {...props()} />);
     expect(screen.getByRole("group", { name: "Site plan sheet" })).toHaveAttribute("data-tour", "plan-sheet");
   });
+});
+
+describe("manual drawing", () => {
+  it("draws in page coordinates after zoom without placing a control point", () => {
+    const onDrawRect = vi.fn();
+    const onPlanClick = vi.fn();
+    render(<SitePlanWindow {...props({ drawing: true, onDrawRect, onPlanClick })} />);
+    const sheet = screen.getByRole("group", { name: "Site plan sheet" });
+    fireEvent.wheel(sheet, { deltaY: -Math.log(2) / 0.0015, clientX: 0, clientY: 0 });
+    fireEvent.pointerDown(sheet, { clientX: 20, clientY: 40, button: 0 });
+    fireEvent.pointerMove(sheet, { clientX: 100, clientY: 120, buttons: 1 });
+    expect(screen.getByTestId("manual-drawing")).toHaveAttribute("points", "10,20 50,20 50,60 10,60");
+    fireEvent.pointerUp(sheet, { clientX: 100, clientY: 120 });
+    expect(onDrawRect).toHaveBeenLastCalledWith({ x: 10, y: 20 }, { x: 50, y: 60 });
+    expect(onPlanClick).not.toHaveBeenCalled();
+  });
+});
+
+it.each(["cancel", "page", "source"])("discards a drawing gesture after %s", (change) => {
+  const onDrawRect = vi.fn();
+  const base = props({ drawing: true, onDrawRect, pageKey: "pdf-a:1" });
+  const { rerender } = render(<SitePlanWindow {...base} />);
+  const sheet = screen.getByRole("group", { name: "Site plan sheet" });
+  fireEvent.pointerDown(sheet, { clientX: 10, clientY: 20, button: 0 });
+  fireEvent.pointerMove(sheet, { clientX: 50, clientY: 60, buttons: 1 });
+  rerender(
+    <SitePlanWindow
+      {...base}
+      {...(change === "cancel" ? { drawing: false } : { pageKey: change === "page" ? "pdf-a:2" : "pdf-b:1" })}
+    />,
+  );
+  fireEvent.pointerUp(sheet, { clientX: 50, clientY: 60 });
+  expect(onDrawRect).not.toHaveBeenCalled();
+  expect(screen.queryByTestId("manual-drawing")).not.toBeInTheDocument();
 });

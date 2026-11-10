@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import type { Vec3 } from "@/entities/placement";
-import { placementsInside, sizeCheck, zoneAxis, zoneCentre, type Zone } from "@/entities/zone";
+import { zoneContains, sizeCheck, zoneAxis, zoneCentre, type Zone } from "@/entities/zone";
 import type { PlacementOrigin } from "@/features/placements-editor";
 
 export type ZoneEquipmentParams = {
@@ -12,7 +12,13 @@ export type ZoneEquipmentParams = {
 };
 
 /** What the zone panel shows about one zone, and the placing that starts from its centre. */
-export function useZoneEquipment({ zone, placements, unitRatio, create }: ZoneEquipmentParams) {
+export function useZoneEquipment<T extends ZoneEquipmentParams["placements"][number]>({
+  zone,
+  placements,
+  unitRatio,
+  create,
+}: Omit<ZoneEquipmentParams, "placements"> & { placements: T[] }) {
+  const insidePlacements = zone ? placements.filter((p) => zoneContains(zone, p.position)) : [];
   const onPlace = useCallback(
     (modelSlug: string, count: number) =>
       zone
@@ -22,7 +28,8 @@ export function useZoneEquipment({ zone, placements, unitRatio, create }: ZoneEq
   );
   return {
     sizeLine: zone ? sizeCheck(zone, unitRatio) : null,
-    inside: zone ? placementsInside(zone, placements) : 0,
+    inside: insidePlacements.length,
+    insidePlacements,
     onPlace,
   };
 }

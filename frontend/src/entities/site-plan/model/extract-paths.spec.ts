@@ -16,6 +16,9 @@ const OPS = {
   fillStroke: 24,
   closeFillStroke: 26,
   endPath: 28,
+  beginMarkedContent: 69,
+  beginMarkedContentProps: 70,
+  endMarkedContent: 71,
 };
 const FLIP = [1, 0, 0, -1, 0, 100]; // a 100 pt tall page, y up -> y down
 
@@ -132,7 +135,96 @@ describe("extractPaths", () => {
       [1, 0, 0, 1, 0, 0],
     );
     expect(paths).toEqual([
-      { points: [{ x: 3, y: 4 }], closed: false, paint: "stroke", stroke: null, fill: null, lineWidth: 2 },
+      { points: [{ x: 3, y: 4 }], closed: false, paint: "stroke", stroke: "red", fill: null, lineWidth: 2 },
     ]);
+  });
+  it("restores all paint state and keeps marked content independent", () => {
+    const hidden = { type: "OCG", id: "hidden" };
+    const visible = { type: "OCMD", ids: ["shown"] };
+    const config = { isVisible: (group: unknown) => group !== hidden };
+    const paths = extractPaths(
+      list(
+        [OPS.setStrokeRGBColor, ["red"]],
+        [OPS.setFillRGBColor, ["blue"]],
+        [OPS.setLineWidth, [2]],
+        [OPS.save, null],
+        [OPS.setStrokeRGBColor, ["green"]],
+        [OPS.setFillRGBColor, ["yellow"]],
+        [OPS.setLineWidth, [9]],
+        [OPS.beginMarkedContentProps, ["OC", hidden]],
+        [OPS.restore, null],
+        path(OPS.stroke, ...SQUARE),
+        [OPS.beginMarkedContentProps, ["OC", visible]],
+        path(OPS.stroke, ...SQUARE),
+        [OPS.endMarkedContent, null],
+        [OPS.endMarkedContent, null],
+        [OPS.beginMarkedContent, ["Span"]],
+        path(OPS.fillStroke, ...SQUARE),
+        [OPS.endMarkedContent, null],
+      ),
+      OPS,
+      FLIP,
+      config,
+    );
+    expect(paths).toHaveLength(1);
+    expect([paths[0].stroke, paths[0].fill, paths[0].lineWidth]).toEqual(["red", "blue", 2]);
+  });
+  it("passes OCG and OCMD properties to the config while preserving unlayered paths", () => {
+    const group = { type: "OCG" as const, id: "unknown" };
+    const membership = { type: "OCMD" as const, ids: ["unknown"], policy: "AllOn" };
+    const seen: unknown[] = [];
+    const config = {
+      isVisible: (value: unknown) => {
+        seen.push(value);
+        return true;
+      },
+    };
+    const paths = extractPaths(
+      list(
+        path(OPS.stroke, ...SQUARE),
+        [OPS.beginMarkedContentProps, ["OC", group]],
+        [OPS.beginMarkedContentProps, ["OC", membership]],
+        path(OPS.stroke, ...SQUARE),
+        [OPS.endMarkedContent, null],
+        [OPS.endMarkedContent, null],
+        [OPS.beginMarkedContentProps, ["Span", {}]],
+        path(OPS.stroke, ...SQUARE),
+        [OPS.endMarkedContent, null],
+      ),
+      OPS,
+      FLIP,
+      config,
+    );
+    expect(paths).toHaveLength(3);
+    expect(seen).toEqual([group, membership]);
+  });
+  it("handles expression-only memberships and malformed optional content safely", () => {
+    const membership = { type: "OCMD" as const, expression: ["And", "a"], policy: null };
+    const config = {
+      isVisible: (value: unknown) => {
+        if (value === membership) return false;
+        throw new Error("bad optional content");
+      },
+    };
+    const paths = extractPaths(
+      list(
+        [OPS.beginMarkedContentProps, ["OC", membership]],
+        path(OPS.stroke, ...SQUARE),
+        [OPS.endMarkedContent, null],
+        [OPS.beginMarkedContentProps, ["OC", null]],
+        path(OPS.stroke, ...SQUARE),
+        [OPS.endMarkedContent, null],
+        [OPS.beginMarkedContentProps, null],
+        path(OPS.stroke, ...SQUARE),
+        [OPS.endMarkedContent, null],
+        [OPS.beginMarkedContentProps, ["OC", { type: "OCMD", ids: null }]],
+        path(OPS.stroke, ...SQUARE),
+        [OPS.endMarkedContent, null],
+      ),
+      OPS,
+      FLIP,
+      config,
+    );
+    expect(paths).toHaveLength(3);
   });
 });

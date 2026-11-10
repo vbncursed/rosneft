@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, render as rtlRender, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render as rtlRender, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Document } from "@/entities/document";
 import { fakeLib, fakePdf, UNIT_RATIO, UTM_BBOX } from "@/features/zone-editor/model/plan-pdf.fixture";
 import { loadPdfjs, openPdf, renderPage } from "@/entities/site-plan";
+import { createZone, type Zone } from "@/entities/zone";
 import { clearNotices } from "@/shared/lib/notify";
 import type { PlanState } from "../model/use-plan-session";
 import PlanLayers, { type PlanLayersProps } from "./plan-layers";
@@ -15,6 +16,8 @@ vi.mock("@/entities/site-plan", async (importOriginal) => ({
   openPdf: vi.fn(),
   renderPage: vi.fn(),
 }));
+
+vi.mock("@/entities/zone", async (importOriginal) => ({ ...(await importOriginal<object>()), createZone: vi.fn() }));
 
 const doc = (calibration: Document["calibration"] = null): Document => ({
   id: 4,
@@ -70,6 +73,98 @@ beforeEach(() => {
 });
 
 describe("PlanLayers, editing", () => {
+  it.each([false, true])(
+    "keeps a newer manual draft when an earlier create finishes (fields edited: %s)",
+    async (editFields) => {
+      let finish!: (zone: Zone) => void;
+      vi.mocked(createZone).mockReturnValueOnce(
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+      );
+      const slot = document.createElement("div");
+      document.body.append(slot);
+      const view = render(<PlanLayers {...props({ slot })} />);
+      const createRect = await screen.findByRole("button", { name: "Create rectangle with fields" });
+      await waitFor(() => expect(createRect).toBeEnabled());
+      await userEvent.click(createRect);
+      const title = screen.getByRole("textbox", { name: /Title/ });
+      await userEvent.type(title, "Old");
+      await userEvent.click(screen.getByRole("checkbox", { name: "Tanks" }));
+      await userEvent.click(screen.getByRole("button", { name: "Create zone" }));
+      expect(createZone).toHaveBeenCalledOnce();
+      const centre = screen.getByRole("spinbutton", { name: "Centre X (pt)" });
+      fireEvent.change(centre, { target: { value: "42" } });
+      if (editFields) {
+        await userEvent.clear(title);
+        await userEvent.type(title, "New draft");
+      }
+      await act(async () => finish({} as Zone));
+      expect(centre).toHaveValue(42);
+      expect(title).toHaveValue(editFields ? "New draft" : "Old");
+      expect(screen.getByRole("checkbox", { name: "Tanks" })).toBeChecked();
+      view.unmount();
+      slot.remove();
+    },
+  );
+
+  it("keeps fields changed during create when the manual rectangle is unchanged", async () => {
+    let finish!: (zone: Zone) => void;
+    vi.mocked(createZone).mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const slot = document.createElement("div");
+    document.body.append(slot);
+    const view = render(<PlanLayers {...props({ slot })} />);
+    const createRect = await screen.findByRole("button", { name: "Create rectangle with fields" });
+    await waitFor(() => expect(createRect).toBeEnabled());
+    await userEvent.click(createRect);
+    const title = screen.getByRole("textbox", { name: /Title/ });
+    await userEvent.type(title, "Old");
+    await userEvent.click(screen.getByRole("checkbox", { name: "Tanks" }));
+    await userEvent.click(screen.getByRole("button", { name: "Create zone" }));
+    await userEvent.clear(title);
+    await userEvent.type(title, "New draft");
+    await act(async () => finish({} as Zone));
+    expect(screen.getByRole("textbox", { name: /Title/ })).toHaveValue("New draft");
+    expect(screen.getByRole("checkbox", { name: "Tanks" })).toBeChecked();
+    expect(screen.getByRole("spinbutton", { name: "Centre X (pt)" })).toBeInTheDocument();
+    view.unmount();
+    slot.remove();
+  });
+
+  it("only sends the calibration PUT after confirming the scale warning", async () => {
+    const slot = document.createElement("div");
+    document.body.append(slot);
+    const fetcher = vi.spyOn(globalThis, "fetch").mockImplementation(
+      async (_url, init) =>
+        new Response((init?.body as string) ?? "[]", {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+    );
+    const p = props({ slot, unitRatio: UNIT_RATIO * 1.2 });
+    const view = render(<PlanLayers {...p} />);
+    await screen.findByText(/Check that the points match/);
+    await userEvent.click(screen.getByRole("button", { name: "Save alignment" }));
+    expect(fetcher.mock.calls.filter(([, init]) => init?.method === "PUT")).toHaveLength(0);
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(fetcher.mock.calls.filter(([, init]) => init?.method === "PUT")).toHaveLength(0);
+    await userEvent.click(screen.getByRole("button", { name: "Save alignment" }));
+    await userEvent.click(screen.getByRole("button", { name: "Confirm save" }));
+    await waitFor(() =>
+      expect(fetcher).toHaveBeenCalledWith(
+        expect.stringContaining("/calibration"),
+        expect.objectContaining({ method: "PUT" }),
+      ),
+    );
+    view.unmount();
+    slot.remove();
+    fetcher.mockRestore();
+  });
+
   it("opens the plan window, and closes it from the title bar", async () => {
     const p = props();
     render(<PlanLayers {...p} />);

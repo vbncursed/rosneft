@@ -40,6 +40,7 @@ var routePerms = map[string][]string{
 	"DELETE /api/models/{slug}":           {"model:delete"},
 	// Tags are added and retitled, never deleted: there is no DELETE route.
 	"POST /api/model-tags":                          {"model:write"},
+	"DELETE /api/model-tags/{slug}":                 {"model:write"},
 	"PATCH /api/model-tags/{slug}":                  {"model:write"},
 	"POST /api/territories/{slug}/placements":       {"placement:create"},
 	"POST /api/territories/{slug}/placements/batch": {"placement:create"},

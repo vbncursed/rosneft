@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, useState } from "react";
 import { Button } from "@/shared/ui/button";
 import { Callout } from "@/shared/ui/callout";
 import { Field } from "@/shared/ui/field";
@@ -8,13 +8,21 @@ import { controlClass } from "@/shared/ui/text-field";
 import type { ZoneEditor } from "../model/use-zone-editor";
 
 export type AlignPanelProps = {
-  editor: Pick<ZoneEditor, "status" | "page" | "pageCount" | "setPage" | "alignment" | "placing" | "setPlacing">;
+  imageAlignment?: "matching" | "matched" | "unavailable" | null;
+  editor: Pick<
+    ZoneEditor,
+    "status" | "page" | "pageCount" | "setPage" | "alignment" | "placing" | "setPlacing" | "layers" | "toggleLayer"
+  >;
 };
 
 /** The plan-to-model alignment: pairs and their residuals, how well they fit, and the scale check. */
-export function AlignPanel({ editor }: AlignPanelProps) {
+export function AlignPanel({ editor, imageAlignment }: AlignPanelProps) {
   const { status, page, pageCount, setPage, placing, setPlacing, alignment: a } = editor;
   const pageId = useId();
+  const [confirmation, setConfirmation] = useState<{ page: number; pairs: typeof a.pairs } | null>(null);
+  const confirming =
+    confirmation !== null && confirmation.page === page && confirmation.pairs === a.pairs && a.scaleWarn;
+  if (confirmation !== null && (confirmation.page !== page || confirmation.pairs !== a.pairs)) setConfirmation(null);
   if (status === "error") {
     return <Callout tone="bad">The plan could not be read. Close it and open it again.</Callout>;
   }
@@ -37,8 +45,32 @@ export function AlignPanel({ editor }: AlignPanelProps) {
           </select>
         </Field>
       ) : null}
+      <div aria-label="PDF layers">
+        <p className="m-0 text-[12px] text-muted">PDF layers</p>
+        {editor.layers?.length ? (
+          editor.layers.map((layer) => (
+            <label key={layer.id} className="flex items-center gap-2 text-[12px]">
+              <input type="checkbox" checked={layer.visible} onChange={() => editor.toggleLayer(layer.id)} />
+              {layer.name}
+            </label>
+          ))
+        ) : (
+          <p className="m-0 text-[12px] text-muted">
+            No named layers in this PDF. You can still add point pairs by hand.
+          </p>
+        )}
+      </div>
       {status === "loading" ? <p className="m-0 text-[12px] text-muted">Reading the plan…</p> : null}
-      {a.notice ? <Callout tone="neutral">{a.notice}</Callout> : null}
+      {imageAlignment === "matching" ? (
+        <p className="m-0 text-[12px] text-muted">Finding matching image features…</p>
+      ) : null}
+      {imageAlignment === "matched" ? (
+        <Callout tone="ok">Suggested alignment found. Review the points and save when ready.</Callout>
+      ) : null}
+      {imageAlignment === "unavailable" ? (
+        <p className="m-0 text-[12px] text-muted">No reliable image match found. Add point pairs by hand.</p>
+      ) : null}
+      {a.notice && imageAlignment !== "matching" ? <Callout tone="neutral">{a.notice}</Callout> : null}
       <div data-tour="plan-add-pair" className="flex flex-col gap-3.5">
         {a.awaitingScenePick ? (
           <>
@@ -89,10 +121,29 @@ export function AlignPanel({ editor }: AlignPanelProps) {
         )
       ) : null}
       {a.scaleLine ? <Callout tone={a.scaleWarn ? "warn" : "ok"}>{a.scaleLine}</Callout> : null}
+      {confirming ? (
+        <Callout tone="warn">The scale differs by more than 3%. Save this alignment anyway?</Callout>
+      ) : null}
       <div data-tour="plan-save" className="flex gap-2">
-        <Button variant="primary" disabled={!a.canSave} loading={a.saving} onClick={() => void a.save()}>
-          Save alignment
+        <Button
+          variant="primary"
+          disabled={status !== "ready" || !a.canSave}
+          loading={a.saving}
+          onClick={() => {
+            if (a.scaleWarn && !confirming) setConfirmation({ page, pairs: a.pairs });
+            else {
+              setConfirmation(null);
+              void a.save();
+            }
+          }}
+        >
+          {confirming ? "Confirm save" : "Save alignment"}
         </Button>
+        {confirming ? (
+          <Button variant="secondary" onClick={() => setConfirmation(null)}>
+            Cancel
+          </Button>
+        ) : null}
         <Button variant="secondary" onClick={() => void a.clear()}>
           Clear alignment
         </Button>

@@ -140,7 +140,7 @@ export const IDLE_ZONES: ZoneParts = {
   },
   pickScene: false,
   acceptRef: { current: null },
-  equipment: { sizeLine: null, inside: 0, onPlace: async () => null },
+  equipment: { sizeLine: null, inside: 0, insidePlacements: [], onPlace: async () => null },
   editing: null,
   editorReady: false,
   closeEditor: noop,
