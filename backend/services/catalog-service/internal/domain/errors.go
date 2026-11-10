@@ -19,6 +19,7 @@ var (
 	// ErrPlacementGroupNotFound also covers a group of another territory: the
 	// caller only ever names the one in its URL.
 	ErrPlacementGroupNotFound = errors.New("placement group not found")
+	ErrModelTagInUse          = errors.New("model tag is used by models or zones")
 	ErrModelTagNotFound       = errors.New("model tag not found")
 	ErrInvalidInput           = errors.New("invalid input")
 	// ErrSlugConflict means the proposed slug is already taken. For a derived

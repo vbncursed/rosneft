@@ -6,9 +6,10 @@ import type { Similarity } from "@/entities/site-plan";
 import type { SourceBbox } from "@/entities/territory";
 import type { Zone } from "@/entities/zone";
 import type { DocumentWindowProps } from "@/widgets/document-window";
-import { AlignPanel, useZoneEditor, ZoneForm } from "@/features/zone-editor";
+import { AlignPanel, FencePanel, ManualRectPanel, useZoneEditor, ZoneForm } from "@/features/zone-editor";
 import { rectNames, SitePlanWindow } from "@/widgets/site-plan-window";
 import type { Ground } from "@/widgets/viewer-canvas";
+import { useImageAlignment } from "../model/use-image-alignment";
 import { usePlanPreview } from "../model/use-plan-preview";
 import type { PlanState } from "../model/use-plan-session";
 
@@ -63,6 +64,16 @@ function Editor({ onPlan, acceptRef, ...p }: Omit<PlanLayersProps, "ground"> & {
     onCalibrated: p.onCalibrated,
   });
   const { alignment, fit, pageSize, image } = editor;
+  const imageAlignment = useImageAlignment({
+    image,
+    pageSize,
+    page: editor.page,
+    source: document.sourceBlobHash,
+    savedPage: document.calibration?.page ?? null,
+    ground,
+    unitRatio: p.unitRatio,
+    alignment,
+  });
   const sim: Similarity | null = fit?.ok ? fit.fit : null;
   const rectName =
     editor.selected === null ? null : (rectNames(editor.rects, editor.metresPerPt)[editor.selected] ?? null);
@@ -104,9 +115,15 @@ function Editor({ onPlan, acceptRef, ...p }: Omit<PlanLayersProps, "ground"> & {
         selected={editor.selected}
         metresPerPt={editor.metresPerPt}
         placing={editor.placing}
+        drawing={editor.drawing}
+        fenceDrawing={editor.fence.drawing}
+        fencePoints={editor.fence.points}
+        fenceClosed={editor.fence.closed}
+        pageKey={`${document.sourceBlobHash}:${editor.page}`}
+        onDrawRect={editor.drawRect}
         onSelectRect={editor.selectRect}
         onDragPair={alignment.movePair}
-        onPlanClick={alignment.addPlanPoint}
+        onPlanClick={editor.fence.drawing ? editor.fence.add : alignment.addPlanPoint}
         frame={{
           geometry: pip.geo,
           dragging: pip.dragging,
@@ -118,8 +135,28 @@ function Editor({ onPlan, acceptRef, ...p }: Omit<PlanLayersProps, "ground"> & {
       {slot
         ? createPortal(
             <div className="mb-3.5 flex flex-col gap-4 rounded-card border border-accent-line bg-panel-2 p-3">
-              <AlignPanel editor={editor} />
+              <AlignPanel editor={editor} imageAlignment={imageAlignment} />
+              <FencePanel
+                fence={editor.fence}
+                start={editor.startFence}
+                warning={editor.fenceWarning}
+                disabled={editor.status !== "ready" || editor.awaitingScenePick}
+              />
+              <ManualRectPanel
+                drawing={editor.drawing}
+                disabled={editor.status !== "ready" || editor.awaitingScenePick}
+                manual={editor.manual}
+                metresPerPt={editor.metresPerPt}
+                onCreate={editor.createManual}
+                onDraw={editor.setDrawing}
+                onEdit={editor.editManual}
+              />
+              {editor.annotationWarning ? (
+                <p className="m-0 text-[12px] text-muted">{editor.annotationWarning}</p>
+              ) : null}
               <ZoneForm
+                key={`${editor.page}:${editor.selected}`}
+                suggestion={editor.suggestion}
                 rectName={rectName}
                 canPlace={sim !== null && editor.selected !== null}
                 blocked={editor.createBlock}
@@ -139,5 +176,5 @@ function Editor({ onPlan, acceptRef, ...p }: Omit<PlanLayersProps, "ground"> & {
  * the scene shows only the zones and the editor's candidate rectangles.
  */
 export default function PlanLayers(props: PlanLayersProps) {
-  return props.ground ? <Editor {...props} ground={props.ground} /> : null;
+  return props.ground ? <Editor key={props.document.sourceBlobHash} {...props} ground={props.ground} /> : null;
 }

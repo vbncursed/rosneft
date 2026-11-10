@@ -141,6 +141,47 @@ describe("AlignPanel", () => {
     expect(screen.getByText(/Check that the points match/)).toBeInTheDocument();
   });
 
+  it("requires confirmation before saving a scale mismatch", async () => {
+    const save = vi.fn();
+    render(<AlignPanel editor={editor({}, { canSave: true, scaleWarn: true, save })} />);
+    await userEvent.click(screen.getByRole("button", { name: "Save alignment" }));
+    expect(save).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Confirm save" }));
+    expect(save).toHaveBeenCalledOnce();
+  });
+
+  it("cancels confirmation and forgets it when pairs change", async () => {
+    const save = vi.fn();
+    const pairs = [{}] as never;
+    const { rerender } = render(<AlignPanel editor={editor({}, { canSave: true, scaleWarn: true, pairs, save })} />);
+    await userEvent.click(screen.getByRole("button", { name: "Save alignment" }));
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(save).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "Save alignment" }));
+    rerender(<AlignPanel editor={editor({}, { canSave: true, scaleWarn: true, pairs: [{}] as never, save })} />);
+    expect(screen.getByRole("button", { name: "Save alignment" })).toBeInTheDocument();
+  });
+
+  it("shows and toggles named PDF layers", async () => {
+    const toggleLayer = vi.fn();
+    render(<AlignPanel editor={editor({ layers: [{ id: "a", name: "Walls", visible: false }], toggleLayer })} />);
+    await userEvent.click(screen.getByRole("checkbox", { name: "Walls" }));
+    expect(toggleLayer).toHaveBeenCalledWith("a");
+  });
+
+  it("disables save while the current page is loading", () => {
+    render(<AlignPanel editor={editor({ status: "loading" }, { canSave: true, scaleWarn: false })} />);
+    expect(screen.getByRole("button", { name: "Save alignment" })).toBeDisabled();
+  });
+
+  it("requires a new confirmation when the page changes even if the pairs are identical", async () => {
+    const pairs = [{}] as never;
+    const { rerender } = render(<AlignPanel editor={editor({ page: 1 }, { pairs, canSave: true, scaleWarn: true })} />);
+    await userEvent.click(screen.getByRole("button", { name: "Save alignment" }));
+    rerender(<AlignPanel editor={editor({ page: 2 }, { pairs, canSave: true, scaleWarn: true })} />);
+    expect(screen.getByRole("button", { name: "Save alignment" })).toBeInTheDocument();
+  });
+
   it("saves and clears", async () => {
     const [save, clear] = [vi.fn(), vi.fn()];
     render(<AlignPanel editor={editor({}, { canSave: true, save, clear })} />);

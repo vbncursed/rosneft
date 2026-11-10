@@ -45,6 +45,7 @@ type Service interface {
 	ListModelTags(ctx context.Context) ([]domain.ModelTag, error)
 	CreateModelTag(ctx context.Context, slug, title string) (domain.ModelTag, error)
 	UpdateModelTag(ctx context.Context, slug, title string) (domain.ModelTag, error)
+	DeleteModelTag(ctx context.Context, slug string) error
 	RegisterModelArtifact(ctx context.Context, a domain.Artifact) (domain.Artifact, error)
 	GetModelArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)
 	ListModelArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)
@@ -114,7 +115,7 @@ func (s *Server) Register(srv *grpc.Server) {
 // statusByCode lists, per gRPC code, the domain sentinels that surface as it.
 var statusByCode = map[codes.Code][]error{
 	codes.InvalidArgument: {domain.ErrInvalidInput},
-	codes.AlreadyExists:   {domain.ErrSlugConflict, domain.ErrIdempotencyConflict},
+	codes.AlreadyExists:   {domain.ErrSlugConflict, domain.ErrIdempotencyConflict, domain.ErrModelTagInUse},
 	codes.NotFound: {
 		domain.ErrTerritoryNotFound,
 		domain.ErrModelNotFound,

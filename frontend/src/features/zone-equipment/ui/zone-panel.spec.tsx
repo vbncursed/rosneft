@@ -31,11 +31,10 @@ describe("ZonePanel", () => {
     expect(screen.queryByText(/Drawing/)).toBeNull();
   });
 
-  it("carries no equipment list of its own: the model list is the picker's, opened from the zone", () => {
-    render(panel());
-    expect(screen.queryByRole("list", { name: "Equipment" })).toBeNull();
-    expect(screen.queryByRole("button", { name: /^Place / })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Whole library…" })).toBeNull();
+  it("lists each equipment instance inside", () => {
+    render(panel({ equipment: ["Pump", "Pump", "Tank"] }));
+    expect(screen.getByRole("list", { name: "Equipment" }).querySelectorAll("li")).toHaveLength(3);
+    expect(screen.getAllByText("Pump")).toHaveLength(2);
   });
 
   it("reopens the filtered model list from Add objects, once", async () => {

@@ -49,6 +49,7 @@ type Repository interface {
 	ResolveModelTags(ctx context.Context, slugs []string) ([]domain.ModelTag, error)
 	CreateModelTag(ctx context.Context, slug, title string) (domain.ModelTag, error)
 	UpdateModelTag(ctx context.Context, slug, title string) (domain.ModelTag, error)
+	DeleteModelTag(ctx context.Context, slug string) error
 	RegisterModelArtifact(ctx context.Context, a domain.Artifact) (domain.Artifact, error)
 	GetModelArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)
 	ListModelArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)

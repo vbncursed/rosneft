@@ -7,6 +7,7 @@ import { ZoneForm, type ZoneFormProps } from "./zone-form";
 
 const TAGS = [
   { slug: "tanks", title: "Tanks" },
+  { slug: "camp", title: "Camp" },
   { slug: "ungrouped", title: "Ungrouped" },
 ];
 
@@ -21,6 +22,39 @@ const view = (over: Partial<ZoneFormProps> = {}, seed = true) => {
 };
 
 describe("ZoneForm", () => {
+  it("suggests available tags and keeps manual edits on rerender", async () => {
+    const suggestion = { title: "CAMP", tagSlugs: ["camp", "loading"], source: "shx" as const };
+    const rendered = view({ suggestion });
+    expect(screen.getByRole("textbox", { name: /Title/ })).toHaveValue("CAMP");
+    expect(screen.getByRole("checkbox", { name: "Camp" })).toBeChecked();
+    await userEvent.clear(screen.getByRole("textbox", { name: /Title/ }));
+    await userEvent.type(screen.getByRole("textbox", { name: /Title/ }), "My camp");
+    rendered.rerender(
+      <QueryClientProvider client={new QueryClient()}>
+        <ZoneForm rectName="r" canPlace onCreate={vi.fn()} suggestion={suggestion} />
+      </QueryClientProvider>,
+    );
+    expect(screen.getByRole("textbox", { name: /Title/ })).toHaveValue("My camp");
+  });
+
+  it("updates a late suggestion until the title is edited", async () => {
+    const client = new QueryClient();
+    client.setQueryData(["model-tags"], TAGS);
+    const form = (suggestion: ZoneFormProps["suggestion"]) => (
+      <QueryClientProvider client={client}>
+        <ZoneForm rectName="Manual" canPlace onCreate={vi.fn()} suggestion={suggestion} />
+      </QueryClientProvider>
+    );
+    const rendered = render(form(null));
+    rendered.rerender(form({ title: "LOADING AREA", tagSlugs: [], source: "text" }));
+    const title = screen.getByRole("textbox", { name: /Title/ });
+    expect(title).toHaveValue("LOADING AREA");
+    await userEvent.clear(title);
+    await userEvent.type(title, "My title");
+    rendered.rerender(form({ title: "CAMP", tagSlugs: [], source: "text" }));
+    expect(title).toHaveValue("My title");
+  });
+
   it("names the picked rectangle, or asks for one", () => {
     view();
     expect(screen.getByText("Selected: Rectangle 7.5 × 13.0 m")).toBeInTheDocument();
@@ -54,7 +88,7 @@ describe("ZoneForm", () => {
     await userEvent.type(screen.getByRole("textbox", { name: /Title/ }), "Tank row");
     await userEvent.click(screen.getByRole("checkbox", { name: "Tanks" }));
     await userEvent.click(create);
-    expect(onCreate).toHaveBeenCalledWith({ title: "Tank row", tagSlugs: ["tanks"] });
+    expect(onCreate).toHaveBeenCalledWith({ title: "Tank row", tagSlugs: ["tanks"] }, expect.any(Function));
   });
 
   it("shows the server's refusal under the title", async () => {

@@ -116,6 +116,7 @@ type Service interface {
 	ListModelTags(ctx context.Context) ([]domain.ModelTag, error)
 	CreateModelTag(ctx context.Context, slug, title string) (domain.ModelTag, error)
 	UpdateModelTag(ctx context.Context, slug, title string) (domain.ModelTag, error)
+	DeleteModelTag(ctx context.Context, slug string) error
 	ListZones(ctx context.Context, territorySlug string) ([]domain.Zone, error)
 	CreateZone(ctx context.Context, territorySlug string, z domain.ZoneCreate) (domain.Zone, error)
 	UpdateZone(ctx context.Context, territorySlug string, id int64, p domain.ZonePatch) (domain.Zone, error)

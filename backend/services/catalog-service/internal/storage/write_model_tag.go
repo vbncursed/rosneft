@@ -55,3 +55,20 @@ func (r *PG) writeModelTag(ctx context.Context, q, slug, title string) (domain.M
 	}
 	return tag, err
 }
+
+func (r *PG) DeleteModelTag(ctx context.Context, slug string) error {
+	err := audittx.Run(ctx, r.pool, func(tx pgx.Tx) error {
+		result, err := tx.Exec(ctx, `DELETE FROM model_tags WHERE slug = $1`, slug)
+		if err != nil {
+			return err
+		}
+		if result.RowsAffected() == 0 {
+			return domain.ErrModelTagNotFound
+		}
+		return nil
+	})
+	if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && (pgErr.Code == "23001" || pgErr.Code == "23503") {
+		return domain.ErrModelTagInUse
+	}
+	return err
+}

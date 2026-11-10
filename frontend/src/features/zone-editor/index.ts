@@ -5,3 +5,6 @@ export { ZoneForm, type ZoneFormProps } from "./ui/zone-form";
 export { previewOutlines, type PreviewOutline } from "./model/preview-outlines";
 export { ZoneEditForm, type ZoneEditFormProps } from "./ui/zone-edit-form";
 export { type ZonePatch } from "./model/zone-patch";
+export { ManualRectPanel } from "./ui/manual-rect-panel";
+
+export { FencePanel } from "./ui/fence-panel";

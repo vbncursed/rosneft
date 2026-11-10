@@ -40,6 +40,98 @@ describe("usePlanDocument", () => {
     expect(result.current.pageSize).toEqual({ width: PLAN_PAGE.width, height: PLAN_PAGE.height });
   });
 
+  it("extracts SHX annotations as plan labels", async () => {
+    const pdf = fakePdf();
+    const page = await pdf.getPage(1);
+    page.getAnnotations = async () => [
+      { subtype: "Text", titleObj: { str: "AutoCAD SHX Text" }, contentsObj: { str: "CAMP" }, rect: [10, 10, 12, 12] },
+    ];
+    pdf.getPage = async () => page;
+    vi.mocked(openPdf).mockResolvedValue(pdf);
+    const { result } = renderHook(() => usePlanDocument(doc()));
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.labels.some((label) => label.text === "CAMP" && label.source === "shx")).toBe(true);
+  });
+
+  it("keeps the plan usable and reports unavailable annotations", async () => {
+    const pdf = fakePdf();
+    const page = await pdf.getPage(1);
+    page.getAnnotations = async () => {
+      throw new Error("bad annotations");
+    };
+    pdf.getPage = async () => page;
+    vi.mocked(openPdf).mockResolvedValue(pdf);
+    const { result } = renderHook(() => usePlanDocument(doc()));
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.image).not.toBeNull();
+    expect(result.current.rects.length).toBeGreaterThan(0);
+    expect(result.current.annotationWarning).toBeTruthy();
+  });
+
+  it("lists all named layers including those outside the order and preserves visibility", async () => {
+    const pdf = fakePdf();
+    pdf.getOptionalContentConfig = async () => {
+      const groups = new Map([
+        ["a", { name: "Walls", visible: true }],
+        ["b", { name: "Hidden", visible: false }],
+      ]);
+      return {
+        getOrder: () => ["a"],
+        getGroup: (id: string) => groups.get(id) ?? null,
+        setVisibility: (id: string, visible: boolean) => {
+          groups.get(id)!.visible = visible;
+        },
+        isVisible: () => true,
+        [Symbol.iterator]: () => groups.entries(),
+      };
+    };
+    vi.mocked(openPdf).mockResolvedValue(pdf);
+    const { result } = renderHook(() => usePlanDocument(doc()));
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.layers).toEqual([
+      { id: "a", name: "Walls", visible: true },
+      { id: "b", name: "Hidden", visible: false },
+    ]);
+    act(() => result.current.toggleLayer("b"));
+    await waitFor(() => expect(result.current.layers[1].visible).toBe(true));
+    expect(openPdf).toHaveBeenCalledTimes(1);
+  });
+
+  it("discards old document state and late renders when the source changes", async () => {
+    const first = fakePdf();
+    const second = fakePdf(2);
+    let finish!: (image: ImageBitmap) => void;
+    const late = { width: 10, height: 10, close: vi.fn() } as unknown as ImageBitmap;
+    const fresh = { width: 10, height: 10, close: vi.fn() } as unknown as ImageBitmap;
+    vi.mocked(openPdf).mockResolvedValueOnce(first).mockResolvedValueOnce(second);
+    vi.mocked(renderPage)
+      .mockReturnValueOnce(new Promise((resolve) => (finish = resolve)))
+      .mockResolvedValueOnce(fresh);
+    const { result, rerender } = renderHook(({ document }) => usePlanDocument(document), {
+      initialProps: { document: doc() },
+    });
+    await waitFor(() => expect(renderPage).toHaveBeenCalledTimes(1));
+    rerender({ document: { ...doc(), sourceBlobHash: "new", calibration: { page: 2, points: [] } } });
+    expect(result.current.image).toBeNull();
+    expect(result.current.layers).toEqual([]);
+    await waitFor(() => expect(result.current.image).toBe(fresh));
+    expect(result.current.page).toBe(2);
+    await act(async () => finish(late));
+    expect(late.close).toHaveBeenCalledOnce();
+    expect(result.current.image).toBe(fresh);
+  });
+
+  it("does not retain an error when the source changes", async () => {
+    vi.mocked(openPdf).mockRejectedValueOnce(new Error("bad pdf")).mockResolvedValueOnce(fakePdf());
+    const { result, rerender } = renderHook(({ document }) => usePlanDocument(document), {
+      initialProps: { document: doc() },
+    });
+    await waitFor(() => expect(result.current.status).toBe("error"));
+    rerender({ document: { ...doc(), sourceBlobHash: "new" } });
+    expect(result.current.status).toBe("loading");
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+  });
+
   it("starts on the calibrated page", async () => {
     vi.mocked(openPdf).mockResolvedValue(fakePdf(3));
     const { result } = renderHook(() => usePlanDocument(doc({ page: 2, points: [] })));

@@ -2731,8 +2731,7 @@ paths:
       operationId: updateModelTag
       summary: Rename a model tag
       description: >
-        Changes the title only; the slug never changes and there is no delete
-        route. The `ungrouped` tag cannot be changed (400). Needs `model:write`.
+        Changes the title only; the slug never changes. The `ungrouped` tag cannot be changed (400). Needs `model:write`.
       tags: [models]
       requestBody:
         required: true
@@ -2747,6 +2746,22 @@ paths:
               schema: { $ref: '#/components/schemas/ModelTag' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+    delete:
+      operationId: deleteModelTag
+      summary: Delete an unused model tag
+      description: Requires model:write. Built-in or referenced tags cannot be deleted.
+      tags: [models]
+      responses:
+        '204': { description: Deleted }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Tag is in use
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '500': { $ref: '#/components/responses/Internal' }
 
   /api/models/{slug}:

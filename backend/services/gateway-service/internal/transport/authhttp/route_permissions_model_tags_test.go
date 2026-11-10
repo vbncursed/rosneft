@@ -9,12 +9,13 @@ import (
 	"gotest.tools/v3/assert"
 )
 
-// Creating and renaming a tag is a model write. The gate fails open, so the
+// Creating, renaming and deleting a tag is a model write. The gate fails open, so the
 // X-Pattern check pins that the route matched is the one routePerms keys on.
 func (s *RoutePermsSuite) TestModelTagWritesNeedModelWrite() {
 	routes := []struct{ method, pattern, path string }{
 		{http.MethodPost, "/api/model-tags", "/api/model-tags"},
 		{http.MethodPatch, "/api/model-tags/{slug}", "/api/model-tags/camp"},
+		{http.MethodDelete, "/api/model-tags/{slug}", "/api/model-tags/camp"},
 	}
 	ok := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Pattern", chi.RouteContext(r.Context()).RoutePattern())

@@ -32,6 +32,10 @@ export function zoneCard(p: PageParts): ReactNode {
           zone={selected}
           sizeLine={zones.equipment.sizeLine}
           inside={zones.equipment.inside}
+          equipment={zones.equipment.insidePlacements.map(
+            (placement) =>
+              `${placement.label || p.options.find((option) => option.slug === placement.modelSlug)?.title || placement.modelSlug}${placement.hidden || p.placementGroups.list.some((group) => group.id === placement.groupId && group.hidden) ? " (hidden)" : ""}`,
+          )}
           onAddObjects={zones.onAddObjects}
           onClose={() => zones.onSelect(null)}
           onEdit={zones.onAlign && aligned ? () => zones.onAlign?.(aligned.id) : undefined}

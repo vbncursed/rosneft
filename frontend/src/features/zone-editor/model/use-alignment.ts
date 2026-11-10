@@ -38,7 +38,7 @@ export type AlignmentParams = {
   onCalibrated?: (calibration: Calibration | null) => void;
 };
 
-type Draft = { pairs: CalibrationPair[]; notice: string | null };
+type Draft = { pairs: CalibrationPair[]; notice: string | null; edited: boolean };
 
 export type Alignment = ReturnType<typeof useAlignment>;
 
@@ -46,7 +46,7 @@ export type Alignment = ReturnType<typeof useAlignment>;
 export function useAlignment(p: AlignmentParams) {
   const { slug, document, plan, unitRatio, onChanged, onCalibrated } = p;
   const { page } = plan;
-  const { pairs, pending, notice, setPairs, setPending, addPlanPoint, acceptScenePoint } = usePageDraft(p);
+  const { pairs, pending, notice, pristine, setPairs, setPending, addPlanPoint, acceptScenePoint } = usePageDraft(p);
   const [saving, setSaving] = useState(false);
 
   const fit: FitResult | null = pairs.length ? fitSimilarity(pairs.map((q) => ({ pdf: q.pdf, scene: q.scene }))) : null;
@@ -55,7 +55,7 @@ export function useAlignment(p: AlignmentParams) {
   const line = fitted && metresPerPt !== null ? scaleLine(scaleDifference(fitted.fit, unitRatio, metresPerPt)) : null;
 
   async function save() {
-    if (!fitted || saving) return;
+    if (!fitted || saving || plan.controls === null) return;
     setSaving(true);
     try {
       const saved = await putCalibration(slug, document.id, { page: plan.page, points: pairs });
@@ -99,9 +99,14 @@ export function useAlignment(p: AlignmentParams) {
     scaleWarn: line?.warn ?? false,
     metresPerPt,
     error: fit && !fit.ok ? fit.message : null,
-    canSave: fitted !== null && !saving,
+    canSave: fitted !== null && !saving && plan.controls !== null,
     saving,
     addPlanPoint,
+    imageProposalAllowed: pristine && document.calibration?.page !== page,
+    proposeImagePairs: (expected: CalibrationPair[], proposal: CalibrationPair[]) => {
+      if (pending || !pristine || document.calibration?.page === page || proposal.length < 2) return;
+      setPairs((current) => (current === expected ? proposal.slice(0, MAX_PAIRS) : current));
+    },
     cancelPending: () => setPending(null),
     acceptScenePoint,
     movePair: (i: number, pdf: Pt) => setPairs((all) => all.map((q, j) => (j === i ? { ...q, pdf } : q))),
@@ -115,8 +120,11 @@ export function useAlignment(p: AlignmentParams) {
 function usePageDraft(p: AlignmentParams) {
   const { document, plan, bbox } = p;
   const { page } = plan;
-  const [drafts, setDrafts] = useState<Record<number, Draft>>({});
-  const [waiting, setWaiting] = useState<{ page: number; at: Pt } | null>(null);
+  const identity = `${document.id}:${document.sourceBlobHash}`;
+  const [state, setState] = useState<{ identity: string; drafts: Record<number, Draft> }>({ identity, drafts: {} });
+  const [waiting, setWaiting] = useState<{ identity: string; page: number; at: Pt } | null>(null);
+  const drafts = state.identity === identity ? state.drafts : {};
+  if (state.identity !== identity) setState({ identity, drafts: {} });
 
   // Each page keeps its own pairs, so paging back loses nothing and a page never
   // inherits another's. A page's labels (or the saved set, if it is for this
@@ -125,17 +133,32 @@ function usePageDraft(p: AlignmentParams) {
     const saved = document.calibration?.page === page ? document.calibration.points : null;
     const auto = saved || !bbox ? [] : autoPairs(plan.controls, bbox, p.groundAt, p.fallbackY);
     const notice = saved || auto.length > 0 ? null : plan.controls.length ? OFF_MODEL : NO_LABELS;
-    setDrafts((all) => ({ ...all, [page]: { pairs: (saved ?? auto).slice(0, MAX_PAIRS), notice } }));
+    setState({
+      identity,
+      drafts: { ...drafts, [page]: { pairs: (saved ?? auto).slice(0, MAX_PAIRS), notice, edited: false } },
+    });
   }
   const draft = drafts[page];
   const pairs = draft?.pairs ?? NO_PAIRS;
-  const pending = waiting?.page === page ? waiting.at : null;
+  const pending = waiting?.identity === identity && waiting.page === page ? waiting.at : null;
   const setPairs = (change: (all: CalibrationPair[]) => CalibrationPair[]) =>
-    setDrafts((all) => ({
-      ...all,
-      [page]: { notice: all[page]?.notice ?? null, pairs: change(all[page]?.pairs ?? []) },
-    }));
-  const setPending = (at: Pt | null) => setWaiting(at && { page, at });
+    setState((current) =>
+      current.identity === identity
+        ? {
+            identity,
+            drafts: {
+              ...current.drafts,
+              [page]: {
+                notice: current.drafts[page]?.notice ?? null,
+                edited: true,
+                pairs: change(current.drafts[page]?.pairs ?? []),
+              },
+            },
+          }
+        : current,
+    );
+  const setPending = (at: Pt | null) =>
+    setWaiting((current) => (at ? { identity, page, at } : current?.identity === identity ? null : current));
   const notice = draft?.notice ?? null;
 
   const addPlanPoint = (pdf: Pt) => {
@@ -147,5 +170,14 @@ function usePageDraft(p: AlignmentParams) {
     setPending(null);
   };
 
-  return { pairs, pending, notice, setPairs, setPending, addPlanPoint, acceptScenePoint };
+  return {
+    pairs,
+    pending,
+    notice,
+    pristine: !!draft && !draft.edited,
+    setPairs,
+    setPending,
+    addPlanPoint,
+    acceptScenePoint,
+  };
 }

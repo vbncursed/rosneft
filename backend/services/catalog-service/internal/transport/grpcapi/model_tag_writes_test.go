@@ -66,3 +66,20 @@ func (s *ModelTagWritesSuite) TestRefusalsKeepTheirCodeAndStartAtTheSentinel() {
 	assert.Equal(s.T(), status.Code(err), codes.InvalidArgument)
 	assert.Equal(s.T(), status.Convert(err).Message(), "invalid input: bad")
 }
+
+func (s *ModelTagWritesSuite) TestDeleteMapsRefusals() {
+	for _, tc := range []struct {
+		err     error
+		code    codes.Code
+		message string
+	}{
+		{domain.ErrModelTagInUse, codes.AlreadyExists, "model tag is used by models or zones"},
+		{domain.ErrModelTagNotFound, codes.NotFound, "model tag not found"},
+		{domain.ErrInvalidInput, codes.InvalidArgument, "invalid input"},
+	} {
+		s.svc.DeleteModelTagMock.Return(fmt.Errorf("storage: %w", tc.err))
+		_, err := s.srv.DeleteModelTag(s.ctx, &catalogv1.DeleteModelTagRequest{Slug: "camp"})
+		assert.Equal(s.T(), status.Code(err), tc.code)
+		assert.Equal(s.T(), status.Convert(err).Message(), tc.message)
+	}
+}

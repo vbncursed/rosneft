@@ -89,7 +89,7 @@ func loadZones(ctx context.Context, q querier, where string, args ...any) ([]dom
 // transaction (delete, then insert). A slug naming no tag is ErrInvalidInput.
 func setZoneTags(ctx context.Context, tx pgx.Tx, zoneID int64, slugs []string) error {
 	want := slices.Compact(slices.Sorted(slices.Values(slugs)))
-	rows, err := tx.Query(ctx, `SELECT id FROM model_tags WHERE slug = ANY($1)`, want)
+	rows, err := tx.Query(ctx, `SELECT id FROM model_tags WHERE slug = ANY($1) ORDER BY id FOR KEY SHARE`, want)
 	if err != nil {
 		return fmt.Errorf("resolve tags: %w", err)
 	}

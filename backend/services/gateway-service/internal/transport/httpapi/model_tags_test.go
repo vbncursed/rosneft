@@ -5,11 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/suite"
 	"gotest.tools/v3/assert"
 
@@ -141,15 +139,27 @@ func (s *ModelTagsSuite) TestMissingBodyIs400() {
 	assert.Equal(s.T(), code, http.StatusBadRequest)
 }
 
-// Tags are never deleted: the mounted router has no DELETE for a tag, so the
-// method is refused before any handler (the stub has none to reach).
-func (s *ModelTagsSuite) TestNoDeleteRouteExists() {
-	r := chi.NewRouter()
-	Mount(r, New(&tagWriteService{}))
+func (t *tagWriteService) DeleteModelTag(_ context.Context, slug string) error {
+	t.slug = slug
+	return t.err
+}
 
-	for _, path := range []string{"/api/model-tags", "/api/model-tags/camp"} {
-		rec := httptest.NewRecorder()
-		r.ServeHTTP(rec, httptest.NewRequestWithContext(s.T().Context(), http.MethodDelete, path, http.NoBody))
-		assert.Equal(s.T(), rec.Code, http.StatusMethodNotAllowed, path)
+func (s *ModelTagsSuite) TestDeleteResponses() {
+	for _, tc := range []struct {
+		err  error
+		code int
+	}{
+		{nil, http.StatusNoContent},
+		{domain.ErrInvalidInput, http.StatusBadRequest},
+		{domain.ErrModelTagNotFound, http.StatusNotFound},
+		{domain.ErrModelTagInUse, http.StatusConflict},
+		{errors.New("down"), http.StatusInternalServerError},
+	} {
+		svc := &tagWriteService{err: tc.err}
+		resp, err := New(svc).DeleteModelTag(s.T().Context(), DeleteModelTagRequestObject{Slug: "camp"})
+		assert.NilError(s.T(), err)
+		code, _ := rendered(s.T(), resp.VisitDeleteModelTagResponse)
+		assert.Equal(s.T(), code, tc.code)
+		assert.Equal(s.T(), svc.slug, "camp")
 	}
 }

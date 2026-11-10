@@ -3244,6 +3244,45 @@ export type CreateModelTagResponses = {
 
 export type CreateModelTagResponse = CreateModelTagResponses[keyof CreateModelTagResponses];
 
+export type DeleteModelTagData = {
+  body?: never;
+  path: {
+    slug: string;
+  };
+  query?: never;
+  url: '/api/model-tags/{slug}';
+};
+
+export type DeleteModelTagErrors = {
+  /**
+   * Invalid request
+   */
+  400: Error;
+  /**
+   * Resource not found
+   */
+  404: Error;
+  /**
+   * Tag is in use
+   */
+  409: Error;
+  /**
+   * Internal server error
+   */
+  500: Error;
+};
+
+export type DeleteModelTagError = DeleteModelTagErrors[keyof DeleteModelTagErrors];
+
+export type DeleteModelTagResponses = {
+  /**
+   * Deleted
+   */
+  204: void;
+};
+
+export type DeleteModelTagResponse = DeleteModelTagResponses[keyof DeleteModelTagResponses];
+
 export type UpdateModelTagData = {
   body: ModelTagUpdate;
   path: {

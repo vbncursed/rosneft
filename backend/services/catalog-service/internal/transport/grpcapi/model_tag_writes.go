@@ -27,3 +27,13 @@ func (s *Server) UpdateModelTag(
 	}
 	return &catalogv1.UpdateModelTagResponse{Tag: modelTagToProto(tag)}, nil
 }
+
+func (s *Server) DeleteModelTag(
+	ctx context.Context,
+	req *catalogv1.DeleteModelTagRequest,
+) (*catalogv1.DeleteModelTagResponse, error) {
+	if err := s.svc.DeleteModelTag(ctx, req.GetSlug()); err != nil {
+		return nil, mapError(err)
+	}
+	return &catalogv1.DeleteModelTagResponse{}, nil
+}
