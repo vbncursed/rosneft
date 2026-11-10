@@ -31,7 +31,7 @@ describe("RectOverlay", () => {
   it("clips each button to its rectangle's outline", () => {
     render(<RectOverlay {...base} />);
     const [first] = screen.getAllByRole("button");
-    expect(first.style.clipPath).toBe("polygon(0% 0%,100% 0%,100% 100%,0% 100%)");
+    expect(first).toHaveStyle({ clipPath: "polygon(0% 0%,100% 0%,100% 100%,0% 100%)" });
     expect(first.style.left).toBe("0px");
   });
 
