@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { loadPdfjs, openPdf, renderPage } from "@/entities/site-plan";
+import { controlPoints, loadPdfjs, openPdf, renderPage } from "@/entities/site-plan";
 import type { Document } from "@/entities/document";
 import { fakeLib, fakePdf, PLAN_PAGE } from "./plan-pdf.fixture";
 import { usePlanDocument } from "./use-plan-document";
@@ -10,6 +10,7 @@ vi.mock("@/entities/site-plan", async (importOriginal) => ({
   loadPdfjs: vi.fn(),
   openPdf: vi.fn(),
   renderPage: vi.fn(),
+  controlPoints: vi.fn((await importOriginal<typeof import("@/entities/site-plan")>()).controlPoints),
 }));
 
 const doc = (calibration: Document["calibration"] = null): Document => ({
@@ -97,6 +98,40 @@ describe("usePlanDocument", () => {
     unmount();
     await act(async () => open(pdf));
     expect(pdf.destroy).toHaveBeenCalledOnce();
+  });
+
+  it("closes a late image from the previous page without publishing its controls", async () => {
+    vi.mocked(openPdf).mockResolvedValue(fakePdf(2));
+    let finish!: (image: ImageBitmap) => void;
+    const late = { width: 10, height: 10, close: vi.fn() } as unknown as ImageBitmap;
+    const next = { width: 10, height: 10, close: vi.fn() } as unknown as ImageBitmap;
+    vi.mocked(renderPage)
+      .mockReturnValueOnce(new Promise((resolve) => (finish = resolve)))
+      .mockResolvedValueOnce(next);
+    const { result } = renderHook(() => usePlanDocument(doc()));
+    await waitFor(() => expect(renderPage).toHaveBeenCalledTimes(1));
+    act(() => result.current.setPage(2));
+    await waitFor(() => expect(result.current.image).toBe(next));
+    const controls = result.current.controls;
+    await act(async () => finish(late));
+    expect(late.close).toHaveBeenCalledOnce();
+    expect(result.current.image).toBe(next);
+    expect(result.current.controls).toBe(controls);
+  });
+
+  it("retains the rendered image until cleanup when control point extraction fails", async () => {
+    vi.mocked(openPdf).mockResolvedValue(fakePdf());
+    const image = { width: 10, height: 10, close: vi.fn() } as unknown as ImageBitmap;
+    vi.mocked(renderPage).mockResolvedValue(image);
+    vi.mocked(controlPoints).mockImplementationOnce(() => {
+      throw new Error("bad text");
+    });
+    const { result, unmount } = renderHook(() => usePlanDocument(doc()));
+    await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.image).toBeNull();
+    expect(image.close).not.toHaveBeenCalled();
+    unmount();
+    expect(image.close).toHaveBeenCalledOnce();
   });
 
   it("reports a document that cannot be opened", async () => {

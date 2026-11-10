@@ -1,8 +1,7 @@
-import { useId, useRef, useState, type KeyboardEvent } from "react";
+import { useId } from "react";
 import { clsx as cx } from "clsx";
-import { nextEnabled } from "@/shared/lib/roving";
-import { useDismiss } from "@/shared/lib/use-dismiss";
 import { Icon } from "@/shared/ui/icon";
+import { useDropdownInteraction } from "./use-dropdown-interaction";
 
 export type DropdownOption<T extends string> = {
   value: T;
@@ -43,49 +42,11 @@ export function Dropdown<T extends string>({
   describedBy,
 }: DropdownProps<T>) {
   const listId = useId();
-  const root = useRef<HTMLDivElement>(null);
-  const button = useRef<HTMLButtonElement>(null);
-  const [open, setOpen] = useState(false);
-  const selectedIndex = Math.max(
-    0,
-    options.findIndex((o) => o.value === value),
-  );
-  const [active, setActive] = useState(selectedIndex);
-
-  useDismiss(root, open, () => setOpen(false));
-
-  const selected = options[selectedIndex];
-
-  const choose = (index: number) => {
-    const option = options[index];
-    if (!option || option.disabled) return;
-    // Focus stays on the trigger (aria-activedescendant); a pointer on an
-    // option, which is not focusable, would otherwise drop it to <body>.
-    button.current?.focus();
-    onChange(option.value);
-    setOpen(false);
-  };
-
-  const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (!open) {
-      if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        setActive(selectedIndex);
-        setOpen(true);
-      }
-      return;
-    }
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setActive((i) => nextEnabled(options.length, i, 1, (n) => Boolean(options[n].disabled)));
-    } else if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setActive((i) => nextEnabled(options.length, i, -1, (n) => Boolean(options[n].disabled)));
-    } else if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      choose(active);
-    }
-  };
+  const { root, button, open, selected, active, setActive, choose, toggle, onKeyDown } = useDropdownInteraction({
+    options,
+    value,
+    onChange,
+  });
 
   return (
     <div ref={root} className={cx("relative", className)}>
@@ -100,10 +61,7 @@ export function Dropdown<T extends string>({
         aria-label={ariaLabel}
         aria-invalid={invalid || undefined}
         aria-describedby={describedBy}
-        onClick={() => {
-          setActive(selectedIndex);
-          setOpen((o) => !o);
-        }}
+        onClick={toggle}
         onKeyDown={onKeyDown}
         className={cx(
           "flex w-full items-center justify-between gap-2.5 border bg-panel-2 px-3 py-2.5 text-[13px] transition-[color,background-color,border-color,scale] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent enabled:active:scale-[0.99]",
@@ -130,7 +88,7 @@ export function Dropdown<T extends string>({
           id={listId}
           role="listbox"
           aria-label={ariaLabel ?? label}
-          aria-activedescendant={`${listId}-${active}`}
+          aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
           // Drops from the trigger it is docked to; frequent, so quicker than a menu.
           className="absolute z-10 m-0 w-full origin-top list-none rounded-b-control border border-t-0 border-accent-line bg-panel p-1.5 shadow-elevation transition-[opacity,scale] duration-120 ease-out starting:opacity-0 motion-safe:starting:scale-y-[0.97]"
         >

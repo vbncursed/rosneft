@@ -1,6 +1,7 @@
 package storage_test
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -91,4 +92,30 @@ func (s *UploadedSuite) TestInitiateStoresTheAuthor() {
 	got, err := s.fs.GetStatus(ctx, "abc123")
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), got.OwnerID, owner1)
+}
+
+func (s *UploadedSuite) TestSessionIDAlphabet() {
+	ctx := s.T().Context()
+	for _, id := range []string{"0", "-", "abcdefABCDEF0123456789", "--a--"} {
+		s.Run(id, func() {
+			_, err := s.fs.Initiate(ctx, id, owner1, 1, "application/octet-stream")
+			assert.NilError(s.T(), err)
+		})
+	}
+	for _, id := range []string{"", "g", "G", "/", "\\", ".", " ", "\n", "\x00", "é", "gabc", "agbc", "abcg"} {
+		s.Run(fmt.Sprintf("invalid_%q", id), func() {
+			_, err := s.fs.Initiate(ctx, id, owner1, 1, "application/octet-stream")
+			assert.Assert(s.T(), err != nil)
+		})
+	}
+}
+
+func (s *UploadedSuite) TestTraversalIsRejectedBeforeFilesystemAccess() {
+	ctx := s.T().Context()
+	_, err := s.fs.Initiate(ctx, "../outside", owner1, 1, "application/octet-stream")
+	assert.ErrorContains(s.T(), err, "illegal character")
+	assert.ErrorContains(s.T(), s.fs.RecordUpload(ctx, "../outside", owner1), "illegal character")
+	assert.ErrorContains(s.T(), s.fs.RecordUpload(ctx, hash, "../outside"), "illegal character")
+	_, err = os.Stat(filepath.Join(s.root, "..", "outside"))
+	assert.Assert(s.T(), os.IsNotExist(err))
 }

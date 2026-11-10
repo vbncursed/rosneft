@@ -121,10 +121,12 @@ func TestWriteAtomicRemovesTheTempFileOnPanic(t *testing.T) {
 func TestStatNamesABadHashAsInvalid(t *testing.T) {
 	fs, err := NewFS(t.TempDir())
 	assert.NilError(t, err)
-	for _, hash := range []string{"", "a", "../../etc/passwd", "zz11"} {
+	for _, hash := range []string{"", "a", "../../etc/passwd", "zz11", "a-b", "aa/", "aa\\", "aa\x00", "aaé", "aag", "aaG", "aa:", "aa@", "aa`"} {
 		_, err := fs.Stat(t.Context(), hash)
 		assert.Assert(t, errors.Is(err, ErrInvalidHash), "%q: %v", hash, err)
 	}
-	_, err = fs.Stat(t.Context(), "abcdef")
-	assert.Assert(t, errors.Is(err, ErrNotFound), "a well-formed absent hash is not found: %v", err)
+	for _, hash := range []string{"00", "09", "aa", "ff", "AA", "FF", "aBc", "0123456789abcdefABCDEF"} {
+		_, err := fs.Stat(t.Context(), hash)
+		assert.Assert(t, errors.Is(err, ErrNotFound), "%q: a well-formed absent hash is not found: %v", hash, err)
+	}
 }

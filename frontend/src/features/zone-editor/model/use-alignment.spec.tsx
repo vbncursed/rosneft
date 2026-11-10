@@ -259,6 +259,46 @@ describe("useAlignment, paging back", () => {
   });
 });
 
+describe("useAlignment, page ownership during async work", () => {
+  it("restores a waiting point when returning to its page", () => {
+    const { result, rerender } = align({ bbox: null });
+    act(() => result.current.addPlanPoint({ x: 1, y: 2 }));
+    rerender({ bbox: null, plan: { page: 2, controls: [] } });
+    act(() => result.current.acceptScenePoint({ x: 4, y: 0, z: 5 }));
+    expect(result.current.pairs).toEqual([]);
+    rerender({ bbox: null, plan: { page: 1, controls: [] } });
+    expect(result.current.pending).toEqual({ x: 1, y: 2 });
+    act(() => result.current.acceptScenePoint({ x: 4, y: 0, z: 5 }));
+    expect(result.current.pairs).toEqual([{ pdf: { x: 1, y: 2 }, scene: { x: 4, y: 0, z: 5 }, utm: null }]);
+  });
+
+  it("clears the page where deletion started even after paging away", async () => {
+    let finish!: () => void;
+    vi.mocked(deleteCalibration).mockReturnValue(
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const document = doc({ page: 1, points: [] });
+    const { result, rerender } = align({ document, bbox: null });
+    pickPair(result, [1, 2], [3, 4]);
+    let deletion!: Promise<void>;
+    act(() => {
+      deletion = result.current.clear();
+    });
+    rerender({ document, bbox: null, plan: { page: 2, controls: [] } });
+    pickPair(result, [5, 6], [7, 8]);
+    await act(async () => {
+      finish();
+      await deletion;
+    });
+    expect(result.current.pairs).toHaveLength(1);
+    rerender({ document, bbox: null, plan: { page: 1, controls: [] } });
+    expect(result.current.pairs).toEqual([]);
+    expect(onChanged).toHaveBeenCalledOnce();
+  });
+});
+
 describe("useAlignment, save and clear", () => {
   it("PUTs every pair with the page, then reports", async () => {
     vi.mocked(putCalibration).mockResolvedValue({ page: 2, points: [] });

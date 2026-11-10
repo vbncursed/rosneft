@@ -23,6 +23,11 @@ func (s *SlugSuite) TestGenerate() {
 		title string
 		want  string
 	}{
+		{"ascii alphabet and digits", "abcdefghijklmnopqrstuvwxyz0123456789", "abcdefghijklmnopqrstuvwxyz0123456789"},
+		{"uppercase ascii", "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"},
+		{"unicode lowercase to ascii", "K", "k"},
+		{"unicode digits are separators", "a١２b", "a-b"},
+		{"unsupported script separates ascii", "alpha漢字beta", "alpha-beta"},
 		{"alphanumeric boundaries", "z09", "z09"},
 		{"last letter", "z", "z"},
 		{"first digit", "0", "0"},
@@ -38,6 +43,7 @@ func (s *SlugSuite) TestGenerate() {
 		{"non-sluggable falls back", "!!! ©™ !!!", "fallback"},
 		{"empty falls back", "", "fallback"},
 	}
+	assert.Equal(s.T(), slug.Generate("漢字", "Keep Fallback!"), "Keep Fallback!")
 	for _, c := range cases {
 		s.Run(c.name, func() {
 			assert.Equal(s.T(), slug.Generate(c.title, "fallback"), c.want)

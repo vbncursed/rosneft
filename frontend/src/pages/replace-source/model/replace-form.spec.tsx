@@ -70,3 +70,49 @@ describe("replace form", () => {
     expect(PRESERVED.map((i) => i.ok)).toEqual([true, true, true, true, false]);
   });
 });
+
+it("preserves every stage tuple throughout replacement", () => {
+  const labels = ["Chunked upload", "Finalize blob", "Parse OBJ + MTL", "Rebuild LOD 0-2", "Swap in viewer"];
+  const hints = [
+    "8 MB chunks, resumable",
+    "content hash written",
+    "geometry and materials",
+    "replaces the old artifacts",
+    "territory returns to ready",
+  ];
+  const later = [
+    ["pending", "~1 min"],
+    ["pending", "~3 min"],
+    ["pending", "~10 s"],
+  ];
+  const cases = {
+    idle: [
+      ["pending", "queued"],
+      ["pending", "queued"],
+    ],
+    picked: [
+      ["pending", "queued"],
+      ["pending", "queued"],
+    ],
+    uploading: [
+      ["active", "running"],
+      ["pending", "queued"],
+    ],
+    finalizing: [
+      ["done", "done"],
+      ["active", "running"],
+    ],
+    replacing: [
+      ["done", "done"],
+      ["done", "done"],
+    ],
+  } as const;
+  for (const phase of Object.keys(cases) as (keyof typeof cases)[]) {
+    for (const percent of [null, 0, 100]) {
+      const first = phase === "uploading" && percent !== null ? ["active", `${percent}%`] : cases[phase][0];
+      expect(stagesFor(phase, percent).map(({ label, hint, state, time }) => [label, hint, state, time])).toEqual(
+        [first, cases[phase][1], ...later].map(([state, time], i) => [labels[i], hints[i], state, time]),
+      );
+    }
+  }
+});

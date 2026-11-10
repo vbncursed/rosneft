@@ -172,6 +172,50 @@ func (s *BatchSuite) TestTerritoryAdminsComeBackPerSlug() {
 	assert.DeepEqual(s.T(), one, []string{s.admin, other})
 }
 
+func (s *BatchSuite) TestSetTerritoryAdmins() {
+	ctx := s.T().Context()
+	other := "22222222-2222-2222-2222-222222222222"
+	third := "33333333-3333-3333-3333-333333333333"
+
+	s.Run("replace and deduplicate", func() {
+		s.seedTerritory(ctx, "set-admins-replace", s.admin)
+		s.seedTerritory(ctx, "set-admins-replace-neighbor", s.admin)
+		assert.NilError(s.T(), s.pg.SetTerritoryAdmins(ctx, "set-admins-replace", []string{other, third, other}))
+		got, err := s.pg.GetTerritoryAdmins(ctx, "set-admins-replace")
+		assert.NilError(s.T(), err)
+		assert.DeepEqual(s.T(), got, []string{other, third})
+		neighbor, err := s.pg.GetTerritoryAdmins(ctx, "set-admins-replace-neighbor")
+		assert.NilError(s.T(), err)
+		assert.DeepEqual(s.T(), neighbor, []string{s.admin})
+	})
+
+	s.Run("empty clears assignments", func() {
+		s.seedTerritory(ctx, "set-admins-clear", s.admin)
+		s.seedTerritory(ctx, "set-admins-clear-neighbor", other)
+		assert.NilError(s.T(), s.pg.SetTerritoryAdmins(ctx, "set-admins-clear", nil))
+		got, err := s.pg.GetTerritoryAdmins(ctx, "set-admins-clear")
+		assert.NilError(s.T(), err)
+		assert.Equal(s.T(), len(got), 0)
+		neighbor, err := s.pg.GetTerritoryAdmins(ctx, "set-admins-clear-neighbor")
+		assert.NilError(s.T(), err)
+		assert.DeepEqual(s.T(), neighbor, []string{other})
+	})
+
+	s.Run("unknown territory", func() {
+		err := s.pg.SetTerritoryAdmins(ctx, "set-admins-missing", []string{s.admin})
+		assert.ErrorIs(s.T(), err, domain.ErrTerritoryNotFound)
+	})
+
+	s.Run("invalid UUID rolls back deletion and inserts", func() {
+		s.seedTerritory(ctx, "set-admins-rollback", s.admin)
+		err := s.pg.SetTerritoryAdmins(ctx, "set-admins-rollback", []string{other, "invalid-uuid"})
+		assert.Assert(s.T(), err != nil)
+		got, err := s.pg.GetTerritoryAdmins(ctx, "set-admins-rollback")
+		assert.NilError(s.T(), err)
+		assert.DeepEqual(s.T(), got, []string{s.admin})
+	})
+}
+
 func (s *BatchSuite) TestAPlacementBatchLandsWholeOrNotAtAll() {
 	ctx := s.T().Context()
 	s.seedTerritory(ctx, "batch-yard", s.admin)

@@ -3,6 +3,8 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -155,4 +157,46 @@ func TestSceneBundleZonesAreNeverNull(t *testing.T) {
 
 	zoned := sceneBundleToAPI(domain.SceneBundle{Zones: []domain.Zone{{ID: 7, Title: "Camp"}}})
 	assert.Equal(t, zoned.Zones[0].Id, int64(7))
+}
+
+func (s *ModelsHandlerSuite) TestListModelArtifacts() {
+	stub := &listReadStub{}
+	server := New(stub)
+	resp, err := server.ListModelArtifacts(s.T().Context(), ListModelArtifactsRequestObject{Slug: "yard"})
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), stub.slug, "yard")
+	out, ok := resp.(ListModelArtifacts200JSONResponse)
+	assert.Assert(s.T(), ok, "got %T", resp)
+	assert.Equal(s.T(), len(out), 1)
+	assert.Equal(s.T(), out[0].Slug, "yard")
+	assert.Equal(s.T(), out[0].Lod, int32(2))
+	assert.Equal(s.T(), out[0].Hash, "hash")
+	assert.Equal(s.T(), out[0].Size, int64(42))
+	assert.Equal(s.T(), out[0].ContentType, "model/gltf-binary")
+	assert.DeepEqual(s.T(), out[0].Vertices, new(int64(43)))
+	assert.DeepEqual(s.T(), out[0].Faces, new(int64(44)))
+	assert.DeepEqual(s.T(), out[0].BboxMin, &Vec3{X: -1, Y: -2, Z: -3})
+	assert.DeepEqual(s.T(), out[0].BboxMax, &Vec3{X: 4, Y: 5, Z: 6})
+	assert.Assert(s.T(), out[0].CreatedAt.Equal(listStamp))
+	assert.Assert(s.T(), out[0].Artifacts == nil)
+	for _, tc := range []struct {
+		name   string
+		cause  error
+		status int
+	}{
+		{"not found", domain.ErrModelNotFound, 404},
+		{"invalid", domain.ErrInvalidInput, 500},
+		{"failure", errors.New("catalog down"), 500},
+	} {
+		s.Run(tc.name, func() {
+			stub.err = tc.cause
+			resp, err := server.ListModelArtifacts(s.T().Context(), ListModelArtifactsRequestObject{Slug: "yard"})
+			assert.NilError(s.T(), err)
+			assert.Equal(
+				s.T(),
+				fmt.Sprintf("%T", resp),
+				fmt.Sprintf("httpapi.ListModelArtifacts%dJSONResponse", tc.status),
+			)
+		})
+	}
 }

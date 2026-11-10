@@ -48,6 +48,42 @@ func (s *NodesSuite) TestQuatFromEulerXYZMatchesThree() {
 	}
 }
 
+func (s *NodesSuite) TestSceneRoots() {
+	cases := []struct {
+		name string
+		doc  *gltf.Document
+		want []int
+		err  bool
+	}{
+		{"no scenes: parentless nodes", &gltf.Document{Nodes: []*gltf.Node{
+			{Children: []int{1}}, {}, {Children: []int{3}}, {}, {},
+		}}, []int{0, 2, 4}, false},
+		{"no scenes: empty document", &gltf.Document{}, nil, false},
+		{"nil scene selects first", &gltf.Document{Scenes: []*gltf.Scene{
+			{Nodes: []int{2, 0}}, {Nodes: []int{1}},
+		}}, []int{2, 0}, false},
+		{"selected scene", &gltf.Document{Scene: new(1), Scenes: []*gltf.Scene{
+			{Nodes: []int{0}}, {Nodes: []int{3, 1}},
+		}}, []int{3, 1}, false},
+		{"empty selected scene", &gltf.Document{Scene: new(1), Scenes: []*gltf.Scene{
+			{Nodes: []int{0}}, {},
+		}}, nil, false},
+		{"negative scene", &gltf.Document{Scene: new(-1), Scenes: []*gltf.Scene{{}}}, nil, true},
+		{"scene past end", &gltf.Document{Scene: new(1), Scenes: []*gltf.Scene{{}}}, nil, true},
+	}
+	for _, tc := range cases {
+		s.Run(tc.name, func() {
+			got, err := SceneRoots(tc.doc)
+			if tc.err {
+				assert.ErrorIs(s.T(), err, ErrMalformed)
+			} else {
+				assert.NilError(s.T(), err)
+			}
+			assert.DeepEqual(s.T(), got, tc.want)
+		})
+	}
+}
+
 // Every refusal copySubtree makes, through Build. The cases that fail on two
 // counts pin the order: range, depth, reached twice, camera or skin, mesh.
 func (s *NodesSuite) TestCopySubtreeRefusals() {

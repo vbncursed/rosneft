@@ -23,19 +23,20 @@ export function servicesOf(
   const names = [...new Set(up.map((u) => u.label))];
   return names.map((name) => {
     const isUp = up.filter((u) => u.label === name).some((u) => last(u) === 1);
+    if (!isUp) {
+      return { name, state: "down", meta: "scrape failed", samples: [], latency: "—", errors: "—" };
+    }
     const rps = last(byLabel(rate, name));
     const err = last(byLabel(errors, name));
     const lat = last(latency.find((s) => matchesService(s.label, name)));
-    const state = isUp ? (err !== null && err > 0 ? "degraded" : "up") : "down";
+    const state = err !== null && err > 0 ? "degraded" : "up";
     return {
       name,
       state,
-      meta: isUp
-        ? `${formatValue(rps, "rps")} · ${formatValue(err, "rps").replace("/s", "")} errors/s`
-        : "scrape failed",
-      samples: isUp ? (byLabel(rate, name)?.points ?? []).slice(-SAMPLES).map((p) => p.v) : [],
-      latency: isUp ? formatValue(lat, "seconds") : "—",
-      errors: isUp ? formatValue(err, "rps") : "—",
+      meta: `${formatValue(rps, "rps")} · ${formatValue(err, "rps").replace("/s", "")} errors/s`,
+      samples: (byLabel(rate, name)?.points ?? []).slice(-SAMPLES).map((p) => p.v),
+      latency: formatValue(lat, "seconds"),
+      errors: formatValue(err, "rps"),
     };
   });
 }

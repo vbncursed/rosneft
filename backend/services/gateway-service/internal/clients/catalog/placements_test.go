@@ -5,6 +5,9 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
+
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc"
@@ -127,6 +130,68 @@ func (s *PlacementBatchSuite) TestAnEditRefusalCarriesTheCatalogsMessageAlone() 
 			err = client.DeletePlacement(s.T().Context(), "yard", 1)
 			assert.ErrorIs(s.T(), err, tc.want)
 			assert.Equal(s.T(), err.Error(), msg)
+		})
+	}
+}
+
+var (
+	listStamp   = time.Date(2026, 2, 3, 4, 5, 6, 0, time.UTC)
+	listUpdated = listStamp.Add(time.Hour)
+)
+
+func (s *CatalogListsSuite) TestListPlacements() {
+	s.placements = []*catalogv1.Placement{
+		{
+			Id:                 9,
+			TerritorySlug:      "yard",
+			ModelSlug:          "pump",
+			Position:           &catalogv1.Vec3{X: 3, Y: 4, Z: 5},
+			Rotation:           &catalogv1.Vec3{X: 6, Y: 7, Z: 8},
+			Scale:              &catalogv1.Vec3{X: 9, Y: 10, Z: 11},
+			Label:              "north",
+			CreatedAt:          timestamppb.New(listStamp),
+			UpdatedAt:          timestamppb.New(listUpdated),
+			VisiblePanoramaIds: []int64{12, 13},
+			Hidden:             true,
+			GroupId:            new(int64(14)),
+		},
+	}
+	ctx := s.T().Context()
+	got, err := s.cli.ListPlacements(ctx, "yard")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), s.method, catalogv1.CatalogService_ListPlacements_FullMethodName)
+	assert.Assert(s.T(), s.ctx == ctx)
+	assert.Equal(s.T(), s.request.(*catalogv1.ListPlacementsRequest).GetTerritorySlug(), "yard")
+	assert.Equal(s.T(), len(got), 1)
+	assert.Equal(s.T(), got[0].ID, int64(9))
+	assert.Equal(s.T(), got[0].ModelSlug, "pump")
+	assert.Equal(s.T(), got[0].TerritorySlug, "yard")
+	assert.DeepEqual(s.T(), got[0].Position, domain.Vec3{X: 3, Y: 4, Z: 5})
+	assert.DeepEqual(s.T(), got[0].Rotation, domain.Vec3{X: 6, Y: 7, Z: 8})
+	assert.DeepEqual(s.T(), got[0].Scale, domain.Vec3{X: 9, Y: 10, Z: 11})
+	assert.Equal(s.T(), got[0].Label, "north")
+	assert.Assert(s.T(), got[0].CreatedAt.Equal(listStamp))
+	assert.Assert(s.T(), got[0].UpdatedAt.Equal(listUpdated))
+	assert.DeepEqual(s.T(), got[0].VisiblePanoramaIDs, []int64{12, 13})
+	assert.DeepEqual(s.T(), got[0].GroupID, new(int64(14)))
+	assert.Equal(s.T(), got[0].Hidden, true)
+	for _, tc := range []struct {
+		name        string
+		cause, want error
+	}{
+		{"not found", status.Error(codes.NotFound, "missing"), domain.ErrTerritoryNotFound},
+		{"unavailable", status.Error(codes.Unavailable, "offline"), nil},
+	} {
+		s.Run(tc.name, func() {
+			s.err = tc.cause
+			got, err := s.cli.ListPlacements(ctx, "yard")
+			assert.Assert(s.T(), got == nil)
+			assert.ErrorContains(s.T(), err, "catalog.ListPlacements:")
+			if tc.want != nil {
+				assert.ErrorIs(s.T(), err, tc.want)
+			} else {
+				assert.ErrorIs(s.T(), err, tc.cause)
+			}
 		})
 	}
 }

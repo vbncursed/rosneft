@@ -50,39 +50,48 @@ function subpaths(codes: ArrayLike<number>, m: Matrix): { points: Pt[]; closed: 
   return subs;
 }
 
+type State = { ctm: Matrix; stack: Matrix[]; stroke: string | null; fill: string | null; lineWidth: number };
+
+function updateTransform(state: State, fn: number, args: never, ops: Record<string, number>): boolean {
+  if (fn === ops.save) state.stack.push(state.ctm);
+  else if (fn === ops.restore) state.ctm = state.stack.pop() ?? state.ctm;
+  else if (fn === ops.transform) state.ctm = mul(state.ctm, args);
+  else return false;
+  return true;
+}
+
+function updatePaint(state: State, fn: number, args: never, ops: Record<string, number>): boolean {
+  if (fn === ops.setStrokeRGBColor) state.stroke = (args as string[])[0] ?? null;
+  else if (fn === ops.setFillRGBColor) state.fill = (args as string[])[0] ?? null;
+  else if (fn === ops.setLineWidth) state.lineWidth = (args as number[])[0] ?? state.lineWidth;
+  else return false;
+  return true;
+}
+
+function paintedPaths(args: never, paints: Map<number, Paint>, state: State, viewport: number[]): PagePath[] {
+  const [code, [codes]] = args as [number, [ArrayLike<number> | undefined]];
+  const kind = paints.get(code);
+  if (!kind || !codes) return [];
+  return subpaths(codes, mul(viewport, state.ctm)).map((s) => ({
+    points: s.points,
+    closed: s.closed || kind.close,
+    paint: kind.paint,
+    stroke: kind.paint === "fill" ? null : state.stroke,
+    fill: kind.paint === "stroke" ? null : state.fill,
+    lineWidth: state.lineWidth,
+  }));
+}
+
 // extractPaths replays a pdf.js operator list and returns every painted subpath
 // in top-down page points (viewport applied).
 export function extractPaths(opList: OpList, ops: Record<string, number>, viewport: number[]): PagePath[] {
-  const paintByCode = new Map<number, Paint>(Object.entries(PAINTS).map(([name, p]) => [ops[name], p]));
-  let ctm: Matrix = [1, 0, 0, 1, 0, 0];
-  const stack: Matrix[] = [];
-  let stroke: string | null = null;
-  let fill: string | null = null;
-  let lineWidth = 1;
+  const paints = new Map<number, Paint>(Object.entries(PAINTS).map(([name, p]) => [ops[name], p]));
+  const state: State = { ctm: [1, 0, 0, 1, 0, 0], stack: [], stroke: null, fill: null, lineWidth: 1 };
   const out: PagePath[] = [];
-
   opList.fnArray.forEach((fn, i) => {
     const args = opList.argsArray[i] as never;
-    if (fn === ops.save) stack.push(ctm);
-    else if (fn === ops.restore) ctm = stack.pop() ?? ctm;
-    else if (fn === ops.transform) ctm = mul(ctm, args);
-    else if (fn === ops.setStrokeRGBColor) stroke = (args as string[])[0] ?? null;
-    else if (fn === ops.setFillRGBColor) fill = (args as string[])[0] ?? null;
-    else if (fn === ops.setLineWidth) lineWidth = (args as number[])[0] ?? lineWidth;
-    else if (fn === ops.constructPath) {
-      const [code, [codes]] = args as [number, [ArrayLike<number> | undefined]];
-      const kind = paintByCode.get(code);
-      if (!kind || !codes) return;
-      for (const s of subpaths(codes, mul(viewport, ctm))) {
-        out.push({
-          points: s.points,
-          closed: s.closed || kind.close,
-          paint: kind.paint,
-          stroke: kind.paint === "fill" ? null : stroke,
-          fill: kind.paint === "stroke" ? null : fill,
-          lineWidth,
-        });
-      }
+    if (!updateTransform(state, fn, args, ops) && !updatePaint(state, fn, args, ops) && fn === ops.constructPath) {
+      for (const path of paintedPaths(args, paints, state, viewport)) out.push(path);
     }
   });
   return out;

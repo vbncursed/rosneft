@@ -1,8 +1,8 @@
 import { clsx as cx } from "clsx";
-import { ModelPickerCard, type Model } from "@/entities/model";
+import { ModelPickerCard, type ModelPickerCardProps } from "@/entities/model";
 
 export type PickableModel = {
-  model: Model;
+  model: ModelPickerCardProps["model"];
   /** A model whose conversion has not finished cannot be placed. */
   unavailable?: boolean;
   /** Sub line under the title, e.g. "3 LODs · 8.0 MB". */

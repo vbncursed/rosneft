@@ -1,13 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { Outlet, useLocation, useNavigate } from "@tanstack/react-router";
-import type { MouseEvent } from "react";
 import { meQuery } from "@/entities/user";
 import { useOfflineUser } from "@/features/offline-save";
 import { viewerOf } from "@/shared/session";
 import { ConsoleLayout } from "@/widgets/console-layout";
 import { OfflineBanner } from "@/widgets/offline-banner";
 import { Toaster } from "@/widgets/toaster";
-import { activeSection, consoleNav, routesInApp } from "./guard";
+import { activeSection, consoleNav } from "./guard";
+import { navigateClick } from "./navigate-click";
 
 /**
  * The chrome around every console screen, applied once here so no page draws
@@ -25,17 +25,10 @@ export function ConsoleShell() {
   const navigate = useNavigate();
   if (!me) return null;
 
-  const onClickCapture = (event: MouseEvent<HTMLDivElement>) => {
-    const href = (event.target as HTMLElement).closest("a")?.getAttribute("href");
-    if (!href || !routesInApp(href, event)) return;
-    event.preventDefault();
-    void navigate({ href });
-  };
-
   return (
     // role="presentation": the wrapper exists for the click delegate only and
     // adds nothing to the accessibility tree.
-    <div role="presentation" onClickCapture={onClickCapture}>
+    <div role="presentation" onClickCapture={(event) => navigateClick(event, (href) => void navigate({ href }))}>
       <OfflineBanner />
       <ConsoleLayout items={consoleNav(me)} active={activeSection(pathname)} backHref="/" viewer={viewerOf(me)}>
         <Outlet />

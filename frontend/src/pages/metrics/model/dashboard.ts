@@ -87,6 +87,12 @@ export const isStale = (result: PanelResult | undefined): boolean => result?.kin
 export const servicesStale = (results: Partial<Record<PanelId, PanelResult>>): boolean =>
   (["services-up", "red-rate", "red-errors", "red-latency"] as const).some((id) => isStale(results[id]));
 
+const chartSeries = (id: PanelId, series: MetricSeries[]): MetricPanelEntry["series"] => {
+  const named = GRPC_LABELLED.has(id) ? series.map((s) => ({ ...s, label: shortGrpcLabel(s.label) })) : series;
+  const aligned = alignSeries(named);
+  return ZERO_FILLED.has(id) ? aligned.map((s) => ({ ...s, values: s.values.map((v) => v ?? 0) })) : aligned;
+};
+
 /** One panel card: its catalogue entry, plus whatever its query has to say. */
 export function panelEntry(id: PanelId, result: PanelResult, selected: string | null = null): MetricPanelEntry {
   const { title, meta, unit } = PANELS[id];
@@ -117,12 +123,8 @@ export function panelEntry(id: PanelId, result: PanelResult, selected: string | 
   }
 
   const focused = focusSeries(result.series, selected);
-  const named = GRPC_LABELLED.has(id)
-    ? focused.series.map((s) => ({ ...s, label: shortGrpcLabel(s.label) }))
-    : focused.series;
   const last = lastOf(focused.series);
   const tone = errorTone(id, last);
-  const aligned = alignSeries(named);
   const more = focused.hidden > 0 ? `${meta} · +${focused.hidden} more` : meta;
   return {
     key: id,
@@ -131,7 +133,7 @@ export function panelEntry(id: PanelId, result: PanelResult, selected: string | 
     unit,
     last: formatValue(last, unit),
     ...(tone ? { lastTone: tone } : {}),
-    series: ZERO_FILLED.has(id) ? aligned.map((s) => ({ ...s, values: s.values.map((v) => v ?? 0) })) : aligned,
+    series: chartSeries(id, focused.series),
   };
 }
 

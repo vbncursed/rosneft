@@ -49,10 +49,11 @@ describe("TourOverlay", () => {
     // The dim is cut open over the anchor, so the control it lights is lit
     // rather than veiled at 60 % — the mock redraws it above the dim, and the
     // hole is what makes `elementFromPoint` answer the control.
-    expect(screen.getByTestId("tour-dim").style.clipPath).toBe(
-      "polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, " +
+    expect(screen.getByTestId("tour-dim")).toHaveStyle({
+      clipPath:
+        "polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, " +
         "20px 20px, 20px 50px, 50px 50px, 50px 20px, 20px 20px)",
-    );
+    });
     // The halo is the anchor's own box grown by the 6 px ring.
     expect(screen.getByTestId("tour-halo")).toHaveStyle({
       top: "14px",
@@ -365,9 +366,18 @@ describe("TourOverlay", () => {
 
   it("hands a wheel over the lit anchor to the panel it scrolls in", () => {
     const panel = document.createElement("div");
-    // jsdom computes the `overflow` shorthand as "" for a longhand-only style,
-    // so this panel scrolls without clipping the hole — the hole is the anchor.
     panel.style.overflowY = "auto";
+    panel.getBoundingClientRect = () => ({
+      top: 50,
+      left: 50,
+      right: 350,
+      bottom: 450,
+      width: 300,
+      height: 400,
+      x: 50,
+      y: 50,
+      toJSON: () => ({}),
+    });
     Object.defineProperty(panel, "scrollHeight", { value: 2000 });
     Object.defineProperty(panel, "clientHeight", { value: 400 });
     panel.scrollBy = vi.fn();

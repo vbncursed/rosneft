@@ -2,11 +2,15 @@ package httpapi
 
 import (
 	"context"
+	"errors"
+	"reflect"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/suite"
 	"gotest.tools/v3/assert"
 
+	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
 )
@@ -29,6 +33,7 @@ type mineServiceStub struct {
 	seen domain.AuditQuery
 	page domain.AuditPage
 	err  error
+	refs map[string]string
 }
 
 func (m *mineServiceStub) ListAudit(
@@ -41,7 +46,7 @@ func (m *mineServiceStub) ListAudit(
 		q.ActorID = sc.Actor
 	}
 	m.seen = q
-	return m.page, nil, m.err
+	return m.page, m.refs, m.err
 }
 
 func (s *ListMyAuditSuite) ctxFor(p authhttp.TestPrincipal) context.Context {
@@ -141,4 +146,71 @@ func (s *ListMyAuditSuite) TestAsksForTheTotalAndPrintsIt() {
 	assert.Assert(s.T(), ok, "expected 200, got %T", resp)
 	assert.Assert(s.T(), page.Total != nil)
 	assert.Equal(s.T(), *page.Total, int64(184))
+}
+
+func (s *ListMyAuditSuite) TestFiltersAndPage() {
+	from := time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC)
+	to := from.Add(time.Hour)
+	svc := &mineServiceStub{
+		page: domain.AuditPage{
+			Entries:    []domain.AuditEntry{{ID: 42, Action: "update", Entity: "territory", Result: "success"}},
+			NextCursor: 17,
+			Total:      9,
+		},
+		refs: map[string]string{"x": "name"},
+	}
+	ctx := s.ctxFor(authhttp.TestPrincipal{UserID: "me", Perms: []string{"audit:read_own"}, AuditCompany: "company-1"})
+	resp, err := New(
+		svc,
+	).ListMyAudit(ctx, ListMyAuditRequestObject{Params: ListMyAuditParams{Action: new("update"), Entity: new("territory"), From: &from, To: &to, Cursor: new(int64(20)), Limit: new(int32(5))}})
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(
+		s.T(),
+		svc.seen,
+		domain.AuditQuery{
+			CompanyID:    "company-1",
+			ActorID:      "me",
+			Action:       "update",
+			Entity:       "territory",
+			From:         from,
+			To:           to,
+			Cursor:       20,
+			Limit:        5,
+			IncludeTotal: true,
+		},
+	)
+	page, ok := resp.(ListMyAudit200JSONResponse)
+	assert.Assert(s.T(), ok)
+	assert.Equal(s.T(), page.Entries[0].Id, int64(42))
+	assert.Equal(s.T(), *page.NextCursor, int64(17))
+	assert.Equal(s.T(), (*page.Refs)["x"], "name")
+	assert.Equal(s.T(), *page.Total, int64(9))
+}
+
+func (s *ListMyAuditSuite) TestErrorsAndEmptyPage() {
+	ctx := s.ctxFor(authhttp.TestPrincipal{UserID: "me", Perms: []string{"audit:read_own"}, AuditCompany: "company-1"})
+	for _, tc := range []struct {
+		name     string
+		err      error
+		expected any
+	}{
+		{"forbidden", domain.ErrForbidden, ListMyAudit403JSONResponse{}},
+		{"invalid", domain.ErrInvalidInput, ListMyAudit400JSONResponse{}},
+		{"internal", errors.New("private detail"), ListMyAudit500JSONResponse{}},
+	} {
+		s.Run(tc.name, func() {
+			resp, err := New(&mineServiceStub{err: tc.err}).ListMyAudit(ctx, ListMyAuditRequestObject{})
+			assert.NilError(s.T(), err)
+			assert.Equal(s.T(), reflect.TypeOf(resp), reflect.TypeOf(tc.expected))
+			if internal, ok := resp.(ListMyAudit500JSONResponse); ok {
+				assert.Equal(s.T(), internal.Code, apperr.SlugInternal)
+				assert.Equal(s.T(), internal.Message, apperr.InternalMessage)
+			}
+		})
+	}
+	resp, err := New(&mineServiceStub{}).ListMyAudit(ctx, ListMyAuditRequestObject{})
+	assert.NilError(s.T(), err)
+	page := resp.(ListMyAudit200JSONResponse)
+	assert.Assert(s.T(), page.Entries != nil && len(page.Entries) == 0)
+	assert.Assert(s.T(), page.NextCursor == nil && page.Refs == nil)
 }

@@ -99,6 +99,66 @@ describe("usePlacementsEditor", () => {
     expect(onChanged).toHaveBeenCalledOnce();
   });
 
+  it("sends the complete ungrouped batch without an origin", async () => {
+    vi.mocked(createPlacements).mockResolvedValue([]);
+    const { result } = editor([], [3, 7]);
+
+    await act(async () => {
+      await result.current.s.create("tank", 2);
+    });
+
+    expect(createPlacements).toHaveBeenCalledWith(
+      "t",
+      [
+        {
+          modelSlug: "tank",
+          position: { x: 0, y: 0, z: 0 },
+          scale: { x: 0.1, y: 0.1, z: 0.1 },
+          visiblePanoramaIds: [3, 7],
+        },
+        {
+          modelSlug: "tank",
+          position: { x: expect.closeTo(0.22, 10), y: 0, z: 0 },
+          scale: { x: 0.1, y: 0.1, z: 0.1 },
+          visiblePanoramaIds: [3, 7],
+        },
+      ],
+      expect.any(String),
+    );
+  });
+
+  it("sends the complete translated and rotated grouped batch", async () => {
+    vi.mocked(createPlacements).mockResolvedValue([]);
+    const { result } = editor([], [3, 7]);
+
+    await act(async () => {
+      await result.current.s.create("tank", 2, 5, { position: { x: 10, y: 2, z: -4 }, yaw: Math.PI / 2 });
+    });
+
+    expect(createPlacements).toHaveBeenCalledWith(
+      "t",
+      [
+        {
+          modelSlug: "tank",
+          position: { x: 10, y: 2, z: -4 },
+          rotation: { x: 0, y: Math.PI / 2, z: 0 },
+          scale: { x: 0.1, y: 0.1, z: 0.1 },
+          visiblePanoramaIds: [3, 7],
+          groupId: 5,
+        },
+        {
+          modelSlug: "tank",
+          position: { x: 10, y: 2, z: -4.22 },
+          rotation: { x: 0, y: Math.PI / 2, z: 0 },
+          scale: { x: 0.1, y: 0.1, z: 0.1 },
+          visiblePanoramaIds: [3, 7],
+          groupId: 5,
+        },
+      ],
+      expect.any(String),
+    );
+  });
+
   describe("origin", () => {
     const ORIGIN = { position: { x: 10, y: 2, z: -4 }, yaw: Math.PI / 2 };
     const echo = () =>
@@ -290,6 +350,22 @@ describe("usePlacementsEditor", () => {
       expect(keyOf(1)).not.toBe(keyOf(0));
     });
 
+    it.each([
+      ["model", "other", 3, null, null],
+      ["group", "tank", 3, 8, null],
+      ["origin", "tank", 3, null, { position: { x: 1, y: 2, z: 3 }, yaw: 0 }],
+    ] as const)("mints a new key when %s changes after failure", async (_changed, model, count, group, origin) => {
+      vi.mocked(createPlacements).mockRejectedValue(new TypeError("Failed to fetch"));
+      const { result } = editor();
+
+      await act(async () => {
+        await result.current.s.create("tank", 3);
+        await result.current.s.create(model, count, group, origin);
+      });
+
+      expect(keyOf(1)).not.toBe(keyOf(0));
+    });
+
     it("gives a different action after a failure a new key", async () => {
       vi.mocked(createPlacements).mockRejectedValueOnce(new TypeError("Failed to fetch")).mockImplementation(echo);
       const { result } = editor();
@@ -301,6 +377,28 @@ describe("usePlacementsEditor", () => {
 
       expect(keyOf(1)).not.toBe(keyOf(0));
     });
+  });
+
+  it("returns the result of updates and renames, including unknown ids", async () => {
+    vi.mocked(updatePlacement).mockImplementation(async (_slug, id, body) => ({ ...placement(id), ...body }));
+    const { result } = editor([placement(1)]);
+    await act(async () => {
+      expect(await result.current.s.update(1, { ...IDENTITY_TRANSFORM, label: "A" })).toBe(true);
+      expect(await result.current.s.rename(1, "B")).toBe(true);
+    });
+    expect(onChanged).toHaveBeenCalledTimes(2);
+    vi.mocked(updatePlacement).mockRejectedValue(new HttpError(400, null, "PUT refused"));
+    onChanged.mockClear();
+    await act(async () => {
+      expect(await result.current.s.update(1, { ...IDENTITY_TRANSFORM, label: "C" })).toBe(false);
+      expect(await result.current.s.rename(1, "D")).toBe(false);
+    });
+    expect(onChanged).not.toHaveBeenCalled();
+    expect(result.current.notices).toHaveLength(1);
+    vi.mocked(updatePlacement).mockClear();
+    await act(async () => expect(await result.current.s.rename(999, "missing")).toBe(false));
+    expect(updatePlacement).not.toHaveBeenCalled();
+    expect(result.current.notices).toHaveLength(1);
   });
 
   it("commitTransform keeps the label; rename keeps the transform", async () => {

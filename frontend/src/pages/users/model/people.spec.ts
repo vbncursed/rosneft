@@ -54,6 +54,17 @@ describe("matchesPerson", () => {
     expect(matchesPerson(u, "")).toBe(true);
   });
 
+  it("combines case-insensitive whole free text with case-sensitive chips", () => {
+    const u = make("1", "Alice Smith", ["admin"], { email: "Chief@Example.com" });
+    expect(matchesPerson(u, "  ALICE   SMITH role:admin ")).toBe(true);
+    expect(matchesPerson(u, "role:admin CHIEF@EXAMPLE")).toBe(true);
+    expect(matchesPerson(u, "alice chief")).toBe(false);
+    expect(matchesPerson(u, "role:ADMIN alice")).toBe(false);
+    expect(matchesPerson(u, "ROLE:admin alice")).toBe(true);
+    expect(matchesPerson(u, "colour:blue role:admin")).toBe(true);
+    expect(matchesPerson(u, "colour:blue nobody")).toBe(false);
+  });
+
   it("reads an enabled factor as on and a status chip that fits", () => {
     const u = make("u-1", "a", [], { status: "frozen", totpEnabled: true, passkeyEnabled: false });
     expect(matchesPerson(u, "status:frozen 2fa:on passkey:off")).toBe(true);

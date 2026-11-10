@@ -87,6 +87,50 @@ describe("useLodDownload", () => {
     expect(result.current.failed).toBeNull();
   });
 
+  it("reports exact progress while keeping the drawn level during a finer download", async () => {
+    let stream!: ReadableStreamDefaultController<Uint8Array>;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        url.endsWith("/a")
+          ? new Response(streamOf([new Uint8Array(5)]), { status: 200 })
+          : new Response(
+              new ReadableStream<Uint8Array>({
+                start(c) {
+                  stream = c;
+                },
+              }),
+              { status: 200 },
+            ),
+      ),
+    );
+    vi.stubGlobal("URL", { createObjectURL: vi.fn(() => "blob:a"), revokeObjectURL: vi.fn() });
+    const a = { lod: 1, hash: "a", size: 5 };
+    const b = { lod: 0, hash: "b", size: 9 };
+    const seen: LodDownload[] = [];
+    const { result, rerender } = renderHook<LodDownload, { art: Art; drawn: string | null }>(
+      ({ art, drawn }) => {
+        const view = useLodDownload(art, drawn);
+        seen.push(view);
+        return view;
+      },
+      { initialProps: { art: a, drawn: "blob:a" } },
+    );
+    await waitFor(() => expect(result.current.blobUrl).toBe("blob:a"));
+    const from = seen.length;
+    rerender({ art: b, drawn: "blob:a" });
+    expect(seen[from]).toEqual({ blobUrl: null, received: 0, failed: null, held: { hash: "a", blobUrl: "blob:a" } });
+    await act(async () => {
+      stream.enqueue(new Uint8Array(3));
+    });
+    expect(result.current).toEqual({
+      blobUrl: null,
+      received: 3,
+      failed: null,
+      held: { hash: "a", blobUrl: "blob:a" },
+    });
+  });
+
   it("revokes a blob that was minted after the cleanup fired", async () => {
     const revoke = vi.fn();
     let stop: (() => void) | null = null;
