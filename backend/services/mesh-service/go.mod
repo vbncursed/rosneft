@@ -11,8 +11,8 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.12.1
-	github.com/testcontainers/testcontainers-go v0.44.0
-	github.com/testcontainers/testcontainers-go/modules/redis v0.44.0
+	github.com/testcontainers/testcontainers-go v0.45.0
+	github.com/testcontainers/testcontainers-go/modules/redis v0.45.0
 	github.com/vbncursed/rosneft/backend/pkg v0.0.0
 	github.com/vbncursed/rosneft/backend/proto v0.0.0
 	google.golang.org/grpc v1.85.0
