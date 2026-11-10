@@ -40,6 +40,31 @@ export type UploadModelsState = BatchTag & {
   failedNames: string[];
 };
 
+async function uploadModel(
+  row: QueueRow,
+  tagSlug: string,
+  signal: AbortSignal,
+  callbacks: {
+    onStage: (stage: string) => void;
+    onProgress: (progress: UploadProgress) => void;
+    onCreating: () => void;
+  },
+) {
+  const finalized = await runChunkedUpload(row.file, {
+    signal,
+    onStage: callbacks.onStage,
+    onProgress: callbacks.onProgress,
+  });
+  callbacks.onCreating();
+  const thumbnail = row.thumbnail ? await runChunkedUpload(row.thumbnail, { signal }) : undefined;
+  return createModel({
+    title: row.title.trim(),
+    sourceBlobHash: finalized.hash,
+    ...(thumbnail?.hash ? { thumbnailBlobHash: thumbnail.hash } : {}),
+    tagSlug,
+  });
+}
+
 /**
  * Drives the batch queue: each row runs `runChunkedUpload` (main file), then
  * its thumbnail if any, then `createModel`, one row at a time. A throw fails
@@ -105,9 +130,8 @@ export function useUploadModels(): UploadModelsState {
       patchRow(id, { status: "uploading", error: undefined, progress: 0 });
 
       try {
-        // oxlint-disable-next-line eslint/no-await-in-loop -- rows go one at a time on purpose: one connection, one progress card, a cancel stops the next row
-        const finalized = await runChunkedUpload(row.file, {
-          signal: ac.signal,
+        // oxlint-disable-next-line eslint/no-await-in-loop -- rows are processed sequentially
+        const { model, job } = await uploadModel(row, chosenTag, ac.signal, {
           onStage: (stage) => {
             if (stage === "finalizing") patchRow(id, { status: "finalizing" });
           },
@@ -116,21 +140,7 @@ export function useUploadModels(): UploadModelsState {
             setSamples((prev) => [...prev, { at: Date.now(), bytes: p.bytes }]);
             patchRow(id, { progress: p.bytes / p.total });
           },
-        });
-
-        patchRow(id, { status: "creating" });
-        let thumbnailBlobHash: string | undefined;
-        if (row.thumbnail) {
-          // oxlint-disable-next-line eslint/no-await-in-loop -- the thumbnail follows its model file within the same row
-          const thumb = await runChunkedUpload(row.thumbnail, { signal: ac.signal });
-          thumbnailBlobHash = thumb.hash;
-        }
-        // oxlint-disable-next-line eslint/no-await-in-loop -- needs the blob hashes the uploads above just returned
-        const { model, job } = await createModel({
-          title: row.title.trim(),
-          sourceBlobHash: finalized.hash,
-          ...(thumbnailBlobHash ? { thumbnailBlobHash } : {}),
-          tagSlug: chosenTag,
+          onCreating: () => patchRow(id, { status: "creating" }),
         });
         patchRow(id, { status: "done", progress: 1 });
         created.push({ slug: model.slug, jobId: job.id });

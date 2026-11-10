@@ -10,6 +10,7 @@ const options: ModelOption[] = [
     tag: { slug: "tanks", title: "Tanks" },
     slug: "tank",
     title: "storage-tank-500",
+    thumbnailBlobHash: "thumbnail",
     chain: [
       { lod: 0, hash: "a", size: 8_400_000 },
       { lod: 1, hash: "b", size: 1 },
@@ -35,6 +36,10 @@ describe("PlaceObjectsModal", () => {
     expect(screen.getByRole("dialog", { name: "Add objects to Refinery Block C" })).toBeInTheDocument();
     // Binary MB to one decimal — the app's own formatBytes rounds 8_400_002 to
     // a flat "8 MB", which loses the difference between two LOD chains.
+    expect(screen.getByRole("button", { name: /storage-tank-500/ }).querySelector("img")).toHaveAttribute(
+      "src",
+      "/api/assets/thumbnail",
+    );
     expect(screen.getByText("3 LODs · 8.0 MB")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /not-yet/ })).toBeDisabled();
   });

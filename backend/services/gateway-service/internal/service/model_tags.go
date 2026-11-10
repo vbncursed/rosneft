@@ -20,3 +20,7 @@ func (g *Gateway) CreateModelTag(ctx context.Context, slug, title string) (domai
 func (g *Gateway) UpdateModelTag(ctx context.Context, slug, title string) (domain.ModelTag, error) {
 	return g.catalog.UpdateModelTag(ctx, slug, title)
 }
+
+func (g *Gateway) DeleteModelTag(ctx context.Context, slug string) error {
+	return g.catalog.DeleteModelTag(ctx, slug)
+}

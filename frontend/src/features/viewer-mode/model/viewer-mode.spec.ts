@@ -235,3 +235,78 @@ describe("walking", () => {
     expect(reduce(flying, { type: "exitWalk" })).toBe(flying);
   });
 });
+
+describe("complete state transitions", () => {
+  const busy: ViewerModeState = {
+    mode: "place",
+    selectedId: 9,
+    gizmo: "rotate",
+    snap: true,
+    view: { kind: "scene" },
+    move: true,
+    free: true,
+    walk: true,
+    editingPanoramaId: 5,
+  };
+  it("preserves unrelated settings across scene tools", () => {
+    expect(reduce(busy, { type: "toggleMeasure" })).toEqual({
+      ...busy,
+      mode: "measure",
+      selectedId: null,
+      move: false,
+      free: false,
+      walk: false,
+    });
+    expect(reduce(busy, { type: "enterPlace" })).toEqual({
+      ...busy,
+      selectedId: null,
+      move: false,
+      free: false,
+      walk: false,
+    });
+    expect(reduce({ ...busy, move: false }, { type: "toggleMove" })).toEqual({
+      ...busy,
+      mode: "orbit",
+      selectedId: null,
+      free: false,
+      walk: false,
+    });
+    expect(reduce(busy, { type: "select", id: 4 })).toEqual({ ...busy, mode: "orbit", selectedId: 4, move: false });
+    expect(reduce(busy, { type: "select", id: null })).toEqual({ ...busy, selectedId: null });
+  });
+  it("keeps selection and editing target across camera and panorama", () => {
+    expect(reduce({ ...busy, free: false }, { type: "toggleFree" })).toEqual({
+      ...busy,
+      mode: "orbit",
+      move: false,
+      walk: false,
+    });
+    expect(reduce(busy, { type: "enterPanorama", id: 3 })).toEqual({
+      ...busy,
+      mode: "orbit",
+      move: false,
+      free: false,
+      walk: false,
+      view: { kind: "panorama", id: 3 },
+    });
+    const panorama = { ...busy, view: { kind: "panorama", id: 3 } as const };
+    expect(reduce(panorama, { type: "startEdit", id: 5 })).toEqual({ ...panorama, view: { kind: "scene" } });
+    expect(reduce(panorama, { type: "startEdit", id: 3 })).toEqual({ ...panorama, editingPanoramaId: 3 });
+  });
+  it("Escape respects the chain and peels complete states one layer at a time", () => {
+    const start = { ...busy, view: { kind: "panorama", id: 3 } as const };
+    expect(reduce(start, { type: "escape", chainOpen: true })).toBe(start);
+    const action = { type: "escape", chainOpen: false } as const;
+    const move = { ...start, move: false };
+    const free = { ...move, free: false, walk: false };
+    const selection = { ...free, selectedId: null };
+    const mode = { ...selection, mode: "orbit" as const };
+    const scene = { ...mode, view: { kind: "scene" } as const };
+    expect(reduce(start, action)).toEqual(move);
+    expect(reduce(move, action)).toEqual(free);
+    expect(reduce(free, action)).toEqual(selection);
+    expect(reduce(selection, action)).toEqual(mode);
+    expect(reduce(mode, action)).toEqual(scene);
+    expect(reduce(scene, action)).toBe(scene);
+  });
+});

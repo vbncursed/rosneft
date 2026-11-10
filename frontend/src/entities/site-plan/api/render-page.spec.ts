@@ -39,4 +39,12 @@ describe("renderPage", () => {
     await renderPage(page, 100);
     expect(getViewport).toHaveBeenLastCalledWith({ scale: 0.1, rotation: 0 });
   });
+  it("passes the display configuration promise to the renderer", async () => {
+    vi.stubGlobal("createImageBitmap", async () => ({}));
+    const render = vi.fn((_opts: Parameters<PdfPage["render"]>[0]) => ({ promise: Promise.resolve() }));
+    const page = { getViewport: () => ({ width: 100, height: 100, transform: [] }), render } as unknown as PdfPage;
+    const config = Promise.resolve({} as import("./pdfjs").PdfOptionalContentConfig);
+    await renderPage(page, 100, config);
+    expect(render.mock.calls[0][0]).toMatchObject({ intent: "display", optionalContentConfigPromise: config });
+  });
 });

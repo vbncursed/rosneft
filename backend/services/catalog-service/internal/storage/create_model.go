@@ -22,7 +22,7 @@ func (r *PG) CreateModel(ctx context.Context, m domain.Model) (domain.Model, err
 	const q = `
 		WITH m AS (
 			INSERT INTO models (slug, title, description, source_blob_hash, thumbnail_blob_hash, tag_id)
-			VALUES ($1, $2, $3, $4, $5, (SELECT id FROM model_tags WHERE slug = $6))
+			VALUES ($1, $2, $3, $4, $5, (SELECT id FROM model_tags WHERE slug = $6 FOR KEY SHARE))
 			RETURNING ` + entityColumns + `)
 		SELECT ` + modelSelect + ` FROM m ` + modelTagJoin
 

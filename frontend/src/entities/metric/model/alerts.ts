@@ -13,28 +13,30 @@ export type AlertSummary = { name: string; meta: string; state: AlertSeverity; s
 export function alertsOf(series: MetricSeries[]): AlertSummary[] {
   const byRule = new Map<string, AlertSummary & { count: number }>();
   for (const s of series) {
-    const service = s.labels.service ?? "";
-    const severity = s.labels.severity ?? "";
-    const name = s.labels.alertname ?? s.label;
-    const key = [name, service, severity].join(" ");
-    const firing = s.labels.alertstate === "firing";
+    const summary = alertOf(s);
+    const key = [summary.name, summary.service, summary.severity].join(" ");
     const existing = byRule.get(key);
     if (existing) {
       existing.count += 1;
-      if (firing) existing.state = "firing";
+      if (summary.state === "firing") existing.state = "firing";
       continue;
     }
-    byRule.set(key, {
-      name,
-      meta: [service, severity ? `severity: ${severity}` : ""].filter(Boolean).join(" · "),
-      state: firing ? "firing" : "pending",
-      service,
-      severity,
-      count: 1,
-    });
+    byRule.set(key, { ...summary, count: 1 });
   }
   return [...byRule.values()].map(({ count, ...summary }) => ({
     ...summary,
     meta: count > 1 ? `${summary.meta} · ${count} instances` : summary.meta,
   }));
+}
+
+function alertOf(series: MetricSeries): AlertSummary {
+  const service = series.labels.service ?? "";
+  const severity = series.labels.severity ?? "";
+  return {
+    name: series.labels.alertname ?? series.label,
+    meta: [service, severity ? `severity: ${severity}` : ""].filter(Boolean).join(" · "),
+    state: series.labels.alertstate === "firing" ? "firing" : "pending",
+    service,
+    severity,
+  };
 }

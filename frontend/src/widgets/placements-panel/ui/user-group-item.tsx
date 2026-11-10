@@ -40,9 +40,10 @@ function focusNeighbour(li: HTMLLIElement | null) {
   const sibling = li?.nextElementSibling ?? li?.previousElementSibling;
   const next = sibling?.querySelector<HTMLButtonElement>("button[aria-expanded]");
   if (next) return next.focus();
-  let around = li?.parentElement;
-  while (around && !around.querySelector('input[type="search"]')) around = around.parentElement;
-  around?.querySelector<HTMLInputElement>('input[type="search"]')?.focus();
+  for (let around = li?.parentElement; around; around = around.parentElement) {
+    const search = around.querySelector<HTMLInputElement>('input[type="search"]');
+    if (search) return search.focus();
+  }
 }
 
 /** One user group: its row (eye and menu for a writer), its members, then its own Add. */

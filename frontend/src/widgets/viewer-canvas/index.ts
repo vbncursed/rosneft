@@ -21,3 +21,4 @@ export const ModelCanvas = lazy(loadModel);
 
 /** Warm the model viewer's chunk (fixtures.spec loads it up front). */
 export const preloadModelViewer = loadModel;
+export { runRegistration } from "./model/run-registration";

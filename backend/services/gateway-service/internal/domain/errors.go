@@ -27,6 +27,7 @@ var (
 	// ErrZoneNotFound also covers a zone of another territory: the catalog
 	// scopes every zone id by slug.
 	ErrZoneNotFound     = errors.New("zone not found")
+	ErrModelTagInUse    = errors.New("model tag is used by models or zones")
 	ErrModelTagNotFound = errors.New("model tag not found")
 	// ErrIdempotencyConflict is a batch create whose Idempotency-Key already
 	// names a stored batch of another size on the territory — a 409.

@@ -1,14 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type WheelEvent } from "react";
 import type { PlanRect, Pt } from "@/entities/site-plan";
-import { Button } from "@/shared/ui/button";
-import { Icon } from "@/shared/ui/icon";
 import { ViewportWindow, type ViewportWindowProps } from "@/shared/ui/viewport-window";
 import { fitView, panBy, toPage, zoomAt, type View } from "../model/view-transform";
+import { ZoomControls } from "./zoom-controls";
+import { FenceOverlay } from "./fence-overlay";
+import { DrawingOverlay } from "./drawing-overlay";
 import { PairMarkers } from "./pair-markers";
 import { RectOverlay, type WindowZone } from "./rect-overlay";
 
 export type SitePlanWindowProps = {
-  /** The page as a picture; a blank sheet is drawn while it is null. */
   image: ImageBitmap | null;
   pageSize: { width: number; height: number };
   rects: PlanRect[];
@@ -17,21 +17,23 @@ export type SitePlanWindowProps = {
   pending?: Pt | null;
   selected: number | null;
   metresPerPt?: number | null;
-  /** True while a click on the sheet starts a pair: rectangles then let the click through. */
   placing?: boolean;
+  drawing?: boolean;
+  fenceDrawing?: boolean;
+  fencePoints?: Pt[];
+  fenceClosed?: boolean;
+  pageKey?: string;
+  onDrawRect?: (start: Pt, end: Pt) => void;
   onSelectRect: (index: number) => void;
   onDragPair: (index: number, to: Pt) => void;
-  /** A click on the bare sheet, in page points. */
   onPlanClick: (at: Pt) => void;
   title?: string;
-  /** Placement and chrome of the window, as the document window gets them. */
   frame?: Partial<Pick<ViewportWindowProps, "geometry" | "actions" | "onMoveStart" | "onResizeStart" | "dragging">>;
 };
 
-const ZOOM_STEP = 1.25;
 const WHEEL_SENSITIVITY = 0.0015;
-const WHEEL_MAX_FACTOR = 2;
-const CLICK_SLOP_PX = 4;
+const WHEEL_MAX_FACTOR = 2,
+  CLICK_SLOP_PX = 4;
 
 /** The site plan on a pan-and-zoom sheet: detected rectangles to pick, saved zones filled, pair markers to drag. */
 export function SitePlanWindow({ frame, title = "Site plan", ...plan }: SitePlanWindowProps) {
@@ -40,6 +42,8 @@ export function SitePlanWindow({ frame, title = "Site plan", ...plan }: SitePlan
   const canvas = useRef<HTMLCanvasElement>(null);
   const press = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const touched = useRef(false);
+  const drawStart = useRef<Pt | null>(null);
+  const [drawEnd, setDrawEnd] = useState<Pt | null>(null);
   const [view, setView] = useState<View>({ k: 1, x: 0, y: 0 });
 
   const local = (clientX: number, clientY: number): Pt => {
@@ -50,7 +54,6 @@ export function SitePlanWindow({ frame, title = "Site plan", ...plan }: SitePlan
   const fit = () => setView(fitView(size(), pageSize));
 
   useLayoutEffect(() => {
-    // A page of another size starts fitted, whatever the last page was panned to.
     touched.current = false;
     fit();
     const el = box.current;
@@ -61,6 +64,12 @@ export function SitePlanWindow({ frame, title = "Site plan", ...plan }: SitePlan
     // The sheet refits when the page (and so its size) changes, not on every render.
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- fit reads only refs and pageSize
   }, [pageSize.width, pageSize.height]);
+
+  useLayoutEffect(() => {
+    press.current = null;
+    drawStart.current = null;
+    setDrawEnd(null);
+  }, [plan.drawing, plan.fenceDrawing, plan.placing, plan.pageKey]);
 
   useEffect(() => {
     const el = canvas.current;
@@ -75,13 +84,25 @@ export function SitePlanWindow({ frame, title = "Site plan", ...plan }: SitePlan
   };
   const down = (e: PointerEvent) => {
     if ((e.target as HTMLElement).closest("button")) return;
+    if (plan.drawing && e.button === 0) {
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+      drawStart.current = toPage(view, local(e.clientX, e.clientY));
+      setDrawEnd(drawStart.current);
+      return;
+    }
     e.currentTarget.setPointerCapture?.(e.pointerId);
     press.current = { x: e.clientX, y: e.clientY, moved: false };
   };
   const move = (e: PointerEvent) => {
+    if (drawStart.current) {
+      if (e.buttons === 0) {
+        drawStart.current = null;
+        setDrawEnd(null);
+      } else setDrawEnd(toPage(view, local(e.clientX, e.clientY)));
+      return;
+    }
     const p = press.current;
     if (!p) return;
-    // The button was let go somewhere we never heard about: the press is over.
     if (e.buttons === 0) return void (press.current = null);
     if (Math.hypot(e.clientX - p.x, e.clientY - p.y) > CLICK_SLOP_PX) p.moved = true;
     if (!p.moved) return;
@@ -89,11 +110,21 @@ export function SitePlanWindow({ frame, title = "Site plan", ...plan }: SitePlan
     [p.x, p.y] = [e.clientX, e.clientY];
   };
   const up = (e: PointerEvent) => {
+    if (drawStart.current) {
+      if (plan.drawing) plan.onDrawRect?.(drawStart.current, toPage(view, local(e.clientX, e.clientY)));
+      drawStart.current = null;
+      setDrawEnd(null);
+      return;
+    }
     const p = press.current;
     press.current = null;
     if (p && !p.moved) onPlanClick(toPage(view, local(e.clientX, e.clientY)));
   };
-  const endPress = () => void (press.current = null);
+  const endPress = () => {
+    press.current = null;
+    drawStart.current = null;
+    setDrawEnd(null);
+  };
   // Scaled by the delta, so a trackpad's stream of small events zooms gently.
   const wheel = (e: WheelEvent) => {
     const factor = Math.min(WHEEL_MAX_FACTOR, Math.max(1 / WHEEL_MAX_FACTOR, Math.exp(-e.deltaY * WHEEL_SENSITIVITY)));
@@ -133,16 +164,27 @@ export function SitePlanWindow({ frame, title = "Site plan", ...plan }: SitePlan
             metresPerPt={plan.metresPerPt ?? null}
             k={view.k}
             pageSize={pageSize}
-            passThrough={plan.placing ?? false}
+            passThrough={Boolean(plan.placing || plan.drawing || plan.fenceDrawing)}
             onSelect={plan.onSelectRect}
           />
-          <PairMarkers
-            pairs={plan.pairs}
-            pending={plan.pending ?? null}
+          <FenceOverlay
+            points={plan.fencePoints ?? []}
+            closed={Boolean(plan.fenceClosed)}
+            pageSize={pageSize}
             k={view.k}
-            toPage={(x, y) => toPage(view, local(x, y))}
-            onDrag={plan.onDragPair}
           />
+          {drawStart.current && drawEnd ? (
+            <DrawingOverlay start={drawStart.current} end={drawEnd} pageSize={pageSize} />
+          ) : null}
+          <div className={plan.drawing || plan.fenceDrawing ? "pointer-events-none" : undefined}>
+            <PairMarkers
+              pairs={plan.pairs}
+              pending={plan.pending ?? null}
+              k={view.k}
+              toPage={(x, y) => toPage(view, local(x, y))}
+              onDrag={plan.onDragPair}
+            />
+          </div>
         </div>
         {plan.zones.length > 0 ? (
           <ul aria-label="Saved zones" className="sr-only">
@@ -151,26 +193,13 @@ export function SitePlanWindow({ frame, title = "Site plan", ...plan }: SitePlan
             ))}
           </ul>
         ) : null}
-        <div className="absolute bottom-3 left-3 flex gap-1.5">
-          <Button shape="icon" size="sm" variant="secondary" aria-label="Zoom in" onClick={() => zoom(ZOOM_STEP)}>
-            <Icon name="plus" size={12} />
-          </Button>
-          <Button shape="icon" size="sm" variant="secondary" aria-label="Zoom out" onClick={() => zoom(1 / ZOOM_STEP)}>
-            <Icon name="minus" size={12} />
-          </Button>
-          <Button
-            shape="icon"
-            size="sm"
-            variant="secondary"
-            aria-label="Fit the page"
-            onClick={() => {
-              touched.current = false;
-              fit();
-            }}
-          >
-            <Icon name="maximize" size={12} />
-          </Button>
-        </div>
+        <ZoomControls
+          zoom={zoom}
+          fit={() => {
+            touched.current = false;
+            fit();
+          }}
+        />
       </div>
     </ViewportWindow>
   );

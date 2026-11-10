@@ -22,6 +22,32 @@ const IDLE: Progress = { blobUrl: null, received: 0, failed: null };
 // level's percent on screen for one render, and start a second one to clear it.
 type Tracked = Progress & { hash: string | null };
 
+function downloadView(
+  state: Tracked,
+  held: HeldBlob | null,
+  currentHash: string | null,
+  size: number,
+  drawn: string | null,
+): LodDownload {
+  // On the render a level changes, the cleanup that decides which finished
+  // blob is kept has not run yet; read its outcome already. The level being
+  // left is kept unless the held one is drawn. Without this the level on
+  // screen would lose its url for that render and remount off the asset route.
+  const heldDrawn = held !== null && drawn === held.blobUrl;
+  const leaving =
+    !heldDrawn && state.hash !== currentHash && state.hash !== null && state.blobUrl
+      ? { hash: state.hash, blobUrl: state.blobUrl }
+      : null;
+  const kept = leaving ?? held;
+  // A return to the kept level: the effect below adopts it, and until it has,
+  // this render already reads as adopted — idle would report a 0 % download
+  // that is not happening.
+  const adopting = kept !== null && kept.hash === currentHash;
+  const live: Progress =
+    state.hash === currentHash ? state : adopting ? { blobUrl: kept.blobUrl, received: size, failed: null } : IDLE;
+  return { blobUrl: live.blobUrl, received: live.received, failed: live.failed, held: adopting ? null : kept };
+}
+
 /**
  * Fetches one level with a streamed body so the page can draw real progress —
  * drei's loader exposes none. The blob URL is what useGLTF then parses (and
@@ -129,22 +155,7 @@ export function useLodDownload(artifact: LodArtifact | null, drawn: string | nul
     };
   }, [hash, size]);
 
-  // On the render a level changes, the cleanup that decides which finished
-  // blob is kept has not run yet; read its outcome already. The level being
-  // left is kept unless the held one is drawn. Without this the level on
-  // screen would lose its url for that render and remount off the asset route.
-  const heldDrawn = held !== null && drawn === held.blobUrl;
-  const leaving =
-    !heldDrawn && state.hash !== hash && state.hash !== null && state.blobUrl
-      ? { hash: state.hash, blobUrl: state.blobUrl }
-      : null;
-  const kept = leaving ?? held;
-  // A return to the kept level: the effect below adopts it, and until it has,
-  // this render already reads as adopted — idle would report a 0 % download
-  // that is not happening.
-  const adopting = kept !== null && kept.hash === hash;
-  const live: Progress =
-    state.hash === hash ? state : adopting ? { blobUrl: kept.blobUrl, received: size, failed: null } : IDLE;
+  const view = downloadView(state, held, hash, size, drawn);
   // `held` is kept only to stay on screen while a finer level downloads. Once
   // something else is drawn — this level's own blob, or the coarsest level by
   // its asset route, which is never streamed — nothing can show it again.
@@ -173,5 +184,5 @@ export function useLodDownload(artifact: LodArtifact | null, drawn: string | nul
     [],
   );
 
-  return { blobUrl: live.blobUrl, received: live.received, failed: live.failed, held: adopting ? null : kept };
+  return view;
 }

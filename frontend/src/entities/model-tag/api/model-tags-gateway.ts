@@ -1,4 +1,4 @@
-import { httpPatch, httpPost } from "@/shared/api";
+import { httpDelete, httpPatch, httpPost } from "@/shared/api";
 import type * as Dto from "@/shared/api/dto";
 import type { ModelTag } from "../model/model-tag";
 import { toModelTag } from "./to-model-tag";
@@ -7,6 +7,9 @@ import { toModelTag } from "./to-model-tag";
 export const createModelTag = async (input: Dto.ModelTagCreate): Promise<ModelTag> =>
   toModelTag(await httpPost<Dto.ModelTag>("/api/model-tags", input));
 
-/** `model:write`. Only the title changes; a tag is never deleted. */
+/** `model:write`. Only the title changes. */
 export const renameModelTag = async (slug: string, patch: Dto.ModelTagUpdate): Promise<ModelTag> =>
   toModelTag(await httpPatch<Dto.ModelTag>(`/api/model-tags/${encodeURIComponent(slug)}`, patch));
+
+export const deleteModelTag = (slug: string): Promise<void> =>
+  httpDelete(`/api/model-tags/${encodeURIComponent(slug)}`);

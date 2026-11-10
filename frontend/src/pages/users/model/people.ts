@@ -1,6 +1,6 @@
 import type { Role } from "@/entities/role";
 import { knownLabel, knownTone, type Known, type User } from "@/entities/user";
-import { freeText, parseFilters } from "@/features/audit-filter";
+import { matchesFreeText, parseFilters, type FilterChip } from "@/features/audit-filter";
 import { can, type Principal } from "@/shared/session";
 import type { CoverageSegment } from "@/shared/ui/coverage-meter";
 import type { PeopleGroup, Person } from "@/widgets/people-groups";
@@ -9,16 +9,22 @@ import type { UsersPageStat } from "../ui/users-page";
 
 const known = (value: Known) => (value === null ? "unknown" : value ? "on" : "off");
 
+function matchesPersonFilter(user: User, { key, value }: FilterChip): boolean {
+  if (key === "role" && !user.roleSlugs.includes(value)) return false;
+  if (key === "status" && user.status !== value) return false;
+  if (key === "2fa" && known(user.totpEnabled) !== value) return false;
+  if (key === "passkey" && known(user.passkeyEnabled) !== value) return false;
+  return true;
+}
+
 /** role:, status:, 2fa:, passkey: chips plus free text on username or email. */
 export function matchesPerson(user: User, query: string): boolean {
-  for (const { key, value } of parseFilters(query)) {
-    if (key === "role" && !user.roleSlugs.includes(value)) return false;
-    if (key === "status" && user.status !== value) return false;
-    if (key === "2fa" && known(user.totpEnabled) !== value) return false;
-    if (key === "passkey" && known(user.passkeyEnabled) !== value) return false;
-  }
-  const text = freeText(query).trim().toLowerCase();
-  return text === "" || user.username.toLowerCase().includes(text) || user.email.toLowerCase().includes(text);
+  if (!parseFilters(query).every((filter) => matchesPersonFilter(user, filter))) return false;
+  return matchesFreeText(
+    query,
+    () => user.username,
+    () => user.email,
+  );
 }
 
 const person = (user: User): Person => ({ user });

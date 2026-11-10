@@ -2,6 +2,9 @@ package httpapi
 
 import (
 	"context"
+	"errors"
+
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 )
@@ -51,4 +54,22 @@ func (s *Server) UpdateModelTag(
 		return UpdateModelTag500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return UpdateModelTag200JSONResponse(modelTagToAPI(tag)), nil
+}
+
+func (s *Server) DeleteModelTag(
+	ctx context.Context,
+	req DeleteModelTagRequestObject,
+) (DeleteModelTagResponseObject, error) {
+	err := s.svc.DeleteModelTag(ctx, req.Slug)
+	switch {
+	case isInvalid(err):
+		return DeleteModelTag400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
+	case isNotFound(err):
+		return DeleteModelTag404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
+	case errors.Is(err, domain.ErrModelTagInUse):
+		return DeleteModelTag409JSONResponse{Code: apperr.SlugConflict, Message: err.Error()}, nil
+	case err != nil:
+		return DeleteModelTag500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
+	}
+	return DeleteModelTag204Response{}, nil
 }

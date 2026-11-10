@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 )
@@ -35,10 +36,7 @@ func validateBlobHash(hash string, required bool) error {
 	// validation and then fail later on a blob lookup, because the file on
 	// disk is named in lowercase — a confusing failure in place of a clear one.
 	for _, c := range hash {
-		switch {
-		case c >= '0' && c <= '9':
-		case c >= 'a' && c <= 'f':
-		default:
+		if !strings.ContainsRune("0123456789abcdef", c) {
 			return fmt.Errorf("%w: blob hash contains non-hex character", domain.ErrInvalidInput)
 		}
 	}

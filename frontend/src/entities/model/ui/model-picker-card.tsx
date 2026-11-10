@@ -4,7 +4,7 @@ import { QuantityStepper } from "@/shared/ui/quantity-stepper";
 import { thumbnailUrl, type Model } from "../model/model";
 
 export type ModelPickerCardProps = {
-  model: Model;
+  model: Pick<Model, "slug" | "title" | "thumbnailBlobHash">;
   selected: boolean;
   onSelect: () => void;
   /** Absent means the card is a plain toggle with no count. */

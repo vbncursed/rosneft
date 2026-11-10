@@ -1,3 +1,5 @@
+import type { PdfOptionalContent, PdfOptionalContentConfig } from "../api/pdfjs";
+
 import { apply, mul, type Matrix, type Pt } from "./geometry";
 
 export interface PagePath {
@@ -50,39 +52,89 @@ function subpaths(codes: ArrayLike<number>, m: Matrix): { points: Pt[]; closed: 
   return subs;
 }
 
+type Graphics = { ctm: Matrix; stroke: string | null; fill: string | null; lineWidth: number };
+type State = Graphics & { stack: Graphics[] };
+
+function updateTransform(state: State, fn: number, args: never, ops: Record<string, number>): boolean {
+  if (fn === ops.save)
+    state.stack.push({ ctm: state.ctm, stroke: state.stroke, fill: state.fill, lineWidth: state.lineWidth });
+  else if (fn === ops.restore) {
+    const saved = state.stack.pop();
+    if (saved) Object.assign(state, saved);
+  } else if (fn === ops.transform) state.ctm = mul(state.ctm, args);
+  else return false;
+  return true;
+}
+
+function updatePaint(state: State, fn: number, args: never, ops: Record<string, number>): boolean {
+  if (fn === ops.setStrokeRGBColor) state.stroke = (args as string[])[0] ?? null;
+  else if (fn === ops.setFillRGBColor) state.fill = (args as string[])[0] ?? null;
+  else if (fn === ops.setLineWidth) state.lineWidth = (args as number[])[0] ?? state.lineWidth;
+  else return false;
+  return true;
+}
+
+function paintedPaths(args: never, paints: Map<number, Paint>, state: State, viewport: number[]): PagePath[] {
+  const [code, [codes]] = args as [number, [ArrayLike<number> | undefined]];
+  const kind = paints.get(code);
+  if (!kind || !codes) return [];
+  return subpaths(codes, mul(viewport, state.ctm)).map((s) => ({
+    points: s.points,
+    closed: s.closed || kind.close,
+    paint: kind.paint,
+    stroke: kind.paint === "fill" ? null : state.stroke,
+    fill: kind.paint === "stroke" ? null : state.fill,
+    lineWidth: state.lineWidth,
+  }));
+}
+
+function optionalContentVisible(
+  config: Pick<PdfOptionalContentConfig, "isVisible"> | undefined,
+  properties: unknown,
+): boolean {
+  if (!config || !properties || typeof properties !== "object") return true;
+  try {
+    return config.isVisible(properties as PdfOptionalContent);
+  } catch {
+    return true;
+  }
+}
+
 // extractPaths replays a pdf.js operator list and returns every painted subpath
 // in top-down page points (viewport applied).
-export function extractPaths(opList: OpList, ops: Record<string, number>, viewport: number[]): PagePath[] {
-  const paintByCode = new Map<number, Paint>(Object.entries(PAINTS).map(([name, p]) => [ops[name], p]));
-  let ctm: Matrix = [1, 0, 0, 1, 0, 0];
-  const stack: Matrix[] = [];
-  let stroke: string | null = null;
-  let fill: string | null = null;
-  let lineWidth = 1;
+export function extractPaths(
+  opList: OpList,
+  ops: Record<string, number>,
+  viewport: number[],
+  config?: Pick<PdfOptionalContentConfig, "isVisible">,
+): PagePath[] {
+  const visibility: boolean[] = [];
+  const paints = new Map<number, Paint>(Object.entries(PAINTS).map(([name, p]) => [ops[name], p]));
+  const state: State = { ctm: [1, 0, 0, 1, 0, 0], stack: [], stroke: null, fill: null, lineWidth: 1 };
   const out: PagePath[] = [];
-
   opList.fnArray.forEach((fn, i) => {
     const args = opList.argsArray[i] as never;
-    if (fn === ops.save) stack.push(ctm);
-    else if (fn === ops.restore) ctm = stack.pop() ?? ctm;
-    else if (fn === ops.transform) ctm = mul(ctm, args);
-    else if (fn === ops.setStrokeRGBColor) stroke = (args as string[])[0] ?? null;
-    else if (fn === ops.setFillRGBColor) fill = (args as string[])[0] ?? null;
-    else if (fn === ops.setLineWidth) lineWidth = (args as number[])[0] ?? lineWidth;
-    else if (fn === ops.constructPath) {
-      const [code, [codes]] = args as [number, [ArrayLike<number> | undefined]];
-      const kind = paintByCode.get(code);
-      if (!kind || !codes) return;
-      for (const s of subpaths(codes, mul(viewport, ctm))) {
-        out.push({
-          points: s.points,
-          closed: s.closed || kind.close,
-          paint: kind.paint,
-          stroke: kind.paint === "fill" ? null : stroke,
-          fill: kind.paint === "stroke" ? null : fill,
-          lineWidth,
-        });
-      }
+    if (fn === ops.beginMarkedContent) {
+      visibility.push(true);
+      return;
+    }
+    if (fn === ops.beginMarkedContentProps) {
+      const markedArgs: unknown = opList.argsArray[i];
+      const [tag, properties] = Array.isArray(markedArgs) ? markedArgs : [];
+      visibility.push(tag !== "OC" || optionalContentVisible(config, properties));
+      return;
+    }
+    if (fn === ops.endMarkedContent) {
+      visibility.pop();
+      return;
+    }
+    if (
+      !updateTransform(state, fn, args, ops) &&
+      !updatePaint(state, fn, args, ops) &&
+      fn === ops.constructPath &&
+      visibility.every(Boolean)
+    ) {
+      for (const path of paintedPaths(args, paints, state, viewport)) out.push(path);
     }
   });
   return out;

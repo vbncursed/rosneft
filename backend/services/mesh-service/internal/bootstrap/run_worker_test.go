@@ -2,11 +2,18 @@ package bootstrap
 
 import (
 	"context"
+	"io"
+	"log/slog"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"testing/synctest"
 	"time"
 
+	"github.com/stretchr/testify/suite"
+	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/config"
 	"gotest.tools/v3/assert"
 )
 
@@ -99,4 +106,60 @@ func TestReconcileLoop_CoalescedSignalsRunOnePass(t *testing.T) {
 		assert.Equal(t, rec.calls.Load(), int32(1))
 		stop()
 	})
+}
+
+type CompressorSuite struct{ suite.Suite }
+
+func TestCompressorSuite(t *testing.T) { suite.Run(t, new(CompressorSuite)) }
+
+func (s *CompressorSuite) TestDisabledAndMissingBinary() {
+	missing := filepath.Join(s.T().TempDir(), "missing")
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	compressor, err := InitCompressor(s.T().Context(), config.Config{GltfpackBin: missing}, logger)
+	assert.NilError(s.T(), err)
+	assert.Assert(s.T(), compressor == nil)
+
+	for _, cfg := range []config.Config{
+		{GltfpackBin: missing, MeshoptEnabled: true},
+		{GltfpackBin: missing, KTX2Enabled: true},
+	} {
+		compressor, err = InitCompressor(s.T().Context(), cfg, logger)
+		assert.Assert(s.T(), compressor == nil)
+		assert.ErrorContains(s.T(), err, "gltfpack not found")
+	}
+}
+
+func (s *CompressorSuite) TestConfiguredOptions() {
+	for _, tc := range []struct {
+		name          string
+		meshopt, ktx2 bool
+		want          []string
+	}{
+		{"meshopt", true, false, []string{"-cc"}},
+		{"ktx2", false, true, []string{"-tc", "-tj", "1", "-tl", "2048"}},
+		{"both", true, true, []string{"-cc", "-tc", "-tj", "1", "-tl", "2048"}},
+	} {
+		s.Run(tc.name, func() {
+			dir := s.T().TempDir()
+			bin, record := filepath.Join(dir, "gltfpack"), filepath.Join(dir, "argv")
+			script := "#!/bin/sh\nif [ \"$1\" = -h ]; then exit 0; fi\nprintf '%s\\n' \"$@\" > '" + record + "'\ncp \"$2\" \"$4\"\n"
+			assert.NilError(s.T(), os.WriteFile(bin, []byte(script), 0o700))
+			cfg := config.Config{
+				GltfpackBin:    bin,
+				MeshoptEnabled: tc.meshopt,
+				KTX2Enabled:    tc.ktx2,
+				TextureMaxSize: 2048,
+			}
+			logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+			compressor, err := InitCompressor(s.T().Context(), cfg, logger)
+			assert.NilError(s.T(), err)
+			assert.Assert(s.T(), compressor != nil)
+			_, err = compressor.Compress(s.T().Context(), []byte("input"))
+			assert.NilError(s.T(), err)
+			raw, err := os.ReadFile(record)
+			assert.NilError(s.T(), err)
+			args := strings.Split(strings.TrimSpace(string(raw)), "\n")
+			assert.DeepEqual(s.T(), args[8:], tc.want)
+		})
+	}
 }

@@ -20,6 +20,7 @@ type tagWriteCC struct {
 	err    error
 	create *catalogv1.CreateModelTagRequest
 	update *catalogv1.UpdateModelTagRequest
+	delete *catalogv1.DeleteModelTagRequest
 }
 
 func (t *tagWriteCC) CreateModelTag(
@@ -34,6 +35,13 @@ func (t *tagWriteCC) UpdateModelTag(
 ) (*catalogv1.UpdateModelTagResponse, error) {
 	t.update = in
 	return &catalogv1.UpdateModelTagResponse{Tag: &catalogv1.ModelTag{Slug: in.GetSlug(), Title: in.GetTitle()}}, t.err
+}
+
+func (t *tagWriteCC) DeleteModelTag(
+	_ context.Context, in *catalogv1.DeleteModelTagRequest, _ ...grpc.CallOption,
+) (*catalogv1.DeleteModelTagResponse, error) {
+	t.delete = in
+	return &catalogv1.DeleteModelTagResponse{}, t.err
 }
 
 type ModelTagWritesSuite struct{ suite.Suite }
@@ -76,4 +84,22 @@ func (s *ModelTagWritesSuite) TestInternalFailureIsNotARefusal() {
 	_, err := (&Client{cc: cc}).CreateModelTag(s.T().Context(), "ab", "X")
 	_, isRefusal := errorsAsRefusal(err)
 	assert.Assert(s.T(), err != nil && !isRefusal)
+}
+
+func (s *ModelTagWritesSuite) TestDeleteMapsRefusals() {
+	for _, tc := range []struct {
+		code     codes.Code
+		message  string
+		sentinel error
+	}{
+		{codes.AlreadyExists, "model tag is used by models or zones", domain.ErrModelTagInUse},
+		{codes.NotFound, "model tag not found", domain.ErrModelTagNotFound},
+		{codes.InvalidArgument, "invalid input", domain.ErrInvalidInput},
+	} {
+		cc := &tagWriteCC{err: status.Error(tc.code, tc.message)}
+		err := (&Client{cc: cc}).DeleteModelTag(s.T().Context(), "camp")
+		assert.ErrorIs(s.T(), err, tc.sentinel)
+		assert.Equal(s.T(), err.Error(), tc.message)
+		assert.Equal(s.T(), cc.delete.GetSlug(), "camp")
+	}
 }

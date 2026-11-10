@@ -26,6 +26,6 @@ export type Model = {
 export const modelPath = (slug: string) => `/models/${encodeURIComponent(slug)}`;
 
 /** The asset URL for a model's thumbnail, or null when it has none. */
-export function thumbnailUrl(model: Model): string | null {
+export function thumbnailUrl(model: Pick<Model, "thumbnailBlobHash">): string | null {
   return model.thumbnailBlobHash ? `/api/assets/${model.thumbnailBlobHash}` : null;
 }

@@ -26,12 +26,16 @@ export function useZoneList({ slug, initial, onChanged }: ZoneListParams) {
     [],
   );
 
+  const drop = useCallback((id: number) => {
+    setZones((prev) => prev.filter((z) => z.id !== id));
+    setSelectedId((now) => (now === id ? null : now));
+  }, []);
+
   const remove = useCallback(
     async (id: number) => {
       try {
         await deleteZone(slug, id);
-        setZones((prev) => prev.filter((z) => z.id !== id));
-        setSelectedId((now) => (now === id ? null : now));
+        drop(id);
         notify.success("Zone deleted");
       } catch (err) {
         notify.error(messageOf(err));
@@ -41,7 +45,7 @@ export function useZoneList({ slug, initial, onChanged }: ZoneListParams) {
       }
     },
     // oxlint-disable-next-line react/memo-dependencies -- false positive: oxlint does not see the onChanged call inside finally
-    [slug, onChanged],
+    [slug, drop, onChanged],
   );
 
   // The zone's own row is replaced, so the label, the card, the picker's tag filter and the plan all read the new copy.
@@ -53,15 +57,14 @@ export function useZoneList({ slug, initial, onChanged }: ZoneListParams) {
       } catch (err) {
         // Gone for someone else: drop it here too. Any other refusal goes back to the form.
         if (!(err instanceof HttpError && err.status === 404)) throw err;
-        setZones((prev) => prev.filter((z) => z.id !== id));
-        setSelectedId((now) => (now === id ? null : now));
+        drop(id);
         notify.info("This zone no longer exists");
       } finally {
         onChanged();
       }
     },
     // oxlint-disable-next-line react/memo-dependencies -- false positive: oxlint does not see the onChanged call inside finally
-    [slug, add, onChanged],
+    [slug, add, drop, onChanged],
   );
 
   return {

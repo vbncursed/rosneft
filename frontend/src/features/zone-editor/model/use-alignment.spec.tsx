@@ -71,6 +71,29 @@ beforeEach(() => {
 });
 
 describe("useAlignment, automatic", () => {
+  it("keeps a manually edited draft when the page is reopened", () => {
+    const { result, rerender } = align({ bbox: null });
+    pickPair(result, [10, 20], [1, 2]);
+    rerender({ bbox: null, plan: { page: 2, controls: [] } });
+    rerender({ bbox: null, plan: { page: 1, controls: EXACT } });
+    expect(result.current.imageProposalAllowed).toBe(false);
+  });
+  it("accepts an image proposal only while the original draft is untouched", () => {
+    const { result } = align({ bbox: null });
+    const previous = result.current.pairs;
+    const proposal: CalibrationPair[] = [
+      { pdf: { x: 1, y: 1 }, scene: { x: 1, y: 0, z: 1 }, utm: null },
+      { pdf: { x: 2, y: 2 }, scene: { x: 2, y: 0, z: 2 }, utm: null },
+    ];
+    act(() => result.current.addPlanPoint({ x: 8, y: 8 }));
+    act(() => result.current.proposeImagePairs(previous, proposal));
+    expect(result.current.pairs).toEqual([]);
+    act(() => result.current.cancelPending());
+    act(() => result.current.proposeImagePairs(previous, proposal));
+    expect(result.current.pairs).toEqual(proposal);
+    act(() => result.current.proposeImagePairs(previous, []));
+    expect(result.current.pairs).toEqual(proposal);
+  });
   it("proposes a pair per survey label that falls on the model and fits them", () => {
     const { result } = align({ plan: { page: 1, controls: MR1 }, bbox: UTM_BBOX, unitRatio: UNIT_RATIO });
     expect(result.current.pairs).toHaveLength(4);
@@ -207,6 +230,16 @@ describe("useAlignment, pages and saved sets", () => {
     { pdf: { x: 100, y: 0 }, scene: { x: 1, y: 0, z: 0 }, utm: null },
   ];
 
+  it("does not carry draft pairs to a different document or source", () => {
+    const { result, rerender } = align({ bbox: null });
+    pickPair(result, [5, 5], [2, 2]);
+    rerender({ bbox: null, document: { ...doc(), id: 5 } });
+    expect(result.current.pairs).toEqual([]);
+    pickPair(result, [6, 6], [3, 3]);
+    rerender({ bbox: null, document: { ...doc(), id: 5, sourceBlobHash: "new" } });
+    expect(result.current.pairs).toEqual([]);
+  });
+
   it("starts from the saved set on its own page", () => {
     const { result } = align({ document: doc({ page: 1, points: saved }) });
     expect(result.current.pairs).toEqual(saved);
@@ -224,6 +257,15 @@ describe("useAlignment, pages and saved sets", () => {
 });
 
 describe("useAlignment, paging back", () => {
+  it("keeps a manual pair made before the page's controls arrive", () => {
+    const { result, rerender } = align({ plan: { page: 1, controls: null } });
+    pickPair(result, [5, 5], [2, 2]);
+    const draft = result.current.pairs;
+    rerender({ plan: { page: 1, controls: EXACT } });
+    expect(result.current.pairs).toEqual(draft);
+    expect(result.current.pairs).toHaveLength(1);
+  });
+
   it("keeps a page's pairs when the reader returns to it", () => {
     const { result, rerender } = align({ bbox: null });
     pickPair(result, [5, 5], [2, 2]);
@@ -250,6 +292,46 @@ describe("useAlignment, paging back", () => {
   });
 });
 
+describe("useAlignment, page ownership during async work", () => {
+  it("restores a waiting point when returning to its page", () => {
+    const { result, rerender } = align({ bbox: null });
+    act(() => result.current.addPlanPoint({ x: 1, y: 2 }));
+    rerender({ bbox: null, plan: { page: 2, controls: [] } });
+    act(() => result.current.acceptScenePoint({ x: 4, y: 0, z: 5 }));
+    expect(result.current.pairs).toEqual([]);
+    rerender({ bbox: null, plan: { page: 1, controls: [] } });
+    expect(result.current.pending).toEqual({ x: 1, y: 2 });
+    act(() => result.current.acceptScenePoint({ x: 4, y: 0, z: 5 }));
+    expect(result.current.pairs).toEqual([{ pdf: { x: 1, y: 2 }, scene: { x: 4, y: 0, z: 5 }, utm: null }]);
+  });
+
+  it("clears the page where deletion started even after paging away", async () => {
+    let finish!: () => void;
+    vi.mocked(deleteCalibration).mockReturnValue(
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const document = doc({ page: 1, points: [] });
+    const { result, rerender } = align({ document, bbox: null });
+    pickPair(result, [1, 2], [3, 4]);
+    let deletion!: Promise<void>;
+    act(() => {
+      deletion = result.current.clear();
+    });
+    rerender({ document, bbox: null, plan: { page: 2, controls: [] } });
+    pickPair(result, [5, 6], [7, 8]);
+    await act(async () => {
+      finish();
+      await deletion;
+    });
+    expect(result.current.pairs).toHaveLength(1);
+    rerender({ document, bbox: null, plan: { page: 1, controls: [] } });
+    expect(result.current.pairs).toEqual([]);
+    expect(onChanged).toHaveBeenCalledOnce();
+  });
+});
+
 describe("useAlignment, save and clear", () => {
   it("PUTs every pair with the page, then reports", async () => {
     vi.mocked(putCalibration).mockResolvedValue({ page: 2, points: [] });
@@ -268,6 +350,15 @@ describe("useAlignment, save and clear", () => {
     expect(onChanged).not.toHaveBeenCalled();
     expect(result.current.notices[0]).toMatchObject({ tone: "error", message: "points must lie on one page" });
     expect(result.current.saving).toBe(false);
+  });
+
+  it("does not save a fitted draft while the page is being read", async () => {
+    const { result, rerender } = align();
+    expect(result.current.canSave).toBe(true);
+    rerender({ plan: { page: 1, controls: null } });
+    expect(result.current.canSave).toBe(false);
+    await act(() => result.current.save());
+    expect(putCalibration).not.toHaveBeenCalled();
   });
 
   it("does not save a fit it refuses", async () => {

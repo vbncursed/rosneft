@@ -180,3 +180,14 @@ describe("Dropdown · field wiring", () => {
     expect(trigger()).not.toHaveAttribute("aria-describedby");
   });
 });
+
+it("opens with Space and chooses the keyboard-active option with Space", async () => {
+  render(<Harness />);
+  trigger().focus();
+  await userEvent.keyboard(" ");
+  expect(screen.getByRole("listbox")).toBeInTheDocument();
+  await userEvent.keyboard("{ArrowDown} ");
+  expect(screen.getByTestId("readout")).toHaveTextContent("model");
+  expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  expect(trigger()).toHaveFocus();
+});

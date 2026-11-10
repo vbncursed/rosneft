@@ -71,6 +71,34 @@ function dms(values: number[]): number {
   return d + m / 60 + s / 3600;
 }
 
+function signedCoordinate(r: Reader, value: number, ref: number, negative: string): number {
+  return String.fromCharCode(r.view.getUint8(ref + 8)) === negative ? -value : value;
+}
+
+function coordinates(r: Reader, gps: number): Pick<GpsFix, "lat" | "lon"> | null {
+  const latE = findEntry(r, gps, 0x0002);
+  const lonE = findEntry(r, gps, 0x0004);
+  const latRef = findEntry(r, gps, 0x0001);
+  const lonRef = findEntry(r, gps, 0x0003);
+  if (latE < 0 || lonE < 0 || latRef < 0 || lonRef < 0) return null;
+  const lat = dms(rationals(r, latE, 3));
+  const lon = dms(rationals(r, lonE, 3));
+  return { lat: signedCoordinate(r, lat, latRef, "S"), lon: signedCoordinate(r, lon, lonRef, "W") };
+}
+
+function altitude(r: Reader, gps: number): number | null {
+  let alt: number | null = null;
+  const altE = findEntry(r, gps, 0x0006);
+  if (altE >= 0) {
+    alt = rationals(r, altE, 1)[0] ?? null;
+    const altRef = findEntry(r, gps, 0x0005);
+    if (alt !== null && altRef >= 0 && r.view.getUint8(altRef + 8) === 1) {
+      alt = -alt;
+    }
+  }
+  return alt;
+}
+
 export function readExifGps(bytes: Uint8Array): GpsFix | null {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const tiff = findExifTiff(view);
@@ -83,23 +111,7 @@ export function readExifGps(bytes: Uint8Array): GpsFix | null {
   const gpsPtr = findEntry(r, ifd0, 0x8825);
   if (gpsPtr < 0) return null;
   const gps = tiff + u32(r, gpsPtr + 8);
-  const latE = findEntry(r, gps, 0x0002);
-  const lonE = findEntry(r, gps, 0x0004);
-  const latRef = findEntry(r, gps, 0x0001);
-  const lonRef = findEntry(r, gps, 0x0003);
-  if (latE < 0 || lonE < 0 || latRef < 0 || lonRef < 0) return null;
-  let lat = dms(rationals(r, latE, 3));
-  let lon = dms(rationals(r, lonE, 3));
-  if (String.fromCharCode(view.getUint8(latRef + 8)) === "S") lat = -lat;
-  if (String.fromCharCode(view.getUint8(lonRef + 8)) === "W") lon = -lon;
-  let alt: number | null = null;
-  const altE = findEntry(r, gps, 0x0006);
-  if (altE >= 0) {
-    alt = rationals(r, altE, 1)[0] ?? null;
-    const altRef = findEntry(r, gps, 0x0005);
-    if (alt !== null && altRef >= 0 && view.getUint8(altRef + 8) === 1) {
-      alt = -alt;
-    }
-  }
-  return { lat, lon, alt };
+  const point = coordinates(r, gps);
+  if (point === null) return null;
+  return { ...point, alt: altitude(r, gps) };
 }

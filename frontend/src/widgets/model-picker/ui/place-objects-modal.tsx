@@ -81,17 +81,7 @@ function PlaceObjectsBody({
   const selected = options.find((o) => o.slug === selectedSlug) ?? null;
 
   const models = shown.map((option) => ({
-    // ModelPickerCard reads a Model's title, slug and thumbnail; a ModelOption
-    // carries no source hash and no usage count, and the card asks for
-    // neither — the two fillers keep the picker's existing prop type.
-    model: {
-      slug: option.slug,
-      title: option.title,
-      thumbnailBlobHash: option.thumbnailBlobHash,
-      tag: option.tag,
-      sourceBlobHash: "",
-      usageCount: 0,
-    },
+    model: option,
     unavailable: option.chain.length === 0,
     meta: modelMeta(option),
   }));

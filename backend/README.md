@@ -160,7 +160,7 @@ for m in pkg proto services/*; do (cd $m && GOWORK=off go list -m -u \
 | --- | --- |
 | `pkg` | — (grpc + prometheus + test libs only) |
 | `proto` | — (grpc + protobuf only) |
-| `gateway-service` | `andybalholm/brotli` v1.2.7 · `getkin/kin-openapi` v0.152.0 · `go-chi/chi/v5` v5.5.0 · `go-chi/cors` v1.2.2 · `oapi-codegen/runtime` v1.8.0 · `samber/slog-chi` v1.19.1 · `golang.org/x/sync` v0.24.0 |
+| `gateway-service` | `andybalholm/brotli` v1.3.0 · `getkin/kin-openapi` v0.153.0 · `go-chi/chi/v5` v5.5.0 · `go-chi/cors` v1.2.2 · `oapi-codegen/runtime` v1.8.0 · `samber/slog-chi` v1.19.1 · `golang.org/x/sync` v0.25.0 |
 | `catalog-service` | — |
 | `content-service` | — |
 | `auth-service` | `golang.org/x/crypto` v0.58.0 (argon2id) |
@@ -169,6 +169,14 @@ for m in pkg proto services/*; do (cd $m && GOWORK=off go list -m -u \
 | `mesh-service` | `qmuntal/gltf` v0.29.0 (GLB writer) |
 | `upload-service` | — |
 | `asset-service` | — (does not import `proto`; HTTP-only) |
+
+### 2026-11-10 refresh (Go modules)
+
+Updated direct and indirect requirements across all 12 modules, including
+`andybalholm/brotli` 1.3.0, `getkin/kin-openapi` 0.153.0,
+`testcontainers-go` 0.45.0, `golang.org/x/image` 0.48.0 and
+`golang.org/x/sync` 0.25.0. The local `pkg` and `proto` replacements and
+Go 1.27.3 remain unchanged.
 
 ### 2026-10-30 refresh (compose images)
 

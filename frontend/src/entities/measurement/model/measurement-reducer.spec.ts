@@ -291,3 +291,67 @@ test("seed keeps a saved chain whose last write failed, over the server's copy o
   );
   assert.equal(s.chains[0].points, pt3, "the unsaved edit stays on screen");
 });
+
+test("no-op transitions preserve their documented identity", () => {
+  const s = triangle();
+  assert.equal(reduce(s, { type: "restore", chain: s.chains[0] }), s);
+  assert.notEqual(reduce(s, { type: "removeChain", chainId: 99 }), s);
+  assert.notEqual(reduce(s, { type: "exit" }), s);
+});
+
+test("cutting an inactive chain preserves the active chain and retires both ids", () => {
+  const finished = reduce(triangle(), { type: "cancelChain" });
+  const drawing = click(finished, p(8));
+  const cut = reduce(drawing, { type: "removeSegment", chainId: 1, segmentIndex: 0 });
+  assert.equal(cut.activeChainId, 2);
+  assert.deepEqual(
+    cut.chains.map((c) => c.id),
+    [4, 2],
+  );
+  assert.equal(cut.nextId, 5);
+  const cleared = reduce(cut, { type: "clear", keepSaved: true });
+  assert.equal(cleared.activeChainId, null);
+  assert.equal(click(cleared).activeChainId, 5);
+});
+
+test("seed keeps local and failed edits, suppresses matching server rows, and allocates only incoming ids", () => {
+  const failed = reduce(seeded, { type: "failed", id: 1 });
+  const drawing = click(failed, p(9));
+  const next = reduce(drawing, {
+    type: "seed",
+    chains: [
+      { serverId: 7, points: [p(4), p(5)], closed: false },
+      { serverId: 10, points: pt3, closed: false },
+    ],
+  });
+  assert.deepEqual(
+    next.chains.map((c) => [c.id, c.serverId, c.sync]),
+    [
+      [1, 7, "failed"],
+      [3, undefined, "local"],
+      [4, 10, "saved"],
+    ],
+  );
+  assert.equal(next.activeChainId, 3);
+  assert.equal(next.nextId, 5);
+  assert.equal(next.chains[0], failed.chains[0]);
+});
+
+test("acknowledgments patch only their chain, including a late acknowledgment after failure", () => {
+  const failed = reduce(seeded, { type: "failed", id: 1 });
+  const saved = reduce(failed, { type: "saved", id: 1, serverId: 77 });
+  assert.deepEqual([saved.chains[0].serverId, saved.chains[0].sync], [77, "saved"]);
+  assert.equal(saved.chains[1], failed.chains[1]);
+  const removed = reduce(saved, { type: "removeChain", chainId: 1 });
+  assert.equal(reduce(removed, { type: "saved", id: 1, serverId: 77 }), removed);
+  assert.equal(reduce(removed, { type: "failed", id: 1 }), removed);
+});
+
+test("closing the active chain keeps an unrelated chain by reference", () => {
+  const drawing = [p(0), p(1), p(2)].reduce((s, pt) => click(s, pt), seeded);
+  const closed = reduce(drawing, { type: "closeActive" });
+  assert.equal(closed.chains[0], drawing.chains[0]);
+  assert.equal(closed.chains[1], drawing.chains[1]);
+  assert.equal(closed.chains[2].closed, true);
+  assert.equal(closed.activeChainId, null);
+});

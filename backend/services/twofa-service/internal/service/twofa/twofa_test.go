@@ -1,17 +1,21 @@
 package twofa_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/pquerna/otp"
 	pqtotp "github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/suite"
 	"gotest.tools/v3/assert"
 
 	"github.com/vbncursed/rosneft/backend/services/twofa-service/internal/domain"
+	"github.com/vbncursed/rosneft/backend/services/twofa-service/internal/secret"
 	"github.com/vbncursed/rosneft/backend/services/twofa-service/internal/service/twofa"
 	"github.com/vbncursed/rosneft/backend/services/twofa-service/internal/service/twofa/mocks"
 	"github.com/vbncursed/rosneft/backend/services/twofa-service/internal/totp"
@@ -128,6 +132,75 @@ func (s *TwoFASuite) TestEnableLeavesTwoFAOffWhenSavingTheCodesFailsAndARetrySuc
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(codes), 10)
+}
+
+func (s *TwoFASuite) TestEnableRejectsMissingOrInvalidCredentials() {
+	boom := errors.New("store unavailable")
+	for _, tt := range []struct {
+		name       string
+		credential domain.Credential
+		storeErr   error
+		want       error
+	}{
+		{"store failure", domain.Credential{}, boom, boom},
+		{"already enabled", domain.Credential{Enabled: true}, nil, domain.ErrTwoFAAlreadyEnabled},
+		{"no pending secret", domain.Credential{}, nil, domain.ErrTwoFANotEnabled},
+	} {
+		s.Run(tt.name, func() {
+			mc := minimock.NewController(s.T())
+			store := mocks.NewStoreMock(mc).GetMock.Expect(s.ctx, "u1").Return(tt.credential, tt.storeErr)
+			svc := twofa.New(
+				store,
+				mocks.NewRecoveryMock(mc),
+				mocks.NewCipherMock(mc),
+				mocks.NewRateLimiterMock(mc),
+				"Andrey",
+			)
+			codes, err := svc.Enable(s.ctx, "u1", "123456")
+			assert.ErrorIs(s.T(), err, tt.want)
+			assert.Assert(s.T(), codes == nil)
+		})
+	}
+}
+
+func (s *TwoFASuite) TestEnablePropagatesDecryptAndClaimErrors() {
+	secret, code := s.enrolled()
+	boom := errors.New("operation failed")
+	for _, stage := range []string{"decrypt", "claim"} {
+		s.Run(stage, func() {
+			mc := minimock.NewController(s.T())
+			store := mocks.NewStoreMock(mc).
+				GetMock.Expect(s.ctx, "u1").
+				Return(domain.Credential{Secret: []byte("ct")}, nil)
+			cipher, limiter := mocks.NewCipherMock(mc), mocks.NewRateLimiterMock(mc)
+			if stage == "decrypt" {
+				cipher.DecryptMock.Expect([]byte("ct")).Return(nil, boom)
+			} else {
+				cipher.DecryptMock.Expect([]byte("ct")).Return([]byte(secret), nil)
+				limiter.ClaimStepMock.Return(false, boom)
+			}
+			codes, err := twofa.New(store, mocks.NewRecoveryMock(mc), cipher, limiter, "Andrey").
+				Enable(s.ctx, "u1", code)
+			assert.ErrorIs(s.T(), err, boom)
+			assert.Assert(s.T(), codes == nil)
+		})
+	}
+}
+
+func (s *TwoFASuite) TestEnableDoesNotReturnRecoveryCodesWhenEnablingFails() {
+	secret, code := s.enrolled()
+	boom := errors.New("store unavailable")
+	s.st.GetMock.Expect(s.ctx, "u1").Return(domain.Credential{Secret: []byte("ct")}, nil)
+	s.ciph.DecryptMock.Expect([]byte("ct")).Return([]byte(secret), nil)
+	s.lim.ClaimStepMock.Return(true, nil)
+	s.rec.ReplaceMock.ExpectUserIDParam2("u1").Return(nil)
+	s.st.SetMock.Expect(s.ctx, "u1", true, []byte("ct")).Return(boom)
+
+	codes, err := s.svc.Enable(s.ctx, "u1", code)
+
+	assert.ErrorIs(s.T(), err, boom)
+	assert.Assert(s.T(), codes == nil)
+	assert.Equal(s.T(), s.rec.ReplaceAfterCounter(), uint64(1))
 }
 
 func (s *TwoFASuite) TestVerifyLockedShortCircuits() {
@@ -400,6 +473,91 @@ func (s *TwoFASuite) TestConfirmTOTPRefundsTheAttemptOnOurOwnFailures() {
 			err := twofa.New(st, mocks.NewRecoveryMock(mc), ciph, lim, "Andrey").Disable(s.ctx, "u1", "000000")
 
 			assert.ErrorIs(s.T(), err, tt.want)
+		})
+	}
+}
+
+func (s *TwoFASuite) TestSetupStoresEncryptedPendingSecret() {
+	cipher, err := secret.NewCipher("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
+	assert.NilError(s.T(), err)
+	for _, initial := range []error{domain.ErrNotFound, nil} {
+		s.Run(fmt.Sprintf("initial error %v", initial), func() {
+			mc := minimock.NewController(s.T())
+			store := mocks.NewStoreMock(mc)
+			store.GetMock.Expect(s.ctx, "u1").Return(domain.Credential{}, initial)
+			var stored []byte
+			store.SetMock.Set(func(_ context.Context, user string, enabled bool, ciphertext []byte) error {
+				assert.Equal(s.T(), user, "u1")
+				assert.Assert(s.T(), !enabled)
+				stored = ciphertext
+				return nil
+			})
+			svc := twofa.New(store, nil, cipher, nil, "Andrey")
+			plain, uri, err := svc.Setup(s.ctx, "u1", "ivan")
+			assert.NilError(s.T(), err)
+			assert.Assert(s.T(), plain != "")
+			key, err := otp.NewKeyFromURL(uri)
+			assert.NilError(s.T(), err)
+			assert.Equal(s.T(), key.Secret(), plain)
+			assert.Equal(s.T(), key.Issuer(), "Andrey")
+			assert.Equal(s.T(), key.AccountName(), "ivan")
+			assert.Assert(s.T(), !bytes.Contains(stored, []byte(plain)))
+			decrypted, err := cipher.Decrypt(stored)
+			assert.NilError(s.T(), err)
+			assert.Equal(s.T(), string(decrypted), plain)
+		})
+	}
+}
+
+func (s *TwoFASuite) TestSetupPropagatesFailuresWithoutReturningSecrets() {
+	boom := errors.New("operation failed")
+	for _, stage := range []string{"get", "encrypt", "set"} {
+		s.Run(stage, func() {
+			mc := minimock.NewController(s.T())
+			store, cipher := mocks.NewStoreMock(mc), mocks.NewCipherMock(mc)
+			switch stage {
+			case "get":
+				store.GetMock.Return(domain.Credential{}, boom)
+			case "encrypt":
+				store.GetMock.Return(domain.Credential{}, domain.ErrNotFound)
+				cipher.EncryptMock.Return(nil, boom)
+			case "set":
+				store.GetMock.Return(domain.Credential{}, domain.ErrNotFound)
+				cipher.EncryptMock.Return([]byte("ciphertext"), nil)
+				store.SetMock.Expect(s.ctx, "u1", false, []byte("ciphertext")).Return(boom)
+			}
+			plain, uri, err := twofa.New(store, nil, cipher, nil, "Andrey").Setup(s.ctx, "u1", "ivan")
+			assert.ErrorIs(s.T(), err, boom)
+			assert.Equal(s.T(), plain, "")
+			assert.Equal(s.T(), uri, "")
+		})
+	}
+}
+
+func (s *TwoFASuite) TestIsEnabledReportsStateAndStoreFailures() {
+	boom := errors.New("store unavailable")
+	for _, tt := range []struct {
+		name       string
+		credential domain.Credential
+		storeErr   error
+		want       bool
+		wantErr    error
+	}{
+		{"absent", domain.Credential{}, domain.ErrNotFound, false, nil},
+		{"pending", domain.Credential{}, nil, false, nil},
+		{"enabled", domain.Credential{Enabled: true}, nil, true, nil},
+		{"store failure", domain.Credential{}, boom, false, boom},
+	} {
+		s.Run(tt.name, func() {
+			mc := minimock.NewController(s.T())
+			store := mocks.NewStoreMock(mc).GetMock.Expect(s.ctx, "u1").Return(tt.credential, tt.storeErr)
+			got, err := twofa.New(store, nil, nil, nil, "Andrey").IsEnabled(s.ctx, "u1")
+			assert.Equal(s.T(), got, tt.want)
+			if tt.wantErr != nil {
+				assert.ErrorIs(s.T(), err, tt.wantErr)
+			} else {
+				assert.NilError(s.T(), err)
+			}
 		})
 	}
 }

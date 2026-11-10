@@ -1,9 +1,15 @@
 export {
+  displayContentConfig,
   loadPdfjs,
   openPdf,
   pageViewport,
+  type PdfAnnotation,
+  type PdfTextContent,
   type PdfDocument,
   type PdfPage,
+  type PdfOptionalContent,
+  type PdfOptionalContentConfig,
+  type PdfOptionalContentOrder,
   type PdfViewport,
   type PdfjsLib,
 } from "./api/pdfjs";
@@ -16,3 +22,12 @@ export { extractPaths, type PagePath } from "./model/extract-paths";
 export { applyFit, fitSimilarity, type FitResult, type Similarity } from "./model/fit-similarity";
 export type { Pt } from "./model/geometry";
 export { zoneFromRect, type ZoneBody } from "./model/zone-from-rect";
+
+export {
+  extractPlanLabels,
+  matchPlanLabels,
+  type PlanLabel,
+  type PlanTagSlug,
+  type LabelMatch,
+} from "./model/plan-labels";
+export { selectRegistrationPairs } from "./model/auto-registration";

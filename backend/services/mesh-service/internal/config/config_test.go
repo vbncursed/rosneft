@@ -98,6 +98,74 @@ func (s *ConfigSuite) TestWorkerNameDefaultsToHostname() {
 	assert.Assert(s.T(), got != "mesh-worker-1")
 }
 
+func (s *ConfigSuite) TestParsedLODRatios() {
+	cases := []struct {
+		name  string
+		input []string
+		want  []float64
+		err   string
+	}{
+		{name: "empty"},
+		{name: "whitespace entries", input: []string{" ", "\t"}, want: []float64{}},
+		{name: "valid in supplied order", input: []string{" 0.25 ", "", "0.5"}, want: []float64{0.25, 0.5}},
+		{name: "malformed", input: []string{"0.5", "oops"}, err: `invalid lod-ratio "oops"`},
+		{name: "zero", input: []string{"0"}, err: "lod-ratio 0 out of range"},
+		{name: "negative", input: []string{"-0.1"}, err: "lod-ratio -0.1 out of range"},
+		{name: "one", input: []string{"1"}, err: "lod-ratio 1 out of range"},
+		{name: "above one", input: []string{"1.1"}, err: "lod-ratio 1.1 out of range"},
+	}
+	for _, tc := range cases {
+		s.Run(tc.name, func() {
+			got, err := (config.Config{LODRatios: tc.input}).ParsedLODRatios()
+			if tc.err != "" {
+				assert.ErrorContains(s.T(), err, tc.err)
+				assert.Assert(s.T(), got == nil)
+				return
+			}
+			assert.NilError(s.T(), err)
+			assert.DeepEqual(s.T(), got, tc.want)
+		})
+	}
+}
+
+func (s *ConfigSuite) TestValidateAPI() {
+	assert.ErrorContains(s.T(), (config.Config{}).ValidateAPI(), "redis-addr is required")
+	assert.NilError(s.T(), (config.Config{RedisAddr: "redis:6379"}).ValidateAPI())
+}
+
+func (s *ConfigSuite) TestValidateWorkerRequiredDependencies() {
+	valid := config.Config{
+		RedisAddr:       "redis:6379",
+		CatalogGRPCAddr: "catalog:9001",
+		BlobDir:         "/var/blob",
+		WorkerName:      "worker-1",
+	}
+	cases := []struct {
+		name string
+		cfg  config.Config
+		err  string
+	}{
+		{name: "valid", cfg: valid},
+		{name: "redis", cfg: config.Config{}, err: "redis-addr is required"},
+		{name: "catalog", cfg: config.Config{RedisAddr: valid.RedisAddr}, err: "catalog-grpc-addr is required"},
+		{
+			name: "blob directory",
+			cfg:  config.Config{RedisAddr: valid.RedisAddr, CatalogGRPCAddr: valid.CatalogGRPCAddr},
+			err:  "blob-dir is required",
+		},
+	}
+	for _, tc := range cases {
+		s.Run(tc.name, func() {
+			err := tc.cfg.ValidateWorker()
+			if tc.err != "" {
+				assert.ErrorContains(s.T(), err, tc.err)
+				return
+			}
+			assert.NilError(s.T(), err)
+		})
+	}
+}
+
 func (s *ConfigSuite) TestValidateWorkerRejectsEmptyWorkerName() {
 	cfg := config.Config{
 		RedisAddr:       "redis:6379",

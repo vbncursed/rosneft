@@ -29,7 +29,7 @@ func TourID(s string) error {
 		return fmt.Errorf("validate: %w: tour id must be 1–%d characters", domain.ErrInvalidInput, tourIDMax)
 	}
 	for i, r := range s {
-		alnum := (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9')
+		alnum := strings.ContainsRune("abcdefghijklmnopqrstuvwxyz0123456789", r)
 		if !alnum && (r != '-' || i == 0) {
 			return fmt.Errorf(
 				"validate: %w: tour id must be lower-case letters, digits, and dashes",

@@ -5,9 +5,15 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/gojuno/minimock/v3"
+
 	"github.com/stretchr/testify/suite"
 	"gotest.tools/v3/assert"
 
+	"github.com/vbncursed/rosneft/backend/pkg/apperr"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/service"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/service/mocks"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
 )
 
@@ -76,4 +82,120 @@ func (s *TerritoryAdminsSuite) TestAFailedReadIsAnInternalError() {
 	assert.NilError(s.T(), err)
 	_, ok := resp.(ListTerritoryAdmins500JSONResponse)
 	assert.Assert(s.T(), ok, "got %T", resp)
+}
+
+type PerTerritoryAdminsSuite struct {
+	suite.Suite
+	cat *mocks.CatalogMock
+	srv *Server
+	ctx context.Context
+}
+
+func TestPerTerritoryAdminsSuite(t *testing.T) { suite.Run(t, new(PerTerritoryAdminsSuite)) }
+
+func (s *PerTerritoryAdminsSuite) SetupTest() {
+	mc := minimock.NewController(s.T())
+	s.cat = mocks.NewCatalogMock(mc)
+	s.srv = New(service.New(s.cat, mocks.NewContentMock(mc), mocks.NewMeshMock(mc),
+		mocks.NewUploadMock(mc), mocks.NewAuditMock(mc), mocks.NewAuthMock(mc)))
+	s.ctx = authhttp.NewTestContext(s.T().Context(), true, "")
+}
+
+func (s *PerTerritoryAdminsSuite) TestNonRootCannotReadOrWrite() {
+	ctx := authhttp.NewTestContext(s.T().Context(), false, "admin-a")
+	get, err := s.srv.GetTerritoryAdmins(ctx, GetTerritoryAdminsRequestObject{Slug: "yard"})
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), get, GetTerritoryAdmins403JSONResponse{ForbiddenJSONResponse: forbiddenRoot()})
+	put, err := s.srv.SetTerritoryAdmins(ctx, SetTerritoryAdminsRequestObject{
+		Slug: "yard", Body: &TerritoryAdmins{UserIds: []string{"u1"}},
+	})
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), put, SetTerritoryAdmins403JSONResponse{ForbiddenJSONResponse: forbiddenRoot()})
+	assert.Equal(s.T(), s.cat.GetTerritoryAdminsBeforeCounter(), uint64(0))
+	assert.Equal(s.T(), s.cat.SetTerritoryAdminsBeforeCounter(), uint64(0))
+}
+
+func (s *PerTerritoryAdminsSuite) TestGet() {
+	for _, tc := range []struct {
+		name    string
+		failure error
+		want    any
+	}{
+		{"success", nil, GetTerritoryAdmins200JSONResponse{UserIds: []string{"u1", "u2"}}},
+		{"unknown territory", domain.ErrTerritoryNotFound, GetTerritoryAdmins404JSONResponse{}},
+		{"invalid slug", domain.ErrInvalidInput, GetTerritoryAdmins404JSONResponse{}},
+		{"internal", errors.New("catalog down"), GetTerritoryAdmins500JSONResponse{}},
+	} {
+		s.Run(tc.name, func() {
+			mc := minimock.NewController(s.T())
+			cat := mocks.NewCatalogMock(mc)
+			srv := New(service.New(cat, mocks.NewContentMock(mc), mocks.NewMeshMock(mc),
+				mocks.NewUploadMock(mc), mocks.NewAuditMock(mc), mocks.NewAuthMock(mc)))
+			cat.GetTerritoryAdminsMock.Expect(s.ctx, "yard").Return([]string{"u1", "u2"}, tc.failure)
+			got, err := srv.GetTerritoryAdmins(s.ctx, GetTerritoryAdminsRequestObject{Slug: "yard"})
+			assert.NilError(s.T(), err)
+			switch tc.want.(type) {
+			case GetTerritoryAdmins200JSONResponse:
+				assert.DeepEqual(s.T(), got, tc.want)
+			case GetTerritoryAdmins404JSONResponse:
+				_, ok := got.(GetTerritoryAdmins404JSONResponse)
+				assert.Assert(s.T(), ok, "got %T", got)
+			case GetTerritoryAdmins500JSONResponse:
+				response, ok := got.(GetTerritoryAdmins500JSONResponse)
+				assert.Assert(s.T(), ok, "got %T", got)
+				assert.Equal(s.T(), response.Code, apperr.SlugInternal)
+				assert.Equal(s.T(), response.Message, apperr.InternalMessage)
+			}
+		})
+	}
+}
+
+func (s *PerTerritoryAdminsSuite) TestSetMissingBodySkipsService() {
+	got, err := s.srv.SetTerritoryAdmins(s.ctx, SetTerritoryAdminsRequestObject{Slug: "yard"})
+	assert.NilError(s.T(), err)
+	_, ok := got.(SetTerritoryAdmins400JSONResponse)
+	assert.Assert(s.T(), ok, "got %T", got)
+	assert.Equal(s.T(), s.cat.SetTerritoryAdminsBeforeCounter(), uint64(0))
+}
+
+func (s *PerTerritoryAdminsSuite) TestSet() {
+	for _, tc := range []struct {
+		name    string
+		failure error
+		want    any
+	}{
+		{"success", nil, SetTerritoryAdmins204Response{}},
+		{"invalid IDs", domain.ErrInvalidInput, SetTerritoryAdmins400JSONResponse{}},
+		{"unknown territory", domain.ErrTerritoryNotFound, SetTerritoryAdmins404JSONResponse{}},
+		{"internal", errors.New("catalog down"), SetTerritoryAdmins500JSONResponse{}},
+	} {
+		s.Run(tc.name, func() {
+			mc := minimock.NewController(s.T())
+			cat := mocks.NewCatalogMock(mc)
+			srv := New(service.New(cat, mocks.NewContentMock(mc), mocks.NewMeshMock(mc),
+				mocks.NewUploadMock(mc), mocks.NewAuditMock(mc), mocks.NewAuthMock(mc)))
+			ids := []string{"u1", "u2"}
+			cat.SetTerritoryAdminsMock.Expect(s.ctx, "yard", ids).Return(tc.failure)
+			got, err := srv.SetTerritoryAdmins(
+				s.ctx,
+				SetTerritoryAdminsRequestObject{Slug: "yard", Body: &TerritoryAdmins{UserIds: ids}},
+			)
+			assert.NilError(s.T(), err)
+			switch tc.want.(type) {
+			case SetTerritoryAdmins204Response:
+				assert.DeepEqual(s.T(), got, tc.want)
+			case SetTerritoryAdmins400JSONResponse:
+				_, ok := got.(SetTerritoryAdmins400JSONResponse)
+				assert.Assert(s.T(), ok, "got %T", got)
+			case SetTerritoryAdmins404JSONResponse:
+				_, ok := got.(SetTerritoryAdmins404JSONResponse)
+				assert.Assert(s.T(), ok, "got %T", got)
+			case SetTerritoryAdmins500JSONResponse:
+				response, ok := got.(SetTerritoryAdmins500JSONResponse)
+				assert.Assert(s.T(), ok, "got %T", got)
+				assert.Equal(s.T(), response.Code, apperr.SlugInternal)
+				assert.Equal(s.T(), response.Message, apperr.InternalMessage)
+			}
+		})
+	}
 }

@@ -85,3 +85,11 @@ func (s *ModelTagWritesSuite) TestUpdateRefusesUngroupedBlankAndEmptySlug() {
 	_, err := s.svc.UpdateModelTag(s.ctx, domain.UngroupedTagSlug, "Other")
 	assert.ErrorContains(s.T(), err, "the ungrouped tag cannot be changed")
 }
+
+func (s *ModelTagWritesSuite) TestDeleteProtectsUngroupedAndPassesOtherSlugs() {
+	for _, slug := range []string{"", domain.UngroupedTagSlug} {
+		assert.ErrorIs(s.T(), s.svc.DeleteModelTag(s.ctx, slug), domain.ErrInvalidInput)
+	}
+	s.repo.DeleteModelTagMock.Expect(s.ctx, "camp").Return(domain.ErrModelTagInUse)
+	assert.ErrorIs(s.T(), s.svc.DeleteModelTag(s.ctx, "camp"), domain.ErrModelTagInUse)
+}

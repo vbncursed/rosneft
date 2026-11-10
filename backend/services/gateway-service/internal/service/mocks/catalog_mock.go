@@ -82,6 +82,13 @@ type CatalogMock struct {
 	beforeDeleteModelCounter uint64
 	DeleteModelMock          mCatalogMockDeleteModel
 
+	funcDeleteModelTag          func(ctx context.Context, slug string) (err error)
+	funcDeleteModelTagOrigin    string
+	inspectFuncDeleteModelTag   func(ctx context.Context, slug string)
+	afterDeleteModelTagCounter  uint64
+	beforeDeleteModelTagCounter uint64
+	DeleteModelTagMock          mCatalogMockDeleteModelTag
+
 	funcDeletePlacement          func(ctx context.Context, territorySlug string, id int64) (err error)
 	funcDeletePlacementOrigin    string
 	inspectFuncDeletePlacement   func(ctx context.Context, territorySlug string, id int64)
@@ -383,6 +390,9 @@ func NewCatalogMock(t minimock.Tester) *CatalogMock {
 
 	m.DeleteModelMock = mCatalogMockDeleteModel{mock: m}
 	m.DeleteModelMock.callArgs = []*CatalogMockDeleteModelParams{}
+
+	m.DeleteModelTagMock = mCatalogMockDeleteModelTag{mock: m}
+	m.DeleteModelTagMock.callArgs = []*CatalogMockDeleteModelTagParams{}
 
 	m.DeletePlacementMock = mCatalogMockDeletePlacement{mock: m}
 	m.DeletePlacementMock.callArgs = []*CatalogMockDeletePlacementParams{}
@@ -3771,6 +3781,348 @@ func (m *CatalogMock) MinimockDeleteModelInspect() {
 	if !m.DeleteModelMock.invocationsDone() && afterDeleteModelCounter > 0 {
 		m.t.Errorf("Expected %d calls to CatalogMock.DeleteModel at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.DeleteModelMock.expectedInvocations), m.DeleteModelMock.expectedInvocationsOrigin, afterDeleteModelCounter)
+	}
+}
+
+type mCatalogMockDeleteModelTag struct {
+	optional           bool
+	mock               *CatalogMock
+	defaultExpectation *CatalogMockDeleteModelTagExpectation
+	expectations       []*CatalogMockDeleteModelTagExpectation
+
+	callArgs []*CatalogMockDeleteModelTagParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// CatalogMockDeleteModelTagExpectation specifies expectation struct of the Catalog.DeleteModelTag
+type CatalogMockDeleteModelTagExpectation struct {
+	mock               *CatalogMock
+	params             *CatalogMockDeleteModelTagParams
+	paramPtrs          *CatalogMockDeleteModelTagParamPtrs
+	expectationOrigins CatalogMockDeleteModelTagExpectationOrigins
+	results            *CatalogMockDeleteModelTagResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// CatalogMockDeleteModelTagParams contains parameters of the Catalog.DeleteModelTag
+type CatalogMockDeleteModelTagParams struct {
+	ctx  context.Context
+	slug string
+}
+
+// CatalogMockDeleteModelTagParamPtrs contains pointers to parameters of the Catalog.DeleteModelTag
+type CatalogMockDeleteModelTagParamPtrs struct {
+	ctx  *context.Context
+	slug *string
+}
+
+// CatalogMockDeleteModelTagResults contains results of the Catalog.DeleteModelTag
+type CatalogMockDeleteModelTagResults struct {
+	err error
+}
+
+// CatalogMockDeleteModelTagOrigins contains origins of expectations of the Catalog.DeleteModelTag
+type CatalogMockDeleteModelTagExpectationOrigins struct {
+	origin     string
+	originCtx  string
+	originSlug string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmDeleteModelTag *mCatalogMockDeleteModelTag) Optional() *mCatalogMockDeleteModelTag {
+	mmDeleteModelTag.optional = true
+	return mmDeleteModelTag
+}
+
+// Expect sets up expected params for Catalog.DeleteModelTag
+func (mmDeleteModelTag *mCatalogMockDeleteModelTag) Expect(ctx context.Context, slug string) *mCatalogMockDeleteModelTag {
+	if mmDeleteModelTag.mock.funcDeleteModelTag != nil {
+		mmDeleteModelTag.mock.t.Fatalf("CatalogMock.DeleteModelTag mock is already set by Set")
+	}
+
+	if mmDeleteModelTag.defaultExpectation == nil {
+		mmDeleteModelTag.defaultExpectation = &CatalogMockDeleteModelTagExpectation{}
+	}
+
+	if mmDeleteModelTag.defaultExpectation.paramPtrs != nil {
+		mmDeleteModelTag.mock.t.Fatalf("CatalogMock.DeleteModelTag mock is already set by ExpectParams functions")
+	}
+
+	mmDeleteModelTag.defaultExpectation.params = &CatalogMockDeleteModelTagParams{ctx, slug}
+	mmDeleteModelTag.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmDeleteModelTag.expectations {
+		if minimock.Equal(e.params, mmDeleteModelTag.defaultExpectation.params) {
+			mmDeleteModelTag.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmDeleteModelTag.defaultExpectation.params)
+		}
+	}
+
+	return mmDeleteModelTag
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Catalog.DeleteModelTag
+func (mmDeleteModelTag *mCatalogMockDeleteModelTag) ExpectCtxParam1(ctx context.Context) *mCatalogMockDeleteModelTag {
+	if mmDeleteModelTag.mock.funcDeleteModelTag != nil {
+		mmDeleteModelTag.mock.t.Fatalf("CatalogMock.DeleteModelTag mock is already set by Set")
+	}
+
+	if mmDeleteModelTag.defaultExpectation == nil {
+		mmDeleteModelTag.defaultExpectation = &CatalogMockDeleteModelTagExpectation{}
+	}
+
+	if mmDeleteModelTag.defaultExpectation.params != nil {
+		mmDeleteModelTag.mock.t.Fatalf("CatalogMock.DeleteModelTag mock is already set by Expect")
+	}
+
+	if mmDeleteModelTag.defaultExpectation.paramPtrs == nil {
+		mmDeleteModelTag.defaultExpectation.paramPtrs = &CatalogMockDeleteModelTagParamPtrs{}
+	}
+	mmDeleteModelTag.defaultExpectation.paramPtrs.ctx = &ctx
+	mmDeleteModelTag.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmDeleteModelTag
+}
+
+// ExpectSlugParam2 sets up expected param slug for Catalog.DeleteModelTag
+func (mmDeleteModelTag *mCatalogMockDeleteModelTag) ExpectSlugParam2(slug string) *mCatalogMockDeleteModelTag {
+	if mmDeleteModelTag.mock.funcDeleteModelTag != nil {
+		mmDeleteModelTag.mock.t.Fatalf("CatalogMock.DeleteModelTag mock is already set by Set")
+	}
+
+	if mmDeleteModelTag.defaultExpectation == nil {
+		mmDeleteModelTag.defaultExpectation = &CatalogMockDeleteModelTagExpectation{}
+	}
+
+	if mmDeleteModelTag.defaultExpectation.params != nil {
+		mmDeleteModelTag.mock.t.Fatalf("CatalogMock.DeleteModelTag mock is already set by Expect")
+	}
+
+	if mmDeleteModelTag.defaultExpectation.paramPtrs == nil {
+		mmDeleteModelTag.defaultExpectation.paramPtrs = &CatalogMockDeleteModelTagParamPtrs{}
+	}
+	mmDeleteModelTag.defaultExpectation.paramPtrs.slug = &slug
+	mmDeleteModelTag.defaultExpectation.expectationOrigins.originSlug = minimock.CallerInfo(1)
+
+	return mmDeleteModelTag
+}
+
+// Inspect accepts an inspector function that has same arguments as the Catalog.DeleteModelTag
+func (mmDeleteModelTag *mCatalogMockDeleteModelTag) Inspect(f func(ctx context.Context, slug string)) *mCatalogMockDeleteModelTag {
+	if mmDeleteModelTag.mock.inspectFuncDeleteModelTag != nil {
+		mmDeleteModelTag.mock.t.Fatalf("Inspect function is already set for CatalogMock.DeleteModelTag")
+	}
+
+	mmDeleteModelTag.mock.inspectFuncDeleteModelTag = f
+
+	return mmDeleteModelTag
+}
+
+// Return sets up results that will be returned by Catalog.DeleteModelTag
+func (mmDeleteModelTag *mCatalogMockDeleteModelTag) Return(err error) *CatalogMock {
+	if mmDeleteModelTag.mock.funcDeleteModelTag != nil {
+		mmDeleteModelTag.mock.t.Fatalf("CatalogMock.DeleteModelTag mock is already set by Set")
+	}
+
+	if mmDeleteModelTag.defaultExpectation == nil {
+		mmDeleteModelTag.defaultExpectation = &CatalogMockDeleteModelTagExpectation{mock: mmDeleteModelTag.mock}
+	}
+	mmDeleteModelTag.defaultExpectation.results = &CatalogMockDeleteModelTagResults{err}
+	mmDeleteModelTag.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmDeleteModelTag.mock
+}
+
+// Set uses given function f to mock the Catalog.DeleteModelTag method
+func (mmDeleteModelTag *mCatalogMockDeleteModelTag) Set(f func(ctx context.Context, slug string) (err error)) *CatalogMock {
+	if mmDeleteModelTag.defaultExpectation != nil {
+		mmDeleteModelTag.mock.t.Fatalf("Default expectation is already set for the Catalog.DeleteModelTag method")
+	}
+
+	if len(mmDeleteModelTag.expectations) > 0 {
+		mmDeleteModelTag.mock.t.Fatalf("Some expectations are already set for the Catalog.DeleteModelTag method")
+	}
+
+	mmDeleteModelTag.mock.funcDeleteModelTag = f
+	mmDeleteModelTag.mock.funcDeleteModelTagOrigin = minimock.CallerInfo(1)
+	return mmDeleteModelTag.mock
+}
+
+// When sets expectation for the Catalog.DeleteModelTag which will trigger the result defined by the following
+// Then helper
+func (mmDeleteModelTag *mCatalogMockDeleteModelTag) When(ctx context.Context, slug string) *CatalogMockDeleteModelTagExpectation {
+	if mmDeleteModelTag.mock.funcDeleteModelTag != nil {
+		mmDeleteModelTag.mock.t.Fatalf("CatalogMock.DeleteModelTag mock is already set by Set")
+	}
+
+	expectation := &CatalogMockDeleteModelTagExpectation{
+		mock:               mmDeleteModelTag.mock,
+		params:             &CatalogMockDeleteModelTagParams{ctx, slug},
+		expectationOrigins: CatalogMockDeleteModelTagExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmDeleteModelTag.expectations = append(mmDeleteModelTag.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Catalog.DeleteModelTag return parameters for the expectation previously defined by the When method
+func (e *CatalogMockDeleteModelTagExpectation) Then(err error) *CatalogMock {
+	e.results = &CatalogMockDeleteModelTagResults{err}
+	return e.mock
+}
+
+// Times sets number of times Catalog.DeleteModelTag should be invoked
+func (mmDeleteModelTag *mCatalogMockDeleteModelTag) Times(n uint64) *mCatalogMockDeleteModelTag {
+	if n == 0 {
+		mmDeleteModelTag.mock.t.Fatalf("Times of CatalogMock.DeleteModelTag mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmDeleteModelTag.expectedInvocations, n)
+	mmDeleteModelTag.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmDeleteModelTag
+}
+
+func (mmDeleteModelTag *mCatalogMockDeleteModelTag) invocationsDone() bool {
+	if len(mmDeleteModelTag.expectations) == 0 && mmDeleteModelTag.defaultExpectation == nil && mmDeleteModelTag.mock.funcDeleteModelTag == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmDeleteModelTag.mock.afterDeleteModelTagCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmDeleteModelTag.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// DeleteModelTag implements mm_service.Catalog
+func (mmDeleteModelTag *CatalogMock) DeleteModelTag(ctx context.Context, slug string) (err error) {
+	mm_atomic.AddUint64(&mmDeleteModelTag.beforeDeleteModelTagCounter, 1)
+	defer mm_atomic.AddUint64(&mmDeleteModelTag.afterDeleteModelTagCounter, 1)
+
+	mmDeleteModelTag.t.Helper()
+
+	if mmDeleteModelTag.inspectFuncDeleteModelTag != nil {
+		mmDeleteModelTag.inspectFuncDeleteModelTag(ctx, slug)
+	}
+
+	mm_params := CatalogMockDeleteModelTagParams{ctx, slug}
+
+	// Record call args
+	mmDeleteModelTag.DeleteModelTagMock.mutex.Lock()
+	mmDeleteModelTag.DeleteModelTagMock.callArgs = append(mmDeleteModelTag.DeleteModelTagMock.callArgs, &mm_params)
+	mmDeleteModelTag.DeleteModelTagMock.mutex.Unlock()
+
+	for _, e := range mmDeleteModelTag.DeleteModelTagMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmDeleteModelTag.DeleteModelTagMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmDeleteModelTag.DeleteModelTagMock.defaultExpectation.Counter, 1)
+		mm_want := mmDeleteModelTag.DeleteModelTagMock.defaultExpectation.params
+		mm_want_ptrs := mmDeleteModelTag.DeleteModelTagMock.defaultExpectation.paramPtrs
+
+		mm_got := CatalogMockDeleteModelTagParams{ctx, slug}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmDeleteModelTag.t.Errorf("CatalogMock.DeleteModelTag got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeleteModelTag.DeleteModelTagMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.slug != nil && !minimock.Equal(*mm_want_ptrs.slug, mm_got.slug) {
+				mmDeleteModelTag.t.Errorf("CatalogMock.DeleteModelTag got unexpected parameter slug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeleteModelTag.DeleteModelTagMock.defaultExpectation.expectationOrigins.originSlug, *mm_want_ptrs.slug, mm_got.slug, minimock.Diff(*mm_want_ptrs.slug, mm_got.slug))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmDeleteModelTag.t.Errorf("CatalogMock.DeleteModelTag got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmDeleteModelTag.DeleteModelTagMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmDeleteModelTag.DeleteModelTagMock.defaultExpectation.results
+		if mm_results == nil {
+			mmDeleteModelTag.t.Fatal("No results are set for the CatalogMock.DeleteModelTag")
+		}
+		return (*mm_results).err
+	}
+	if mmDeleteModelTag.funcDeleteModelTag != nil {
+		return mmDeleteModelTag.funcDeleteModelTag(ctx, slug)
+	}
+	mmDeleteModelTag.t.Fatalf("Unexpected call to CatalogMock.DeleteModelTag. %v %v", ctx, slug)
+	return
+}
+
+// DeleteModelTagAfterCounter returns a count of finished CatalogMock.DeleteModelTag invocations
+func (mmDeleteModelTag *CatalogMock) DeleteModelTagAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDeleteModelTag.afterDeleteModelTagCounter)
+}
+
+// DeleteModelTagBeforeCounter returns a count of CatalogMock.DeleteModelTag invocations
+func (mmDeleteModelTag *CatalogMock) DeleteModelTagBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDeleteModelTag.beforeDeleteModelTagCounter)
+}
+
+// Calls returns a list of arguments used in each call to CatalogMock.DeleteModelTag.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmDeleteModelTag *mCatalogMockDeleteModelTag) Calls() []*CatalogMockDeleteModelTagParams {
+	mmDeleteModelTag.mutex.RLock()
+
+	argCopy := make([]*CatalogMockDeleteModelTagParams, len(mmDeleteModelTag.callArgs))
+	copy(argCopy, mmDeleteModelTag.callArgs)
+
+	mmDeleteModelTag.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockDeleteModelTagDone returns true if the count of the DeleteModelTag invocations corresponds
+// the number of defined expectations
+func (m *CatalogMock) MinimockDeleteModelTagDone() bool {
+	if m.DeleteModelTagMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.DeleteModelTagMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.DeleteModelTagMock.invocationsDone()
+}
+
+// MinimockDeleteModelTagInspect logs each unmet expectation
+func (m *CatalogMock) MinimockDeleteModelTagInspect() {
+	for _, e := range m.DeleteModelTagMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to CatalogMock.DeleteModelTag at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterDeleteModelTagCounter := mm_atomic.LoadUint64(&m.afterDeleteModelTagCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.DeleteModelTagMock.defaultExpectation != nil && afterDeleteModelTagCounter < 1 {
+		if m.DeleteModelTagMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to CatalogMock.DeleteModelTag at\n%s", m.DeleteModelTagMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to CatalogMock.DeleteModelTag at\n%s with params: %#v", m.DeleteModelTagMock.defaultExpectation.expectationOrigins.origin, *m.DeleteModelTagMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcDeleteModelTag != nil && afterDeleteModelTagCounter < 1 {
+		m.t.Errorf("Expected call to CatalogMock.DeleteModelTag at\n%s", m.funcDeleteModelTagOrigin)
+	}
+
+	if !m.DeleteModelTagMock.invocationsDone() && afterDeleteModelTagCounter > 0 {
+		m.t.Errorf("Expected %d calls to CatalogMock.DeleteModelTag at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.DeleteModelTagMock.expectedInvocations), m.DeleteModelTagMock.expectedInvocationsOrigin, afterDeleteModelTagCounter)
 	}
 }
 
@@ -17598,6 +17950,8 @@ func (m *CatalogMock) MinimockFinish() {
 
 			m.MinimockDeleteModelInspect()
 
+			m.MinimockDeleteModelTagInspect()
+
 			m.MinimockDeletePlacementInspect()
 
 			m.MinimockDeletePlacementGroupInspect()
@@ -17705,6 +18059,7 @@ func (m *CatalogMock) minimockDone() bool {
 		m.MinimockDeleteMeasurementDone() &&
 		m.MinimockDeleteMeasurementsDone() &&
 		m.MinimockDeleteModelDone() &&
+		m.MinimockDeleteModelTagDone() &&
 		m.MinimockDeletePlacementDone() &&
 		m.MinimockDeletePlacementGroupDone() &&
 		m.MinimockDeleteTerritoryDone() &&

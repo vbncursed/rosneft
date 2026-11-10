@@ -173,3 +173,54 @@ test("does not loop forever on a segment claiming zero length", () => {
   const bytes = Uint8Array.from([0xff, 0xd8, 0xff, 0xdb, 0x00, 0x00, 0xff, 0xe1]);
   assert.equal(readExifGps(bytes), null);
 });
+
+test("only uppercase S and W negate their respective coordinates", () => {
+  for (const le of [true, false]) {
+    const positive = readExifGps(jpegWithGps({ ...MOSCOW, le }));
+    for (const ref of ["X", "s", "w", "\0"]) {
+      assert.deepEqual(readExifGps(jpegWithGps({ ...MOSCOW, le, latRef: ref, lonRef: ref })), positive);
+    }
+    const swapped = readExifGps(jpegWithGps({ ...MOSCOW, le, latRef: "W", lonRef: "S" }));
+    assert.deepEqual(swapped, positive);
+  }
+});
+
+test("each coordinate and reference entry is required", () => {
+  for (const le of [true, false]) {
+    for (const key of ["lat", "lon", "latRef", "lonRef"] as const) {
+      assert.equal(readExifGps(jpegWithGps({ ...MOSCOW, le, [key]: undefined })), null);
+    }
+  }
+});
+
+test("zero denominators in either coordinate and altitude contribute zero", () => {
+  for (const le of [true, false]) {
+    const fix = readExifGps(
+      jpegWithGps({
+        ...MOSCOW,
+        le,
+        lat: [
+          [55, 0],
+          [30, 1],
+          [9, 0],
+        ],
+        lon: [
+          [37, 1],
+          [30, 0],
+          [36, 1],
+        ],
+        alt: [9, 0],
+      }),
+    );
+    assert.deepEqual(fix, { lat: 0.5, lon: 37.01, alt: 0 });
+  }
+});
+
+test("invalid coordinate offsets throw only after all required entries are found", () => {
+  const bytes = jpegWithGps(MOSCOW);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(12 + 26 + 2 + 12 + 8, 0xffffffff, true);
+  assert.throws(() => readExifGps(bytes), RangeError);
+  view.setUint16(12 + 26 + 2 + 2 * 12, 0xffff, true);
+  assert.equal(readExifGps(bytes), null);
+});

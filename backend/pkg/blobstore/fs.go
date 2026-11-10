@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // FS is a filesystem-backed Store. Blobs are sharded by the first two hex
@@ -45,11 +46,7 @@ func validateHash(hash string) error {
 		return fmt.Errorf("%w: too short: %q", ErrInvalidHash, hash)
 	}
 	for _, c := range hash {
-		switch {
-		case c >= '0' && c <= '9':
-		case c >= 'a' && c <= 'f':
-		case c >= 'A' && c <= 'F':
-		default:
+		if !strings.ContainsRune("0123456789abcdefABCDEF", c) {
 			return fmt.Errorf("%w: non-hex character: %q", ErrInvalidHash, hash)
 		}
 	}

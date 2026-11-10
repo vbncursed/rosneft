@@ -83,6 +83,16 @@ describe("matchesModel", () => {
     expect(matchesModel(card(), "all", "valve")).toBe(false);
   });
 
+  it("combines case-insensitive whole free text and filters", () => {
+    expect(matchesModel(card(), "all", "  PUMP   JACK thumbnail:YES used:6 lod:LOD ")).toBe(true);
+    expect(matchesModel(card(), "all", "PUMP-JACK-UNIT used:6")).toBe(true);
+    expect(matchesModel(card(), "all", "pump unit")).toBe(false);
+    expect(matchesModel(card(), "all", "THUMBNAIL:yes pump")).toBe(false);
+    expect(matchesModel(card(), "all", "colour:blue pump")).toBe(false);
+    expect(matchesModel(card(), "all", "thumbnail:YES used:6 lod:LOD")).toBe(true);
+    expect(matchesModel(card({ thumbnailUrl: null }), "all", "thumbnail:YES pump")).toBe(false);
+  });
+
   it("matches nothing for an unknown key, rather than ignoring the typo", () => {
     expect(matchesModel(card(), "all", "colour:blue")).toBe(false);
   });

@@ -52,6 +52,11 @@ describe("GroundProbe", () => {
     expect(onReady).toHaveBeenCalledOnce();
   });
 
+  it("refuses automatic registration when there is no texture", async () => {
+    const { onReady } = await probe(terrain(box(-2, 2, 5)));
+    expect(onReady.mock.calls[0][0].registration?.()).toBeNull();
+  });
+
   it("answers null when the territory is gone", async () => {
     const holder: { current: Group | null } = { current: terrain(box(-2, 2, 5)) };
     const onReady = vi.fn<(g: Ground) => void>();

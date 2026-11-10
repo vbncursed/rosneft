@@ -1,6 +1,9 @@
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { useRef, type RefObject } from "react";
 import { Box3, type Object3D } from "three";
+import { registrationGeometry, type RegistrationGeometry } from "./registration-geometry";
+import { readRegistrationTexture } from "./registration-readback";
+import { findRegistrationMesh, textureFor } from "./registration-texture";
 import { raycastSurfaceY } from "./snap-to-surface";
 
 /** What the page needs to put a zone on the ground: the height under a point, and a stand-in where there is none. */
@@ -8,6 +11,11 @@ export type Ground = {
   groundAt: (x: number, z: number) => number | null;
   /** The territory's median ground height. */
   fallbackY: number;
+  registration?: () => {
+    image: { data: Uint8Array; width: number; height: number };
+    geometry: RegistrationGeometry;
+    isCurrent: () => boolean;
+  } | null;
 };
 
 interface GroundProbeProps {
@@ -46,6 +54,7 @@ function medianGround(root: Object3D, groundAt: Ground["groundAt"]): number {
  */
 export default function GroundProbe({ root, onReady }: GroundProbeProps) {
   const done = useRef(false);
+  const renderer = useThree((state) => state.gl);
   // The mesh arrives with the download, long after mount; the frame it first
   // draws in is the first one that can see it.
   useFrame(() => {
@@ -55,7 +64,43 @@ export default function GroundProbe({ root, onReady }: GroundProbeProps) {
     if (box.isEmpty()) return;
     done.current = true;
     const groundAt = (x: number, z: number) => (root.current ? raycastSurfaceY(root.current, x, z) : null);
-    onReady({ groundAt, fallbackY: medianGround(group, groundAt) });
+    const registration: NonNullable<Ground["registration"]> = () => {
+      const current = root.current;
+      const mesh = current ? findRegistrationMesh(current) : null;
+      const texture = mesh ? textureFor(mesh) : null;
+      if (!mesh || !texture) {
+        return null;
+      }
+      const geometry = registrationGeometry(mesh);
+      if (!geometry) {
+        return null;
+      }
+      try {
+        const image = readRegistrationTexture(renderer, texture);
+        if (!image) {
+          return null;
+        }
+        const sourceGeometry = mesh.geometry;
+        return {
+          image,
+          geometry,
+          isCurrent: () => {
+            const now = root.current;
+            mesh.updateWorldMatrix(true, false);
+            return (
+              !!now &&
+              findRegistrationMesh(now) === mesh &&
+              mesh.geometry === sourceGeometry &&
+              textureFor(mesh) === texture &&
+              mesh.matrixWorld.toArray().every((x, i) => x === geometry.matrix[i])
+            );
+          },
+        };
+      } catch {
+        return null;
+      }
+    };
+    onReady({ groundAt, fallbackY: medianGround(group, groundAt), registration });
   });
   return null;
 }
