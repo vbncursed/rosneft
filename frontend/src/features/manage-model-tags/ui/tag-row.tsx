@@ -7,10 +7,12 @@ import type { Outcome } from "../model/use-model-tags-admin";
 export type TagRowProps = {
   tag: ModelTag;
   onRename: (title: string) => Promise<Outcome>;
+  onDelete: () => Promise<Outcome>;
 };
 
-/** One tag: its title and slug, and an inline rename. `ungrouped` is built in and read-only. */
-export function TagRow({ tag, onRename }: TagRowProps) {
+/** One tag with inline rename and delete controls. `ungrouped` is built in and read-only. */
+export function TagRow({ tag, onRename, onDelete }: TagRowProps) {
+  const [confirming, setConfirming] = useState(false);
   const [draft, setDraft] = useState<string | null>(null);
   const [refusal, setRefusal] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -38,14 +40,51 @@ export function TagRow({ tag, onRename }: TagRowProps) {
         <>
           <div className="min-w-0">
             <div className="truncate text-[13px] text-fg">{tag.title}</div>
-            <div className="font-mono text-[11px] text-dim">{tag.slug}</div>
           </div>
           {tag.slug === UNGROUPED_TAG_SLUG ? (
             <span className="text-[11px] text-dim">Built in, cannot be changed</span>
           ) : (
-            <Button size="sm" aria-label={`Rename ${tag.title}`} onClick={() => setDraft(tag.title)}>
-              Rename
-            </Button>
+            <div className="flex gap-2">
+              {confirming ? (
+                <>
+                  <span>Delete this tag? Tags used by models or zones cannot be deleted.</span>
+                  <Button
+                    size="sm"
+                    disabled={busy}
+                    onClick={() => {
+                      setConfirming(false);
+                      setRefusal(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    aria-label={`Confirm delete ${tag.title}`}
+                    loading={busy}
+                    onClick={async () => {
+                      setBusy(true);
+                      const outcome = await onDelete();
+                      setBusy(false);
+                      if (outcome === null) setConfirming(false);
+                      else setRefusal(outcome);
+                    }}
+                  >
+                    Confirm delete
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button size="sm" aria-label={`Rename ${tag.title}`} onClick={() => setDraft(tag.title)}>
+                    Rename
+                  </Button>
+                  <Button size="sm" aria-label={`Delete ${tag.title}`} onClick={() => setConfirming(true)}>
+                    Delete
+                  </Button>
+                </>
+              )}
+              {refusal && <p role="alert">{refusal}</p>}
+            </div>
           )}
         </>
       ) : (

@@ -4,7 +4,7 @@ const getDocument = vi.fn(() => ({ promise: Promise.resolve("doc") }));
 const lib = { GlobalWorkerOptions: { workerSrc: "" }, getDocument, OPS: { save: 10 } };
 vi.mock("/pdfjs/build/pdf.mjs", () => lib);
 
-import { loadPdfjs, openPdf, pageViewport, type PdfPage } from "./pdfjs";
+import { displayContentConfig, loadPdfjs, openPdf, pageViewport, type PdfDocument, type PdfPage } from "./pdfjs";
 
 describe("loadPdfjs", () => {
   beforeEach(() => getDocument.mockClear());
@@ -33,5 +33,15 @@ describe("pageViewport", () => {
     const page = { rotate: 90, getViewport } as unknown as PdfPage;
     pageViewport(page);
     expect(getViewport).toHaveBeenCalledWith({ scale: 1, rotation: 0 });
+  });
+});
+
+describe("displayContentConfig", () => {
+  it("requests the document's display configuration", async () => {
+    const config = { getOrder: () => ["layer"], getGroup: () => ({ name: "Layer", visible: true }) };
+    const getOptionalContentConfig = vi.fn(async () => config);
+    const document = { getOptionalContentConfig } as unknown as PdfDocument;
+    expect(await displayContentConfig(document)).toBe(config);
+    expect(getOptionalContentConfig).toHaveBeenCalledWith({ intent: "display" });
   });
 });

@@ -2394,6 +2394,7 @@ __metadata:
     class-variance-authority: "npm:^0.7.1"
     clsx: "npm:^2.1.1"
     jsdom: "npm:^31.0.0"
+    jsfeat: "npm:0.0.8"
     oxfmt: "npm:0.78.0"
     oxlint: "npm:1.93.0"
     oxlint-tsgolint: "npm:7.0.2006"
@@ -2873,6 +2874,13 @@ __metadata:
     "@napi-rs/canvas":
       optional: true
   checksum: 10c0/e7240d72bfd6aab3e06ef2bcbd9656e39011707958d57b30c25caf840503a433ba56ba384f43e07938125f49e835f679856db58a9f762496a1811ec6ab580740
+  languageName: node
+  linkType: hard
+
+"jsfeat@npm:0.0.8":
+  version: 0.0.8
+  resolution: "jsfeat@npm:0.0.8"
+  checksum: 10c0/870bde6482567ce2b1cf11418ceebdbd9a2ae95fcbf7b26d17a2e766646209b573657139aefbd0f9913e6069bbdd5254c82ff7527e4a3b447f103b0af5e0b779
   languageName: node
   linkType: hard
 

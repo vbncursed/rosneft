@@ -71,3 +71,13 @@ func tagTitle(title string) (string, error) {
 	}
 	return t, nil
 }
+
+func (c *Catalog) DeleteModelTag(ctx context.Context, slug string) error {
+	if slug == "" {
+		return fmt.Errorf("%w: empty tag slug", domain.ErrInvalidInput)
+	}
+	if err := refuseUngrouped(slug); err != nil {
+		return err
+	}
+	return c.repo.DeleteModelTag(ctx, slug)
+}

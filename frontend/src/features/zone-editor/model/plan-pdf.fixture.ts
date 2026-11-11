@@ -9,6 +9,12 @@ export const fakeLib = { OPS: plan.ops } as unknown as PdfjsLib;
 export const fakePdf = (numPages = 1): PdfDocument =>
   ({
     numPages,
+    getOptionalContentConfig: async () => ({
+      getOrder: () => null,
+      getGroup: () => null,
+      setVisibility: () => {},
+      isVisible: () => true,
+    }),
     getPage: async () => ({
       getViewport: ({ scale }: { scale: number }) => ({
         width: plan.page.width * scale,
@@ -17,6 +23,7 @@ export const fakePdf = (numPages = 1): PdfDocument =>
       }),
       getOperatorList: async () => plan.opList,
       getTextContent: async () => plan.text,
+      getAnnotations: async () => [],
     }),
   }) as unknown as PdfDocument;
 

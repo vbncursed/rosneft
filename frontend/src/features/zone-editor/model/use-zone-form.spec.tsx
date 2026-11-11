@@ -45,6 +45,66 @@ afterEach(() => {
 });
 
 describe("useZoneForm", () => {
+  it("keeps fields edited while a create is pending", async () => {
+    let finish!: () => void;
+    const { result } = form({
+      onCreate: () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    });
+    act(() => {
+      result.current.f.setTitle("Old");
+      result.current.f.toggleTag("tanks");
+    });
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.f.submit();
+    });
+    act(() => {
+      result.current.f.setTitle("New");
+      result.current.f.toggleTag("pumps");
+    });
+    await act(async () => {
+      finish();
+      await pending;
+    });
+    expect(result.current.f.title).toBe("New");
+    expect(result.current.f.selected).toEqual(["tanks", "pumps"]);
+  });
+
+  it("invalidates an in-flight create when the form unmounts", async () => {
+    let unchanged!: () => boolean;
+    let finish!: () => void;
+    const onCreate = vi.fn((_form: unknown, current: () => boolean) => {
+      unchanged = current;
+      return new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+    });
+    const client = new QueryClient();
+    client.setQueryData(["model-tags"], TAGS);
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const { result, unmount } = renderHook(() => useZoneForm({ canPlace: true, blocked: null, onCreate }), { wrapper });
+    act(() => {
+      result.current.setTitle("Old");
+      result.current.toggleTag("tanks");
+    });
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.submit();
+    });
+    expect(unchanged()).toBe(true);
+    unmount();
+    expect(unchanged()).toBe(false);
+    await act(async () => {
+      finish();
+      await pending;
+    });
+  });
+
   it("refuses to create while the rectangle is blocked, and says why", () => {
     const { result } = form({ blocked: "This rectangle has no area." });
     act(() => result.current.f.setTitle("Tank row"));
@@ -89,7 +149,7 @@ describe("useZoneForm", () => {
     act(() => result.current.f.setTitle("  Tank row  "));
     act(() => result.current.f.toggleTag("tanks"));
     await act(() => result.current.f.submit());
-    expect(onCreate).toHaveBeenCalledWith({ title: "Tank row", tagSlugs: ["tanks"] });
+    expect(onCreate).toHaveBeenCalledWith({ title: "Tank row", tagSlugs: ["tanks"] }, expect.any(Function));
     expect(result.current.f.title).toBe("");
     expect(result.current.f.selected).toEqual([]);
   });

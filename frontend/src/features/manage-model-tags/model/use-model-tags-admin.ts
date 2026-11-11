@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LIST_KEY } from "@/entities/conversion";
-import { createModelTag, modelTagsQuery, renameModelTag } from "@/entities/model-tag";
+import { createModelTag, deleteModelTag, modelTagsQuery, renameModelTag } from "@/entities/model-tag";
 import { messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
 
@@ -36,6 +36,7 @@ export function useModelTagsAdmin() {
     tags,
     create: (input: { slug: string; title: string }) =>
       settle(() => createModelTag({ slug: input.slug, title: input.title.trim() }), "Tag added"),
+    remove: (slug: string) => settle(() => deleteModelTag(slug), "Tag deleted"),
     rename: (slug: string, title: string) => settle(() => renameModelTag(slug, { title: title.trim() }), "Tag renamed"),
   };
 }

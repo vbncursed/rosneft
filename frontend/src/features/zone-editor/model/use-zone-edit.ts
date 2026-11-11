@@ -14,7 +14,7 @@ export function useZoneEdit({
   onSave: (patch: ZonePatch) => Promise<void>;
   onDone: () => void;
 }) {
-  const f = useZoneFields({ title: zone.title, tagSlugs: zone.tags.map((t) => t.slug) });
+  const f = useZoneFields({ title: zone.title, tagSlugs: zone.tags.map((t) => t.slug) }, false, zone.tags);
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
   const patch = zonePatch(zone, f.title, f.selected);

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Zone } from "@/entities/zone";
@@ -33,6 +33,25 @@ const edit = (onSave = vi.fn(async () => {}), seed = true) => {
 afterEach(clearNotices);
 
 describe("useZoneEdit", () => {
+  it("keeps canonical zone tags missing from the cached catalog while dropping removed new choices", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client.setQueryData(["model-tags"], [TAGS[1]]);
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const onSave = vi.fn(async () => {});
+    const { result } = renderHook(() => useZoneEdit({ zone: ZONE, onSave, onDone: vi.fn() }), { wrapper });
+    expect(result.current.tags).toEqual(expect.arrayContaining(ZONE.tags));
+    expect(result.current.selected).toEqual(["tanks"]);
+    act(() => result.current.toggleTag("pumps"));
+    expect(result.current.selected).toEqual(["tanks", "pumps"]);
+    act(() => client.setQueryData(["model-tags"], []));
+    await waitFor(() => expect(result.current.selected).toEqual(["tanks"]));
+    expect(result.current.tags).toEqual(ZONE.tags);
+    act(() => result.current.toggleTag("tanks"));
+    expect(result.current.selected).toEqual([]);
+  });
+
   it("is prefilled and cannot save until something changed", () => {
     const { result } = edit();
     expect(result.current.f.title).toBe("Tank row");

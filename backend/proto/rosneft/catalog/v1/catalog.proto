@@ -95,10 +95,11 @@ service CatalogService {
 
   // The fixed model tag list, sorted by title with ungrouped last.
   rpc ListModelTags(ListModelTagsRequest) returns (ListModelTagsResponse);
-  // Tags are added and retitled, never deleted. A slug is permanent; the
+  // Tags can be added, retitled, or deleted when unused. A slug is stable; the
   // ungrouped tag cannot be changed.
   rpc CreateModelTag(CreateModelTagRequest) returns (CreateModelTagResponse);
   rpc UpdateModelTag(UpdateModelTagRequest) returns (UpdateModelTagResponse);
+  rpc DeleteModelTag(DeleteModelTagRequest) returns (DeleteModelTagResponse);
 
   // Site zones are scoped by territory_slug like measurements: an id of
   // another territory is NOT_FOUND, same as an unknown one.
@@ -679,6 +680,9 @@ message UpdateModelTagRequest {
 message UpdateModelTagResponse {
   ModelTag tag = 1;
 }
+
+message DeleteModelTagRequest { string slug = 1; }
+message DeleteModelTagResponse {}
 
 // Zone is a named rectangle in the territory's normalised scene space (the
 // space measurements use): four corners, 1–5 tags, never ungrouped. The

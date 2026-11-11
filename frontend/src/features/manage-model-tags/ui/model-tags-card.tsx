@@ -10,9 +10,9 @@ export type ModelTagsCardProps = {
   onReplayTour?: () => void;
 };
 
-/** The Root-only list of model tags: rename one, add one. There is no delete. */
+/** The Root-only list of model tags: rename, add or delete one. */
 export function ModelTagsCard({ onReplayTour }: ModelTagsCardProps) {
-  const { tags, create, rename } = useModelTagsAdmin();
+  const { tags, create, rename, remove } = useModelTagsAdmin();
 
   return (
     <section aria-label="Tags" data-tour="content-tags" className="mt-8 flex flex-col gap-3">
@@ -31,7 +31,12 @@ export function ModelTagsCard({ onReplayTour }: ModelTagsCardProps) {
         {tags ? (
           <ul className="m-0 list-none divide-y divide-line p-0">
             {tags.map((tag) => (
-              <TagRow key={tag.slug} tag={tag} onRename={(title) => rename(tag.slug, title)} />
+              <TagRow
+                key={tag.slug}
+                tag={tag}
+                onRename={(title) => rename(tag.slug, title)}
+                onDelete={() => remove(tag.slug)}
+              />
             ))}
           </ul>
         ) : (

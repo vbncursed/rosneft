@@ -12,6 +12,8 @@
  * `consoleLanding` came out of `routes.tsx` exactly that way.
  */
 export const EXEMPT_MODULES = [
+  // Type declarations for the worker-only jsfeat dependency contain no runtime behavior.
+  "src/shared/lib/image-registration/jsfeat.d.ts",
   "src/main.tsx",
   "src/cosmos.decorator.tsx",
   "src/shared/lib/test-setup.ts",
