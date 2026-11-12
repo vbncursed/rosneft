@@ -1,6 +1,6 @@
 module github.com/vbncursed/rosneft/backend/services/audit-service
 
-go 1.27.3
+go 1.27.4
 
 replace (
 	github.com/vbncursed/rosneft/backend/pkg => ../../pkg
@@ -10,7 +10,7 @@ replace (
 require (
 	github.com/gojuno/minimock/v3 v3.4.7
 	github.com/jackc/pgx/v5 v5.12.0
-	github.com/pressly/goose/v3 v3.29.0
+	github.com/pressly/goose/v3 v3.30.0
 	github.com/prometheus/client_golang v1.25.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0

@@ -1,6 +1,6 @@
 module github.com/vbncursed/rosneft/backend/services/asset-service
 
-go 1.27.3
+go 1.27.4
 
 require (
 	github.com/gojuno/minimock/v3 v3.4.7

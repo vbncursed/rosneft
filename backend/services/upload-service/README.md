@@ -109,7 +109,7 @@ fakes — no infrastructure required.
 
 ## Toolchain & dependencies
 
-Go **1.27.3** — `go 1.27.3` in `go.mod`, build stage `golang:1.27.3-alpine`.
+Go **1.27.4** — `go 1.27.4` in `go.mod`, build stage `golang:1.27.4-alpine`.
 Versions are pinned identically across every module in the workspace; see
 [`backend/README.md#toolchain--dependencies`](../../README.md#toolchain--dependencies)
 for the repo-wide matrix and the upgrade procedure.

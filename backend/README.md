@@ -7,7 +7,7 @@ of 100+ MB ASCII files.
 
 ## Stack
 
-- **Go 1.27.3** — modern stdlib (`slices`, `maps`, `cmp`, `slog`, `errors.AsType`, `wg.Go`, `strings.SplitSeq`)
+- **Go 1.27.4** — modern stdlib (`slices`, `maps`, `cmp`, `slog`, `errors.AsType`, `wg.Go`, `strings.SplitSeq`)
 - **gRPC** — internal service-to-service
 - **REST + OpenAPI 3.2** — gateway → frontend (schema-first, `oapi-codegen` generates Go server stubs; frontend generates TS client from the same spec)
 - **PostgreSQL 17** — catalog + auth persistence (shared instance, separate tables / goose version table)
@@ -17,8 +17,8 @@ of 100+ MB ASCII files.
 - **Cobra + Viper** — CLI / config (flag > env > file > default)
 - **gltfpack** (built from `zeux/meshoptimizer` in the worker image) — meshopt / KTX2 / LOD encoder
 
-Every module pins `go 1.27.3` and every service image builds from
-`golang:1.27.3-alpine`. See [Toolchain & dependencies](#toolchain--dependencies)
+Every module pins `go 1.27.4` and every service image builds from
+`golang:1.27.4-alpine`. See [Toolchain & dependencies](#toolchain--dependencies)
 for the full pinned-version matrix.
 
 ## Services
@@ -103,13 +103,13 @@ backend/
 
 | Where | Value |
 | --- | --- |
-| `go.work` + all 12 `go.mod` files | `go 1.27.3` |
-| every service `Dockerfile` build stage | `golang:1.27.3-alpine` |
+| `go.work` + all 12 `go.mod` files | `go 1.27.4` |
+| every service `Dockerfile` build stage | `golang:1.27.4-alpine` |
 | runtime images | `gcr.io/distroless/static` (all services except mesh-worker) |
 | `mesh-worker` runtime image | `gcr.io/distroless/cc-debian12:nonroot` (glibc + libstdc++ for `gltfpack`) |
 
 No `toolchain` directive is pinned — the `go` line is the floor, and CI/dev use
-whatever ≥1.27.3 toolchain is installed. Bump procedure:
+whatever ≥1.27.4 toolchain is installed. Bump procedure:
 
 ```bash
 # 1. bump the language version everywhere
@@ -147,12 +147,15 @@ for m in pkg proto services/*; do (cd $m && GOWORK=off go list -m -u \
 | `github.com/spf13/cobra` | v1.10.2 | all services | CLI root command |
 | `github.com/spf13/viper` | v1.21.0 | all services | Layered config (flag > env > default) |
 | `github.com/jackc/pgx/v5` | v5.11.0 | auth, catalog, content, passkey, twofa | Postgres driver + pool |
-| `github.com/pressly/goose/v3` | v3.29.0 | auth, catalog, content, passkey, twofa | Embedded SQL migrations |
+| `github.com/pressly/goose/v3` | v3.30.0 | auth, catalog, content, passkey, twofa | Embedded SQL migrations |
 | `github.com/redis/go-redis/v9` | v9.23.0 | auth, mesh, passkey, twofa | Streams (mesh) / sessions / ceremony + rate-limit state |
 | `github.com/prometheus/client_golang` | v1.25.0 | pkg, auth, mesh, twofa, upload | `/metrics` exposition |
 | `github.com/gojuno/minimock/v3` | v3.4.7 | all services (test) | Generated interface mocks |
 | `github.com/stretchr/testify` | v1.12.1 | all (test) | `suite` grouping only |
 | `gotest.tools/v3` | v3.5.2 | all (test) | `assert` — the actual assertions |
+
+Goose v3.30.0 requires `github.com/mfridman/interpolate` v0.0.2. Its v0.2.0
+removes APIs goose uses, so upgrading that indirect dependency breaks the build.
 
 ### Per-module direct dependencies
 
@@ -160,7 +163,7 @@ for m in pkg proto services/*; do (cd $m && GOWORK=off go list -m -u \
 | --- | --- |
 | `pkg` | — (grpc + prometheus + test libs only) |
 | `proto` | — (grpc + protobuf only) |
-| `gateway-service` | `andybalholm/brotli` v1.3.0 · `getkin/kin-openapi` v0.153.0 · `go-chi/chi/v5` v5.5.0 · `go-chi/cors` v1.2.2 · `oapi-codegen/runtime` v1.8.0 · `samber/slog-chi` v1.19.1 · `golang.org/x/sync` v0.25.0 |
+| `gateway-service` | `andybalholm/brotli` v1.3.0 · `getkin/kin-openapi` v0.153.0 · `go-chi/chi/v5` v5.5.0 · `go-chi/cors` v1.2.2 · `oapi-codegen/runtime` v1.9.0 · `samber/slog-chi` v1.19.1 · `golang.org/x/sync` v0.25.0 |
 | `catalog-service` | — |
 | `content-service` | — |
 | `auth-service` | `golang.org/x/crypto` v0.58.0 (argon2id) |
@@ -176,7 +179,7 @@ Updated direct and indirect requirements across all 12 modules, including
 `andybalholm/brotli` 1.3.0, `getkin/kin-openapi` 0.153.0,
 `testcontainers-go` 0.45.0, `golang.org/x/image` 0.48.0 and
 `golang.org/x/sync` 0.25.0. The local `pkg` and `proto` replacements and
-Go 1.27.3 remain unchanged.
+Go 1.27.4 remain unchanged.
 
 ### 2026-10-30 refresh (compose images)
 
@@ -186,15 +189,15 @@ Go 1.27.3 remain unchanged.
 | `prom/prometheus` | v3.15.0 → **v3.15.1** (also the `PROMTOOL` image in `ops/Makefile`) |
 | `prom/alertmanager` | v0.34.1 → **v0.34.2** |
 
-`postgres` 18.6, `golang` 1.27.3-alpine and `node` 26-alpine are already the newest tags on Docker Hub.
+`postgres` 18.6, `golang` 1.27.4-alpine and `node` 26-alpine are already the newest tags on Docker Hub.
 `debian:12-slim` and the distroless `*-debian12` images stay on Debian 12 (the gltfpack build and the
 mesh-worker runtime must share a glibc).
 
-### 2026-10-20 refresh (Go 1.27.3)
+### 2026-10-20 refresh (Go 1.27.4)
 
 | Dependency / tool | From → To | Note |
 | --- | --- | --- |
-| Go | 1.27.2 → **1.27.3** | `go.work`, all 12 `go.mod`, every build stage `golang:1.27.3-alpine` |
+| Go | 1.27.2 → **1.27.4** | `go.work`, all 12 `go.mod`, every build stage `golang:1.27.4-alpine` |
 | `getkin/kin-openapi` | 0.149.0 → **0.151.0** | gateway |
 | `go-chi/chi/v5` | 5.3.2 → **5.5.0** | gateway |
 | indirect | | `genproto/googleapis/rpc` 20261019, `go-winio` 0.6.4, `purego` 0.11.2, `philhofer/fwd` 1.2.1 |
@@ -217,7 +220,7 @@ workspace off. `make -C backend check` is green on all 12 modules.
 
 golangci-lint 2.15.0 (CI pin), buf 1.74.0, oapi-codegen 2.8.1, minimock 3.4.7 and the
 protoc plugins (BSR remote, protoc-gen-go 1.36.12) are the latest releases; govulncheck is unpinned.
-Go 1.27.3 is the newest stable toolchain.
+Go 1.27.4 is the newest stable toolchain.
 Dependencies were upgraded by name per module, as in the 2026-09-29 section
 below, this time with every `Require` entry of `go.mod` at `@latest`, indirect
 ones included.
