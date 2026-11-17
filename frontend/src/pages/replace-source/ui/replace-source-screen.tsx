@@ -7,7 +7,7 @@ import { ReplaceSourcePage } from "./replace-source-page";
 
 /** Maps the container onto the props-only page. No dialogs of its own. */
 export function ReplaceSourceScreen() {
-  const { slug } = useParams({ strict: false }) as { slug: string };
+  const { slug }: { slug: string } = useParams({ strict: false });
   const s = useReplaceSource(slug);
 
   if (s.status === "loading") {

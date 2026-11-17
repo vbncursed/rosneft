@@ -50,7 +50,7 @@ describe("UploadTerritoryPage", () => {
     const onFiles = vi.fn();
     render(<UploadTerritoryPage {...props({ onFiles })} />);
     const file = new File(["x"], "a.zip");
-    const input = screen.getByLabelText("Drop a ZIP here") as HTMLInputElement;
+    const input = screen.getByLabelText<HTMLInputElement>("Drop a ZIP here");
     await userEvent.upload(input, file);
     expect(onFiles).toHaveBeenCalledWith([file]);
   });

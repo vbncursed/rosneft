@@ -13,8 +13,8 @@ import { viewerRoute } from "./guard";
  * into the viewer without a document load.
  */
 export function TerritoryRoute() {
-  const { slug } = useParams({ strict: false }) as { slug: string };
-  const { jobId } = useSearch({ strict: false }) as { jobId?: string };
+  const { slug }: { slug: string } = useParams({ strict: false });
+  const { jobId }: { jobId?: string } = useSearch({ strict: false });
   const { data } = useQuery(sceneQuery(slug));
   return viewerRoute(data, jobId) ? <TerritoryViewerScreen /> : <TerritoryConversionScreen />;
 }

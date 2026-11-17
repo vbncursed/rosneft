@@ -231,7 +231,7 @@ external Postgres or Redis is required for the unit suite.
 
 ## Toolchain & dependencies
 
-Go **1.27.3** — `go 1.27.3` in `go.mod`, build stage `golang:1.27.3-alpine`.
+Go **1.27.4** — `go 1.27.4` in `go.mod`, build stage `golang:1.27.4-alpine`.
 Versions are pinned identically across every module in the workspace; see
 [`backend/README.md#toolchain--dependencies`](../../README.md#toolchain--dependencies)
 for the repo-wide matrix and the upgrade procedure.
@@ -240,7 +240,7 @@ for the repo-wide matrix and the upgrade procedure.
 | --- | --- | --- |
 | `github.com/gojuno/minimock/v3` | v3.4.7 | Generated interface mocks (test) |
 | `github.com/jackc/pgx/v5` | v5.11.0 | Postgres driver + connection pool |
-| `github.com/pressly/goose/v3` | v3.28.0 | Embedded SQL migrations |
+| `github.com/pressly/goose/v3` | v3.30.0 | Embedded SQL migrations |
 | `github.com/prometheus/client_golang` | v1.24.1 | Prometheus `/metrics` exposition |
 | `github.com/redis/go-redis/v9` | v9.21.0 | Session store + auth cache (logical DB 1) |
 | `github.com/spf13/cobra` | v1.10.2 | CLI root command / flag definitions |

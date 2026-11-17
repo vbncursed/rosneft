@@ -321,7 +321,7 @@ assertions (the project-wide convention).
 
 ## Toolchain & dependencies
 
-Go **1.27.3** — `go 1.27.3` in `go.mod`, build stage `golang:1.27.3-alpine`.
+Go **1.27.4** — `go 1.27.4` in `go.mod`, build stage `golang:1.27.4-alpine`.
 Versions are pinned identically across every module in the workspace; see
 [`backend/README.md#toolchain--dependencies`](../../README.md#toolchain--dependencies)
 for the repo-wide matrix and the upgrade procedure.
@@ -333,7 +333,7 @@ for the repo-wide matrix and the upgrade procedure.
 | `github.com/go-chi/chi/v5` | v5.3.1 | HTTP router |
 | `github.com/go-chi/cors` | v1.2.2 | CORS middleware |
 | `github.com/gojuno/minimock/v3` | v3.4.7 | Generated interface mocks (test) |
-| `github.com/oapi-codegen/runtime` | v1.6.0 | Runtime for the generated server stubs |
+| `github.com/oapi-codegen/runtime` | v1.9.0 | Runtime for the generated server stubs |
 | `github.com/samber/slog-chi` | v1.19.1 | slog request-logging middleware |
 | `github.com/spf13/cobra` | v1.10.2 | CLI root command / flag definitions |
 | `github.com/spf13/viper` | v1.21.0 | Layered config (flag > env > default) |

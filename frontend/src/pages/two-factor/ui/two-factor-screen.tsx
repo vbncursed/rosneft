@@ -14,7 +14,7 @@ import { TwoFactorPage } from "./two-factor-page";
  * show one flow's codes under the other's headings.
  */
 export function TwoFactorScreen() {
-  const { mode } = useSearch({ strict: false }) as { mode?: string };
+  const { mode }: { mode?: string } = useSearch({ strict: false });
   const flow: Flow = mode === "regenerate" ? "regenerate" : "enable";
   return <Wizard key={flow} flow={flow} />;
 }

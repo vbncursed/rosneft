@@ -151,13 +151,13 @@ internal/
 
 ## Toolchain & dependencies
 
-Go **1.27.3** (`go 1.27.3` in `go.mod`; image `golang:1.27.3-alpine`).
+Go **1.27.4** (`go 1.27.4` in `go.mod`; image `golang:1.27.4-alpine`).
 
 | Module | Version | Role |
 | --- | --- | --- |
 | `github.com/go-webauthn/webauthn` | v0.18.1 | WebAuthn ceremony + assertion verification |
 | `github.com/jackc/pgx/v5` | v5.11.0 | Postgres driver / pool |
-| `github.com/pressly/goose/v3` | v3.28.0 | Embedded migrations |
+| `github.com/pressly/goose/v3` | v3.30.0 | Embedded migrations |
 | `github.com/redis/go-redis/v9` | v9.21.0 | Ceremony state (DB 3) |
 | `github.com/spf13/cobra` | v1.10.2 | CLI |
 | `github.com/spf13/viper` | v1.21.0 | Layered config |

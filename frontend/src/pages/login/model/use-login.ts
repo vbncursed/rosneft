@@ -45,7 +45,7 @@ export function useLogin(): LoginPageProps {
   // Untyped: the login route declares no validateSearch, and reading it this
   // way avoids reaching into `@/app/router` for the route id, which pages may
   // not import.
-  const search = useSearch({ strict: false }) as { next?: string };
+  const search: { next?: string } = useSearch({ strict: false });
   const target = nextTarget(search.next);
 
   const [step, setStep] = useState<LoginStep>("credentials");

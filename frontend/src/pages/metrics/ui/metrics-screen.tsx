@@ -32,7 +32,7 @@ export function MetricsScreen() {
   // `strict: false` types the search loosely — the route's own validateSearch
   // is what guarantees the shape, and `pages` may not import `app` to borrow
   // its typed hook.
-  const { range } = useSearch({ strict: false }) as { range: MetricsRange };
+  const { range }: { range: MetricsRange } = useSearch({ strict: false });
   const navigate = useNavigate();
   const s = useMetrics(range);
 

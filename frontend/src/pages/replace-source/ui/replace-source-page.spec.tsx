@@ -57,7 +57,7 @@ describe("ReplaceSourcePage", () => {
     const onFiles = vi.fn();
     render(<ReplaceSourcePage {...props({ onFiles })} />);
     const file = new File(["x"], "rev4.zip");
-    const input = screen.getByLabelText("Drop the new ZIP here") as HTMLInputElement;
+    const input = screen.getByLabelText<HTMLInputElement>("Drop the new ZIP here");
     await userEvent.upload(input, file);
     expect(onFiles).toHaveBeenCalledWith([file]);
   });

@@ -48,8 +48,8 @@ function conversionState(s: Exclude<TerritoryConversionState, { status: "missing
  * flex-1 has the height to centre in.
  */
 export function TerritoryConversionScreen() {
-  const { slug } = useParams({ strict: false }) as { slug: string };
-  const { jobId } = useSearch({ strict: false }) as { jobId?: string };
+  const { slug }: { slug: string } = useParams({ strict: false });
+  const { jobId }: { jobId?: string } = useSearch({ strict: false });
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col overflow-auto px-4 pb-[72px] pt-8 sm:px-9">
       <TerritoryConversionBody key={slug} slug={slug} jobId={jobId ?? null} />

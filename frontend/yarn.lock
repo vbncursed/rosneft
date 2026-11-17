@@ -458,44 +458,44 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@oxlint-tsgolint/darwin-arm64@npm:7.0.2006":
-  version: 7.0.2006
-  resolution: "@oxlint-tsgolint/darwin-arm64@npm:7.0.2006"
+"@oxlint-tsgolint/darwin-arm64@npm:7.0.2007":
+  version: 7.0.2007
+  resolution: "@oxlint-tsgolint/darwin-arm64@npm:7.0.2007"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"@oxlint-tsgolint/darwin-x64@npm:7.0.2006":
-  version: 7.0.2006
-  resolution: "@oxlint-tsgolint/darwin-x64@npm:7.0.2006"
+"@oxlint-tsgolint/darwin-x64@npm:7.0.2007":
+  version: 7.0.2007
+  resolution: "@oxlint-tsgolint/darwin-x64@npm:7.0.2007"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"@oxlint-tsgolint/linux-arm64@npm:7.0.2006":
-  version: 7.0.2006
-  resolution: "@oxlint-tsgolint/linux-arm64@npm:7.0.2006"
+"@oxlint-tsgolint/linux-arm64@npm:7.0.2007":
+  version: 7.0.2007
+  resolution: "@oxlint-tsgolint/linux-arm64@npm:7.0.2007"
   conditions: os=linux & cpu=arm64
   languageName: node
   linkType: hard
 
-"@oxlint-tsgolint/linux-x64@npm:7.0.2006":
-  version: 7.0.2006
-  resolution: "@oxlint-tsgolint/linux-x64@npm:7.0.2006"
+"@oxlint-tsgolint/linux-x64@npm:7.0.2007":
+  version: 7.0.2007
+  resolution: "@oxlint-tsgolint/linux-x64@npm:7.0.2007"
   conditions: os=linux & cpu=x64
   languageName: node
   linkType: hard
 
-"@oxlint-tsgolint/win32-arm64@npm:7.0.2006":
-  version: 7.0.2006
-  resolution: "@oxlint-tsgolint/win32-arm64@npm:7.0.2006"
+"@oxlint-tsgolint/win32-arm64@npm:7.0.2007":
+  version: 7.0.2007
+  resolution: "@oxlint-tsgolint/win32-arm64@npm:7.0.2007"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"@oxlint-tsgolint/win32-x64@npm:7.0.2006":
-  version: 7.0.2006
-  resolution: "@oxlint-tsgolint/win32-x64@npm:7.0.2006"
+"@oxlint-tsgolint/win32-x64@npm:7.0.2007":
+  version: 7.0.2007
+  resolution: "@oxlint-tsgolint/win32-x64@npm:7.0.2007"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
@@ -1138,12 +1138,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@testing-library/user-event@npm:^14.6.8":
-  version: 14.6.8
-  resolution: "@testing-library/user-event@npm:14.6.8"
+"@testing-library/user-event@npm:^14.6.12":
+  version: 14.6.12
+  resolution: "@testing-library/user-event@npm:14.6.12"
   peerDependencies:
     "@testing-library/dom": ">=7.21.4"
-  checksum: 10c0/374bbf9f477fdc278f4bf56d6a27f88b1801c90cce9dffc414777dbf33fb1e421efc7341ee169cb286435bb742076a7899bb463c9927d2acca95aafaa5324820
+  checksum: 10c0/6b5b1c8219a17b00d6fcc968f9d257a62d3be3a5fa05b9373d26a965e272613f8a58c3d716b8ba226741fd1c77ecced6db23118020813ed2731e73ab944edbe3
   languageName: node
   linkType: hard
 
@@ -2384,7 +2384,7 @@ __metadata:
     "@testing-library/dom": "npm:^10.4.2"
     "@testing-library/jest-dom": "npm:^7.0.1"
     "@testing-library/react": "npm:^16.3.3"
-    "@testing-library/user-event": "npm:^14.6.8"
+    "@testing-library/user-event": "npm:^14.6.12"
     "@types/node": "npm:^26.6.6"
     "@types/react": "npm:~19.3.0"
     "@types/react-dom": "npm:~19.3.0"
@@ -2393,11 +2393,11 @@ __metadata:
     "@vitest/coverage-v8": "npm:^5.1.0"
     class-variance-authority: "npm:^0.7.1"
     clsx: "npm:^2.1.1"
-    jsdom: "npm:^31.0.0"
+    jsdom: "npm:^31.0.1"
     jsfeat: "npm:0.0.8"
     oxfmt: "npm:0.78.0"
     oxlint: "npm:1.93.0"
-    oxlint-tsgolint: "npm:7.0.2006"
+    oxlint-tsgolint: "npm:7.0.2007"
     qrcode.react: "npm:^4.2.0"
     react: "npm:~19.3.1"
     react-cosmos: "npm:^7.4.1"
@@ -2408,7 +2408,7 @@ __metadata:
     three-mesh-bvh: "npm:0.9.18"
     three-stdlib: "npm:2.36.1"
     typescript: "npm:7.0.2"
-    vite: "npm:^8.3.7"
+    vite: "npm:^8.3.8"
     vitest: "npm:^5.1.0"
   languageName: unknown
   linkType: soft
@@ -2846,9 +2846,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jsdom@npm:^31.0.0":
-  version: 31.0.0
-  resolution: "jsdom@npm:31.0.0"
+"jsdom@npm:^31.0.1":
+  version: 31.0.1
+  resolution: "jsdom@npm:31.0.1"
   dependencies:
     "@exodus/bytes": "npm:^1.16.0"
     bcp-47: "npm:^2.1.2"
@@ -2873,7 +2873,7 @@ __metadata:
   peerDependenciesMeta:
     "@napi-rs/canvas":
       optional: true
-  checksum: 10c0/e7240d72bfd6aab3e06ef2bcbd9656e39011707958d57b30c25caf840503a433ba56ba384f43e07938125f49e835f679856db58a9f762496a1811ec6ab580740
+  checksum: 10c0/e0f5567543401f2897984682a4139e42b8190fe8ed3f5d53f7e391333cb98b553870018685dbea5eb98549649ac8d5980800a774729a19aabca6fa0fd2b5f83d
   languageName: node
   linkType: hard
 
@@ -3361,16 +3361,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"oxlint-tsgolint@npm:7.0.2006":
-  version: 7.0.2006
-  resolution: "oxlint-tsgolint@npm:7.0.2006"
+"oxlint-tsgolint@npm:7.0.2007":
+  version: 7.0.2007
+  resolution: "oxlint-tsgolint@npm:7.0.2007"
   dependencies:
-    "@oxlint-tsgolint/darwin-arm64": "npm:7.0.2006"
-    "@oxlint-tsgolint/darwin-x64": "npm:7.0.2006"
-    "@oxlint-tsgolint/linux-arm64": "npm:7.0.2006"
-    "@oxlint-tsgolint/linux-x64": "npm:7.0.2006"
-    "@oxlint-tsgolint/win32-arm64": "npm:7.0.2006"
-    "@oxlint-tsgolint/win32-x64": "npm:7.0.2006"
+    "@oxlint-tsgolint/darwin-arm64": "npm:7.0.2007"
+    "@oxlint-tsgolint/darwin-x64": "npm:7.0.2007"
+    "@oxlint-tsgolint/linux-arm64": "npm:7.0.2007"
+    "@oxlint-tsgolint/linux-x64": "npm:7.0.2007"
+    "@oxlint-tsgolint/win32-arm64": "npm:7.0.2007"
+    "@oxlint-tsgolint/win32-x64": "npm:7.0.2007"
   dependenciesMeta:
     "@oxlint-tsgolint/darwin-arm64":
       optional: true
@@ -3386,7 +3386,7 @@ __metadata:
       optional: true
   bin:
     tsgolint: ./bin/tsgolint.js
-  checksum: 10c0/ee532b7ca42bc373b019eaa79bf899e925b86ad74d3fe4368528b950a397991e0ac78562d1a01b6fe5f6083d12588c18a69b9a0410ae240bf8cddf8e2e6c117f
+  checksum: 10c0/bd18daa58909dd0f1b7e17d302c7e04d316e84166e74854add9467f29c4aebcd7e58dba6ac29d953678fb06023bddef2e62bfbc2585ed64ef3ab0b99580a4f4d
   languageName: node
   linkType: hard
 
@@ -4620,9 +4620,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite@npm:^8.3.7":
-  version: 8.3.7
-  resolution: "vite@npm:8.3.7"
+"vite@npm:^8.3.8":
+  version: 8.3.8
+  resolution: "vite@npm:8.3.8"
   dependencies:
     fsevents: "npm:~2.3.3"
     lightningcss: "npm:^1.33.0"
@@ -4673,7 +4673,7 @@ __metadata:
       optional: true
   bin:
     vite: bin/vite.js
-  checksum: 10c0/5433e9c0120edd79479e02d943bcde19ecd74be4c6e8e220bdb120693229425858620d07665baa4adafbcc3d1096a70c86ef179653fa310d777aaed8f6fe74cf
+  checksum: 10c0/21bf5b04159214fbc9f42e297afd26398a3630704959f85290e8b8eb9cac49be20a6a37a5765bfdb997b606c21ccba99f991671f81c5da5a590ae5cedad3e127
   languageName: node
   linkType: hard
 
