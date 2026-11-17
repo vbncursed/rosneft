@@ -146,16 +146,16 @@ for m in pkg proto services/*; do (cd $m && GOWORK=off go list -m -u \
 | `google.golang.org/protobuf` | v1.36.12 | proto, auth, catalog, content, mesh | Generated message runtime |
 | `github.com/spf13/cobra` | v1.10.2 | all services | CLI root command |
 | `github.com/spf13/viper` | v1.21.0 | all services | Layered config (flag > env > default) |
-| `github.com/jackc/pgx/v5` | v5.11.0 | auth, catalog, content, passkey, twofa | Postgres driver + pool |
-| `github.com/pressly/goose/v3` | v3.30.0 | auth, catalog, content, passkey, twofa | Embedded SQL migrations |
+| `github.com/jackc/pgx/v5` | v5.13.0 | pkg, auth, audit, catalog, content, passkey, twofa | Postgres driver + pool |
+| `github.com/pressly/goose/v3` | v3.30.1 | auth, audit, catalog, content, passkey, twofa | Embedded SQL migrations |
 | `github.com/redis/go-redis/v9` | v9.23.0 | auth, mesh, passkey, twofa | Streams (mesh) / sessions / ceremony + rate-limit state |
 | `github.com/prometheus/client_golang` | v1.25.0 | pkg, auth, mesh, twofa, upload | `/metrics` exposition |
 | `github.com/gojuno/minimock/v3` | v3.4.7 | all services (test) | Generated interface mocks |
 | `github.com/stretchr/testify` | v1.12.1 | all (test) | `suite` grouping only |
 | `gotest.tools/v3` | v3.5.2 | all (test) | `assert` — the actual assertions |
 
-Goose v3.30.0 requires `github.com/mfridman/interpolate` v0.0.2. Its v0.2.0
-removes APIs goose uses, so upgrading that indirect dependency breaks the build.
+Goose v3.30.1 supports `github.com/mfridman/interpolate` v0.2.0, fixing the
+build incompatibility that kept Goose v3.30.0 on interpolate v0.0.2.
 
 ### Per-module direct dependencies
 
@@ -166,12 +166,31 @@ removes APIs goose uses, so upgrading that indirect dependency breaks the build.
 | `gateway-service` | `andybalholm/brotli` v1.3.0 · `getkin/kin-openapi` v0.153.0 · `go-chi/chi/v5` v5.5.0 · `go-chi/cors` v1.2.2 · `oapi-codegen/runtime` v1.9.0 · `samber/slog-chi` v1.19.1 · `golang.org/x/sync` v0.25.0 |
 | `catalog-service` | — |
 | `content-service` | — |
-| `auth-service` | `golang.org/x/crypto` v0.58.0 (argon2id) |
+| `auth-service` | `golang.org/x/crypto` v0.59.0 (argon2id) |
 | `twofa-service` | `pquerna/otp` v1.5.0 (TOTP) |
 | `passkey-service` | `go-webauthn/webauthn` v0.18.2 |
 | `mesh-service` | `qmuntal/gltf` v0.29.0 (GLB writer) |
 | `upload-service` | — |
 | `asset-service` | — (does not import `proto`; HTTP-only) |
+
+### 2026-11-17 refresh (Go modules)
+
+Updated existing requirements to the latest published versions within their
+current module paths across all 12 modules, including integration-test
+dependencies. Go 1.27.4 and the local `pkg`/`proto` replacements stay unchanged.
+
+| Dependency | From → To |
+| --- | --- |
+| `github.com/jackc/pgx/v5` | v5.12.0 → v5.13.0 |
+| `github.com/pressly/goose/v3` | v3.30.0 → v3.30.1 |
+| `golang.org/x/crypto` | v0.58.0 → v0.59.0 |
+| `github.com/jackc/puddle/v2` | v2.2.3 → v2.2.4 |
+| `github.com/magiconair/properties` | v1.18.12 → v1.18.13 |
+| `github.com/mfridman/interpolate` | v0.0.2 → v0.2.0 |
+| `github.com/moby/moby/api` | v1.56.1 → v1.57.0 |
+| `github.com/moby/moby/client` | v0.6.2 → v0.6.3 |
+| `github.com/prometheus/common` | v0.73.1 → v0.74.0 |
+| `google.golang.org/genproto/googleapis/rpc` | 20261110-09e21b237f2c → 20261116-fd2c7689a808 |
 
 ### 2026-11-10 refresh (Go modules)
 
