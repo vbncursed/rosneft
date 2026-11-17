@@ -82,7 +82,7 @@ function ViewerBody({ slug }: { slug: string }) {
  * take the form that `onPlace` opens with it.
  */
 export function TerritoryViewerScreen() {
-  const { slug } = useParams({ strict: false }) as { slug: string };
+  const { slug }: { slug: string } = useParams({ strict: false });
   const seeded = useSceneSeeded(slug);
   return <ViewerBody key={`${slug}:${seeded}`} slug={slug} />;
 }

@@ -10,7 +10,7 @@ import { ModelDetailPage } from "./model-detail-page";
 
 /** Maps the container onto the page — loading skeleton, not-found, unavailable, or the page plus its delete dialog. */
 export function ModelDetailScreen() {
-  const { slug } = useParams({ strict: false }) as { slug: string };
+  const { slug }: { slug: string } = useParams({ strict: false });
   const s = useModelDetail(slug);
   const [editing, setEditing] = useState(false);
 

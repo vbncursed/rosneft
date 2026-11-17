@@ -105,7 +105,7 @@ describe("CreateUserDialog", () => {
       </>,
     );
     await userEvent.click(screen.getByRole("button", { name: "Generate" }));
-    const input = screen.getByLabelText(/^Password/) as HTMLInputElement;
+    const input = screen.getByLabelText<HTMLInputElement>(/^Password/);
     expect(input.type).toBe("text");
     expect(validatePassword(input.value)).toBeNull();
     expect(copyText).toHaveBeenCalledWith(input.value);

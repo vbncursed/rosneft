@@ -48,7 +48,7 @@ describe("UploadModal", () => {
     expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("Add a panorama to Refinery Block C");
     // The heading names the dialog, so the × sits beside it and not in it.
     expect(screen.getByRole("dialog", { name: "Add a panorama to Refinery Block C" })).toBeInTheDocument();
-    const input = screen.getByLabelText("Drop one equirectangular photo here") as HTMLInputElement;
+    const input = screen.getByLabelText<HTMLInputElement>("Drop one equirectangular photo here");
     expect(input.accept).toBe(".jpg,.jpeg,.png");
     expect(screen.getByText("JPG or PNG · 2:1 ratio · single file")).toBeInTheDocument();
     expect(screen.getByText("Choose file")).toBeInTheDocument();
@@ -127,7 +127,7 @@ describe("UploadModal", () => {
     draw({ kind: "document", gps: undefined });
 
     expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("Add a document to Refinery Block C");
-    const input = screen.getByLabelText("Drop one PDF here") as HTMLInputElement;
+    const input = screen.getByLabelText<HTMLInputElement>("Drop one PDF here");
     expect(input.accept).toBe(".pdf");
     expect(screen.getByText("PDF · single file · shown as a viewport overlay")).toBeInTheDocument();
     expect(screen.getByLabelText("Title")).toHaveAttribute("placeholder", "e.g. Fire safety zones");

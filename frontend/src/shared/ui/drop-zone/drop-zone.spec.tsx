@@ -16,7 +16,7 @@ describe("DropZone", () => {
         onFiles={onFiles}
       />,
     );
-    const input = screen.getByLabelText("Drop ZIP archives here") as HTMLInputElement;
+    const input = screen.getByLabelText<HTMLInputElement>("Drop ZIP archives here");
     expect(input.accept).toBe(".zip");
     expect(input.multiple).toBe(true);
     const a = new File(["x"], "a.zip");
@@ -35,7 +35,7 @@ describe("DropZone", () => {
         onFiles={vi.fn()}
       />,
     );
-    const input = screen.getByLabelText("Drop ZIP archives here") as HTMLInputElement;
+    const input = screen.getByLabelText<HTMLInputElement>("Drop ZIP archives here");
     await userEvent.upload(input, new File(["x"], "a.zip"));
     expect(input.value).toBe("");
   });
@@ -111,7 +111,7 @@ describe("DropZone", () => {
         onFiles={vi.fn()}
       />,
     );
-    const input = screen.getByLabelText("Drop ZIP archives here") as HTMLInputElement;
+    const input = screen.getByLabelText<HTMLInputElement>("Drop ZIP archives here");
     const clickSpy = vi.spyOn(input, "click").mockImplementation(() => {});
     const zone = input.closest("label")!;
     fireEvent.keyDown(zone, { key: "Enter" });
@@ -128,7 +128,7 @@ describe("DropZone", () => {
         onFiles={vi.fn()}
       />,
     );
-    const input = screen.getByLabelText("Drop ZIP archives here") as HTMLInputElement;
+    const input = screen.getByLabelText<HTMLInputElement>("Drop ZIP archives here");
     const zone = input.closest("label")!;
     expect(zone.className).toContain("focus-visible:outline-2");
     expect(zone.className).toContain("focus-visible:outline-accent");
@@ -144,7 +144,7 @@ describe("DropZone", () => {
         onFiles={vi.fn()}
       />,
     );
-    const input = screen.getByLabelText("Drop ZIP archives here") as HTMLInputElement;
+    const input = screen.getByLabelText<HTMLInputElement>("Drop ZIP archives here");
     expect(input.tabIndex).toBe(-1);
   });
 
@@ -161,7 +161,7 @@ describe("DropZone", () => {
       />,
     );
     const zone = container.firstElementChild as HTMLElement;
-    const input = screen.getByLabelText("Drop ZIP archives here") as HTMLInputElement;
+    const input = screen.getByLabelText<HTMLInputElement>("Drop ZIP archives here");
     expect(input.disabled).toBe(true);
 
     const file = new File(["x"], "a.zip");

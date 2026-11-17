@@ -23,11 +23,11 @@
   "devDependencies": {
     "@electron/osx-sign": "2.7.2",
     "@types/node": "^24.19.2",
-    "electron": "45.3.0",
+    "electron": "45.3.2",
     "electron-builder": "26.18.1",
     "oxfmt": "0.78.0",
     "oxlint": "1.93.0",
-    "oxlint-tsgolint": "7.0.2006",
+    "oxlint-tsgolint": "7.0.2007",
     "typescript": "7.0.2",
     "vite": "^8.3.8",
     "vitest": "5.1.0"

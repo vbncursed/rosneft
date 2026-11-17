@@ -80,7 +80,7 @@ describe("UploadModelsPage", () => {
   it("drops several files at once onto onFiles", async () => {
     const onFiles = vi.fn();
     render(<UploadModelsPage {...props({ onFiles })} />);
-    const input = screen.getByLabelText("Drop ZIP archives here") as HTMLInputElement;
+    const input = screen.getByLabelText<HTMLInputElement>("Drop ZIP archives here");
     expect(input).toHaveAttribute("multiple");
     const a = new File(["x"], "a.zip");
     const b = new File(["x"], "b.zip");
