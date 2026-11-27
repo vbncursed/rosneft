@@ -39,6 +39,13 @@
       "rules": { "react/only-export-components": "off" }
     },
     {
+      "files": ["src/widgets/viewer-canvas/three/*.spec.ts", "src/widgets/viewer-canvas/three/*.spec.tsx"],
+      "rules": {
+        // The R3F test renderer exposes scene nodes through a broad instance type, and control probes use test doubles.
+        "typescript/no-unsafe-class-instance-assignment": "off"
+      }
+    },
+    {
       "files": ["**/*.spec.ts", "**/*.spec.tsx", "**/*.fixture.tsx", "src/shared/lib/test-setup.ts"],
       "rules": {
         // `expect(mock.method)` is the vitest idiom.

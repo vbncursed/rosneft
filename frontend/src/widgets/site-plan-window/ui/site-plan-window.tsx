@@ -43,8 +43,9 @@ export function SitePlanWindow({ frame, title = "Site plan", ...plan }: SitePlan
   const press = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const touched = useRef(false);
   const drawStart = useRef<Pt | null>(null);
-  const [drawEnd, setDrawEnd] = useState<Pt | null>(null);
+  const [preview, setPreview] = useState<{ start: Pt; end: Pt } | null>(null);
   const [view, setView] = useState<View>({ k: 1, x: 0, y: 0 });
+  const { width, height } = pageSize;
 
   const local = (clientX: number, clientY: number): Pt => {
     const r = box.current?.getBoundingClientRect();
@@ -55,20 +56,22 @@ export function SitePlanWindow({ frame, title = "Site plan", ...plan }: SitePlan
 
   useLayoutEffect(() => {
     touched.current = false;
-    fit();
     const el = box.current;
     if (!el) return;
-    const watch = new ResizeObserver(() => !touched.current && fit());
+    // Fit to the mounted element before the browser paints the sheet.
+    const fitted = () => fitView({ w: el.clientWidth, h: el.clientHeight }, { width, height });
+    setView(fitted());
+    const watch = new ResizeObserver(() => !touched.current && setView(fitted()));
     watch.observe(el);
     return () => watch.disconnect();
-    // The sheet refits when the page (and so its size) changes, not on every render.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- fit reads only refs and pageSize
-  }, [pageSize.width, pageSize.height]);
+  }, [box, width, height]);
 
   useLayoutEffect(() => {
     press.current = null;
     drawStart.current = null;
-    setDrawEnd(null);
+    // oxlint-disable-next-line react/set-state-in-effect -- clear the preview with the captured gesture before paint
+    setPreview(null);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- page and tool changes invalidate the active gesture
   }, [plan.drawing, plan.fenceDrawing, plan.placing, plan.pageKey]);
 
   useEffect(() => {
@@ -76,7 +79,7 @@ export function SitePlanWindow({ frame, title = "Site plan", ...plan }: SitePlan
     if (!el || !image) return;
     [el.width, el.height] = [image.width, image.height];
     el.getContext("2d")?.drawImage(image, 0, 0);
-  }, [image]);
+  }, [canvas, image]);
 
   const change = (next: View) => {
     touched.current = true;
@@ -86,19 +89,21 @@ export function SitePlanWindow({ frame, title = "Site plan", ...plan }: SitePlan
     if ((e.target as HTMLElement).closest("button")) return;
     if (plan.drawing && e.button === 0) {
       e.currentTarget.setPointerCapture?.(e.pointerId);
-      drawStart.current = toPage(view, local(e.clientX, e.clientY));
-      setDrawEnd(drawStart.current);
+      const start = toPage(view, local(e.clientX, e.clientY));
+      drawStart.current = start;
+      setPreview({ start, end: start });
       return;
     }
     e.currentTarget.setPointerCapture?.(e.pointerId);
     press.current = { x: e.clientX, y: e.clientY, moved: false };
   };
   const move = (e: PointerEvent) => {
-    if (drawStart.current) {
+    const start = drawStart.current;
+    if (start) {
       if (e.buttons === 0) {
         drawStart.current = null;
-        setDrawEnd(null);
-      } else setDrawEnd(toPage(view, local(e.clientX, e.clientY)));
+        setPreview(null);
+      } else setPreview({ start, end: toPage(view, local(e.clientX, e.clientY)) });
       return;
     }
     const p = press.current;
@@ -113,7 +118,7 @@ export function SitePlanWindow({ frame, title = "Site plan", ...plan }: SitePlan
     if (drawStart.current) {
       if (plan.drawing) plan.onDrawRect?.(drawStart.current, toPage(view, local(e.clientX, e.clientY)));
       drawStart.current = null;
-      setDrawEnd(null);
+      setPreview(null);
       return;
     }
     const p = press.current;
@@ -123,7 +128,7 @@ export function SitePlanWindow({ frame, title = "Site plan", ...plan }: SitePlan
   const endPress = () => {
     press.current = null;
     drawStart.current = null;
-    setDrawEnd(null);
+    setPreview(null);
   };
   // Scaled by the delta, so a trackpad's stream of small events zooms gently.
   const wheel = (e: WheelEvent) => {
@@ -173,9 +178,7 @@ export function SitePlanWindow({ frame, title = "Site plan", ...plan }: SitePlan
             pageSize={pageSize}
             k={view.k}
           />
-          {drawStart.current && drawEnd ? (
-            <DrawingOverlay start={drawStart.current} end={drawEnd} pageSize={pageSize} />
-          ) : null}
+          {preview ? <DrawingOverlay {...preview} pageSize={pageSize} /> : null}
           <div className={plan.drawing || plan.fenceDrawing ? "pointer-events-none" : undefined}>
             <PairMarkers
               pairs={plan.pairs}

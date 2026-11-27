@@ -1,5 +1,5 @@
 import { memo, type Ref, useCallback, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { Group, Mesh, Object3D } from "three";
+import type { Group, Object3D } from "three";
 import type { ThreeEvent } from "@react-three/fiber";
 import { useCursor, useGLTF } from "@react-three/drei";
 import { SkeletonUtils } from "three-stdlib";
@@ -7,6 +7,7 @@ import type { ResolvedPlacement } from "@/entities/placement";
 import { useProgressiveLod } from "@/features/lod";
 import { CLICK_SLOP_PX } from "../model/free-cam";
 import { extendGltfLoader } from "./gltf-loader-setup";
+import { isMesh } from "./is-mesh";
 import LodWarmer from "./lod-warmer";
 import LodErrorBoundary from "./lod-error-boundary";
 import { useAutoLod } from "./use-auto-lod";
@@ -93,9 +94,8 @@ function PlacementBody({ placement, url, measureMode, onSelect, ref }: Placement
   // a BVH per geometry (shared by every clone of the model) keeps them cheap,
   // as gltf-model.tsx does for the territory.
   useLayoutEffect(() => {
-    cloned.traverse((o) => {
-      const m = o as Mesh;
-      if (m.isMesh && !m.geometry.boundsTree) m.geometry.computeBoundsTree();
+    cloned.traverse((m) => {
+      if (isMesh(m) && !m.geometry.boundsTree) m.geometry.computeBoundsTree();
     });
   }, [cloned]);
   const groupRef = useRef<Group>(null);

@@ -71,6 +71,7 @@ export default function CameraRig({ resetVersion, playing, onPlayStop, sceneRef 
 
     // makeDefault-equivalent: PlacementsLayer reads controls via
     // useThree(s => s.controls) to disable rotation during a gizmo drag.
+    // oxlint-disable-next-line typescript/no-unsafe-class-instance-assignment -- three-stdlib's OrbitControls implements Fiber's EventDispatcher contract
     set({ controls });
 
     let frame = 0;

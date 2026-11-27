@@ -5,6 +5,7 @@ import { pickCoarsest, pickLod, type LodArtifact, type LodChoice } from "@/entit
 import { lodProgress, lodUrl, useLodDownload, useProgressiveLod } from "@/features/lod";
 import type { LodReport } from "../ui/props";
 import { extendGltfLoader } from "./gltf-loader-setup";
+import { isMesh } from "./is-mesh";
 import LodWarmer from "./lod-warmer";
 import LodErrorBoundary from "./lod-error-boundary";
 import { useAutoLod } from "./use-auto-lod";
@@ -64,9 +65,8 @@ function GltfPrimitive({
   // false. After that we only swap m.raycast between noop and the cached
   // origRaycast — never overwrite userData.origRaycast again.
   useLayoutEffect(() => {
-    scene.traverse((o) => {
-      const m = o as Mesh;
-      if (!m.isMesh) return;
+    scene.traverse((m) => {
+      if (!isMesh(m)) return;
       // Build a BVH once per geometry. acceleratedRaycast (set globally in
       // gltf-loader-setup.ts) reads geometry.boundsTree and falls back to
       // the stock per-triangle scan when absent, so this is the place that
