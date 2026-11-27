@@ -147,8 +147,8 @@ for m in pkg proto services/*; do (cd $m && GOWORK=off go list -m -u \
 | `github.com/spf13/cobra` | v1.10.2 | all services | CLI root command |
 | `github.com/spf13/viper` | v1.21.0 | all services | Layered config (flag > env > default) |
 | `github.com/jackc/pgx/v5` | v5.13.0 | pkg, auth, audit, catalog, content, passkey, twofa | Postgres driver + pool |
-| `github.com/pressly/goose/v3` | v3.30.1 | auth, audit, catalog, content, passkey, twofa | Embedded SQL migrations |
-| `github.com/redis/go-redis/v9` | v9.23.0 | auth, mesh, passkey, twofa | Streams (mesh) / sessions / ceremony + rate-limit state |
+| `github.com/pressly/goose/v3` | v3.30.2 | auth, audit, catalog, content, passkey, twofa | Embedded SQL migrations |
+| `github.com/redis/go-redis/v9` | v9.24.0 | pkg, auth, mesh, passkey, twofa | Streams (mesh) / sessions / ceremony + rate-limit state |
 | `github.com/prometheus/client_golang` | v1.25.0 | pkg, auth, mesh, twofa, upload | `/metrics` exposition |
 | `github.com/gojuno/minimock/v3` | v3.4.7 | all services (test) | Generated interface mocks |
 | `github.com/stretchr/testify` | v1.12.1 | all (test) | `suite` grouping only |
@@ -161,9 +161,9 @@ build incompatibility that kept Goose v3.30.0 on interpolate v0.0.2.
 
 | Module | Beyond the shared set above |
 | --- | --- |
-| `pkg` | — (grpc + prometheus + test libs only) |
+| `pkg` | `alicebob/miniredis/v2` v2.41.0 (Redis tests) |
 | `proto` | — (grpc + protobuf only) |
-| `gateway-service` | `andybalholm/brotli` v1.3.0 · `getkin/kin-openapi` v0.153.0 · `go-chi/chi/v5` v5.5.0 · `go-chi/cors` v1.2.2 · `oapi-codegen/runtime` v1.9.0 · `samber/slog-chi` v1.19.1 · `golang.org/x/sync` v0.25.0 |
+| `gateway-service` | `andybalholm/brotli` v1.3.0 · `getkin/kin-openapi` v0.153.0 · `go-chi/chi/v5` v5.5.0 · `go-chi/cors` v1.2.2 · `oapi-codegen/runtime` v1.9.1 · `samber/slog-chi` v1.19.1 · `golang.org/x/sync` v0.25.0 |
 | `catalog-service` | — |
 | `content-service` | — |
 | `auth-service` | `golang.org/x/crypto` v0.59.0 (argon2id) |
@@ -172,6 +172,13 @@ build incompatibility that kept Goose v3.30.0 on interpolate v0.0.2.
 | `mesh-service` | `qmuntal/gltf` v0.29.0 (GLB writer) |
 | `upload-service` | — |
 | `asset-service` | — (does not import `proto`; HTTP-only) |
+
+### 2026-11-27 refresh (Go modules)
+
+Refreshed requirements across all 12 modules on Go 1.27.4. Direct updates
+include Goose v3.30.2, go-redis v9.24.0, OpenAPI runtime v1.9.1 and miniredis
+v2.41.0. Transitive updates include `golang.org/x/net` v0.63.0 and the
+2026-11-23 `genproto/googleapis/rpc` revision.
 
 ### 2026-11-17 refresh (Go modules)
 
