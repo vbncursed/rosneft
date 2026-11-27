@@ -73,7 +73,8 @@ export function Toast({
     if (el) {
       el.style.transition = "none";
       el.style.transform = `scaleX(${left.current / lifetime})`;
-      void el.offsetWidth;
+      // Flush the starting scale before enabling the countdown transition.
+      el.getBoundingClientRect();
       el.style.transition = `transform ${left.current}ms linear`;
       el.style.transform = "scaleX(0)";
     }

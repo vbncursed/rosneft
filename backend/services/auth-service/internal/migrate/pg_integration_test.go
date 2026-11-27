@@ -22,8 +22,8 @@ type pgSuite struct {
 
 func (s *pgSuite) SetupSuite() {
 	ctx := s.T().Context()
-	// postgres:18.6, matching docker-compose.yml's pin.
-	ctr, err := tcpostgres.Run(ctx, "postgres:18.6",
+	// postgres:18.7, matching docker-compose.yml's pin.
+	ctr, err := tcpostgres.Run(ctx, "postgres:18.7",
 		tcpostgres.WithDatabase("andrey"),
 		tcpostgres.WithUsername("andrey"),
 		tcpostgres.WithPassword("andrey"),

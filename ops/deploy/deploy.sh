@@ -70,6 +70,8 @@ SELF_INSTALL=${ANDREY_SELF:-/usr/local/sbin/andrey-deploy}
 UPPED=""
 FRONT_IMAGE=ghcr.io/vbncursed/andrey-frontend
 DC=(docker compose -p andrey --project-directory "$ROOT")
+REDIS_OVERRIDE=""
+REDIS_PRESERVED=""
 FAIL_REASON=""
 MANIFEST_ID=""
 LOGGED_IN=""
@@ -167,7 +169,35 @@ registry_login() {
   [[ -z ${DRY_RUN:-} ]] || return 0
   printf '%s\n' "$TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin >/dev/null || return 1
   LOGGED_IN=1
-  trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+}
+
+cleanup_deploy() {
+  [[ -z $REDIS_OVERRIDE ]] || rm -f -- "$REDIS_OVERRIDE" || true
+  [[ -z $LOGGED_IN ]] || docker logout ghcr.io >/dev/null 2>&1 || true
+}
+
+# Redis writes its on-disk format as soon as it starts. Keep the existing
+# image when the target checkout pins an older one, including manual redeploys.
+preserve_redis() {
+  DC=(docker compose -p andrey --project-directory "$ROOT")
+  REDIS_PRESERVED=""
+  [[ -z ${DRY_RUN:-} ]] || return 0
+  local current target
+  current=$(docker container ls -a --filter 'name=^/andrey-redis-1$' --format '{{.Image}}') || return 1
+  [[ -n $current ]] || return 0
+  target=$("${DC[@]}" config --images redis) || return 1
+  [[ $current != "$target" ]] || return 0
+  local redis_tag='^redis:[0-9]+\.[0-9]+\.[0-9]+$'
+  if [[ ! $current =~ $redis_tag || ! $target =~ $redis_tag ]]; then
+    log "cannot compare Redis images: current=$current target=$target"
+    return 1
+  fi
+  [[ $(printf '%s\n' "$current" "$target" | sort -V | tail -n1) == "$current" ]] || return 0
+  [[ -n $REDIS_OVERRIDE ]] || REDIS_OVERRIDE=$(mktemp "${TMPDIR:-/tmp}/andrey-redis.XXXXXX") || return 1
+  printf 'services:\n  redis:\n    image: %s\n' "$current" >"$REDIS_OVERRIDE" || return 1
+  DC+=(-f "$ROOT/docker-compose.yml" -f "$REDIS_OVERRIDE")
+  REDIS_PRESERVED=1
+  log "keeping Redis $current (target checkout uses $target)"
 }
 
 compose_healthy() { all_healthy "$("${DC[@]}" ps -a --format json)"; }
@@ -179,11 +209,12 @@ compose_healthy() { all_healthy "$("${DC[@]}" ps -a --format json)"; }
 # registry or GitHub outage cannot stop a rollback and a missing image fails loudly.
 apply() { # <sha> [rollback]
   local sha=$1 mode=${2:-deploy}
-  export ANDREY_TAG=$sha
+  export ANDREY_TAG=$sha ANDREY_REDIS_READY=''
   if [[ $mode == deploy ]]; then
     step "git fetch failed" git -C "$ROOT" fetch origin || return 1
   fi
   step "git checkout failed" git -C "$ROOT" checkout --detach "$sha" || return 1
+  step "Redis image selection failed" preserve_redis || return 1
   if [[ $mode == deploy ]]; then
     registry_login || { FAIL_REASON="registry login failed"; return 1; }
     step "compose pull failed" "${DC[@]}" pull || return 1
@@ -290,7 +321,11 @@ main() {
       warn=" WARNING: recording the deploy state failed (.deployed/history stale; check $ROOT/.deployed and $STATE)"
       log "WARN: recording the deploy state failed"
     }
-    run install -m0755 "$ROOT/ops/deploy/deploy.sh" "$SELF_INSTALL" || log "forced command refresh failed"
+    if [[ -z $REDIS_PRESERVED ]]; then
+      run install -m0755 "$ROOT/ops/deploy/deploy.sh" "$SELF_INSTALL" || log "forced command refresh failed"
+    else
+      log "keeping the Redis-compatible forced command"
+    fi
     notify "$(success_text)$warn"
     run prune_images || log "WARN: image prune failed"
     exit 0
@@ -315,4 +350,5 @@ main() {
   exit 3
 }
 
+trap cleanup_deploy EXIT
 main "$@"

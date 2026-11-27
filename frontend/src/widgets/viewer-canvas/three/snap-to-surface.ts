@@ -1,4 +1,5 @@
 import { Raycaster, Vector3, type Intersection, type Mesh, type Object3D } from "three";
+import { isMesh } from "./is-mesh";
 
 // Module-level scratch so we don't allocate a Raycaster + two Vector3s on
 // every objectChange tick during a drag. Single-writer (PlacementsLayer's
@@ -24,9 +25,8 @@ function nearestHit(target: Object3D, from: Vector3, dir: Vector3, far = Infinit
   raycaster.far = far;
   target.updateMatrixWorld(true);
   const hits: Intersection[] = [];
-  target.traverse((o) => {
-    const m = o as Mesh;
-    if (!m.isMesh) return;
+  target.traverse((m) => {
+    if (!isMesh(m)) return;
     // oxlint-disable-next-line typescript/unbound-method -- always invoked as fn.call(m, ...) on the mesh it came from
     const fn = (m.userData.origRaycast ?? m.raycast) as Mesh["raycast"];
     fn.call(m, raycaster, hits);

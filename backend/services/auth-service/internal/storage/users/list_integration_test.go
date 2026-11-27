@@ -34,9 +34,9 @@ func TestListScopeSuite(t *testing.T) { suite.Run(t, new(ListScopeSuite)) }
 
 func (s *ListScopeSuite) SetupSuite() {
 	ctx := context.Background()
-	// postgres:18.6, matching docker-compose.yml's pin — see
+	// postgres:18.7, matching docker-compose.yml's pin — see
 	// set_totp_required_integration_test.go for why the version is pinned.
-	ctr, err := tcpostgres.Run(ctx, "postgres:18.6",
+	ctr, err := tcpostgres.Run(ctx, "postgres:18.7",
 		tcpostgres.WithDatabase("andrey"),
 		tcpostgres.WithUsername("andrey"),
 		tcpostgres.WithPassword("andrey"),

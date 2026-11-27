@@ -203,9 +203,15 @@ describe("usePlacementsEditor", () => {
       const { result } = editor();
       const keyOf = (call: number) => vi.mocked(createPlacements).mock.calls[call][2];
 
-      await act(async () => void (await result.current.s.create("tank", 1, null, ORIGIN)));
-      await act(async () => void (await result.current.s.create("tank", 1, null, { ...ORIGIN })));
-      await act(async () => void (await result.current.s.create("tank", 1, null, { ...ORIGIN, yaw: 0 })));
+      await act(async () => {
+        await result.current.s.create("tank", 1, null, ORIGIN);
+      });
+      await act(async () => {
+        await result.current.s.create("tank", 1, null, { ...ORIGIN });
+      });
+      await act(async () => {
+        await result.current.s.create("tank", 1, null, { ...ORIGIN, yaw: 0 });
+      });
 
       expect(keyOf(1)).toBe(keyOf(0));
       expect(keyOf(2)).not.toBe(keyOf(0));

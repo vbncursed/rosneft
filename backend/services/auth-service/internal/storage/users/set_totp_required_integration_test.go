@@ -36,12 +36,12 @@ func TestTOTPRequiredSuite(t *testing.T) { suite.Run(t, new(TOTPRequiredSuite)) 
 
 func (s *TOTPRequiredSuite) SetupSuite() {
 	ctx := context.Background()
-	// postgres:18.6, matching docker-compose.yml's pin (bumped 2026-09-01,
+	// postgres:18.7, matching docker-compose.yml's pin (bumped 2026-09-01,
 	// commit 9471551) — a migration test that runs on a different major version
 	// than production is testing the wrong thing. catalog-service's
 	// resolve_blob_access and audit-service's migrate suites now pin the
 	// same tag.
-	ctr, err := tcpostgres.Run(ctx, "postgres:18.6",
+	ctr, err := tcpostgres.Run(ctx, "postgres:18.7",
 		tcpostgres.WithDatabase("andrey"),
 		tcpostgres.WithUsername("andrey"),
 		tcpostgres.WithPassword("andrey"),
