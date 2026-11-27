@@ -10,7 +10,7 @@ of 100+ MB ASCII files.
 - **Go 1.27.4** — modern stdlib (`slices`, `maps`, `cmp`, `slog`, `errors.AsType`, `wg.Go`, `strings.SplitSeq`)
 - **gRPC** — internal service-to-service
 - **REST + OpenAPI 3.2** — gateway → frontend (schema-first, `oapi-codegen` generates Go server stubs; frontend generates TS client from the same spec)
-- **PostgreSQL 17** — catalog + auth persistence (shared instance, separate tables / goose version table)
+- **PostgreSQL 18** — catalog + auth persistence (shared instance, separate tables / goose version table)
 - **Redis 8** — async conversion job queue (Streams) + auth sessions (opaque tokens, DB 1)
 - **Auth** — argon2id passwords, TOTP 2FA, WebAuthn passkeys, multi-role RBAC, opaque Redis sessions (`auth-service` + `twofa-service` + `passkey-service`)
 - **Local FS** — blob storage behind `BlobStore` interface (S3-ready)
@@ -206,6 +206,23 @@ Updated direct and indirect requirements across all 12 modules, including
 `testcontainers-go` 0.45.0, `golang.org/x/image` 0.48.0 and
 `golang.org/x/sync` 0.25.0. The local `pkg` and `proto` replacements and
 Go 1.27.4 remain unchanged.
+
+### 2026-11-27 refresh (Compose images)
+
+| Image | Version |
+| --- | --- |
+| `postgres` | 18.7, also used by integration tests |
+| `redis` | 8.12.0, also used by integration tests |
+| `prom/prometheus` | v3.16.0, also used by `promtool` in `ops/Makefile` |
+| `prom/alertmanager` | v0.35.1 |
+
+PostgreSQL 19 requires a major-version migration of the persistent volume.
+Redis 8.12 raises the RDB format version from 15 to 17. Install the updated
+`ops/deploy/deploy.sh` as `/usr/local/sbin/andrey-deploy` on the deployment
+host before the first 8.12 rollout. Compose rejects a SHA-based deploy from
+the old runner before any containers change. The updated runner keeps the
+newer Redis image during automatic rollback or manual redeployment of an
+older application SHA.
 
 ### 2026-10-30 refresh (compose images)
 

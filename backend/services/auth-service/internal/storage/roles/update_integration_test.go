@@ -30,7 +30,7 @@ func TestUpdateSuite(t *testing.T) { suite.Run(t, new(UpdateSuite)) }
 
 func (s *UpdateSuite) SetupSuite() {
 	ctx := context.Background()
-	ctr, err := tcpostgres.Run(ctx, "postgres:18.6",
+	ctr, err := tcpostgres.Run(ctx, "postgres:18.7",
 		tcpostgres.WithDatabase("andrey"),
 		tcpostgres.WithUsername("andrey"),
 		tcpostgres.WithPassword("andrey"),

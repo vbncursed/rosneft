@@ -30,7 +30,7 @@ func TestPanoramaPhasesSuite(t *testing.T) { suite.Run(t, new(PanoramaPhasesSuit
 
 func (s *PanoramaPhasesSuite) SetupSuite() {
 	ctx := s.T().Context()
-	ctr, err := tcpostgres.Run(ctx, "postgres:18.6",
+	ctr, err := tcpostgres.Run(ctx, "postgres:18.7",
 		tcpostgres.WithDatabase("andrey"),
 		tcpostgres.WithUsername("andrey"),
 		tcpostgres.WithPassword("andrey"),

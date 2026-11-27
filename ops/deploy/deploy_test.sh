@@ -89,10 +89,25 @@ echo "docker $*" >> "$CALLS"
 # STUB_OFFLINE_AFTER=<sha>: the network is gone once <sha> has been checked out (the rollback)
 offline_now() { [[ -n ${STUB_OFFLINE_AFTER:-} ]] && grep -q "checkout --detach $STUB_OFFLINE_AFTER" "$CALLS"; }
 case "$1" in
+  container)
+    [[ -z ${STUB_REDIS_UPGRADE:-} ]] || cat "$WORK/live_redis"
+    ;;
   compose)
     case "$*" in
+      *" config --images redis")
+        if [[ $ANDREY_TAG == "$STUB_OLD" ]]; then echo redis:8.10.3; else echo redis:8.12.0; fi ;;
       *" pull"*) sleep "${STUB_SLOW:-0}"; [[ -z ${STUB_PULL_FAIL:-} ]] || exit 1; ! offline_now || exit 1 ;;
-      *" up "*) [[ " $* " != *" --remove-orphans "* ]] || touch "$WORK/orphan_gone"; [[ ${ANDREY_TAG:-} != "${STUB_UP_FAIL_TAG:-x}" ]] || exit 1 ;;
+      *" up "*)
+        [[ " $* " != *" --remove-orphans "* ]] || touch "$WORK/orphan_gone"
+        [[ ${ANDREY_TAG:-} != "${STUB_UP_FAIL_TAG:-x}" ]] || exit 1
+        if [[ -n ${STUB_REDIS_UPGRADE:-} && " $* " != *" --no-deps audit "* ]]; then
+          selected=redis:8.12.0
+          [[ $ANDREY_TAG != "$STUB_OLD" ]] || selected=redis:8.10.3
+          for arg in "$@"; do
+            [[ $arg != */andrey-redis.* ]] || selected=$(sed -n 's/^ *image: *//p' "$arg")
+          done
+          echo "$selected" > "$WORK/live_redis"
+        fi ;;
       *" ps "*) for s in gateway auth; do printf '{"Service":"%s","State":"running","Health":"healthy"}\n' "$s"; done
         if [[ -n ${STUB_ORPHAN:-} && ! -f $WORK/orphan_gone ]]; then printf '{"Service":"newsvc","State":"exited","Health":""}\n'; fi ;;
     esac ;;
@@ -169,6 +184,8 @@ fresh() {
     ANDREY_ORIGIN="https://x.test" ANDREY_LOCK="$WORK/s/lock" ANDREY_CHECK_TIMEOUT=0 ANDREY_CHECK_INTERVAL=0 \
     ANDREY_SELF="$WORK/s/andrey-deploy" TMPDIR="$WORK/s/tmp" STUB_OLD="$SHA1" STUB_NEW="$SHA2" STUB_BROKEN_RE=""
   unset STUB_ORPHAN STUB_SLOW STUB_PULL_FAIL STUB_UP_FAIL_TAG STUB_LOGIN_FAIL STUB_CREATE_FAIL_TAG STUB_FETCH_FAIL STUB_CP_FAIL_TAG ANDREY_LOCK_WAIT DRY_RUN STUB_LOCK_HELD STUB_PGDUMP_FAIL STUB_MIGRATIONS STUB_TG_FAIL STUB_OFFLINE_AFTER SSH_ORIGINAL_COMMAND || true
+  unset STUB_REDIS_UPGRADE
+  printf 'redis:8.10.3\n' > "$WORK/live_redis"
 }
 
 # deploy.sh with $TOKEN on stdin; sets $out, $rc, $log. The command substitution
@@ -240,6 +257,28 @@ no "forward calls carry neither flag" grep -q -e '--pull never' -e '--pull=never
 no "nothing pruned after a failure" grep -q '^+ prune_images' <<<"$log"
 no "rollback never refreshes the forced command" [ -e "$ANDREY_SELF" ]
 ok "rollback's docker create also gets the dummy command" calls_have "^docker create --pull=never .*:$SHA1 /nonexistent$"
+
+echo "=== 6r. a Redis upgrade survives an application rollback ==="
+fresh
+echo "$SHA1" > "$ANDREY_ROOT/.deployed"
+export STUB_REDIS_UPGRADE=1 STUB_BROKEN_RE="$SHA2" STUB_OFFLINE_AFTER="$SHA1"
+go "$SHA2" vbncursed
+ok "application rolled back" [ "$rc" -eq 1 ]
+ok "previous frontend is live" [ "$(live_id)" = "$SHA1" ]
+ok "newer Redis kept after rollback" grep -qx 'redis:8.12.0' "$WORK/live_redis"
+no "Redis override removed" compgen -G "$TMPDIR/andrey-redis.*"
+
+echo "=== 6s. redeploying an older SHA keeps Redis and the compatible forced command ==="
+fresh
+echo "$SHA2" > "$ANDREY_ROOT/.deployed"
+echo redis:8.12.0 > "$WORK/live_redis"
+echo '# Redis-compatible runner' > "$ANDREY_SELF"
+export STUB_REDIS_UPGRADE=1
+go "$SHA1" vbncursed
+ok "older application deployed" [ "$rc" -eq 0 ]
+ok "older SHA recorded" [ "$(deployed)" = "$SHA1" ]
+ok "Redis kept after manual redeploy" grep -qx 'redis:8.12.0' "$WORK/live_redis"
+ok "Redis-compatible forced command kept" grep -qx '# Redis-compatible runner' "$ANDREY_SELF"
 
 echo "=== 6f. pre-up failures abort without rollback ==="
 for knob in FETCH LOGIN PULL; do

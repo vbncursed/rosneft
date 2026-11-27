@@ -35,7 +35,7 @@ func TestMeasurementsSuite(t *testing.T) { suite.Run(t, new(MeasurementsSuite)) 
 // territories "a" and "b".
 func startCatalogDB(s *suite.Suite) (*tcpostgres.PostgresContainer, *pgxpool.Pool) {
 	ctx := s.T().Context()
-	ctr, err := tcpostgres.Run(ctx, "postgres:18.6",
+	ctr, err := tcpostgres.Run(ctx, "postgres:18.7",
 		tcpostgres.WithDatabase("andrey"),
 		tcpostgres.WithUsername("andrey"),
 		tcpostgres.WithPassword("andrey"),

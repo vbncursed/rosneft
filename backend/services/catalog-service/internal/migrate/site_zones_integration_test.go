@@ -30,7 +30,7 @@ func TestSiteZonesSuite(t *testing.T) { suite.Run(t, new(SiteZonesSuite)) }
 
 func (s *SiteZonesSuite) SetupSuite() {
 	ctx := s.T().Context()
-	ctr, err := tcpostgres.Run(ctx, "postgres:18.6",
+	ctr, err := tcpostgres.Run(ctx, "postgres:18.7",
 		tcpostgres.WithDatabase("andrey"),
 		tcpostgres.WithUsername("andrey"),
 		tcpostgres.WithPassword("andrey"),

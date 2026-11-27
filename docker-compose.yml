@@ -26,7 +26,8 @@ services:
 
   redis:
     restart: unless-stopped
-    image: redis:8.10.3
+    # A SHA-based deploy must use the runner that preserves Redis on rollback.
+    image: 'redis:8.12.0${ANDREY_TAG:+${ANDREY_REDIS_READY?Install the Redis-compatible deploy script first}}'
     networks: [default, identity]
     environment:
       <<: *tz
@@ -411,7 +412,7 @@ services:
 
   prometheus:
     restart: unless-stopped
-    image: prom/prometheus:v3.15.1
+    image: prom/prometheus:v3.16.0
     networks: [default, identity]
     environment:
       <<: *tz
@@ -429,7 +430,7 @@ services:
 
   alertmanager:
     restart: unless-stopped
-    image: prom/alertmanager:v0.34.2
+    image: prom/alertmanager:v0.35.1
     environment:
       <<: *tz
     command:

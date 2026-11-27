@@ -31,7 +31,7 @@ func TestTargetIndexSuite(t *testing.T) { suite.Run(t, new(TargetIndexSuite)) }
 func (s *TargetIndexSuite) SetupSuite() {
 	ctx := context.Background()
 	// redis:8.10.1 — docker-compose.yml's pin.
-	ctr, err := tcredis.Run(ctx, "redis:8.10.1")
+	ctr, err := tcredis.Run(ctx, "redis:8.12.0")
 	assert.NilError(s.T(), err)
 	s.ctr = ctr
 	uri, err := ctr.ConnectionString(ctx)

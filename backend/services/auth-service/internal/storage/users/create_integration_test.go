@@ -32,8 +32,8 @@ func TestCreateSuite(t *testing.T) { suite.Run(t, new(CreateSuite)) }
 
 func (s *CreateSuite) SetupSuite() {
 	ctx := context.Background()
-	// postgres:18.6, matching docker-compose.yml's pin — see TOTPRequiredSuite.
-	ctr, err := tcpostgres.Run(ctx, "postgres:18.6",
+	// postgres:18.7, matching docker-compose.yml's pin — see TOTPRequiredSuite.
+	ctr, err := tcpostgres.Run(ctx, "postgres:18.7",
 		tcpostgres.WithDatabase("andrey"),
 		tcpostgres.WithUsername("andrey"),
 		tcpostgres.WithPassword("andrey"),
