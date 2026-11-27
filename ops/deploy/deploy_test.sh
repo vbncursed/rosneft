@@ -261,11 +261,13 @@ ok "rollback's docker create also gets the dummy command" calls_have "^docker cr
 echo "=== 6r. a Redis upgrade survives an application rollback ==="
 fresh
 echo "$SHA1" > "$ANDREY_ROOT/.deployed"
+touch "$ANDREY_ROOT/docker-compose.override.yml"
 export STUB_REDIS_UPGRADE=1 STUB_BROKEN_RE="$SHA2" STUB_OFFLINE_AFTER="$SHA1"
 go "$SHA2" vbncursed
 ok "application rolled back" [ "$rc" -eq 1 ]
 ok "previous frontend is live" [ "$(live_id)" = "$SHA1" ]
 ok "newer Redis kept after rollback" grep -qx 'redis:8.12.0' "$WORK/live_redis"
+ok "rollback carries the server Compose override" calls_have 'docker-compose.yml -f .*docker-compose.override.yml -f .*/andrey-redis.* up .* --remove-orphans'
 no "Redis override removed" compgen -G "$TMPDIR/andrey-redis.*"
 
 echo "=== 6s. redeploying an older SHA keeps Redis and the compatible forced command ==="
@@ -279,6 +281,17 @@ ok "older application deployed" [ "$rc" -eq 0 ]
 ok "older SHA recorded" [ "$(deployed)" = "$SHA1" ]
 ok "Redis kept after manual redeploy" grep -qx 'redis:8.12.0' "$WORK/live_redis"
 ok "Redis-compatible forced command kept" grep -qx '# Redis-compatible runner' "$ANDREY_SELF"
+
+echo "=== 6t. a first rollout keeps the runner that supports the host override ==="
+fresh
+echo "$SHA1" > "$ANDREY_ROOT/.deployed"
+touch "$ANDREY_ROOT/docker-compose.override.yml"
+echo '# host-override-compatible runner' > "$ANDREY_SELF"
+export STUB_REDIS_UPGRADE=1
+go "$SHA2" vbncursed
+ok "new application deployed" [ "$rc" -eq 0 ]
+ok "Redis upgraded" grep -qx 'redis:8.12.0' "$WORK/live_redis"
+ok "host-override-compatible forced command kept" grep -qx '# host-override-compatible runner' "$ANDREY_SELF"
 
 echo "=== 6f. pre-up failures abort without rollback ==="
 for knob in FETCH LOGIN PULL; do

@@ -195,7 +195,12 @@ preserve_redis() {
   [[ $(printf '%s\n' "$current" "$target" | sort -V | tail -n1) == "$current" ]] || return 0
   [[ -n $REDIS_OVERRIDE ]] || REDIS_OVERRIDE=$(mktemp "${TMPDIR:-/tmp}/andrey-redis.XXXXXX") || return 1
   printf 'services:\n  redis:\n    image: %s\n' "$current" >"$REDIS_OVERRIDE" || return 1
-  DC+=(-f "$ROOT/docker-compose.yml" -f "$REDIS_OVERRIDE")
+  DC+=(-f "$ROOT/docker-compose.yml")
+  # Explicit -f disables Compose's automatic discovery of the host override.
+  if [[ -f $ROOT/docker-compose.override.yml ]]; then
+    DC+=(-f "$ROOT/docker-compose.override.yml")
+  fi
+  DC+=(-f "$REDIS_OVERRIDE")
   REDIS_PRESERVED=1
   log "keeping Redis $current (target checkout uses $target)"
 }
@@ -321,10 +326,13 @@ main() {
       warn=" WARNING: recording the deploy state failed (.deployed/history stale; check $ROOT/.deployed and $STATE)"
       log "WARN: recording the deploy state failed"
     }
-    if [[ -z $REDIS_PRESERVED ]]; then
-      run install -m0755 "$ROOT/ops/deploy/deploy.sh" "$SELF_INSTALL" || log "forced command refresh failed"
-    else
+    if [[ -n $REDIS_PRESERVED ]]; then
       log "keeping the Redis-compatible forced command"
+    elif [[ -f $ROOT/docker-compose.override.yml ]] &&
+      ! grep -Fq "DC+=(-f \"\$ROOT/docker-compose.override.yml\")" "$ROOT/ops/deploy/deploy.sh"; then
+      log "keeping the forced command with host Compose override support"
+    else
+      run install -m0755 "$ROOT/ops/deploy/deploy.sh" "$SELF_INSTALL" || log "forced command refresh failed"
     fi
     notify "$(success_text)$warn"
     run prune_images || log "WARN: image prune failed"
